@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -141,15 +142,21 @@ export default function Editor() {
     };
   }, []);
 
-  const runSimulation = () => {
+  const runSimulation = async () => {
     setIsCompiling(true);
     setOutputCode("Compiling...\n");
+
+     const response = await axios.post("http://localhost:8000/api/run", {
+      language_id: 53,
+      source_code: code,
+      stdin: inputCode,
+    });
+
+    console.log("Response:", response.data.stdout);
+
+    setOutputCode(response.data.stdout || response.data.message || "Something went wrong.");
+    setIsCompiling(false);
     
-    // Simulate network/execution delay
-    setTimeout(() => {
-      setIsCompiling(false);
-      setOutputCode("2\n7 2\n\n[Finished in 42ms]");
-    }, 800);
   };
 
   const currentLangObj = LANGUAGE_OPTIONS.find(l => l.value === language);
@@ -160,18 +167,6 @@ export default function Editor() {
       
       {/* Sublime Text Classic Menu Bar */}
       <header className="flex h-7 shrink-0 items-center justify-between px-3 text-[13px] border-b border-[#222] bg-[#1a1a1a]">
-        <div className="flex items-center gap-4">
-          <span className="hover:text-white cursor-default">File</span>
-          <span className="hover:text-white cursor-default">Edit</span>
-          <span className="hover:text-white cursor-default">Selection</span>
-          <span className="hover:text-white cursor-default">Find</span>
-          <span className="hover:text-white cursor-default">View</span>
-          <span className="hover:text-white cursor-default">Goto</span>
-          <span className="hover:text-white cursor-default">Tools</span>
-          <span className="hover:text-white cursor-default">Project</span>
-          <span className="hover:text-white cursor-default">Preferences</span>
-          <span className="hover:text-white cursor-default">Help</span>
-        </div>
         
         {/* Actions tucked away cleanly */}
         <div className="flex items-center gap-4 text-[12px]">
