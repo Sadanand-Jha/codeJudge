@@ -7,15 +7,6 @@ import judge0 from "../services/judge0.service.js";
 export const runCode = async (req: Request, res: Response) => {
     try {
         const { source_code, language_id, stdin } = req.body;
-
-        console.log("Received request to run code:", { source_code, language_id, stdin });
-        // return res.status(200).json({
-        //     message: "Received request to run code",
-        //     source_code,
-        //     language_id,
-        //     stdin,
-        // });
-
         const submission = await judge0.post(
             "/submissions?base64_encoded=false&wait=true",
             {
