@@ -32,6 +32,7 @@ export function useEditor() {
   useEffect(() => {
     let mounted = true;
     fetchAndMergeLanguages().then((langs) => {
+      console.log("Fetched and merged languages:", langs);
       if (mounted) setAvailableLanguages(langs);
     });
     return () => {

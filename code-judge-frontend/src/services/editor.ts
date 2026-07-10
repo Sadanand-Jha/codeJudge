@@ -18,8 +18,8 @@ export const getAllLanguages = async (): Promise<any> => {
 }
 
 /**
- * Fetch languages from the Judge0 /languages API and merge them with
- * the static LANGUAGE_OPTIONS config.
+ * Fetch languages from the Judge0 /languages API (via getAllLanguages)
+ * and merge them with the static LANGUAGE_OPTIONS config.
  *
  * For each language returned by the API, if it matches a known language
  * by name (via getLanguageOptionByName), it's included using the static
@@ -29,14 +29,16 @@ export const getAllLanguages = async (): Promise<any> => {
  */
 export const fetchAndMergeLanguages = async (): Promise<LanguageOption[]> => {
   try {
-    const response = await userDirectApi.get("/languages");
-    const apiLanguages: Array<{ id: number; name: string }> = response.data;
+    const apiLanguages: Array<{ id: number; name: string }> = await getAllLanguages();
+
+    console.log(apiLanguages);
 
     // Map API language IDs to our static config using judge0Name
     const merged: LanguageOption[] = [];
 
     for (const lang of apiLanguages) {
       const staticLang = getLanguageOptionByName(lang.name);
+      console.log("This is lang:", lang.name, staticLang);
       if (staticLang) {
         merged.push({
           ...staticLang,
@@ -44,6 +46,8 @@ export const fetchAndMergeLanguages = async (): Promise<LanguageOption[]> => {
         });
       }
     }
+
+    console.log("Merged languages:", merged);
 
     // Fallback to static config if API returns nothing useful
     if (merged.length === 0) {

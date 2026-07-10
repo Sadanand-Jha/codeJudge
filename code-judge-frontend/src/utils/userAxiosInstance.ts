@@ -19,7 +19,7 @@ const createUserAxiosInstance = (
 
 const userDirectAxiosInstance = (config: userAxiosConfig = {}) : AxiosInstance => {
     const axiosInstance = axios.create({
-        baseURL: `${process.env.NEXT_JUDGE0_URL}`,
+        baseURL: `${process.env.NEXT_JUDGE0_URL || "http://localhost:2358"}`,
         headers: {
         "Content-Type": "application/json",
         },  
