@@ -1,5 +1,5 @@
-import { MonacoEditor } from "@/components/editor";
+import { CodeEditor } from "@/components/editor";
 
 export default function Page() {
-  return <MonacoEditor />;
+  return <CodeEditor />;
 }
