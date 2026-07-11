@@ -1,5 +1,5 @@
-import { CodeEditor } from "@/components/editor";
+// import { CodeE } from "@/components/editor";
 
 export default function Page() {
-  return <CodeEditor />;
+  return null;
 }
