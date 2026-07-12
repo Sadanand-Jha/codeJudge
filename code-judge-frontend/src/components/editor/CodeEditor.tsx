@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import { mainEditorOptions } from "@/config/editor";
 import { useEditor } from "@/hooks/useEditor";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
@@ -34,12 +35,46 @@ export default function CodeEditor() {
     runCode,
   } = useEditor();
 
-  // Autocomplete integration: registers Monaco CompletionItemProvider
-  useAutocomplete(
-    monacoRef.current,
-    mainEditorRef.current,
-    monacoLanguage,
+  // Initialize autocomplete hook - passes refs to detect when editor/monaco are available
+  // The hook internally uses polling to detect when refs are set
+  useAutocomplete({
+    monacoRef: monacoRef,
+    editorRef: mainEditorRef,
+    languageId: monacoLanguage,
+  });
+
+  // Keep the onMount callback stable - only depends on stable refs
+  const handleEditorMount = useCallback(
+    (editor: any, monaco: any) => {
+      mainEditorRef.current = editor;
+      monacoRef.current = monaco;
+
+      // Subscribe to cursor position changes
+      editor.onDidChangeCursorPosition((e: any) => {
+        handleCursorChange(
+          `Line ${e.position.lineNumber}, Column ${e.position.column}`
+        );
+      });
+    },
+    [mainEditorRef, monacoRef, handleCursorChange],
   );
+
+  const handleCodeChangeCallback = useCallback(
+    (value: string) => {
+      handleCodeChange(value);
+    },
+    [handleCodeChange],
+  );
+
+  const handleInputChange = useCallback(
+    (value: string) => {
+      setInput(value);
+    },
+    [setInput],
+  );
+
+  // Memoize options to avoid recreating on every render
+  const editorOptions = useMemo(() => mainEditorOptions, []);
 
   return (
     <div className="flex h-screen w-full flex-col overflow-hidden bg-[#1a1a1a] text-[#b0b0b0] font-sans selection:bg-[#49483E]">
@@ -61,17 +96,9 @@ export default function CodeEditor() {
             <MonacoEditorWrapper
               language={monacoLanguage}
               value={code}
-              options={mainEditorOptions}
-              onChange={handleCodeChange}
-              onMount={(editor, monaco) => {
-                mainEditorRef.current = editor;
-                monacoRef.current = monaco;
-                editor.onDidChangeCursorPosition((e) => {
-                  handleCursorChange(
-                    `Line ${e.position.lineNumber}, Column ${e.position.column}`
-                  );
-                });
-              }}
+              options={editorOptions}
+              onChange={handleCodeChangeCallback}
+              onMount={handleEditorMount}
             />
           </div>
         </div>
@@ -95,7 +122,7 @@ export default function CodeEditor() {
         <ConsolePanel
           input={input}
           output={output}
-          onInputChange={setInput}
+          onInputChange={handleInputChange}
           inputHeight={inputPanelHeight}
           rightPanelWidth={rightPanelWidth}
           dragStateRef={dragStateRef}

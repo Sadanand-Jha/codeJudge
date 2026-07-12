@@ -1,10 +1,12 @@
 "use client";
 
+import { memo } from "react";
+
 interface EditorToolbarProps {
   fileName: string;
 }
 
-export default function EditorToolbar({ fileName }: EditorToolbarProps) {
+function EditorToolbar({ fileName }: EditorToolbarProps) {
   return (
     <div className="flex h-9 bg-[#1e1e1e] items-end px-2 gap-1 select-none">
       <div className="flex h-[32px] min-w-[120px] max-w-[200px] items-center justify-between bg-[#272822] px-3 text-[13px] text-[#e0e0e0] rounded-t-sm">
@@ -14,3 +16,5 @@ export default function EditorToolbar({ fileName }: EditorToolbarProps) {
     </div>
   );
 }
+
+export default memo(EditorToolbar);

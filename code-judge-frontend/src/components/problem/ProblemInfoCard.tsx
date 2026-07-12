@@ -33,13 +33,13 @@ export default function ProblemInfoCard({
   tags,
 }: ProblemInfoCardProps) {
   return (
-    <aside className="rounded-xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-sm">
-      <div className="border-b border-zinc-800 px-5 py-4">
-        <h3 className="text-sm font-semibold text-zinc-100">Problem Information</h3>
+    <aside className="rounded-xl border border-[#E5E7EB] bg-white">
+      <div className="border-b border-[#E5E7EB] px-5 py-4">
+        <h3 className="text-sm font-semibold text-[#111827]">Problem Information</h3>
       </div>
-      <div className="space-y-0 divide-y divide-zinc-800/80">
+      <div className="space-y-0 divide-y divide-[#E5E7EB]/80">
         <InfoRow label="Rating" value={rating !== null ? `${rating}` : "Unrated"}>
-          {rating !== null && <RatingBadge rating={rating} />}
+          {rating !== null && <RatingBadge rating={rating} size="sm" />}
         </InfoRow>
         <InfoRow label="Time Limit" value={formatTime(timeLimitMs)} />
         <InfoRow label="Memory Limit" value={formatMemory(memoryLimitMb)} />
@@ -48,8 +48,8 @@ export default function ProblemInfoCard({
         <InfoRow label="Problem ID" value={problemId} mono />
       </div>
       {tags.length > 0 && (
-        <div className="border-t border-zinc-800 px-5 py-4">
-          <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-zinc-500">
+        <div className="border-t border-[#E5E7EB] px-5 py-4">
+          <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-[#9CA3AF]">
             Tags
           </h4>
           <div className="flex flex-wrap gap-1.5">
@@ -73,11 +73,11 @@ interface InfoRowProps {
 function InfoRow({ label, value, mono, children }: InfoRowProps) {
   return (
     <div className="flex items-center justify-between px-5 py-3">
-      <span className="text-xs text-zinc-500">{label}</span>
+      <span className="text-xs text-[#9CA3AF]">{label}</span>
       <div className="flex items-center gap-2">
         {children || (
           <span
-            className={`text-xs font-medium text-zinc-300 ${
+            className={`text-xs font-medium text-[#111827] ${
               mono ? "font-mono tracking-tight" : ""
             }`}
           >

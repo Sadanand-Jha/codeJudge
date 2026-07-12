@@ -23,25 +23,25 @@ export default function ProblemHeader({
 
   return (
     <header className="mb-8 space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight text-zinc-100 md:text-3xl">
+      <h1 className="text-2xl font-bold tracking-tight text-[#111827] md:text-3xl">
         {displayTitle}
       </h1>
       <div className="flex flex-wrap items-center gap-3">
-        {rating !== null && <RatingBadge rating={rating} />}
+        {rating !== null && <RatingBadge rating={rating} size="md" />}
         {source && (
-          <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700/50 bg-zinc-800/50 px-2.5 py-1 text-xs text-zinc-400">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-[#E5E7EB] bg-white px-2.5 py-1 text-xs text-[#6B7280]">
             <span className="opacity-70">Source:</span>
             {source}
           </span>
         )}
         {contestId && problemIndex && (
-          <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700/50 bg-zinc-800/50 px-2.5 py-1 text-xs text-zinc-400">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-[#E5E7EB] bg-white px-2.5 py-1 text-xs text-[#6B7280]">
             <span className="opacity-70">{contestId}</span>
             <span className="opacity-50">·</span>
             <span className="font-mono">{problemIndex}</span>
           </span>
         )}
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700/50 bg-zinc-800/50 px-2.5 py-1 text-xs font-mono text-zinc-400">
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-[#E5E7EB] bg-white px-2.5 py-1 font-mono text-xs text-[#6B7280]">
           ID: {problemId}
         </span>
       </div>

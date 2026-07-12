@@ -19,6 +19,10 @@ interface MonacoEditorWrapperProps {
   theme?: string;
 }
 
+// PERFORMANCE OPTIMIZATION: Memoize the theme creation function with empty deps
+// Theme is created once and reused
+const themeCreatedRef = { current: false };
+
 export default function MonacoEditorWrapper({
   language,
   value,
@@ -26,9 +30,21 @@ export default function MonacoEditorWrapper({
   onMount,
   options,
 }: MonacoEditorWrapperProps) {
-  const monacoRef = useRef<any>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const onMountCallbackRef = useRef(onMount);
+
+  // Keep the onMount callback ref up to date without causing re-renders
+  useEffect(() => {
+    onMountCallbackRef.current = onMount;
+  }, [onMount]);
 
   const createEditorTheme = useCallback((monaco: any) => {
+    // Only create theme once
+    if (themeCreatedRef.current) return;
+    themeCreatedRef.current = true;
+
     monaco.editor.defineTheme("sublime-monokai", {
       base: "vs-dark",
       inherit: true,
@@ -63,27 +79,87 @@ export default function MonacoEditorWrapper({
   }, []);
 
   const handleMount = useCallback(
-    (editor: editor.IStandaloneCodeEditor, monaco: any) => {
-      monacoRef.current = monaco;
+    (editorInstance: editor.IStandaloneCodeEditor, monaco: any) => {
+      editorRef.current = editorInstance;
       createEditorTheme(monaco);
-      onMount?.(editor, monaco);
+      onMountCallbackRef.current?.(editorInstance, monaco);
     },
-    [createEditorTheme, onMount]
+    [createEditorTheme],
   );
 
+  // ResizeObserver to replace automaticLayout polling - layout() only called on actual resize
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let previousWidth = 0;
+    let previousHeight = 0;
+    let pendingLayout = false;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        // Use contentRect for broader browser support
+        const { width, height } = entry.contentRect;
+        
+        // Only proceed if dimensions actually changed
+        if (width === previousWidth && height === previousHeight) return;
+        previousWidth = width;
+        previousHeight = height;
+
+        if (!pendingLayout) {
+          pendingLayout = true;
+          // Use RAF to coalesce rapid resize events
+          rafRef.current = requestAnimationFrame(() => {
+            if (editorRef.current) {
+              editorRef.current.layout(undefined, false);
+            }
+            pendingLayout = false;
+            rafRef.current = null;
+          });
+        }
+      }
+    });
+
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, []);
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      monacoRef.current = null;
+      const editor = editorRef.current;
+      if (editor) {
+        // Dispose the editor model to prevent memory leaks
+        const model = editor.getModel();
+        if (model) {
+          model.dispose();
+        }
+        editor.dispose();
+        editorRef.current = null;
+      }
     };
   }, []);
 
   return (
-    <MonacoEditor
-      language={language}
-      value={value}
-      options={options}
-      onChange={(v) => onChange?.(v ?? "")}
-      onMount={handleMount}
-    />
+    <div ref={containerRef} className="h-full w-full">
+      <MonacoEditor
+        language={language}
+        value={value}
+        options={{
+          ...options,
+          // Explicitly disable automaticLayout since we use ResizeObserver
+          automaticLayout: false,
+        }}
+        onChange={(v) => onChange?.(v ?? "")}
+        onMount={handleMount}
+      />
+    </div>
   );
 }

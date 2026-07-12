@@ -4,11 +4,12 @@ import { useMemo } from "react";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { Problem } from "@/types/problem";
-import ProblemHeader from "@/components/problem/ProblemHeader";
-import ProblemInfoCard from "@/components/problem/ProblemInfoCard";
-import ProblemStatement from "@/components/problem/ProblemStatement";
-import SampleTestCard from "@/components/problem/SampleTestCard";
-import SectionTitle from "@/components/problem/SectionTitle";
+import ProblemDescriptionCard from "@/components/problem/ProblemDescriptionCard";
+import ProblemSidebar from "@/components/problem/ProblemSidebar";
+import SampleTestTabs from "@/components/problem/SampleTestTabs";
+import DifficultyBadge from "@/components/problem/DifficultyBadge";
+import RatingBadge from "@/components/problem/RatingBadge";
+import ConstraintsDisplay from "@/components/problem/ConstraintsDisplay";
 
 interface ProblemClientProps {
   problem: Problem;
@@ -20,19 +21,25 @@ export default function ProblemClient({ problem }: ProblemClientProps) {
       { label: "Problems", href: "/problems" },
       { label: problem.problem_id, href: `/problems/${problem.problem_id}` },
     ],
-    [problem.problem_id]
+    [problem.problem_id],
   );
 
+  const displayTitle = problem.contest_id && problem.problem_index
+    ? `${problem.contest_id}${problem.problem_index} — ${problem.title}`
+    : problem.title;
+
+  console.log("ProblemClient rendering:", problem.problem_id, problem.title);
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 lg:px-8">
+    <div className="mx-auto max-w-[1500px] px-6 py-12">
       {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-2 text-sm text-zinc-500">
+      <nav className="mb-8 flex items-center gap-2 text-sm text-[#6B7280]">
         {breadcrumbItems.map((item, index) => (
           <span key={item.href} className="flex items-center gap-2">
-            {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-zinc-600" />}
+            {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-[#D1D5DB]" />}
             <Link
               href={item.href}
-              className="transition-colors hover:text-zinc-300"
+              className="transition-colors hover:text-[#111827]"
             >
               {item.label}
             </Link>
@@ -40,47 +47,73 @@ export default function ProblemClient({ problem }: ProblemClientProps) {
         ))}
       </nav>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px] xl:gap-10">
+      {/* Header */}
+      <header className="mb-10">
+        <h1 className="mb-6 text-4xl font-extrabold leading-tight tracking-tight text-[#111827] md:text-5xl">
+          {displayTitle}
+        </h1>
+        <div className="flex flex-wrap items-center gap-4">
+          {problem.rating !== null && (
+            <div className="flex items-center gap-3">
+              <RatingBadge rating={problem.rating} size="md" />
+              <DifficultyBadge rating={problem.rating} />
+            </div>
+          )}
+          {problem.source && (
+            <span className="text-sm text-[#6B7280]">
+              Source: <span className="font-medium text-[#111827]">{problem.source}</span>
+            </span>
+          )}
+          {problem.contest_id && problem.problem_index && (
+            <span className="text-sm text-[#6B7280]">
+              Contest: <span className="font-medium text-[#111827]">{problem.contest_id}</span>
+            </span>
+          )}
+          <span className="font-mono text-sm text-[#6B7280]">
+            ID: {problem.problem_id}
+          </span>
+        </div>
+      </header>
+
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[70%_30%]">
         {/* Main Content */}
-        <main className="min-w-0">
-          <ProblemHeader
-            title={problem.title}
-            contestId={problem.contest_id}
-            problemIndex={problem.problem_index}
-            rating={problem.rating}
-            source={problem.source}
-            problemId={problem.problem_id}
-          />
-
-          <ProblemStatement
-            title={problem.title}
-            statement={problem.statement}
-            inputSpecification={problem.input_specification}
-            outputSpecification={problem.output_specification}
-            constraints={problem.constraints}
-            notes={problem.notes}
-          />
-
-          {/* Sample Tests */}
+        <main className="space-y-6">
+          <div className="card-premium p-10">
+            <h2 className="mb-6 text-2xl font-bold text-[#111827]">Problem Statement</h2>
+            <div dangerouslySetInnerHTML={{ __html: problem.statement }} />
+          </div>
+          <div className="card-premium p-10">
+            <h2 className="mb-6 text-2xl font-bold text-[#111827]">Input</h2>
+            <div dangerouslySetInnerHTML={{ __html: problem.input_specification }} />
+          </div>
+          <div className="card-premium p-10">
+            <h2 className="mb-6 text-2xl font-bold text-[#111827]">Output</h2>
+            <div dangerouslySetInnerHTML={{ __html: problem.output_specification }} />
+          </div>
+          {problem.constraints && (
+            <div className="card-premium p-10">
+              <h2 className="mb-6 text-2xl font-bold text-[#111827]">Constraints</h2>
+              <ConstraintsDisplay constraints={problem.constraints} />
+            </div>
+          )}
+          {problem.notes && (
+            <div className="card-premium p-10">
+              <h2 className="mb-6 text-2xl font-bold text-[#111827]">Note</h2>
+              <div dangerouslySetInnerHTML={{ __html: problem.notes }} />
+            </div>
+          )}
           {problem.sample_tests.length > 0 && (
-            <section className="mt-10">
-              <SectionTitle>Examples</SectionTitle>
-              <div className="space-y-4">
-                {problem.sample_tests.map((sample, index) => (
-                  <SampleTestCard
-                    key={index}
-                    sample={sample}
-                    index={index}
-                  />
-                ))}
-              </div>
-            </section>
+            <div className="card-premium p-10">
+              <h2 className="mb-6 text-2xl font-bold text-[#111827]">Examples</h2>
+              <SampleTestTabs samples={problem.sample_tests} />
+            </div>
           )}
         </main>
 
         {/* Right Sidebar */}
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <ProblemInfoCard
+        <div className="lg:sticky lg:top-12">
+          <ProblemSidebar
             rating={problem.rating}
             timeLimitMs={problem.time_limit_ms}
             memoryLimitMb={problem.memory_limit_mb}
@@ -89,45 +122,8 @@ export default function ProblemClient({ problem }: ProblemClientProps) {
             problemId={problem.problem_id}
             tags={problem.tags}
           />
-
-          {/* Future feature placeholders */}
-          <div className="mt-4 space-y-2">
-            <FeatureButton label="AI Coach" disabled />
-            <FeatureButton label="Submit Solution" disabled />
-            <FeatureButton label="Run Code" disabled />
-          </div>
-
-          {/* Future navigation tabs */}
-          <div className="mt-6 space-y-1">
-            <TabItem label="Editorial" disabled />
-            <TabItem label="Discussion" disabled />
-            <TabItem label="Accepted Submissions" disabled />
-            <TabItem label="Related Problems" disabled />
-          </div>
-        </aside>
+        </div>
       </div>
     </div>
-  );
-}
-
-function FeatureButton({ label, disabled }: { label: string; disabled?: boolean }) {
-  return (
-    <button
-      disabled={disabled}
-      className="w-full rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-2.5 text-sm font-medium text-zinc-500 transition-colors"
-    >
-      {label}
-    </button>
-  );
-}
-
-function TabItem({ label, disabled }: { label: string; disabled?: boolean }) {
-  return (
-    <button
-      disabled={disabled}
-      className="w-full rounded-lg px-4 py-2 text-left text-sm text-zinc-500 transition-colors hover:bg-zinc-800/40 hover:text-zinc-400"
-    >
-      {label}
-    </button>
   );
 }

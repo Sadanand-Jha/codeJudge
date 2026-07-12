@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { editor } from "monaco-editor";
 import { useDebounce } from "./useDebounce";
 import { DEFAULT_COMPLETION_CONFIG } from "@/config/completion";
@@ -76,17 +76,44 @@ function sourceSymbolToCompletion(sym: SourceSymbol): {
   };
 }
 
-export function useAutocomplete(
-  monaco: any | null,
-  editorInstance: editor.IStandaloneCodeEditor | null,
-  languageId: string,
-  config: CompletionConfig = DEFAULT_COMPLETION_CONFIG,
-) {
+interface UseAutocompleteProps {
+  monacoRef: React.MutableRefObject<any>;
+  editorRef: React.MutableRefObject<editor.IStandaloneCodeEditor | null>;
+  languageId: string;
+  config?: CompletionConfig;
+}
+
+/**
+ * Hook for managing Monaco autocomplete with symbol extraction.
+ * 
+ * PERFORMANCE OPTIMIZATIONS:
+ * - Uses requestId pattern for worker to ignore stale responses
+ * - Caches extracted symbols to avoid redundant parsing
+ * - Skips extraction if code hasn't changed
+ * - Sets worker.onmessage only once during worker creation
+ * - Detects when editor/monaco become available via polling ref values
+ */
+export function useAutocomplete({
+  monacoRef,
+  editorRef,
+  languageId,
+  config = DEFAULT_COMPLETION_CONFIG,
+}: UseAutocompleteProps) {
   const disposerRef = useRef<(() => void) | null>(null);
   const workerRef = useRef<Worker | null>(null);
-  const pendingWorkerRef = useRef<number>(0); // request ID to discard stale responses
+  const pendingRequestIdRef = useRef<number>(0);
+  const latestCodeRef = useRef<string>("");
+  const cachedSymbolsRef = useRef<SourceSymbol[] | null>(null);
   const fileIdRef = useRef<string>("code");
   const extractorRef = useRef<ReturnType<typeof createExtractor> | null>(null);
+  const modelSubscriptionRef = useRef<(() => void) | null>(null);
+  const lastExtractedCodeRef = useRef<string>("");
+  const workerMessageQueueRef = useRef<Array<{ requestId: number; code: string }>>([]);
+  const isProcessingRef = useRef<boolean>(false);
+  
+  // Track editor availability state to trigger effects when refs are set
+  const [editorAvailable, setEditorAvailable] = useState(false);
+  const lastEditorRefCurrent = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   // Create extractor on language change (synchronous for main thread)
   useEffect(() => {
@@ -96,7 +123,6 @@ export function useAutocomplete(
       extractorRef.current = null;
     }
 
-    // Update fileId based on language
     const extMap: Record<string, string> = {
       cpp: "cpp",
       java: "java",
@@ -104,76 +130,162 @@ export function useAutocomplete(
       javascript: "js",
     };
     fileIdRef.current = `code.${extMap[languageId] ?? "txt"}`;
+    // Clear cache on language change
+    cachedSymbolsRef.current = null;
+    lastExtractedCodeRef.current = "";
   }, [languageId]);
 
-  // Debounced code value for re-extraction
+  // Initialize worker ONCE with message handler that handles all requests
+  useEffect(() => {
+    if (workerRef.current) return;
+
+    try {
+      workerRef.current = new Worker(
+        new URL("../workers/symbolExtractor.worker.ts", import.meta.url),
+      );
+
+      // Set onmessage ONCE - use requestId pattern to handle stale responses
+      workerRef.current.onmessage = (event: MessageEvent<WorkerResponse>) => {
+        const { requestId, type, payload } = event.data;
+        
+        // Ignore stale responses (not from the latest request)
+        if (requestId !== pendingRequestIdRef.current) return;
+        
+        if (type === "extractResult") {
+          const symbols = payload as SourceSymbol[];
+          cachedSymbolsRef.current = symbols;
+          const fileId = fileIdRef.current;
+          updateSymbols(fileId, symbols);
+        }
+      };
+    } catch {
+      // Worker failed to initialize - will fall back to main-thread extraction
+      workerRef.current = null;
+    }
+  }, []);
+
+  // Detect when editor is mounted by polling ref values
+  // This avoids the issue of refs not triggering re-renders
+  useEffect(() => {
+    const checkEditor = () => {
+      const currentEditor = editorRef.current;
+      if (currentEditor && currentEditor !== lastEditorRefCurrent.current) {
+        lastEditorRefCurrent.current = currentEditor;
+        setEditorAvailable(true);
+      } else if (!currentEditor) {
+        setEditorAvailable(false);
+      }
+    };
+
+    // Check immediately
+    checkEditor();
+
+    // Poll at low frequency (only checks ref values, no actual work)
+    const intervalId = setInterval(checkEditor, 100);
+
+    return () => clearInterval(intervalId);
+  }, [editorRef]);
+
+  // Subscribe to Monaco model content changes instead of polling getValue() on every render
+  useEffect(() => {
+    // Clean up previous subscription
+    if (modelSubscriptionRef.current) {
+      modelSubscriptionRef.current();
+      modelSubscriptionRef.current = null;
+    }
+
+    const editorInstance = editorRef.current;
+    if (!editorInstance) return;
+
+    const model = editorInstance.getModel();
+    if (!model) return;
+
+    // Store initial value
+    latestCodeRef.current = model.getValue();
+
+    const subscription = model.onDidChangeContent(() => {
+      latestCodeRef.current = model.getValue();
+    });
+
+    modelSubscriptionRef.current = () => {
+      subscription.dispose();
+    };
+
+    return () => {
+      if (modelSubscriptionRef.current) {
+        modelSubscriptionRef.current();
+        modelSubscriptionRef.current = null;
+      }
+    };
+  }, [editorRef, editorAvailable]);
+
+  // Debounced code value for re-extraction - reads from ref, not from editor on every render
   const debouncedValue = useDebounce(
-    editorInstance?.getValue() ?? "",
+    latestCodeRef.current,
     config.debounceMs,
   );
 
-  // Handle document change -> re-extract symbols
-  const handleExtract = useCallback(
-    async (code: string) => {
-      if (!code || !languageId) return;
-      const fileId = fileIdRef.current;
-      const numLines = code.split("\n").length;
+  // Handle document change -> re-extract symbols (skip if unchanged)
+  useEffect(() => {
+    const code = debouncedValue;
+    if (!code || !languageId) return;
 
-      if (numLines < config.workerThreshold) {
-        // Main-thread extraction
-        const extractor = extractorRef.current;
-        if (!extractor) return;
+    // Skip extraction if document text has not changed
+    if (code === lastExtractedCodeRef.current) return;
+    lastExtractedCodeRef.current = code;
 
+    const numLines = code.split("\n").length;
+
+    if (numLines < config.workerThreshold) {
+      // Main-thread extraction
+      const extractor = extractorRef.current;
+      if (!extractor) return;
+
+      try {
         const symbols = extractor.extract(code);
+        cachedSymbolsRef.current = symbols;
+        const fileId = fileIdRef.current;
         updateSymbols(fileId, symbols);
-      } else {
-        // Web Worker extraction
-        try {
-          if (!workerRef.current) {
-            workerRef.current = new Worker(
-              new URL("../workers/symbolExtractor.worker.ts", import.meta.url),
-            );
+      } catch {
+        // Extraction failed - stale cache is acceptable
+      }
+    } else {
+      // Web Worker extraction - add to queue
+      if (!workerRef.current) return;
 
-            workerRef.current.onmessage = (event: MessageEvent<WorkerResponse>) => {
-              const { type, payload } = event.data;
-              if (type === "extractResult") {
-                updateSymbols(fileId, payload as SourceSymbol[]);
-              }
-            };
+      const requestId = ++pendingRequestIdRef.current;
+      workerMessageQueueRef.current.push({ requestId, code });
+      
+      // Process one at a time
+      if (!isProcessingRef.current) {
+        isProcessingRef.current = true;
+        const processNext = () => {
+          const item = workerMessageQueueRef.current.shift();
+          if (!item) {
+            isProcessingRef.current = false;
+            return;
           }
-
-          const requestId = ++pendingWorkerRef.current;
+          const { requestId } = item;
           const request: WorkerRequest = {
+            requestId,
             type: "extract",
             payload: { languageId, document: code },
           };
-          workerRef.current.postMessage(request);
-
-          // Discard stale responses by checking requestId in the onmessage handler
-          workerRef.current.onmessage = (event: MessageEvent<WorkerResponse>) => {
-            if (requestId === pendingWorkerRef.current) {
-              const { type, payload } = event.data;
-              if (type === "extractResult") {
-                updateSymbols(fileId, payload as SourceSymbol[]);
-              }
-            }
-          };
-        } catch {
-          // Worker failed, do nothing; stale cache is acceptable
-        }
+          workerRef.current?.postMessage(request);
+          // Schedule next check
+          setTimeout(processNext, 0);
+        };
+        processNext();
       }
-    },
-    [languageId, config.workerThreshold],
-  );
+    }
+  }, [debouncedValue, languageId, config.workerThreshold]);
 
-  // Trigger extraction when debounced code changes
+  // Register Monaco CompletionItemProvider only when editor and monaco are available
   useEffect(() => {
-    handleExtract(debouncedValue);
-  }, [debouncedValue, handleExtract]);
-
-  // Register Monaco CompletionItemProvider
-  useEffect(() => {
-    if (!monaco || !editorInstance) return;
+    const monaco = monacoRef.current;
+    const editorInstance = editorRef.current;
+    
+    if (!monaco || !editorInstance || !editorAvailable) return;
 
     // Dispose previous provider
     if (disposerRef.current) {
@@ -265,7 +377,7 @@ export function useAutocomplete(
         disposerRef.current = null;
       }
     };
-  }, [monaco, editorInstance, languageId, config.maxSuggestions]);
+  }, [monacoRef, editorAvailable, languageId, config.maxSuggestions]);
 
   // Cleanup worker on unmount
   useEffect(() => {
@@ -273,6 +385,10 @@ export function useAutocomplete(
       if (workerRef.current) {
         workerRef.current.terminate();
         workerRef.current = null;
+      }
+      if (modelSubscriptionRef.current) {
+        modelSubscriptionRef.current();
+        modelSubscriptionRef.current = null;
       }
       clearCache();
     };
@@ -288,7 +404,13 @@ export function useAutocomplete(
       workerRef.current.terminate();
       workerRef.current = null;
     }
+    if (modelSubscriptionRef.current) {
+      modelSubscriptionRef.current();
+      modelSubscriptionRef.current = null;
+    }
     clearCache();
+    setEditorAvailable(false);
+    lastEditorRefCurrent.current = null;
   }, []);
 
   return { dispose };

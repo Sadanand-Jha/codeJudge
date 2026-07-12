@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { LanguageOption } from "@/types/editor";
 import LanguageSelector from "./LanguageSelector";
 import RunButton from "./RunButton";
@@ -15,7 +16,7 @@ interface EditorHeaderProps {
   isSubmitting?: boolean;
 }
 
-export default function EditorHeader({
+function EditorHeader({
   languageId,
   options,
   onLanguageChange,
@@ -40,3 +41,5 @@ export default function EditorHeader({
     </header>
   );
 }
+
+export default memo(EditorHeader);

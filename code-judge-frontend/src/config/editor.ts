@@ -10,7 +10,7 @@ export const DEFAULT_INPUT_HEIGHT = 250;
 export const MIN_INPUT_HEIGHT = 100;
 
 export const commonEditorOptions: editor.IStandaloneEditorConstructionOptions = {
-  automaticLayout: true,
+  automaticLayout: false,
   fontFamily: '"Consolas", "Courier New", monospace',
   fontSize: 14,
   lineHeight: 21,

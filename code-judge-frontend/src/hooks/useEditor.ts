@@ -28,11 +28,16 @@ export function useEditor() {
   const workspaceRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<DragState>(null);
 
+  // Ref-based tracking for values that change during drag (avoid stale closures)
+  // These refs are updated immediately during drag, and only sync to state when drag ends
+  const rightPanelWidthRef = useRef(DEFAULT_RIGHT_WIDTH);
+  const inputPanelHeightRef = useRef(DEFAULT_INPUT_HEIGHT);
+  const pendingStateUpdateRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Fetch dynamic languages from Judge0 API on mount
   useEffect(() => {
     let mounted = true;
     fetchAndMergeLanguages().then((langs) => {
-      console.log("Fetched and merged languages:", langs);
       if (mounted) setAvailableLanguages(langs);
     });
     return () => {
@@ -62,7 +67,6 @@ export function useEditor() {
 
     try {
       const data = await runCodeService(code, input, languageId);
-      console.log("Response:", data.stdout);
       setOutput(data.stdout || data.message || "Something went wrong.");
     } catch (error) {
       console.error("Error running code:", error);
@@ -72,31 +76,97 @@ export function useEditor() {
     }
   }, [code, input, languageId]);
 
-  // Pointer event handlers for drag resize
+  // High-performance drag resize handlers using RAF + throttled state updates
   useEffect(() => {
+    let rafId: number | null = null;
+    let lastUpdate = 0;
+    const UPDATE_INTERVAL = 1000 / 60; // 60 FPS throttle
+
     const handleMove = (event: PointerEvent) => {
       if (!dragStateRef.current) return;
 
-      if (dragStateRef.current.kind === "left-right" && workspaceRef.current) {
-        const bounds = workspaceRef.current.getBoundingClientRect();
-        const nextWidth = bounds.width - (event.clientX - bounds.left);
-        setRightPanelWidth(Math.max(MIN_RIGHT_WIDTH, Math.min(nextWidth, bounds.width - 300)));
-      } else if (dragStateRef.current.kind === "input-output") {
-        const delta = event.clientY - dragStateRef.current.startY!;
-        setInputPanelHeight(Math.max(MIN_INPUT_HEIGHT, dragStateRef.current.startInputHeight! + delta));
+      // Cancel previous RAF to coalesce events
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
       }
+
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const state = dragStateRef.current;
+        if (!state) return;
+
+        if (state.kind === "left-right" && workspaceRef.current) {
+          const bounds = workspaceRef.current.getBoundingClientRect();
+          const nextWidth = bounds.width - (event.clientX - bounds.left);
+          const clamped = Math.max(MIN_RIGHT_WIDTH, Math.min(nextWidth, bounds.width - 300));
+          rightPanelWidthRef.current = clamped;
+          
+          // Throttle state updates to 60 FPS to avoid excessive re-renders
+          const now = performance.now();
+          if (now - lastUpdate >= UPDATE_INTERVAL || pendingStateUpdateRef.current === null) {
+            lastUpdate = now;
+            setRightPanelWidth(clamped);
+          } else {
+            // Use RAF to batch the pending update
+            if (pendingStateUpdateRef.current) {
+              clearTimeout(pendingStateUpdateRef.current);
+            }
+            pendingStateUpdateRef.current = setTimeout(() => {
+              setRightPanelWidth(rightPanelWidthRef.current);
+              pendingStateUpdateRef.current = null;
+            }, UPDATE_INTERVAL);
+          }
+        } else if (state.kind === "input-output") {
+          const delta = event.clientY - state.startY!;
+          const clamped = Math.max(MIN_INPUT_HEIGHT, state.startInputHeight! + delta);
+          inputPanelHeightRef.current = clamped;
+          
+          // Throttle state updates to 60 FPS
+          const now = performance.now();
+          if (now - lastUpdate >= UPDATE_INTERVAL || pendingStateUpdateRef.current === null) {
+            lastUpdate = now;
+            setInputPanelHeight(clamped);
+          } else {
+            if (pendingStateUpdateRef.current) {
+              clearTimeout(pendingStateUpdateRef.current);
+            }
+            pendingStateUpdateRef.current = setTimeout(() => {
+              setInputPanelHeight(inputPanelHeightRef.current);
+              pendingStateUpdateRef.current = null;
+            }, UPDATE_INTERVAL);
+          }
+        }
+      });
     };
 
     const handleUp = () => {
+      // Flush final state update on drag end
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      if (pendingStateUpdateRef.current !== null) {
+        clearTimeout(pendingStateUpdateRef.current);
+        pendingStateUpdateRef.current = null;
+      }
+      
+      // Commit final values to state (in case last RAF update was skipped)
+      setRightPanelWidth(rightPanelWidthRef.current);
+      setInputPanelHeight(inputPanelHeightRef.current);
+      
       dragStateRef.current = null;
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
 
-    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointermove", handleMove, { passive: true });
     window.addEventListener("pointerup", handleUp);
 
     return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      if (pendingStateUpdateRef.current !== null) {
+        clearTimeout(pendingStateUpdateRef.current);
+      }
       window.removeEventListener("pointermove", handleMove);
       window.removeEventListener("pointerup", handleUp);
     };
@@ -106,6 +176,15 @@ export function useEditor() {
     ?? getLanguageOptionById(languageId);
   const monacoLanguage = currentLangObj?.monaco || "cpp";
   const activeFileName = `code.${currentLangObj?.extension || "cpp"}`;
+
+  // Sync refs with state for external access (runs after state changes)
+  useEffect(() => {
+    rightPanelWidthRef.current = rightPanelWidth;
+  }, [rightPanelWidth]);
+
+  useEffect(() => {
+    inputPanelHeightRef.current = inputPanelHeight;
+  }, [inputPanelHeight]);
 
   return {
     languageId,

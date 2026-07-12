@@ -19,15 +19,14 @@ import {
 import type { WorkerRequest, WorkerResponse } from "../types/worker";
 
 self.onmessage = (event: MessageEvent<WorkerRequest>) => {
-  const { type, payload } = event.data;
+  const { requestId, type, payload } = event.data;
   const { languageId } = payload;
 
   if (!isLanguageSupported(languageId)) {
-    // Post empty results for unsupported languages
     const response: WorkerResponse =
       type === "extract"
-        ? { type: "extractResult", payload: [] }
-        : { type: "diffResult", payload: { removed: [], added: [] } };
+        ? { requestId, type: "extractResult", payload: [] }
+        : { requestId, type: "diffResult", payload: { removed: [], added: [] } };
     self.postMessage(response);
     return;
   }
@@ -37,7 +36,7 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
 
     if (type === "extract" && payload.document !== undefined) {
       const symbols = extractor.extract(payload.document);
-      const response: WorkerResponse = { type: "extractResult", payload: symbols };
+      const response: WorkerResponse = { requestId, type: "extractResult", payload: symbols };
       self.postMessage(response);
     } else if (
       type === "computeDiff" &&
@@ -45,15 +44,14 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       payload.newDoc !== undefined
     ) {
       const diff = extractor.computeDiff(payload.oldDoc, payload.newDoc);
-      const response: WorkerResponse = { type: "diffResult", payload: diff };
+      const response: WorkerResponse = { requestId, type: "diffResult", payload: diff };
       self.postMessage(response);
     }
   } catch (error) {
-    // In case of error, post empty results
     const response: WorkerResponse =
       type === "extract"
-        ? { type: "extractResult", payload: [] }
-        : { type: "diffResult", payload: { removed: [], added: [] } };
+        ? { requestId, type: "extractResult", payload: [] }
+        : { requestId, type: "diffResult", payload: { removed: [], added: [] } };
     self.postMessage(response);
   }
 };

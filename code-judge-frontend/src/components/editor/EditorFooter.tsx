@@ -1,11 +1,13 @@
 "use client";
 
+import { memo } from "react";
+
 interface EditorFooterProps {
   cursorPosition: string;
   languageLabel: string;
 }
 
-export default function EditorFooter({ cursorPosition, languageLabel }: EditorFooterProps) {
+function EditorFooter({ cursorPosition, languageLabel }: EditorFooterProps) {
   return (
     <footer className="flex h-6 shrink-0 items-center justify-between px-4 text-[12px] bg-[#1e1e1e] text-[#90908A] border-t border-[#111]">
       <div>{cursorPosition}</div>
@@ -16,3 +18,5 @@ export default function EditorFooter({ cursorPosition, languageLabel }: EditorFo
     </footer>
   );
 }
+
+export default memo(EditorFooter);

@@ -46,9 +46,9 @@ export default async function ProblemsPage() {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 md:px-6 lg:px-8">
         <div className="flex flex-col items-center justify-center text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#F3F4F6]">
             <svg
-              className="h-8 w-8 text-zinc-500"
+              className="h-8 w-8 text-[#9CA3AF]"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -61,10 +61,10 @@ export default async function ProblemsPage() {
               />
             </svg>
           </div>
-          <h2 className="mb-2 text-xl font-semibold text-zinc-300">
+          <h2 className="mb-2 text-xl font-semibold text-[#111827]">
             Failed to load problems
           </h2>
-          <p className="mb-6 text-sm text-zinc-500">
+          <p className="mb-6 text-sm text-[#6B7280]">
             There was an error fetching the problems list. Please try again later.
           </p>
         </div>

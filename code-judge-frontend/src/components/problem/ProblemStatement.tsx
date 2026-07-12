@@ -2,6 +2,7 @@
 
 import SafeHTML from "./SafeHTML";
 import SectionTitle from "./SectionTitle";
+import ConstraintsDisplay from "./ConstraintsDisplay";
 
 interface ProblemStatementProps {
   title: string;
@@ -42,9 +43,7 @@ export default function ProblemStatement({
       {constraints && (
         <section>
           <SectionTitle>Constraints</SectionTitle>
-          <div className="rounded-lg border border-amber-900/40 bg-amber-950/20 px-5 py-4">
-            <SafeHTML html={constraints} />
-          </div>
+          <ConstraintsDisplay constraints={constraints} />
         </section>
       )}
 

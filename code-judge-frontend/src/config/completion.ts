@@ -4,8 +4,8 @@ import type { CompletionConfig } from "@/types/completion";
  * Default configuration for the autocomplete / completion provider.
  */
 export const DEFAULT_COMPLETION_CONFIG: CompletionConfig = {
-  debounceMs: 150,
-  workerThreshold: 1000,
+  debounceMs: 500,
+  workerThreshold: 500,
   maxSuggestions: 50,
   enableFuzzy: true,
 };

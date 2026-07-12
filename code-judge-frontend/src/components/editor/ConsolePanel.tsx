@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { DragState } from "@/types/editor";
 import TestcasePanel from "./TestcasePanel";
 import OutputPanel from "./OutputPanel";
@@ -13,7 +14,7 @@ interface ConsolePanelProps {
   dragStateRef: React.MutableRefObject<DragState>;
 }
 
-export default function ConsolePanel({
+function ConsolePanel({
   input,
   output,
   onInputChange,
@@ -48,3 +49,5 @@ export default function ConsolePanel({
     </div>
   );
 }
+
+export default memo(ConsolePanel);

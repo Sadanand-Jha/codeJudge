@@ -1,25 +1,269 @@
 @import "tailwindcss";
 
+/* Premium Design System - Inspired by Stripe, Linear, Raycast, Notion, LeetCode, Vercel */
 :root {
-  --background: #0d1117;
-  --foreground: #e6edf3;
-  --card: #161b22;
-  --accent: #3b82f6;
+  --background: #F5F5F7;
+  --foreground: #111827;
+  --card: #FFFFFF;
+  --card-hover: #FAFAFB;
+  --border: #E6E7EB;
+  --border-hover: #D1D5E0;
+  --accent: #2563EB;
+  --success: #16A34A;
+  --warning: #F59E0B;
+  --danger: #DC2626;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
   --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
 }
 
+/* Base styles */
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: "Inter Variable", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 18px;
+  line-height: 1.8;
 }
 
 html,
 body {
   height: 100%;
+}
+
+/* Custom scrollbar - subtle and modern */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Prose overrides for problem content - clean and readable */
+.prose-premium {
+  color: var(--text-secondary);
+  line-height: 1.8;
+  max-width: 850px;
+}
+.prose-premium p {
+  margin-top: 1.2em;
+  margin-bottom: 1.2em;
+}
+
+/* Problem HTML renderer - beautiful typography for rich text */
+.problem-html p {
+  margin: 18px 0;
+  line-height: 1.9;
+  font-size: 18px;
+}
+
+.problem-html ul,
+.problem-html ol {
+  margin: 18px 0;
+  padding-left: 28px;
+}
+
+.problem-html li {
+  margin: 10px 0;
+}
+
+.problem-html strong {
+  font-weight: 700;
+}
+
+.problem-html em {
+  font-style: italic;
+}
+
+.problem-html code {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  background: #1A1A1A;
+  color: #E4E4E7;
+  padding: 0.2em 0.4em;
+  border-radius: 6px;
+  font-size: 0.875em;
+}
+
+.problem-html pre {
+  padding: 18px;
+  border-radius: 12px;
+  overflow-x: auto;
+  background: #1A1A1A;
+  border: 1px solid #333;
+}
+
+.problem-html pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+.problem-html table {
+  border-collapse: collapse;
+  margin: 18px 0;
+}
+
+.problem-html th,
+.problem-html td {
+  border: 1px solid #333;
+  padding: 8px 12px;
+}
+
+.problem-html blockquote {
+  margin: 18px 0;
+  padding-left: 16px;
+  border-left: 4px solid #2563EB;
+  color: #6B7280;
+}
+
+.problem-html img {
+  max-width: 100%;
+  height: auto;
+  margin: 18px 0;
+  border-radius: 8px;
+}
+
+/* Subscript and superscript styling for constraints */
+.align-sub {
+  vertical-align: sub;
+  font-size: 0.85em;
+  line-height: 0;
+}
+
+.align-super {
+  vertical-align: super;
+  font-size: 0.85em;
+  line-height: 0;
+}
+
+/* Constraint text styling */
+.constraint-text var {
+  font-style: italic;
+  font-weight: 500;
+  color: #111827;
+}
+
+.prose-premium strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.prose-premium a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.prose-premium a:hover {
+  text-decoration: underline;
+}
+.prose-premium code {
+  background: #1A1A1A;
+  color: #E4E4E7;
+  padding: 0.2em 0.4em;
+  border-radius: 6px;
+  font-size: 0.875em;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+.prose-premium pre {
+  background: #1A1A1A;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 1.25rem;
+  overflow-x: auto;
+}
+.prose-premium pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+.prose-premium ul,
+.prose-premium ol {
+  padding-left: 1.75em;
+}
+.prose-premium li {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+.prose-premium h1,
+.prose-premium h2,
+.prose-premium h3,
+.prose-premium h4 {
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-top: 2em;
+  margin-bottom: 1em;
+}
+
+/* Card styles - soft shadows, rounded corners */
+.card-premium {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-premium:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+}
+
+/* Button styles */
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+.btn-primary:hover {
+  background: #1D4ED8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+}
+
+.btn-secondary {
+  background: var(--card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-weight: 500;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-secondary:hover {
+  background: var(--card-hover);
+  border-color: var(--border-hover);
+}
+
+.btn-gradient {
+  background: linear-gradient(135deg, #8B5CF6 0%, #2563EB 100%);
+  color: white;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}
+.btn-gradient:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.25);
 }

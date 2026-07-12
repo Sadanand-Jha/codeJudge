@@ -1,10 +1,12 @@
 "use client";
 
+import { memo } from "react";
+
 interface OutputPanelProps {
   output: string;
 }
 
-export default function OutputPanel({ output }: OutputPanelProps) {
+function OutputPanel({ output }: OutputPanelProps) {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="flex h-9 bg-[#1e1e1e] items-end px-2 gap-1 select-none border-b border-[#272822]">
@@ -18,3 +20,5 @@ export default function OutputPanel({ output }: OutputPanelProps) {
     </div>
   );
 }
+
+export default memo(OutputPanel);
