@@ -175,47 +175,46 @@ export class ProblemRepository {
    * Fetches a single problem by its problem_id string (e.g. "2242B")
    * including tags and sample testcases.
    */
-  async getProblemByProblemId(problemId: string): Promise<ProblemDetail | null> {
-    const query = `
-      SELECT
-        p.id,
-        p.problem_id,
-        p.title,
-        p.rating,
-        p.time_limit_ms,
-        p.memory_limit_mb,
-        p.statement,
-        p.input_specification,
-        p.output_specification,
-        p.constraints,
-        p.notes,
-        p.source,
-        p.contest_id,
-        p.problem_index,
-        p.created_at,
-        p.updated_at,
-        COALESCE(
-          json_agg(DISTINCT jsonb_build_object('name', t.name)) FILTER (WHERE t.name IS NOT NULL),
-          '[]'::json
-        ) AS tags_raw,
-        COALESCE(
-          json_agg(
-            DISTINCT jsonb_build_object(
-              'input', st.input,
-              'output', st.output,
-              'explanation', st.explanation
-            )
-            ORDER BY st.testcase_order
-          ) FILTER (WHERE st.id IS NOT NULL),
-          '[]'::json
-        ) AS sample_testcases
-      FROM problems p
-      LEFT JOIN problem_tags pt ON pt.problem_id = p.id
-      LEFT JOIN tags t ON t.id = pt.tag_id
-      LEFT JOIN sample_testcases st ON st.problem_id = p.id
-      WHERE p.problem_id = $1
-      GROUP BY p.id
-    `;
+   async getProblemByProblemId(problemId: string): Promise<ProblemDetail | null> {
+     const query = `
+       SELECT
+         p.id,
+         p.problem_id,
+         p.title,
+         p.rating,
+         p.time_limit_ms,
+         p.memory_limit_mb,
+         p.statement,
+         p.input_specification,
+         p.output_specification,
+         p.constraints,
+         p.notes,
+         p.source,
+         p.contest_id,
+         p.problem_index,
+         p.created_at,
+         p.updated_at,
+         COALESCE(
+           json_agg(DISTINCT jsonb_build_object('name', t.name)) FILTER (WHERE t.name IS NOT NULL),
+           '[]'::json
+         ) AS tags_raw,
+         COALESCE(
+           json_agg(
+             jsonb_build_object(
+               'input', st.input,
+               'output', st.output,
+               'explanation', st.explanation
+             )
+           ) FILTER (WHERE st.id IS NOT NULL),
+           '[]'::json
+         ) AS sample_testcases
+       FROM problems p
+       LEFT JOIN problem_tags pt ON pt.problem_id = p.id
+       LEFT JOIN tags t ON t.id = pt.tag_id
+       LEFT JOIN sample_testcases st ON st.problem_id = p.id
+       WHERE p.problem_id = $1
+       GROUP BY p.id
+     `;
 
     const result = await pool.query(query, [problemId]);
 
