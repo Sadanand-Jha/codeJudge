@@ -1,3 +1,47 @@
-export default function Page() {
-  return null;
+import Link from "next/link";
+
+export default function RegisterPage() {
+  return (
+    <div className="mx-auto max-w-sm px-4 py-12">
+      <div className="border border-[#E6E7EB] bg-white p-6">
+        <h1 className="mb-4 text-lg font-bold text-[#111827] text-center">Register</h1>
+        <form className="space-y-3">
+          <div>
+            <label className="block text-[11px] font-medium text-[#6B7280] mb-1">Handle</label>
+            <input
+              type="text"
+              className="w-full rounded border border-[#E6E7EB] bg-white px-3 py-1.5 text-[11px] text-[#111827] placeholder-[#9CA3AF] outline-none focus:border-[#2563EB]/40"
+              placeholder="your_handle"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-[#6B7280] mb-1">Email</label>
+            <input
+              type="email"
+              className="w-full rounded border border-[#E6E7EB] bg-white px-3 py-1.5 text-[11px] text-[#111827] placeholder-[#9CA3AF] outline-none focus:border-[#2563EB]/40"
+              placeholder="your@email.com"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-medium text-[#6B7280] mb-1">Password</label>
+            <input
+              type="password"
+              className="w-full rounded border border-[#E6E7EB] bg-white px-3 py-1.5 text-[11px] text-[#111827] placeholder-[#9CA3AF] outline-none focus:border-[#2563EB]/40"
+              placeholder="••••••••"
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full rounded border border-[#2563EB] bg-[#2563EB] px-4 py-1.5 text-xs font-medium text-white hover:bg-[#1D4ED8] transition-colors"
+          >
+            Register
+          </button>
+        </form>
+        <div className="mt-3 text-center text-[10px] text-[#6B7280]">
+          Already have an account?{" "}
+          <Link href="/login" className="text-[#2563EB] hover:underline">Sign In</Link>
+        </div>
+      </div>
+    </div>
+  );
 }

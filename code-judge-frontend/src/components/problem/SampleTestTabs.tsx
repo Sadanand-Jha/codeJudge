@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Check, Copy } from "lucide-react";
 import type { SampleTest } from "@/types/problem";
 
@@ -8,15 +8,41 @@ interface SampleTestTabsProps {
   samples: SampleTest[];
 }
 
+/** Strips HTML tags, extracts just the text content line-by-line */
+function stripHtml(html: string): string {
+  if (typeof document === "undefined") return html;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  // Each .test-example-line contains one line; collect them all
+  const lines = doc.querySelectorAll(".test-example-line");
+  if (lines.length > 0) {
+    return Array.from(lines)
+      .map((el) => el.textContent || "")
+      .join("\n");
+  }
+  // Fallback: just get the text content
+  return doc.body.textContent || html;
+}
+
 export default function SampleTestTabs({ samples }: SampleTestTabsProps) {
   const [activeTab, setActiveTab] = useState(0);
 
   if (samples.length === 0) return null;
 
+  const cleaned = useMemo(
+    () =>
+      samples.map((s) => ({
+        input: stripHtml(s.input),
+        output: stripHtml(s.output),
+        explanation: s.explanation,
+      })),
+    [samples],
+  );
+
   return (
-    <div className="card-premium">
+    <div>
       {/* Tab Navigation */}
-      <div className="flex border-b border-[#E6E7EB]">
+      <div className="flex border-b border-[#ccc]">
         {samples.map((_, index) => (
           <button
             key={index}
@@ -36,29 +62,32 @@ export default function SampleTestTabs({ samples }: SampleTestTabsProps) {
       </div>
 
       {/* Tab Content */}
-      <div className="p-10">
-        <SampleTestContent sample={samples[activeTab]} index={activeTab} />
+      <div className="pt-4">
+        <SampleTestContent sample={cleaned[activeTab]} />
       </div>
     </div>
   );
 }
 
-interface SampleTestContentProps {
-  sample: SampleTest;
-  index: number;
+interface CleanSample {
+  input: string;
+  output: string;
+  explanation?: string | null;
 }
 
-function SampleTestContent({ sample, index }: SampleTestContentProps) {
+interface SampleTestContentProps {
+  sample: CleanSample;
+}
+
+function SampleTestContent({ sample }: SampleTestContentProps) {
   return (
     <div className="space-y-6">
       <CodeBlock label="Input" code={sample.input} />
       <CodeBlock label="Output" code={sample.output} />
       {sample.explanation && (
         <div>
-          <h4 className="mb-3 text-sm font-medium uppercase tracking-wider text-[#6B7280]">
-            Explanation
-          </h4>
-          <p className="text-base leading-relaxed text-[#6B7280]">{sample.explanation}</p>
+          <h4 className="mb-2 text-base font-semibold text-[#333]">Explanation</h4>
+          <p className="text-sm leading-relaxed text-[#555]">{sample.explanation}</p>
         </div>
       )}
     </div>
@@ -85,29 +114,27 @@ function CodeBlock({ label, code }: CodeBlockProps) {
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm font-medium uppercase tracking-wider text-[#6B7280]">
-          {label}
-        </span>
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-sm font-semibold text-[#333]">{label}:</span>
         <button
           onClick={handleCopy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#E6E7EB] bg-white px-3 py-1.5 text-xs font-medium text-[#6B7280] transition-all hover:border-[#D1D5E0] hover:text-[#111827]"
+          className="inline-flex items-center gap-1 rounded border border-[#ccc] px-2 py-0.5 text-xs text-[#555] hover:bg-[#f0f0f0] transition-colors"
         >
           {copied ? (
             <>
-              <Check className="h-3.5 w-3.5 text-[#16A34A]" />
+              <Check className="h-3 w-3 text-[#16A34A]" />
               Copied
             </>
           ) : (
             <>
-              <Copy className="h-3.5 w-3.5" />
+              <Copy className="h-3 w-3" />
               Copy
             </>
           )}
         </button>
       </div>
-      <pre className="overflow-x-auto rounded-xl border border-[#333] bg-[#1A1A1A] p-6">
-        <code className="font-mono text-sm text-[#E4E4E7]">{code}</code>
+      <pre className="overflow-x-auto border border-[#ddd] bg-[#f8f8f8] p-4 font-mono text-sm text-[#222]">
+        <code>{code}</code>
       </pre>
     </div>
   );

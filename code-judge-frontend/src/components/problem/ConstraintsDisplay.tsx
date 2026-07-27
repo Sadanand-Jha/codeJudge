@@ -46,29 +46,24 @@ export default function ConstraintsDisplay({ constraints }: ConstraintsDisplayPr
 
   try {
     return (
-      <div className="rounded-lg border border-[#E5E7EB] bg-white px-5 py-4">
-        <ul className="space-y-2">
-          {parsedConstraints.map((constraint, index) => (
-            <li
-              key={index}
-              className="flex items-start gap-2 text-[15px] leading-relaxed text-[#374151]"
-            >
-              <span className="select-none text-[#9CA3AF]">•</span>
-              <span 
-                className="constraint-text"
-                dangerouslySetInnerHTML={{ __html: formatConstraint(constraint) }}
-              />
-            </li>
-          ))}
-        </ul>
-      </div>
+      <ul className="space-y-1 pl-6 list-disc text-[#222]">
+        {parsedConstraints.map((constraint, index) => (
+          <li
+            key={index}
+            className="text-base leading-relaxed"
+          >
+            <span 
+              className="constraint-text"
+              dangerouslySetInnerHTML={{ __html: formatConstraint(constraint) }}
+            />
+          </li>
+        ))}
+      </ul>
     );
   } catch (error) {
     console.error("Error rendering constraints:", error);
     return (
-      <div className="rounded-lg border border-[#E5E7EB] bg-white px-5 py-4">
-        <pre className="text-sm text-[#374151]">{constraints}</pre>
-      </div>
+      <pre className="text-sm text-[#222]">{constraints}</pre>
     );
   }
 }

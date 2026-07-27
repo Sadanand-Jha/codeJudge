@@ -7,3 +7,4 @@ export { default as ProblemInfoCard } from "./ProblemInfoCard";
 export { default as ProblemStatement } from "./ProblemStatement";
 export { default as SampleTestCard } from "./SampleTestCard";
 export { default as ProblemSkeleton } from "./ProblemSkeleton";
+export { default as MathRenderer } from "./MathRenderer";

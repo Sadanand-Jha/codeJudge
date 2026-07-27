@@ -1,128 +1,137 @@
 "use client";
 
-import { useMemo } from "react";
-import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { Problem } from "@/types/problem";
-import ProblemDescriptionCard from "@/components/problem/ProblemDescriptionCard";
-import ProblemSidebar from "@/components/problem/ProblemSidebar";
 import SampleTestTabs from "@/components/problem/SampleTestTabs";
 import DifficultyBadge from "@/components/problem/DifficultyBadge";
 import RatingBadge from "@/components/problem/RatingBadge";
 import ConstraintsDisplay from "@/components/problem/ConstraintsDisplay";
+import MathRenderer from "@/components/problem/MathRenderer";
 
 interface ProblemClientProps {
   problem: Problem;
 }
 
 export default function ProblemClient({ problem }: ProblemClientProps) {
-  const breadcrumbItems = useMemo(
-    () => [
-      { label: "Problems", href: "/problems" },
-      { label: problem.problem_id, href: `/problems/${problem.problem_id}` },
-    ],
-    [problem.problem_id],
-  );
-
   const displayTitle = problem.contest_id && problem.problem_index
     ? `${problem.contest_id}${problem.problem_index} — ${problem.title}`
     : problem.title;
 
-  console.log("ProblemClient rendering:", problem.problem_id, problem.title);
-
   return (
-    <div className="mx-auto max-w-[1500px] px-6 py-12">
-      {/* Breadcrumb */}
-      <nav className="mb-8 flex items-center gap-2 text-sm text-[#6B7280]">
-        {breadcrumbItems.map((item, index) => (
-          <span key={item.href} className="flex items-center gap-2">
-            {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-[#D1D5DB]" />}
-            <Link
-              href={item.href}
-              className="transition-colors hover:text-[#111827]"
-            >
-              {item.label}
-            </Link>
-          </span>
-        ))}
-      </nav>
-
-      {/* Header */}
-      <header className="mb-10">
-        <h1 className="mb-6 text-4xl font-extrabold leading-tight tracking-tight text-[#111827] md:text-5xl">
-          {displayTitle}
-        </h1>
-        <div className="flex flex-wrap items-center gap-4">
-          {problem.rating !== null && (
-            <div className="flex items-center gap-3">
-              <RatingBadge rating={problem.rating} size="md" />
-              <DifficultyBadge rating={problem.rating} />
-            </div>
-          )}
-          {problem.source && (
-            <span className="text-sm text-[#6B7280]">
-              Source: <span className="font-medium text-[#111827]">{problem.source}</span>
-            </span>
-          )}
-          {problem.contest_id && problem.problem_index && (
-            <span className="text-sm text-[#6B7280]">
-              Contest: <span className="font-medium text-[#111827]">{problem.contest_id}</span>
-            </span>
-          )}
-          <span className="font-mono text-sm text-[#6B7280]">
-            ID: {problem.problem_id}
-          </span>
-        </div>
-      </header>
-
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[70%_30%]">
+    <div className="min-h-screen bg-white">
+      <div className="mx-auto flex max-w-[1200px] flex-col lg:flex-row min-h-screen">
         {/* Main Content */}
-        <main className="space-y-6">
-          <div className="card-premium p-10">
-            <h2 className="mb-6 text-2xl font-bold text-[#111827]">Problem Statement</h2>
-            <div dangerouslySetInnerHTML={{ __html: problem.statement }} />
+        <main className="min-w-0 flex-1 px-6 py-8 overflow-x-hidden">
+          {/* Title & Meta */}
+          <div className="mb-6">
+            <Link
+              href="/problems"
+              className="text-sm text-[#776acf] hover:underline"
+            >
+              &larr; Back to Problems
+            </Link>
+            <h1 className="mt-2 text-2xl font-bold text-[#222]">
+              {displayTitle}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[#666]">
+              {problem.rating !== null && (
+                <>
+                  <RatingBadge rating={problem.rating} size="sm" />
+                  <DifficultyBadge rating={problem.rating} />
+                </>
+              )}
+              <span>
+                time limit per test: <strong>{problem.time_limit_ms >= 1000 ? `${(problem.time_limit_ms / 1000).toFixed(1)} s` : `${problem.time_limit_ms} ms`}</strong>
+              </span>
+              <span>
+                memory limit per test: <strong>{problem.memory_limit_mb >= 1024 ? `${(problem.memory_limit_mb / 1024).toFixed(1)} GB` : `${problem.memory_limit_mb} MB`}</strong>
+              </span>
+              {problem.source && <span>source: <strong>{problem.source}</strong></span>}
+            </div>
           </div>
-          <div className="card-premium p-10">
-            <h2 className="mb-6 text-2xl font-bold text-[#111827]">Input</h2>
-            <div dangerouslySetInnerHTML={{ __html: problem.input_specification }} />
-          </div>
-          <div className="card-premium p-10">
-            <h2 className="mb-6 text-2xl font-bold text-[#111827]">Output</h2>
-            <div dangerouslySetInnerHTML={{ __html: problem.output_specification }} />
-          </div>
+
+          {/* Problem Statement */}
+          <section className="mb-8">
+            <MathRenderer html={problem.statement} />
+          </section>
+
+          {/* Input Specification */}
+          <section className="mb-8">
+            <h2 className="mb-2 text-lg font-semibold text-[#222]">Input</h2>
+            <MathRenderer html={problem.input_specification} />
+          </section>
+
+          {/* Output Specification */}
+          <section className="mb-8">
+            <h2 className="mb-2 text-lg font-semibold text-[#222]">Output</h2>
+            <MathRenderer html={problem.output_specification} />
+          </section>
+
+          {/* Constraints */}
           {problem.constraints && (
-            <div className="card-premium p-10">
-              <h2 className="mb-6 text-2xl font-bold text-[#111827]">Constraints</h2>
+            <section className="mb-8">
+              <h2 className="mb-2 text-lg font-semibold text-[#222]">Constraints</h2>
               <ConstraintsDisplay constraints={problem.constraints} />
-            </div>
+            </section>
           )}
-          {problem.notes && (
-            <div className="card-premium p-10">
-              <h2 className="mb-6 text-2xl font-bold text-[#111827]">Note</h2>
-              <div dangerouslySetInnerHTML={{ __html: problem.notes }} />
-            </div>
-          )}
+
+          {/* Examples */}
           {problem.sample_tests.length > 0 && (
-            <div className="card-premium p-10">
-              <h2 className="mb-6 text-2xl font-bold text-[#111827]">Examples</h2>
+            <section className="mb-8">
               <SampleTestTabs samples={problem.sample_tests} />
-            </div>
+            </section>
           )}
+
+          {/* Notes - Hidden */}
+          {/* 
+          {problem.notes && (
+            <section className="mb-8">
+              <h2 className="mb-2 text-lg font-semibold text-[#222]">Note</h2>
+              <MathRenderer html={problem.notes} />
+            </section>
+          )}
+          */}
         </main>
 
-        {/* Right Sidebar */}
-        <div className="lg:sticky lg:top-12">
-          <ProblemSidebar
-            rating={problem.rating}
-            timeLimitMs={problem.time_limit_ms}
-            memoryLimitMb={problem.memory_limit_mb}
-            contestId={problem.contest_id}
-            source={problem.source}
-            problemId={problem.problem_id}
-            tags={problem.tags}
-          />
-        </div>
+        {/* Sidebar */}
+        <aside className="border-l border-[#ddd] bg-[#f8f9fa] px-6 py-8">
+          <div className="mb-6">
+            <Link
+              href={`/problems/${problem.problem_id}/editor`}
+              className="block w-full rounded bg-[#776acf] px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-[#6658c7] transition-colors"
+            >
+              Submit Solution
+            </Link>
+          </div>
+
+          <div className="space-y-4 text-sm text-[#555]">
+            <div>
+              <div className="mb-1 font-semibold text-[#333]">Problem ID</div>
+              <div className="font-mono">{problem.problem_id}</div>
+            </div>
+            {problem.contest_id && (
+              <div>
+                <div className="mb-1 font-semibold text-[#333]">Contest</div>
+                <div>{problem.contest_id}</div>
+              </div>
+            )}
+            {problem.tags.length > 0 && (
+              <div>
+                <div className="mb-2 font-semibold text-[#333]">Tags</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {problem.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-sm bg-[#e8e8f0] px-2 py-0.5 text-xs text-[#776acf]"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
       </div>
     </div>
   );

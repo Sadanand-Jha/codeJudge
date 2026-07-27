@@ -32,6 +32,7 @@
 
 import { fetchProblems } from "@/services/problems";
 import ProblemsList from "./ProblemsList";
+import ProblemsetSidebar from "@/components/problemset/ProblemsetSidebar";
 
 export const metadata = {
   title: "Problems — CodeJudge",
@@ -41,7 +42,20 @@ export const metadata = {
 export default async function ProblemsPage() {
   try {
     const problems = await fetchProblems();
-    return <ProblemsList problems={problems} />;
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-3">
+        <div className="flex gap-4">
+          {/* Left column — problems table (~78%) */}
+          <div className="w-[78%] min-w-0">
+            <ProblemsList problems={problems} />
+          </div>
+          {/* Right column — sidebar widgets (~22%) */}
+          <div className="w-[22%] min-w-0">
+            <ProblemsetSidebar />
+          </div>
+        </div>
+      </div>
+    );
   } catch {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 md:px-6 lg:px-8">
