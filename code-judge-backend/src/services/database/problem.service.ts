@@ -20,9 +20,9 @@
  * ================================================================
  */
 
-import { ProblemRepository } from "../repositories/problem.repository.ts";
-import type { ProblemListItem, ProblemDetail } from "../types/index.ts";
-import { NotFoundError } from "../types/index.ts";
+import { ProblemRepository } from "../../repositories/problem.repository.ts";
+import type { ProblemListItem, ProblemDetail } from "../../types/index.ts";
+import { NotFoundError } from "../../types/index.ts";
 
 export class ProblemService {
   private repository: ProblemRepository;

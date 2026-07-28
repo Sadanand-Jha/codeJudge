@@ -2,7 +2,7 @@
 -- Problems
 -- ============================================
 
-CREATE TABLE problems (
+CREATE TABLE IF NOT EXISTS problems (
     id                  BIGSERIAL PRIMARY KEY,
 
     problem_id          VARCHAR(20) UNIQUE NOT NULL,      -- 4A, 1200C
@@ -33,12 +33,12 @@ CREATE TABLE problems (
 -- Tags
 -- ============================================
 
-CREATE TABLE tags (
+CREATE TABLE IF NOT EXISTS tags (
     id          BIGSERIAL PRIMARY KEY,
     name        VARCHAR(100) UNIQUE NOT NULL
 );
 
-CREATE TABLE problem_tags (
+CREATE TABLE IF NOT EXISTS problem_tags (
     problem_id  BIGINT NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
     tag_id      BIGINT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
 
@@ -49,7 +49,7 @@ CREATE TABLE problem_tags (
 -- Sample Testcases
 -- ============================================
 
-CREATE TABLE sample_testcases (
+CREATE TABLE IF NOT EXISTS sample_testcases (
     id              BIGSERIAL PRIMARY KEY,
 
     problem_id      BIGINT NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
@@ -65,7 +65,7 @@ CREATE TABLE sample_testcases (
 -- Hidden Testcases
 -- ============================================
 
-CREATE TABLE hidden_testcases (
+CREATE TABLE IF NOT EXISTS hidden_testcases (
     id              BIGSERIAL PRIMARY KEY,
 
     problem_id      BIGINT NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
@@ -84,7 +84,7 @@ CREATE TABLE hidden_testcases (
 -- Editorial
 -- ============================================
 
-CREATE TABLE editorials (
+CREATE TABLE IF NOT EXISTS editorials (
     id                  BIGSERIAL PRIMARY KEY,
 
     problem_id          BIGINT UNIQUE NOT NULL
@@ -103,17 +103,19 @@ CREATE TABLE editorials (
 -- Helpful Indexes
 -- ============================================
 
-CREATE INDEX idx_problem_rating
+CREATE INDEX IF NOT EXISTS idx_problem_rating
 ON problems(rating);
 
-CREATE INDEX idx_problem_contest
+CREATE INDEX IF NOT EXISTS idx_problem_contest
 ON problems(contest_id);
 
-CREATE INDEX idx_problem_source
+CREATE INDEX IF NOT EXISTS idx_problem_source
 ON problems(source);
 
-CREATE INDEX idx_hidden_problem
+CREATE INDEX IF NOT EXISTS idx_hidden_problem
 ON hidden_testcases(problem_id);
 
-CREATE INDEX idx_sample_problem
+CREATE INDEX IF NOT EXISTS idx_sample_problem
 ON sample_testcases(problem_id);
+
+

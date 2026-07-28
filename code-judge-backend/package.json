@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "migrate": "tsx src/migrate.ts",
+    "migration:dry": "tsx src/migrate.ts --dry-run"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",
@@ -21,6 +23,8 @@
     "ioredis": "^5.3.2",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.0",
+    "nodemailer": "^9.0.3",
+    "otp-generator": "^4.0.1",
     "pg": "^8.22.0",
     "playwright": "^1.62.0",
     "playwright-extra": "^4.3.6",
@@ -34,6 +38,8 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.19.43",
+    "@types/nodemailer": "^8.0.1",
+    "@types/otp-generator": "^4.0.2",
     "@types/pg": "^8.20.0",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
     "@typescript-eslint/parser": "^6.11.0",

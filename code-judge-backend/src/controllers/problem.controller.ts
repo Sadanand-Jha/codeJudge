@@ -29,7 +29,7 @@
  */
 
 import type { Request, Response, NextFunction } from "express";
-import { ProblemService } from "../services/problem.service.ts";
+import { ProblemService } from "../services/database/problem.service.ts";
 import { NotFoundError } from "../types/index.ts";
 
 const problemService = new ProblemService();

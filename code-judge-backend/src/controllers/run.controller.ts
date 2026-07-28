@@ -1,6 +1,6 @@
 // TypeScript then knows these are only types and removes them from the generated JavaScript.
 import type { Request, Response } from "express";
-import judge0 from "../services/judge0.service.js";
+import judge0 from "../services/database/judge0.service.ts";
 
 // "I'm importing these only for type checking. They are never needed when the program runs."
 
