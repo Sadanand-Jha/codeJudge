@@ -1,17 +1,30 @@
+'use client';
 import Link from "next/link";
+import React, { useState } from "react";
 
 export default function LoginPage() {
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    console.log(email, password)
+  }
+
   return (
     <div className="mx-auto max-w-sm px-4 py-12">
       <div className="border border-[#E6E7EB] bg-white p-6">
         <h1 className="mb-4 text-lg font-bold text-[#111827] text-center">Sign In</h1>
-        <form className="space-y-3">
+        <form className="space-y-3" onSubmit={submit}>
           <div>
             <label className="block text-[11px] font-medium text-[#6B7280] mb-1">Email / Handle</label>
             <input
               type="text"
               className="w-full rounded border border-[#E6E7EB] bg-white px-3 py-1.5 text-[11px] text-[#111827] placeholder-[#9CA3AF] outline-none focus:border-[#2563EB]/40"
               placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div>
@@ -20,6 +33,8 @@ export default function LoginPage() {
               type="password"
               className="w-full rounded border border-[#E6E7EB] bg-white px-3 py-1.5 text-[11px] text-[#111827] placeholder-[#9CA3AF] outline-none focus:border-[#2563EB]/40"
               placeholder="••••••••"
+              value = {password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
           <button
