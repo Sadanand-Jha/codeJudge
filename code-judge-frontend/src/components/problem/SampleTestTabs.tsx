@@ -13,14 +13,12 @@ function stripHtml(html: string): string {
   if (typeof document === "undefined") return html;
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
-  // Each .test-example-line contains one line; collect them all
   const lines = doc.querySelectorAll(".test-example-line");
   if (lines.length > 0) {
     return Array.from(lines)
       .map((el) => el.textContent || "")
       .join("\n");
   }
-  // Fallback: just get the text content
   return doc.body.textContent || html;
 }
 
@@ -47,7 +45,7 @@ export default function SampleTestTabs({ samples }: SampleTestTabsProps) {
           <button
             key={index}
             onClick={() => setActiveTab(index)}
-            className={`relative px-6 py-4 text-sm font-medium transition-all ${
+            className={`relative px-6 py-3 text-sm font-medium transition-all ${
               activeTab === index
                 ? "text-[#2563EB]"
                 : "text-[#6B7280] hover:text-[#111827]"
@@ -81,12 +79,12 @@ interface SampleTestContentProps {
 
 function SampleTestContent({ sample }: SampleTestContentProps) {
   return (
-    <div className="space-y-6">
-      <CodeBlock label="Input" code={sample.input} />
-      <CodeBlock label="Output" code={sample.output} />
+    <div className="space-y-5">
+      <CFExampleBox label="Input" code={sample.input} />
+      <CFExampleBox label="Output" code={sample.output} />
       {sample.explanation && (
         <div>
-          <h4 className="mb-2 text-base font-semibold text-[#333]">Explanation</h4>
+          <h4 className="mb-2 text-base font-semibold text-[#333]">Note</h4>
           <p className="text-sm leading-relaxed text-[#555]">{sample.explanation}</p>
         </div>
       )}
@@ -94,12 +92,18 @@ function SampleTestContent({ sample }: SampleTestContentProps) {
   );
 }
 
-interface CodeBlockProps {
+interface CFExampleBoxProps {
   label: string;
   code: string;
 }
 
-function CodeBlock({ label, code }: CodeBlockProps) {
+/**
+ * Codeforces-style I/O example box:
+ * - Thin light gray border around the whole container
+ * - Header bar: light gray background, "input"/"output" on left, "Copy" on right
+ * - Content area: preformatted text with zebra-striping (alternating white/light gray lines)
+ */
+function CFExampleBox({ label, code }: CFExampleBoxProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -112,17 +116,20 @@ function CodeBlock({ label, code }: CodeBlockProps) {
     }
   }, [code]);
 
+  const lines = code.split("\n");
+
   return (
-    <div>
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-sm font-semibold text-[#333]">{label}:</span>
+    <div className="border border-[#E6E7EB] rounded-sm overflow-hidden">
+      {/* Header Bar */}
+      <div className="flex items-center justify-between bg-[#E6E7EB] px-3 py-1.5">
+        <span className="text-xs font-semibold text-[#333] uppercase">{label}</span>
         <button
           onClick={handleCopy}
-          className="inline-flex items-center gap-1 rounded border border-[#ccc] px-2 py-0.5 text-xs text-[#555] hover:bg-[#f0f0f0] transition-colors"
+          className="inline-flex items-center gap-1 text-xs text-[#2563EB] hover:text-[#1D4ED8] transition-colors"
         >
           {copied ? (
             <>
-              <Check className="h-3 w-3 text-[#16A34A]" />
+              <Check className="h-3 w-3" />
               Copied
             </>
           ) : (
@@ -133,9 +140,20 @@ function CodeBlock({ label, code }: CodeBlockProps) {
           )}
         </button>
       </div>
-      <pre className="overflow-x-auto border border-[#ddd] bg-[#f8f8f8] p-4 font-mono text-sm text-[#222]">
-        <code>{code}</code>
-      </pre>
+
+      {/* Content Area with Zebra Striping */}
+      <div className="font-mono text-sm leading-6">
+        {lines.map((line, idx) => (
+          <div
+            key={idx}
+            className={`px-3 py-0 ${
+              idx % 2 === 0 ? "bg-white" : "bg-[#F8F9FA]"
+            }`}
+          >
+            {line || "\u00A0"}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -164,3 +164,50 @@ body {
   font-weight: 500;
   color: #222;
 }
+
+/* Codeforces-style example box zebra striping */
+.cf-example-box .zebra-stripe:nth-child(even) {
+  background-color: #F8F9FA;
+}
+.cf-example-box .zebra-stripe:nth-child(odd) {
+  background-color: #FFFFFF;
+}
+
+/* Codeforces-style section headers */
+.problem-section-header {
+  font-size: 14px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 0.5em;
+}
+
+/* Tight spacing for problem content */
+.problem-content-section {
+  margin-bottom: 1.5em;
+}
+
+/* Codeforces-style select dropdown */
+select.cf-select {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  border: 1px solid #E6E7EB;
+  border-radius: 2px;
+  padding: 2px 4px;
+  background: #fff;
+  color: #333;
+}
+
+/* Codeforces-style button */
+button.cf-btn {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  border: 1px solid #E6E7EB;
+  border-radius: 2px;
+  padding: 4px 16px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+}
+button.cf-btn:hover {
+  background: #F4F4F4;
+}

@@ -8,3 +8,8 @@ export { default as ProblemStatement } from "./ProblemStatement";
 export { default as SampleTestCard } from "./SampleTestCard";
 export { default as ProblemSkeleton } from "./ProblemSkeleton";
 export { default as MathRenderer } from "./MathRenderer";
+export { default as SidebarWidget } from "./SidebarWidget";
+export { default as ContestInfoWidget } from "./ContestInfoWidget";
+export { default as SubmitWidget } from "./SubmitWidget";
+export { default as ContestMaterialsWidget } from "./ContestMaterialsWidget";
+export { default as SampleTestTabs } from "./SampleTestTabs";

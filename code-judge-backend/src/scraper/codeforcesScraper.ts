@@ -1,23 +1,3 @@
-/**
- * ================================================================
- * Codeforces Problem Scraper
- * ================================================================
- * 
- * This scraper fetches problem statements from Codeforces and preserves
- * all formatting including:
- * - Paragraph breaks
- * - Empty lines between sections
- * - Bullet lists
- * - Numbered lists
- * - Indentation
- * - Mathematical expressions
- * - Code blocks
- * - Multiple consecutive newlines
- * 
- * The scraper stores the HTML content as-is in the database.
- * ================================================================
- */
-
 import axios from "axios";
 import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
@@ -43,114 +23,102 @@ interface CodeforcesProblem {
   tags: string[];
 }
 
-/**
- * Fetches a problem from Codeforces and returns structured data.
- * Preserves all HTML formatting in the statement.
- */
 export async function scrapeCodeforcesProblem(
   contestId: string,
   problemIndex: string
 ): Promise<CodeforcesProblem> {
   const url = `https://codeforces.com/contest/${contestId}/problem/${problemIndex}`;
   
-  const response = await axios.get(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; CodeJudge/1.0)",
-    },
-  });
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      },
+    });
 
-  const $ = cheerio.load(response.data);
-  
-  // Extract the main problem-statement div
-  const statementElement = $(".problem-statement").first();
-  
-  // Extract problem title
-  const title = statementElement.find(".header .title").text().trim();
-  
-  // Extract time and memory limits
-  const limitsText = statementElement.find(".header .time-limit").text();
-  const timeLimitMatch = limitsText.match(/(\d+)\s*ms/);
-  const timeLimit = timeLimitMatch ? parseInt(timeLimitMatch[1]) : 2000;
-  
-  const memoryMatch = limitsText.match(/(\d+)\s*MB/);
-  const memoryLimit = memoryMatch ? parseInt(memoryMatch[1]) : 256;
+    const $ = cheerio.load(response.data);
+    const statementElement = $(".problem-statement").first();
+    
+    if (statementElement.length === 0) {
+        throw new Error("Could not find .problem-statement. Cloudflare might have blocked the request.");
+    }
 
-  // Extract the problem statement HTML.
-  // In Codeforces HTML structure, the children of .problem-statement are:
-  //   0: <div class="header">...</div>
-  //   1: <div> (plain div - this IS the problem statement)
-  //   2: <div class="input-specification">...</div>
-  //   3: <div class="output-specification">...</div>
-  //   4: <div class="sample-tests">...</div>
-  //   5: <div class="note">...</div>
-  const statement = extractStatement($, statementElement);
-  const inputSpecification = extractSectionContent($, statementElement, "input");
-  const outputSpecification = extractSectionContent($, statementElement, "output");
-  const notes = extractSectionContent($, statementElement, "note");
+    const title = statementElement.find(".header .title").text().trim();
+    
+    const limitsText = statementElement.find(".header .time-limit").text();
+    const timeLimitMatch = limitsText.match(/(\d+)\s*ms/);
+    const timeLimit = timeLimitMatch ? parseInt(timeLimitMatch[1]) : 2000;
+    
+    const memoryMatch = limitsText.match(/(\d+)\s*MB/);
+    const memoryLimit = memoryMatch ? parseInt(memoryMatch[1]) : 256;
 
-  // Extract sample tests
-  const sampleTests = extractSampleTests($, statementElement);
+    const statement = extractStatement($, statementElement);
+    const inputSpecification = extractSectionContent($, statementElement, "input");
+    const outputSpecification = extractSectionContent($, statementElement, "output");
+    const notes = extractSectionContent($, statementElement, "note");
+    const sampleTests = extractSampleTests($, statementElement);
+    const tags: string[] = extractTags($);
 
-  // Extract tags
-  const tags: string[] = extractTags($);
-
-  return {
-    problemId: `${contestId}${problemIndex}`,
-    contestId,
-    problemIndex,
-    title,
-    statement,
-    inputSpecification,
-    outputSpecification,
-    constraints: null,
-    notes: notes || null,
-    sampleTests,
-    timeLimit,
-    memoryLimit,
-    rating: null,
-    tags,
-  };
+    return {
+      problemId: `${contestId}${problemIndex}`,
+      contestId,
+      problemIndex,
+      title,
+      statement,
+      inputSpecification,
+      outputSpecification,
+      constraints: null,
+      notes: notes || null,
+      sampleTests,
+      timeLimit,
+      memoryLimit,
+      rating: null,
+      tags,
+    };
+  } catch (error: any) {
+    if (error.response && error.response.status === 403) {
+        throw new Error(`Cloudflare blocked the Axios request (403 Forbidden) for ${url}`);
+    }
+    throw error;
+  }
 }
 
-/**
- * Extracts the problem statement HTML.
- * The statement is the child div of .problem-statement that comes right after .header
- * and has no specific class (plain div).
- */
 function extractStatement(
   $: cheerio.CheerioAPI,
   container: cheerio.Cheerio<AnyNode>
 ): string {
   const children = container.children();
-  let statementHtml = "";
+  const statementBlocks: string[] = [];
   
   children.each((_i: number, el: AnyNode) => {
     const $el = $(el);
     const tagName = ($el.prop("tagName") || "").toLowerCase();
     
-    if (tagName !== "div") {
-      return;
-    }
+    if (tagName !== "div") return;
     
     const cls = $el.attr("class") || "";
     
-    if (cls.includes("header")) {
+    // Skip these sections to isolate the raw statement
+    if (cls.includes("header") || 
+        cls.includes("input-specification") || 
+        cls.includes("output-specification") || 
+        cls.includes("sample-statement") || 
+        cls.includes("sample-test") || 
+        cls.includes("note")) {
       return;
     }
     
-    if (!cls.includes("input") && !cls.includes("output") && !cls.includes("sample") && !cls.includes("note")) {
-      statementHtml = $el.html() || "";
-      return false;
+    const html = $el.html() || "";
+    if (html.trim()) {
+      statementBlocks.push(html);
     }
   });
   
-  return statementHtml;
+  return statementBlocks.join("");
 }
 
-/**
- * Extracts content from a specific section of the problem statement.
- * Preserves all HTML formatting including paragraphs, lists, and code blocks.
- */
 function extractSectionContent(
   $: cheerio.CheerioAPI,
   container: cheerio.Cheerio<AnyNode>,
@@ -158,150 +126,117 @@ function extractSectionContent(
 ): string {
   let selector = "";
   switch (sectionType) {
-    case "input":
-      selector = ".input-specification";
-      break;
-    case "output":
-      selector = ".output-specification";
-      break;
-    case "note":
-      selector = ".note";
-      break;
+    case "input": selector = ".input-specification"; break;
+    case "output": selector = ".output-specification"; break;
+    case "note": selector = ".note"; break;
   }
 
   const section = container.find(selector);
-  if (section.length === 0) {
-    return "";
-  }
-
-  return section.html() || "";
+  return section.length === 0 ? "" : (section.html() || "");
 }
 
-/**
- * Extracts sample test cases from the problem statement.
- * 
- * Codeforces wraps sample test input/output inside <div class="test-example-line"> elements
- * (not inside <pre>). We need to:
- * 1. Find each .sample-test block
- * 2. For input: find all .test-example-line divs inside .input pre
- * 3. Extract only textContent from each line, join with '\n'
- * 4. Same for output
- * 5. If no .test-example-line divs found, fall back to getting the text directly from <pre>
- */
 export function extractSampleTests(
   $: cheerio.CheerioAPI,
   container: cheerio.Cheerio<AnyNode>
 ): Array<{ input: string; output: string; explanation: string | null }> {
   const tests: Array<{ input: string; output: string; explanation: string | null }> = [];
   
-  container.find(".sample-test").each((_index: number, testEl) => {
-    // Extract input - prefer .test-example-line divs, fallback to <pre> text
-    const input = extractTestLines($, $(testEl).find(".input pre"));
-    const output = extractTestLines($, $(testEl).find(".output pre"));
+  const inputs = container.find(".sample-test .input");
+  const outputs = container.find(".sample-test .output");
+  
+  const count = Math.min(inputs.length, outputs.length);
+  
+  for (let i = 0; i < count; i++) {
+    const input = extractTestLines($, $(inputs[i]).find("pre"));
+    const output = extractTestLines($, $(outputs[i]).find("pre"));
     
-    // Explanation is optional and we keep its HTML as-is (it may contain formatting)
-    let explanation: string | null = null;
-    const explanationEl = $(testEl).find(".explanation");
-    if (explanationEl.length > 0) {
-      explanation = explanationEl.html() || null;
-    }
-    
-    tests.push({ input, output, explanation });
-  });
-
+    tests.push({ input, output, explanation: null });
+  }
+  
+  const explanationEl = container.find(".sample-test .explanation");
+  if (explanationEl.length > 0 && tests.length > 0) {
+    tests[tests.length - 1].explanation = explanationEl.html() || null;
+  }
+  
   return tests;
 }
 
-/**
- * Extracts test case lines from a <pre> element.
- * 
- * Codeforces can format sample test data in two ways:
- * 1. New style: <div class="test-example-line"> per line — extract text from each, join with \n
- * 2. Old style: plain text inside <pre> — use textContent directly
- */
 function extractTestLines(
   $: cheerio.CheerioAPI,
   preElement: cheerio.Cheerio<AnyNode>
 ): string {
-  if (preElement.length === 0) {
-    return "";
-  }
+  if (preElement.length === 0) return "";
   
-  // Check if there are .test-example-line divs inside
   const exampleLines = preElement.find("div.test-example-line");
-  
   if (exampleLines.length > 0) {
-    // New style: extract text from each .test-example-line and join with \n
     const lines: string[] = [];
     exampleLines.each((_i: number, lineEl: AnyNode) => {
-      const line = $(lineEl).text();
-      lines.push(line);
+      lines.push($(lineEl).text());
     });
     return lines.join("\n");
   }
   
-  // Old style: grab the text directly from <pre>
   return preElement.text();
 }
 
-/**
- * Extracts tags from the page.
- */
 function extractTags($: cheerio.CheerioAPI): string[] {
   const tags: string[] = [];
-  
-  const tagSelectors = [
-    ".tag-box a",
-    ".problem-tags a",
-    ".tags a",
-    ".sidebar .tag-box a",
-  ];
+  const tagSelectors = [".tag-box a", ".problem-tags a", ".tags a", ".sidebar .tag-box a"];
   
   for (const selector of tagSelectors) {
     $(selector).each((_i: number, el: any) => {
       const tagText = $(el).text().trim();
-      if (tagText && tagText !== '*' && !tags.includes(tagText)) {
-        tags.push(tagText);
-      }
+      if (tagText && tagText !== '*' && !tags.includes(tagText)) tags.push(tagText);
     });
-    
     if (tags.length > 0) break;
-  }
-  
-  if (tags.length === 0) {
-    $(".roundbox").each((_i: number, box: any) => {
-      const boxText = $(box).text();
-      if (boxText.includes("Tags")) {
-        $(box).find("a").each((_j: number, a: any) => {
-          const tagText = $(a).text().trim();
-          if (tagText && tagText !== '*' && !tags.includes(tagText)) {
-            tags.push(tagText);
-          }
-        });
-      }
-    });
   }
   
   return tags;
 }
 
-/**
- * Scrapes multiple problems from a contest.
- */
-export async function scrapeContestProblems(
-  contestId: string
-): Promise<CodeforcesProblem[]> {
+export async function scrapeContestProblems(contestId: string): Promise<CodeforcesProblem[]> {
   const problems: CodeforcesProblem[] = [];
-  const problemIndices = ["A", "B", "C", "D", "E", "F", "G"];
+  const problemIndices = ["A", "B", "C"]; // Shortened for testing
   
   for (const index of problemIndices) {
     try {
+      console.log(`Scraping ${contestId}${index}...`);
       const problem = await scrapeCodeforcesProblem(contestId, index);
       problems.push(problem);
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`Failed to scrape ${contestId}${index}:`, error.message);
       break;
     }
   }
   
   return problems;
+}
+
+// ================================================================
+// EXECUTION BLOCK: Run directly with: npx tsx src/scraper/codeforcesScraper.ts
+// ================================================================
+const isMainModule = process.argv[1] && 
+  (import.meta.url === `file://${process.argv[1]}` || 
+   import.meta.url.endsWith(process.argv[1]?.split("/").pop() ?? ""));
+
+if (isMainModule) {
+  (async () => {
+    console.log("Starting scraper test...");
+    // Let's test it on a recent contest (e.g., 1900)
+    const contestId = "1900"; 
+    
+    try {
+      const problems = await scrapeContestProblems(contestId);
+      console.log(`\nSuccessfully scraped ${problems.length} problems!`);
+      
+      if (problems.length > 0) {
+        console.log("\nSample of Problem A:");
+        console.log(`Title: ${problems[0].title}`);
+        console.log(`Tags: ${problems[0].tags.join(", ")}`);
+        console.log(`Sample Tests Found: ${problems[0].sampleTests.length}`);
+      }
+    } catch (err) {
+      console.error("Scraper failed:", err);
+    }
+  })();
 }
