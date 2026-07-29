@@ -1,6 +1,26 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 export default function PricingPage() {
+  const [subscribing, setSubscribing] = useState<string | null>(null);
+
+  async function handleSubscribe(plan: string) {
+    setSubscribing(plan);
+    try {
+      // Simulate API call — replace with actual subscription service
+      await new Promise((r) => setTimeout(r, 1000));
+      toast.success(`Subscribed to ${plan} plan successfully!`);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Subscription failed";
+      toast.error(msg);
+    } finally {
+      setSubscribing(null);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
       <div className="mb-4 border-b border-[#E6E7EB] pb-2">
@@ -15,7 +35,7 @@ export default function PricingPage() {
             <li>Basic AI hints</li>
             <li>Public leaderboard</li>
           </ul>
-          <button className="rounded border border-[#E6E7EB] bg-white px-4 py-1 text-[10px] font-medium text-[#6B7280] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors">
+          <button className="rounded border border-[#E6E7EB] bg-white px-4 py-1 text-[10px] font-medium text-[#6B7280] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors cursor-not-allowed opacity-60">
             Current Plan
           </button>
         </div>
@@ -27,8 +47,12 @@ export default function PricingPage() {
             <li>Advanced AI hints & reviews</li>
             <li>Priority support</li>
           </ul>
-          <button className="rounded border border-[#2563EB] bg-[#2563EB] px-4 py-1 text-[10px] font-medium text-white hover:bg-[#1D4ED8] transition-colors">
-            Subscribe
+          <button
+            onClick={() => handleSubscribe("Pro")}
+            disabled={subscribing === "Pro"}
+            className="rounded border border-[#2563EB] bg-[#2563EB] px-4 py-1 text-[10px] font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {subscribing === "Pro" ? "Subscribing..." : "Subscribe"}
           </button>
         </div>
         <div className="border border-[#E6E7EB] bg-white p-4 text-center">
@@ -39,8 +63,12 @@ export default function PricingPage() {
             <li>Team analytics</li>
             <li>Custom problem sets</li>
           </ul>
-          <button className="rounded border border-[#2563EB] bg-[#2563EB] px-4 py-1 text-[10px] font-medium text-white hover:bg-[#1D4ED8] transition-colors">
-            Subscribe
+          <button
+            onClick={() => handleSubscribe("Team")}
+            disabled={subscribing === "Team"}
+            className="rounded border border-[#2563EB] bg-[#2563EB] px-4 py-1 text-[10px] font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {subscribing === "Team" ? "Subscribing..." : "Subscribe"}
           </button>
         </div>
       </div>
