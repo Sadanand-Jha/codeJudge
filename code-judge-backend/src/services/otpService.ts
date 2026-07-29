@@ -1,120 +1,50 @@
-import {
-  getCurrentISTTime,
-  getTimeDifferenceInMinutes,
-  getTimeDifferenceInHours,
-} from "../utils/timeUtils.ts";
-import generateOtp from "./otpGenerator.ts";
-import {
-  OTP_EXPIRY_MINUTES,
-  OTP_REQUEST_THRESHOLD_MINUTES,
-  OTP_FREEZE_DURATION_HOURS,
-  OTP_MAX_ATTEMPTS,
-  OTP_MAX_ATTEMPTS_ADMIN,
-  OTP_EMAIL_SUBJECT,
-  OTP_EMAIL_SENDER_NAME,
-  OTP_LENGTH,
-  OTP_NUMERIC_ONLY,
-  OTP_INCLUDE_SYMBOLS,
-  OTP_MAX_VERIFY_ATTEMPTS
-} from "../constants/otpConstants.ts";
-import sendEmail from "./email.ts";
+import generateOtp from "./otpGenerator.js";
+import { sendEmail } from "./email.js";
+import redisClient from "../config/redis.js";
+import { userRepository } from "../repositories/user.repository.js";
+
+const userRepo = new userRepository();
+
+const OTP_TTL_SECONDS = 300; // 5 minutes
+const OTP_EMAIL_SUBJECT = "Email Verification - CodeJudge";
+const OTP_EMAIL_SENDER_NAME = "CodeJudge Team";
+
 export interface OTPResult {
   success: boolean;
   message: string;
-  shouldSendOTP?: boolean;
-  attemptCount?: number;
 }
-import {userRepository} from "../repositories/user.repository.ts";
-/**
- * OTP Service Implementation
- * Handles OTP generation and sending for both Users and Admins
- * User OTP: Has restrictions based on attempt count and timing
- * Admin OTP: No restrictions, simpler logic for admin authentication
- */
+
 export class OTPService {
-  // ===== USER OTP METHODS (With Restrictions) =====
-
   /**
-   * Handle User OTP request with restrictions (renamed from handleOTPRequest)
-   * @param rollNumber - User's roll number
-   * @param email - User's email
-   * @param userName - User's name for email
-   * @returns OTPResult indicating success/failure and next steps
+   * Generate an OTP, store it in Redis with key "otp:<email>" and TTL 5 minutes,
+   * then send it via email.
    */
-  static async handleUserOTPRequest(
-    userName: string
-  ): Promise<OTPResult> {
+  static async handleUserOTPRequest(userName: string): Promise<OTPResult> {
     try {
-      // Find existing OTP record
-      const existingOTP = await userRepository.findLatestOTP(
-        userName
-      );
-      const currentTime = getCurrentISTTime();
+      const email = await userRepo.getEmailByUsername(userName);
 
-      // Case 1: No existing OTP (first time trying to verify)
-      if (!existingOTP || !existingOTP.createdat) {
-        return await this.sendUpdatedOTP(
-  
-          userName,
-          3,
-          currentTime
-        );
+      if (!email) {
+        return {
+          success: false,
+          message: "Email not found for the given username.",
+        };
       }
 
-      const otpCreatedAt = new Date(existingOTP.createdat);
-      const timeDifferenceMinutes = getTimeDifferenceInMinutes(
-        otpCreatedAt,
-        currentTime
-      );
-      const timeDifferenceHours = getTimeDifferenceInHours(
-        otpCreatedAt,
-        currentTime
-      );
-      const currentAttempt = existingOTP.attempt || 0;
+      const otp = generateOtp(6, true, false);
 
-      // Case 2: attempt == 0 (frozen state)
-      if (currentAttempt === 0) {
-        // Check if 1 hour has passed since freeze
-        if (timeDifferenceHours >= OTP_FREEZE_DURATION_HOURS) {
-          // Reset attempts and send OTP
-          return await this.sendUpdatedOTP(
-            userName,
-            3,
-            currentTime
-          );
-        } else {
-          // Still frozen
-          return {
-            success: false,
-            message: "Too many attempts. Please try after some time.",
-          };
-        }
-      }
+      // Store OTP in Redis with 5-minute TTL
+      await redisClient.setEx(`otp:${email}`, OTP_TTL_SECONDS, otp);
 
-      // Case 3: Less than 5 minutes since last OTP
-      if (timeDifferenceMinutes < OTP_REQUEST_THRESHOLD_MINUTES) {
-        // Decrease attempt count and send new OTP
-        return await this.sendUpdatedOTP(
-          userName,
-          currentAttempt,
-          currentTime
-        );
-      }
+      // Send email
+      await sendEmail({
+        to: email,
+        subject: OTP_EMAIL_SUBJECT,
+        text: `Hello ${userName},\n\nYour OTP for email verification is: ${otp}\n\nThis OTP will expire in 5 minutes.\n\nIf you did not request this, please ignore this email.\n\nThanks,\n${OTP_EMAIL_SENDER_NAME}`,
+      });
 
-      // Case 4: 5 minutes or more have passed
-      if (timeDifferenceMinutes >= OTP_REQUEST_THRESHOLD_MINUTES) {
-        // Reset attempts to 3 and send new OTP
-        return await this.sendUpdatedOTP(
-          userName,
-          3,
-          currentTime
-        );
-      }
-
-      // Fallback case
       return {
-        success: false,
-        message: "Unable to process OTP request. Please try again.",
+        success: true,
+        message: "OTP sent to your registered email address.",
       };
     } catch (error) {
       console.error("Error in OTP handling:", error);
@@ -124,55 +54,23 @@ export class OTPService {
       };
     }
   }
+
   /**
-   * Send a new OTP (create new record or update existing)
+   * Verify an OTP for a given email.
+   * Returns true if the OTP matches, false otherwise.
    */
-  private static async sendUpdatedOTP(
-    userName: string,
-    attemptCount: number,
-    currentTime: Date
-  ): Promise<OTPResult> {
-  try {
-      const otp = parseInt(generateOtp(6, true, false));
-
-      const email = await userRepository.getEmailByUsername(userName);
-
-      if(email == null) {
-        return {
-          success: false,
-          message: "Email not found for the given username.",
-        };
-      }
-
-      // Create or update OTP record (preserves time records)
-      await userRepository.createOrUpdateOTP(
-        userName,
-        otp.toString(),
-        attemptCount - 1,
-        currentTime,
-        OTP_MAX_VERIFY_ATTEMPTS
-      ); 
-      
-      
-      // Send email
-      await sendEmail(
-        email,
-        OTP_EMAIL_SUBJECT,
-        `Hello ${userName},\n\nYour OTP for email verification is: ${otp}\n\nThis OTP will expire in ${OTP_EXPIRY_MINUTES} minutes.\nRemaining attempts: ${
-          attemptCount - 1
-        }\n\nIf you did not request this, please ignore this email.\n\nThanks,\n${OTP_EMAIL_SENDER_NAME}`
-      );
-
-      return {
-        success: true,
-        message: `OTP sent to your registered email address. Remaining attempts: ${
-          attemptCount - 1
-        }`,
-        shouldSendOTP: true,
-      };
-    } catch (error) {
-      console.error("Error sending new OTP:", error);
-      throw error;
+  static async verifyOTP(email: string, otp: string): Promise<boolean> {
+    const storedOtp = await redisClient.get(`otp:${email}`);
+    if (!storedOtp) {
+      return false; // OTP expired or never requested
     }
+    return storedOtp === otp;
+  }
+
+  /**
+   * Delete an OTP from Redis (e.g., after successful verification).
+   */
+  static async deleteOTP(email: string): Promise<void> {
+    await redisClient.del(`otp:${email}`);
   }
 }

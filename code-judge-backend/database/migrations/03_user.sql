@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     Username        VARCHAR(255) NOT NULL,
     Email           VARCHAR(255) UNIQUE NOT NULL,
     Password        VARCHAR(255),
-    Role            VARCHAR(50) DEFAULT 'admin',
+    Role            VARCHAR(50) DEFAULT 'USER',
     IsActive        BOOLEAN DEFAULT TRUE,
     LastLogin       TIMESTAMP,
     CreatedAt       TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Asia/Kolkata'),

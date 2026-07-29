@@ -1,51 +1,61 @@
-import nodemailer from "nodemailer";
+import nodemailer from 'nodemailer';
+import logger from '../utils/logger.js';
+
+interface EmailOptions {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+}
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+export async function sendEmail(options: EmailOptions): Promise<void> {
+  const mailOptions = {
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: options.to,
+    subject: options.subject,
+    text: options.text,
+    html: options.html,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.info(`Email sent successfully to ${options.to}: ${info.messageId}`);
+  } catch (error) {
+    logger.error(`Failed to send email to ${options.to}:`, error);
+    throw error;
+  }
+}
 
 /**
- * Sends an email using Gmail SMTP with App Password authentication
- * Minimal implementation for OTP sending only
- * 
- * @param email - Recipient email address
- * @param subject - Email subject line
- * @param message - Email message content (plain text)
- * @returns Promise with email send information from Nodemailer
+ * Sends OTP email asynchronously
+ * This is meant to be fired-and-forgotten so the HTTP request doesn't block
  */
-const sendEmail = async (
-  email: string,
-  subject: string,
-  message: string,
-) => {
-  const EMAIL = process.env.EMAIL;
-  const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-  const GMAIL_APP_NAME = process.env.GMAIL_APP_NAME;
+export async function sendOtpEmail(email: string, otp: string): Promise<void> {
+  const subject = 'Your OTP for CodeJudge Registration';
+  const text = `Your OTP for registration is: ${otp}\n\nThis OTP is valid for 5 minutes.\n\nIf you did not request this, please ignore this email.`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+      <h2 style="color: #333;">CodeJudge Registration</h2>
+      <p style="font-size: 16px; color: #555;">Your One-Time Password (OTP) for registration is:</p>
+      <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333; margin: 20px 0;">
+        ${otp}
+      </div>
+      <p style="font-size: 14px; color: #888;">This OTP is valid for 5 minutes. Do not share this code with anyone.</p>
+      <p style="font-size: 14px; color: #888;">If you did not request this OTP, please ignore this email.</p>
+      <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #aaa;">CodeJudge Team</p>
+    </div>
+  `;
 
-  if (!EMAIL || !GMAIL_APP_PASSWORD) {
-    throw new Error(
-      "Email configuration is incomplete. Required: EMAIL, GMAIL_APP_PASSWORD"
-    );
-  }
-
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: EMAIL,
-      pass: GMAIL_APP_PASSWORD,
-    },
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
-
-  const info = await transporter.sendMail({
-    from: `"${GMAIL_APP_NAME || "CodeJudge"}" <${EMAIL}>`,
-    to: email,
-    subject: subject,
-    text: message,
-  });
-
-  return info;
-};
-
-export { sendEmail };
-export default sendEmail;
+  await sendEmail({ to: email, subject, text, html });
+}

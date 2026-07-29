@@ -24,10 +24,12 @@
 import { Router } from "express";
 import v1Routes from "./v1/index.ts";
 import problemRoutes from "./problem.routes.ts";
+import authRoutes from "./auth.routes.ts"
 
 const router = Router();
 
 router.use("/v1", v1Routes);
+router.use("/auth", authRoutes)
 
 // Public problem routes — GET /api/problems and GET /api/problems/:problemId
 router.use("/problems", problemRoutes);
