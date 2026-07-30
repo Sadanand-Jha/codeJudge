@@ -9,9 +9,7 @@ import { errorHandler } from "./middleware/errorHandler.ts";
 import pg from 'pg';
 const { Pool } = pg;
 
-
 export const pool = new Pool();
-
 
 pool.connect()
   .then(() => console.log('✅ Connected to PostgreSQL database successfully!'))
@@ -19,7 +17,13 @@ pool.connect()
 
 const app = express();
 
-app.use(cors());
+// --- UPDATED CORS CONFIGURATION ---
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:3000", // Update this to match your frontend port exactly (e.g., 5173 for Vite)
+  credentials: true, // This is required to allow cookies to be sent and set
+}));
+// ----------------------------------
+
 app.use(helmet());
 app.use(morgan("dev"));
 

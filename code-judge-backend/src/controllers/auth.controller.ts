@@ -173,7 +173,7 @@ export const loginController = async (req: Request, res: Response) => {
 
     // Generate JWT session token
     const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-    const jwtExpiry = process.env.JWT_EXPIRY || "7d";
+    const jwtExpiry = process.env.JWT_EXPIRY || "1d";
     const signOptions: SignOptions = { expiresIn: jwtExpiry as SignOptions['expiresIn'] };
     const sessionToken = jwt.sign(
       {
@@ -187,12 +187,12 @@ export const loginController = async (req: Request, res: Response) => {
 
     console.log(sessionToken);
 
-    // Set httpOnly, secure, sameSite: 'strict' cookie
+    // Set httpOnly, secure, sameSite: 'lax' cookie
     res.cookie("session_token", sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 10 * 1000 * 2 * 60 * 1000, //  1 day
     });
 
     res.status(200).json({
@@ -223,16 +223,7 @@ export const loginController = async (req: Request, res: Response) => {
  */
 export const meController = async (req: Request, res: Response) => {
   try {
-    const { session_token } = req.body;
-
-    if (!session_token) {
-      res.status(400).json({
-        success: false,
-        message: "session_token is required",
-        statusCode: 400,
-      });
-      return;
-    }
+    const session_token = req.cookies?.session_token || req.body.session_token;
 
     // Check if token is blacklisted
     const isBlacklisted = await redisClient.get(`blacklist:${session_token}`);

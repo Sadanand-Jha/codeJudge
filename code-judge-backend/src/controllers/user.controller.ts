@@ -127,4 +127,40 @@ const forgetPassword = async (req: Request, res: Response) => {
   }
 };
 
-export { userRegister, forgetPassword };
+const profile = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId; // Assuming user ID is attached to the request object after authentication
+
+    console.log('Fetching user profile for ID:', userId);
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+      return;
+    }
+
+    const userProfile = await userService.getUserProfileById(userId);
+
+    if (!userProfile) {
+      res.status(404).json({
+        success: false,
+        message: "User profile not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: userProfile,
+    });
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching user profile",
+    });
+  }
+};
+
+export { userRegister, forgetPassword, profile };

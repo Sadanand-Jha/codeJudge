@@ -348,15 +348,7 @@ export async function register(email: string, password: string, registrationToke
     // 7. Delete registration token from Redis
     await deleteCachedRegistrationToken(registrationToken);
 
-    // 8. Generate JWT session token for immediate login using database user ID and AdminId
-    const jwtSecret = process.env.JWT_SECRET || 'your-fallback-secret-key-change-in-production';
-    const jwtExpiry = process.env.JWT_EXPIRY || '7d';
-    const signOptions: SignOptions = { expiresIn: jwtExpiry as SignOptions['expiresIn'] };
-    const sessionToken = jwt.sign(
-      { userId: createdUser.id, adminId: createdUser.adminid, email: normalizedEmail },
-      jwtSecret,
-      signOptions
-    );
+
 
     return successResponse(
       {
@@ -365,7 +357,6 @@ export async function register(email: string, password: string, registrationToke
           adminId: createdUser.adminid,
           email: normalizedEmail,
         },
-        session_token: sessionToken,
       },
       'Registration successful'
     );

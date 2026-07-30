@@ -1,10 +1,24 @@
 import {Router} from "express";
 import editorRoutes from "./editor.routes.ts";
-import userRoutes from "./user.routes.ts";
+import { validate, registerSchema } from "../../../middleware/validate.ts";
+import { userRegister, forgetPassword, profile } from "../../../controllers/user.controller.ts";
+import { authenticate } from "../../../middleware/auth.ts";
 
 const router = Router();
 
+
+
+
 router.use("/editor", editorRoutes);
-router.use("/", userRoutes);
+
+
+
+
+
+router.post("/register", validate(registerSchema), userRegister);
+router.post("/forget-password", forgetPassword);
+
+
+router.get("/profile", authenticate, profile)
 
 export default router;
