@@ -98,17 +98,13 @@ export default function MonacoEditorWrapper({
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        // Use contentRect for broader browser support
         const { width, height } = entry.contentRect;
-        
-        // Only proceed if dimensions actually changed
         if (width === previousWidth && height === previousHeight) return;
         previousWidth = width;
         previousHeight = height;
 
         if (!pendingLayout) {
           pendingLayout = true;
-          // Use RAF to coalesce rapid resize events
           rafRef.current = requestAnimationFrame(() => {
             if (editorRef.current) {
               editorRef.current.layout(undefined, false);
@@ -128,6 +124,26 @@ export default function MonacoEditorWrapper({
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
+    };
+  }, []);
+
+  // Retry layout multiple times on mount to handle restored localStorage panel sizes
+  useEffect(() => {
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const delays = [0, 100, 300, 600, 1000];
+    for (let i = 0; i < delays.length; i++) {
+      const timer = setTimeout(() => {
+        if (cancelled) return;
+        if (editorRef.current && typeof editorRef.current.layout === "function") {
+          editorRef.current.layout(undefined, false);
+        }
+      }, delays[i]);
+      timers.push(timer);
+    }
+    return () => {
+      cancelled = true;
+      timers.forEach((t) => clearTimeout(t));
     };
   }, []);
 

@@ -22,19 +22,72 @@ import {
   Sun,
   Moon,
   LogOut,
+  BookOpen,
+  Briefcase,
+  Newspaper,
+  Sparkles,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { me, logout } from "@/services/auth";
 import { toast } from "sonner";
 
+function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          onClick={onCancel}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#111827] p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-[#EF4444]/10 border border-[#EF4444]/20 flex items-center justify-center">
+                <LogOut className="w-5 h-5 text-[#EF4444]" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Log out</h3>
+            </div>
+            <p className="mt-2 text-sm text-[#9CA3AF]">Are you sure you want to log out of your account?</p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={onCancel}
+                className="h-10 px-5 rounded-lg border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-white hover:border-white/[0.12] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onConfirm}
+                className="h-10 px-5 rounded-lg bg-[#EF4444] text-sm font-bold text-white hover:shadow-[0_0_16px_rgba(239,68,68,0.4)] transition-all"
+              >
+                Log out
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
   { label: "Problems", icon: Code2, href: "/problems" },
   { label: "Contests", icon: Trophy, href: "/contests" },
+  { label: "Interview", icon: Briefcase, href: "/interview" },
   { label: "Leaderboard", icon: Award, href: "/leaderboard" },
   { label: "Roadmaps", icon: Route, href: "/roadmaps" },
   { label: "Collections", icon: Bookmark, href: "/collections" },
   { label: "Discussions", icon: MessageSquare, href: "/discussions" },
+  { label: "AI Chat", icon: Sparkles, href: "/ai/chat" },
+  { label: "Editor", icon: BookOpen, href: "/editor" },
   { label: "Achievements", icon: TrendingUp, href: "/achievements" },
   { label: "Analytics", icon: Users, href: "/analytics" },
   { label: "Settings", icon: Settings, href: "/settings" },
@@ -44,6 +97,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -216,7 +270,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   {(user?.username || "U").charAt(0).toUpperCase()}
                 </Link>
                 <button
-                  onClick={handleLogout}
+                  onClick={() => setLogoutConfirmOpen(true)}
                   className="hidden sm:flex p-2 rounded-lg hover:bg-white/[0.04] text-[#9CA3AF] hover:text-[#EF4444] transition-colors"
                   aria-label="Log out"
                 >
@@ -237,6 +291,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* ===== PAGE CONTENT ===== */}
         <main className="flex-1">{children}</main>
       </div>
+
+      <LogoutConfirmModal
+        open={logoutConfirmOpen}
+        onConfirm={() => {
+          setLogoutConfirmOpen(false);
+          handleLogout();
+        }}
+        onCancel={() => setLogoutConfirmOpen(false)}
+      />
     </div>
   );
 }
