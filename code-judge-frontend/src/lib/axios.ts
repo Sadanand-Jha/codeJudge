@@ -4,6 +4,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 const apiClient = axios.create({
   baseURL: API_BASE,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },

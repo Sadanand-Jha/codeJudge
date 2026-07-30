@@ -57,7 +57,7 @@ export async function login(payload: {
 }
 
 export async function me(): Promise<AuthResponse> {
-  const response = await apiClient.get<AuthResponse>("/auth/me");
+  const response = await apiClient.post<AuthResponse>("/auth/me");
   if (response.data && typeof response.data === "object" && "user" in response.data && !("success" in response.data)) {
     return { success: true, message: "Authenticated", data: response.data };
   }

@@ -45,6 +45,7 @@ export default function Navbar() {
     let cancelled = false;
     (async () => {
       try {
+        
         const res = await me();
         if (!cancelled && res.success && res.data?.user) {
           const user = res.data.user as { id: string; email: string; username?: string };
