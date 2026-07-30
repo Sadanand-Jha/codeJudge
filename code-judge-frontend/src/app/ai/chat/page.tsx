@@ -509,13 +509,16 @@ export default function AIChatPage() {
 
   const [conversations] = useState<
     { id: string; title: string; time: number; messages: number }[]
-  >([
-    { id: "1", title: "Dynamic Programming - Knapsack", time: Date.now() - 1000 * 60 * 30, messages: 12 },
-    { id: "2", title: "Binary Search Optimization", time: Date.now() - 1000 * 60 * 120, messages: 8 },
-    { id: "3", title: "Graph Theory - Dijkstra", time: Date.now() - 1000 * 60 * 300, messages: 5 },
-    { id: "4", title: "Segment Tree Implementation", time: Date.now() - 1000 * 60 * 60 * 24 * 2, messages: 15 },
-    { id: "5", title: "Python vs C++ Performance", time: Date.now() - 1000 * 60 * 60 * 24 * 5, messages: 3 },
-  ]);
+  >(() => {
+    const now = Date.now();
+    return [
+      { id: "1", title: "Dynamic Programming - Knapsack", time: now - 1000 * 60 * 30, messages: 12 },
+      { id: "2", title: "Binary Search Optimization", time: now - 1000 * 60 * 120, messages: 8 },
+      { id: "3", title: "Graph Theory - Dijkstra", time: now - 1000 * 60 * 300, messages: 5 },
+      { id: "4", title: "Segment Tree Implementation", time: now - 1000 * 60 * 60 * 24 * 2, messages: 15 },
+      { id: "5", title: "Python vs C++ Performance", time: now - 1000 * 60 * 60 * 24 * 5, messages: 3 },
+    ];
+  });
 
   useEffect(() => {
     if (!isLoading) {
@@ -592,7 +595,7 @@ export default function AIChatPage() {
 
   const removeFile = (id: string) => setFiles((prev) => prev.filter((f) => f.id !== id));
 
-  const groupedConversations = () => {
+  const groupedConversations = useCallback(() => {
     const now = Date.now();
     const groups: { label: string; items: typeof conversations }[] = [
       { label: "Today", items: [] }, { label: "Yesterday", items: [] }, { label: "Previous 7 Days", items: [] }, { label: "Older", items: [] },
@@ -605,7 +608,7 @@ export default function AIChatPage() {
       else groups[3].items.push(c);
     });
     return groups.filter((g) => g.items.length > 0);
-  };
+  }, [conversations]);
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;

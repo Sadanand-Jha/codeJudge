@@ -58,7 +58,7 @@ function findClosingDelimiter(
   allowNewlines: boolean = false
 ): number {
   const maxIterations = str.length * 10; // Safety limit
-  let iterations = 0;
+  const iterations = 0;
   
   for (let i = startIndex; i < str.length && iterations < maxIterations; i++) {
     const char = str[i];

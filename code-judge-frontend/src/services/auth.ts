@@ -65,13 +65,22 @@ export async function me(): Promise<AuthResponse> {
 }
 
 export async function register(payload: {
+  username?: string;
   email: string;
   password: string;
-  registration_token: string;
+  registration_token?: string;
 }): Promise<AuthResponse> {
   const response = await apiClient.post<AuthResponse>("/auth/register", payload);
   if (response.data && typeof response.data === "object" && "user" in response.data && !("success" in response.data)) {
     return { success: true, message: "Registration successful", data: response.data };
+  }
+  return response.data;
+}
+
+export async function forgotPassword(email: string): Promise<AuthResponse> {
+  const response = await apiClient.post<AuthResponse>("/auth/forgot-password", { email });
+  if (response.data && typeof response.data === "object" && "success" in response.data) {
+    return response.data as AuthResponse;
   }
   return response.data;
 }

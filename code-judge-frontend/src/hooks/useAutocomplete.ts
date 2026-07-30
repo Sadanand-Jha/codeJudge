@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { editor } from "monaco-editor";
-import { useDebounce } from "./useDebounce";
 import { DEFAULT_COMPLETION_CONFIG } from "@/config/completion";
 import { CPP_BUILTINS } from "@/constants/completions";
 import { createExtractor, isLanguageSupported } from "@/utils/code/symbolExtractor";
@@ -115,6 +114,9 @@ export function useAutocomplete({
   const [editorAvailable, setEditorAvailable] = useState(false);
   const lastEditorRefCurrent = useRef<editor.IStandaloneCodeEditor | null>(null);
 
+  // Track latest code via state for debounce dependency (avoids ref access during render)
+  const [latestCode, setLatestCode] = useState("");
+
   // Create extractor on language change (synchronous for main thread)
   useEffect(() => {
     if (isLanguageSupported(languageId)) {
@@ -202,9 +204,11 @@ export function useAutocomplete({
 
     // Store initial value
     latestCodeRef.current = model.getValue();
+    setLatestCode(latestCodeRef.current);
 
     const subscription = model.onDidChangeContent(() => {
       latestCodeRef.current = model.getValue();
+      setLatestCode(latestCodeRef.current);
     });
 
     modelSubscriptionRef.current = () => {
@@ -219,11 +223,17 @@ export function useAutocomplete({
     };
   }, [editorRef, editorAvailable]);
 
-  // Debounced code value for re-extraction - reads from ref, not from editor on every render
-  const debouncedValue = useDebounce(
-    latestCodeRef.current,
-    config.debounceMs,
-  );
+  // Debounced code value for re-extraction
+  const [debouncedCode, setDebouncedCode] = useState("");
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedCode(latestCode);
+    }, config.debounceMs);
+    return () => clearTimeout(timer);
+  }, [latestCode, config.debounceMs]);
+  
+  const debouncedValue = debouncedCode;
 
   // Handle document change -> re-extract symbols (skip if unchanged)
   useEffect(() => {

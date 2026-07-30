@@ -37,6 +37,7 @@
  * ================================================================
  */
 
+import Link from "next/link";
 import { fetchProblem } from "@/services/problems";
 import ProblemClient from "./ProblemClient";
 import ProblemSkeleton from "@/components/problem/ProblemSkeleton";
@@ -73,12 +74,12 @@ export default async function ProblemPage({ params }: ProblemPageProps) {
           <p className="mb-6 text-sm text-[#6B7280]">
             The problem you are looking for does not exist or could not be loaded.
           </p>
-          <a
+          <Link
             href="/problems"
             className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1D4ED8]"
           >
             Browse Problems
-          </a>
+          </Link>
         </div>
       </div>
     );

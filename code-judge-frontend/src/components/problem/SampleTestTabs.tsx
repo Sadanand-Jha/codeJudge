@@ -25,8 +25,6 @@ function stripHtml(html: string): string {
 export default function SampleTestTabs({ samples }: SampleTestTabsProps) {
   const [activeTab, setActiveTab] = useState(0);
 
-  if (samples.length === 0) return null;
-
   const cleaned = useMemo(
     () =>
       samples.map((s) => ({
