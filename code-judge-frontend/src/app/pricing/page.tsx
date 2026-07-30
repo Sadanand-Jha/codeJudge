@@ -1,80 +1,112 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
+import Link from "next/link";
+import { ArrowLeft, Check, Sparkles } from "lucide-react";
+import AppLayout from "@/components/layout/AppLayout";
+
+const plans = [
+  {
+    name: "Free",
+    price: "$0",
+    features: ["Access to all problems", "Basic submissions", "Community support"],
+    current: true,
+    color: "#9CA3AF",
+  },
+  {
+    name: "Pro",
+    price: "$9/mo",
+    features: ["Everything in Free", "AI hints & feedback", "Detailed analytics", "Priority support"],
+    current: false,
+    color: "#7C3AED",
+  },
+  {
+    name: "Team",
+    price: "$29/mo",
+    features: ["Everything in Pro", "Team leaderboards", "Custom contests", "Admin dashboard"],
+    current: false,
+    color: "#3B82F6",
+  },
+];
 
 export default function PricingPage() {
   const [subscribing, setSubscribing] = useState<string | null>(null);
 
   async function handleSubscribe(plan: string) {
+    if (plan === "Free") return;
     setSubscribing(plan);
     try {
-      // Simulate API call — replace with actual subscription service
-      await new Promise((r) => setTimeout(r, 1000));
-      toast.success(`Subscribed to ${plan} plan successfully!`);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || "Subscription failed";
-      toast.error(msg);
+      await new Promise((r) => setTimeout(r, 800));
+      toast.success(`${plan} plan selected! (Demo)`);
+    } catch {
+      toast.error("Failed to subscribe");
     } finally {
       setSubscribing(null);
     }
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6">
-      <div className="mb-4 border-b border-[#E6E7EB] pb-2">
-        <h1 className="text-xl font-bold text-[#111827]">Pricing</h1>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="border border-[#E6E7EB] bg-white p-4 text-center">
-          <h3 className="mb-1 text-sm font-bold text-[#111827]">Free</h3>
-          <div className="mb-2 text-lg font-bold text-[#2563EB]">$0</div>
-          <ul className="mb-3 space-y-1 text-[10px] text-[#6B7280]">
-            <li>100 problems/month</li>
-            <li>Basic AI hints</li>
-            <li>Public leaderboard</li>
-          </ul>
-          <button className="rounded border border-[#E6E7EB] bg-white px-4 py-1 text-[10px] font-medium text-[#6B7280] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors cursor-not-allowed opacity-60">
-            Current Plan
-          </button>
-        </div>
-        <div className="border-2 border-[#2563EB] bg-white p-4 text-center">
-          <h3 className="mb-1 text-sm font-bold text-[#111827]">Pro</h3>
-          <div className="mb-2 text-lg font-bold text-[#2563EB]">$9/mo</div>
-          <ul className="mb-3 space-y-1 text-[10px] text-[#6B7280]">
-            <li>Unlimited problems</li>
-            <li>Advanced AI hints & reviews</li>
-            <li>Priority support</li>
-          </ul>
-          <button
-            onClick={() => handleSubscribe("Pro")}
-            disabled={subscribing === "Pro"}
-            className="rounded border border-[#2563EB] bg-[#2563EB] px-4 py-1 text-[10px] font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    <AppLayout>
+      <div className="px-6 py-6">
+        <div className="max-w-5xl mx-auto space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Pricing</h1>
+            <p className="text-sm text-[#9CA3AF] mt-1">Choose the plan that&apos;s right for you.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {plans.map((plan) => (
+              <div
+                key={plan.name}
+                className={`relative rounded-2xl border p-6 ${
+                  plan.name === "Pro"
+                    ? "border-[#7C3AED]/30 bg-[#111827] shadow-[0_0_24px_rgba(124,58,237,0.08)]"
+                    : "border-white/[0.06] bg-[#111827]"
+                }`}
+              >
+                {plan.name === "Pro" && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-semibold text-white bg-[#7C3AED]">
+                      <Sparkles className="w-3 h-3" />
+                      Popular
+                    </span>
+                  </div>
+                )}
+                <h3 className="text-sm font-bold text-white mb-1">{plan.name}</h3>
+                <div className="text-2xl font-bold text-white mb-4">{plan.price}</div>
+                <ul className="space-y-2 mb-6">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-xs text-[#9CA3AF]">
+                      <Check className="w-3.5 h-3.5" style={{ color: plan.color }} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => handleSubscribe(plan.name)}
+                  disabled={plan.current || subscribing === plan.name}
+                  className={`w-full px-4 py-2 rounded-xl text-xs font-semibold transition-all disabled:cursor-not-allowed ${
+                    plan.current
+                      ? "bg-white/[0.04] text-[#6B7280] border border-white/[0.06] cursor-not-allowed"
+                      : "text-white bg-[#7C3AED] hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] disabled:opacity-50"
+                  }`}
+                >
+                  {plan.current ? "Current Plan" : subscribing === plan.name ? "Processing..." : "Subscribe"}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs text-[#9CA3AF] hover:text-[#7C3AED] transition-colors"
           >
-            {subscribing === "Pro" ? "Subscribing..." : "Subscribe"}
-          </button>
-        </div>
-        <div className="border border-[#E6E7EB] bg-white p-4 text-center">
-          <h3 className="mb-1 text-sm font-bold text-[#111827]">Team</h3>
-          <div className="mb-2 text-lg font-bold text-[#2563EB]">$29/mo</div>
-          <ul className="mb-3 space-y-1 text-[10px] text-[#6B7280]">
-            <li>Everything in Pro</li>
-            <li>Team analytics</li>
-            <li>Custom problem sets</li>
-          </ul>
-          <button
-            onClick={() => handleSubscribe("Team")}
-            disabled={subscribing === "Team"}
-            className="rounded border border-[#2563EB] bg-[#2563EB] px-4 py-1 text-[10px] font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {subscribing === "Team" ? "Subscribing..." : "Subscribe"}
-          </button>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back to Home
+          </Link>
         </div>
       </div>
-      <div className="mt-6 border-t border-[#E6E7EB] pt-4">
-        <Link href="/" className="text-[11px] text-[#2563EB] hover:underline">← Back to Home</Link>
-      </div>
-    </div>
+    </AppLayout>
   );
 }

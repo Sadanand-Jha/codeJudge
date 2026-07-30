@@ -1464,7 +1464,7 @@ export default function MathRenderer({ html, className = "" }: MathRendererProps
     });
 
     result = result.replace(
-      /(\\[a-zA-Z]+(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*)/g,
+      /(\\[{}]|[a-zA-Z](?:_(?:[a-zA-Z0-9+\-*/()]|{[^{}]*})|\^(?:[a-zA-Z0-9+\-*/()]|{[^{}]*}))+[a-zA-Z0-9]*|\\[a-zA-Z]+(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*)/g,
       "$$$1$"
     );
 

@@ -1,19 +1,39 @@
 import Link from "next/link";
+import { Bookmark, ArrowRight } from "lucide-react";
+import AppLayout from "@/components/layout/AppLayout";
+
+export const metadata = {
+  title: "Bookmarks — CodeJudge",
+  description: "Your bookmarked problems on CodeJudge.",
+};
 
 export default function BookmarksPage() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
-      <div className="mb-4 border-b border-[#E6E7EB] pb-2">
-        <h1 className="text-xl font-bold text-[#111827]">Bookmarks</h1>
-      </div>
-      <div className="border border-[#E6E7EB] bg-white">
-        <div className="border-b border-[#E6E7EB] bg-[#FAFAFB] px-3 py-1.5">
-          <span className="text-[11px] font-medium text-[#2563EB]">→ Saved Problems</span>
+    <AppLayout>
+      <div className="px-6 py-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Bookmarks</h1>
+            <p className="text-sm text-[#9CA3AF] mt-1">Problems you&apos;ve saved for later.</p>
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6">
+            <h2 className="text-sm font-semibold text-white mb-4">Saved Problems</h2>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-12 h-12 rounded-xl bg-white/[0.03] flex items-center justify-center mb-3">
+                <Bookmark className="w-5 h-5 text-[#6B7280]" />
+              </div>
+              <p className="text-sm text-[#9CA3AF]">No bookmarked problems yet.</p>
+              <Link
+                href="/problems"
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#7C3AED] hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] transition-all"
+              >
+                Browse problems <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+          </div>
         </div>
-        <div className="p-3 text-[11px] text-[#6B7280]">
-          <p>No bookmarked problems yet. <Link href="/problems" className="text-[#2563EB] hover:underline">Browse problems</Link></p>
-        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

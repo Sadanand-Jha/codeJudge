@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { Settings, User, Bell, Palette } from "lucide-react";
+import AppLayout from "@/components/layout/AppLayout";
 
 export default function SettingsPage() {
   const [handle, setHandle] = useState("user");
@@ -24,7 +26,6 @@ export default function SettingsPage() {
 
     setSaving(true);
     try {
-      // Simulate API call — replace with actual settings update service
       await new Promise((r) => setTimeout(r, 800));
       toast.success("Settings saved successfully!");
     } catch (err: any) {
@@ -36,64 +37,78 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6">
-      <div className="mb-4 border-b border-[#E6E7EB] pb-2">
-        <h1 className="text-xl font-bold text-[#111827]">Settings</h1>
-      </div>
-      <div className="space-y-3">
-        <div className="border border-[#E6E7EB] bg-white">
-          <div className="border-b border-[#E6E7EB] bg-[#FAFAFB] px-3 py-1.5">
-            <span className="text-[11px] font-medium text-[#2563EB]">→ General</span>
+    <AppLayout>
+      <div className="px-6 py-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Settings</h1>
+            <p className="text-sm text-[#9CA3AF] mt-1">Manage your account and preferences.</p>
           </div>
-          <form className="p-3 space-y-3" onSubmit={handleSave}>
-            <div>
-              <label className="block text-[11px] font-medium text-[#6B7280] mb-1">Handle</label>
-              <input
-                type="text"
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-                className="w-full max-w-xs rounded border border-[#E6E7EB] bg-white px-3 py-1.5 text-[11px] text-[#111827] outline-none focus:border-[#2563EB]/40"
-              />
+
+          {/* General Settings */}
+          <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+            <div className="flex items-center gap-2 px-6 py-4 border-b border-white/[0.06]">
+              <User className="w-4 h-4 text-[#7C3AED]" />
+              <h2 className="text-sm font-semibold text-white">General</h2>
             </div>
-            <div>
-              <label className="block text-[11px] font-medium text-[#6B7280] mb-1">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full max-w-xs rounded border border-[#E6E7EB] bg-white px-3 py-1.5 text-[11px] text-[#111827] outline-none focus:border-[#2563EB]/40"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="flex items-center gap-2 text-[11px] text-[#6B7280]">
+            <form className="p-6 space-y-5" onSubmit={handleSave}>
+              <div>
+                <label className="block text-[11px] font-medium text-[#9CA3AF] mb-2">Handle</label>
                 <input
-                  type="checkbox"
-                  className="h-3 w-3 accent-[#2563EB]"
-                  checked={showTags}
-                  onChange={(e) => setShowTags(e.target.checked)}
+                  type="text"
+                  value={handle}
+                  onChange={(e) => setHandle(e.target.value)}
+                  className="w-full max-w-xs rounded-xl bg-[#09090B] border border-white/[0.06] px-3 py-2 text-sm text-white outline-none focus:border-[#7C3AED]/40 transition-colors"
                 />
-                Show tags for unsolved problems
-              </label>
-              <label className="flex items-center gap-2 text-[11px] text-[#6B7280]">
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-[#9CA3AF] mb-2">Email</label>
                 <input
-                  type="checkbox"
-                  className="h-3 w-3 accent-[#2563EB]"
-                  checked={emailNotifications}
-                  onChange={(e) => setEmailNotifications(e.target.checked)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full max-w-xs rounded-xl bg-[#09090B] border border-white/[0.06] px-3 py-2 text-sm text-white outline-none focus:border-[#7C3AED]/40 transition-colors"
                 />
-                Receive email notifications
-              </label>
-            </div>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded border border-[#2563EB] bg-[#2563EB] px-4 py-1 text-[10px] font-medium text-white hover:bg-[#1D4ED8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
-          </form>
+              </div>
+              <div className="space-y-3 pt-2">
+                <label className="flex items-center gap-3 text-sm text-[#9CA3AF] cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={showTags}
+                      onChange={(e) => setShowTags(e.target.checked)}
+                    />
+                    <div className="w-9 h-5 bg-white/[0.06] rounded-full peer-checked:bg-[#7C3AED] transition-colors" />
+                    <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4" />
+                  </div>
+                  Show tags for unsolved problems
+                </label>
+                <label className="flex items-center gap-3 text-sm text-[#9CA3AF] cursor-pointer">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={emailNotifications}
+                      onChange={(e) => setEmailNotifications(e.target.checked)}
+                    />
+                    <div className="w-9 h-5 bg-white/[0.06] rounded-full peer-checked:bg-[#7C3AED] transition-colors" />
+                    <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4" />
+                  </div>
+                  Receive email notifications
+                </label>
+              </div>
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#7C3AED] hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

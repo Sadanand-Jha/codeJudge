@@ -1,1 +1,10 @@
-export {};
+export { default as Sidebar } from "./Sidebar";
+export { default as ProfileHero } from "./ProfileHero";
+export { default as StatsCards } from "./StatsCards";
+export { default as RatingHistory } from "./RatingHistory";
+export { default as TopicMastery } from "./TopicMastery";
+export { default as ActivityHeatmap } from "./ActivityHeatmap";
+export { default as RecentContests } from "./RecentContests";
+export { default as RecentSubmissions } from "./RecentSubmissions";
+export { default as Achievements } from "./Achievements";
+export { default as StreakWidget } from "./StreakWidget";

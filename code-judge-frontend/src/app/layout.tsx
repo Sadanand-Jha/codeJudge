@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import { Toaster } from "sonner";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
   title: "CodeJudge",
@@ -17,34 +15,29 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
-      <body className="flex min-h-full flex-col" suppressHydrationWarning>
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+      <body className="min-h-screen bg-[#09090B]" suppressHydrationWarning>
+        {children}
         <Toaster
           position="top-right"
           closeButton
           toastOptions={{
             style: {
-              background: "#ffffff",
-              border: "1px solid #E6E7EB",
-              color: "#111827",
+              background: "#111827",
+              border: "1px solid rgba(255,255,255,0.06)",
+              color: "#FFFFFF",
               fontSize: "12px",
               fontFamily: "inherit",
-              borderRadius: "4px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              borderRadius: "12px",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
               padding: "10px 14px",
             },
             classNames: {
-              title: "text-[12px] font-medium text-[#111827]",
-              description: "text-[11px] text-[#6B7280]",
-              closeButton:
-                "text-[#6B7280] hover:text-[#111827] hover:bg-[#F3F4F6]",
-              success:
-                "border-l-[3px] border-l-green-500",
-              error:
-                "border-l-[3px] border-l-red-500",
-              info: "border-l-[3px] border-l-[#2563EB]",
+              title: "text-[12px] font-medium text-white",
+              description: "text-[11px] text-[#9CA3AF]",
+              closeButton: "text-[#9CA3AF] hover:text-white hover:bg-white/[0.05]",
+              success: "border-l-[3px] border-l-[#22C55E]",
+              error: "border-l-[3px] border-l-[#EF4444]",
+              info: "border-l-[3px] border-l-[#7C3AED]",
             },
           }}
         />
