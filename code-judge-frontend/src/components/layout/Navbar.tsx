@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Globe, User, LogOut, Search, LogIn, Code2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
 import { me, logout } from "@/services/auth";
 
@@ -68,7 +68,7 @@ export default function Navbar() {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
             <Code2 className="w-4 h-4 text-white" />
           </div>
-          <span className="text-sm font-bold text-white tracking-tight">CodeJudge</span>
+          <span className="text-sm font-bold text-white tracking-tight">ByteClash</span>
         </Link>
 
         {/* User Utility Menu */}

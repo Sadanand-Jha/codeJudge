@@ -26,10 +26,14 @@ import {
   Briefcase,
   Newspaper,
   Sparkles,
+  UserPlus,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { useSavedAvatar } from "@/store/avatarStore";
 import { me, logout } from "@/services/auth";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
+import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
+import AuthModal from "@/components/modals/AuthModal";
 
 function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -93,14 +97,29 @@ const navItems = [
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+// Protected routes that show a guest badge
+const GUEST_VISIBLE_ROUTES = [
+  "/",
+  "/problems",
+  "/contests",
+  "/interview",
+  "/leaderboard",
+  "/roadmaps",
+  "/discussions",
+];
+
+function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalRedirect, setAuthModalRedirect] = useState<string | undefined>();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const setAuth = useAuthStore((s) => s.setAuth);
+  const savedAvatar = useSavedAvatar();
+  const { isGuest } = useGuestMode();
 
   // Sync auth state with session cookie on app load
   useEffect(() => {
@@ -138,7 +157,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   const pageTitle =
-    navItems.find((n) => pathname === n.href || (n.href !== "/" && pathname.startsWith(n.href)))?.label || "CodeJudge";
+    navItems.find((n) => pathname === n.href || (n.href !== "/" && pathname.startsWith(n.href)))?.label || "ByteClash";
+
+  const handleAuthRequired = (redirectUrl?: string) => {
+    setAuthModalRedirect(redirectUrl);
+    setAuthModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-[#09090B] flex">
@@ -167,53 +191,42 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
               <Code2 className="w-4 h-4 text-white" />
             </div>
-            <span className="text-base font-bold text-white tracking-tight">CodeJudge</span>
+            <span className="text-base font-bold text-white tracking-tight">ByteClash</span>
           </Link>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group"
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeNav"
-                    className="absolute inset-0 rounded-xl bg-[#7C3AED]/15 shadow-[0_0_20px_rgba(124,58,237,0.15)]"
-                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <Icon
-                  className={`w-4 h-4 relative z-10 transition-colors ${
-                    isActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
-                  }`}
-                />
-                <span
-                  className={`relative z-10 transition-colors ${
-                    isActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
-                  }`}
-                >
-                  {item.label}
-                </span>
-              </Link>
-            );
-          })}
+          {navItems.map((item) => (
+            <NavItem
+              key={item.label}
+              item={item}
+              pathname={pathname}
+              isGuest={isGuest}
+              onClick={() => setMobileMenuOpen(false)}
+            />
+          ))}
         </nav>
 
         {/* Bottom: Streak + Version */}
         <div className="p-3 border-t border-white/[0.06] space-y-2">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03]">
-            <Flame className="w-4 h-4 text-[#F59E0B]" />
-            <span className="text-xs font-medium text-white">12 Day Streak</span>
-          </div>
-          <div className="px-3 text-[9px] text-[#6B7280]">CodeJudge v1.0.0</div>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03]">
+              <Flame className="w-4 h-4 text-[#F59E0B]" />
+              <span className="text-xs font-medium text-white">12 Day Streak</span>
+            </div>
+          ) : (
+            <div className="px-3 py-2 rounded-xl bg-[#7C3AED]/10 border border-[#7C3AED]/20">
+              <div className="text-[10px] text-[#9CA3AF] mb-1">You're browsing as a guest</div>
+              <button
+                onClick={() => handleAuthRequired(pathname + window.location.search)}
+                className="text-[10px] font-semibold text-[#7C3AED] hover:text-[#8B5AF0] transition-colors"
+              >
+                Sign in to unlock all features →
+              </button>
+            </div>
+          )}
+          <div className="px-3 text-[9px] text-[#6B7280]">ByteClash v1.0.0</div>
         </div>
       </aside>
 
@@ -264,10 +277,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="flex items-center gap-2">
                 <Link
                   href="/profile"
-                  className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-white"
+                  className="w-8 h-8 rounded-full overflow-hidden border border-white/10 bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-white"
                   title={user?.username || "Profile"}
                 >
-                  {(user?.username || "U").charAt(0).toUpperCase()}
+                  {savedAvatar ? (
+                    <img
+                      src={savedAvatar.url}
+                      alt={savedAvatar.label}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    (user?.username || "U").charAt(0).toUpperCase()
+                  )}
                 </Link>
                 <button
                   onClick={() => setLogoutConfirmOpen(true)}
@@ -278,12 +299,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
             ) : (
-              <Link
-                href="/login"
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#7C3AED] hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] transition-all"
+              <button
+                onClick={() => handleAuthRequired(pathname + window.location.search)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#7C3AED] hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] transition-all"
               >
+                <UserPlus className="w-3 h-3" />
                 Sign in
-              </Link>
+              </button>
             )}
           </div>
         </header>
@@ -300,6 +322,85 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }}
         onCancel={() => setLogoutConfirmOpen(false)}
       />
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => {
+          setAuthModalOpen(false);
+          setAuthModalRedirect(undefined);
+        }}
+        redirectUrl={authModalRedirect}
+      />
     </div>
+  );
+}
+
+// Guest badge for navigation items
+function NavItem({ item, pathname, isGuest, onClick }: {
+  item: typeof navItems[number];
+  pathname: string;
+  isGuest: boolean;
+  onClick?: () => void;
+}) {
+  const Icon = item.icon;
+  const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+
+  // Routes that are protected for guests
+  const protectedForGuests = ["/ai/chat", "/editor", "/analytics", "/settings", "/collections"];
+  const isProtected = isGuest && protectedForGuests.includes(item.href);
+
+  return (
+    <Link
+      key={item.label}
+      href={item.href}
+      onClick={(e) => {
+        if (isProtected) {
+          e.preventDefault();
+          window.dispatchEvent(new CustomEvent('guest-nav-click', {
+            detail: { href: item.href }
+          }));
+        } else {
+          onClick?.();
+        }
+      }}
+      className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group"
+    >
+      {isActive && (
+        <motion.div
+          layoutId="activeNav"
+          className="absolute inset-0 rounded-xl bg-[#7C3AED]/15 shadow-[0_0_20px_rgba(124,58,237,0.15)]"
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        />
+      )}
+      <Icon
+        className={`w-4 h-4 relative z-10 transition-colors ${
+          isActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+        }`}
+      />
+      <span
+        className={`relative z-10 transition-colors ${
+          isActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+        }`}
+      >
+        {item.label}
+      </span>
+      {isProtected && (
+        <span className="ml-auto">
+          <span className="flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-[#7C3AED] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7C3AED]"></span>
+          </span>
+        </span>
+      )}
+    </Link>
+  );
+}
+
+// Main AppLayout with providers
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <GuestModeProvider>
+      <AppLayoutContent>{children}</AppLayoutContent>
+    </GuestModeProvider>
   );
 }

@@ -22,12 +22,12 @@ import {
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Dashboard — CodeJudge",
-  description: "Your coding activity dashboard on CodeJudge.",
+  title: "Dashboard — ByteClash",
+  description: "Your coding activity dashboard on ByteClash.",
 };
 
 const featuredContest = {
-  title: "CodeJudge Weekly #247",
+  title: "ByteClash Weekly #247",
   description: "3 problems · 2 hours · Rated for all",
   startTime: "Starts in 2 days",
   participants: 1240,
@@ -172,7 +172,7 @@ const companyPreparation = [
 ];
 
 const recentEditorials = [
-  { title: "Contest #246 Editorial", author: "CodeJudge Team", date: "Yesterday" },
+  { title: "Contest #246 Editorial", author: "ByteClash Team", date: "Yesterday" },
   { title: "LeetCode Weekly #312", author: "Community", date: "2 days ago" },
   { title: "Codeforces Round #944", author: "Arjun Mehta", date: "3 days ago" },
 ];
@@ -557,7 +557,7 @@ export default function DashboardPage() {
                   {[
                     { name: "Codeforces Round #945", time: "Tomorrow, 8:00 PM", duration: "2 hours" },
                     { name: "LeetCode Weekly #312", time: "Sat, 10:00 AM", duration: "1.5 hours" },
-                    { name: "CodeJudge Monthly", time: "Next week", duration: "3 hours" },
+                    { name: "ByteClash Monthly", time: "Next week", duration: "3 hours" },
                   ].map((contest) => (
                     <div key={contest.name} className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.04] bg-white/[0.02] p-3">
                       <div>

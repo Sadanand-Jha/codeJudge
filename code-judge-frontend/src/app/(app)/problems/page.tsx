@@ -2,8 +2,8 @@ import { fetchProblems } from "@/services/problems";
 import ProblemsList from "./ProblemsList";
 
 export const metadata = {
-  title: "Problems — CodeJudge",
-  description: "Browse thousands of coding challenges from beginner to expert on CodeJudge.",
+  title: "Problems — ByteClash",
+  description: "Browse thousands of coding challenges from beginner to expert on ByteClash.",
 };
 
 export default async function ProblemsPage() {

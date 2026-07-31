@@ -3,8 +3,8 @@ import { ArrowLeft, Code2, Trophy, Users, Sparkles } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "About — CodeJudge",
-  description: "Learn about CodeJudge, the AI-powered competitive programming platform.",
+  title: "About — ByteClash",
+  description: "Learn about ByteClash, the AI-powered competitive programming platform.",
 };
 
 const features = [
@@ -20,13 +20,13 @@ export default function AboutPage() {
       <div className="px-6 py-6">
         <div className="max-w-4xl mx-auto space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">About CodeJudge</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">About ByteClash</h1>
             <p className="text-sm text-[#9CA3AF] mt-1">AI-powered competitive programming platform.</p>
           </div>
 
           <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6">
             <p className="text-sm text-[#9CA3AF] leading-relaxed">
-              CodeJudge is a modern competitive programming platform designed to help you improve your algorithmic
+              ByteClash is a modern competitive programming platform designed to help you improve your algorithmic
               thinking and problem-solving skills. Practice with thousands of problems, compete in contests, and
               get AI-powered assistance to accelerate your learning.
             </p>

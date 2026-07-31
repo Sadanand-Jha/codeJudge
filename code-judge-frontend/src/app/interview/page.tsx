@@ -3,8 +3,8 @@ import { ArrowRight, BookOpen, Brain, Building2, Users } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Interview Preparation — CodeJudge",
-  description: "Prepare for coding interviews with CodeJudge.",
+  title: "Interview Preparation — ByteClash",
+  description: "Prepare for coding interviews with ByteClash.",
 };
 
 const categories = [

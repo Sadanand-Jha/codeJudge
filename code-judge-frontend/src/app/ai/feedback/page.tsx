@@ -2,7 +2,7 @@ import { MessageSquare } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "AI Feedback — CodeJudge",
+  title: "AI Feedback — ByteClash",
   description: "Get AI-powered code reviews and feedback.",
 };
 

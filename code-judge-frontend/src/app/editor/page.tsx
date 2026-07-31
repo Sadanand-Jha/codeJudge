@@ -2,8 +2,8 @@ import { Code2 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Code Editor — CodeJudge",
-  description: "Online code editor on CodeJudge.",
+  title: "Code Editor — ByteClash",
+  description: "Online code editor on ByteClash.",
 };
 
 export default function EditorPage() {

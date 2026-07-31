@@ -2,8 +2,8 @@ import { BarChart3, TrendingUp, Target, Award } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Analytics — CodeJudge",
-  description: "View your coding analytics on CodeJudge.",
+  title: "Analytics — ByteClash",
+  description: "View your coding analytics on ByteClash.",
 };
 
 const stats = [

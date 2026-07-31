@@ -35,7 +35,7 @@ export default function Sidebar() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
             <Code2 className="w-4 h-4 text-white" />
           </div>
-          <span className="text-base font-bold text-white tracking-tight">CodeJudge</span>
+          <span className="text-base font-bold text-white tracking-tight">ByteClash</span>
         </Link>
       </div>
 

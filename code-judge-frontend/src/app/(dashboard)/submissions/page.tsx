@@ -3,8 +3,8 @@ import { Code2, ArrowRight } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Submissions — CodeJudge",
-  description: "All submissions on CodeJudge.",
+  title: "Submissions — ByteClash",
+  description: "All submissions on ByteClash.",
 };
 
 export default function SubmissionsPage() {

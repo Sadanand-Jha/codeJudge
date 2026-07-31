@@ -3,8 +3,8 @@ import { ArrowLeft, BookOpen, Code2, Terminal } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Documentation — CodeJudge",
-  description: "CodeJudge documentation and guides.",
+  title: "Documentation — ByteClash",
+  description: "ByteClash documentation and guides.",
 };
 
 export default function DocsPage() {
@@ -14,7 +14,7 @@ export default function DocsPage() {
         <div className="max-w-4xl mx-auto space-y-6">
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Documentation</h1>
-            <p className="text-sm text-[#9CA3AF] mt-1">Guides and references for using CodeJudge.</p>
+            <p className="text-sm text-[#9CA3AF] mt-1">Guides and references for using ByteClash.</p>
           </div>
 
           <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6">

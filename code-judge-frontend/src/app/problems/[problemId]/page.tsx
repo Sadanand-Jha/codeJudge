@@ -92,14 +92,14 @@ export async function generateMetadata({ params }: ProblemPageProps) {
   try {
     const problem = await fetchProblem(problemId);
     return {
-      title: `${problem.title} — CodeJudge`,
+      title: `${problem.title} — ByteClash`,
       description: problem.statement
         ? problem.statement.replace(/<[^>]*>/g, "").slice(0, 160)
-        : `Solve ${problem.title} on CodeJudge`,
+        : `Solve ${problem.title} on ByteClash`,
     };
   } catch {
     return {
-      title: "Problem — CodeJudge",
+      title: "Problem — ByteClash",
     };
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
@@ -477,7 +477,7 @@ export default function AIChatPage() {
     inputRef.current?.focus();
   };
 
-  const groupedConversations = useCallback(() => {
+  const groupedConversations = useMemo(() => {
     const groups = [
       { key: "today" as const, label: "Today", items: conversationGroups.today },
       { key: "yesterday" as const, label: "Yesterday", items: conversationGroups.yesterday },
@@ -485,7 +485,7 @@ export default function AIChatPage() {
       { key: "older" as const, label: "Older", items: conversationGroups.older },
     ];
     return groups.filter((g) => g.items.length > 0);
-  }, [conversationGroups]);
+  }, [conversationGroups.today, conversationGroups.yesterday, conversationGroups.week, conversationGroups.older]);
 
   return (
     <AppLayout>
@@ -501,7 +501,7 @@ export default function AIChatPage() {
                 <div className="flex items-center gap-2">
                   <LogoMark />
                   <div>
-                    <div className="text-[12px] font-bold text-white">CodeJudge AI</div>
+                    <div className="text-[12px] font-bold text-white">ByteClash AI</div>
                     <div className="text-[8px] text-[#7C3AED] font-medium">PREMIUM</div>
                   </div>
                 </div>
@@ -533,10 +533,10 @@ export default function AIChatPage() {
               </div>
 
               <div className="flex-1 overflow-y-auto px-2">
-                {groupedConversations().map((group) => (
+                {groupedConversations.map((group: { key: string; label: string; items: Conversation[] }) => (
                   <div key={group.key} className="mb-3">
                     <div className="mb-0.5 px-1.5 text-[9px] font-semibold uppercase tracking-wider text-[#6B7280]">{group.label}</div>
-                    {group.items.map((conv) => (
+                    {group.items.map((conv: Conversation) => (
                       <div
                         key={conv.id}
                         onClick={() => setSelectedChat(conv.id)}

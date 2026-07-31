@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Code2, Mail, Lock, User, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { register } from "@/services/auth";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -48,7 +48,7 @@ export default function RegisterPage() {
           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
             <Code2 className="w-5 h-5 text-white" />
           </div>
-          <span className="text-lg font-bold text-white tracking-tight">CodeJudge</span>
+          <span className="text-lg font-bold text-white tracking-tight">ByteClash</span>
         </div>
 
         {/* Card */}

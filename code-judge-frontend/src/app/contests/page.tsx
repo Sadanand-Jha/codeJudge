@@ -3,20 +3,20 @@ import { Trophy, Clock, Users, ArrowRight, Calendar } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Contests — CodeJudge",
-  description: "Compete in coding contests on CodeJudge.",
+  title: "Contests — ByteClash",
+  description: "Compete in coding contests on ByteClash.",
 };
 
 const upcomingContests = [
   { id: "1", name: "Weekly Contest 420", startsIn: "02h 15m", participants: 1240, duration: "90 min" },
   { id: "2", name: "Biweekly Contest 121", startsIn: "1d 4h", participants: 890, duration: "120 min" },
-  { id: "3", name: "CodeJudge Round #900", startsIn: "3d 6h", participants: 2100, duration: "120 min" },
+  { id: "3", name: "ByteClash Round #900", startsIn: "3d 6h", participants: 2100, duration: "120 min" },
 ];
 
 const pastContests = [
   { id: "4", name: "Weekly Contest 419", date: "Dec 15, 2024", participants: 1850, rank: 245 },
   { id: "5", name: "Biweekly Contest 120", date: "Dec 8, 2024", participants: 1620, rank: 189 },
-  { id: "6", name: "CodeJudge Round #895", date: "Dec 1, 2024", participants: 2200, rank: 678 },
+  { id: "6", name: "ByteClash Round #895", date: "Dec 1, 2024", participants: 2200, rank: 678 },
   { id: "7", name: "Weekly Contest 418", date: "Nov 24, 2024", participants: 1750, rank: 512 },
 ];
 

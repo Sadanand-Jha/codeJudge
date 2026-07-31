@@ -54,7 +54,7 @@ const featuredCollection = {
   companies: ["Google", "Amazon", "Microsoft", "Meta"],
   progress: 45,
   difficulty: "Hard",
-  creator: "CodeJudge Team",
+  creator: "ByteClash Team",
   followers: "24.5K",
   description:
     "A comprehensive collection of problems asked in FAANG interviews. Covers all essential topics with company-specific patterns.",
@@ -917,7 +917,7 @@ export default function CollectionsPage() {
                   <h4 className="text-xs font-semibold text-white">Upcoming Contest</h4>
                 </div>
                 <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-3">
-                  <p className="text-xs font-medium text-white">CodeJudge Weekly #247</p>
+                  <p className="text-xs font-medium text-white">ByteClash Weekly #247</p>
                   <p className="text-[11px] text-[#9CA3AF] mt-0.5">Starts in 2 days</p>
                   <button className="mt-2 w-full h-7 rounded-md bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#7C3AED] text-[11px] font-medium hover:bg-[#7C3AED]/20 transition-colors">
                     Register
