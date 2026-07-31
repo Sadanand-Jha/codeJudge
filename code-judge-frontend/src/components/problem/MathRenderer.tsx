@@ -1464,8 +1464,11 @@ export default function MathRenderer({ html, className = "" }: MathRendererProps
     });
 
     result = result.replace(
-      /(\\[{}]|[a-zA-Z](?:_(?:[a-zA-Z0-9+\-*/()]|{[^{}]*})|\^(?:[a-zA-Z0-9+\-*/()]|{[^{}]*}))+[a-zA-Z0-9]*|\\[a-zA-Z]+(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*)/g,
-      "$$$1$"
+      /(\\[{}]|[a-zA-Z](?:_(?:[a-zA-Z0-9]|{[^{}]*})|\^(?:-?\d+|[a-zA-Z0-9]|{[^{}]*}))+[a-zA-Z0-9]*|\\[a-zA-Z]+(?:\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*)/g,
+      (_, expr) => {
+        const normalized = expr.replace(/\^(-?\d+)/g, "^{$1}");
+        return `$${normalized}$`;
+      }
     );
 
     for (let i = protectedSegments.length - 1; i >= 0; i--) {

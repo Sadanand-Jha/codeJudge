@@ -6,40 +6,48 @@ interface RatingBadgeProps {
 }
 
 // Codeforces rating colors - kept for proper rating display
+import { getRatingHex } from "@/lib/helpers";
+
 function getRatingColor(rating: number | null): string {
-  if (rating === null) return "text-[#9CA3AF]";
-  if (rating < 1000) return "text-[#9CA3AF]";
-  if (rating < 1200) return "text-[#10B981]";
-  if (rating < 1400) return "text-[#06B6D4]";
-  if (rating < 1600) return "text-[#2563EB]";
-  if (rating < 1900) return "text-[#8B5CF6]";
-  if (rating < 2100) return "text-[#F59E0B]";
-  if (rating < 2400) return "text-[#EF4444]";
-  return "text-[#FBBF24]";
+  const hex = getRatingHex(rating);
+  const map: Record<string, string> = {
+    "#9CA3AF": "text-[#9CA3AF]",
+    "#22C55E": "text-[#22C55E]",
+    "#F59E0B": "text-[#F59E0B]",
+    "#3B82F6": "text-[#3B82F6]",
+    "#7C3AED": "text-[#7C3AED]",
+    "#F97316": "text-[#F97316]",
+    "#EF4444": "text-[#EF4444]",
+  };
+  return map[hex] ?? "text-[#9CA3AF]";
 }
 
 function getRatingBg(rating: number | null): string {
-  if (rating === null) return "bg-[#F3F4F6]";
-  if (rating < 1000) return "bg-[#F3F4F6]";
-  if (rating < 1200) return "bg-[#10B981]/10";
-  if (rating < 1400) return "bg-[#06B6D4]/10";
-  if (rating < 1600) return "bg-[#2563EB]/10";
-  if (rating < 1900) return "bg-[#8B5CF6]/10";
-  if (rating < 2100) return "bg-[#F59E0B]/10";
-  if (rating < 2400) return "bg-[#EF4444]/10";
-  return "bg-[#FBBF24]/10";
+  const hex = getRatingHex(rating);
+  const map: Record<string, string> = {
+    "#9CA3AF": "bg-[#F3F4F6]",
+    "#22C55E": "bg-[#22C55E]/10",
+    "#F59E0B": "bg-[#F59E0B]/10",
+    "#3B82F6": "bg-[#3B82F6]/10",
+    "#7C3AED": "bg-[#7C3AED]/10",
+    "#F97316": "bg-[#F97316]/10",
+    "#EF4444": "bg-[#EF4444]/10",
+  };
+  return map[hex] ?? "bg-[#F3F4F6]";
 }
 
 function getRatingBorder(rating: number | null): string {
-  if (rating === null) return "border-[#E5E7EB]";
-  if (rating < 1000) return "border-[#E5E7EB]";
-  if (rating < 1200) return "border-[#10B981]/20";
-  if (rating < 1400) return "border-[#06B6D4]/20";
-  if (rating < 1600) return "border-[#2563EB]/20";
-  if (rating < 1900) return "border-[#8B5CF6]/20";
-  if (rating < 2100) return "border-[#F59E0B]/20";
-  if (rating < 2400) return "border-[#EF4444]/20";
-  return "border-[#FBBF24]/20";
+  const hex = getRatingHex(rating);
+  const map: Record<string, string> = {
+    "#9CA3AF": "border-[#E5E7EB]",
+    "#22C55E": "border-[#22C55E]/20",
+    "#F59E0B": "border-[#F59E0B]/20",
+    "#3B82F6": "border-[#3B82F6]/20",
+    "#7C3AED": "border-[#7C3AED]/20",
+    "#F97316": "border-[#F97316]/20",
+    "#EF4444": "border-[#EF4444]/20",
+  };
+  return map[hex] ?? "border-[#E5E7EB]";
 }
 
 function getRatingLabel(rating: number | null): string {

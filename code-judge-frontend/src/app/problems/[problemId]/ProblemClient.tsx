@@ -3,21 +3,31 @@
 import { useState, useCallback, useRef, useEffect, useId } from "react";
 import { motion } from "framer-motion";
 import {
-  ChevronLeft,
-  Bookmark,
-  Share2,
-  Heart,
   Play,
   Check,
+  Clock,
+  Database,
   Maximize2,
   Type,
   Sparkles,
+  FileText,
+  Code2,
+  Scale,
+  Lightbulb,
+  BookOpen,
+  CheckCheck,
+  MessageSquare,
+  History,
 } from "lucide-react";
+import { getRatingHex } from "@/lib/helpers";
 import Link from "next/link";
 import type { Problem, SampleTest } from "@/types/problem";
 import MathRenderer from "@/components/problem/MathRenderer";
 import MonacoEditorWrapper from "@/components/editor/MonacoEditor";
 import { Group, Panel, Separator } from "react-resizable-panels";
+import { useProblemData } from "@/mocks/useProblemData";
+import { TabSkeleton, SubmissionRowSkeleton, DiscussionCardSkeleton } from "@/components/problem/ProblemSkeleton";
+import { useAuthStore } from "@/store/authStore";
 
 type TabType =
   | "description"
@@ -42,6 +52,9 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
   const [fontSize, setFontSize] = useState(14);
   const [code, setCode] = useState(`#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n\n    return 0;\n}`);
 
+  const { data, loading } = useProblemData(problem.problem_id);
+  const currentUser = useAuthStore((s) => s.user);
+
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const monacoEditorRef = useRef<any>(null);
   const leftGroupId = useId();
@@ -59,24 +72,24 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
       ? `${problem.contest_id}${problem.problem_index} — ${problem.title}`
       : problem.title;
 
-  const tabs: { id: TabType; label: string }[] = [
-    { id: "description", label: "Description" },
-    { id: "examples", label: "Examples" },
-    { id: "constraints", label: "Constraints" },
-    { id: "hints", label: "Hints" },
-    { id: "editorial", label: "Editorial" },
-    { id: "solutions", label: "Solutions" },
-    { id: "discussion", label: "Discussion" },
-    { id: "submissions", label: "Submissions" },
-    { id: "ai-analysis", label: "AI Analysis" },
+  const tabs: { id: TabType; label: string; icon: React.ComponentType<{ className?: string }>; badge?: string | number; isAi?: boolean }[] = [
+    { id: "description", label: "Description", icon: FileText },
+    { id: "examples", label: "Examples", icon: Code2 },
+    { id: "constraints", label: "Constraints", icon: Scale },
+    { id: "hints", label: "Hints", icon: Lightbulb, badge: 3 },
+    { id: "editorial", label: "Editorial", icon: BookOpen },
+    { id: "solutions", label: "Solutions", icon: CheckCheck },
+    { id: "discussion", label: "Discussion", icon: MessageSquare, badge: 18 },
+    { id: "submissions", label: "Submissions", icon: History },
+    { id: "ai-analysis", label: "AI Analysis", icon: Sparkles, isAi: true },
   ];
 
-  const difficultyColor =
-    problem.rating && problem.rating >= 2000
-      ? "text-[#EF4444] border-[#EF4444]/30 bg-[#EF4444]/10"
-      : problem.rating && problem.rating >= 1600
-        ? "text-[#F59E0B] border-[#F59E0B]/30 bg-[#F59E0B]/10"
-        : "text-[#22C55E] border-[#22C55E]/30 bg-[#22C55E]/10";
+  const ratingColor = getRatingHex(problem.rating);
+  const difficultyPillStyle = {
+    color: ratingColor,
+    borderColor: `${ratingColor}30`,
+    backgroundColor: `${ratingColor}10`,
+  };
 
   const layoutEditor = useCallback(() => {
     if (monacoEditorRef.current && typeof monacoEditorRef.current.layout === "function") {
@@ -124,93 +137,143 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
 
   return (
     <div className="h-screen flex flex-col bg-[#09090B] overflow-hidden">
-      {/* Compact Problem Header */}
-      <div className="shrink-0 border-b border-white/[0.08] bg-[#09090B]">
-        <div className="px-4 py-2">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            {/* LEFT: Title + Metadata */}
+      {/* Problem Header — clean, spacious, Codeforces + LeetCode inspired */}
+      <div className="shrink-0 border-b border-white/[0.08] bg-[#0B0C0F]">
+        <div className="px-6 py-5">
+          {/* Row 1: Title + Primary Actions */}
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <h1 className="text-[22px] font-bold text-white tracking-tight leading-tight mb-1">
+              <h1 className="text-3xl font-bold text-white tracking-tight leading-tight">
                 {displayTitle}
               </h1>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${difficultyColor}`}>
-                  {problem.rating ? `Rating ${problem.rating}` : "Unrated"}
-                </span>
-                <span className="text-[10px] text-[#9CA3AF] bg-white/[0.03] px-1.5 py-0.5 rounded border border-white/[0.06]">
-                  {problem.contest_id || "Practice"}
-                </span>
-                {(problem as any).acceptance !== undefined && (
-                  <span className="text-[10px] text-[#9CA3AF]">Acceptance: {(problem as any).acceptance}%</span>
-                )}
-                {(problem as any).solved_count !== undefined && (
-                  <span className="text-[10px] text-[#9CA3AF]">Solved: {(problem as any).solved_count}</span>
-                )}
-                <span className="text-white/20">•</span>
-                <span className="text-[10px] text-[#9CA3AF]">⏱ {timeLimitStr}</span>
-                <span className="text-[10px] text-[#9CA3AF]">💾 {memoryLimitStr}</span>
-              </div>
             </div>
 
-            {/* CENTER: Primary Actions */}
-            <div className="flex items-center justify-center gap-2">
-              <button className="h-[38px] px-3 rounded-[10px] border border-white/10 bg-white/5 text-white text-xs font-semibold hover:bg-white/10 transition-all flex items-center justify-center">
-                <Play className="w-4 h-4" fill="white" />
+            {/* Right: Run Code + Submit */}
+            <div className="flex shrink-0 items-center gap-3">
+              <button className="flex h-[42px] items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 text-sm font-semibold text-white transition-all hover:border-white/20 hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#7C3AED]/40">
+                <Play className="h-4 w-4" />
+                Run Code
               </button>
-              <button className="h-[38px] px-4 rounded-[10px] border border-[#22C55E]/30 bg-[#22C55E]/10 text-[#22C55E] text-xs font-bold hover:bg-[#22C55E]/20 transition-all flex items-center gap-2">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
+              <button className="flex h-[42px] items-center justify-center gap-2 rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/10 px-6 text-sm font-bold text-[#22C55E] transition-all hover:bg-[#22C55E]/20 hover:shadow-[0_0_20px_rgba(34,197,94,0.15)] focus-visible:ring-2 focus-visible:ring-[#22C55E]/40">
+                <Check className="h-4 w-4" />
                 Submit
               </button>
             </div>
+          </div>
 
-            {/* RIGHT: Utilities */}
-            <div className="flex items-center justify-end gap-1.5">
-              <button
-                onClick={() => setBookmarked(!bookmarked)}
-                className="p-2 rounded-md border border-white/[0.08] bg-[#111827] hover:border-white/[0.12] transition-all"
-              >
-                <Bookmark className={`w-4 h-4 ${bookmarked ? "fill-[#7C3AED] text-[#7C3AED]" : "text-[#9CA3AF]"}`} />
-              </button>
-              <button className="p-2 rounded-md border border-white/[0.08] bg-[#111827] hover:border-white/[0.12] transition-all">
-                <Share2 className="w-4 h-4 text-[#9CA3AF]" />
-              </button>
-              <button
-                onClick={() => setLiked(!liked)}
-                className="p-2 rounded-md border border-white/[0.08] bg-[#111827] hover:border-white/[0.12] transition-all"
-              >
-                <Heart className={`w-4 h-4 ${liked ? "fill-[#EF4444] text-[#EF4444]" : "text-[#9CA3AF]"}`} />
-              </button>
-              <button className="p-2 rounded-md border border-white/[0.08] bg-[#111827] hover:border-white/[0.12] transition-all">
-                <Maximize2 className="w-4 h-4 text-[#9CA3AF]" />
-              </button>
-            </div>
+          {/* Row 2: Metadata */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span
+              className="inline-flex items-center rounded-full border px-3 py-1 text-sm font-semibold"
+              style={difficultyPillStyle}
+            >
+              {problem.rating ? `Rating ${problem.rating}` : "Unrated"}
+            </span>
+            <span className="inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1 text-sm font-medium text-[#9CA3AF]">
+              {problem.contest_id || "Practice"}
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-sm text-[#6B7280]">
+              <Clock className="h-3.5 w-3.5" />
+              {timeLimitStr}
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-sm text-[#6B7280]">
+              <Database className="h-3.5 w-3.5" />
+              {memoryLimitStr}
+            </span>
+            {(problem as any).acceptance !== undefined && (
+              <span className="inline-flex items-center gap-1.5 text-sm text-[#6B7280]">
+                <span className="h-1 w-1 rounded-full bg-[#6B7280] opacity-60" />
+                Acceptance: {(problem as any).acceptance}%
+              </span>
+            )}
+            {(problem as any).solved_count !== undefined && (
+              <span className="inline-flex items-center gap-1.5 text-sm text-[#6B7280]">
+                <span className="h-1 w-1 rounded-full bg-[#6B7280] opacity-60" />
+                Solved: {(problem as any).solved_count}
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Sticky Tabs */}
-      <div className="shrink-0 border-b border-white/[0.08] bg-[#09090B] z-20">
-        <div className="flex items-center gap-0.5 px-4 overflow-x-auto">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="relative h-[36px] px-3 text-xs font-medium text-[#9CA3AF] hover:text-white transition-all whitespace-nowrap"
-            >
-              {tab.label}
-              {activeTab === tab.id && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute bottom-0 left-1 right-1 h-[2px] bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] rounded-full shadow-[0_0_8px_rgba(124,58,237,0.5)]"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+      {/* Sticky Tabs — premium glassmorphic navigation */}
+      <div className="shrink-0 sticky top-0 z-30 border-b border-white/[0.08] bg-[#0B0D12]/80 backdrop-blur-xl">
+        <div className="flex items-center gap-2 px-8 overflow-x-auto scrollbar-hide">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            const isAi = tab.isAi;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                aria-pressed={isActive}
+                className={`group relative flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                  isActive
+                    ? "bg-[#1F6FEB]/15 text-white shadow-[0_0_20px_rgba(79,140,255,0.15)]"
+                    : "text-[#9CA3AF] hover:bg-[#171A22] hover:text-white"
+                }`}
+                style={{
+                  transform: isActive ? "translateY(-1px)" : "none",
+                }}
+              >
+                {/* Active underline */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute bottom-0 left-2 right-2 h-[2px] bg-gradient-to-r from-[#4F8CFF] to-[#7C3AED] rounded-full"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                  />
+                )}
+
+                {/* Icon */}
+                <Icon
+                  className={`h-4 w-4 transition-colors ${
+                    isActive
+                      ? isAi
+                        ? "text-[#7C3AED]"
+                        : "text-[#4F8CFF]"
+                      : "text-[#9CA3AF] group-hover:text-white"
+                  }`}
                 />
-              )}
-            </button>
-          ))}
+
+                {/* Label */}
+                <span
+                  className={`transition-colors ${
+                    isActive && isAi
+                      ? "bg-gradient-to-r from-[#7C3AED] to-[#4F8CFF] bg-clip-text text-transparent"
+                      : ""
+                  }`}
+                >
+                  {tab.label}
+                </span>
+
+                {/* AI shimmer glow */}
+                {isAi && isActive && (
+                  <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#7C3AED]/20 to-[#4F8CFF]/20 blur-xl -z-10" />
+                )}
+
+                {/* Badge */}
+                {tab.badge !== undefined && (
+                  <span
+                    className={`ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                      isActive
+                        ? "bg-[#4F8CFF]/20 text-[#4F8CFF]"
+                        : "bg-white/[0.06] text-[#9CA3AF]"
+                    }`}
+                  >
+                    {tab.badge}
+                  </span>
+                )}
+
+                {/* Discussion unread dot */}
+                {tab.id === "discussion" && (
+                  <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-[#EF4444] animate-pulse" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -226,11 +289,18 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="space-y-6"
+                        className="space-y-8"
                       >
                         <ProblemSection title="Description">
                           <MathRenderer html={problem.statement} />
                         </ProblemSection>
+
+                        {/* Examples directly below the problem description */}
+                        {problem.sample_tests.length > 0 && (
+                          <div className="border-t border-white/[0.06] pt-6">
+                            <ExamplesPanel samples={problem.sample_tests} />
+                          </div>
+                        )}
                       </motion.div>
                     )}
 
@@ -263,22 +333,183 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                     </motion.div>
                   )}
 
-                  {activeTab !== "description" && activeTab !== "examples" && activeTab !== "constraints" && (
+                  {loading && activeTab !== "description" && activeTab !== "examples" && activeTab !== "constraints" && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="flex flex-col items-center justify-center h-64 text-center"
+                      className="space-y-4"
                     >
-                      <div className="w-12 h-12 rounded-xl bg-[#111827] border border-white/[0.08] flex items-center justify-center mb-3">
-                        <Sparkles className="w-6 h-6 text-[#7C3AED]" />
-                      </div>
-                      <h3 className="text-base font-semibold text-white mb-1">
-                        {activeTab.charAt(0).toUpperCase() + activeTab.slice(1).replace("-", " ")}
-                      </h3>
-                      <p className="text-xs text-[#9CA3AF] max-w-sm">
-                        This section is coming soon with detailed explanations, solutions, and community discussions.
-                      </p>
+                      <TabSkeleton />
+                      <SubmissionRowSkeleton />
+                      <SubmissionRowSkeleton />
+                      <SubmissionRowSkeleton />
+                    </motion.div>
+                  )}
+
+                  {!loading && activeTab !== "description" && activeTab !== "examples" && activeTab !== "constraints" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-6"
+                    >
+                      {activeTab === "hints" && (
+                        <div className="space-y-4">
+                          {data?.hints.map((hint, idx) => (
+                            <div key={hint.id} className="rounded-xl border border-white/[0.08] bg-[#111827] p-4">
+                              <p className="text-xs font-semibold text-[#7C3AED] mb-2">Hint {idx + 1}</p>
+                              <p className="text-sm text-[#E5E7EB] leading-relaxed">{hint.text}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {activeTab === "editorial" && data?.editorial && (
+                        <div className="space-y-6">
+                          <ProblemSection title="Intuition">
+                            <p>{data.editorial.intuition}</p>
+                          </ProblemSection>
+                          <ProblemSection title="Observations">
+                            <ul className="list-disc list-inside space-y-2">
+                              {data.editorial.observations.map((obs, i) => (
+                                <li key={i}>{obs}</li>
+                              ))}
+                            </ul>
+                          </ProblemSection>
+                          <ProblemSection title="Proof">
+                            <pre className="whitespace-pre-wrap text-sm">{data.editorial.proof}</pre>
+                          </ProblemSection>
+                          <ProblemSection title="Complexity">
+                            <p>{data.editorial.complexity}</p>
+                          </ProblemSection>
+                          <ProblemSection title="Edge Cases">
+                            <ul className="list-disc list-inside space-y-2">
+                              {data.editorial.edgeCases.map((edge, i) => (
+                                <li key={i}>{edge}</li>
+                              ))}
+                            </ul>
+                          </ProblemSection>
+                          <ProblemSection title="Approach">
+                            <pre className="whitespace-pre-wrap text-sm">{data.editorial.approach}</pre>
+                          </ProblemSection>
+                        </div>
+                      )}
+
+                      {activeTab === "solutions" && (
+                        <div className="space-y-4">
+                          {data?.solutions.map((sol) => (
+                            <div key={sol.id} className="rounded-xl border border-white/[0.08] bg-[#111827] overflow-hidden">
+                              <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08]">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-sm font-semibold text-white">{sol.author}</span>
+                                  <span className="text-xs text-[#9CA3AF]">Rating: {sol.rating}</span>
+                                  <span className="text-xs text-[#9CA3AF]">Likes: {sol.likes}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-[#9CA3AF]">
+                                  <span>Runtime: {sol.runtimeMs}ms</span>
+                                  <span>Memory: {sol.memoryMB}MB</span>
+                                  <span className="px-2 py-0.5 rounded-full border border-white/[0.08] bg-white/[0.03]">{sol.language}</span>
+                                </div>
+                              </div>
+                              <pre className="p-4 text-xs text-[#E5E7EB] font-mono overflow-x-auto">{sol.code}</pre>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {activeTab === "discussion" && (
+                        <div className="space-y-4">
+                          {data?.discussions.map((disc) => (
+                            <div key={disc.id} className="rounded-xl border border-white/[0.08] bg-[#111827] p-4">
+                              <div className="flex items-start gap-3">
+                                <img src={disc.user.avatar} alt={disc.user.username} className="h-10 w-10 rounded-full bg-white/[0.06]" />
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-sm font-semibold text-white">{disc.user.username}</span>
+                                    <span className="text-xs text-[#9CA3AF]">{disc.postedAt}</span>
+                                  </div>
+                                  <h4 className="text-sm font-medium text-white mb-1">{disc.title}</h4>
+                                  <p className="text-xs text-[#9CA3AF] mb-2">{disc.preview}</p>
+                                  <div className="flex items-center gap-4 text-xs text-[#9CA3AF]">
+                                    <span>Likes: {disc.likes}</span>
+                                    <span>Replies: {disc.replies.length}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {activeTab === "submissions" && (
+                        <div className="space-y-2">
+                          {(data?.submissions.filter((sub) => sub.user.id === currentUser?.id) ?? []).map((sub) => (
+                            <div key={sub.id} className="flex items-center gap-4 px-4 py-3 rounded-xl border border-white/[0.08] bg-[#111827]">
+                              <img src={sub.user.avatar} alt={sub.user.username} className="h-10 w-10 rounded-full bg-white/[0.06]" />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-white">{sub.user.username}</span>
+                                  <span className="text-xs text-[#9CA3AF]">{sub.language}</span>
+                                </div>
+                                <div className="text-xs text-[#9CA3AF]">{sub.submittedAt}</div>
+                              </div>
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                                sub.verdict === "Accepted" ? "text-[#22C55E] border-[#22C55E]/20 bg-[#22C55E]/10" :
+                                sub.verdict === "Wrong Answer" ? "text-[#EF4444] border-[#EF4444]/20 bg-[#EF4444]/10" :
+                                sub.verdict === "Time Limit Exceeded" ? "text-[#F59E0B] border-[#F59E0B]/20 bg-[#F59E0B]/10" :
+                                sub.verdict === "Runtime Error" ? "text-[#F97316] border-[#F97316]/20 bg-[#F97316]/10" :
+                                sub.verdict === "Compilation Error" ? "text-[#6B7280] border-[#6B7280]/20 bg-[#6B7280]/10" :
+                                "text-[#EF4444] border-[#EF4444]/20 bg-[#EF4444]/10"
+                              }`}>{sub.verdict}</span>
+                              <div className="text-xs text-[#9CA3AF] w-24 text-right">{sub.runtimeMs}ms / {sub.memoryMB}MB</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {activeTab === "ai-analysis" && data?.aiAnalysis && (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="rounded-xl border border-white/[0.08] bg-[#111827] p-4">
+                              <p className="text-xs text-[#9CA3AF] mb-1">Difficulty</p>
+                              <p className="text-lg font-bold text-[#7C3AED]">{data.aiAnalysis.difficulty}</p>
+                            </div>
+                            <div className="rounded-xl border border-white/[0.08] bg-[#111827] p-4">
+                              <p className="text-xs text-[#9CA3AF] mb-1">Acceptance</p>
+                              <p className="text-lg font-bold text-white">{data.statistics.acceptanceRate}</p>
+                            </div>
+                          </div>
+                          <div className="rounded-xl border border-white/[0.08] bg-[#111827] p-4">
+                            <p className="text-xs text-[#9CA3AF] mb-2">Required Concepts</p>
+                            <div className="flex flex-wrap gap-2">
+                              {data.aiAnalysis.requiredConcepts.map((concept) => (
+                                <span key={concept} className="px-2 py-1 rounded-full border border-[#7C3AED]/20 bg-[#7C3AED]/10 text-xs text-[#7C3AED]">{concept}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="rounded-xl border border-white/[0.08] bg-[#111827] p-4">
+                            <p className="text-xs text-[#9CA3AF] mb-2">Common Mistakes</p>
+                            <ul className="list-disc list-inside space-y-1 text-sm text-[#E5E7EB]">
+                              {data.aiAnalysis.commonMistakes.map((mistake, i) => (
+                                <li key={i}>{mistake}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="rounded-xl border border-white/[0.08] bg-[#111827] p-4">
+                            <p className="text-xs text-[#9CA3AF] mb-2">Recommended</p>
+                            <div className="flex flex-wrap gap-2">
+                              {data.aiAnalysis.recommendedDifficulty.map((rating) => (
+                                <span key={rating} className="px-2 py-1 rounded-full border border-white/[0.08] bg-white/[0.03] text-xs text-white">{rating}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="rounded-xl border border-white/[0.08] bg-[#111827] p-4">
+                            <p className="text-xs text-[#9CA3AF] mb-2">Learning Outcome</p>
+                            <p className="text-sm text-[#E5E7EB] leading-relaxed">{data.aiAnalysis.learningOutcome}</p>
+                          </div>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </div>
