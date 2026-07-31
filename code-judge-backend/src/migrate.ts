@@ -103,7 +103,7 @@ function computeChecksum(content: string): string {
 // ──────────────────────────────────────────────
 async function migrate(dryRun: boolean = false): Promise<void> {
   console.log('\n═══════════════════════════════════════');
-  console.log('  CodeJudge – Database Migration');
+  console.log('  byteclash – Database Migration');
   console.log('═══════════════════════════════════════\n');
 
   // Ensure migrations directory exists

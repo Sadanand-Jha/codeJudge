@@ -105,7 +105,7 @@ async function simulateHumanBehavior(page: any) {
 async function fetchRecentProblems(maxRating: number, limit: number): Promise<CfApiProblem[]> {
   console.log("📡 Fetching problem list from Codeforces API...");
   const response = await fetch("https://codeforces.com/api/problemset.problems", {
-    headers: { "User-Agent": "Mozilla/5.0 (compatible; CodeJudge/1.0)" },
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; byteclash/1.0)" },
   });
 
   if (!response.ok) throw new Error(`API request failed: ${response.status}`);

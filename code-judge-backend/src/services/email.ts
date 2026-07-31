@@ -41,11 +41,11 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
  * This is meant to be fired-and-forgotten so the HTTP request doesn't block
  */
 export async function sendOtpEmail(email: string, otp: string): Promise<void> {
-  const subject = 'Your OTP for CodeJudge Registration';
+  const subject = 'Your OTP for byteclash Registration';
   const text = `Your OTP for registration is: ${otp}\n\nThis OTP is valid for 5 minutes.\n\nIf you did not request this, please ignore this email.`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-      <h2 style="color: #333;">CodeJudge Registration</h2>
+      <h2 style="color: #333;">byteclash Registration</h2>
       <p style="font-size: 16px; color: #555;">Your One-Time Password (OTP) for registration is:</p>
       <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333; margin: 20px 0;">
         ${otp}
@@ -53,7 +53,7 @@ export async function sendOtpEmail(email: string, otp: string): Promise<void> {
       <p style="font-size: 14px; color: #888;">This OTP is valid for 5 minutes. Do not share this code with anyone.</p>
       <p style="font-size: 14px; color: #888;">If you did not request this OTP, please ignore this email.</p>
       <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #aaa;">CodeJudge Team</p>
+      <p style="font-size: 12px; color: #aaa;">byteclash Team</p>
     </div>
   `;
 

@@ -6,7 +6,7 @@ async function debug() {
   
   const response = await axios.get(url, {
     headers: {
-      "User-Agent": "Mozilla/5.0 (compatible; CodeJudge/1.0)",
+      "User-Agent": "Mozilla/5.0 (compatible; byteclash/1.0)",
     },
   });
 

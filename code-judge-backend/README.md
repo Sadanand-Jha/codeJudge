@@ -1,6 +1,6 @@
-# CodeJudge Backend
+# byteclash Backend
 
-A robust backend service for the CodeJudge platform, handling code execution, submissions, and problem management.
+A robust backend service for the byteclash platform, handling code execution, submissions, and problem management.
 
 ## Features
 

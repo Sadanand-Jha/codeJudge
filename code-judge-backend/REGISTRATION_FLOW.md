@@ -1,4 +1,4 @@
-# CodeJudge — Registration Flow Documentation
+# byteclash — Registration Flow Documentation
 
 ## Overview
 
@@ -377,7 +377,7 @@ JWT_EXPIRY=7d
 REDIS_URL=redis://localhost:6379
 
 # Database
-DATABASE_URL=postgres://user:password@localhost:5432/codejudge
+DATABASE_URL=postgres://user:password@localhost:5432/byteclash
 ```
 
 ---

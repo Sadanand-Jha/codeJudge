@@ -1,7 +1,7 @@
 {
   "name": "code-judge-backend",
   "version": "1.0.0",
-  "description": "Backend service for CodeJudge platform",
+  "description": "Backend service for byteclash platform",
   "main": "dist/server.js",
   "type": "module",
   "scripts": {
