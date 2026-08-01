@@ -19,6 +19,7 @@ router.post("/register", validate(registerSchema), userRegister);
 router.post("/forget-password", forgetPassword);
 
 
-router.get("/profile", authenticate, profile)
+router.get("/profile", authenticate, profile);
+router.get("/info", authenticate, profile);
 
 export default router;

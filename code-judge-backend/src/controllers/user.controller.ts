@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { pool } from "../app.ts";
 import { OTPService } from "../services/otpService.ts";
 import { UserService } from "../services/database/user.database.ts";
+import { userRepository } from "../repositories/user.repository.ts";
 
 // ============================================
 // User Registration

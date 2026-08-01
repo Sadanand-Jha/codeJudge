@@ -112,6 +112,23 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 - `docs/problem-page-flow.md` — Problem page architecture, data flow, tabs, resizable panels, editor, math rendering, and backend integration checklist
 - `docs/quiz-visibility-system.md` — Quiz visibility levels, access control, permissions, collaborators, scheduling, and backend integration
 
+## User API Services
+
+The frontend uses the following user-related API services:
+
+- `getProfile()` - Fetches basic user profile from `/api/v1/user/profile`
+- `getUserInfo()` - Fetches comprehensive user information from `/api/auth/me` (merged endpoint)
+
+### User Info Response
+
+The `/api/auth/me` endpoint returns complete user data including:
+- Basic info: id, username, email, role
+- Profile details: firstName, lastName, mobile, avatarUrl, bio
+- Location: country, state, college, company
+- Stats: rating, maxRating
+- Status: isVerified, isActive, lastLogin
+- Preferences: theme, accentColor, compactMode, animationSpeed, preferredLanguage, editorTheme, editorFontSize, tabWidth, wordWrap, autoSave, vimMode, emacsMode
+
 ## Quiz & Assessment Platform
 
 The platform includes a universal **Assessment & Quiz Platform** supporting quizzes on any subject — academics, placements, company assessments, certifications, and community challenges.

@@ -5,9 +5,11 @@ import bcrypt from "bcryptjs";
 import redisClient from "../config/redis.js";
 import { sendOtp, verifyOtp, register } from "../services/auth.js";
 import { UserService } from "../services/database/user.database.js";
+import { userRepository } from "../repositories/user.repository.js";
 import { authenticate } from "../middleware/auth.js";
 
 const userService = new UserService();
+const userRepo = new userRepository();
 
 // ============================================
 // Auth Controllers
@@ -219,7 +221,7 @@ export const loginController = async (req: Request, res: Response) => {
 /**
  * POST /api/auth/me
  * Body: { "session_token": "<jwt>" }
- * Verifies the session_token and returns the user's identity
+ * Returns comprehensive user information merging profile and info data
  */
 export const meController = async (req: Request, res: Response) => {
   try {
@@ -244,10 +246,13 @@ export const meController = async (req: Request, res: Response) => {
       email: string;
     };
 
-    // Fetch user by email to get username
-    const user = await userService.getUserByEmail(decoded.email);
+    // Fetch both profile and info data in parallel
+    const [userProfile, userInfo] = await Promise.all([
+      userService.getUserProfileById(decoded.userId),
+      userRepo.getUserInfo(decoded.userId)
+    ]);
 
-    if (!user) {
+    if (!userProfile && !userInfo) {
       res.status(401).json({
         success: false,
         message: "User not found",
@@ -256,16 +261,55 @@ export const meController = async (req: Request, res: Response) => {
       return;
     }
 
+    // Merge the data from both sources
+    const mergedData = {
+      // From profile
+      id: userProfile?.id || userInfo?.id,
+      adminId: userProfile?.adminid || userInfo?.adminid,
+      username: userProfile?.username || userInfo?.username,
+      email: userProfile?.email || userInfo?.email,
+      role: userProfile?.role || userInfo?.role,
+      createdAt: userProfile?.createdat || userInfo?.created_at,
+      updatedAt: userProfile?.updatedat || userInfo?.updated_at,
+
+      // Additional fields from info
+      firstName: userInfo?.first_name || null,
+      lastName: userInfo?.last_name || null,
+      mobile: userInfo?.mobile || null,
+      avatarUrl: userInfo?.avatar_url || null,
+      bio: userInfo?.bio || null,
+      country: userInfo?.country || null,
+      state: userInfo?.state || null,
+      college: userInfo?.college || null,
+      company: userInfo?.company || null,
+      rating: userInfo?.rating || 0,
+      maxRating: userInfo?.max_rating || 0,
+      isVerified: userInfo?.is_verified || false,
+      isActive: userInfo?.is_active ?? userProfile?.isactive ?? true,
+      lastLogin: userInfo?.last_login || null,
+
+      // Preferences from info
+      preferences: userInfo?.preferences || {
+        theme: "system",
+        accentColor: "blue",
+        compactMode: false,
+        animationSpeed: "normal",
+        preferredLanguage: "cpp",
+        editorTheme: "one-dark",
+        editorFontSize: 14,
+        tabWidth: 4,
+        wordWrap: false,
+        autoSave: true,
+        vimMode: false,
+        emacsMode: false,
+      },
+    };
+
     res.status(200).json({
       success: true,
       message: "Authenticated",
       data: {
-        user: {
-          id: decoded.userId,
-          adminId: decoded.adminId,
-          email: decoded.email,
-          username: user.Username,
-        },
+        user: mergedData,
       },
     });
   } catch (error: any) {

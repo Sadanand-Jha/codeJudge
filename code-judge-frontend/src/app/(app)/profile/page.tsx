@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getProfile } from "@/services/user";
-import type { UserProfile } from "@/types/user";
+import { getUserInfo } from "@/services/user";
+import type { UserInfo } from "@/types/user";
 import {
   ProfileHero,
   StatsCards,
@@ -16,13 +16,13 @@ import {
 } from "@/components/dashboard";
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchProfile() {
       try {
-        const data = await getProfile();
+        const data = await getUserInfo();
         setProfile(data);
       } catch (err) {
         console.error("Profile fetch error:", err);

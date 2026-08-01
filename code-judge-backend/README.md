@@ -132,7 +132,12 @@ backend/
 ### Auth
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login user
-- `GET /api/auth/profile` - Get user profile (protected)
+- `POST /api/auth/me` - Verify session token and get user identity
+- `POST /api/auth/logout` - Logout user and revoke session
+
+### User (v1)
+- `GET /api/v1/user/profile` - Get user profile (protected)
+- `GET /api/v1/user/info` - Get comprehensive user information including preferences (protected)
 
 ### Problems
 - `GET /api/problems` - List all problems
