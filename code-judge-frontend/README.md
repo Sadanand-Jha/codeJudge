@@ -118,6 +118,7 @@ The frontend uses the following user-related API services:
 
 - `getProfile()` - Fetches basic user profile from `/api/v1/user/profile`
 - `getUserInfo()` - Fetches comprehensive user information from `/api/auth/me` (merged endpoint)
+- `updateAvatar(avatarUrl)` - Updates user avatar via `PATCH /api/user/avatar`
 
 ### User Info Response
 
@@ -128,6 +129,33 @@ The `/api/auth/me` endpoint returns complete user data including:
 - Stats: rating, maxRating
 - Status: isVerified, isActive, lastLogin
 - Preferences: theme, accentColor, compactMode, animationSpeed, preferredLanguage, editorTheme, editorFontSize, tabWidth, wordWrap, autoSave, vimMode, emacsMode
+
+## Avatar System
+
+The application includes a complete DiceBear avatar selection system:
+
+### Features
+- **20 Predefined Avatars**: 12 male-style and 8 female-style avatars using the DiceBear Adventurer style
+- **Secure Validation**: Backend validates that only predefined avatars can be saved
+- **Modal Selection**: Users can browse and select avatars in a responsive grid modal
+- **Instant Preview**: Selected avatar is previewed immediately before saving
+- **Database Storage**: Avatar URL is stored in the `users.avatar` column
+
+### Components
+- `AvatarSettings` - Displays current avatar with change button
+- `AvatarSelectionModal` - Modal with 20 avatars in a responsive grid (4-5 columns)
+- `updateAvatar()` service - API call to update avatar
+
+### Usage
+```typescript
+import { updateAvatar } from "@/services/avatar";
+
+// Update user avatar
+const newAvatarUrl = await updateAvatar("https://api.dicebear.com/9.x/adventurer/svg?seed=Alex");
+```
+
+### Avatar Configuration
+The avatar list is maintained in `shared/constants/avatars.ts` and `code-judge-backend/src/constants/avatars.ts`. Both files should be kept in sync.
 
 ## Quiz & Assessment Platform
 

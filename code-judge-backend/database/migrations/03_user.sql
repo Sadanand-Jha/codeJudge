@@ -15,6 +15,12 @@ CREATE TABLE IF NOT EXISTS users (
     UpdatedAt       TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Asia/Kolkata')
 );
 
+
+ALTER TABLE users
+ADD COLUMN avatar VARCHAR(255);
+
+
+
 -- ============================================
 -- OTP
 -- ============================================

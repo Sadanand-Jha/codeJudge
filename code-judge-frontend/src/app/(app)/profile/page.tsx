@@ -58,8 +58,14 @@ export default function ProfilePage() {
         <ProfileHero
           username={profile?.username || "User"}
           email={profile?.email || "user@example.com"}
+          avatarUrl={profile?.avatarUrl}
+          bio={profile?.bio}
+          rating={profile?.rating}
+          maxRating={profile?.maxRating}
+          country={profile?.country}
+          joinDate={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : undefined}
         />
-        <StatsCards solved={127} currentRating={1450} maxRating={1600} contributions={23} />
+        <StatsCards solved={127} currentRating={profile?.rating || 0} maxRating={profile?.maxRating || 0} contributions={23} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2"><RatingHistory /></div>

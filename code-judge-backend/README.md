@@ -138,6 +138,9 @@ backend/
 ### User (v1)
 - `GET /api/v1/user/profile` - Get user profile (protected)
 - `GET /api/v1/user/info` - Get comprehensive user information including preferences (protected)
+- `PATCH /api/v1/user/avatar` - Update user avatar (protected)
+  - Body: `{ "avatarUrl": "https://api.dicebear.com/9.x/adventurer/svg?seed=Alex" }`
+  - Only accepts predefined avatar URLs
 
 ### Problems
 - `GET /api/problems` - List all problems

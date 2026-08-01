@@ -247,6 +247,7 @@ export const meController = async (req: Request, res: Response) => {
     };
 
     // Fetch both profile and info data in parallel
+    // userInfo now includes the avatar column from the users table
     const [userProfile, userInfo] = await Promise.all([
       userService.getUserProfileById(decoded.userId),
       userRepo.getUserInfo(decoded.userId)
@@ -276,7 +277,7 @@ export const meController = async (req: Request, res: Response) => {
       firstName: userInfo?.first_name || null,
       lastName: userInfo?.last_name || null,
       mobile: userInfo?.mobile || null,
-      avatarUrl: userInfo?.avatar_url || null,
+      avatarUrl: userInfo?.avatar || null,
       bio: userInfo?.bio || null,
       country: userInfo?.country || null,
       state: userInfo?.state || null,

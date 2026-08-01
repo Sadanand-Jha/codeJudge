@@ -11,6 +11,6 @@ interface AuthMeResponse {
 }
 
 export async function getUserInfo(): Promise<UserInfo> {
-  const response = await apiClient.get<AuthMeResponse>("/auth/me");
+  const response = await apiClient.post<AuthMeResponse>("/auth/me");
   return response.data.user;
 }

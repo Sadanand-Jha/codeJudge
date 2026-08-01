@@ -7,9 +7,23 @@ interface ProfileHeroProps {
   username: string;
   email: string;
   joinDate?: string;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  rating?: number;
+  maxRating?: number;
+  country?: string | null;
 }
 
-export default function ProfileHero({ username, email, joinDate = "Jan 2024" }: ProfileHeroProps) {
+export default function ProfileHero({ 
+  username, 
+  email, 
+  joinDate = "Jan 2024",
+  avatarUrl,
+  bio,
+  rating = 0,
+  maxRating = 0,
+  country,
+}: ProfileHeroProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -24,8 +38,16 @@ export default function ProfileHero({ username, email, joinDate = "Jan 2024" }: 
       <div className="relative z-10 flex items-center justify-between gap-8">
         {/* Left: Avatar + Info */}
         <div className="flex items-center gap-5">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-2xl font-bold text-white shadow-lg shadow-[#7C3AED]/20">
-            {username?.charAt(0).toUpperCase() || "U"}
+          <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-2xl font-bold text-white shadow-lg shadow-[#7C3AED]/20">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={username || "User"}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              username?.charAt(0).toUpperCase() || "U"
+            )}
           </div>
           <div>
             <div className="flex items-center gap-3">
@@ -35,9 +57,12 @@ export default function ProfileHero({ username, email, joinDate = "Jan 2024" }: 
               </span>
             </div>
             <p className="text-sm text-[#9CA3AF] mt-1">{email}</p>
+            {bio && (
+              <p className="text-xs text-[#9CA3AF] mt-1 line-clamp-1">{bio}</p>
+            )}
             <div className="flex items-center gap-2 mt-2">
-              <span className="text-xs text-[#9CA3AF]">🇮🇳 India</span>
-              <span className="text-[#3F3F46]">•</span>
+              {country && <span className="text-xs text-[#9CA3AF]">{country}</span>}
+              {country && <span className="text-[#3F3F46]">•</span>}
               <div className="flex items-center gap-1 text-xs text-[#9CA3AF]">
                 <Calendar className="w-3 h-3" />
                 Joined {joinDate}

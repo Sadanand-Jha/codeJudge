@@ -54,6 +54,7 @@ export class userRepository {
                 u.LastLogin as last_login,
                 u.CreatedAt as created_at,
                 u.UpdatedAt as updated_at,
+                u.avatar,
 
                 -- User preferences
                 up.theme,

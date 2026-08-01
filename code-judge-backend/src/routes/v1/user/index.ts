@@ -3,6 +3,7 @@ import editorRoutes from "./editor.routes.ts";
 import { validate, registerSchema } from "../../../middleware/validate.ts";
 import { userRegister, forgetPassword, profile } from "../../../controllers/user.controller.ts";
 import { authenticate } from "../../../middleware/auth.ts";
+import { updateAvatar } from "../../../controllers/avatar.controller.ts";
 
 const router = Router();
 
@@ -21,5 +22,6 @@ router.post("/forget-password", forgetPassword);
 
 router.get("/profile", authenticate, profile);
 router.get("/info", authenticate, profile);
+router.patch("/avatar", authenticate, updateAvatar);
 
 export default router;

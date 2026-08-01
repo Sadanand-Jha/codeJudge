@@ -16,6 +16,8 @@ import {
   Toggle, SettingsCard, SettingsInput, SettingsSelect,
   SettingsSlider, ConfirmDialog, SettingsRow,
 } from "@/components/ui/settings";
+import { getUserInfo } from "@/services/user";
+import type { UserInfo } from "@/types/user";
 
 /* =============================================
    Navigation Sections
@@ -231,6 +233,8 @@ export default function SettingsPage() {
     onConfirm: () => {},
   });
 
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Track unsaved changes
@@ -282,6 +286,56 @@ export default function SettingsPage() {
     });
   };
 
+  // Fetch user info from /auth/me
+  useEffect(() => {
+    async function fetchUserInfo() {
+      try {
+        const data = await getUserInfo();
+        
+        // Map accent color from API format to hex
+        const accentColorMap: Record<string, string> = {
+          "purple": "#7C3AED",
+          "blue": "#3B82F6",
+          "green": "#22C55E",
+          "orange": "#F97316",
+          "red": "#EF4444",
+        };
+        
+        // Map API response to settings
+        const mappedSettings: Partial<Settings> = {
+          username: data.username,
+          email: data.email,
+          firstName: data.firstName || "",
+          lastName: data.lastName || "",
+          bio: data.bio || "",
+          mobileNumber: data.mobile || "",
+          avatar: data.avatarUrl || null,
+          country: data.country || "",
+          state: data.state || "",
+          college: data.college || "",
+          company: data.company || "",
+          preferredLanguage: data.preferences?.preferredLanguage || "cpp",
+          editorTheme: data.preferences?.editorTheme || "dracula",
+          editorFontSize: data.preferences?.editorFontSize || 14,
+          tabWidth: String(data.preferences?.tabWidth || 4),
+          autoSave: data.preferences?.autoSave ?? true,
+          wordWrap: data.preferences?.wordWrap ?? false,
+          vimMode: data.preferences?.vimMode ?? false,
+          emacsKeybindings: data.preferences?.emacsMode ?? false,
+          theme: data.preferences?.theme === "system" ? "system" : data.preferences?.theme === "light" ? "light" : "dark",
+          accentColor: accentColorMap[data.preferences?.accentColor || "blue"] || "#7C3AED",
+          animationSpeed: data.preferences?.animationSpeed === 'fast' ? 150 : data.preferences?.animationSpeed === 'slow' ? 75 : 100,
+          compactMode: data.preferences?.compactMode ?? false,
+        };
+        setSettings((prev) => ({ ...prev, ...mappedSettings }));
+        setOriginalSettings((prev) => ({ ...prev, ...mappedSettings }));
+      } catch (err) {
+        console.error("Failed to fetch user info:", err);
+      }
+    }
+    fetchUserInfo();
+  }, []);
+
   // Scroll spy for active section
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -309,6 +363,12 @@ export default function SettingsPage() {
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  };
+
+  // Avatar update handler - called after successful API update
+  const handleAvatarUpdated = (avatarUrl: string) => {
+    setSettings((prev) => ({ ...prev, avatar: avatarUrl }));
+    setOriginalSettings((prev) => ({ ...prev, avatar: avatarUrl }));
   };
 
   return (
@@ -413,7 +473,10 @@ export default function SettingsPage() {
           <div className="space-y-6 py-10 max-w-4xl">
             {/* ===== PROFILE SECTION ===== */}
             <div id="profile" ref={(el) => { sectionRefs.current["profile"] = el; }} className="scroll-mt-32 space-y-6">
-              <AvatarSettings />
+              <AvatarSettings
+                currentAvatarUrl={settings.avatar}
+                onAvatarUpdated={handleAvatarUpdated}
+              />
               <SettingsCard title="Profile" description="Your public profile and identity on byteCode" icon={<User className="h-4 w-4" />}>
                 <div className="grid gap-6 md:grid-cols-[1fr_240px]">
                   <div className="space-y-4">
