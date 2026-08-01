@@ -27,6 +27,8 @@ import {
   Newspaper,
   Sparkles,
   UserPlus,
+  ClipboardList,
+  Plus,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useSavedAvatar } from "@/store/avatarStore";
@@ -91,6 +93,8 @@ const navItems = [
   { label: "Collections", icon: Bookmark, href: "/collections" },
   { label: "Discussions", icon: MessageSquare, href: "/discussions" },
   { label: "AI Chat", icon: Sparkles, href: "/ai/chat" },
+  { label: "Quizzes", icon: ClipboardList, href: "/quiz" },
+  { label: "Create Quiz", icon: Plus, href: "/quiz/create" },
   { label: "Editor", icon: BookOpen, href: "/editor" },
   { label: "Achievements", icon: TrendingUp, href: "/achievements" },
   { label: "Analytics", icon: Users, href: "/analytics" },
