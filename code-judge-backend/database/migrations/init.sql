@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     accent_color VARCHAR,
     compact_mode BOOLEAN,
     animation_speed VARCHAR,
-    preferred_language VARCHAR,
+    preferred_language INTEGER,
     editor_theme VARCHAR,
     editor_font_size SMALLINT,
     tab_width SMALLINT,
@@ -337,6 +337,9 @@ ALTER TABLE quiz_registration ADD CONSTRAINT fk_quiz_reg_user FOREIGN KEY (user_
 
 ALTER TABLE contest_registeration DROP CONSTRAINT IF EXISTS fk_contest_reg_user;
 ALTER TABLE contest_registeration ADD CONSTRAINT fk_contest_reg_user FOREIGN KEY (user_id) REFERENCES users(id);
+
+ALTER TABLE user_preferences DROP CONSTRAINT IF EXISTS fk_preferred_language_preferences_user;
+ALTER TABLE user_preferences ADD CONSTRAINT fk_preferred_language_preferences_user FOREIGN KEY (preffered_language) REFERENCES p_language(id);
 
 -- ==========================================
 -- Seed Data
