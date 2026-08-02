@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, User } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { SettingsCard } from "@/components/ui/settings";
-import { getPredefinedAvatar, getPredefinedAvatarByUrl } from "@/config/dicebear";
-import { useAvatarStore } from "@/store/avatarStore";
+import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
 import AvatarSelectionModal from "./AvatarSelectionModal";
 
 interface AvatarSettingsProps {
@@ -18,13 +17,8 @@ export default function AvatarSettings({
 }: AvatarSettingsProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Use the URL from props, or fall back to the store
-  const savedAvatarId = useAvatarStore((s) => s.savedAvatarId);
-  const savedAvatarFromStore = getPredefinedAvatar(savedAvatarId) ?? null;
-  const savedAvatarFromUrl = getPredefinedAvatarByUrl(currentAvatarUrl) ?? null;
-  const savedAvatar = savedAvatarFromUrl ?? savedAvatarFromStore;
-
-  const effectiveAvatarUrl = currentAvatarUrl || savedAvatar?.url || null;
+  const effectiveAvatarUrl = currentAvatarUrl || DEFAULT_AVATAR_URL;
+  const avatarData = getPredefinedAvatarByUrl(effectiveAvatarUrl);
 
   return (
     <>
@@ -45,17 +39,11 @@ export default function AvatarSettings({
 
               {/* Avatar */}
               <div className="relative h-[100px] w-[100px] overflow-hidden rounded-full border-2 border-white/10 bg-[#09090B] shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-                {effectiveAvatarUrl ? (
-                  <img
-                    src={effectiveAvatarUrl}
-                    alt={savedAvatar?.label || "Current avatar"}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <User className="h-10 w-10 text-[#6B7280]" />
-                  </div>
-                )}
+                <img
+                  src={effectiveAvatarUrl}
+                  alt="Current avatar"
+                  className="h-full w-full object-cover"
+                />
               </div>
             </div>
 
@@ -67,7 +55,7 @@ export default function AvatarSettings({
                 </span>
               </div>
               <p className="mt-2 text-sm font-semibold text-white">
-                {savedAvatar ? savedAvatar.label : "No avatar selected"}
+                {avatarData?.label || "Default Avatar"}
               </p>
               <p className="mt-1 text-xs text-[#6B7280]">
                 Click the button below to change your avatar

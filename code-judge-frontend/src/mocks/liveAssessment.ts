@@ -12,6 +12,7 @@ import type {
   ParticipantStatus,
   ConnectionQuality,
 } from "@/types/liveAssessment";
+import { getAvatarUrlById } from "@/config/dicebear";
 
 const EMOJI_AVATARS = [
   "😀", "😎", "🤓", "🧑‍💻", "👩‍💻", "🧑‍🎓", "👩‍🎓", "🧑‍🔬", "👨‍🔬",
@@ -93,7 +94,7 @@ function makeParticipant(index: number): LiveParticipant {
     id: `p_${index + 1}`,
     username,
     avatar,
-    avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(username)}`,
+    avatarUrl: getAvatarUrlById((index % 7) + 1),
     status,
     progress,
     questionsAnswered,

@@ -201,6 +201,9 @@ export default function CreateQuizPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [quizCode, setQuizCode] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const codeInputRef = useRef<HTMLInputElement>(null);
   const [selectedType, setSelectedType] = useState<QuestionType | null>(null);
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [questions, setQuestions] = useState<StudioQuestion[]>([createDefaultQuestion("q_1")]);
@@ -269,6 +272,15 @@ export default function CreateQuizPage() {
     return () => clearInterval(interval);
   }, [handleSave, saveStatus, title, questions]);
 
+  const generateCode = useCallback(() => {
+    const generated = Array.from({ length: 16 }, () => {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      return chars[Math.floor(Math.random() * chars.length)];
+    }).join("");
+    setQuizCode(generated);
+    setCodeError("");
+  }, []);
+
   const addQuestion = () => {
     const newQuestion = createDefaultQuestion(`q_${Date.now()}`);
     newQuestion.type = selectedType || "multiple_choice";
@@ -336,6 +348,14 @@ export default function CreateQuizPage() {
       toast.error("Please enter a quiz title");
       return;
     }
+    if (!quizCode.trim()) {
+      toast.error("Please enter a quiz code");
+      return;
+    }
+    if (!/^[A-Z0-9]{16}$/.test(quizCode.trim().toUpperCase())) {
+      toast.error("Quiz code must be exactly 16 letters/numbers");
+      return;
+    }
     if (validCount < questions.length) {
       toast.error("Please fix validation errors before publishing");
       return;
@@ -344,7 +364,7 @@ export default function CreateQuizPage() {
     setTimeout(() => {
       setSaveStatus("saved");
       toast.success("Quiz published successfully!");
-      router.push("/quiz");
+      router.push(`/quiz/${quizCode.trim().toUpperCase()}`);
     }, 1200);
   };
 
@@ -668,6 +688,40 @@ export default function CreateQuizPage() {
                         rows={3}
                         className="w-full rounded-xl border border-white/[0.08] bg-[#09090B] px-4 py-3 text-sm text-white placeholder-[#71717A] focus:outline-none focus:border-[#EC4899]/30 transition-colors resize-none"
                       />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-medium text-[#A1A1AA] uppercase tracking-wider mb-1.5 block">
+                        Quiz Code
+                        <span className="text-[#F59E0B]"> *</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={quizCode}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                            setQuizCode(val);
+                            if (val.length > 0 && val.length < 16) {
+                              setCodeError(`Quiz code must be 16 characters (${val.length}/16)`);
+                            } else {
+                              setCodeError("");
+                            }
+                          }}
+                          placeholder="ABCDEFGHIJKLMNOP"
+                          maxLength={16}
+                          ref={codeInputRef}
+                          className="flex-1 h-11 rounded-xl border border-white/[0.08] bg-[#09090B] px-4 text-sm text-white placeholder-[#71717A] focus:outline-none focus:border-[#EC4899]/30 transition-colors uppercase"
+                        />
+                        <button
+                          type="button"
+                          onClick={generateCode}
+                          className="h-11 px-3 rounded-xl border border-white/[0.06] bg-white/[0.03] text-xs font-medium text-[#A1A1AA] hover:text-white hover:border-white/[0.12] transition-colors"
+                        >
+                          Generate
+                        </button>
+                      </div>
+                      {codeError && <p className="text-[10px] text-[#EF4444] mt-1">{codeError}</p>}
+                      <p className="text-[10px] text-[#71717A] mt-1">Players will use this 16-letter code to join your quiz.</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>

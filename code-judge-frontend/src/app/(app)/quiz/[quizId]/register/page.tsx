@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   BookOpen,
@@ -26,14 +26,21 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { mockQuizzes, mockQuizCreator } from "@/mocks/quizData";
+import { getQuizById, registerForQuiz, type Quiz, getQuizCode, quizCodePath } from "@/services/quiz";
 import { DEFAULT_ASSESSMENT_SETTINGS, LifelineConfig } from "@/types/quiz";
 import { toast } from "@/lib/toast";
+import { useAuthStore } from "@/store/authStore";
 
 export default function QuizRegisterPage({ params }: { params: { quizId: string } }) {
   const router = useRouter();
-  const quiz = mockQuizzes.find((q) => q.id === params.quizId) || mockQuizzes[1];
-  const settings = quiz.assessmentSettings || DEFAULT_ASSESSMENT_SETTINGS;
+  const { user } = useAuthStore();
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [registering, setRegistering] = useState(false);
+
+  const quizCode = getQuizCode(params.quizId);
+
+  const settings = DEFAULT_ASSESSMENT_SETTINGS;
   const [agreed, setAgreed] = useState(false);
   const [readRules, setReadRules] = useState(false);
   const [noTabSwitch, setNoTabSwitch] = useState(false);
@@ -42,7 +49,36 @@ export default function QuizRegisterPage({ params }: { params: { quizId: string 
 
   const canRegister = agreed && readRules && studentName.trim() && rollNo.trim();
 
-  const handleRegisterClick = () => {
+  if (!quiz) {
+    return (
+      <div className="min-h-screen bg-[#09090B] p-6">
+        <div className="max-w-4xl mx-auto text-center py-16">
+          <p className="text-sm text-[#9CA3AF]">Quiz not found.</p>
+          <Link href="/quiz" className="text-[#EC4899] text-sm mt-2 inline-block">← Back to Quizzes</Link>
+        </div>
+      </div>
+    );
+  }
+
+  useEffect(() => {
+    async function fetchQuiz() {
+      try {
+        const data = await getQuizById(quizCode);
+        setQuiz(data);
+      } catch (err) {
+        console.error("Failed to fetch quiz:", err);
+        toast.error({
+          title: "Failed to Load Quiz",
+          description: "Please try again later.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchQuiz();
+  }, [quizCode]);
+
+  const handleRegisterClick = async () => {
     if (!studentName.trim()) {
       toast.error("Please enter your full name");
       return;
@@ -59,8 +95,51 @@ export default function QuizRegisterPage({ params }: { params: { quizId: string 
       toast.error("Please agree to the assessment rules");
       return;
     }
-    router.push(`/quiz/${quiz.id}/lobby`);
+
+    if (!quizCode) {
+      toast.error("Missing quiz code");
+      return;
+    }
+
+    setRegistering(true);
+    try {
+      await registerForQuiz(quizCode, rollNo.trim());
+      toast.success({
+        title: "Registered!",
+        description: "You have successfully registered for the quiz.",
+      });
+      router.push(quizCodePath(quizCode, "lobby"));
+    } catch (err: any) {
+      toast.error({
+        title: "Registration Failed",
+        description: err?.response?.data?.message || "Please try again.",
+      });
+    } finally {
+      setRegistering(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#09090B] p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="h-8 w-48 bg-[#111827] animate-pulse rounded-lg mb-6" />
+          <div className="h-64 rounded-2xl bg-[#111827] animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!quiz) {
+    return (
+      <div className="min-h-screen bg-[#09090B] p-6">
+        <div className="max-w-4xl mx-auto text-center py-16">
+          <p className="text-sm text-[#9CA3AF]">Quiz not found.</p>
+          <Link href="/quiz" className="text-[#EC4899] text-sm mt-2 inline-block">← Back to Quizzes</Link>
+        </div>
+      </div>
+    );
+  }
 
   const enabledLifelines = settings.lifelines.filter((l) => l.enabled && l.maxUses > 0);
 
@@ -69,7 +148,7 @@ export default function QuizRegisterPage({ params }: { params: { quizId: string 
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Link href={`/quiz/${quiz.id}`} className="text-[#9CA3AF] hover:text-white text-sm">
+          <Link href={quizCodePath(quizCode)} className="text-[#9CA3AF] hover:text-white text-sm">
             ← Back to Quiz
           </Link>
         </div>
@@ -84,9 +163,9 @@ export default function QuizRegisterPage({ params }: { params: { quizId: string 
               <BookOpen className="w-6 h-6 text-[#EC4899]" />
             </div>
             <div className="space-y-1">
-              <h1 className="text-xl font-bold text-white">{quiz.title}</h1>
-              <p className="text-sm text-[#9CA3AF]">by {quiz.creatorName}</p>
-              <p className="text-sm text-[#9CA3AF] max-w-xl">{quiz.description}</p>
+              <h1 className="text-xl font-bold text-white">{quiz.name}</h1>
+              <p className="text-sm text-[#9CA3AF]">by {quiz.creator_name || "Unknown"}</p>
+              <p className="text-xs text-[#71717A]">Code: {quiz.code}</p>
             </div>
           </div>
         </motion.div>
@@ -101,28 +180,20 @@ export default function QuizRegisterPage({ params }: { params: { quizId: string 
           <h2 className="text-lg font-semibold text-white">Quiz Summary</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div className="rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
-              <span className="text-xs text-[#9CA3AF]">Creator</span>
-              <p className="font-medium text-white mt-1">{quiz.creatorName}</p>
+              <span className="text-xs text-[#9CA3AF]">Code</span>
+              <p className="font-medium text-white mt-1">{quiz.code}</p>
             </div>
             <div className="rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
-              <span className="text-xs text-[#9CA3AF]">Duration</span>
-              <p className="font-medium text-white mt-1">{quiz.timeLimit} minutes</p>
+              <span className="text-xs text-[#9CA3AF]">Created By</span>
+              <p className="font-medium text-white mt-1">{quiz.creator_name || "Unknown"}</p>
             </div>
             <div className="rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
-              <span className="text-xs text-[#9CA3AF]">Questions</span>
-              <p className="font-medium text-white mt-1">{quiz.questions.length}</p>
+              <span className="text-xs text-[#9CA3AF]">Start Time</span>
+              <p className="font-medium text-white mt-1">{quiz.starttime ? new Date(quiz.starttime).toLocaleString() : "TBD"}</p>
             </div>
             <div className="rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
-              <span className="text-xs text-[#9CA3AF]">Difficulty</span>
-              <p className="font-medium text-white mt-1">{quiz.difficulty}</p>
-            </div>
-            <div className="rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
-              <span className="text-xs text-[#9CA3AF]">Passing %</span>
-              <p className="font-medium text-white mt-1">{quiz.passingScore ?? settings.passingScore}%</p>
-            </div>
-            <div className="rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
-              <span className="text-xs text-[#9CA3AF]">Attempts Allowed</span>
-              <p className="font-medium text-white mt-1">{quiz.attemptsAllowed}</p>
+              <span className="text-xs text-[#9CA3AF]">End Time</span>
+              <p className="font-medium text-white mt-1">{quiz.endtime ? new Date(quiz.endtime).toLocaleString() : "TBD"}</p>
             </div>
             <div className="rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3 md:col-span-3">
               <span className="text-xs text-[#9CA3AF]">Negative Marking</span>
@@ -139,26 +210,22 @@ export default function QuizRegisterPage({ params }: { params: { quizId: string 
           </div>
         </motion.div>
 
-        {/* Attempts Left */}
+        {/* Quiz Info */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6 space-y-4"
         >
-          <h2 className="text-lg font-semibold text-white">Allowed Attempts</h2>
+          <h2 className="text-lg font-semibold text-white">Quiz Info</h2>
           <div className="space-y-2">
             <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
-              <span className="text-sm text-[#9CA3AF]">Attempts Allowed</span>
-              <span className="font-medium text-white">{quiz.attemptsAllowed}</span>
+              <span className="text-sm text-[#9CA3AF]">Quiz Code</span>
+              <span className="font-medium text-white">{quiz.code}</span>
             </div>
             <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
-              <span className="text-sm text-[#9CA3AF]">Attempts Used</span>
-              <span className="font-medium text-[#F59E0B]">1</span>
-            </div>
-            <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
-              <span className="text-sm text-[#9CA3AF]">Attempts Remaining</span>
-              <span className="font-medium text-[#22C55E]">{quiz.attemptsAllowed - 1}</span>
+              <span className="text-sm text-[#9CA3AF]">Created By</span>
+              <span className="font-medium text-white">{quiz.creator_name || "Unknown"}</span>
             </div>
           </div>
         </motion.div>
@@ -175,8 +242,8 @@ export default function QuizRegisterPage({ params }: { params: { quizId: string 
             <p className="text-sm text-[#9CA3AF]">No lifelines available for this assessment.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {enabledLifelines.map((lifeline) => (
-                <LifelineCard key={lifeline.type} config={lifeline} />
+              {enabledLifelines.map((lifeline, idx) => (
+                <LifelineCard key={lifeline.type || idx} config={lifeline} />
               ))}
             </div>
           )}

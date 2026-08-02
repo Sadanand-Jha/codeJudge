@@ -25,13 +25,14 @@ import { MagicalBackground } from "@/components/quiz/live/MagicalBackground";
 import { WaitingRoomToast } from "@/components/quiz/live/WaitingRoomToast";
 import { mockLiveAssessmentRoom, mockEmptyLiveAssessmentRoom } from "@/mocks/liveAssessment";
 import { useToast } from "@/hooks/useToast";
+import { getQuizCode } from "@/services/quiz";
 
-function useRealtimeStartFlag(quizId: string, startedRef: { current: boolean }) {
+function useRealtimeStartFlag(code: string, startedRef: { current: boolean }) {
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
     if (startedRef.current) return;
-    const key = `live_quiz_started_${quizId}`;
+    const key = `live_quiz_started_${code}`;
     const t = setInterval(() => {
       try {
         const v = window.localStorage.getItem(key);
@@ -42,25 +43,26 @@ function useRealtimeStartFlag(quizId: string, startedRef: { current: boolean }) 
       } catch {}
     }, 700);
     return () => clearInterval(t);
-  }, [quizId, startedRef]);
+  }, [code, startedRef]);
 
   return started;
 }
 
 export default function WaitingRoomPage() {
   const params = useParams<{ quizId?: string }>();
-  const quizId = params?.quizId || "";
+  const raw = params?.quizId || "";
+  const quizCode = getQuizCode(raw);
   const router = useRouter();
   const toast = useToast();
 
-  if (!quizId) notFound();
+  if (!quizCode) notFound();
 
-  const room = quizId === mockEmptyLiveAssessmentRoom.quizId
+  const room = quizCode === getQuizCode(mockEmptyLiveAssessmentRoom.quizId)
     ? mockEmptyLiveAssessmentRoom
     : mockLiveAssessmentRoom;
 
   const startedRef = useMemo(() => ({ current: false as boolean }), []);
-  const started = useRealtimeStartFlag(quizId, startedRef);
+  const started = useRealtimeStartFlag(quizCode, startedRef);
 
   const [participants, setParticipants] = useState(room.participants);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -91,7 +93,7 @@ export default function WaitingRoomPage() {
 
   const handleStarted = () => {
     try {
-      window.location.href = `/quiz/${quizId}/attempt`;
+      window.location.href = `/quiz/${quizCode}/attempt`;
     } catch {}
   };
 
@@ -325,7 +327,7 @@ export default function WaitingRoomPage() {
 
         {/* Register Button */}
         <Link
-          href={`/quiz/${quizId}/register`}
+          href={`/quiz/${quizCode}/register`}
           className="inline-flex items-center gap-2 px-6 h-10 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(236,72,153,0.3)] transition-all"
         >
           <UserPlus className="w-4 h-4" />

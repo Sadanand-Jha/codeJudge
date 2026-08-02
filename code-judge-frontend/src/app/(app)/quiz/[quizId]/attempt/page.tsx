@@ -15,8 +15,11 @@ import {
 import { mockQuizzes, mockQuizQuestions } from "@/mocks/quizData";
 import { QuizQuestion } from "@/types/quiz";
 
+import { getQuizCode } from "@/services/quiz";
+
 export default function QuizAttemptPage({ params }: { params: { quizId: string } }) {
-  const quiz = mockQuizzes.find((q) => q.id === params.quizId) || mockQuizzes[1];
+  const quizCode = getQuizCode(params.quizId);
+  const quiz = mockQuizzes.find((q) => q.id === quizCode) || mockQuizzes[1];
   const questions = quiz.questions.length > 0 ? quiz.questions : mockQuizQuestions;
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);

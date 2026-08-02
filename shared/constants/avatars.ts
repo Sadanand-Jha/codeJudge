@@ -1,47 +1,38 @@
 /**
- * Shared avatar constants for DiceBear avatars
- * 
- * This file contains the predefined collection of 20 DiceBear avatars:
- * - 12 male-style avatars
- * - 8 female-style avatars
- * 
+ * Shared avatar constants for local avatar images
+ *
+ * This file contains the predefined collection of 7 local avatars
+ * served from the frontend at /images/avatar-1.png ... /images/avatar-7.png.
+ *
  * Both frontend and backend use this same list to ensure validation stays in sync.
  */
 
-export const AVATAR_STYLE = "adventurer";
-
-export const AVATAR_BASE_URL = `https://api.dicebear.com/9.x/${AVATAR_STYLE}/svg`;
+export const AVATAR_STYLE = "local";
 
 /**
- * Collection of 20 predefined DiceBear avatars
- * 12 male-style, 8 female-style
- * All using the same adventurer style with unique seed values
+ * Base path for local avatar images (served by the frontend).
  */
-export const PREDEFINED_AVATARS: string[] = [
-  // Male avatars (12)
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Alex",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Ryan",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Michael",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=David",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=James",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=John",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Robert",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=William",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Daniel",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Kevin",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Jason",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Chris",
-  
-  // Female avatars (8)
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Sarah",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Emma",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Olivia",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Jessica",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Emily",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Amanda",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Nicole",
-  "https://api.dicebear.com/9.x/adventurer/svg?seed=Rachel",
-];
+export const AVATAR_BASE_URL = "/images/avatar-";
+
+/**
+ * Total number of predefined avatars.
+ */
+export const AVATAR_COUNT = 7;
+
+/**
+ * Build a local avatar URL by ID (1-7)
+ */
+function buildAvatarUrl(id: number): string {
+  return `${AVATAR_BASE_URL}${id}.png`;
+}
+
+/**
+ * Collection of 7 predefined local avatars
+ */
+export const PREDEFINED_AVATARS: string[] = Array.from(
+  { length: AVATAR_COUNT },
+  (_, i) => buildAvatarUrl(i + 1)
+);
 
 /**
  * Validate if a URL is one of the predefined avatars
@@ -52,7 +43,7 @@ export function isValidPredefinedAvatar(url: string | null | undefined): boolean
 }
 
 /**
- * Get avatar URL by index (0-19)
+ * Get avatar URL by index (0-20)
  */
 export function getAvatarByIndex(index: number): string | null {
   if (index < 0 || index >= PREDEFINED_AVATARS.length) {

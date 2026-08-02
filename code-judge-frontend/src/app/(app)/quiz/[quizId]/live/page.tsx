@@ -6,6 +6,7 @@ import {
   mockLiveAssessmentRoom,
   mockEmptyLiveAssessmentRoom,
 } from "@/mocks/liveAssessment";
+import { getQuizCode } from "@/services/quiz";
 
 /**
  * Live Assessment Room — route page.
@@ -17,16 +18,17 @@ import {
  */
 export default function LiveAssessmentRoomPage() {
   const params = useParams<{ quizId?: string }>();
-  const quizId = params?.quizId;
+  const raw = params?.quizId || "";
+  const quizCode = getQuizCode(raw);
 
-  if (!quizId) {
+  if (!quizCode) {
     notFound();
   }
 
   // Pick the populated mock room for known quiz ids, empty state otherwise.
   // In a real app this would be fetched from a backend API.
   let roomData = mockLiveAssessmentRoom;
-  if (quizId === mockEmptyLiveAssessmentRoom.quizId) {
+  if (quizCode === getQuizCode(mockEmptyLiveAssessmentRoom.quizId)) {
     roomData = mockEmptyLiveAssessmentRoom;
   }
 

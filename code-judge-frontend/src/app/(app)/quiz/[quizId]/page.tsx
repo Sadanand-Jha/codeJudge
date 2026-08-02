@@ -20,9 +20,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { mockQuizzes, mockQuizCreator } from "@/mocks/quizData";
+import { getQuizCode, quizCodePath } from "@/services/quiz";
 
 export default function QuizDetailsPage({ params }: { params: { quizId: string } }) {
-  const quiz = mockQuizzes.find((q) => q.id === params.quizId) || mockQuizzes[1];
+  const quizCode = getQuizCode(params.quizId);
+  const quiz = mockQuizzes.find((q) => q.id === quizCode) || mockQuizzes[1];
   const settings = quiz.assessmentSettings || { attemptsAllowed: 3, passingScore: 40, timeLimit: 30, negativeMarking: false, practiceMode: false, enableCertificate: true, enableLeaderboard: true, enableDiscussion: true, enableBookmarks: true, lifelines: [] };
 
   const difficultyColor =
@@ -87,7 +89,7 @@ export default function QuizDetailsPage({ params }: { params: { quizId: string }
                 </div>
               </div>
               <Link
-                href={`/quiz/${quiz.id}/register`}
+                href={quizCodePath(quizCode, "register")}
                 className="px-5 h-9 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors flex items-center gap-1.5"
               >
                 Register
@@ -232,7 +234,7 @@ export default function QuizDetailsPage({ params }: { params: { quizId: string }
           className="text-center pt-4"
         >
           <Link
-            href={`/quiz/${quiz.id}/register`}
+            href={quizCodePath(quizCode, "register")}
             className="inline-flex items-center justify-center gap-2 px-8 h-12 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-all hover:shadow-[0_0_24px_rgba(124,58,237,0.2)]"
           >
             Register Now

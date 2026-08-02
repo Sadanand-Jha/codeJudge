@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { JoinQuizModal } from "./JoinQuizModal";
+import { QuizWarpExperience } from "./QuizWarpExperience";
 
 /** Mock: in a real app the entered code resolves to a real quizId. */
 const MOCK_ACTIVE_QUIZ_ID = "quiz_002";
@@ -51,7 +52,17 @@ function LandingCard({ icon, title, description, gradient, onClick, href }: Land
 
 export function QuizLandingCards() {
   const [joinOpen, setJoinOpen] = useState(false);
+  const [connectingCode, setConnectingCode] = useState<string | null>(null);
   const router = useRouter();
+
+  const handleJoin = (code: string) => {
+    setJoinOpen(false);
+    setConnectingCode(code);
+  };
+
+  const handleConnectingComplete = () => {
+    setConnectingCode(null);
+  };
 
   return (
     <>
@@ -77,12 +88,15 @@ export function QuizLandingCards() {
       <JoinQuizModal
         open={joinOpen}
         onClose={() => setJoinOpen(false)}
-        onJoin={() => {
-          setJoinOpen(false);
-          // In production, the entered code resolves to a real quizId.
-          router.push(`/quiz/${MOCK_ACTIVE_QUIZ_ID}/waiting`);
-        }}
+        onJoin={handleJoin}
       />
+
+      {connectingCode && (
+        <QuizWarpExperience
+          code={connectingCode}
+          onComplete={handleConnectingComplete}
+        />
+      )}
     </>
   );
 }

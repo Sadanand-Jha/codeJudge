@@ -1,4 +1,5 @@
 import { Quiz, QuizAttempt, QuizResult, QuizQuestion, DEFAULT_ASSESSMENT_SETTINGS } from "@/types/quiz";
+import { getAvatarUrlById } from "@/config/dicebear";
 
 const baseQuestion = {
   difficulty: "Medium" as const,
@@ -300,7 +301,7 @@ export const mockResults = mockAttempts.map((attempt, index) => ({
 export const mockQuizCreator = {
   id: "u1",
   username: "Prof. Smith",
-  avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=prof-smith",
+  avatar: getAvatarUrlById(1),
   bio: "Professor of Mathematics & Statistics at IIT Delhi. Teaching for 12+ years.",
   organization: "IIT Delhi",
   college: "IIT Delhi",

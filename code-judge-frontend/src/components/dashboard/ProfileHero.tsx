@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Trophy, Calendar } from "lucide-react";
+import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
 
 interface ProfileHeroProps {
   username: string;
@@ -24,6 +25,10 @@ export default function ProfileHero({
   maxRating = 0,
   country,
 }: ProfileHeroProps) {
+  const displayAvatarUrl = avatarUrl && getPredefinedAvatarByUrl(avatarUrl)?.url
+    ? avatarUrl
+    : DEFAULT_AVATAR_URL;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -39,15 +44,11 @@ export default function ProfileHero({
         {/* Left: Avatar + Info */}
         <div className="flex items-center gap-5">
           <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-2xl font-bold text-white shadow-lg shadow-[#7C3AED]/20">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={username || "User"}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              username?.charAt(0).toUpperCase() || "U"
-            )}
+            <img
+              src={displayAvatarUrl}
+              alt={username || "User"}
+              className="h-full w-full object-cover"
+            />
           </div>
           <div>
             <div className="flex items-center gap-3">

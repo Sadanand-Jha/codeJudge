@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -39,33 +39,45 @@ import {
   UserPlus,
   Eye,
 } from "lucide-react";
-import { mockQuizzes, mockAttempts } from "@/mocks/quizData";
 import { QuizLandingCards } from "@/components/quiz/live/QuizLandingCards";
 import { StatsCard, DifficultyBadge, VisibilityBadge, QuizCard, AssessmentCard, Card } from "@/components/quiz/quizComponents";
 import { QuizCardData } from "@/components/quiz/quizComponents";
-import type { Quiz } from "@/types/quiz";
+import { getAllQuizzes, type Quiz as ApiQuiz, quizCodePath } from "@/services/quiz";
+import { useToast } from "@/hooks/useToast";
+import GuestGuard from "@/components/guards/GuestGuard";
 
-// Convert Quiz type to QuizCardData for our reusable components
-function toQuizCardData(q: Quiz): QuizCardData {
+// Convert API Quiz to QuizCardData for our reusable components
+function toQuizCardData(q: ApiQuiz): QuizCardData {
+  const now = new Date();
+  const start = q.starttime ? new Date(q.starttime) : null;
+  const end = q.endtime ? new Date(q.endtime) : null;
+
+  let status: QuizCardData["status"] = "upcoming";
+  if (start && start <= now && (!end || end > now)) {
+    status = "active";
+  } else if (end && end <= now) {
+    status = "completed";
+  }
+
   return {
-    id: q.id,
-    title: q.title,
-    description: q.description || "",
-    coverImage: q.coverImage,
-    creatorName: q.creatorName || "Unknown",
-    difficulty: q.difficulty || "Medium",
-    tags: q.tags || [],
-    visibility: q.visibility || "global",
-    status: (q.status || "draft") as QuizCardData["status"],
-    questions: q.questions?.length || 0,
-    totalPoints: q.totalPoints || 0,
-    timeLimit: q.timeLimit,
-    registeredCount: q.registeredCount || 0,
-    attempts: q.attempts || 0,
-    averageScore: q.averageScore || 0,
-    startTime: q.startTime,
-    endTime: q.endTime,
-    passingScore: q.passingScore,
+    id: q.code,
+    title: q.name,
+    description: "",
+    coverImage: undefined,
+    creatorName: q.creator_name || "Unknown",
+    difficulty: "Medium",
+    tags: [],
+    visibility: "global",
+    status,
+    questions: 0,
+    totalPoints: 0,
+    timeLimit: undefined,
+    registeredCount: 0,
+    attempts: 0,
+    averageScore: 0,
+    startTime: q.starttime || undefined,
+    endTime: q.endtime || undefined,
+    passingScore: undefined,
   };
 }
 
@@ -86,40 +98,38 @@ const CATEGORY_FILTERS = [
   { id: "organizations", label: "Organizations", icon: Building2 },
 ];
 
-export default function QuizDashboardPage() {
+function QuizDashboardContent() {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState("upcoming");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const [quizzes, setQuizzes] = useState<ApiQuiz[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const allQuizzes = useMemo(() => mockQuizzes.map(toQuizCardData), []);
+  useEffect(() => {
+    async function fetchQuizzes() {
+      try {
+        const data = await getAllQuizzes();
+        setQuizzes(data);
+      } catch (err) {
+        console.error("Failed to fetch quizzes:", err);
+        toast.error({
+          title: "Failed to Load Quizzes",
+          description: "Please try again later.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchQuizzes();
+  }, []);
+
+  const allQuizzes = useMemo(() => quizzes.map(toQuizCardData), [quizzes]);
   const upcomingQuizzes = useMemo(() => allQuizzes.filter((q) => q.status === "upcoming"), [allQuizzes]);
   const activeQuizzes = useMemo(() => allQuizzes.filter((q) => q.status === "active"), [allQuizzes]);
   const completedQuizzes = useMemo(() => allQuizzes.filter((q) => q.status === "completed"), [allQuizzes]);
   const myQuizzes = useMemo(() => allQuizzes.slice(0, 4), [allQuizzes]);
-
-  // User stats (computed from mock data or mock values)
-  const userStats = {
-    quizzesAttempted: mockAttempts.length + 12,
-    averageScore: Math.round(mockAttempts.reduce((acc, a) => acc + a.percentage, 0) / Math.max(mockAttempts.length, 1)),
-    currentStreak: 7,
-    xpEarned: 1240,
-    quizzesCreated: 15,
-    badges: 8,
-    globalRank: 42,
-    bookmarked: 3,
-  };
-
-  // const statsCards = [
-  //   { label: "Quizzes Attempted", value: userStats.quizzesAttempted, icon: FileText, color: "#EC4899", sub: "Total assessments taken" },
-  //   { label: "Average Score", value: `${userStats.averageScore}%`, icon: Target, color: "#22C55E", sub: "Across all attempts" },
-  //   { label: "Current Streak", value: `${userStats.currentStreak}d`, icon: Flame, color: "#F59E0B", sub: "🔥 Keep it up!" },
-  //   { label: "XP Earned", value: userStats.xpEarned.toLocaleString(), icon: Zap, color: "#EC4899", sub: "Total experience" },
-  //   { label: "Quizzes Created", value: userStats.quizzesCreated, icon: Plus, color: "#8B5CF6", sub: "Your creations" },
-  //   { label: "Badges", value: userStats.badges, icon: Award, color: "#F59E0B", sub: "Achievements earned" },
-  //   { label: "Global Rank", value: `#${userStats.globalRank}`, icon: Trophy, color: "#EC4899", sub: "Top 5% worldwide" },
-  //   { label: "Bookmarked", value: userStats.bookmarked, icon: Bookmark, color: "#14B8A6", sub: "Saved for later" },
-  // ];
 
   const currentQuizzesMap = {
     upcoming: upcomingQuizzes,
@@ -189,8 +199,8 @@ export default function QuizDashboardPage() {
                     <Users className="w-4 h-4 text-[#EC4899]" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">2.4K+</p>
-                    <p className="text-[9px] text-[#71717A]">Active Learners</p>
+                    <p className="text-sm font-bold text-white">{quizzes.length}+</p>
+                    <p className="text-[9px] text-[#71717A]">Quizzes Available</p>
                   </div>
                 </div>
                 <div className="w-px h-8 bg-white/[0.08]" />
@@ -199,8 +209,8 @@ export default function QuizDashboardPage() {
                     <BookOpen className="w-4 h-4 text-[#22C55E]" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">1.8K+</p>
-                    <p className="text-[9px] text-[#71717A]">Quizzes Available</p>
+                    <p className="text-sm font-bold text-white">{activeQuizzes.length}</p>
+                    <p className="text-[9px] text-[#71717A]">Active Now</p>
                   </div>
                 </div>
                 <div className="w-px h-8 bg-white/[0.08]" />
@@ -209,8 +219,8 @@ export default function QuizDashboardPage() {
                     <Medal className="w-4 h-4 text-[#F59E0B]" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">500+</p>
-                    <p className="text-[9px] text-[#71717A]">Certificates Issued</p>
+                    <p className="text-sm font-bold text-white">{completedQuizzes.length}</p>
+                    <p className="text-[9px] text-[#71717A]">Completed</p>
                   </div>
                 </div>
               </div>
@@ -252,26 +262,6 @@ export default function QuizDashboardPage() {
 
       {/* ===== LANDING ACTION CARDS ===== */}
       <QuizLandingCards />
-
-            {/* ===== STATS CARDS ===== */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-8">
-        {/* {statsCards.map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-          >
-            <StatsCard
-              label={stat.label}
-              value={stat.value}
-              icon={stat.icon}
-              color={stat.color}
-              sub={stat.sub}
-            />
-          </motion.div>
-        ))} */}
-      </div>
 
       {/* ===== CATEGORY FILTERS ===== */}
       <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
@@ -356,7 +346,19 @@ export default function QuizDashboardPage() {
 
       {/* ===== QUIZ LIST ===== */}
       <AnimatePresence mode="wait">
-        {currentList.length === 0 ? (
+        {loading ? (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+          >
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-56 rounded-2xl bg-[#111217] animate-pulse" />
+            ))}
+          </motion.div>
+        ) : currentList.length === 0 ? (
           <motion.div
             key="empty"
             initial={{ opacity: 0 }}
@@ -389,8 +391,8 @@ export default function QuizDashboardPage() {
               // others navigate to the quiz dashboard.
               const target =
                 quiz.status === "active"
-                  ? `/quiz/${quiz.id}/live`
-                  : `/quiz/${quiz.id}/dashboard`;
+                  ? quizCodePath(quiz.id, "live")
+                  : quizCodePath(quiz.id, "dashboard");
               return (
                 <motion.div
                   key={quiz.id}
@@ -414,5 +416,13 @@ export default function QuizDashboardPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function QuizDashboardPage() {
+  return (
+    <GuestGuard action="join-contest">
+      <QuizDashboardContent />
+    </GuestGuard>
   );
 }

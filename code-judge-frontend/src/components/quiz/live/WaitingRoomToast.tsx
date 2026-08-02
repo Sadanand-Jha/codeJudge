@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { LiveParticipant } from "@/types/liveAssessment";
+import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
 
 interface ToastData {
   id: string;
@@ -38,8 +39,13 @@ export function WaitingRoomToast() {
   return (
     <div className="fixed top-20 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
       <AnimatePresence>
-        {toasts.map((toast) => (
-          <motion.div
+        {toasts.map((toast) => {
+          const displayAvatarUrl =
+            toast.participant.avatarUrl && getPredefinedAvatarByUrl(toast.participant.avatarUrl)
+              ? toast.participant.avatarUrl
+              : DEFAULT_AVATAR_URL;
+          return (
+            <motion.div
             key={toast.id}
             initial={{ opacity: 0, x: 100, scale: 0.8 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -57,16 +63,12 @@ export function WaitingRoomToast() {
                   boxShadow: "0 0 12px rgba(236,72,153,0.3)",
                 }}
               >
-                {toast.participant.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={toast.participant.avatarUrl}
-                    alt={toast.participant.username}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-lg">{toast.participant.avatar}</span>
-                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={displayAvatarUrl}
+                  alt={toast.participant.username}
+                  className="w-full h-full object-cover"
+                />
               </div>
               {/* Glow pulse */}
               <motion.div
@@ -94,8 +96,9 @@ export function WaitingRoomToast() {
             >
               <X className="w-3.5 h-3.5" />
             </button>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </AnimatePresence>
     </div>
   );

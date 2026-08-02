@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState, useMemo } from "react";
 import type { LiveParticipant } from "@/types/liveAssessment";
+import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
 
 interface StudentAvatarProps {
   participant: LiveParticipant;
@@ -32,6 +33,10 @@ export function StudentAvatar({
 }: StudentAvatarProps) {
   const [hovered, setHovered] = useState(false);
   const dims = SIZE_MAP[size];
+  const displayAvatarUrl =
+    participant.avatarUrl && getPredefinedAvatarByUrl(participant.avatarUrl)
+      ? participant.avatarUrl
+      : DEFAULT_AVATAR_URL;
 
   // Breathing animation - subtle scale
   const breathAnim = useMemo(() => {
@@ -81,17 +86,13 @@ export function StudentAvatar({
               boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
             }}
           >
-            {participant.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={participant.avatarUrl}
-                alt={participant.username}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <span className={dims.emoji}>{participant.avatar}</span>
-            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={displayAvatarUrl}
+              alt={participant.username}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
           </div>
 
           {/* Small yellow waiting dot */}
@@ -130,16 +131,12 @@ export function StudentAvatar({
                 boxShadow: "0 0 16px rgba(236,72,153,0.3)",
               }}
             >
-              {participant.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={participant.avatarUrl}
-                  alt={participant.username}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                participant.avatar
-              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={displayAvatarUrl}
+                alt={participant.username}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-white truncate">{participant.username}</p>

@@ -116,7 +116,7 @@ export default function AvatarSelectionModal({
               <div>
                 <h2 className="text-lg font-bold text-white">Choose Your Avatar</h2>
                 <p className="text-xs text-[#9CA3AF] mt-0.5">
-                  Select one of the predefined byteCode avatars. Your profile picture will be updated after saving.
+                  Select one of the seven predefined avatars. Your profile picture will be updated after saving.
                 </p>
               </div>
               <button
@@ -164,7 +164,7 @@ export default function AvatarSelectionModal({
                   </AnimatePresence>
                 </div>
                 <p className="text-sm font-semibold text-white">
-                  {selectedAvatarData?.seed || "No avatar selected"}
+                  {selectedAvatarData?.label || "No avatar selected"}
                 </p>
                 {selectedAvatarData && (
                   <p className="text-[10px] font-medium capitalize text-[#7C3AED]">
@@ -176,7 +176,7 @@ export default function AvatarSelectionModal({
 
             {/* ===== Avatar Grid ===== */}
             <div className="overflow-y-auto flex-1 p-6">
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-4">
                 {PREDEFINED_AVATARS.map((avatar) => {
                   const isSelected = selectedAvatar === avatar.url;
                   const isCurrent = currentAvatarUrl === avatar.url;
@@ -214,13 +214,13 @@ export default function AvatarSelectionModal({
                         )}
                       </div>
 
-                      {/* Label - show seed name */}
+                      {/* Label - show avatar label */}
                       <span
                         className={`text-[10px] font-semibold transition-colors ${
                           isSelected ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
                         }`}
                       >
-                        {avatar.seed}
+                        {avatar.label}
                       </span>
 
                       {/* Check icon overlay for selected */}

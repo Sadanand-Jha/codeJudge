@@ -13,6 +13,7 @@ import {
   AccessRestrictions,
   QuizSchedule,
 } from "@/types/quiz";
+import { getAvatarUrlById } from "@/config/dicebear";
 
 export interface MockCollege {
   id: string;
@@ -87,9 +88,9 @@ export const mockClassrooms: MockClassroom[] = [
 ];
 
 export const mockCollaborators: Collaborator[] = [
-  { id: "col1", userId: "u1", username: "tourist", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=tourist", role: "owner", addedAt: "2024-01-01" },
-  { id: "col2", userId: "u2", username: "benq", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=benq", role: "admin", addedAt: "2024-01-02" },
-  { id: "col3", userId: "u3", username: "petr", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=petr", role: "editor", addedAt: "2024-01-03" },
+  { id: "col1", userId: "u1", username: "tourist", avatar: getAvatarUrlById(1), role: "owner", addedAt: "2024-01-01" },
+  { id: "col2", userId: "u2", username: "benq", avatar: getAvatarUrlById(2), role: "admin", addedAt: "2024-01-02" },
+  { id: "col3", userId: "u3", username: "petr", avatar: getAvatarUrlById(3), role: "editor", addedAt: "2024-01-03" },
 ];
 
 export const defaultDiscoveryPermissions: DiscoveryPermissions = {

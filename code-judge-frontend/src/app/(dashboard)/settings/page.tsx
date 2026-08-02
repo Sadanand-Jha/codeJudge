@@ -100,6 +100,11 @@ const LANGUAGES = [
   { label: "Kotlin", value: "kotlin" },
 ];
 
+const ROLE_OPTIONS = [
+  { label: "User", value: "user" },
+  { label: "Admin", value: "admin" },
+];
+
 const EDITOR_THEMES = [
   { label: "Dark", value: "dark" },
   { label: "Light", value: "light" },
@@ -146,6 +151,7 @@ const DEFAULT_SETTINGS = {
   lastName: "Jha",
   displayName: "Sadanand Jha",
   bio: "Competitive programmer | 5★ on CodeChef | ICPC Regionalist 2024",
+  role: "user",
   // Personal Info
   email: "sadanand@example.com",
   mobileNumber: "+91 98765 43210",
@@ -314,6 +320,7 @@ export default function SettingsPage() {
           state: data.state || "",
           college: data.college || "",
           company: data.company || "",
+          role: data.role || "user",
           preferredLanguage: data.preferences?.preferredLanguage || "cpp",
           editorTheme: data.preferences?.editorTheme || "dracula",
           editorFontSize: data.preferences?.editorFontSize || 14,
@@ -489,6 +496,8 @@ export default function SettingsPage() {
                     </div>
                     {/* Display Name */}
                     <SettingsInput label="Display Name" value={settings.displayName} onChange={(v) => update("displayName", v)} />
+                    {/* Role */}
+                    <SettingsSelect label="Role" value={settings.role} onChange={(v) => update("role", v)} options={ROLE_OPTIONS} />
                     {/* Bio */}
                     <SettingsInput
                       label="Bio"

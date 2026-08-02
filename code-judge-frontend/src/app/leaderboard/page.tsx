@@ -27,6 +27,7 @@ import {
   Crown,
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import { getAvatarUrlById } from "@/config/dicebear";
 
 // ─────────────────────────────────────────
 // Design Tokens
@@ -109,7 +110,7 @@ const generateUsers = (count: number): User[] => {
     return {
       id: `user-${i}`,
       name: names[i % names.length] + (i >= names.length ? ` ${Math.floor(i / names.length) + 1}` : ""),
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${i}`,
+      avatar: getAvatarUrlById((i % 7) + 1),
       country: country.name,
       countryFlag: country.flag,
       rating,

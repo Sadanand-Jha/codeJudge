@@ -7,6 +7,7 @@ export interface UserInfo {
   lastName: string | null;
   mobile: string | null;
   avatarUrl: string | null;
+  avatarIsMale: boolean | null;
   bio: string | null;
   country: any | null;
   state: any | null;
@@ -14,7 +15,7 @@ export interface UserInfo {
   company: any | null;
   rating: number;
   maxRating: number;
-  role: string;
+  role: string | null;
   isVerified: boolean;
   isActive: boolean;
   lastLogin: string | null;

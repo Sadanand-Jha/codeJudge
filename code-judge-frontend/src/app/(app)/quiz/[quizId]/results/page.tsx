@@ -5,8 +5,11 @@ import { CheckCircle, XCircle, TrendingUp, Award, Target, ArrowLeft } from "luci
 import Link from "next/link";
 import { mockQuizzes, mockQuizQuestions } from "@/mocks/quizData";
 
+import { getQuizCode } from "@/services/quiz";
+
 export default function QuizResultsPage({ params }: { params: { quizId: string } }) {
-  const quiz = mockQuizzes.find((q) => q.id === params.quizId) || mockQuizzes[1];
+  const quizCode = getQuizCode(params.quizId);
+  const quiz = mockQuizzes.find((q) => q.id === quizCode) || mockQuizzes[1];
   const questions = quiz.questions.length > 0 ? quiz.questions : mockQuizQuestions;
 
   // Mock result data

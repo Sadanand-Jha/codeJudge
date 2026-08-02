@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import QuizDashboard from "@/components/quiz/QuizDashboard";
 import { StudioQuestion } from "@/types/quiz";
+import { getQuizCode } from "@/services/quiz";
 
 interface DashboardPageProps {
   params: { quizId: string };
@@ -16,7 +17,7 @@ export default function QuizDashboardPage({ params }: DashboardPageProps) {
 
   return (
     <QuizDashboard
-      quizId={params?.quizId || "new"}
+      quizId={getQuizCode(params?.quizId || "new")}
       quizName={quizName}
       initialQuestions={questions}
       onExit={() => router.push("/quiz")}

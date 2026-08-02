@@ -5,6 +5,7 @@ import { Clock, Wifi, Target, ListChecks } from "lucide-react";
 import type { LiveParticipant } from "@/types/liveAssessment";
 import { STATUS_META, CONNECTION_META } from "@/types/liveAssessment";
 import { formatDuration } from "@/lib/liveAssessmentHelpers";
+import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
 import { StatusBadge } from "./StatusBadge";
 
 interface ParticipantCardProps {
@@ -15,6 +16,10 @@ interface ParticipantCardProps {
 export function ParticipantCard({ participant, index = 0 }: ParticipantCardProps) {
   const meta = STATUS_META[participant.status];
   const conn = CONNECTION_META[participant.connection];
+  const displayAvatarUrl =
+    participant.avatarUrl && getPredefinedAvatarByUrl(participant.avatarUrl)
+      ? participant.avatarUrl
+      : DEFAULT_AVATAR_URL;
 
   return (
     <motion.div
@@ -32,12 +37,8 @@ export function ParticipantCard({ participant, index = 0 }: ParticipantCardProps
             className="w-11 h-11 rounded-full flex items-center justify-center text-lg overflow-hidden"
             style={{ border: `2px solid ${meta.ring}`, backgroundColor: "#111217", boxShadow: `0 0 12px ${meta.ring}25` }}
           >
-            {participant.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={participant.avatarUrl} alt={participant.username} className="w-full h-full object-cover" loading="lazy" />
-            ) : (
-              participant.avatar
-            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={displayAvatarUrl} alt={participant.username} className="w-full h-full object-cover" loading="lazy" />
           </div>
           <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#171923]" style={{ backgroundColor: meta.dot }} />
         </div>

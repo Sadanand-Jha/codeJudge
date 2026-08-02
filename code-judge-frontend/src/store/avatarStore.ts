@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { getPredefinedAvatar } from "@/config/dicebear";
+import { PREDEFINED_AVATARS, getPredefinedAvatar } from "@/config/dicebear";
 
 interface AvatarState {
   savedAvatarId: string;
@@ -12,9 +12,9 @@ interface AvatarState {
 export const useAvatarStore = create<AvatarState>()(
   persist(
     (set) => ({
-      savedAvatarId: "male-3",
+      savedAvatarId: "avatar-1",
       pendingAvatarId: null,
-      setSavedAvatar: (id) => set({ savedAvatarId: id || "", pendingAvatarId: null }),
+      setSavedAvatar: (id) => set({ savedAvatarId: id || "avatar-1", pendingAvatarId: null }),
       setPendingAvatar: (id) => set({ pendingAvatarId: id || null }),
     }),
     {
@@ -26,14 +26,12 @@ export const useAvatarStore = create<AvatarState>()(
 
 export function useSavedAvatar() {
   const savedAvatarId = useAvatarStore((s) => s.savedAvatarId);
-  if (!savedAvatarId) return null;
-  return getPredefinedAvatar(savedAvatarId) ?? null;
+  return getPredefinedAvatar(savedAvatarId) ?? PREDEFINED_AVATARS[0] ?? null;
 }
 
 export function useCurrentAvatar() {
   const savedAvatarId = useAvatarStore((s) => s.savedAvatarId);
   const pendingAvatarId = useAvatarStore((s) => s.pendingAvatarId);
   const id = pendingAvatarId ?? savedAvatarId;
-  if (!id) return null;
-  return getPredefinedAvatar(id) ?? null;
+  return getPredefinedAvatar(id) ?? PREDEFINED_AVATARS[0] ?? null;
 }

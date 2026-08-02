@@ -6,8 +6,11 @@ import { BookOpen, Clock, Users, Shield, Wifi, Monitor } from "lucide-react";
 import Link from "next/link";
 import { mockQuizzes } from "@/mocks/quizData";
 
+import { getQuizCode } from "@/services/quiz";
+
 export default function QuizLobbyPage({ params }: { params: { quizId: string } }) {
-  const quiz = mockQuizzes.find((q) => q.id === params.quizId) || mockQuizzes[1];
+  const quizCode = getQuizCode(params.quizId);
+  const quiz = mockQuizzes.find((q) => q.id === quizCode) || mockQuizzes[1];
   const [countdown, setCountdown] = useState(10);
   const [checking, setChecking] = useState(true);
 
@@ -28,7 +31,7 @@ export default function QuizLobbyPage({ params }: { params: { quizId: string } }
     <div className="min-h-screen bg-[#09090B] p-6">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
-        <Link href={`/quiz/${quiz.id}`} className="text-[#9CA3AF] hover:text-white text-sm">
+        <Link href={`/quiz/${quizCode}`} className="text-[#9CA3AF] hover:text-white text-sm">
           ← Back to Quiz
         </Link>
 
@@ -97,7 +100,7 @@ export default function QuizLobbyPage({ params }: { params: { quizId: string } }
           </div>
 
           <Link
-            href={`/quiz/${quiz.id}/attempt`}
+            href={`/quiz/${quizCode}/attempt`}
             className="w-full h-10 rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/10 text-sm font-bold text-[#22C55E] hover:bg-[#22C55E]/20 transition-colors flex items-center justify-center"
           >
             Enter Assessment

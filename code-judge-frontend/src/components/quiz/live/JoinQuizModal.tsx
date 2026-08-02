@@ -7,7 +7,7 @@ import { X, Sparkles } from "lucide-react";
 interface JoinQuizModalProps {
   open: boolean;
   onClose: () => void;
-  /** Receives the normalized 8-char quiz code */
+  /** Receives the normalized 16-char quiz code */
   onJoin: (code: string) => void;
 }
 
@@ -17,7 +17,7 @@ export function JoinQuizModal({ open, onClose, onJoin }: JoinQuizModalProps) {
   const digits = raw.replace(/[^a-z0-9]/gi, "").toUpperCase();
   const groups = digits.match(/.{1,4}/g) ?? [];
   const display = groups.join("-");
-  const valid = digits.length === 8;
+  const valid = digits.length === 16;
 
   const handleSubmit = () => {
     if (!valid) return;
@@ -65,19 +65,19 @@ export function JoinQuizModal({ open, onClose, onJoin }: JoinQuizModalProps) {
                 <label className="block text-[10px] font-medium uppercase tracking-wider text-[#71717A] mb-1.5">
                   Quiz Code
                 </label>
-                <input
-                  type="text"
-                  inputMode="text"
-                  maxLength={9}
-                  value={display}
-                  onChange={(e) => setRaw(e.target.value)}
-                  placeholder="ABCD-1234"
-                  className="w-full text-center text-xl font-mono font-bold tracking-widest px-4 py-3 rounded-xl border border-white/[0.06] bg-[#171923] text-white placeholder-[#71717A] focus:outline-none focus:border-[#EC4899]/30 transition-colors"
-                />
+                 <input
+                   type="text"
+                   inputMode="text"
+                   maxLength={19}
+                   value={display}
+                   onChange={(e) => setRaw(e.target.value)}
+                   placeholder="ABCD-1234-EFGH-5678"
+                   className="w-full text-center text-xl font-mono font-bold tracking-widest px-4 py-3 rounded-xl border border-white/[0.06] bg-[#171923] text-white placeholder-[#71717A] focus:outline-none focus:border-[#EC4899]/30 transition-colors"
+                 />
 
                 {!valid && digits.length > 0 && (
                   <p className="text-[10px] text-[#F59E0B] mt-2">
-                    Enter the full 8-character code.
+                    Enter the full 16-character code.
                   </p>
                 )}
 
