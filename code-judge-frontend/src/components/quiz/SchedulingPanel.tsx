@@ -34,7 +34,7 @@ export default function SchedulingPanel({ schedule, onChange }: SchedulingPanelP
       className="space-y-4"
     >
       <div className="flex items-center gap-2">
-        <CalendarClock className="h-4 w-4 text-[#7C3AED]" />
+        <CalendarClock className="h-4 w-4 text-[#EC4899]" />
         <h3 className="text-sm font-semibold text-white">Scheduling</h3>
       </div>
 
@@ -45,7 +45,7 @@ export default function SchedulingPanel({ schedule, onChange }: SchedulingPanelP
             type="datetime-local"
             value={schedule.visibleFrom || ""}
             onChange={(e) => update("visibleFrom", e.target.value)}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
@@ -55,7 +55,7 @@ export default function SchedulingPanel({ schedule, onChange }: SchedulingPanelP
             type="datetime-local"
             value={schedule.visibleUntil || ""}
             onChange={(e) => update("visibleUntil", e.target.value)}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
@@ -65,7 +65,7 @@ export default function SchedulingPanel({ schedule, onChange }: SchedulingPanelP
             type="datetime-local"
             value={schedule.registrationDeadline || ""}
             onChange={(e) => update("registrationDeadline", e.target.value)}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
@@ -75,7 +75,7 @@ export default function SchedulingPanel({ schedule, onChange }: SchedulingPanelP
             type="datetime-local"
             value={schedule.attemptWindow?.start || ""}
             onChange={(e) => updateAttemptWindow("start", e.target.value)}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
@@ -85,7 +85,7 @@ export default function SchedulingPanel({ schedule, onChange }: SchedulingPanelP
             type="datetime-local"
             value={schedule.attemptWindow?.end || ""}
             onChange={(e) => updateAttemptWindow("end", e.target.value)}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
       </div>

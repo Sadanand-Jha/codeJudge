@@ -63,7 +63,7 @@ export default function QuestionBuilder({ questions, onChange }: QuestionBuilder
         </div>
         <button type="button"
           onClick={addQuestion}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#7C3AED]/30 bg-[#7C3AED]/10 text-xs font-semibold text-[#7C3AED] hover:bg-[#7C3AED]/20 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-xs font-semibold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           Add Question
@@ -90,7 +90,7 @@ export default function QuestionBuilder({ questions, onChange }: QuestionBuilder
                   <select
                     value={question.type}
                     onChange={(e) => updateQuestion(question.id, { type: e.target.value as QuizQuestionType })}
-                    className="h-7 pl-2 pr-6 text-[11px] bg-[#0B0D12] border border-white/[0.08] rounded text-white focus:border-[#7C3AED] focus:outline-none"
+                    className="h-7 pl-2 pr-6 text-[11px] bg-[#0B0D12] border border-white/[0.08] rounded text-white focus:border-[#EC4899] focus:outline-none"
                   >
                     {questionTypes.map((type) => (
                       <option key={type.value} value={type.value}>{type.label}</option>
@@ -100,7 +100,7 @@ export default function QuestionBuilder({ questions, onChange }: QuestionBuilder
                     type="number"
                     value={question.points}
                     onChange={(e) => updateQuestion(question.id, { points: Number(e.target.value) })}
-                    className="w-16 h-7 pl-2 pr-1 text-[11px] bg-[#0B0D12] border border-white/[0.08] rounded text-white focus:border-[#7C3AED] focus:outline-none"
+                    className="w-16 h-7 pl-2 pr-1 text-[11px] bg-[#0B0D12] border border-white/[0.08] rounded text-white focus:border-[#EC4899] focus:outline-none"
                     placeholder="Points"
                   />
                 </div>
@@ -109,7 +109,7 @@ export default function QuestionBuilder({ questions, onChange }: QuestionBuilder
                   value={question.question}
                   onChange={(e) => updateQuestion(question.id, { question: e.target.value })}
                   placeholder="Enter your question here..."
-                  className="w-full h-20 rounded-lg border border-white/[0.08] bg-[#0B0D12] p-3 text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none resize-none"
+                  className="w-full h-20 rounded-lg border border-white/[0.08] bg-[#0B0D12] p-3 text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none resize-none"
                 />
               </div>
 
@@ -132,14 +132,14 @@ export default function QuestionBuilder({ questions, onChange }: QuestionBuilder
                       name={`correct-${question.id}`}
                       checked={question.correctAnswer === optIndex}
                       onChange={() => updateQuestion(question.id, { correctAnswer: optIndex })}
-                      className="h-3.5 w-3.5 accent-[#7C3AED]"
+                      className="h-3.5 w-3.5 accent-[#EC4899]"
                     />
                     <input
                       type="text"
                       value={option}
                       onChange={(e) => updateOption(question.id, optIndex, e.target.value)}
                       placeholder={`Option ${optIndex + 1}`}
-                      className="flex-1 h-8 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none"
+                      className="flex-1 h-8 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
                     />
                   </div>
                 ))}
@@ -155,7 +155,7 @@ export default function QuestionBuilder({ questions, onChange }: QuestionBuilder
                   value={(question.correctAnswer as string) || ""}
                   onChange={(e) => updateQuestion(question.id, { correctAnswer: e.target.value })}
                   placeholder="Enter the correct answer"
-                  className="w-full h-8 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none"
+                  className="w-full h-8 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
                 />
               </div>
             )}
@@ -167,7 +167,7 @@ export default function QuestionBuilder({ questions, onChange }: QuestionBuilder
                 value={question.explanation || ""}
                 onChange={(e) => updateQuestion(question.id, { explanation: e.target.value })}
                 placeholder="Explain why this is the correct answer..."
-                className="w-full h-16 rounded-lg border border-white/[0.08] bg-[#0B0D12] p-3 text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none resize-none"
+                className="w-full h-16 rounded-lg border border-white/[0.08] bg-[#0B0D12] p-3 text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none resize-none"
               />
             </div>
           </motion.div>
@@ -179,7 +179,7 @@ export default function QuestionBuilder({ questions, onChange }: QuestionBuilder
           <p className="text-sm text-[#9CA3AF]">No questions added yet.</p>
           <button type="button"
             onClick={addQuestion}
-            className="mt-3 text-xs font-semibold text-[#7C3AED] hover:text-[#8B5AF0] transition-colors"
+            className="mt-3 text-xs font-semibold text-[#EC4899] hover:text-[#DB2777] transition-colors"
           >
             + Add your first question
           </button>

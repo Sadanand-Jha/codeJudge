@@ -55,16 +55,31 @@ type SaveStatus = "idle" | "saving" | "saved";
 type PanelTab = "history" | "collaborators";
 
 const QUESTION_TYPE_LABELS: Record<StudioQuestionType, string> = {
-  single_choice: "Single Correct",
-  multiple_choice: "Multiple Correct",
+  single_choice: "Multiple Choice",
+  multiple_choice: "Multiple Select",
   true_false: "True / False",
-  text: "Fill in the Blank",
+  text: "Short Answer",
+  paragraph: "Paragraph",
+  fill_blanks: "Fill in Blanks",
+  table_fill: "Table Fill",
   code_output: "Code Output",
   complexity: "Complexity Analysis",
   debugging: "Debugging",
   matching: "Matching",
   ordering: "Ordering",
+  drag_drop: "Drag & Drop",
+  categorize: "Categorize",
+  hotspot: "Hotspot",
   image_based: "Image Based",
+  image_label: "Image Label",
+  math: "Math",
+  graph: "Graph",
+  formula: "Formula",
+  drawing: "Drawing",
+  video_response: "Video Response",
+  audio_response: "Audio Response",
+  poll: "Poll",
+  word_cloud: "Word Cloud",
 };
 
 const AI_ACTIONS = [
@@ -659,7 +674,7 @@ export default function QuizStudio() {
       <div className="h-14 border-b border-white/[0.08] bg-[#09090B]/80 backdrop-blur-xl flex items-center px-4 gap-4 shrink-0">
         {/* Quiz brand */}
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#EC4899] to-[#EC4899] flex items-center justify-center">
             <ListChecks className="w-3.5 h-3.5 text-white" />
           </div>
         </div>
@@ -684,7 +699,7 @@ export default function QuizStudio() {
         <div className="flex items-center gap-2 text-xs text-[#9CA3AF]">
           {saveStatus === "saving" ? (
             <div className="flex items-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 text-[#7C3AED] animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 text-[#EC4899] animate-spin" />
               <span>Saving...</span>
             </div>
           ) : saveStatus === "saved" ? (
@@ -752,8 +767,8 @@ export default function QuizStudio() {
             onClick={() => setShowAI(!showAI)}
             className={`h-8 px-3 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 ${
               showAI
-                ? "border-[#7C3AED]/40 bg-[#7C3AED]/20 text-[#7C3AED]"
-                : "border-[#7C3AED]/30 bg-[#7C3AED]/10 text-[#7C3AED] hover:bg-[#7C3AED]/20"
+                ? "border-[#EC4899]/40 bg-[#EC4899]/20 text-[#EC4899]"
+                : "border-[#EC4899]/30 bg-[#EC4899]/10 text-[#EC4899] hover:bg-[#EC4899]/20"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -819,7 +834,7 @@ export default function QuizStudio() {
 
           {/* Publish */}
           <button
-            className="h-8 px-4 rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-xs font-bold text-white hover:shadow-lg hover:shadow-[#7C3AED]/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none flex items-center gap-1.5"
+            className="h-8 px-4 rounded-lg bg-gradient-to-r from-[#EC4899] to-[#EC4899] text-xs font-bold text-white hover:shadow-lg hover:shadow-[#EC4899]/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none flex items-center gap-1.5"
             disabled={!allReady}
             title={allReady ? "Ready to publish" : `${publishReadiness.length - readinessCount} item(s) remaining`}
           >
@@ -850,7 +865,7 @@ export default function QuizStudio() {
                   </span>
                   <div className="w-40 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                     <motion.div
-                      className="h-full bg-gradient-to-r from-[#22C55E] to-[#7C3AED]"
+                      className="h-full bg-gradient-to-r from-[#22C55E] to-[#EC4899]"
                       initial={{ width: 0 }}
                       animate={{ width: `${(readinessCount / publishReadiness.length) * 100}%` }}
                       transition={{ duration: 0.5 }}
@@ -908,7 +923,7 @@ export default function QuizStudio() {
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Keyboard className="w-4 h-4 text-[#7C3AED]" />
+                  <Keyboard className="w-4 h-4 text-[#EC4899]" />
                   Keyboard Shortcuts
                 </h3>
                 <button
@@ -993,11 +1008,11 @@ export default function QuizStudio() {
                 initial={{ x: 20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 20, opacity: 0 }}
-                className="absolute right-4 top-4 bottom-4 w-72 rounded-2xl border border-[#7C3AED]/20 bg-[#111827]/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden flex flex-col z-40"
+                className="absolute right-4 top-4 bottom-4 w-72 rounded-2xl border border-[#EC4899]/20 bg-[#111827]/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden flex flex-col z-40"
               >
                 <div className="p-3 border-b border-white/[0.06] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#EC4899] to-[#EC4899] flex items-center justify-center">
                       <Sparkles className="w-3 h-3 text-white" />
                     </div>
                     <div>
@@ -1019,20 +1034,20 @@ export default function QuizStudio() {
                       key={action.id}
                       onClick={() => handleAIAction(action.id)}
                       disabled={aiLoading !== null}
-                      className="w-full flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 hover:border-[#7C3AED]/30 hover:bg-[#7C3AED]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                      className="w-full flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed text-left"
                     >
                       <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
                         {aiLoading === action.id ? (
-                          <Loader2 className="w-3.5 h-3.5 text-[#7C3AED] animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 text-[#EC4899] animate-spin" />
                         ) : (
-                          <action.icon className="w-3.5 h-3.5 text-[#7C3AED]" />
+                          <action.icon className="w-3.5 h-3.5 text-[#EC4899]" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-medium text-white">{action.label}</p>
                         <p className="text-[9px] text-[#6B7280]">{action.description}</p>
                       </div>
-                      <ChevronRight className="w-3 h-3 text-[#6B7280] group-hover:text-[#7C3AED] transition-colors" />
+                      <ChevronRight className="w-3 h-3 text-[#6B7280] group-hover:text-[#EC4899] transition-colors" />
                     </button>
                   ))}
                 </div>
@@ -1047,11 +1062,11 @@ export default function QuizStudio() {
                       className="border-t border-white/[0.06] p-3 space-y-2"
                     >
                       <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-bold text-[#7C3AED]">{aiResponse.title}</p>
+                        <p className="text-[10px] font-bold text-[#EC4899]">{aiResponse.title}</p>
                         {!aiResponse.applied && (
                           <button
                             onClick={() => applyAISuggestion(aiResponse)}
-                            className="px-2 py-0.5 rounded-lg bg-[#7C3AED] text-[9px] font-bold text-white hover:bg-[#8B5AF0] transition-colors"
+                            className="px-2 py-0.5 rounded-lg bg-[#EC4899] text-[9px] font-bold text-white hover:bg-[#DB2777] transition-colors"
                           >
                             Apply
                           </button>
@@ -1087,7 +1102,7 @@ export default function QuizStudio() {
                 onClick={() => setDeviceMode("desktop")}
                 className={`p-1.5 rounded-lg transition-all ${
                   deviceMode === "desktop"
-                    ? "bg-[#7C3AED]/10 text-[#7C3AED]"
+                    ? "bg-[#EC4899]/10 text-[#EC4899]"
                     : "text-[#9CA3AF] hover:text-white"
                 }`}
                 title="Desktop"
@@ -1098,7 +1113,7 @@ export default function QuizStudio() {
                 onClick={() => setDeviceMode("tablet")}
                 className={`p-1.5 rounded-lg transition-all ${
                   deviceMode === "tablet"
-                    ? "bg-[#7C3AED]/10 text-[#7C3AED]"
+                    ? "bg-[#EC4899]/10 text-[#EC4899]"
                     : "text-[#9CA3AF] hover:text-white"
                 }`}
                 title="Tablet"
@@ -1109,7 +1124,7 @@ export default function QuizStudio() {
                 onClick={() => setDeviceMode("mobile")}
                 className={`p-1.5 rounded-lg transition-all ${
                   deviceMode === "mobile"
-                    ? "bg-[#7C3AED]/10 text-[#7C3AED]"
+                    ? "bg-[#EC4899]/10 text-[#EC4899]"
                     : "text-[#9CA3AF] hover:text-white"
                 }`}
                 title="Mobile"
@@ -1139,7 +1154,7 @@ export default function QuizStudio() {
                   <div className="p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <History className="w-3 h-3 text-[#7C3AED]" />
+                        <History className="w-3 h-3 text-[#EC4899]" />
                         Version History
                       </h4>
                       <button
@@ -1152,8 +1167,8 @@ export default function QuizStudio() {
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
                       {versionHistory.slice().reverse().map((version) => (
                         <div key={version.id} className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
-                          <div className="w-6 h-6 rounded-lg bg-[#7C3AED]/10 border border-[#7C3AED]/20 flex items-center justify-center">
-                            <History className="w-3 h-3 text-[#7C3AED]" />
+                          <div className="w-6 h-6 rounded-lg bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center">
+                            <History className="w-3 h-3 text-[#EC4899]" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-[10px] font-medium text-white">Version {version.version}</p>
@@ -1174,7 +1189,7 @@ export default function QuizStudio() {
                   <div className="p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <Users className="w-3 h-3 text-[#7C3AED]" />
+                        <Users className="w-3 h-3 text-[#EC4899]" />
                         Collaborators
                       </h4>
                       <button
@@ -1187,14 +1202,14 @@ export default function QuizStudio() {
                     <div className="space-y-1.5">
                       {collaborators.map((user) => (
                         <div key={user.userId} className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-[8px] font-bold text-white">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#EC4899] to-[#EC4899] flex items-center justify-center text-[8px] font-bold text-white">
                             {user.username.charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-[10px] font-medium text-white">{user.username}</p>
                             <p className="text-[9px] text-[#6B7280]">
                               {user.currentlyEditing
-                                ? <>Editing: <span className="text-[#7C3AED]">Q{questions.findIndex((q) => q.id === user.currentlyEditing) + 1}</span></>
+                                ? <>Editing: <span className="text-[#EC4899]">Q{questions.findIndex((q) => q.id === user.currentlyEditing) + 1}</span></>
                                 : "Idle"}
                             </p>
                           </div>
@@ -1229,7 +1244,7 @@ function EmptyState({ onCreateFirst }: { onCreateFirst: () => void }) {
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.1, type: "spring" }}
-          className="w-20 h-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center shadow-2xl shadow-[#7C3AED]/20"
+          className="w-20 h-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-[#EC4899] to-[#EC4899] flex items-center justify-center shadow-2xl shadow-[#EC4899]/20"
         >
           <ListChecks className="w-9 h-9 text-white" />
         </motion.div>
@@ -1240,7 +1255,7 @@ function EmptyState({ onCreateFirst }: { onCreateFirst: () => void }) {
         </p>
         <button
           onClick={onCreateFirst}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-xs font-bold text-white hover:shadow-lg hover:shadow-[#7C3AED]/25 transition-all"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#EC4899] text-xs font-bold text-white hover:shadow-lg hover:shadow-[#EC4899]/25 transition-all"
         >
           <Plus className="w-4 h-4" />
           Create Your First Question
@@ -1252,7 +1267,7 @@ function EmptyState({ onCreateFirst }: { onCreateFirst: () => void }) {
             { icon: Sparkles, label: "AI-Powered" },
           ].map(({ icon: Icon, label }) => (
             <div key={label} className="rounded-xl border border-white/[0.06] bg-[#111827] p-3">
-              <Icon className="w-4 h-4 mx-auto mb-1.5 text-[#7C3AED]" />
+              <Icon className="w-4 h-4 mx-auto mb-1.5 text-[#EC4899]" />
               <p className="text-[9px] text-[#9CA3AF]">{label}</p>
             </div>
           ))}

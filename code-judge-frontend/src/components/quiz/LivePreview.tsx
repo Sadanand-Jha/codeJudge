@@ -106,9 +106,9 @@ export default function LivePreview({
             Live Preview
           </span>
           <div className="flex items-center gap-1">
-            {deviceMode === "desktop" && <Monitor className="w-3 h-3 text-[#7C3AED]" />}
-            {deviceMode === "tablet" && <Tablet className="w-3 h-3 text-[#7C3AED]" />}
-            {deviceMode === "mobile" && <Smartphone className="w-3 h-3 text-[#7C3AED]" />}
+            {deviceMode === "desktop" && <Monitor className="w-3 h-3 text-[#EC4899]" />}
+            {deviceMode === "tablet" && <Tablet className="w-3 h-3 text-[#EC4899]" />}
+            {deviceMode === "mobile" && <Smartphone className="w-3 h-3 text-[#EC4899]" />}
           </div>
         </div>
 
@@ -117,7 +117,7 @@ export default function LivePreview({
           {/* Progress bar */}
           <div className="h-1 bg-white/[0.04]">
             <div
-              className="h-full bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] transition-all duration-500"
+              className="h-full bg-gradient-to-r from-[#EC4899] to-[#EC4899] transition-all duration-500"
               style={{ width: `${(questionNumber / Math.max(totalQuestions, 1)) * 100}%` }}
             />
           </div>
@@ -198,8 +198,8 @@ export default function LivePreview({
                         isSelected
                           ? isCorrect
                             ? "border-[#22C55E]/40 bg-[#22C55E]/10"
-                            : "border-[#7C3AED]/40 bg-[#7C3AED]/10"
-                          : "border-white/[0.06] bg-white/[0.02] hover:border-[#7C3AED]/30 hover:bg-[#7C3AED]/5"
+                            : "border-[#EC4899]/40 bg-[#EC4899]/10"
+                          : "border-white/[0.06] bg-white/[0.02] hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5"
                       }`}
                       onClick={() => toggleOption(index)}
                     >
@@ -208,8 +208,8 @@ export default function LivePreview({
                           <div
                             className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
                               isSelected
-                                ? "bg-[#7C3AED] border-[#7C3AED]"
-                                : "border-white/20 group-hover:border-[#7C3AED]"
+                                ? "bg-[#EC4899] border-[#EC4899]"
+                                : "border-white/20 group-hover:border-[#EC4899]"
                             }`}
                           >
                             {isSelected && <CheckSquare className="w-2.5 h-2.5 text-white" />}
@@ -218,11 +218,11 @@ export default function LivePreview({
                           <div
                             className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
                               isSelected
-                                ? "border-[#7C3AED]"
-                                : "border-white/20 group-hover:border-[#7C3AED]"
+                                ? "border-[#EC4899]"
+                                : "border-white/20 group-hover:border-[#EC4899]"
                             }`}
                           >
-                            {isSelected && <div className="w-2 h-2 rounded-full bg-[#7C3AED]" />}
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-[#EC4899]" />}
                           </div>
                         )}
                       </div>
@@ -258,7 +258,7 @@ export default function LivePreview({
                   value={textAnswer}
                   onChange={(e) => setTextAnswer(e.target.value)}
                   placeholder="Type your answer here..."
-                  className="w-full h-10 px-3 rounded-xl border border-white/[0.06] bg-white/[0.02] text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none"
+                  className="w-full h-10 px-3 rounded-xl border border-white/[0.06] bg-white/[0.02] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
                 />
                 {question.caseSensitive && (
                   <p className="text-[9px] text-[#6B7280] flex items-center gap-1">
@@ -360,7 +360,7 @@ export default function LivePreview({
               <div>
                 <button
                   onClick={() => setShowReferences(!showReferences)}
-                  className="flex items-center gap-1.5 text-[10px] font-medium text-[#7C3AED] hover:text-[#8B5AF0] transition-colors"
+                  className="flex items-center gap-1.5 text-[10px] font-medium text-[#EC4899] hover:text-[#DB2777] transition-colors"
                 >
                   <BookOpen className="w-3 h-3" />
                   {showReferences ? "Hide References" : "View References"}
@@ -380,9 +380,9 @@ export default function LivePreview({
                             href={ref.url || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[10px] text-[#9CA3AF] hover:text-white hover:border-[#7C3AED]/30 transition-colors"
+                            className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[10px] text-[#9CA3AF] hover:text-white hover:border-[#EC4899]/30 transition-colors"
                           >
-                            <BookOpen className="w-3 h-3 text-[#7C3AED]" />
+                            <BookOpen className="w-3 h-3 text-[#EC4899]" />
                             <span className="flex-1 truncate">{ref.title || "Untitled reference"}</span>
                             <span className="text-[8px] text-[#6B7280] uppercase">{ref.type}</span>
                           </a>
@@ -410,7 +410,7 @@ export default function LivePreview({
                   <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
-              <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-white text-[10px] font-bold hover:shadow-lg hover:shadow-[#7C3AED]/20 transition-all">
+              <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#EC4899] to-[#EC4899] text-white text-[10px] font-bold hover:shadow-lg hover:shadow-[#EC4899]/20 transition-all">
                 Submit Answer
               </button>
             </div>

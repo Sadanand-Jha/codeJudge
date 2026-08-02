@@ -101,7 +101,7 @@ export default function QuizAttemptPage({ params }: { params: { quizId: string }
               <button className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:border-white/20 transition-colors">
                 Review Answers
               </button>
-              <button className="flex-1 h-10 rounded-xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 text-sm font-bold text-[#7C3AED] hover:bg-[#7C3AED]/20 transition-colors">
+              <button className="flex-1 h-10 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors">
                 Back to Dashboard
               </button>
             </div>
@@ -141,7 +141,7 @@ export default function QuizAttemptPage({ params }: { params: { quizId: string }
         {/* Progress Bar */}
         <div className="h-1 bg-white/[0.06]">
           <motion.div
-            className="h-full bg-[#7C3AED]"
+            className="h-full bg-[#EC4899]"
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.3 }}
           />
@@ -162,7 +162,7 @@ export default function QuizAttemptPage({ params }: { params: { quizId: string }
               <div className="flex-1 space-y-4">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium text-[#9CA3AF]">Q{currentQuestionIndex + 1}</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#7C3AED]/10 text-[#7C3AED]">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#EC4899]/10 text-[#EC4899]">
                     {currentQuestion.points} points
                   </span>
                 </div>
@@ -178,15 +178,15 @@ export default function QuizAttemptPage({ params }: { params: { quizId: string }
                         onClick={() => handleAnswer(index)}
                         className={`w-full text-left p-4 rounded-xl border transition-all ${
                           isSelected
-                            ? "border-[#7C3AED] bg-[#7C3AED]/10"
+                            ? "border-[#EC4899] bg-[#EC4899]/10"
                             : "border-white/[0.08] bg-[#0B0D12] hover:border-white/[0.12]"
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                            isSelected ? "border-[#7C3AED]" : "border-white/20"
+                            isSelected ? "border-[#EC4899]" : "border-white/20"
                           }`}>
-                            {isSelected && <div className="w-2 h-2 rounded-full bg-[#7C3AED]" />}
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-[#EC4899]" />}
                           </div>
                           <span className="text-sm text-white">{option}</span>
                         </div>
@@ -218,7 +218,7 @@ export default function QuizAttemptPage({ params }: { params: { quizId: string }
                 key={index}
                 onClick={() => setCurrentQuestionIndex(index)}
                 className={`w-2 h-2 rounded-full transition-colors ${
-                  index === currentQuestionIndex ? "bg-[#7C3AED]" : "bg-white/10 hover:bg-white/20"
+                  index === currentQuestionIndex ? "bg-[#EC4899]" : "bg-white/10 hover:bg-white/20"
                 }`}
               />
             ))}

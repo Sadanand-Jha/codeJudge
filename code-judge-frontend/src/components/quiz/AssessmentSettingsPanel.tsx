@@ -21,7 +21,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
       className="space-y-4"
     >
       <div className="flex items-center gap-2">
-        <Settings2 className="h-4 w-4 text-[#7C3AED]" />
+        <Settings2 className="h-4 w-4 text-[#EC4899]" />
         <h3 className="text-sm font-semibold text-white">Assessment Settings</h3>
       </div>
 
@@ -34,7 +34,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
             onChange={(e) => update("passingScore", Number(e.target.value))}
             min="0"
             max="100"
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
@@ -45,7 +45,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
             value={settings.attemptsAllowed}
             onChange={(e) => update("attemptsAllowed", Number(e.target.value))}
             min="1"
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
@@ -56,7 +56,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
             value={settings.timeLimit || 30}
             onChange={(e) => update("timeLimit", Number(e.target.value))}
             min="1"
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
@@ -65,7 +65,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
           <select
             value={settings.negativeMarking ? "yes" : "no"}
             onChange={(e) => update("negativeMarking", e.target.value === "yes")}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           >
             <option value="no">No</option>
             <option value="yes">Yes</option>
@@ -78,7 +78,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
               min="0"
               max="100"
               placeholder="Penalty per wrong answer (%)"
-              className="w-full h-7 rounded-lg border border-white/[0.08] bg-[#09090B] px-2 text-[11px] text-white focus:border-[#7C3AED] focus:outline-none mt-1"
+              className="w-full h-7 rounded-lg border border-white/[0.08] bg-[#09090B] px-2 text-[11px] text-white focus:border-[#EC4899] focus:outline-none mt-1"
             />
           )}
         </div>
@@ -104,7 +104,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
                 update(item.key, !settings[item.key]);
               }}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                settings[item.key] ? "bg-[#7C3AED]" : "bg-white/10"
+                settings[item.key] ? "bg-[#EC4899]" : "bg-white/10"
               }`}
             >
               <span
@@ -136,7 +136,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
                 }}
                 min="0"
                 disabled={!lifeline.enabled}
-                className="w-12 h-7 rounded-lg border border-white/[0.08] bg-[#09090B] px-1 text-[11px] text-white focus:border-[#7C3AED] focus:outline-none disabled:opacity-50"
+                className="w-12 h-7 rounded-lg border border-white/[0.08] bg-[#09090B] px-1 text-[11px] text-white focus:border-[#EC4899] focus:outline-none disabled:opacity-50"
               />
               <button
                 type="button"
@@ -146,7 +146,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
                   update("lifelines", lifelines);
                 }}
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                  lifeline.enabled ? "bg-[#7C3AED]" : "bg-white/10"
+                  lifeline.enabled ? "bg-[#EC4899]" : "bg-white/10"
                 }`}
               >
                 <span

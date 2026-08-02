@@ -192,7 +192,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
         <div className="w-px h-6 bg-white/[0.08]" />
 
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#EC4899] to-[#EC4899] flex items-center justify-center">
             <LayoutDashboard className="w-3.5 h-3.5 text-white" />
           </div>
           <div>
@@ -204,7 +204,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => setShowQuestionBuilder(true)}
-            className="h-8 px-3 rounded-lg border border-[#7C3AED]/30 bg-[#7C3AED]/10 text-xs font-bold text-[#7C3AED] hover:bg-[#7C3AED]/20 transition-colors flex items-center gap-1.5"
+            className="h-8 px-3 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-xs font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors flex items-center gap-1.5"
           >
             <ListChecks className="w-3.5 h-3.5" />
             Question Builder
@@ -250,14 +250,14 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
                           }}
                           className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-all ${
                             isActive
-                              ? "bg-[#7C3AED]/10 text-white border border-[#7C3AED]/20"
+                              ? "bg-[#EC4899]/10 text-white border border-[#EC4899]/20"
                               : "text-[#9CA3AF] hover:text-white hover:bg-white/[0.04] border border-transparent"
                           }`}
                         >
-                          <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#7C3AED]" : "text-[#6B7280]"}`} />
+                          <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#EC4899]" : "text-[#6B7280]"}`} />
                           <span className="text-[11px] font-medium flex-1">{item.label}</span>
                           {itemCount && (
-                            <span className="px-1.5 py-0.5 rounded-md bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[8px] font-bold text-[#7C3AED]">
+                            <span className="px-1.5 py-0.5 rounded-md bg-[#EC4899]/10 border border-[#EC4899]/20 text-[8px] font-bold text-[#EC4899]">
                               {itemCount}
                             </span>
                           )}
@@ -368,8 +368,8 @@ function OverviewTab({
 }) {
   const stats = [
     { label: "Quiz Status", value: "Draft", icon: Clock, color: "#F59E0B" },
-    { label: "Questions", value: String(questionsCount), icon: ListChecks, color: "#7C3AED" },
-    { label: "Total Marks", value: String(totalMarks), icon: Target, color: "#3B82F6" },
+    { label: "Questions", value: String(questionsCount), icon: ListChecks, color: "#EC4899" },
+    { label: "Total Marks", value: String(totalMarks), icon: Target, color: "#EC4899" },
     { label: "Registered", value: "0", icon: Users, color: "#22C55E" },
     { label: "Attempts", value: "0", icon: Activity, color: "#EC4899" },
     { label: "Visibility", value: "Private", icon: Shield, color: "#F97316" },
@@ -387,7 +387,7 @@ function OverviewTab({
           <button onClick={onPreview} className="h-8 px-3 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
             <Eye className="w-3.5 h-3.5" /> Preview Quiz
           </button>
-          <button onClick={onPublish} className="h-8 px-3 rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-xs font-bold text-white hover:shadow-lg hover:shadow-[#7C3AED]/20 transition-all flex items-center gap-1.5">
+          <button onClick={onPublish} className="h-8 px-3 rounded-lg bg-gradient-to-r from-[#EC4899] to-[#EC4899] text-xs font-bold text-white hover:shadow-lg hover:shadow-[#EC4899]/20 transition-all flex items-center gap-1.5">
             <Send className="w-3.5 h-3.5" /> Publish Quiz
           </button>
         </div>
@@ -408,8 +408,8 @@ function OverviewTab({
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <QuickActionButton icon={Pencil} label="Edit Information" onClick={onOpenSettings} color="#7C3AED" />
-        <QuickActionButton icon={ListChecks} label="Open Question Builder" onClick={onOpenBuilder} color="#3B82F6" />
+        <QuickActionButton icon={Pencil} label="Edit Information" onClick={onOpenSettings} color="#EC4899" />
+        <QuickActionButton icon={ListChecks} label="Open Question Builder" onClick={onOpenBuilder} color="#EC4899" />
         <QuickActionButton icon={Eye} label="Preview Quiz" onClick={onPreview} color="#22C55E" />
         <QuickActionButton icon={Send} label="Publish Quiz" onClick={onPublish} color="#F59E0B" />
       </div>
@@ -424,7 +424,7 @@ function OverviewTab({
           </div>
           <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden mb-4">
             <motion.div
-              className="h-full bg-gradient-to-r from-[#22C55E] to-[#7C3AED]"
+              className="h-full bg-gradient-to-r from-[#22C55E] to-[#EC4899]"
               initial={{ width: 0 }}
               animate={{ width: `${(readinessCount / checklist.length) * 100}%` }}
               transition={{ duration: 0.5 }}
@@ -451,7 +451,7 @@ function OverviewTab({
             {recentActivity.map((activity, i) => (
               <div key={i} className="flex items-start gap-3">
                 <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
-                  <activity.icon className="w-3.5 h-3.5 text-[#7C3AED]" />
+                  <activity.icon className="w-3.5 h-3.5 text-[#EC4899]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-white">{activity.text}</p>
@@ -467,17 +467,17 @@ function OverviewTab({
       <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-white">Questions Status</h3>
-          <button onClick={onOpenBuilder} className="text-xs font-semibold text-[#7C3AED] hover:text-[#8B5AF0] transition-colors flex items-center gap-1">
+          <button onClick={onOpenBuilder} className="text-xs font-semibold text-[#EC4899] hover:text-[#DB2777] transition-colors flex items-center gap-1">
             Open Builder <ChevronRight className="w-3 h-3" />
           </button>
         </div>
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-full bg-white/[0.03] border-4 border-[#7C3AED]/20 flex items-center justify-center relative">
+          <div className="w-20 h-20 rounded-full bg-white/[0.03] border-4 border-[#EC4899]/20 flex items-center justify-center relative">
             <div
               className="absolute inset-0 rounded-full border-4 border-transparent"
               style={{
-                borderTopColor: validationSummary.total > 0 ? "#7C3AED" : "transparent",
-                borderRightColor: validationSummary.total > 0 ? "#7C3AED" : "transparent",
+                borderTopColor: validationSummary.total > 0 ? "#EC4899" : "transparent",
+                borderRightColor: validationSummary.total > 0 ? "#EC4899" : "transparent",
                 transform: `rotate(${Math.min((validationSummary.valid / Math.max(validationSummary.total, 1)) * 360, 360)}deg)`,
               }}
             />
@@ -521,8 +521,8 @@ function PlaceholderTab({ title, description, icon: Icon }: { title: string; des
   return (
     <div className="h-full flex items-center justify-center">
       <div className="text-center max-w-sm px-6">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#7C3AED]/10 border border-[#7C3AED]/20 flex items-center justify-center">
-          <Icon className="w-8 h-8 text-[#7C3AED]" />
+        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center">
+          <Icon className="w-8 h-8 text-[#EC4899]" />
         </div>
         <h2 className="text-lg font-bold text-white mb-2">{title}</h2>
         <p className="text-xs text-[#6B7280]">{description}</p>
@@ -541,7 +541,7 @@ function PreviewTab({ quizName, questions, onEditQuestions }: { quizName: string
           <ListChecks className="w-10 h-10 mx-auto text-[#6B7280] mb-3" />
           <h2 className="text-lg font-bold text-white mb-2">No questions to preview</h2>
           <p className="text-xs text-[#6B7280] mb-4">Add questions first, then preview how learners will see them.</p>
-          <button onClick={onEditQuestions} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-xs font-bold text-white hover:shadow-lg hover:shadow-[#7C3AED]/20 transition-all">
+          <button onClick={onEditQuestions} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#EC4899] text-xs font-bold text-white hover:shadow-lg hover:shadow-[#EC4899]/20 transition-all">
             <Plus className="w-4 h-4" /> Open Question Builder
           </button>
         </div>
@@ -553,7 +553,7 @@ function PreviewTab({ quizName, questions, onEditQuestions }: { quizName: string
     <div className="h-full flex flex-col">
       <div className="border-b border-white/[0.06] px-6 py-3 flex items-center justify-between">
         <h2 className="text-sm font-bold text-white">{quizName} — Preview</h2>
-        <button onClick={onEditQuestions} className="text-xs font-semibold text-[#7C3AED] hover:text-[#8B5AF0] transition-colors">
+        <button onClick={onEditQuestions} className="text-xs font-semibold text-[#EC4899] hover:text-[#DB2777] transition-colors">
           Edit Questions
         </button>
       </div>
@@ -612,13 +612,13 @@ function PublishTab({
               )}
               <span className={`text-xs flex-1 ${item.passed ? "text-[#22C55E]" : "text-[#9CA3AF]"}`}>{item.label}</span>
               {!item.passed && item.id === "info" && (
-                <button onClick={onOpenSettings} className="text-[10px] font-semibold text-[#7C3AED] hover:text-[#8B5AF0]">Fix</button>
+                <button onClick={onOpenSettings} className="text-[10px] font-semibold text-[#EC4899] hover:text-[#DB2777]">Fix</button>
               )}
               {!item.passed && (item.id === "questions" || item.id === "answers" || item.id === "marks") && (
-                <button onClick={onOpenBuilder} className="text-[10px] font-semibold text-[#7C3AED] hover:text-[#8B5AF0]">Fix</button>
+                <button onClick={onOpenBuilder} className="text-[10px] font-semibold text-[#EC4899] hover:text-[#DB2777]">Fix</button>
               )}
               {!item.passed && item.id === "preview" && (
-                <button onClick={onPreview} className="text-[10px] font-semibold text-[#7C3AED] hover:text-[#8B5AF0]">Preview</button>
+                <button onClick={onPreview} className="text-[10px] font-semibold text-[#EC4899] hover:text-[#DB2777]">Preview</button>
               )}
             </div>
           ))}
@@ -628,7 +628,7 @@ function PublishTab({
           disabled={!allReady}
           className={`w-full h-11 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
             allReady
-              ? "bg-gradient-to-r from-[#22C55E] to-[#7C3AED] text-white hover:shadow-lg hover:shadow-[#22C55E]/20"
+              ? "bg-gradient-to-r from-[#22C55E] to-[#EC4899] text-white hover:shadow-lg hover:shadow-[#22C55E]/20"
               : "bg-white/[0.05] text-[#6B7280] cursor-not-allowed"
           }`}
         >

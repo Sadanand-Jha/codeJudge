@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  Target,
 } from "lucide-react";
 import { StudioQuestion, StudioQuestionType } from "@/types/quiz";
 
@@ -41,16 +42,31 @@ interface QuestionNavigatorProps {
 }
 
 const questionTypeMeta: Record<StudioQuestionType, { label: string; short: string; icon: any; color: string }> = {
-  single_choice: { label: "Single Correct", short: "SC", icon: ListChecks, color: "#7C3AED" },
-  multiple_choice: { label: "Multiple Correct", short: "MC", icon: ListChecks, color: "#3B82F6" },
-  true_false: { label: "True / False", short: "TF", icon: CheckCircle2, color: "#22C55E" },
-  text: { label: "Fill in the Blank", short: "Text", icon: Type, color: "#F59E0B" },
+  single_choice: { label: "Multiple Choice", short: "MC", icon: ListChecks, color: "#EC4899" },
+  multiple_choice: { label: "Multiple Select", short: "MS", icon: ListChecks, color: "#22C55E" },
+  true_false: { label: "True / False", short: "TF", icon: CheckCircle2, color: "#F59E0B" },
+  text: { label: "Short Answer", short: "Text", icon: Type, color: "#EC4899" },
+  paragraph: { label: "Paragraph", short: "Para", icon: Type, color: "#8B5CF6" },
+  fill_blanks: { label: "Fill in Blanks", short: "Fill", icon: Type, color: "#14B8A6" },
+  table_fill: { label: "Table Fill", short: "Table", icon: Hash, color: "#F97316" },
   code_output: { label: "Code Output", short: "Code", icon: Hash, color: "#06B6D4" },
   complexity: { label: "Complexity Analysis", short: "Complex", icon: Clock, color: "#EC4899" },
   debugging: { label: "Debugging", short: "Debug", icon: AlertCircle, color: "#EF4444" },
-  matching: { label: "Matching", short: "Match", icon: ListChecks, color: "#8B5CF6" },
-  ordering: { label: "Ordering", short: "Order", icon: ChevronDown, color: "#F97316" },
-  image_based: { label: "Image Based", short: "Image", icon: Type, color: "#14B8A6" },
+  matching: { label: "Matching", short: "Match", icon: ListChecks, color: "#3B82F6" },
+  ordering: { label: "Ordering", short: "Order", icon: ChevronDown, color: "#22C55E" },
+  drag_drop: { label: "Drag & Drop", short: "Drag", icon: ChevronDown, color: "#F97316" },
+  categorize: { label: "Categorize", short: "Cat", icon: ListChecks, color: "#EC4899" },
+  hotspot: { label: "Hotspot", short: "Hot", icon: Target, color: "#14B8A6" },
+  image_based: { label: "Image Based", short: "Image", icon: Type, color: "#8B5CF6" },
+  image_label: { label: "Image Label", short: "Label", icon: Type, color: "#8B5CF6" },
+  math: { label: "Math", short: "Math", icon: Hash, color: "#EC4899" },
+  graph: { label: "Graph", short: "Graph", icon: Hash, color: "#8B5CF6" },
+  formula: { label: "Formula", short: "Formula", icon: Hash, color: "#F59E0B" },
+  drawing: { label: "Drawing", short: "Draw", icon: Type, color: "#F59E0B" },
+  video_response: { label: "Video Response", short: "Video", icon: Type, color: "#EF4444" },
+  audio_response: { label: "Audio Response", short: "Audio", icon: Hash, color: "#3B82F6" },
+  poll: { label: "Poll", short: "Poll", icon: ListChecks, color: "#22C55E" },
+  word_cloud: { label: "Word Cloud", short: "Words", icon: Type, color: "#EC4899" },
 };
 
 export default function QuestionNavigator({
@@ -138,7 +154,7 @@ export default function QuestionNavigator({
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-semibold text-white flex items-center gap-2">
             Questions
-            <span className="px-1.5 py-0.5 rounded-md bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[9px] font-bold text-[#7C3AED]">
+            <span className="px-1.5 py-0.5 rounded-md bg-[#EC4899]/10 border border-[#EC4899]/20 text-[9px] font-bold text-[#EC4899]">
               {questions.length}
             </span>
           </h2>
@@ -147,7 +163,7 @@ export default function QuestionNavigator({
               onClick={() => setShowBulkBar(!showBulkBar)}
               className={`p-1.5 rounded-lg transition-colors ${
                 showBulkBar || selected.size > 0
-                  ? "bg-[#7C3AED]/10 text-[#7C3AED]"
+                  ? "bg-[#EC4899]/10 text-[#EC4899]"
                   : "text-[#6B7280] hover:text-white hover:bg-white/[0.06]"
               }`}
               title="Bulk Actions"
@@ -165,7 +181,7 @@ export default function QuestionNavigator({
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
             placeholder="Search questions, tags, topics..."
-            className="w-full h-8 pl-8 pr-8 rounded-lg border border-white/[0.06] bg-[#111827] text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED]/40 focus:outline-none"
+            className="w-full h-8 pl-8 pr-8 rounded-lg border border-white/[0.06] bg-[#111827] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899]/40 focus:outline-none"
           />
           {searchQuery && (
             <button
@@ -206,7 +222,7 @@ export default function QuestionNavigator({
                   </button>
                   <button
                     onClick={onAdd}
-                    className="flex-1 h-7 rounded-lg border border-[#7C3AED]/30 bg-[#7C3AED]/10 text-[10px] font-bold text-[#7C3AED] hover:bg-[#7C3AED]/20 transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 h-7 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-[10px] font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors flex items-center justify-center gap-1"
                   >
                     <Plus className="w-3 h-3" />
                     Add Question
@@ -270,20 +286,20 @@ export default function QuestionNavigator({
                 }}
                 className={`group relative rounded-xl border transition-all cursor-pointer ${
                   isDragging
-                    ? "opacity-50 border-[#7C3AED]/50 bg-[#7C3AED]/10"
+                    ? "opacity-50 border-[#EC4899]/50 bg-[#EC4899]/10"
                     : isDragOver
-                    ? "border-[#7C3AED]/60 bg-[#7C3AED]/10 shadow-[0_0_20px_rgba(124,58,237,0.2)]"
+                    ? "border-[#EC4899]/60 bg-[#EC4899]/10 shadow-[0_0_20px_rgba(236,72,153,0.2)]"
                     : isActive
-                    ? "border-[#7C3AED]/40 bg-[#7C3AED]/10 shadow-[0_0_20px_rgba(124,58,237,0.15)]"
+                    ? "border-[#EC4899]/40 bg-[#EC4899]/10 shadow-[0_0_20px_rgba(236,72,153,0.15)]"
                     : isSelected
-                    ? "border-[#7C3AED]/30 bg-[#7C3AED]/5"
+                    ? "border-[#EC4899]/30 bg-[#EC4899]/5"
                     : "border-white/[0.06] bg-transparent hover:border-white/[0.12] hover:bg-white/[0.02]"
                 }`}
                 onClick={() => onSelect(question.id)}
               >
                 {/* Drag indicator line */}
                 {isDragOver && (
-                  <div className="absolute -top-0.5 left-2 right-2 h-0.5 bg-[#7C3AED] rounded-full" />
+                  <div className="absolute -top-0.5 left-2 right-2 h-0.5 bg-[#EC4899] rounded-full" />
                 )}
 
                 <div className="p-2.5">
@@ -300,8 +316,8 @@ export default function QuestionNavigator({
                       <div
                         className={`w-3.5 h-3.5 rounded border transition-colors flex items-center justify-center ${
                           isSelected
-                            ? "bg-[#7C3AED] border-[#7C3AED]"
-                            : "border-white/20 hover:border-[#7C3AED]/50"
+                            ? "bg-[#EC4899] border-[#EC4899]"
+                            : "border-white/20 hover:border-[#EC4899]/50"
                         }`}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -417,8 +433,8 @@ export default function QuestionNavigator({
               </>
             ) : (
               <>
-                <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-[#7C3AED]/10 border border-[#7C3AED]/20 flex items-center justify-center">
-                  <Plus className="w-5 h-5 text-[#7C3AED]" />
+                <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-[#EC4899]" />
                 </div>
                 <p className="text-xs text-[#9CA3AF]">No questions yet</p>
                 <p className="text-[10px] text-[#6B7280] mt-1">Click "Add Question" to get started</p>
@@ -432,7 +448,7 @@ export default function QuestionNavigator({
       <div className="p-3 border-t border-white/[0.06]">
         <button
           onClick={onAdd}
-          className="w-full h-9 rounded-xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 text-xs font-bold text-[#7C3AED] hover:bg-[#7C3AED]/20 transition-all flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(124,58,237,0.15)]"
+          className="w-full h-9 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-xs font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-all flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(236,72,153,0.15)]"
         >
           <Plus className="w-4 h-4" />
           Add Question

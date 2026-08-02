@@ -46,7 +46,7 @@ export default function CollaboratorManager({ collaborators, onChange }: Collabo
       className="space-y-4"
     >
       <div className="flex items-center gap-2">
-        <UserPlus className="h-4 w-4 text-[#7C3AED]" />
+        <UserPlus className="h-4 w-4 text-[#EC4899]" />
         <h3 className="text-sm font-semibold text-white">Collaborators</h3>
       </div>
 
@@ -57,7 +57,7 @@ export default function CollaboratorManager({ collaborators, onChange }: Collabo
             if (e.target.value) addCollaborator(e.target.value);
             e.target.value = "";
           }}
-          className="flex-1 h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+          className="flex-1 h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           defaultValue=""
         >
           <option value="" disabled>Add collaborator...</option>
@@ -80,7 +80,7 @@ export default function CollaboratorManager({ collaborators, onChange }: Collabo
             <select
               value={collab.role}
               onChange={(e) => updateRole(collab.id, e.target.value as CollaboratorRole)}
-              className="h-7 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-2 text-[11px] text-white focus:border-[#7C3AED] focus:outline-none"
+              className="h-7 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-2 text-[11px] text-white focus:border-[#EC4899] focus:outline-none"
             >
               {roles.map((role) => (
                 <option key={role} value={role}>{role}</option>

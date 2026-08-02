@@ -39,7 +39,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
                 onClick={() => toggleArrayItem("collegeIds", college.id)}
                 className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                   selected
-                    ? "border-[#7C3AED] bg-[#7C3AED]/15 text-[#7C3AED]"
+                    ? "border-[#EC4899] bg-[#EC4899]/15 text-[#EC4899]"
                     : "border-white/[0.08] bg-[#111827] text-[#9CA3AF] hover:border-white/[0.12]"
                 }`}
               >
@@ -62,7 +62,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
                 onClick={() => toggleArrayItem("departments", dept)}
                 className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                   selected
-                    ? "border-[#7C3AED] bg-[#7C3AED]/15 text-[#7C3AED]"
+                    ? "border-[#EC4899] bg-[#EC4899]/15 text-[#EC4899]"
                     : "border-white/[0.08] bg-[#111827] text-[#9CA3AF] hover:border-white/[0.12]"
                 }`}
               >
@@ -85,7 +85,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
                 onClick={() => toggleArrayItem("years", year)}
                 className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                   selected
-                    ? "border-[#7C3AED] bg-[#7C3AED]/15 text-[#7C3AED]"
+                    ? "border-[#EC4899] bg-[#EC4899]/15 text-[#EC4899]"
                     : "border-white/[0.08] bg-[#111827] text-[#9CA3AF] hover:border-white/[0.12]"
                 }`}
               >
@@ -108,7 +108,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
                 onClick={() => toggleArrayItem("sections", section)}
                 className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                   selected
-                    ? "border-[#7C3AED] bg-[#7C3AED]/15 text-[#7C3AED]"
+                    ? "border-[#EC4899] bg-[#EC4899]/15 text-[#EC4899]"
                     : "border-white/[0.08] bg-[#111827] text-[#9CA3AF] hover:border-white/[0.12]"
                 }`}
               >

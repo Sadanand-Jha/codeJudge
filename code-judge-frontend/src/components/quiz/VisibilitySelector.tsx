@@ -48,12 +48,12 @@ export default function VisibilitySelector({ value, onChange, options }: Visibil
             onClick={() => onChange(option.id)}
             className={`relative flex items-start gap-3 rounded-xl border p-4 text-left transition-all duration-200 ${
               isActive
-                ? "border-[#7C3AED] bg-[#7C3AED]/10 shadow-[0_0_20px_rgba(124,58,237,0.15)]"
+                ? "border-[#EC4899] bg-[#EC4899]/10 shadow-[0_0_20px_rgba(124,58,237,0.15)]"
                 : "border-white/[0.08] bg-[#111827] hover:border-white/[0.12] hover:bg-white/[0.02]"
             }`}
           >
             <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${
-              isActive ? "border-[#7C3AED]/30 bg-[#7C3AED]/20 text-[#7C3AED]" : "border-white/[0.08] bg-white/[0.03] text-[#9CA3AF]"
+              isActive ? "border-[#EC4899]/30 bg-[#EC4899]/20 text-[#EC4899]" : "border-white/[0.08] bg-white/[0.03] text-[#9CA3AF]"
             }`}>
               <Icon className="h-5 w-5" />
             </div>
@@ -66,7 +66,7 @@ export default function VisibilitySelector({ value, onChange, options }: Visibil
             {isActive && (
               <motion.div
                 layoutId="activeVisibility"
-                className="absolute inset-0 rounded-xl border-2 border-[#7C3AED] pointer-events-none"
+                className="absolute inset-0 rounded-xl border-2 border-[#EC4899] pointer-events-none"
                 transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
               />
             )}

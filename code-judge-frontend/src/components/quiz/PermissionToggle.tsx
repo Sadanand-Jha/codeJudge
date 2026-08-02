@@ -50,7 +50,7 @@ export default function PermissionToggle({ permissions, onChange }: PermissionTo
                 toggle(perm.key);
               }}
               className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-                permissions[perm.key] ? "bg-[#7C3AED]" : "bg-white/10"
+                permissions[perm.key] ? "bg-[#EC4899]" : "bg-white/10"
               }`}
             >
               <span

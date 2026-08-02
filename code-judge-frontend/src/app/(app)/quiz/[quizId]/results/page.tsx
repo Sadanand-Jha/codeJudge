@@ -53,7 +53,7 @@ export default function QuizResultsPage({ params }: { params: { quizId: string }
             transition={{ delay: 0.1 }}
             className="rounded-xl border border-white/[0.08] bg-[#111827] p-4"
           >
-            <Target className="w-5 h-5 text-[#7C3AED] mb-2" />
+            <Target className="w-5 h-5 text-[#EC4899] mb-2" />
             <p className="text-2xl font-bold text-white">{score}/{totalPoints}</p>
             <p className="text-xs text-[#9CA3AF]">Total Score</p>
           </motion.div>
@@ -86,7 +86,7 @@ export default function QuizResultsPage({ params }: { params: { quizId: string }
             transition={{ delay: 0.4 }}
             className="rounded-xl border border-white/[0.08] bg-[#111827] p-4"
           >
-            <CheckCircle className="w-5 h-5 text-[#3B82F6] mb-2" />
+            <CheckCircle className="w-5 h-5 text-[#EC4899] mb-2" />
             <p className="text-2xl font-bold text-white">{timeTaken}</p>
             <p className="text-xs text-[#9CA3AF]">Time Taken</p>
           </motion.div>
@@ -143,7 +143,7 @@ export default function QuizResultsPage({ params }: { params: { quizId: string }
               <div
                 key={entry.rank}
                 className={`flex items-center gap-3 rounded-lg p-3 ${
-                  entry.username === "you" ? "bg-[#7C3AED]/10 border border-[#7C3AED]/20" : "bg-[#0B0D12]"
+                  entry.username === "you" ? "bg-[#EC4899]/10 border border-[#EC4899]/20" : "bg-[#0B0D12]"
                 }`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
@@ -171,7 +171,7 @@ export default function QuizResultsPage({ params }: { params: { quizId: string }
           <Link href="/quiz" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:border-white/20 transition-colors text-center">
             Back to Dashboard
           </Link>
-          <button className="flex-1 h-10 rounded-xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 text-sm font-bold text-[#7C3AED] hover:bg-[#7C3AED]/20 transition-colors">
+          <button className="flex-1 h-10 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors">
             Try Again
           </button>
         </div>

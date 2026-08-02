@@ -88,7 +88,7 @@ export default function QuizDetailsPage({ params }: { params: { quizId: string }
               </div>
               <Link
                 href={`/quiz/${quiz.id}/register`}
-                className="px-5 h-9 rounded-lg border border-[#7C3AED]/30 bg-[#7C3AED]/10 text-sm font-bold text-[#7C3AED] hover:bg-[#7C3AED]/20 transition-colors flex items-center gap-1.5"
+                className="px-5 h-9 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors flex items-center gap-1.5"
               >
                 Register
               </Link>
@@ -153,7 +153,7 @@ export default function QuizDetailsPage({ params }: { params: { quizId: string }
               <ul className="text-sm text-[#9CA3AF] space-y-1">
                 {quiz.prerequisites.map((pre, i) => (
                   <li key={i} className="flex items-center gap-1.5">
-                    <ExternalLink className="w-3.5 h-3.5 text-[#7C3AED]" />
+                    <ExternalLink className="w-3.5 h-3.5 text-[#EC4899]" />
                     {pre}
                   </li>
                 ))}
@@ -172,9 +172,9 @@ export default function QuizDetailsPage({ params }: { params: { quizId: string }
           <h2 className="text-lg font-semibold text-white mb-4">Statistics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: "Attempts", value: quiz.attempts.toString(), icon: BookOpen, color: "text-[#7C3AED]" },
+              { label: "Attempts", value: quiz.attempts.toString(), icon: BookOpen, color: "text-[#EC4899]" },
               { label: "Pass Rate", value: `${quiz.averageScore}%`, icon: Target, color: "text-[#22C55E]" },
-              { label: "Avg. Score", value: `${quiz.averageScore}%`, icon: BarChart3, color: "text-[#3B82F6]" },
+              { label: "Avg. Score", value: `${quiz.averageScore}%`, icon: BarChart3, color: "text-[#EC4899]" },
               { label: "Bookmarks", value: "8", icon: ThumbsUp, color: "text-[#EF4444]" },
             ].map((stat) => (
               <div key={stat.label} className="rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
@@ -199,7 +199,7 @@ export default function QuizDetailsPage({ params }: { params: { quizId: string }
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-semibold text-white">{mockQuizCreator.username}</h3>
-                {mockQuizCreator.verified && <Verified className="w-4 h-4 text-[#3B82F6]" />}
+                {mockQuizCreator.verified && <Verified className="w-4 h-4 text-[#EC4899]" />}
               </div>
               <p className="text-xs text-[#9CA3AF]">{mockQuizCreator.bio}</p>
               <div className="flex items-center gap-3 text-xs text-[#9CA3AF]">
@@ -233,7 +233,7 @@ export default function QuizDetailsPage({ params }: { params: { quizId: string }
         >
           <Link
             href={`/quiz/${quiz.id}/register`}
-            className="inline-flex items-center justify-center gap-2 px-8 h-12 rounded-xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 text-sm font-bold text-[#7C3AED] hover:bg-[#7C3AED]/20 transition-all hover:shadow-[0_0_24px_rgba(124,58,237,0.2)]"
+            className="inline-flex items-center justify-center gap-2 px-8 h-12 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-all hover:shadow-[0_0_24px_rgba(124,58,237,0.2)]"
           >
             Register Now
           </Link>

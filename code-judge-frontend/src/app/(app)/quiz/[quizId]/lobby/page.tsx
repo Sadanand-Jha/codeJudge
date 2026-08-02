@@ -37,8 +37,8 @@ export default function QuizLobbyPage({ params }: { params: { quizId: string } }
           animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl border border-white/[0.08] bg-[#111827] p-8 text-center space-y-6"
         >
-          <div className="w-16 h-16 mx-auto rounded-xl bg-[#7C3AED]/10 border border-[#7C3AED]/20 flex items-center justify-center">
-            <BookOpen className="w-8 h-8 text-[#7C3AED]" />
+          <div className="w-16 h-16 mx-auto rounded-xl bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center">
+            <BookOpen className="w-8 h-8 text-[#EC4899]" />
           </div>
 
           <div>

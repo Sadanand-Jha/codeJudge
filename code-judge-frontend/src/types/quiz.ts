@@ -189,12 +189,27 @@ export type StudioQuestionType =
   | "multiple_choice"
   | "true_false"
   | "text"
+  | "paragraph"
+  | "fill_blanks"
+  | "table_fill"
   | "code_output"
   | "complexity"
   | "debugging"
   | "matching"
   | "ordering"
-  | "image_based";
+  | "drag_drop"
+  | "categorize"
+  | "hotspot"
+  | "image_based"
+  | "math"
+  | "graph"
+  | "formula"
+  | "image_label"
+  | "drawing"
+  | "video_response"
+  | "audio_response"
+  | "poll"
+  | "word_cloud";
 
 export type StudioDifficulty = "Easy" | "Medium" | "Hard" | "Expert";
 

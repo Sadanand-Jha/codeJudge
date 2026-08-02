@@ -55,6 +55,7 @@ import {
   Paperclip,
   Upload,
   XCircle,
+  FolderTree,
 } from "lucide-react";
 import { StudioQuestion, StudioQuestionType, StudioDifficulty, StudioOption, StudioReference } from "@/types/quiz";
 
@@ -72,16 +73,31 @@ interface QuestionEditorProps {
 }
 
 const questionTypes: { value: StudioQuestionType; label: string; description: string; icon: any }[] = [
-  { value: "single_choice", label: "Single Correct Answer", description: "One correct option", icon: ListChecks },
-  { value: "multiple_choice", label: "Multiple Correct Answers", description: "Multiple correct options", icon: ListChecks },
+  { value: "single_choice", label: "Multiple Choice", description: "Single correct option", icon: ListChecks },
+  { value: "multiple_choice", label: "Multiple Select", description: "Multiple correct options", icon: ListChecks },
   { value: "true_false", label: "True / False", description: "Binary choice", icon: CheckCircle2 },
-  { value: "text", label: "Fill in the Blank", description: "Text input answer", icon: Type },
+  { value: "text", label: "Short Answer", description: "Text input answer", icon: Type },
+  { value: "paragraph", label: "Paragraph", description: "Long text response", icon: AlignLeft },
+  { value: "fill_blanks", label: "Fill in Blanks", description: "Complete the text", icon: FileText },
+  { value: "table_fill", label: "Table Fill", description: "Fill table cells", icon: Table },
   { value: "code_output", label: "Code Output", description: "Predict code output", icon: Code },
   { value: "complexity", label: "Complexity Analysis", description: "Time/space complexity", icon: Timer },
   { value: "debugging", label: "Debugging", description: "Find the bug", icon: AlertCircle },
   { value: "matching", label: "Matching", description: "Match pairs", icon: ListChecks },
   { value: "ordering", label: "Ordering", description: "Arrange in order", icon: List },
+  { value: "drag_drop", label: "Drag & Drop", description: "Move items to targets", icon: GripVertical },
+  { value: "categorize", label: "Categorize", description: "Group items into categories", icon: FolderTree },
+  { value: "hotspot", label: "Hotspot", description: "Click on image region", icon: Target },
   { value: "image_based", label: "Image Based", description: "Question with image", icon: Image },
+  { value: "image_label", label: "Image Label", description: "Label image parts", icon: Image },
+  { value: "math", label: "Math", description: "Mathematical expression", icon: Hash },
+  { value: "graph", label: "Graph", description: "Graph-based question", icon: Hash },
+  { value: "formula", label: "Formula", description: "Formula-based answer", icon: Hash },
+  { value: "drawing", label: "Drawing", description: "Draw response", icon: Type },
+  { value: "video_response", label: "Video Response", description: "Record video answer", icon: Video },
+  { value: "audio_response", label: "Audio Response", description: "Record audio answer", icon: Hash },
+  { value: "poll", label: "Poll", description: "Instant poll", icon: ListChecks },
+  { value: "word_cloud", label: "Word Cloud", description: "Word responses", icon: Type },
 ];
 
 const difficultyLevels: { value: StudioDifficulty; label: string; color: string }[] = [
@@ -292,7 +308,7 @@ export default function QuestionEditor({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-bold text-white">Question {questionNumber}</h2>
-            <span className="px-2 py-1 rounded-lg bg-[#7C3AED]/10 border border-[#7C3AED]/30 text-[10px] font-bold text-[#7C3AED]">
+            <span className="px-2 py-1 rounded-lg bg-[#EC4899]/10 border border-[#EC4899]/30 text-[10px] font-bold text-[#EC4899]">
               {currentTypeMeta?.label || question.type}
             </span>
             {question.isBonus && (
@@ -355,7 +371,7 @@ export default function QuestionEditor({
               </label>
               <button
                 onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white flex items-center justify-between hover:border-[#7C3AED]/40 transition-colors"
+                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white flex items-center justify-between hover:border-[#EC4899]/40 transition-colors"
               >
                 <span className="truncate">{currentTypeMeta?.label || question.type}</span>
                 <ChevronDown className={`w-3 h-3 text-[#6B7280] transition-transform ${showTypeDropdown ? "rotate-180" : ""}`} />
@@ -378,7 +394,7 @@ export default function QuestionEditor({
                         }}
                         className={`w-full flex items-start gap-2 px-3 py-2 text-left transition-colors ${
                           question.type === type.value
-                            ? "bg-[#7C3AED]/10 text-white"
+                            ? "bg-[#EC4899]/10 text-white"
                             : "text-[#9CA3AF] hover:bg-white/[0.04] hover:text-white"
                         }`}
                       >
@@ -405,7 +421,7 @@ export default function QuestionEditor({
                 value={question.marks}
                 onChange={(e) => update("marks", Number(e.target.value))}
                 min="0"
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
               />
             </div>
 
@@ -421,7 +437,7 @@ export default function QuestionEditor({
                 onChange={(e) => update("estimatedTime", Number(e.target.value))}
                 min="0"
                 placeholder="Auto"
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none"
+                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
               />
             </div>
 
@@ -436,7 +452,7 @@ export default function QuestionEditor({
                 value={question.tags.join(", ")}
                 onChange={(e) => update("tags", e.target.value.split(",").map((t) => t.trim()).filter(Boolean))}
                 placeholder="e.g. arrays, dp"
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none"
+                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
               />
             </div>
           </div>
@@ -453,7 +469,7 @@ export default function QuestionEditor({
                 value={question.topic || ""}
                 onChange={(e) => update("topic", e.target.value)}
                 placeholder="e.g. Data Structures"
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none"
+                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
               />
             </div>
             <div className="space-y-1.5">
@@ -466,7 +482,7 @@ export default function QuestionEditor({
                 value={question.subtopic || ""}
                 onChange={(e) => update("subtopic", e.target.value)}
                 placeholder="e.g. Linked Lists"
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none"
+                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
               />
             </div>
           </div>
@@ -494,7 +510,7 @@ export default function QuestionEditor({
             </div>
             <button
               onClick={onToggleAdvanced}
-              className="text-[10px] font-medium text-[#7C3AED] hover:text-[#8B5AF0] transition-colors flex items-center gap-1"
+              className="text-[10px] font-medium text-[#EC4899] hover:text-[#DB2777] transition-colors flex items-center gap-1"
             >
               <Settings2 className="w-3 h-3" />
               {showAdvanced ? "Hide Advanced" : "Show Advanced"}
@@ -509,7 +525,7 @@ export default function QuestionEditor({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowImageUpload(!showImageUpload)}
-                className="text-[10px] font-medium text-[#7C3AED] hover:text-[#8B5AF0] transition-colors flex items-center gap-1"
+                className="text-[10px] font-medium text-[#EC4899] hover:text-[#DB2777] transition-colors flex items-center gap-1"
               >
                 <Image className="w-3 h-3" />
                 Add Image
@@ -582,7 +598,7 @@ export default function QuestionEditor({
                 >
                   <div className="p-3 border-b border-white/[0.06] bg-[#0B0D12]">
                     <div
-                      className="rounded-lg border-2 border-dashed border-white/[0.08] p-4 text-center hover:border-[#7C3AED]/40 transition-colors cursor-pointer"
+                      className="rounded-lg border-2 border-dashed border-white/[0.08] p-4 text-center hover:border-[#EC4899]/40 transition-colors cursor-pointer"
                       onClick={() => fileInputRef.current?.click()}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
@@ -652,7 +668,7 @@ export default function QuestionEditor({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-white flex items-center gap-1.5">
-                <Code className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <Code className="w-3.5 h-3.5 text-[#EC4899]" />
                 Code Snippet
               </label>
               <div className="relative">
@@ -680,7 +696,7 @@ export default function QuestionEditor({
                           }}
                           className={`w-full px-3 py-1.5 text-[10px] text-left transition-colors ${
                             question.codeLanguage === lang
-                              ? "bg-[#7C3AED]/10 text-[#7C3AED]"
+                              ? "bg-[#EC4899]/10 text-[#EC4899]"
                               : "text-[#9CA3AF] hover:bg-white/[0.04] hover:text-white"
                           }`}
                         >
@@ -718,7 +734,7 @@ export default function QuestionEditor({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-white flex items-center gap-1.5">
-                <ListChecks className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <ListChecks className="w-3.5 h-3.5 text-[#EC4899]" />
                 Options
                 <span className="text-[9px] text-[#6B7280]">
                   {question.type === "multiple_choice" ? "Select all correct answers" : "Select the correct answer"}
@@ -728,7 +744,7 @@ export default function QuestionEditor({
                 {question.type !== "true_false" && question.options.length < 8 && (
                   <button
                     onClick={addOption}
-                    className="text-[10px] font-medium text-[#7C3AED] hover:text-[#8B5AF0] transition-colors flex items-center gap-1"
+                    className="text-[10px] font-medium text-[#EC4899] hover:text-[#DB2777] transition-colors flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" />
                     Add Option
@@ -755,7 +771,7 @@ export default function QuestionEditor({
                     option.isCorrect
                       ? "border-[#22C55E]/30 bg-[#22C55E]/5"
                       : "border-white/[0.06] bg-[#111827] hover:border-white/[0.12]"
-                  } ${dragOverOption === index ? "border-[#7C3AED]/50 shadow-[0_0_20px_rgba(124,58,237,0.15)]" : ""}`}
+                  } ${dragOverOption === index ? "border-[#EC4899]/50 shadow-[0_0_20px_rgba(236,72,153,0.15)]" : ""}`}
                 >
                   {/* Drag handle */}
                   <div className="pt-1 cursor-move text-[#6B7280] opacity-0 group-hover:opacity-100 transition-opacity">
@@ -898,7 +914,7 @@ export default function QuestionEditor({
         {isTextType && (
           <div className="space-y-2">
             <label className="text-xs font-medium text-white flex items-center gap-1.5">
-              <Type className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <Type className="w-3.5 h-3.5 text-[#EC4899]" />
               Correct Answer
             </label>
             <div className="rounded-xl border border-white/[0.06] bg-[#111827] p-3">
@@ -915,7 +931,7 @@ export default function QuestionEditor({
                 onClick={() => update("caseSensitive", !question.caseSensitive)}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium transition-colors ${
                   question.caseSensitive
-                    ? "border-[#7C3AED]/30 bg-[#7C3AED]/10 text-[#7C3AED]"
+                    ? "border-[#EC4899]/30 bg-[#EC4899]/10 text-[#EC4899]"
                     : "border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:text-white"
                 }`}
               >
@@ -931,7 +947,7 @@ export default function QuestionEditor({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-white flex items-center gap-1.5">
-                <ListChecks className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <ListChecks className="w-3.5 h-3.5 text-[#EC4899]" />
                 Matching Pairs
               </label>
               <button
@@ -942,7 +958,7 @@ export default function QuestionEditor({
                     { id: `pair_${Date.now()}`, left: "", right: "" },
                   ]);
                 }}
-                className="text-[10px] font-medium text-[#7C3AED] hover:text-[#8B5AF0] transition-colors flex items-center gap-1"
+                className="text-[10px] font-medium text-[#EC4899] hover:text-[#DB2777] transition-colors flex items-center gap-1"
               >
                 <Plus className="w-3 h-3" />
                 Add Pair
@@ -995,7 +1011,7 @@ export default function QuestionEditor({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-white flex items-center gap-1.5">
-                <List className="w-3.5 h-3.5 text-[#7C3AED]" />
+                <List className="w-3.5 h-3.5 text-[#EC4899]" />
                 Ordering Items
               </label>
               <button
@@ -1003,7 +1019,7 @@ export default function QuestionEditor({
                   const items = question.orderingItems || [];
                   update("orderingItems", [...items, ""]);
                 }}
-                className="text-[10px] font-medium text-[#7C3AED] hover:text-[#8B5AF0] transition-colors flex items-center gap-1"
+                className="text-[10px] font-medium text-[#EC4899] hover:text-[#DB2777] transition-colors flex items-center gap-1"
               >
                 <Plus className="w-3 h-3" />
                 Add Item
@@ -1043,7 +1059,7 @@ export default function QuestionEditor({
         {/* ===== Explanation ===== */}
         <div className="space-y-2">
           <label className="text-xs font-medium text-white flex items-center gap-1.5">
-            <AlignLeft className="w-3.5 h-3.5 text-[#7C3AED]" />
+            <AlignLeft className="w-3.5 h-3.5 text-[#EC4899]" />
             Explanation
             <span className="text-[9px] text-[#6B7280]">Shown after submission</span>
           </label>
@@ -1091,7 +1107,7 @@ export default function QuestionEditor({
                 }
               }}
               className={`text-[10px] font-medium transition-colors ${
-                showHint ? "text-[#9CA3AF] hover:text-white" : "text-[#7C3AED] hover:text-[#8B5AF0]"
+                showHint ? "text-[#9CA3AF] hover:text-white" : "text-[#EC4899] hover:text-[#DB2777]"
               }`}
             >
               {showHint ? "Remove Hint" : "+ Add Hint"}
@@ -1123,7 +1139,7 @@ export default function QuestionEditor({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium text-white flex items-center gap-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-[#7C3AED]" />
+              <BookOpen className="w-3.5 h-3.5 text-[#EC4899]" />
               References
               <span className="text-[9px] text-[#6B7280]">Optional</span>
             </label>
@@ -1133,7 +1149,7 @@ export default function QuestionEditor({
                 if (!showReferences) addReference();
               }}
               className={`text-[10px] font-medium transition-colors ${
-                showReferences ? "text-[#9CA3AF] hover:text-white" : "text-[#7C3AED] hover:text-[#8B5AF0]"
+                showReferences ? "text-[#9CA3AF] hover:text-white" : "text-[#EC4899] hover:text-[#DB2777]"
               }`}
             >
               {showReferences ? "Hide References" : "+ Add Reference"}
@@ -1152,7 +1168,7 @@ export default function QuestionEditor({
                     <select
                       value={ref.type}
                       onChange={(e) => updateReference(ref.id, "type", e.target.value)}
-                      className="h-7 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-[10px] text-white focus:border-[#7C3AED] focus:outline-none"
+                      className="h-7 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-[10px] text-white focus:border-[#EC4899] focus:outline-none"
                     >
                       {referenceTypes.map((rt) => (
                         <option key={rt.value} value={rt.value}>
@@ -1225,7 +1241,7 @@ export default function QuestionEditor({
                         value={question.marks}
                         onChange={(e) => update("marks", Number(e.target.value))}
                         min="0"
-                        className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+                        className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1235,21 +1251,21 @@ export default function QuestionEditor({
                         value={question.negativeMarks}
                         onChange={(e) => update("negativeMarks", Number(e.target.value))}
                         min="0"
-                        className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+                        className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
                       />
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <label className="text-xs text-white flex items-center gap-1.5">
-                      <ListChecks className="w-3 h-3 text-[#7C3AED]" />
+                      <ListChecks className="w-3 h-3 text-[#EC4899]" />
                       Partial Marking
                       <span className="text-[9px] text-[#6B7280]">For multiple correct</span>
                     </label>
                     <button
                       onClick={() => update("partialMarking", !question.partialMarking)}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                        question.partialMarking ? "bg-[#7C3AED]" : "bg-white/10"
+                        question.partialMarking ? "bg-[#EC4899]" : "bg-white/10"
                       }`}
                     >
                       <span
@@ -1311,7 +1327,7 @@ export default function QuestionEditor({
             className="space-y-4 rounded-xl border border-white/[0.06] bg-[#111827] p-4"
           >
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Settings2 className="w-4 h-4 text-[#7C3AED]" />
+              <Settings2 className="w-4 h-4 text-[#EC4899]" />
               Advanced Settings
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1325,7 +1341,7 @@ export default function QuestionEditor({
                   value={question.timeLimitPerQuestion || ""}
                   onChange={(e) => update("timeLimitPerQuestion", Number(e.target.value))}
                   placeholder="No limit"
-                  className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none"
+                  className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
                 />
               </div>
 
@@ -1337,7 +1353,7 @@ export default function QuestionEditor({
                 <select
                   value={question.visibility || "visible"}
                   onChange={(e) => update("visibility", e.target.value)}
-                  className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+                  className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
                 >
                   <option value="visible">Visible</option>
                   <option value="hidden">Hidden</option>
@@ -1346,13 +1362,13 @@ export default function QuestionEditor({
 
               <div className="flex items-center justify-between">
                 <label className="text-xs text-white flex items-center gap-1.5">
-                  <Shuffle className="w-3 h-3 text-[#7C3AED]" />
+                  <Shuffle className="w-3 h-3 text-[#EC4899]" />
                   Randomize Options
                 </label>
                 <button
                   onClick={() => update("randomizeOptions", !question.randomizeOptions)}
                   className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    question.randomizeOptions ? "bg-[#7C3AED]" : "bg-white/10"
+                    question.randomizeOptions ? "bg-[#EC4899]" : "bg-white/10"
                   }`}
                 >
                   <span
@@ -1365,13 +1381,13 @@ export default function QuestionEditor({
 
               <div className="flex items-center justify-between">
                 <label className="text-xs text-white flex items-center gap-1.5">
-                  <CaseSensitive className="w-3 h-3 text-[#7C3AED]" />
+                  <CaseSensitive className="w-3 h-3 text-[#EC4899]" />
                   Case Sensitive
                 </label>
                 <button
                   onClick={() => update("caseSensitive", !question.caseSensitive)}
                   className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    question.caseSensitive ? "bg-[#7C3AED]" : "bg-white/10"
+                    question.caseSensitive ? "bg-[#EC4899]" : "bg-white/10"
                   }`}
                 >
                   <span
@@ -1384,13 +1400,13 @@ export default function QuestionEditor({
 
               <div className="flex items-center justify-between">
                 <label className="text-xs text-white flex items-center gap-1.5">
-                  <Shuffle className="w-3 h-3 text-[#7C3AED]" />
+                  <Shuffle className="w-3 h-3 text-[#EC4899]" />
                   Shuffle Answers
                 </label>
                 <button
                   onClick={() => update("shuffleAnswers", !question.shuffleAnswers)}
                   className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    question.shuffleAnswers ? "bg-[#7C3AED]" : "bg-white/10"
+                    question.shuffleAnswers ? "bg-[#EC4899]" : "bg-white/10"
                   }`}
                 >
                   <span
@@ -1403,13 +1419,13 @@ export default function QuestionEditor({
 
               <div className="flex items-center justify-between">
                 <label className="text-xs text-white flex items-center gap-1.5">
-                  <SkipForward className="w-3 h-3 text-[#7C3AED]" />
+                  <SkipForward className="w-3 h-3 text-[#EC4899]" />
                   Allow Skipping
                 </label>
                 <button
                   onClick={() => update("allowSkipping", !question.allowSkipping)}
                   className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    question.allowSkipping ? "bg-[#7C3AED]" : "bg-white/10"
+                    question.allowSkipping ? "bg-[#EC4899]" : "bg-white/10"
                   }`}
                 >
                   <span
@@ -1422,14 +1438,14 @@ export default function QuestionEditor({
 
               <div className="flex items-center justify-between">
                 <label className="text-xs text-white flex items-center gap-1.5">
-                  <HelpCircle className="w-3 h-3 text-[#7C3AED]" />
+                  <HelpCircle className="w-3 h-3 text-[#EC4899]" />
                   Require Explanation
                   <span className="text-[9px] text-[#6B7280]">Future</span>
                 </label>
                 <button
                   onClick={() => update("requireExplanation", !question.requireExplanation)}
                   className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    question.requireExplanation ? "bg-[#7C3AED]" : "bg-white/10"
+                    question.requireExplanation ? "bg-[#EC4899]" : "bg-white/10"
                   }`}
                 >
                   <span

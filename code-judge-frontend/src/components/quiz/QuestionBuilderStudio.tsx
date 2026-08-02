@@ -49,16 +49,31 @@ type DeviceMode = "desktop" | "tablet" | "mobile";
 type SaveStatus = "idle" | "saving" | "saved";
 
 const QUESTION_TYPE_LABELS: Record<StudioQuestionType, string> = {
-  single_choice: "Single Correct",
-  multiple_choice: "Multiple Correct",
+  single_choice: "Multiple Choice",
+  multiple_choice: "Multiple Select",
   true_false: "True / False",
-  text: "Fill in the Blank",
+  text: "Short Answer",
+  paragraph: "Paragraph",
+  fill_blanks: "Fill in Blanks",
+  table_fill: "Table Fill",
   code_output: "Code Output",
   complexity: "Complexity Analysis",
   debugging: "Debugging",
   matching: "Matching",
   ordering: "Ordering",
+  drag_drop: "Drag & Drop",
+  categorize: "Categorize",
+  hotspot: "Hotspot",
   image_based: "Image Based",
+  image_label: "Image Label",
+  math: "Math",
+  graph: "Graph",
+  formula: "Formula",
+  drawing: "Drawing",
+  video_response: "Video Response",
+  audio_response: "Audio Response",
+  poll: "Poll",
+  word_cloud: "Word Cloud",
 };
 
 const AI_ACTIONS = [
@@ -447,7 +462,7 @@ export default function QuestionBuilderStudio({
         <div className="w-px h-6 bg-white/[0.08]" />
 
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#EC4899] to-[#EC4899] flex items-center justify-center">
             <ListChecks className="w-3.5 h-3.5 text-white" />
           </div>
           <div>
@@ -468,7 +483,7 @@ export default function QuestionBuilderStudio({
         <div className="flex items-center gap-2 text-xs text-[#9CA3AF] ml-auto">
           {saveStatus === "saving" ? (
             <div className="flex items-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 text-[#7C3AED] animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 text-[#EC4899] animate-spin" />
               <span>Saving...</span>
             </div>
           ) : saveStatus === "saved" ? (
@@ -512,7 +527,7 @@ export default function QuestionBuilderStudio({
           <button
             onClick={() => setShowAI(!showAI)}
             className={`h-8 px-3 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 ${
-              showAI ? "border-[#7C3AED]/40 bg-[#7C3AED]/20 text-[#7C3AED]" : "border-[#7C3AED]/30 bg-[#7C3AED]/10 text-[#7C3AED] hover:bg-[#7C3AED]/20"
+              showAI ? "border-[#EC4899]/40 bg-[#EC4899]/20 text-[#EC4899]" : "border-[#EC4899]/30 bg-[#EC4899]/10 text-[#EC4899] hover:bg-[#EC4899]/20"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" /> AI
@@ -522,13 +537,13 @@ export default function QuestionBuilderStudio({
             <HelpCircle className="w-3.5 h-3.5" />
           </button>
 
-          <button onClick={() => handleSave()} className="h-8 px-3 rounded-lg border border-[#7C3AED]/30 bg-[#7C3AED]/10 text-xs font-bold text-[#7C3AED] hover:bg-[#7C3AED]/20 transition-colors flex items-center gap-1.5">
+          <button onClick={() => handleSave()} className="h-8 px-3 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-xs font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors flex items-center gap-1.5">
             <Save className="w-3.5 h-3.5" /> Save
           </button>
 
           <button
             onClick={() => { handleSave(); onBack?.(); }}
-            className="h-8 px-4 rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-xs font-bold text-white hover:shadow-lg hover:shadow-[#7C3AED]/20 transition-all flex items-center gap-1.5"
+            className="h-8 px-4 rounded-lg bg-gradient-to-r from-[#EC4899] to-[#EC4899] text-xs font-bold text-white hover:shadow-lg hover:shadow-[#EC4899]/20 transition-all flex items-center gap-1.5"
           >
             <Check className="w-3.5 h-3.5" /> Done
           </button>
@@ -603,7 +618,7 @@ export default function QuestionBuilderStudio({
                 <div>
                   <ListChecks className="w-8 h-8 mx-auto text-[#6B7280] mb-2" />
                   <p className="text-xs text-[#9CA3AF]">Select a question or create one</p>
-                  <button onClick={handleAddQuestion} className="mt-3 text-xs font-semibold text-[#7C3AED] hover:text-[#8B5AF0] transition-colors flex items-center gap-1 mx-auto">
+                  <button onClick={handleAddQuestion} className="mt-3 text-xs font-semibold text-[#EC4899] hover:text-[#DB2777] transition-colors flex items-center gap-1 mx-auto">
                     <Plus className="w-3.5 h-3.5" /> Add Question
                   </button>
                 </div>
@@ -615,10 +630,10 @@ export default function QuestionBuilderStudio({
           <AnimatePresence>
             {showAI && (
               <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 20, opacity: 0 }}
-                className="absolute right-4 top-4 bottom-4 w-72 rounded-2xl border border-[#7C3AED]/20 bg-[#111827]/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden flex flex-col z-40">
+                className="absolute right-4 top-4 bottom-4 w-72 rounded-2xl border border-[#EC4899]/20 bg-[#111827]/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden flex flex-col z-40">
                 <div className="p-3 border-b border-white/[0.06] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#EC4899] to-[#EC4899] flex items-center justify-center">
                       <Sparkles className="w-3 h-3 text-white" />
                     </div>
                     <div>
@@ -631,15 +646,15 @@ export default function QuestionBuilderStudio({
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
                   {AI_ACTIONS.map((action) => (
                     <button key={action.id} onClick={() => handleAIAction(action.id)} disabled={aiLoading !== null}
-                      className="w-full flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 hover:border-[#7C3AED]/30 hover:bg-[#7C3AED]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed text-left">
+                      className="w-full flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed text-left">
                       <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
-                        {aiLoading === action.id ? <Loader2 className="w-3.5 h-3.5 text-[#7C3AED] animate-spin" /> : <action.icon className="w-3.5 h-3.5 text-[#7C3AED]" />}
+                        {aiLoading === action.id ? <Loader2 className="w-3.5 h-3.5 text-[#EC4899] animate-spin" /> : <action.icon className="w-3.5 h-3.5 text-[#EC4899]" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-medium text-white">{action.label}</p>
                         <p className="text-[9px] text-[#6B7280]">{action.description}</p>
                       </div>
-                      <ChevronRight className="w-3 h-3 text-[#6B7280] group-hover:text-[#7C3AED] transition-colors" />
+                      <ChevronRight className="w-3 h-3 text-[#6B7280] group-hover:text-[#EC4899] transition-colors" />
                     </button>
                   ))}
                 </div>
@@ -647,9 +662,9 @@ export default function QuestionBuilderStudio({
                   {aiResponse && (
                     <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="border-t border-white/[0.06] p-3 space-y-2">
                       <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-bold text-[#7C3AED]">{aiResponse.title}</p>
+                        <p className="text-[10px] font-bold text-[#EC4899]">{aiResponse.title}</p>
                         {!aiResponse.applied && (
-                          <button onClick={() => applyAISuggestion(aiResponse)} className="px-2 py-0.5 rounded-lg bg-[#7C3AED] text-[9px] font-bold text-white hover:bg-[#8B5AF0] transition-colors">Apply</button>
+                          <button onClick={() => applyAISuggestion(aiResponse)} className="px-2 py-0.5 rounded-lg bg-[#EC4899] text-[9px] font-bold text-white hover:bg-[#DB2777] transition-colors">Apply</button>
                         )}
                         {aiResponse.applied && <span className="text-[9px] text-[#22C55E] flex items-center gap-1"><Check className="w-3 h-3" />Applied</span>}
                       </div>
@@ -671,7 +686,7 @@ export default function QuestionBuilderStudio({
             <div className="flex items-center gap-1 bg-white/[0.03] rounded-lg p-0.5">
               {(["desktop", "tablet", "mobile"] as DeviceMode[]).map((mode) => (
                 <button key={mode} onClick={() => setDeviceMode(mode)}
-                  className={`p-1.5 rounded-lg transition-all ${deviceMode === mode ? "bg-[#7C3AED]/10 text-[#7C3AED]" : "text-[#9CA3AF] hover:text-white"}`}>
+                  className={`p-1.5 rounded-lg transition-all ${deviceMode === mode ? "bg-[#EC4899]/10 text-[#EC4899]" : "text-[#9CA3AF] hover:text-white"}`}>
                   {mode === "desktop" && <Monitor className="w-4 h-4" />}
                   {mode === "tablet" && <Tablet className="w-4 h-4" />}
                   {mode === "mobile" && <Smartphone className="w-4 h-4" />}

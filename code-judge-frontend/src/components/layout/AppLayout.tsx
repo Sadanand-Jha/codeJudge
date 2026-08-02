@@ -24,11 +24,11 @@ import {
   LogOut,
   BookOpen,
   Briefcase,
-  Newspaper,
   Sparkles,
   UserPlus,
   ClipboardList,
   Plus,
+  ChevronDown,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useSavedAvatar } from "@/store/avatarStore";
@@ -54,7 +54,7 @@ function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onCo
             exit={{ scale: 0.95, opacity: 0 }}
             className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#111827] p-8 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
-          >
+          > 
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-full bg-[#EF4444]/10 border border-[#EF4444]/20 flex items-center justify-center">
                 <LogOut className="w-5 h-5 text-[#EF4444]" />
@@ -85,6 +85,17 @@ function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onCo
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
+  {
+    label: "Assessment",
+    icon: ClipboardList,
+    href: "/quiz",
+    expanded: true,
+    children: [
+      { label: "Dashboard", icon: LayoutDashboard, href: "/quiz" },
+      { label: "Create Quiz", icon: Plus, href: "/quiz/create" },
+    ],
+  },
+
   { label: "Problems", icon: Code2, href: "/problems" },
   { label: "Contests", icon: Trophy, href: "/contests" },
   { label: "Interview", icon: Briefcase, href: "/interview" },
@@ -93,8 +104,6 @@ const navItems = [
   { label: "Collections", icon: Bookmark, href: "/collections" },
   { label: "Discussions", icon: MessageSquare, href: "/discussions" },
   { label: "AI Chat", icon: Sparkles, href: "/ai/chat" },
-  { label: "Quizzes", icon: ClipboardList, href: "/quiz" },
-  { label: "Create Quiz", icon: Plus, href: "/quiz/create" },
   { label: "Editor", icon: BookOpen, href: "/editor" },
   { label: "Achievements", icon: TrendingUp, href: "/achievements" },
   { label: "Analytics", icon: Users, href: "/analytics" },
@@ -112,6 +121,15 @@ const GUEST_VISIBLE_ROUTES = [
   "/discussions",
 ];
 
+function isQuizPath(pathname: string): boolean {
+  return pathname.startsWith("/quiz");
+}
+
+// Routes that should be fullscreen (no sidebar/navbar)
+function isFullscreenRoute(pathname: string): boolean {
+  return pathname.includes("/waiting");
+}
+
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -119,11 +137,17 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalRedirect, setAuthModalRedirect] = useState<string | undefined>();
+  const [assessmentExpanded, setAssessmentExpanded] = useState(true);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const setAuth = useAuthStore((s) => s.setAuth);
   const savedAvatar = useSavedAvatar();
   const { isGuest } = useGuestMode();
+
+  // Auto-expand Assessment section when on a quiz route, collapse otherwise
+  useEffect(() => {
+    setAssessmentExpanded(isQuizPath(pathname));
+  }, [pathname]);
 
   // Sync auth state with session cookie on app load
   useEffect(() => {
@@ -161,12 +185,30 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   const pageTitle =
-    navItems.find((n) => pathname === n.href || (n.href !== "/" && pathname.startsWith(n.href)))?.label || "ByteClash";
+    navItems.find((n) => pathname === n.href || (n.href !== "/" && pathname.startsWith(n.href)))?.label ||
+    "ByteClash";
 
   const handleAuthRequired = (redirectUrl?: string) => {
     setAuthModalRedirect(redirectUrl);
     setAuthModalOpen(true);
   };
+
+  // Fullscreen routes (waiting room, etc.) - no sidebar/navbar
+  if (isFullscreenRoute(pathname)) {
+    return (
+      <div className="min-h-screen bg-[#09090B]">
+        {children}
+        <AuthModal
+          isOpen={authModalOpen}
+          onClose={() => {
+            setAuthModalOpen(false);
+            setAuthModalRedirect(undefined);
+          }}
+          redirectUrl={authModalRedirect}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#09090B] flex">
@@ -201,15 +243,96 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <NavItem
-              key={item.label}
-              item={item}
-              pathname={pathname}
-              isGuest={isGuest}
-              onClick={() => setMobileMenuOpen(false)}
-            />
-          ))}
+          {navItems.map((item) => {
+            if ("children" in item) {
+              const isQuizActive = isQuizPath(pathname);
+              return (
+                <div key={item.label}>
+                  <button
+                    onClick={() => setAssessmentExpanded(!assessmentExpanded)}
+                    className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group cursor-pointer"
+                  >
+                    <div
+                      className={`absolute inset-0 rounded-xl transition-all pointer-events-none ${
+                        isQuizActive
+                          ? "bg-[#EC4899]/15 shadow-[0_0_20px_rgba(236,72,153,0.15)]"
+                          : "group-hover:bg-white/[0.04]"
+                      }`}
+                    />
+                    <item.icon
+                      className={`w-4 h-4 relative z-10 transition-colors ${
+                        isQuizActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+                      }`}
+                    />
+                    <span
+                      className={`relative z-10 transition-colors ${
+                        isQuizActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 relative z-10 ml-auto text-[#6B7280] transition-transform ${
+                        assessmentExpanded ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {assessmentExpanded && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        {item.children!.map((child) => {
+                          const isChildActive = pathname === child.href || (child.href !== "/" && pathname.startsWith(child.href.split("#")[0]));
+                          return (
+                            <Link
+                              key={child.label}
+                              href={child.href}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className="relative flex items-center gap-3 px-3 py-2 pl-10 text-sm font-medium rounded-xl transition-all duration-200 group ml-2 cursor-pointer"
+                            >
+                              {isChildActive && (
+                                <motion.div
+                                  layoutId="activeNavChild"
+                                  className="absolute inset-0 rounded-xl bg-[#EC4899]/15 shadow-[0_0_16px_rgba(236,72,153,0.15)] pointer-events-none"
+                                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                />
+                              )}
+                              <child.icon
+                                className={`w-3.5 h-3.5 relative z-10 transition-colors ${
+                                  isChildActive ? "text-[#EC4899]" : "text-[#6B7280] group-hover:text-[#EC4899]"
+                                }`}
+                              />
+                              <span
+                                className={`relative z-10 transition-colors ${
+                                  isChildActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+                                }`}
+                              >
+                                {child.label}
+                              </span>
+                            </Link>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            }
+            return (
+              <NavItem
+                key={item.label}
+                item={item}
+                pathname={pathname}
+                isGuest={isGuest}
+                onClick={() => setMobileMenuOpen(false)}
+              />
+            );
+          })}
         </nav>
 
         {/* Bottom: Streak + Version */}
@@ -367,12 +490,12 @@ function NavItem({ item, pathname, isGuest, onClick }: {
           onClick?.();
         }
       }}
-      className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group"
+      className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group cursor-pointer"
     >
       {isActive && (
         <motion.div
           layoutId="activeNav"
-          className="absolute inset-0 rounded-xl bg-[#7C3AED]/15 shadow-[0_0_20px_rgba(124,58,237,0.15)]"
+          className="absolute inset-0 rounded-xl bg-[#7C3AED]/15 shadow-[0_0_20px_rgba(124,58,237,0.15)] pointer-events-none"
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
         />
       )}
