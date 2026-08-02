@@ -1,5 +1,7 @@
 import {Router} from "express";
 import editorRoutes from "./editor.routes.ts";
+import contestRoutes from "./contest.routes.ts";
+import quizRoutes from "./quiz.routes.ts";
 import { validate, registerSchema } from "../../../middleware/validate.ts";
 import { userRegister, forgetPassword, profile } from "../../../controllers/user.controller.ts";
 import { authenticate } from "../../../middleware/auth.ts";
@@ -11,6 +13,8 @@ const router = Router();
 
 
 router.use("/editor", editorRoutes);
+router.use("/contest", contestRoutes);
+router.use("/quiz", quizRoutes);
 
 
 

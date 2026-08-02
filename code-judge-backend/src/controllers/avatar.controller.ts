@@ -1,15 +1,22 @@
 import type { Request, Response } from "express";
 import { pool } from "../app.ts";
-import { PREDEFINED_AVATARS, isValidPredefinedAvatar } from "../constants/avatars.ts";
+import { isValidPredefinedAvatar } from "../constants/avatars.ts";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const AVATAR_DIR = path.resolve(__dirname, "../../public/avatars");
 
 /**
  * PATCH /api/user/avatar
  * Updates the user's avatar URL
- * 
- * Body: { "avatarUrl": "https://api.dicebear.com/9.x/adventurer/svg?seed=Alex" }
- * 
+ *
+ * Body: { "avatarUrl": "/images/avatar-1.png" }
+ *
  * Validation:
- * - Accepts only one of the predefined 20 avatar URLs
+ * - Accepts only one of the predefined 7 avatar URLs
  * - Rejects any other URL with 400 Bad Request
  * - Updates only the avatar_url column
  */
@@ -69,4 +76,37 @@ export const updateAvatar = async (req: Request, res: Response) => {
       message: "Internal server error while updating avatar",
     });
   }
+};
+
+/**
+ * GET /api/v1/avatars/:id
+ * Serves an individual avatar image (1-7) from the sliced avatar directory.
+ */
+export const getAvatar = (req: Request, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+
+  // Validate ID is between 1 and 7
+  if (isNaN(id) || id < 1 || id > 7) {
+    res.status(400).json({
+      success: false,
+      message: "Invalid avatar ID. Must be between 1 and 7.",
+    });
+    return;
+  }
+
+  const filePath = path.join(AVATAR_DIR, `${id}.png`);
+
+  // Check if the file exists
+  if (!fs.existsSync(filePath)) {
+    res.status(404).json({
+      success: false,
+      message: "Avatar not found.",
+    });
+    return;
+  }
+
+  // Serve the image with proper caching headers
+  res.setHeader("Cache-Control", "public, max-age=86400, immutable");
+  res.setHeader("Content-Type", "image/png");
+  res.sendFile(filePath);
 };

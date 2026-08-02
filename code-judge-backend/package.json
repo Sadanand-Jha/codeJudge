@@ -11,7 +11,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "migrate": "tsx src/migrate.ts",
-    "migration:dry": "tsx src/migrate.ts --dry-run"
+    "migration:dry": "tsx src/migrate.ts --dry-run",
+    "prepare-avatars": "tsx src/utils/avatarProcessor.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.6.0",
@@ -33,6 +34,7 @@
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "redis": "^6.1.0",
+    "sharp": "^0.35.3",
     "uuid": "^14.0.1",
     "zod": "^3.22.4"
   },

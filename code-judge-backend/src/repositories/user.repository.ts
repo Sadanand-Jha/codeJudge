@@ -30,9 +30,21 @@ export class userRepository {
 
     async getUserProfileById(userId: string): Promise<any> {
         const query = `
-            SELECT id, AdminId, Username, Email, Role, CreatedAt, UpdatedAt
-            FROM users
-            WHERE id = $1
+            SELECT 
+                u.id, 
+                u.AdminId, 
+                u.Username, 
+                u.Email, 
+                u.Role_ID, 
+                r.name AS role_name,
+                a.url AS avatar_url,
+                a.is_male AS avatar_is_male,
+                u.CreatedAt, 
+                u.UpdatedAt
+            FROM users u
+            LEFT JOIN role r ON u.Role_ID = r.id
+            LEFT JOIN avatar a ON u.avatar_id = a.id
+            WHERE u.id = $1
         `;
         const result = await pool.query(query, [userId]);
         return result.rows.length > 0 ? result.rows[0] : null;
@@ -49,12 +61,30 @@ export class userRepository {
                 u.AdminId,
                 u.Username as username,
                 u.Email as email,
-                u.Role as role,
+                u.role_id as role,
+                r.name AS role_name,
                 u.IsActive as is_active,
                 u.LastLogin as last_login,
                 u.CreatedAt as created_at,
                 u.UpdatedAt as updated_at,
-                u.avatar,
+                u.avatar_id,
+                a.url AS avatar_url,
+                a.is_male AS avatar_is_male,
+                u.first_name,
+                u.last_name,
+                u.mobile,
+                u.bio,
+                u.rating,
+                u.max_rating,
+                u.is_verified,
+                u.country_id,
+                cn.name AS country_name,
+                u.state_id,
+                s.name AS state_name,
+                u.college_id,
+                c.name AS college_name,
+                u.company_id,
+                --// co.name AS company_name,
 
                 -- User preferences
                 up.theme,
@@ -71,7 +101,13 @@ export class userRepository {
                 up.emacs_mode
 
             FROM users u
+            LEFT JOIN role r ON u.role_id = r.id
+            LEFT JOIN avatar a ON u.avatar_id = a.id
             LEFT JOIN user_preferences up ON u.id = up.user_id
+            LEFT JOIN college c ON u.college_id = c.id
+            --// LEFT JOIN company co ON u.company_id = co.id
+            LEFT JOIN country cn ON u.country_id = cn.id
+            LEFT JOIN state s ON u.state_id = s.id
             WHERE u.id = $1
         `;
 
@@ -100,7 +136,28 @@ export class userRepository {
         };
 
         return {
-            ...user,
+            id: user.id,
+            adminId: user.adminid,
+            username: user.username,
+            email: user.email,
+            role: user.role_name || null,
+            firstName: user.first_name || null,
+            lastName: user.last_name || null,
+            mobile: user.mobile || null,
+            avatarUrl: user.avatar_url || null,
+            avatarIsMale: user.avatar_is_male ?? null,
+            bio: user.bio || null,
+            country: user.country_name || null,
+            state: user.state_name || null,
+            college: user.college_name || null,
+            company: user.company_name || null,
+            rating: user.rating || 0,
+            maxRating: user.max_rating || 0,
+            isVerified: user.is_verified || false,
+            isActive: user.is_active ?? true,
+            lastLogin: user.last_login || null,
+            createdAt: user.created_at,
+            updatedAt: user.updated_at,
             preferences,
         };
     }

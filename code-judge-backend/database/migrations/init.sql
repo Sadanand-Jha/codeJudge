@@ -429,29 +429,29 @@ INSERT INTO quiz_problem_type (name, created_at, updated_at) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- Insert predefined avatars (from shared/constants/avatars.ts)
--- Male avatars (12)
+-- 21 local avatars sliced from avatars.png (7 columns x 3 rows)
 INSERT INTO avatar (is_male, url, created_at, updated_at) VALUES
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Alex', NOW(), NOW()),
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Ryan', NOW(), NOW()),
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Michael', NOW(), NOW()),
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=David', NOW(), NOW()),
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=James', NOW(), NOW()),
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=John', NOW(), NOW()),
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Robert', NOW(), NOW()),
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=William', NOW(), NOW()),
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Daniel', NOW(), NOW()),
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Kevin', NOW(), NOW()),
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Jason', NOW(), NOW()),
-  (true, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Chris', NOW(), NOW()),
-  -- Female avatars (8)
-  (false, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Sarah', NOW(), NOW()),
-  (false, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Emma', NOW(), NOW()),
-  (false, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Olivia', NOW(), NOW()),
-  (false, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Jessica', NOW(), NOW()),
-  (false, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Emily', NOW(), NOW()),
-  (false, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Amanda', NOW(), NOW()),
-  (false, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Nicole', NOW(), NOW()),
-  (false, 'https://api.dicebear.com/9.x/adventurer/svg?seed=Rachel', NOW(), NOW())
+  (true, '/api/v1/avatars/1', NOW(), NOW()),
+  (true, '/api/v1/avatars/2', NOW(), NOW()),
+  (true, '/api/v1/avatars/3', NOW(), NOW()),
+  (true, '/api/v1/avatars/4', NOW(), NOW()),
+  (true, '/api/v1/avatars/5', NOW(), NOW()),
+  (true, '/api/v1/avatars/6', NOW(), NOW()),
+  (true, '/api/v1/avatars/7', NOW(), NOW()),
+  (true, '/api/v1/avatars/8', NOW(), NOW()),
+  (true, '/api/v1/avatars/9', NOW(), NOW()),
+  (true, '/api/v1/avatars/10', NOW(), NOW()),
+  (true, '/api/v1/avatars/11', NOW(), NOW()),
+  (true, '/api/v1/avatars/12', NOW(), NOW()),
+  (false, '/api/v1/avatars/13', NOW(), NOW()),
+  (false, '/api/v1/avatars/14', NOW(), NOW()),
+  (false, '/api/v1/avatars/15', NOW(), NOW()),
+  (false, '/api/v1/avatars/16', NOW(), NOW()),
+  (false, '/api/v1/avatars/17', NOW(), NOW()),
+  (false, '/api/v1/avatars/18', NOW(), NOW()),
+  (false, '/api/v1/avatars/19', NOW(), NOW()),
+  (false, '/api/v1/avatars/20', NOW(), NOW()),
+  (false, '/api/v1/avatars/21', NOW(), NOW())
 ON CONFLICT (url) DO NOTHING;
 
 

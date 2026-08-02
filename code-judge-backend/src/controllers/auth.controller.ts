@@ -175,7 +175,7 @@ export const loginController = async (req: Request, res: Response) => {
 
     // Generate JWT session token
     const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
-    const jwtExpiry = process.env.JWT_EXPIRY || "1d";
+    const jwtExpiry = process.env.JWT_EXPIRY || "10d";
     const signOptions: SignOptions = { expiresIn: jwtExpiry as SignOptions['expiresIn'] };
     const sessionToken = jwt.sign(
       {
@@ -194,7 +194,7 @@ export const loginController = async (req: Request, res: Response) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 10 * 1000 * 2 * 60 * 1000, //  1 day
+      maxAge: 10 * 24 * 60 * 60 * 1000, // 10 days
     });
 
     res.status(200).json({
@@ -269,7 +269,7 @@ export const meController = async (req: Request, res: Response) => {
       adminId: userProfile?.adminid || userInfo?.adminid,
       username: userProfile?.username || userInfo?.username,
       email: userProfile?.email || userInfo?.email,
-      role: userProfile?.role || userInfo?.role,
+      role: userProfile?.role_name || userInfo?.role_name || null,
       createdAt: userProfile?.createdat || userInfo?.created_at,
       updatedAt: userProfile?.updatedat || userInfo?.updated_at,
 
@@ -277,7 +277,8 @@ export const meController = async (req: Request, res: Response) => {
       firstName: userInfo?.first_name || null,
       lastName: userInfo?.last_name || null,
       mobile: userInfo?.mobile || null,
-      avatarUrl: userInfo?.avatar || null,
+      avatarUrl: userProfile?.avatar_url || userInfo?.avatar_url || null,
+      avatarIsMale: userProfile?.avatar_is_male ?? userInfo?.avatar_is_male ?? null,
       bio: userInfo?.bio || null,
       country: userInfo?.country || null,
       state: userInfo?.state || null,
