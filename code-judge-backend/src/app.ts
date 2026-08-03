@@ -10,18 +10,20 @@ import dns from "dns";
 
 
 
-console.log(process.env.PGHOST, process.env.PGDATABASE, process.env.PGUSER, process.env.PGPASSWORD, process.env.PGSSLMODE, process.env.PGCHANNELBINDING); // Ye line sabse upar honi chahiye
+// console.log(process.env.PGHOST, process.env.PGDATABASE, process.env.PGUSER, process.env.PGPASSWORD, process.env.PGSSLMODE, process.env.PGCHANNELBINDING); // Ye line sabse upar honi chahiye
 
-console.log("nhi mila")
+// console.log("nhi mila")
 
 
-console.log({
-  host: process.env.PGHOST,
-  user: process.env.PGUSER,
-  passwordType: typeof process.env.PGPASSWORD,
-  passwordLength: process.env.PGPASSWORD?.length,
-});
+// console.log({
+//   host: process.env.PGHOST,
+//   user: process.env.PGUSER,
+//   passwordType: typeof process.env.PGPASSWORD,
+//   passwordLength: process.env.PGPASSWORD?.length,
+// });
 
+
+console.log(process.env.DATABASE_URL); // Ye line sabse upar honi chahiye
 
 
 import pg from 'pg';
@@ -44,10 +46,29 @@ dns.setDefaultResultOrder("ipv4first");
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
   ssl: {
     rejectUnauthorized: false,
   },
 });
+
+async function shutdown(signal: string) {
+  console.log(`Received ${signal}. Closing database connections...`);
+
+  try {
+    await pool.end();
+    console.log("Database pool closed.");
+    process.exit(0);
+  } catch (err) {
+    console.error("Error closing database pool:", err);
+    process.exit(1);
+  }
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 pool.connect()
   .then(() => console.log('✅ Connected to PostgreSQL database successfully!'))
@@ -72,5 +93,39 @@ app.use("/api", apiRoutes);
 
 // Global error handler — must be registered after routes
 app.use(errorHandler);
+
+
+app.get("/health", async (req, res) => {
+  const health = {
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    database: "unknown",
+    internet: "disabled",
+  };
+
+  // Database check
+  try {
+    await pool.query("SELECT 1");
+    health.database = "connected";
+  } catch (e) {
+    health.database = "disconnected";
+    health.status = "degraded";
+  }
+
+  // Ping check (not production)
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      const response = await fetch("https://1.1.1.1", {
+        signal: AbortSignal.timeout(3000),
+      });
+
+      health.internet = response.ok ? "reachable" : "unreachable";
+    } catch {
+      health.internet = "unreachable";
+    }
+  }
+
+  res.status(health.status === "ok" ? 200 : 503).json(health);
+});
 
 export default app;
