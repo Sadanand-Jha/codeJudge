@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Clock, Users, Shield, Wifi, Monitor } from "lucide-react";
 import Link from "next/link";
@@ -8,8 +8,9 @@ import { mockQuizzes } from "@/mocks/quizData";
 
 import { getQuizCode } from "@/services/quiz";
 
-export default function QuizLobbyPage({ params }: { params: { quizId: string } }) {
-  const quizCode = getQuizCode(params.quizId);
+export default function QuizLobbyPage({ params }: { params: Promise<{ quizId: string }> }) {
+  const { quizId } = use(params);
+  const quizCode = getQuizCode(quizId);
   const quiz = mockQuizzes.find((q) => q.id === quizCode) || mockQuizzes[1];
   const [countdown, setCountdown] = useState(10);
   const [checking, setChecking] = useState(true);

@@ -110,17 +110,6 @@ const navItems = [
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
-// Protected routes that show a guest badge
-const GUEST_VISIBLE_ROUTES = [
-  "/",
-  "/problems",
-  "/contests",
-  "/interview",
-  "/leaderboard",
-  "/roadmaps",
-  "/discussions",
-];
-
 function isQuizPath(pathname: string): boolean {
   return pathname.startsWith("/quiz");
 }
@@ -137,17 +126,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalRedirect, setAuthModalRedirect] = useState<string | undefined>();
-  const [assessmentExpanded, setAssessmentExpanded] = useState(true);
+  const [assessmentExpanded, setAssessmentExpanded] = useState(() => isQuizPath(pathname));
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const setAuth = useAuthStore((s) => s.setAuth);
   const savedAvatar = useSavedAvatar();
   const { isGuest } = useGuestMode();
-
-  // Auto-expand Assessment section when on a quiz route, collapse otherwise
-  useEffect(() => {
-    setAssessmentExpanded(isQuizPath(pathname));
-  }, [pathname]);
 
   // Sync auth state with session cookie on app load
   useEffect(() => {
@@ -344,7 +328,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
           ) : (
             <div className="px-3 py-2 rounded-xl bg-[#7C3AED]/10 border border-[#7C3AED]/20">
-              <div className="text-[10px] text-[#9CA3AF] mb-1">You're browsing as a guest</div>
+              <div className="text-[10px] text-[#9CA3AF] mb-1">{"You're browsing as a guest"}</div>
               <button
                 onClick={() => handleAuthRequired(pathname + window.location.search)}
                 className="text-[10px] font-semibold text-[#7C3AED] hover:text-[#8B5AF0] transition-colors"

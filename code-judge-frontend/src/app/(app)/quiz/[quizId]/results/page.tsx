@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle, TrendingUp, Award, Target, ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -7,8 +8,9 @@ import { mockQuizzes, mockQuizQuestions } from "@/mocks/quizData";
 
 import { getQuizCode } from "@/services/quiz";
 
-export default function QuizResultsPage({ params }: { params: { quizId: string } }) {
-  const quizCode = getQuizCode(params.quizId);
+export default function QuizResultsPage({ params }: { params: Promise<{ quizId: string }> }) {
+  const { quizId } = use(params);
+  const quizCode = getQuizCode(quizId);
   const quiz = mockQuizzes.find((q) => q.id === quizCode) || mockQuizzes[1];
   const questions = quiz.questions.length > 0 ? quiz.questions : mockQuizQuestions;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock,
@@ -17,8 +17,9 @@ import { QuizQuestion } from "@/types/quiz";
 
 import { getQuizCode } from "@/services/quiz";
 
-export default function QuizAttemptPage({ params }: { params: { quizId: string } }) {
-  const quizCode = getQuizCode(params.quizId);
+export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: string }> }) {
+  const { quizId } = use(params);
+  const quizCode = getQuizCode(quizId);
   const quiz = mockQuizzes.find((q) => q.id === quizCode) || mockQuizzes[1];
   const questions = quiz.questions.length > 0 ? quiz.questions : mockQuizQuestions;
 

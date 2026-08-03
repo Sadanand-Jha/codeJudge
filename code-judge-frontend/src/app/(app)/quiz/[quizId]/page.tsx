@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import { motion } from "framer-motion";
 import {
   BookOpen,
@@ -22,8 +23,9 @@ import Link from "next/link";
 import { mockQuizzes, mockQuizCreator } from "@/mocks/quizData";
 import { getQuizCode, quizCodePath } from "@/services/quiz";
 
-export default function QuizDetailsPage({ params }: { params: { quizId: string } }) {
-  const quizCode = getQuizCode(params.quizId);
+export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: string }> }) {
+  const { quizId } = use(params);
+  const quizCode = getQuizCode(quizId);
   const quiz = mockQuizzes.find((q) => q.id === quizCode) || mockQuizzes[1];
   const settings = quiz.assessmentSettings || { attemptsAllowed: 3, passingScore: 40, timeLimit: 30, negativeMarking: false, practiceMode: false, enableCertificate: true, enableLeaderboard: true, enableDiscussion: true, enableBookmarks: true, lifelines: [] };
 

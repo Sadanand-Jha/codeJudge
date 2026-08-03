@@ -7,42 +7,124 @@ import { useRouter } from "next/navigation";
 interface QuizWarpExperienceProps {
   code: string;
   onComplete: () => void;
+  /** Total duration of the warp experience in ms (default 4000). */
+  duration?: number;
+  /** When true, immediately triggers the flash + onComplete. */
+  forceComplete?: boolean;
 }
 
-export function QuizWarpExperience({ code, onComplete }: QuizWarpExperienceProps) {
+// Pre-computed random star data (avoids Math.random in render)
+interface StarData {
+  width: number;
+  height: number;
+  left: number;
+  top: number;
+  animDuration: number;
+  animDelay: number;
+}
+
+interface LineData {
+  left: number;
+  height: number;
+  animDuration: number;
+  animDelay: number;
+}
+
+interface AsteroidData {
+  left: number;
+  top: number;
+  animDuration: number;
+  animDelay: number;
+}
+
+export function QuizWarpExperience({ code, onComplete, duration = 4000, forceComplete = false }: QuizWarpExperienceProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<"warp" | "portal" | "arrival">("warp");
   const [showFlash, setShowFlash] = useState(false);
   const warpRef = useRef<NodeJS.Timeout | null>(null);
   const portalRef = useRef<NodeJS.Timeout | null>(null);
   const arrivalRef = useRef<NodeJS.Timeout | null>(null);
+  const flashRef = useRef<NodeJS.Timeout | null>(null);
+  const completedRef = useRef(false);
+
+  // Proportional phase timings based on total duration
+  const warpDuration = duration * 0.4;       // 40% of duration
+  const portalDuration = duration * 0.4;      // 40% of duration
+  const arrivalDuration = duration * 0.2;     // 20% of duration
+
+  // Derive effective phase/flash from forceComplete to avoid setState in effect
+  const effectivePhase = forceComplete ? "arrival" : phase;
+  const effectiveShowFlash = forceComplete || showFlash;
+
+  // Pre-compute random values to avoid impure calls during render
+  const [stars] = useState<StarData[]>(() =>
+    Array.from({ length: 50 }, () => ({
+      width: 1 + Math.random() * 2,
+      height: 20 + Math.random() * 50,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      animDuration: 0.6 + Math.random() * 0.4,
+      animDelay: Math.random() * 0.5,
+    })));
+
+  const [lines] = useState<LineData[]>(() =>
+    Array.from({ length: 30 }, () => ({
+      left: 50 + (Math.random() - 0.5) * 100,
+      height: 30 + Math.random() * 60,
+      animDuration: 0.5 + Math.random() * 0.2,
+      animDelay: Math.random() * 0.2,
+    })));
+
+  const [asteroids] = useState<AsteroidData[]>(() =>
+    Array.from({ length: 5 }, () => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      animDuration: 2 + Math.random() * 1.5,
+      animDelay: Math.random() * 1.5,
+    })));
 
   useEffect(() => {
-    // Phase 1: Pure warp speed (0-1.5 seconds)
+    if (forceComplete) {
+      // Force complete: just trigger the completion timer (no setState needed)
+      if (!completedRef.current) {
+        completedRef.current = true;
+        flashRef.current = setTimeout(() => {
+          onComplete();
+          router.push(`/quiz/${code}/waiting`);
+        }, 300);
+      }
+      return;
+    }
+
+    // Phase 1: Pure warp speed
     warpRef.current = setTimeout(() => {
       setPhase("portal");
-    }, 1500);
+    }, warpDuration);
 
-    // Phase 2: Portal approach (1.5-3 seconds)
+    // Phase 2: Portal approach
     portalRef.current = setTimeout(() => {
       setPhase("arrival");
-    }, 3000);
+    }, warpDuration + portalDuration);
 
-    // Phase 3: Arrival transition (3-4 seconds)
+    // Phase 3: Arrival transition
     arrivalRef.current = setTimeout(() => {
       setShowFlash(true);
-      setTimeout(() => {
-        onComplete();
-        router.push(`/quiz/${code}/waiting`);
-      }, 300);
-    }, 3500);
+      if (!completedRef.current) {
+        completedRef.current = true;
+        flashRef.current = setTimeout(() => {
+          onComplete();
+          router.push(`/quiz/${code}/waiting`);
+        }, 300);
+      }
+    }, warpDuration + portalDuration + arrivalDuration - 300);
 
     return () => {
       if (warpRef.current) clearTimeout(warpRef.current);
       if (portalRef.current) clearTimeout(portalRef.current);
       if (arrivalRef.current) clearTimeout(arrivalRef.current);
+      if (flashRef.current) clearTimeout(flashRef.current);
     };
-  }, [code, onComplete, router]);
+  }, [code, onComplete, router, duration, warpDuration, portalDuration, arrivalDuration, forceComplete]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-[#000005] overflow-hidden">
@@ -50,20 +132,20 @@ export function QuizWarpExperience({ code, onComplete }: QuizWarpExperienceProps
       <div className="absolute inset-0 bg-gradient-to-b from-[#000010] via-[#050515] to-[#000008]" />
 
       {/* Warp speed stars - CSS animated for smoothness */}
-      {phase === "warp" && (
+      {effectivePhase === "warp" && (
         <div className="absolute inset-0 overflow-hidden">
-          {[...Array(50)].map((_, i) => (
+          {stars.map((s, i) => (
             <div
               key={i}
               className="absolute bg-white rounded-full"
               style={{
-                width: `${1 + Math.random() * 2}px`,
-                height: `${20 + Math.random() * 50}px`,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                width: `${s.width}px`,
+                height: `${s.height}px`,
+                left: `${s.left}%`,
+                top: `${s.top}%`,
                 transform: "translate3d(0,0,0)",
-                animation: `warpStar ${0.6 + Math.random() * 0.4}s linear infinite`,
-                animationDelay: `${Math.random() * 0.5}s`,
+                animation: `warpStar ${s.animDuration}s linear infinite`,
+                animationDelay: `${s.animDelay}s`,
                 opacity: 0,
               } as React.CSSProperties}
             />
@@ -72,20 +154,20 @@ export function QuizWarpExperience({ code, onComplete }: QuizWarpExperienceProps
       )}
 
       {/* Hyperspace tunnel - CSS animated */}
-      {(phase === "warp" || phase === "portal") && (
+      {(effectivePhase === "warp" || effectivePhase === "portal") && (
         <div className="absolute inset-0 overflow-hidden">
-          {[...Array(30)].map((_, i) => (
+          {lines.map((l, i) => (
             <div
               key={i}
               className="absolute bg-cyan-300/70 rounded-full"
               style={{
                 width: "2px",
-                left: `${50 + (Math.random() - 0.5) * 100}%`,
+                left: `${l.left}%`,
                 top: "50%",
-                height: `${30 + Math.random() * 60}px`,
+                height: `${l.height}px`,
                 transform: "translate3d(0,0,0)",
-                animation: `warpLine ${0.5 + Math.random() * 0.2}s linear infinite`,
-                animationDelay: `${Math.random() * 0.2}s`,
+                animation: `warpLine ${l.animDuration}s linear infinite`,
+                animationDelay: `${l.animDelay}s`,
                 opacity: 0,
               } as React.CSSProperties}
             />
@@ -94,7 +176,7 @@ export function QuizWarpExperience({ code, onComplete }: QuizWarpExperienceProps
       )}
 
       {/* Floating cosmic objects - CSS animated */}
-      {(phase === "warp" || phase === "portal") && (
+      {(effectivePhase === "warp" || effectivePhase === "portal") && (
         <div className="absolute inset-0 overflow-hidden">
           {/* Planets */}
           {[...Array(2)].map((_, i) => (
@@ -114,16 +196,16 @@ export function QuizWarpExperience({ code, onComplete }: QuizWarpExperienceProps
           ))}
 
           {/* Asteroids */}
-          {[...Array(5)].map((_, i) => (
+          {asteroids.map((a, i) => (
             <div
               key={`asteroid-${i}`}
               className="absolute text-base opacity-40"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
+                left: `${a.left}%`,
+                top: `${a.top}%`,
                 transform: "translate3d(0,0,0)",
-                animation: `floatAsteroid ${2 + Math.random() * 1.5}s linear infinite`,
-                animationDelay: `${Math.random() * 1.5}s`,
+                animation: `floatAsteroid ${a.animDuration}s linear infinite`,
+                animationDelay: `${a.animDelay}s`,
               } as React.CSSProperties}
             >
               🌑
@@ -133,7 +215,7 @@ export function QuizWarpExperience({ code, onComplete }: QuizWarpExperienceProps
       )}
 
       {/* Portal - simplified for performance */}
-      {phase === "portal" && (
+      {effectivePhase === "portal" && (
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div
             className="relative w-32 h-32"
@@ -157,7 +239,7 @@ export function QuizWarpExperience({ code, onComplete }: QuizWarpExperienceProps
 
       {/* Final white flash */}
       <AnimatePresence>
-        {showFlash && (
+        {effectiveShowFlash && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

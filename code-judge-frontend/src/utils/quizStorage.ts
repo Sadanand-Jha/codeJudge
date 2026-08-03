@@ -1,0 +1,94 @@
+"use client";
+
+import { QuizDetails, CreatorQuestion, DEFAULT_QUIZ_DETAILS } from "@/components/quiz/creator/types";
+
+const STORAGE_KEY = "byteclash_quiz_creation";
+
+export interface QuizCreationState {
+  details: QuizDetails;
+  questions: CreatorQuestion[];
+  activeQuestionId: string;
+  currentStage: "settings" | "builder";
+  updatedAt: string;
+}
+
+function isClient(): boolean {
+  return typeof window !== "undefined";
+}
+
+export function saveQuizState(state: QuizCreationState): void {
+  if (!isClient()) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (err) {
+    console.error("Failed to save quiz state to localStorage:", err);
+  }
+}
+
+export function loadQuizState(): QuizCreationState | null {
+  if (!isClient()) return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as QuizCreationState;
+    if (!parsed.details || !Array.isArray(parsed.questions)) return null;
+    return parsed;
+  } catch (err) {
+    console.error("Failed to load quiz state from localStorage:", err);
+    return null;
+  }
+}
+
+export function clearQuizState(): void {
+  if (!isClient()) return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (err) {
+    console.error("Failed to clear quiz state from localStorage:", err);
+  }
+}
+
+export function saveQuizDetails(details: QuizDetails): void {
+  if (!isClient()) return;
+  const existing = loadQuizState();
+  const state: QuizCreationState = {
+    details,
+    questions: existing?.questions || [],
+    activeQuestionId: existing?.activeQuestionId || "",
+    currentStage: "settings",
+    updatedAt: new Date().toISOString(),
+  };
+  saveQuizState(state);
+}
+
+export function saveQuizQuestions(
+  questions: CreatorQuestion[],
+  activeQuestionId: string
+): void {
+  if (!isClient()) return;
+  const existing = loadQuizState();
+  const state: QuizCreationState = {
+    details: existing?.details || DEFAULT_QUIZ_DETAILS,
+    questions,
+    activeQuestionId,
+    currentStage: "builder",
+    updatedAt: new Date().toISOString(),
+  };
+  saveQuizState(state);
+}
+
+export function saveActiveQuestionId(activeQuestionId: string): void {
+  if (!isClient()) return;
+  const existing = loadQuizState();
+  if (!existing) return;
+  saveQuizState({
+    ...existing,
+    activeQuestionId,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export function hasSavedQuiz(): boolean {
+  if (!isClient()) return false;
+  return loadQuizState() !== null;
+}

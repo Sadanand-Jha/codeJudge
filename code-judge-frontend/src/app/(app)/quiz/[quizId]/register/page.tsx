@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { motion } from "framer-motion";
 import {
   BookOpen,
@@ -31,14 +31,15 @@ import { DEFAULT_ASSESSMENT_SETTINGS, LifelineConfig } from "@/types/quiz";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
 
-export default function QuizRegisterPage({ params }: { params: { quizId: string } }) {
+export default function QuizRegisterPage({ params }: { params: Promise<{ quizId: string }> }) {
+  const { quizId } = use(params);
   const router = useRouter();
   const { user } = useAuthStore();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
 
-  const quizCode = getQuizCode(params.quizId);
+  const quizCode = getQuizCode(quizId);
 
   const settings = DEFAULT_ASSESSMENT_SETTINGS;
   const [agreed, setAgreed] = useState(false);
