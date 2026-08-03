@@ -1,4 +1,4 @@
-import { userApi, userDirectApi } from "@/utils/userAxiosInstance";
+import apiClient from "@/lib/axios";
 import type { LanguageOption } from "@/types/editor";
 import {
   LANGUAGE_OPTIONS,
@@ -6,10 +6,15 @@ import {
   getLanguageOptionByName,
 } from "@/constants/languages";
 
+const JUDGE0_URL = process.env.NEXT_JUDGE0_URL || "http://localhost:2358";
+
 export const getAllLanguages = async (): Promise<any> => {
   try {
-    const response = await userDirectApi.get('/languages');
-    return response.data;
+    const response = await fetch(`${JUDGE0_URL}/languages`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch languages: ${response.statusText}`);
+    }
+    return response.json();
   } catch (error: unknown) {
     if (error instanceof Error) {
       throw new Error(error.message);
@@ -72,7 +77,7 @@ export const fetchAndMergeLanguages = async (): Promise<LanguageOption[]> => {
 
 export const runCode = async (code: string, input: string, languageId: number): Promise<any> => {
   try {
-    const response = await userApi.post('editor/run', {
+    const response = await apiClient.post('/v1/user/editor/run', {
       language_id: languageId,
       source_code: code,
       stdin: input,

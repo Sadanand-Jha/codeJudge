@@ -96,7 +96,7 @@ RunButton (click)
     → CodeEditor.runCode()
       → useEditor().runCode()
         → services/editor.ts: runCodeService(code, input)
-          → userDirectApi (NEXT_JUDGE0_URL) POST /api/run
+          → apiClient (withCredentials) POST /v1/user/editor/run
             → Response: { stdout, message, ... }
               → setOutput(data.stdout || data.message || error)
 ```
