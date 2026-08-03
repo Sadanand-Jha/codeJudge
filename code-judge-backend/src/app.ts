@@ -23,7 +23,7 @@ import dns from "dns";
 // });
 
 
-console.log(process.env.DATABASE_URL); // Ye line sabse upar honi chahiye
+// console.log(process.env.DATABASE_URL); // Ye line sabse upar honi chahiye
 
 
 import pg from 'pg';
@@ -33,26 +33,17 @@ const { Pool } = pg;
 dns.setDefaultResultOrder("ipv4first");
 
 
+export const pool = new Pool();
+
 // export const pool = new Pool({
-//   host: process.env.PGHOST,
-//   port: Number(process.env.PGPORT || 5432),
-//   database: process.env.PGDATABASE,
-//   user: process.env.PGUSER,
-//   password: process.env.PGPASSWORD,
+//   connectionString: process.env.DATABASE_URL,
+//   max: 5,
+//   idleTimeoutMillis: 30000,
+//   connectionTimeoutMillis: 10000,
 //   ssl: {
 //     rejectUnauthorized: false,
 //   },
 // });
-
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
 
 async function shutdown(signal: string) {
   console.log(`Received ${signal}. Closing database connections...`);
