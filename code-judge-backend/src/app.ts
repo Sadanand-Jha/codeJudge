@@ -68,11 +68,25 @@ pool.connect()
 const app = express();
 
 // --- UPDATED CORS CONFIGURATION ---
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001"
+].filter(Boolean); // यह खाली या undefined वैल्यू को अपने आप हटा देगा
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000", // Update this to match your frontend port exactly (e.g., 5173 for Vite)
-  credentials: true, // This is required to allow cookies to be sent and set
+  origin: function (origin, callback) {
+    // अगर कोई सर्वर-टू-सर्वर रिक्वेस्ट है (जैसे Postman) तो origin undefined होता है, उसे अनुमति दें
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
 }));
-// ----------------------------------
 
 app.use(helmet());
 app.use(morgan("dev"));
