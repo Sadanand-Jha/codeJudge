@@ -94,7 +94,6 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 html,
@@ -102,11 +101,20 @@ body {
   height: 100%;
 }
 
-/* Theme transition utility */
-*,
-*::before,
-*::after {
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+/* Theme transition utility — buttery-smooth dark ↔ light switching.
+   Placed inside @layer base so Tailwind's transition-* utilities
+   (which live in @layer utilities) keep their intended behavior,
+   while every other element still eases gracefully between themes. */
+@layer base {
+  html,
+  body,
+  *,
+  *::before,
+  *::after {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-duration: 0.4s;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -394,6 +402,48 @@ button.cf-btn:hover {
    Toast Notification System — Premium Animations
    ============================================ */
 
+/* ===== White themed toasts (Light Theme only) =====
+   The Toaster lives outside ThemeProvider, so we key off
+   the [data-theme="light"] attribute on <html> via a
+   descendant selector. Dark theme stays completely untouched. */
+[data-theme="light"] .toast-card {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: #E2E8F0 !important;
+  border-left-color: var(--toast-accent, #2563EB) !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08), 0 1px 4px rgba(15, 23, 42, 0.04), 0 0 20px var(--toast-glow, rgba(59, 130, 246, 0.12)) !important;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+[data-theme="light"] .toast-card h3 {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .toast-card p {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .toast-card .toast-action-btn {
+  color: var(--toast-accent, #2563EB) !important;
+}
+
+[data-theme="light"] .toast-card .toast-action-btn:hover {
+  background: rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .toast-card .toast-close-btn {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .toast-card .toast-close-btn:hover {
+  color: #0F172A !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme="light"] .toast-card .toast-progress-track {
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
 /* Shake animation for error toasts on appearance */
 @keyframes toast-shake {
   0%,
@@ -583,6 +633,330 @@ button.cf-btn:hover {
 
 /* ===== Table rows hover ===== */
 [data-theme="light"] tr:hover { background-color: rgba(37, 99, 235, 0.04) !important; }
+
+/* ============================================
+   Problems List Page — Light Theme Polish
+   Scoped exclusively to the Problems List page
+   via semantic hook classes. Dark theme untouched.
+   ============================================ */
+
+/* Search box — white with depth */
+[data-theme="light"] .problems-search-box {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+}
+
+[data-theme="light"] .problems-search-box input::placeholder {
+  color: #94A3B8 !important;
+  font-weight: 400;
+}
+
+[data-theme="light"] .problems-search-box:focus-within {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Filter chips — inactive: white bg, border, medium gray text */
+[data-theme="light"] .problems-filter-chip {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problems-filter-chip:hover {
+  background-color: #EFF6FF !important;
+  border-color: #BFDBFE !important;
+  color: #1E40AF !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08) !important;
+}
+
+/* Difficulty chips — clean light surface */
+[data-theme="light"] .problems-difficulty-chip {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problems-difficulty-chip:hover {
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Topic chips — inactive: white bg, subtle border, medium gray text */
+[data-theme="light"] .problems-topic-chip {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problems-topic-chip:hover {
+  background-color: #F5F3FF !important;
+  border-color: #C4B5FD !important;
+  color: #5B21B6 !important;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.08) !important;
+}
+
+/* Results meta — softer tones */
+[data-theme="light"] .problems-results-meta {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .problems-results-meta span {
+  color: #334155 !important;
+}
+
+[data-theme="light"] .problems-clear-filters {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .problems-clear-filters:hover {
+  color: #DC2626 !important;
+}
+
+/* Empty state — clean light card */
+[data-theme="light"] .problems-empty-state {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Table — white rows, thin borders, rounded premium shell */
+[data-theme="light"] .problems-table {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .problems-table-head {
+  background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+}
+
+[data-theme="light"] .problems-table-head th {
+  color: #64748B !important;
+  letter-spacing: 0.06em;
+}
+
+[data-theme="light"] .problems-table-row {
+  border-color: #F1F5F9 !important;
+}
+
+[data-theme="light"] .problems-table-row:hover {
+  background-color: #F8FAFC !important;
+}
+
+/* Problem link — better hierarchy */
+[data-theme="light"] .problems-problem-link {
+  color: #1E293B !important;
+}
+
+[data-theme="light"] .problems-problem-link:hover {
+  color: #2563EB !important;
+}
+
+[data-theme="light"] .problems-problem-id {
+  color: #94A3B8 !important;
+}
+
+/* Difficulty badge — crisper contrast */
+[data-theme="light"] .problems-difficulty-badge {
+  border-width: 1px !important;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Acceptance track — softer gray rail, same green fill */
+[data-theme="light"] .problems-acceptance-track {
+  background-color: #E2E8F0 !important;
+  height: 6px !important;
+  border-radius: 9999px !important;
+}
+
+[data-theme="light"] .problems-acceptance-track div {
+  border-radius: 9999px !important;
+}
+
+/* Problem tags — light chips */
+[data-theme="light"] .problems-tag {
+  background-color: #F1F5F9 !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+}
+
+/* Action button — clean elevation on hover */
+[data-theme="light"] .problems-action-btn {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #64748B !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .problems-action-btn:hover {
+  background-color: #7C3AED !important;
+  border-color: #7C3AED !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+/* Pagination buttons */
+[data-theme="light"] .problems-page-btn {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .problems-page-btn:hover:not(:disabled) {
+  background-color: #F8FAFC !important;
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
+}
+
+/* ============================================
+   Problem Solve Page — Light Theme Polish
+   Scoped exclusively to the Problem Solve page.
+   The code editor / console stay intentionally
+   dark and untouched.
+   ============================================ */
+
+/* Header — cleaner badge appearance, softer divider */
+[data-theme="light"] .problem-solve-header {
+  background-color: #FFFFFF !important;
+  border-bottom-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problem-solve-header h1 {
+  color: #0F172A !important;
+}
+
+/* Metadata chips — better border, contrast, soft background */
+[data-theme="light"] .problem-solve-meta-chip {
+  background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problem-solve-meta-chip svg {
+  color: #64748B !important;
+}
+
+/* Header action buttons — same size, improved hover/elevation */
+[data-theme="light"] .problem-solve-btn {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #1E293B !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .problem-solve-btn:hover {
+  background-color: #F8FAFC !important;
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Sticky tabs — cleaner active/hover state */
+[data-theme="light"] .problem-solve-tabs {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-bottom-color: #E2E8F0 !important;
+}
+
+[data-theme="light"] .problem-solve-tab {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .problem-solve-tab:hover {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .problem-solve-tab.bg-accent\/15 {
+  background-color: #EFF6FF !important;
+  color: #1E40AF !important;
+  box-shadow: 0 0 20px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Description panel — premium white surface */
+[data-theme="light"] .problem-solve-desc {
+  background-color: #FFFFFF !important;
+  border-right-color: #E2E8F0 !important;
+}
+
+/* Problem sections — better typography + paragraph spacing */
+[data-theme="light"] .problem-solve-section h2 {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .problem-solve-section-content {
+  color: #334155 !important;
+  line-height: 1.8;
+}
+
+[data-theme="light"] .problem-solve-section + .problem-solve-section {
+  border-top: 1px solid #F1F5F9;
+  padding-top: 1.5rem;
+}
+
+[data-theme="light"] .problem-solve-section .problem-html p {
+  margin: 0.85em 0;
+}
+
+[data-theme="light"] .problem-solve-section .problem-html p:first-child {
+  margin-top: 0;
+}
+
+/* Examples — cleaner cards */
+[data-theme="light"] .problem-solve-examples h2 {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .problem-solve-sample-tab {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problem-solve-sample-tab:hover {
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .problem-solve-example {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problem-solve-example:hover {
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+}
+
+[data-theme="light"] .problem-solve-example-head {
+  background-color: #F8FAFC !important;
+  border-bottom-color: #E2E8F0 !important;
+}
+
+[data-theme="light"] .problem-solve-example-head span {
+  color: #334155 !important;
+}
+
+/* Divider between description & editor — thin, soft, premium */
+[data-theme="light"] .problem-solve-divider {
+  background: #E2E8F0 !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05) !important;
+}
+
+[data-theme="light"] .problem-solve-divider:hover {
+  background: #2563EB !important;
+}
 
 /* ============================================
    Settings Slider — Custom Range Input

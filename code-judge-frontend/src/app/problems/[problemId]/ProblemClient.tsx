@@ -138,7 +138,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Problem Header — clean, spacious, Codeforces + LeetCode inspired */}
-      <div className="shrink-0 border-b border-border bg-card">
+      <div className="problem-solve-header shrink-0 border-b border-border bg-card">
         <div className="px-6 py-5">
           {/* Row 1: Title + Primary Actions */}
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -150,7 +150,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
 
             {/* Right: Run Code + Submit */}
             <div className="flex shrink-0 items-center gap-3">
-              <button className="flex h-[42px] items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 text-sm font-semibold text-text-primary transition-all hover:border-border-hover hover:bg-card-hover focus-visible:ring-2 focus-visible:ring-accent/40">
+              <button className="problem-solve-btn flex h-[42px] items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 text-sm font-semibold text-text-primary transition-all hover:border-border-hover hover:bg-card-hover focus-visible:ring-2 focus-visible:ring-accent/40">
                 <Play className="h-4 w-4" />
                 Run Code
               </button>
@@ -169,14 +169,14 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
             >
               {problem.rating ? `Rating ${problem.rating}` : "Unrated"}
             </span>
-            <span className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-sm font-medium text-text-secondary">
+            <span className="problem-solve-meta-chip inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-sm font-medium text-text-secondary">
               {problem.contest_id || "Practice"}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-sm text-text-secondary">
+            <span className="problem-solve-meta-chip inline-flex items-center gap-1.5 text-sm text-text-secondary">
               <Clock className="h-3.5 w-3.5" />
               {timeLimitStr}
             </span>
-            <span className="inline-flex items-center gap-1.5 text-sm text-text-secondary">
+            <span className="problem-solve-meta-chip inline-flex items-center gap-1.5 text-sm text-text-secondary">
               <Database className="h-3.5 w-3.5" />
               {memoryLimitStr}
             </span>
@@ -197,7 +197,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
       </div>
 
       {/* Sticky Tabs — premium glassmorphic navigation */}
-      <div className="shrink-0 sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-xl">
+      <div className="problem-solve-tabs shrink-0 sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-xl">
         <div className="flex items-center gap-2 px-8 overflow-x-auto scrollbar-hide">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -209,7 +209,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 aria-pressed={isActive}
-                className={`group relative flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                className={`problem-solve-tab group relative flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   isActive
                     ? "bg-accent/15 text-text-primary shadow-[0_0_20px_rgba(37,99,235,0.15)]"
                     : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
@@ -281,7 +281,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
       <div className="flex-1 min-h-0">
         <Group id={leftGroupId} orientation="horizontal" onLayoutChange={(layout) => saveLayout(STORAGE_KEY_LEFT, layout.problem)}>
           <Panel id="problem" defaultSize={initialLeftWidth} minSize={30}>
-            <div className="h-full overflow-y-auto overflow-x-hidden border-r border-border bg-background">
+            <div className="problem-solve-desc h-full overflow-y-auto overflow-x-hidden border-r border-border bg-background">
               <div className="px-4 py-4">
                 <div className="max-w-[760px]">
                     {activeTab === "description" && (
@@ -517,7 +517,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
             </div>
           </Panel>
 
-          <Separator className="w-[6px] cursor-col-resize bg-transparent hover:bg-accent transition-colors relative group">
+          <Separator className="problem-solve-divider w-[6px] cursor-col-resize bg-transparent hover:bg-accent transition-colors relative group">
             <div className="absolute inset-0 group-hover:shadow-[0_0_12px_rgba(37,99,235,0.6)] transition-shadow" />
           </Separator>
 
@@ -601,7 +601,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                 </div>
               </Panel>
 
-              <Separator className="h-[6px] cursor-row-resize bg-transparent hover:bg-accent transition-colors relative group">
+              <Separator className="problem-solve-divider h-[6px] cursor-row-resize bg-transparent hover:bg-accent transition-colors relative group">
                 <div className="absolute inset-0 group-hover:shadow-[0_0_12px_rgba(37,99,235,0.6)] transition-shadow" />
               </Separator>
 
@@ -630,9 +630,9 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
 
 function ProblemSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section>
+    <section className="problem-solve-section">
       <h2 className="text-[18px] font-semibold text-text-primary mb-3">{title}</h2>
-      <div className="text-[15px] text-text-secondary leading-[1.8]">{children}</div>
+      <div className="problem-solve-section-content text-[15px] text-text-secondary leading-[1.8]">{children}</div>
     </section>
   );
 }
@@ -641,16 +641,16 @@ function ExamplesPanel({ samples }: { samples: SampleTest[] }) {
   const [activeSample, setActiveSample] = useState(0);
 
   return (
-    <div className="max-w-[760px] space-y-4">
+    <div className="problem-solve-examples max-w-[760px] space-y-4">
       <h2 className="text-[18px] font-semibold text-text-primary">Examples</h2>
 
-      {samples.length > 1 && (
+        {samples.length > 1 && (
         <div className="flex gap-1.5">
           {samples.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setActiveSample(idx)}
-              className={`px-2.5 py-1 text-[11px] font-medium rounded-md border transition-all ${
+              className={`problem-solve-sample-tab px-2.5 py-1 text-[11px] font-medium rounded-md border transition-all ${
                 activeSample === idx
                   ? "border-accent bg-accent/10 text-accent"
                   : "border-border bg-card text-text-secondary hover:border-border-hover"
@@ -696,8 +696,8 @@ function ExampleCard({ title, content }: { title: string; content: string }) {
   }, [content]);
 
   return (
-    <div className="rounded-lg bg-card border border-border overflow-hidden hover:border-border-hover transition-colors">
-      <div className="flex items-center justify-between px-3 py-1.5 bg-card-hover border-b border-border">
+    <div className="problem-solve-example rounded-lg bg-card border border-border overflow-hidden hover:border-border-hover transition-colors">
+      <div className="problem-solve-example-head flex items-center justify-between px-3 py-1.5 bg-card-hover border-b border-border">
         <span className="text-[11px] font-semibold text-text-primary uppercase">{title}</span>
         <button
           onClick={handleCopy}
