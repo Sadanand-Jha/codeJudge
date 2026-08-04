@@ -1167,3 +1167,55 @@ select {
   -o-user-drag: none;
   user-drag: none;
 }
+
+/* ============================================
+   Global — Selection & Drag Prevention
+   Scoped to non-editable UI elements only.
+   Defaults all elements to user-select: none,
+   then re-enables text selection exclusively
+   for editable components (input, textarea,
+   select, contenteditable, code editors, rich
+   text editors). Prevents accidental highlighting
+   while clicking/dragging and disables drag on
+   images and SVG icons. Does NOT affect
+   accessibility, keyboard navigation, or
+   layout/styling. Works for both themes.
+   ============================================ */
+
+/* Disable selection & prevent double-click callout on ALL elements */
+*,
+*::before,
+*::after {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Preserve selection & editing in editable components */
+input,
+textarea,
+select,
+[contenteditable],
+[contenteditable] *,
+.monaco-editor,
+.monaco-editor *,
+.cm-editor,
+.cm-editor *,
+.ace_editor,
+.ace_editor * {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Prevent native drag of images and SVG icons */
+img,
+svg {
+  -webkit-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
