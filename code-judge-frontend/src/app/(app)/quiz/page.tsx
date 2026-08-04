@@ -145,7 +145,7 @@ function QuizDashboardContent() {
     : currentQuizzes;
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-background text-text-primary p-4 sm:p-6 lg:p-8">
+    <div className="quiz-landing min-h-[calc(100vh-3.5rem)] bg-background text-text-primary p-4 sm:p-6 lg:p-8">
       {/* ===== HERO CARD ===== */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

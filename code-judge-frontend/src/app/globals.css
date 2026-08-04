@@ -1108,3 +1108,62 @@ select {
 [data-theme="light"] .settings-scroll::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.15);
 }
+
+/* ============================================
+   Quiz Landing Page — Selection & Drag Prevention
+   Scoped exclusively to the Assessment & Quiz
+   Platform landing page via the .quiz-landing
+   hook class. Disables text selection, dragging,
+   and copy interactions on all non-editable UI
+   elements. Editable components (inputs, textareas,
+   code editors, contenteditable) retain normal
+   selection. Works for both Light and Dark themes.
+   ============================================ */
+
+/* Disable text selection on all non-editable elements */
+.quiz-landing,
+.quiz-landing * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Prevent double-click text selection on UI elements */
+.quiz-landing * {
+  -webkit-touch-callout: none;
+}
+
+/* Re-enable text selection for editable components */
+.quiz-landing input,
+.quiz-landing textarea,
+.quiz-landing [contenteditable],
+.quiz-landing [contenteditable] *,
+.quiz-landing .monaco-editor,
+.quiz-landing .monaco-editor *,
+.quiz-landing .cm-editor,
+.quiz-landing .cm-editor *,
+.quiz-landing .ace_editor,
+.quiz-landing .ace_editor * {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Prevent drag-and-drop for images and decorative elements */
+.quiz-landing img {
+  -webkit-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: auto;
+}
+
+/* Prevent drag on SVG icons (lucide-react) */
+.quiz-landing svg {
+  -webkit-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
