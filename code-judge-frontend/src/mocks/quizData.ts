@@ -1,4 +1,4 @@
-import { Quiz, QuizAttempt, QuizResult, QuizQuestion, DEFAULT_ASSESSMENT_SETTINGS } from "@/types/quiz";
+import { Quiz, QuizAttempt, QuizResult, QuizQuestion, DEFAULT_ASSESSMENT_SETTINGS, QuizLeaderboardSettings } from "@/types/quiz";
 import { getAvatarUrlById } from "@/config/dicebear";
 
 const baseQuestion = {
@@ -314,4 +314,62 @@ export const mockQuizCreator = {
     { id: "quiz_001", title: "Linear Algebra Basics", attempts: 210, rating: 4.7 },
     { id: "quiz_002", title: "Probability & Statistics", attempts: 180, rating: 4.6 },
   ],
+};
+
+export const mockQuizLeaderboardSettings: QuizLeaderboardSettings = {
+  enabled: true,
+  showToParticipants: true,
+  showTop10Only: false,
+  showOnlyOwnRank: false,
+  anonymousMode: false,
+  hideUntilEnd: false,
+  showAfterQuizEnds: true,
+  showLiveDuringQuiz: false,
+  showAfterAllSubmitted: false,
+  realtimeRanking: false,
+};
+
+export const mockQuizLeaderboardEntries = Array.from({ length: 50 }, (_, i) => {
+  const totalMarks = 100;
+  const marks = Math.max(0, totalMarks - i * 2.5 + Math.floor(Math.random() * 20) - 10);
+  const percentage = Math.round((marks / totalMarks) * 100);
+  const correctCount = Math.floor((percentage / 100) * 20);
+  const wrongCount = Math.floor(Math.random() * (20 - correctCount));
+  const skippedCount = 20 - correctCount - wrongCount;
+  const timeTaken = 300 + Math.floor(Math.random() * 1500);
+
+  return {
+    rank: i + 1,
+    userId: `user-${i}`,
+    username: `Student ${i + 1}`,
+    avatar: getAvatarUrlById((i % 7) + 1),
+    college: ["MIT", "Stanford", "IIT Delhi", "IIT Bombay", "Carnegie Mellon"][i % 5],
+    marks: Math.round(marks),
+    totalMarks,
+    percentage,
+    correctCount,
+    wrongCount,
+    skippedCount,
+    timeTaken,
+    submissionTime: new Date(Date.now() - Math.floor(Math.random() * 3600000)).toISOString(),
+    status: ["completed", "timed_out", "submitted_late"][Math.floor(Math.random() * 3)] as any,
+    isCurrentUser: i === 0,
+  };
+}).sort((a, b) => {
+  if (b.marks !== a.marks) return b.marks - a.marks;
+  return a.timeTaken - b.timeTaken;
+}).map((entry, index) => ({
+  ...entry,
+  rank: index + 1,
+  isCurrentUser: index === 15, // Mock current user at rank 16
+}));
+
+export const mockQuizLeaderboardStats = {
+  participants: mockQuizLeaderboardEntries.length,
+  highestScore: Math.max(...mockQuizLeaderboardEntries.map(e => e.marks)),
+  averageScore: Math.round(mockQuizLeaderboardEntries.reduce((sum, e) => sum + e.marks, 0) / mockQuizLeaderboardEntries.length),
+  lowestScore: Math.min(...mockQuizLeaderboardEntries.map(e => e.marks)),
+  avgCompletionTime: Math.round(mockQuizLeaderboardEntries.reduce((sum, e) => sum + e.timeTaken, 0) / mockQuizLeaderboardEntries.length),
+  quizDuration: 1800,
+  completionRate: Math.round((mockQuizLeaderboardEntries.filter(e => e.status === "completed").length / mockQuizLeaderboardEntries.length) * 100),
 };

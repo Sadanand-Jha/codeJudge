@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Loader2, User } from "lucide-react";
+import { X, Check, Loader2, User, Lock, Sparkles } from "lucide-react";
 import {
-  PREDEFINED_AVATARS,
   getPredefinedAvatarByUrl,
   type PredefinedAvatar,
 } from "@/config/dicebear";
@@ -18,6 +17,34 @@ interface AvatarSelectionModalProps {
   onAvatarUpdated?: (avatarUrl: string) => void;
 }
 
+// ─────────────────────────────────────────
+// Profile Image Options
+// image1-14.png are UNLOCKED (free to use)
+// hero1-6.png are LOCKED (coming soon)
+// ─────────────────────────────────────────
+const PROFILE_IMAGES: Array<{ src: string; label: string; unlocked: boolean }> = [
+  { src: "/images/quiz/image1.png", label: "image1", unlocked: true },
+  { src: "/images/quiz/image2.png", label: "image2", unlocked: true },
+  { src: "/images/quiz/image3.png", label: "image3", unlocked: true },
+  { src: "/images/quiz/image4.png", label: "image4", unlocked: true },
+  { src: "/images/quiz/image5.png", label: "image5", unlocked: true },
+  { src: "/images/quiz/image6.png", label: "image6", unlocked: true },
+  { src: "/images/quiz/image7.png", label: "image7", unlocked: true },
+  { src: "/images/quiz/image8.png", label: "image8", unlocked: true },
+  { src: "/images/quiz/image9.png", label: "image9", unlocked: true },
+  { src: "/images/quiz/image10.png", label: "image10", unlocked: true },
+  { src: "/images/quiz/image11.png", label: "image11", unlocked: true },
+  { src: "/images/quiz/image12.png", label: "image12", unlocked: true },
+  { src: "/images/quiz/image13.png", label: "image13", unlocked: true },
+  { src: "/images/quiz/image14.png", label: "image14", unlocked: true },
+  { src: "/images/hero/hero1.png", label: "hero1", unlocked: false },
+  { src: "/images/hero/hero2.png", label: "hero2", unlocked: false },
+  { src: "/images/hero/hero3.png", label: "hero3", unlocked: false },
+  { src: "/images/hero/hero4.png", label: "hero4", unlocked: false },
+  { src: "/images/hero/hero5.png", label: "hero5", unlocked: false },
+  { src: "/images/hero/hero6.png", label: "hero6", unlocked: false },
+];
+
 export default function AvatarSelectionModal({
   isOpen,
   onClose,
@@ -26,23 +53,20 @@ export default function AvatarSelectionModal({
 }: AvatarSelectionModalProps) {
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(currentAvatarUrl);
   const [saving, setSaving] = useState(false);
+  const [showComingSoon, setShowComingSoon] = useState(false);
   const toast = useToast();
 
   // Reset selection when modal opens
   useEffect(() => {
     if (isOpen) {
       setSelectedAvatar(currentAvatarUrl);
-      // Lock background scroll immediately when modal opens
       document.body.style.overflow = "hidden";
     } else {
-      // Delay unlocking scroll until exit animation completes
       const timer = setTimeout(() => {
         document.body.style.overflow = "";
       }, 300);
       return () => clearTimeout(timer);
     }
-
-    // Cleanup on unmount
     return () => {
       document.body.style.overflow = "";
     };
@@ -53,8 +77,12 @@ export default function AvatarSelectionModal({
 
   const selectedAvatarData = getPredefinedAvatarByUrl(selectedAvatar);
 
-  const handleSelect = (avatar: PredefinedAvatar) => {
-    setSelectedAvatar(avatar.url);
+  const handleImageClick = (img: { src: string; label: string; unlocked: boolean }) => {
+    if (!img.unlocked) {
+      setShowComingSoon(true);
+      return;
+    }
+    setSelectedAvatar(img.src);
   };
 
   const handleSave = async () => {
@@ -64,19 +92,16 @@ export default function AvatarSelectionModal({
     try {
       const newAvatarUrl = await updateAvatar(selectedAvatar);
 
-      // Update parent state / Redux
       if (onAvatarUpdated) {
         onAvatarUpdated(newAvatarUrl);
       }
 
-      // Success toast
       toast.success({
         title: "Avatar Updated",
         description: "Your profile picture has been updated successfully.",
         timestamp: "Just now",
       });
 
-      // Close modal
       onClose();
     } catch {
       toast.error({
@@ -89,7 +114,6 @@ export default function AvatarSelectionModal({
   };
 
   const handleCancel = () => {
-    // Discard temporary selection and close
     setSelectedAvatar(currentAvatarUrl);
     onClose();
   };
@@ -116,7 +140,7 @@ export default function AvatarSelectionModal({
               <div>
                 <h2 className="text-lg font-bold text-white">Choose Your Avatar</h2>
                 <p className="text-xs text-[#9CA3AF] mt-0.5">
-                  Select one of the seven predefined avatars. Your profile picture will be updated after saving.
+                  Select an image. Locked images are coming soon.
                 </p>
               </div>
               <button
@@ -135,11 +159,8 @@ export default function AvatarSelectionModal({
                   Current Selection
                 </p>
                 <div className="relative">
-                  {/* Glow */}
                   <div className="absolute -inset-2 rounded-full bg-gradient-to-br from-[#7C3AED]/40 to-[#3B82F6]/30 blur-lg" />
-                  {/* Ring */}
                   <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] opacity-60 blur-[2px]" />
-                  {/* Avatar */}
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={selectedAvatar || "empty"}
@@ -166,34 +187,31 @@ export default function AvatarSelectionModal({
                 <p className="text-sm font-semibold text-white">
                   {selectedAvatarData?.label || "No avatar selected"}
                 </p>
-                {selectedAvatarData && (
-                  <p className="text-[10px] font-medium capitalize text-[#7C3AED]">
-                    {selectedAvatarData.gender}
-                  </p>
-                )}
               </div>
             </div>
 
-            {/* ===== Avatar Grid ===== */}
+            {/* ===== Image Grid ===== */}
             <div className="overflow-y-auto flex-1 p-6">
               <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-4">
-                {PREDEFINED_AVATARS.map((avatar) => {
-                  const isSelected = selectedAvatar === avatar.url;
-                  const isCurrent = currentAvatarUrl === avatar.url;
+                {PROFILE_IMAGES.map((img) => {
+                  const isSelected = selectedAvatar === img.src;
+                  const isCurrent = currentAvatarUrl === img.src;
 
                   return (
                     <motion.button
-                      key={avatar.id}
-                      whileHover={{ y: -3, scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => handleSelect(avatar)}
+                      key={img.src}
+                      whileHover={img.unlocked ? { y: -3, scale: 1.03 } : {}}
+                      whileTap={img.unlocked ? { scale: 0.97 } : {}}
+                      onClick={() => handleImageClick(img)}
                       disabled={saving}
                       aria-pressed={isSelected}
-                      aria-label={`Select ${avatar.label}`}
+                      aria-label={`Select ${img.label}`}
                       className={`group relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all duration-200 ${
                         isSelected
                           ? "border-[#7C3AED] bg-[#7C3AED]/10 shadow-[0_0_20px_rgba(124,58,237,0.3)]"
-                          : "border-white/[0.06] bg-[#09090B] hover:border-white/[0.14] hover:bg-white/[0.03]"
+                          : img.unlocked
+                          ? "border-white/[0.06] bg-[#09090B] hover:border-white/[0.14] hover:bg-white/[0.03]"
+                          : "border-white/[0.04] bg-[#09090B] opacity-70 cursor-pointer"
                       }`}
                     >
                       {/* Selected glow overlay */}
@@ -201,26 +219,36 @@ export default function AvatarSelectionModal({
                         <div className="pointer-events-none absolute inset-0 rounded-xl bg-gradient-to-br from-[#7C3AED]/20 via-transparent to-[#3B82F6]/15" />
                       )}
 
-                      {/* Avatar image */}
+                      {/* Image */}
                       <div className="relative h-14 w-14 overflow-hidden rounded-full bg-white/[0.03] ring-2 ring-white/[0.04]">
                         <img
-                          src={avatar.url}
-                          alt={avatar.label}
+                          src={img.src}
+                          alt={img.label}
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
                           loading="lazy"
                         />
                         {isSelected && (
                           <div className="absolute inset-0 rounded-full bg-[#7C3AED]/20" />
                         )}
+                        {/* Lock overlay for locked images */}
+                        {!img.unlocked && (
+                          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-[1px]">
+                            <Lock className="h-4 w-4 text-[#C7DDEC]" />
+                          </div>
+                        )}
                       </div>
 
-                      {/* Label - show avatar label */}
+                      {/* Label */}
                       <span
                         className={`text-[10px] font-semibold transition-colors ${
-                          isSelected ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+                          isSelected
+                            ? "text-white"
+                            : img.unlocked
+                            ? "text-[#9CA3AF] group-hover:text-white"
+                            : "text-[#6B7280]"
                         }`}
                       >
-                        {avatar.label}
+                        {img.label}
                       </span>
 
                       {/* Check icon overlay for selected */}
@@ -242,6 +270,13 @@ export default function AvatarSelectionModal({
                       {isCurrent && !isSelected && (
                         <div className="absolute -left-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#22C55E] border-2 border-[#111827]">
                           <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                        </div>
+                      )}
+
+                      {/* Small lock badge for locked images */}
+                      {!img.unlocked && !isSelected && (
+                        <div className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#1E293B] border-2 border-[#111827]">
+                          <Lock className="h-2.5 w-2.5 text-[#C7DDEC]" />
                         </div>
                       )}
                     </motion.button>
@@ -278,6 +313,60 @@ export default function AvatarSelectionModal({
               </button>
             </div>
           </motion.div>
+
+          {/* ===== Coming Soon Modal ===== */}
+          <AnimatePresence>
+            {showComingSoon && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+                onClick={() => setShowComingSoon(false)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 24 }}
+                  className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-[#C7DDEC]/20 bg-[#111827] shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Glow effect */}
+                  <div className="absolute -top-20 left-1/2 -translate-x-1/2 h-40 w-40 rounded-full bg-[#C7DDEC]/10 blur-3xl" />
+
+                  <div className="relative flex flex-col items-center gap-4 p-8 text-center">
+                    {/* Icon */}
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#C7DDEC]/20 to-[#7C3AED]/20 border border-[#C7DDEC]/30">
+                      <Sparkles className="h-7 w-7 text-[#C7DDEC]" />
+                    </div>
+
+                    {/* Title */}
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Coming Soon</h3>
+                      <p className="text-sm text-[#9CA3AF] mt-1">
+                        This image is part of our premium collection and will be available soon.
+                      </p>
+                    </div>
+
+                    {/* Badge */}
+                    <span className="rounded-full border border-[#C7DDEC]/20 bg-[#C7DDEC]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#C7DDEC]">
+                      Premium
+                    </span>
+
+                    {/* Close button */}
+                    <button
+                      onClick={() => setShowComingSoon(false)}
+                      className="mt-2 w-full rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#6366F1] px-6 py-2.5 text-sm font-bold text-white transition-all hover:shadow-[0_0_20px_rgba(124,58,237,0.4)]"
+                    >
+                      Got it
+                    </button>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>

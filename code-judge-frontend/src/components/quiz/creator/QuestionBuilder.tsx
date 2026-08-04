@@ -587,7 +587,7 @@ export default function QuestionBuilder({
                 <textarea
                   value={activeQuestion.title}
                   onChange={(e) => updateQuestion(activeQuestion.id, { title: e.target.value })}
-                  placeholder="Write your question here... Supports Markdown, LaTeX, code blocks, and tables."
+                  placeholder="Write your question here... "
                   className="w-full min-h-[180px] p-5 bg-transparent text-lg text-[#F8FAFC] placeholder-[#94A3B8] resize-none focus:outline-none leading-relaxed"
                 />
               </div>

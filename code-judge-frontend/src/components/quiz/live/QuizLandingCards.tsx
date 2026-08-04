@@ -45,7 +45,7 @@ function LandingCard({ icon, title, description, gradient, onClick, href }: Land
           whileHover={{ scale: 1.04 }}
         >
           {href ? "Open" : "Get Started"}
-        </motion.span>
+    y    </motion.span>
       </div>
     </>
   );

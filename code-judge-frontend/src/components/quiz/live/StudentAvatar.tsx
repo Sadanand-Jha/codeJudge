@@ -113,56 +113,25 @@ export function StudentAvatar({
         </div>
       )}
 
-      {/* Hover Card */}
+      {/* Hover Card - matches settings modal preview style */}
       {hovered && showHoverCard && (
         <motion.div
-          initial={{ opacity: 0, y: 8, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 8, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.95, y: 4 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 4 }}
           transition={{ duration: 0.15 }}
-          className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-56 rounded-2xl border border-[#EC4899]/30 bg-[#111217]/95 backdrop-blur-xl shadow-2xl shadow-black/50 p-4 z-[9999] pointer-events-none"
+          className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 rounded-xl border border-white/[0.1] bg-[#111827] p-3 shadow-2xl backdrop-blur-xl z-[9999] pointer-events-none"
         >
-          <div className="flex items-start gap-3 mb-3">
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0 overflow-hidden"
-              style={{
-                border: `2px solid rgba(236,72,153,0.5)`,
-                backgroundColor: "#171923",
-                boxShadow: "0 0 16px rgba(236,72,153,0.3)",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={displayAvatarUrl}
-                alt={participant.username}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-white truncate">{participant.username}</p>
-              <div className="flex items-center gap-1.5 mt-1">
-                <div
-                  className="w-2 h-2 rounded-full bg-[#F59E0B]"
-                  style={{ boxShadow: "0 0 6px rgba(245,158,11,0.6)" }}
-                />
-                <span className="text-[10px] text-[#F59E0B] font-medium">Waiting</span>
+          <div className="flex flex-col items-center gap-2">
+            <div className="relative">
+              <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[#EC4899]/40 to-[#BE185D]/30 blur-md opacity-80" />
+              <div className="relative h-14 w-14 overflow-hidden rounded-full border-2 border-white/10 bg-[#09090B] shadow-[0_6px_24px_rgba(0,0,0,0.45)]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={displayAvatarUrl} alt={participant.username} className="h-full w-full object-cover" />
               </div>
             </div>
-          </div>
-
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[#9CA3AF]">Roll No:</span>
-              <span className="text-white font-medium">23CS{String(1000 + index).slice(1)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[#9CA3AF]">Status:</span>
-              <span className="text-[#F59E0B] font-medium">Waiting for teacher</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[#9CA3AF]">Joined:</span>
-              <span className="text-white font-medium">{Math.floor(Math.random() * 5) + 1} min ago</span>
-            </div>
+            <p className="text-xs font-bold text-white truncate w-full text-center">{participant.username}</p>
+            <p className="text-[10px] text-[#9CA3AF] text-center">Participant</p>
           </div>
         </motion.div>
       )}

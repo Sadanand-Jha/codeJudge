@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -20,6 +20,7 @@ import {
   RotateCcw,
   Eye,
   BarChart3,
+  X,
 } from "lucide-react";
 
 type AttemptStatus = "Completed" | "Submitted" | "Timed Out" | "Left Early";
@@ -380,20 +381,44 @@ export default function PreviousQuizzesSection() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6 mb-5">
+          {/* Search - always visible */}
+          <div className="mb-3">
             <FieldInput
               icon={Search}
               label="Search Quiz"
               placeholder="Quiz title, subject, creator..."
               value={search}
               onChange={setSearch}
-              className="xl:col-span-2"
             />
-            <FieldSelect label="Subject" value={subject} options={allSubjects} onChange={setSubject} />
-            <FieldSelect label="Date Range" value={dateRange} options={["All time", "Last 7 days", "Last 30 days", "Last 90 days"]} onChange={setDateRange} />
-            <FieldSelect label="Status" value={status} options={[...STATUS_OPTIONS]} onChange={(v) => setStatus(v as (typeof STATUS_OPTIONS)[number])} />
-            <FieldSelect label="Score" value={score} options={SCORE_OPTIONS} onChange={setScore} />
-            <FieldSelect label="Sort By" value={sortBy} options={SORT_OPTIONS} onChange={setSortBy} />
+          </div>
+
+          {/* Filter button for mobile, filters for desktop */}
+          <div className="mb-5">
+            {/* Mobile: Filter Button + Bottom Sheet */}
+            <div className="md:hidden">
+              <MobileFilterBottomSheet
+                subject={subject}
+                setSubject={setSubject}
+                dateRange={dateRange}
+                setDateRange={setDateRange}
+                status={status}
+                setStatus={setStatus as any}
+                score={score}
+                setScore={setScore}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                allSubjects={allSubjects}
+              />
+            </div>
+
+            {/* Desktop: Inline filters */}
+            <div className="hidden md:grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+              <FieldSelect label="Subject" value={subject} options={allSubjects} onChange={setSubject} />
+              <FieldSelect label="Date Range" value={dateRange} options={["All time", "Last 7 days", "Last 30 days", "Last 90 days"]} onChange={setDateRange} />
+              <FieldSelect label="Status" value={status} options={[...STATUS_OPTIONS]} onChange={(v) => setStatus(v as (typeof STATUS_OPTIONS)[number])} />
+              <FieldSelect label="Score" value={score} options={SCORE_OPTIONS} onChange={setScore} />
+              <FieldSelect label="Sort By" value={sortBy} options={SORT_OPTIONS} onChange={setSortBy} />
+            </div>
           </div>
 
           {!isHydrated ? (
@@ -708,6 +733,162 @@ function AttemptSkeletonGrid() {
         </div>
       ))}
     </div>
+  );
+}
+
+function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange, status, setStatus, score, setScore, sortBy, setSortBy, allSubjects }: {
+  subject: string;
+  setSubject: (v: string) => void;
+  dateRange: string;
+  setDateRange: (v: string) => void;
+  status: any;
+  setStatus: (v: any) => void;
+  score: string;
+  setScore: (v: string) => void;
+  sortBy: string;
+  setSortBy: (v: string) => void;
+  allSubjects: string[];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const activeFiltersCount = [
+    subject !== "All",
+    dateRange !== "All time",
+    status !== "All",
+    score !== "All",
+    sortBy !== "Newest"
+  ].filter(Boolean).length;
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="w-full h-12 rounded-xl border border-white/[0.08] bg-white/[0.03] text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all hover:border-white/[0.16] hover:bg-white/[0.06]"
+      >
+        <Filter className="w-4 h-4" />
+        Filters
+        {activeFiltersCount > 0 && (
+          <span className="px-2 py-0.5 rounded-full bg-[#EC4899]/20 text-[#F472B6] text-[10px] font-bold">
+            {activeFiltersCount}
+          </span>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: "100%" }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed bottom-0 left-0 right-0 z-[60] max-h-[85vh] overflow-y-auto rounded-t-3xl border border-white/[0.12] bg-[#111217] p-5 shadow-2xl"
+            >
+              <div className="flex justify-center mb-3">
+                <div className="w-10 h-1 rounded-full bg-white/20" />
+              </div>
+
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white">Filters</h3>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-2 rounded-lg hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">Subject</label>
+                  <select
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full h-12 rounded-xl border border-white/[0.08] bg-[#0B0D12] px-4 text-sm text-white outline-none"
+                  >
+                    {allSubjects.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">Date Range</label>
+                  <select
+                    value={dateRange}
+                    onChange={(e) => setDateRange(e.target.value)}
+                    className="w-full h-12 rounded-xl border border-white/[0.08] bg-[#0B0D12] px-4 text-sm text-white outline-none"
+                  >
+                    {["All time", "Last 7 days", "Last 30 days", "Last 90 days"].map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">Status</label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="w-full h-12 rounded-xl border border-white/[0.08] bg-[#0B0D12] px-4 text-sm text-white outline-none"
+                  >
+                    {STATUS_OPTIONS.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">Score</label>
+                  <select
+                    value={score}
+                    onChange={(e) => setScore(e.target.value)}
+                    className="w-full h-12 rounded-xl border border-white/[0.08] bg-[#0B0D12] px-4 text-sm text-white outline-none"
+                  >
+                    {SCORE_OPTIONS.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">Sort By</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full h-12 rounded-xl border border-white/[0.08] bg-[#0B0D12] px-4 text-sm text-white outline-none"
+                  >
+                    {SORT_OPTIONS.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setSubject("All");
+                    setDateRange("All time");
+                    setStatus("All");
+                    setScore("All");
+                    setSortBy("Newest");
+                  }}
+                  className="w-full h-12 rounded-xl border border-white/[0.08] bg-white/[0.03] text-sm font-semibold text-white hover:border-white/[0.16] hover:bg-white/[0.06] transition-all"
+                >
+                  Reset All Filters
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 

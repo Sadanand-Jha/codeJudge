@@ -1,3 +1,10 @@
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
 export function getRatingHex(rating: number | null | undefined): string {
   const r = rating ?? 0;
   if (r >= 2400) return "#EF4444";

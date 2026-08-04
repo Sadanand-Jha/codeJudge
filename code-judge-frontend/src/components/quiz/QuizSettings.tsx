@@ -288,8 +288,14 @@ function defaultSettings(quizName: string): QuizSettingsConfig {
     },
     leaderboard: {
       enabled: true,
-      hideUntilEnd: false,
+      showToParticipants: true,
+      showTop10Only: false,
+      showOnlyOwnRank: false,
       anonymousMode: false,
+      hideUntilEnd: false,
+      showAfterQuizEnds: false,
+      showLiveDuringQuiz: true,
+      showAfterAllSubmitted: false,
       realtimeRanking: true,
     },
     discussion: {
@@ -633,13 +639,32 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
       case "leaderboard":
         return (
           <div className="space-y-4">
-            <SectionCard title="Leaderboard" description="Ranking configuration">
-              <Toggle label="Enable Leaderboard" checked={settings.leaderboard.enabled} onChange={(v) => updateSection("leaderboard", { enabled: v })} />
-              {settings.leaderboard.enabled && (
+            <SectionCard title="Leaderboard Settings" description="Control leaderboard visibility and display options">
+              <Toggle 
+                label="Show Leaderboard to Participants" 
+                description="If enabled, students can view the quiz leaderboard after completing the quiz. If disabled, only quiz creators and administrators can view leaderboard standings."
+                checked={settings.leaderboard.showToParticipants} 
+                onChange={(v) => updateSection("leaderboard", { showToParticipants: v })} 
+              />
+              
+              {settings.leaderboard.showToParticipants && (
                 <>
-                  <Toggle label="Hide Until End" checked={settings.leaderboard.hideUntilEnd} onChange={(v) => updateSection("leaderboard", { hideUntilEnd: v })} />
-                  <Toggle label="Anonymous Mode" checked={settings.leaderboard.anonymousMode} onChange={(v) => updateSection("leaderboard", { anonymousMode: v })} />
-                  <Toggle label="Real-time Ranking" checked={settings.leaderboard.realtimeRanking} onChange={(v) => updateSection("leaderboard", { realtimeRanking: v })} />
+                  <div className="border-t border-white/[0.06] pt-3 space-y-1">
+                    <Toggle label="Show only Top 10" description="Limit visible leaderboard to top 10 participants" checked={settings.leaderboard.showTop10Only} onChange={(v) => updateSection("leaderboard", { showTop10Only: v })} />
+                    <Toggle label="Show only student's own rank" description="Participants see only their position in the leaderboard" checked={settings.leaderboard.showOnlyOwnRank} onChange={(v) => updateSection("leaderboard", { showOnlyOwnRank: v })} />
+                    <Toggle label="Hide participant names (anonymous leaderboard)" description="Hide usernames from the leaderboard" checked={settings.leaderboard.anonymousMode} onChange={(v) => updateSection("leaderboard", { anonymousMode: v })} />
+                  </div>
+                  
+                  <div className="border-t border-white/[0.06] pt-3 space-y-1">
+                    <p className="text-[10px] font-medium text-[#9CA3AF] mb-2">Display Timing</p>
+                    <Toggle label="Show leaderboard only after quiz ends" description="Leaderboard becomes visible only when the quiz ends" checked={settings.leaderboard.showAfterQuizEnds} onChange={(v) => updateSection("leaderboard", { showAfterQuizEnds: v })} />
+                    <Toggle label="Show live leaderboard during quiz" description="Display real-time rankings while quiz is active" checked={settings.leaderboard.showLiveDuringQuiz} onChange={(v) => updateSection("leaderboard", { showLiveDuringQuiz: v })} />
+                    <Toggle label="Show leaderboard after all participants have submitted" description="Wait until everyone completes before showing results" checked={settings.leaderboard.showAfterAllSubmitted} onChange={(v) => updateSection("leaderboard", { showAfterAllSubmitted: v })} />
+                  </div>
+
+                  <div className="border-t border-white/[0.06] pt-3 space-y-1">
+                    <Toggle label="Real-time Ranking Updates" description="Update leaderboard rankings in real-time" checked={settings.leaderboard.realtimeRanking} onChange={(v) => updateSection("leaderboard", { realtimeRanking: v })} />
+                  </div>
                 </>
               )}
             </SectionCard>
@@ -706,8 +731,8 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
 
   return (
     <div className="h-screen bg-[#09090B] flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="h-14 border-b border-white/[0.08] bg-[#09090B]/80 backdrop-blur-xl flex items-center px-4 gap-3 shrink-0">
+      {/* ===== TOP BAR ===== */}
+      <div className="h-14 border-b border-white/[0.08] bg-[#09090B]/80 backdrop-blur-xl flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0">
         <button
           onClick={onBack}
           className="h-8 px-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
@@ -739,8 +764,8 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
 
       {/* Body: Category Sidebar + Settings Panel */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Category Sidebar */}
-        <div className="w-64 border-r border-white/[0.06] bg-[#0B0D12] flex flex-col shrink-0">
+        {/* Category Sidebar - hidden on mobile */}
+        <div className="hidden md:block w-64 border-r border-white/[0.06] bg-[#0B0D12] flex flex-col shrink-0">
           <div className="p-3 border-b border-white/[0.06]">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#6B7280]" />
@@ -779,10 +804,10 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
 
         {/* Settings Panel */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto p-6">
-            <div className="mb-6">
-              <h2 className="text-lg font-bold text-white">{CATEGORIES.find((c) => c.id === activeCategory)?.label}</h2>
-              <p className="text-[11px] text-[#6B7280]">{CATEGORIES.find((c) => c.id === activeCategory)?.description}</p>
+          <div className="max-w-3xl mx-auto p-4 sm:p-6">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-base sm:text-lg font-bold text-white">{CATEGORIES.find((c) => c.id === activeCategory)?.label}</h2>
+              <p className="text-[10px] sm:text-[11px] text-[#6B7280]">{CATEGORIES.find((c) => c.id === activeCategory)?.description}</p>
             </div>
             <AnimatePresence mode="wait">
               <motion.div

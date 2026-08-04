@@ -7,6 +7,8 @@ import {
   Link2, AlertTriangle, Save, Trash2, Check,
   ExternalLink, Loader2, Download, Pause, MessageSquareX,
   Globe, Mail, Phone, Calendar, Moon, Sun, Monitor,
+  Users, Star, MapPin, BadgeCheck, Camera, AtSign,
+  Hash, Clock, Sparkles,
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import AvatarSettings from "@/components/settings/AvatarSettings";
@@ -17,7 +19,8 @@ import {
   SettingsSlider, ConfirmDialog, SettingsRow,
 } from "@/components/ui/settings";
 import { getUserInfo } from "@/services/user";
-import type { UserInfo } from "@/types/user";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/helpers";
 
 /* =============================================
    Navigation Sections
@@ -152,6 +155,10 @@ const DEFAULT_SETTINGS = {
   displayName: "Sadanand Jha",
   bio: "Competitive programmer | 5★ on CodeChef | ICPC Regionalist 2024",
   role: "user",
+  rating: 1875,
+  followers: 1240,
+  problemsSolved: 342,
+  memberSince: "March 2024",
   // Personal Info
   email: "sadanand@example.com",
   mobileNumber: "+91 98765 43210",
@@ -212,6 +219,24 @@ const DEFAULT_SETTINGS = {
 
 type Settings = typeof DEFAULT_SETTINGS;
 
+const COUNTRY_NAMES: Record<string, string> = {
+  IN: "India",
+  US: "United States",
+  UK: "United Kingdom",
+  CA: "Canada",
+  AU: "Australia",
+  DE: "Germany",
+  FR: "France",
+  JP: "Japan",
+  SG: "Singapore",
+  BR: "Brazil",
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  user: "User",
+  admin: "Admin",
+};
+
 /* =============================================
    Main Settings Page
    ============================================= */
@@ -239,7 +264,7 @@ export default function SettingsPage() {
     onConfirm: () => {},
   });
 
-  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -248,7 +273,21 @@ export default function SettingsPage() {
 
   // Update a setting
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
+    setSettings((prev) => {
+      const next = { ...prev, [key]: value };
+      
+      // Sync theme to ThemeContext when changed
+      if (key === "theme") {
+        const themeValue = value as string;
+        if (themeValue === "system") {
+          setTheme("dark");
+        } else if (themeValue === "dark" || themeValue === "light") {
+          setTheme(themeValue);
+        }
+      }
+      
+      return next;
+    });
   };
 
   // Save handler
@@ -307,6 +346,11 @@ export default function SettingsPage() {
           "red": "#EF4444",
         };
         
+        // Format member since date
+        const memberSince = data.createdAt 
+          ? new Date(data.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+          : "March 2024";
+        
         // Map API response to settings
         const mappedSettings: Partial<Settings> = {
           username: data.username,
@@ -321,6 +365,8 @@ export default function SettingsPage() {
           college: data.college || "",
           company: data.company || "",
           role: data.role || "user",
+          rating: data.rating || 1875,
+          memberSince,
           preferredLanguage: data.preferences?.preferredLanguage || "cpp",
           editorTheme: data.preferences?.editorTheme || "dracula",
           editorFontSize: data.preferences?.editorFontSize || 14,
@@ -378,173 +424,190 @@ export default function SettingsPage() {
     setOriginalSettings((prev) => ({ ...prev, avatar: avatarUrl }));
   };
 
+  const displayName = settings.displayName || `${settings.firstName} ${settings.lastName}`.trim() || "Your Name";
+  const countryName = COUNTRY_NAMES[settings.country] || settings.country || "—";
+  const roleLabel = ROLE_LABELS[settings.role] || settings.role || "User";
+
   return (
     <AppLayout>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen bg-background">
         {/* ===== Settings Sidebar ===== */}
-        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 border-r border-white/[0.06] bg-[#09090B]/50 backdrop-blur-xl lg:block">
-          <nav className="settings-scroll h-full overflow-y-auto p-3">
-            <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">
+        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
+          <nav className="settings-scroll h-full overflow-y-auto p-4">
+            <p className="px-3 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
               Settings
             </p>
-            {SECTIONS.map((section) => {
-              const Icon = section.icon;
-              const isActive = activeSection === section.id;
-              const isDanger = section.id === "danger";
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => scrollToSection(section.id)}
-                  className="relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all"
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeSettingsNav"
-                      className={`absolute inset-0 rounded-xl ${
-                        isDanger
-                          ? "bg-[#EF4444]/10 shadow-[0_0_20px_rgba(239,68,68,0.1)]"
-                          : "bg-[#7C3AED]/15 shadow-[0_0_20px_rgba(124,58,237,0.15)]"
-                      }`}
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            <div className="space-y-1">
+              {SECTIONS.map((section) => {
+                const Icon = section.icon;
+                const isActive = activeSection === section.id;
+                const isDanger = section.id === "danger";
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => scrollToSection(section.id)}
+                    className={cn(
+                      "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200",
+                      isActive
+                        ? isDanger
+                          ? "bg-danger/10 text-danger"
+                          : "bg-accent/10 text-accent"
+                        : "text-text-secondary hover:bg-accent/5 hover:text-text-primary"
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        "h-5 w-5 shrink-0 transition-colors",
+                        isActive ? "text-accent" : "text-text-muted group-hover:text-text-primary"
+                      )}
+                      strokeWidth={isActive ? 2.2 : 2}
                     />
-                  )}
-                  <Icon className={`relative z-10 h-4 w-4 transition-colors ${
-                    isActive
-                      ? isDanger ? "text-[#EF4444]" : "text-white"
-                      : "text-[#9CA3AF] group-hover:text-white"
-                  }`} />
-                  <span className={`relative z-10 transition-colors ${
-                    isActive
-                      ? isDanger ? "text-[#EF4444]" : "text-white"
-                      : "text-[#9CA3AF] hover:text-white"
-                  }`}>
-                    {section.label}
-                  </span>
-                </button>
-              );
-            })}
+                    <span className={cn("font-medium", isActive && "font-semibold")}>
+                      {section.label}
+                    </span>
+                    {isActive && (
+                      <motion.span
+                        layoutId="activeSettingsIndicator"
+                        className={cn(
+                          "ml-auto h-1.5 w-1.5 rounded-full",
+                          isDanger ? "bg-danger" : "bg-accent"
+                        )}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </nav>
         </aside>
 
         {/* ===== Main Content ===== */}
         <div className="flex-1 overflow-y-auto">
-          {/* Header */}
-          <div className="sticky top-14 z-20 border-b border-white/[0.06] bg-[#09090B]/80 backdrop-blur-xl px-6 py-4">
+          {/* ===== Page Header ===== */}
+          <div className="sticky top-14 z-20 border-b border-border bg-background/80 px-6 py-5 backdrop-blur-xl lg:px-8">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">Settings</h1>
-                <p className="text-xs text-[#9CA3AF] mt-0.5">
-                  Manage your byteCode profile, security, coding preferences, and account settings.
+                <h1 className="text-xl font-bold tracking-tight text-text-primary">Settings</h1>
+                <p className="mt-0.5 text-xs text-text-secondary">
+                  Manage your profile, coding preferences and account.
                 </p>
               </div>
-              <div className="flex items-center gap-2.5">
-                {hasChanges && (
+              <div className="flex items-center gap-3">
+                {hasChanges ? (
                   <motion.span
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="flex items-center gap-1.5 rounded-full bg-[#F59E0B]/10 px-2.5 py-1 text-[10px] font-semibold text-[#F59E0B]"
+                    className="flex items-center gap-1.5 rounded-full bg-warning/10 px-3 py-1.5 text-[10px] font-semibold text-warning"
                   >
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse" />
                     Unsaved Changes
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="hidden items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-[10px] font-semibold text-success sm:flex"
+                  >
+                    <Check className="h-3 w-3" />
+                    {lastSaved ? `Auto saved ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Auto saved"}
                   </motion.span>
                 )}
                 <button
                   onClick={handleReset}
                   disabled={!hasChanges || saving}
-                  className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-xs font-medium text-white transition-all hover:border-white/[0.12] disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="h-11 rounded-xl border border-border bg-card px-4 text-xs font-medium text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Reset
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={!hasChanges || saving}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#7C3AED] px-4 py-2 text-xs font-bold text-white transition-all hover:shadow-[0_0_16px_rgba(124,58,237,0.4)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none"
+                  className="flex h-11 items-center gap-2 rounded-xl bg-accent px-5 text-xs font-bold text-white transition-all duration-200 hover:shadow-[0_4px_16px_rgba(37,99,235,0.3)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:brightness-100"
                 >
                   {saving ? (
-                    <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...</>
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
                   ) : (
-                    <><Save className="h-3.5 w-3.5" /> Save Changes</>
+                    <><Save className="h-4 w-4" /> Save Changes</>
                   )}
                 </button>
               </div>
             </div>
-            {lastSaved && (
-              <p className="mt-2 text-[10px] text-[#6B7280]">
-                Last updated: {lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </p>
-            )}
           </div>
 
-          {/* Sections */}
-          <div className="space-y-6 py-10 max-w-4xl">
+          {/* ===== Sections ===== */}
+          <div className="mx-auto max-w-4xl space-y-10 px-6 py-10 lg:px-8">
             {/* ===== PROFILE SECTION ===== */}
             <div id="profile" ref={(el) => { sectionRefs.current["profile"] = el; }} className="scroll-mt-32 space-y-6">
               <AvatarSettings
                 currentAvatarUrl={settings.avatar}
                 onAvatarUpdated={handleAvatarUpdated}
               />
-              <SettingsCard title="Profile" description="Your public profile and identity on byteCode" icon={<User className="h-4 w-4" />}>
-                <div className="grid gap-6 md:grid-cols-[1fr_240px]">
-                  <div className="space-y-4">
+              <SettingsCard
+                title="Profile"
+                description="Manage your public identity"
+                icon={<User className="h-5 w-5" />}
+              >
+                <div className="grid gap-8 lg:grid-cols-[2fr_1fr]">
+                  {/* ===== Left: Form ===== */}
+                  <div className="space-y-6">
                     {/* Username */}
-                    <SettingsInput label="Username" value={settings.username} onChange={(v) => update("username", v)} readOnly />
+                    <SettingsInput label="Username" value={settings.username} onChange={(v) => update("username", v)} readOnly required />
                     {/* Names */}
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <SettingsInput label="First Name" value={settings.firstName} onChange={(v) => update("firstName", v)} />
-                      <SettingsInput label="Last Name" value={settings.lastName} onChange={(v) => update("lastName", v)} />
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <SettingsInput label="First Name" value={settings.firstName} onChange={(v) => update("firstName", v)} required />
+                      <SettingsInput label="Last Name" value={settings.lastName} onChange={(v) => update("lastName", v)} required />
                     </div>
                     {/* Display Name */}
-                    <SettingsInput label="Display Name" value={settings.displayName} onChange={(v) => update("displayName", v)} />
+                    <SettingsInput label="Display Name" value={settings.displayName} onChange={(v) => update("displayName", v)} placeholder="How your name appears publicly" />
                     {/* Role */}
                     <SettingsSelect label="Role" value={settings.role} onChange={(v) => update("role", v)} options={ROLE_OPTIONS} />
-                    {/* Bio */}
-                    <SettingsInput
-                      label="Bio"
-                      value={settings.bio}
-                      onChange={(v) => update("bio", v)}
-                      maxLength={300}
-                      showCounter
-                      placeholder="Tell us about yourself..."
-                    />
-                  </div>
-                  {/* Live Preview */}
-                  <div className="rounded-xl border border-white/[0.06] bg-[#09090B] p-4">
-                    <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">Preview</p>
-                    <div className="flex flex-col items-center text-center">
-                      <div className="h-16 w-16 rounded-full overflow-hidden bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xl font-bold text-white">
-                        {currentAvatar ? (
-                          <img
-                            src={currentAvatar.url}
-                            alt={currentAvatar.label}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          settings.displayName.charAt(0).toUpperCase()
-                        )}
+                    {/* Bio with character counter */}
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <label className="text-sm font-medium text-text-primary">Bio</label>
+                        <BioCounter count={settings.bio.length} max={300} />
                       </div>
-                      <p className="mt-2 text-sm font-semibold text-white">{settings.displayName || "Your Name"}</p>
-                      <p className="text-xs text-[#9CA3AF]">@{settings.username}</p>
-                      <p className="mt-2 text-[11px] text-[#9CA3AF] leading-relaxed line-clamp-3">
-                        {settings.bio || "No bio yet."}
-                      </p>
+                      <textarea
+                        value={settings.bio}
+                        onChange={(e) => update("bio", e.target.value)}
+                        maxLength={300}
+                        rows={4}
+                        placeholder="Tell us about yourself..."
+                        className="w-full rounded-xl border border-input-border bg-input-bg px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--input-focus-ring)]"
+                      />
                     </div>
                   </div>
+
+                  {/* ===== Right: Live Profile Preview ===== */}
+                  <ProfilePreviewCard
+                    avatarUrl={currentAvatar?.url || settings.avatar || undefined}
+                    displayName={displayName}
+                    username={settings.username}
+                    role={roleLabel}
+                    bio={settings.bio}
+                    country={countryName}
+                    rating={settings.rating}
+                    followers={settings.followers}
+                    problemsSolved={settings.problemsSolved}
+                    memberSince={settings.memberSince}
+                  />
                 </div>
               </SettingsCard>
             </div>
 
             {/* ===== PERSONAL INFORMATION ===== */}
             <div id="personal" className="scroll-mt-32">
-              <SettingsCard title="Personal Information" description="Your personal details and contact information" icon={<IdCard className="h-4 w-4" />}>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <SettingsInput label="Email Address" value={settings.email} onChange={(v) => update("email", v)} type="email" icon={<Mail className="h-3.5 w-3.5" />} />
-                  <SettingsInput label="Mobile Number" value={settings.mobileNumber} onChange={(v) => update("mobileNumber", v)} icon={<Phone className="h-3.5 w-3.5" />} />
-                  <SettingsSelect label="Country" value={settings.country} onChange={(v) => update("country", v)} options={COUNTRIES} searchable placeholder="Search country..." />
-                  <SettingsSelect label="State" value={settings.state} onChange={(v) => update("state", v)} options={STATES_BY_COUNTRY[settings.country] || []} searchable placeholder="Search state..." />
-                  <SettingsSelect label="College" value={settings.college} onChange={(v) => update("college", v)} options={COLLEGES} searchable placeholder="Search college..." />
-                  <SettingsSelect label="Company" value={settings.company} onChange={(v) => update("company", v)} options={COMPANIES} searchable placeholder="Search company..." />
-                  <SettingsInput label="Date of Birth" value={settings.dateOfBirth} onChange={(v) => update("dateOfBirth", v)} type="date" icon={<Calendar className="h-3.5 w-3.5" />} />
+              <SettingsCard title="Personal Information" description="Your personal details and contact information" icon={<IdCard className="h-5 w-5" />}>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <SettingsInput label="Email Address" value={settings.email} onChange={(v) => update("email", v)} type="email" icon={<Mail className="h-4 w-4" />} required />
+                  <SettingsInput label="Mobile Number" value={settings.mobileNumber} onChange={(v) => update("mobileNumber", v)} icon={<Phone className="h-4 w-4" />} optional />
+                  <SettingsSelect label="Country" value={settings.country} onChange={(v) => update("country", v)} options={COUNTRIES} searchable placeholder="Search country..." required />
+                  <SettingsSelect label="State" value={settings.state} onChange={(v) => update("state", v)} options={STATES_BY_COUNTRY[settings.country] || []} searchable placeholder="Search state..." optional />
+                  <SettingsSelect label="College" value={settings.college} onChange={(v) => update("college", v)} options={COLLEGES} searchable placeholder="Search college..." optional />
+                  <SettingsSelect label="Company" value={settings.company} onChange={(v) => update("company", v)} options={COMPANIES} searchable placeholder="Search company..." optional />
+                  <SettingsInput label="Date of Birth" value={settings.dateOfBirth} onChange={(v) => update("dateOfBirth", v)} type="date" icon={<Calendar className="h-4 w-4" />} />
                   <SettingsSelect label="Gender" value={settings.gender} onChange={(v) => update("gender", v)} options={GENDERS} />
                 </div>
               </SettingsCard>
@@ -552,16 +615,16 @@ export default function SettingsPage() {
 
             {/* ===== COMPETITIVE PROGRAMMING ===== */}
             <div id="competitive" className="scroll-mt-32">
-              <SettingsCard title="Competitive Programming" description="Link your competitive programming profiles" icon={<Trophy className="h-4 w-4" />}>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <SettingsInput label="Codeforces Handle" value={settings.codeforcesHandle} onChange={(v) => update("codeforcesHandle", v)} placeholder="your_cf_handle" action={<VerifyButton />} />
-                  <SettingsInput label="LeetCode Username" value={settings.leetcodeUsername} onChange={(v) => update("leetcodeUsername", v)} placeholder="your_lc_username" action={<VerifyButton />} />
-                  <SettingsInput label="CodeChef Username" value={settings.codechefUsername} onChange={(v) => update("codechefUsername", v)} placeholder="your_cc_username" action={<VerifyButton />} />
-                  <SettingsInput label="AtCoder Username" value={settings.atcoderUsername} onChange={(v) => update("atcoderUsername", v)} placeholder="your_ac_username" action={<VerifyButton />} />
-                  <SettingsInput label="GitHub Username" value={settings.githubUsername} onChange={(v) => update("githubUsername", v)} placeholder="your_github" icon={<Code2 className="h-3.5 w-3.5" />} action={<VerifyButton />} />
-                  <SettingsInput label="LinkedIn Profile" value={settings.linkedinProfile} onChange={(v) => update("linkedinProfile", v)} placeholder="your_linkedin" icon={<Link2 className="h-3.5 w-3.5" />} action={<VerifyButton />} />
+              <SettingsCard title="Competitive Programming" description="Link your competitive programming profiles" icon={<Trophy className="h-5 w-5" />}>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <SettingsInput label="Codeforces Handle" value={settings.codeforcesHandle} onChange={(v) => update("codeforcesHandle", v)} placeholder="your_cf_handle" action={<VerifyButton />} optional />
+                  <SettingsInput label="LeetCode Username" value={settings.leetcodeUsername} onChange={(v) => update("leetcodeUsername", v)} placeholder="your_lc_handle" action={<VerifyButton />} optional />
+                  <SettingsInput label="CodeChef Username" value={settings.codechefUsername} onChange={(v) => update("codechefUsername", v)} placeholder="your_cc_handle" action={<VerifyButton />} optional />
+                  <SettingsInput label="AtCoder Username" value={settings.atcoderUsername} onChange={(v) => update("atcoderUsername", v)} placeholder="your_ac_handle" action={<VerifyButton />} optional />
+                  <SettingsInput label="GitHub Username" value={settings.githubUsername} onChange={(v) => update("githubUsername", v)} placeholder="your_github" icon={<Code2 className="h-4 w-4" />} action={<VerifyButton />} optional />
+                  <SettingsInput label="LinkedIn Profile" value={settings.linkedinProfile} onChange={(v) => update("linkedinProfile", v)} placeholder="your_linkedin" icon={<Link2 className="h-4 w-4" />} action={<VerifyButton />} optional />
                   <div className="sm:col-span-2">
-                    <SettingsInput label="Portfolio Website" value={settings.portfolioWebsite} onChange={(v) => update("portfolioWebsite", v)} placeholder="https://your-portfolio.com" icon={<Globe className="h-3.5 w-3.5" />} action={<ExternalLinkButton />} />
+                    <SettingsInput label="Portfolio Website" value={settings.portfolioWebsite} onChange={(v) => update("portfolioWebsite", v)} placeholder="https://your-portfolio.com" icon={<Globe className="h-4 w-4" />} action={<ExternalLinkButton />} optional />
                   </div>
                 </div>
               </SettingsCard>
@@ -569,17 +632,17 @@ export default function SettingsPage() {
 
             {/* ===== CODING PREFERENCES ===== */}
             <div id="coding" className="scroll-mt-32">
-              <SettingsCard title="Coding Preferences" description="Customize your editor and coding experience" icon={<Code2 className="h-4 w-4" />}>
-                <div className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <SettingsSelect label="Preferred Programming Language" value={settings.preferredLanguage} onChange={(v) => update("preferredLanguage", v)} options={LANGUAGES} />
+              <SettingsCard title="Coding Preferences" description="Customize your editor and coding experience" icon={<Code2 className="h-5 w-5" />}>
+                <div className="space-y-6">
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <SettingsSelect label="Preferred Programming Language" value={settings.preferredLanguage} onChange={(v) => update("preferredLanguage", v)} options={LANGUAGES} required />
                     <SettingsSelect label="Editor Theme" value={settings.editorTheme} onChange={(v) => update("editorTheme", v)} options={EDITOR_THEMES} />
                   </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-6 sm:grid-cols-2">
                     <SettingsSlider label="Editor Font Size" value={settings.editorFontSize} onChange={(v) => update("editorFontSize", v)} min={10} max={24} step={1} unit="px" />
                     <SettingsSelect label="Tab Width" value={settings.tabWidth} onChange={(v) => update("tabWidth", v)} options={TAB_WIDTHS} />
                   </div>
-                  <div className="rounded-xl border border-white/[0.04] bg-[#09090B]/50 p-4">
+                  <div className="rounded-2xl border border-border bg-card p-5">
                     <SettingsRow label="Auto Save" description="Automatically save your code as you type">
                       <Toggle checked={settings.autoSave} onChange={(v) => update("autoSave", v)} />
                     </SettingsRow>
@@ -599,25 +662,25 @@ export default function SettingsPage() {
 
             {/* ===== ACCOUNT ===== */}
             <div id="account" className="scroll-mt-32">
-              <SettingsCard title="Account" description="Manage your account credentials and security" icon={<Shield className="h-4 w-4" />}>
-                <div className="space-y-4">
-                  <SettingsInput label="Username" value={settings.username} onChange={() => {}} readOnly />
-                  <SettingsInput label="Email" value={settings.email} onChange={(v) => update("email", v)} type="email" />
+              <SettingsCard title="Account" description="Manage your account credentials and security" icon={<Shield className="h-5 w-5" />}>
+                <div className="space-y-6">
+                  <SettingsInput label="Username" value={settings.username} onChange={() => {}} readOnly required />
+                  <SettingsInput label="Email" value={settings.email} onChange={(v) => update("email", v)} type="email" required />
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium text-[#9CA3AF]">Password</label>
-                    <div className="flex items-center gap-2">
+                    <label className="mb-2 block text-sm font-medium text-text-primary">Password</label>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                       <input
                         type="password"
                         value="••••••••••"
                         readOnly
-                        className="flex-1 rounded-xl border border-white/[0.06] bg-[#09090B] py-2.5 pl-3.5 pr-3.5 text-sm text-white outline-none opacity-60"
+                        className="h-12 flex-1 rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary outline-none opacity-60"
                       />
-                      <button className="shrink-0 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3.5 py-2.5 text-xs font-medium text-white transition-colors hover:border-white/[0.12]">
+                      <button className="h-12 shrink-0 rounded-xl border border-input-border bg-input-bg px-4 text-xs font-medium text-text-primary transition-all duration-200 hover:border-accent/40 hover:bg-accent/5">
                         Change Password
                       </button>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/[0.04] bg-[#09090B]/50 p-4">
+                  <div className="rounded-2xl border border-border bg-card p-5">
                     <SettingsRow label="Two-Factor Authentication" description="Add an extra layer of security to your account">
                       <Toggle checked={settings.twoFactorAuth} onChange={(v) => update("twoFactorAuth", v)} />
                     </SettingsRow>
@@ -628,8 +691,8 @@ export default function SettingsPage() {
 
             {/* ===== PRIVACY ===== */}
             <div id="privacy" className="scroll-mt-32">
-              <SettingsCard title="Privacy" description="Control what information is visible to others" icon={<Lock className="h-4 w-4" />}>
-                <div className="rounded-xl border border-white/[0.04] bg-[#09090B]/50 p-4">
+              <SettingsCard title="Privacy" description="Control what information is visible to others" icon={<Lock className="h-5 w-5" />}>
+                <div className="rounded-2xl border border-border bg-card p-5">
                   <SettingsRow label="Public Profile" description="Allow anyone to view your profile">
                     <Toggle checked={settings.publicProfile} onChange={(v) => update("publicProfile", v)} />
                   </SettingsRow>
@@ -655,7 +718,7 @@ export default function SettingsPage() {
                     <Toggle checked={settings.allowDirectMessages} onChange={(v) => update("allowDirectMessages", v)} />
                   </SettingsRow>
                 </div>
-                <div className="mt-4">
+                <div className="mt-6">
                   <SettingsSelect label="Profile Visibility" value={settings.profileVisibility} onChange={(v) => update("profileVisibility", v)} options={VISIBILITY_OPTIONS} />
                 </div>
               </SettingsCard>
@@ -663,8 +726,8 @@ export default function SettingsPage() {
 
             {/* ===== NOTIFICATIONS ===== */}
             <div id="notifications" className="scroll-mt-32">
-              <SettingsCard title="Notifications" description="Choose what you want to be notified about" icon={<Bell className="h-4 w-4" />}>
-                <div className="rounded-xl border border-white/[0.04] bg-[#09090B]/50 p-4">
+              <SettingsCard title="Notifications" description="Choose what you want to be notified about" icon={<Bell className="h-5 w-5" />}>
+                <div className="rounded-2xl border border-border bg-card p-5">
                   <SettingsRow label="Email Notifications" description="Receive notifications via email">
                     <Toggle checked={settings.emailNotifications} onChange={(v) => update("emailNotifications", v)} />
                   </SettingsRow>
@@ -692,12 +755,12 @@ export default function SettingsPage() {
 
             {/* ===== APPEARANCE ===== */}
             <div id="appearance" className="scroll-mt-32">
-              <SettingsCard title="Appearance" description="Customize how byteCode looks for you" icon={<Palette className="h-4 w-4" />}>
-                <div className="space-y-5">
+              <SettingsCard title="Appearance" description="Customize how ByteClash looks for you" icon={<Palette className="h-5 w-5" />}>
+                <div className="space-y-7">
                   {/* Theme */}
                   <div>
-                    <label className="mb-2 block text-xs font-medium text-[#9CA3AF]">Theme</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <label className="mb-3 block text-sm font-medium text-text-primary">Theme</label>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       {[
                         { label: "Dark", value: "dark", icon: Moon },
                         { label: "Light", value: "light", icon: Sun },
@@ -709,14 +772,15 @@ export default function SettingsPage() {
                           <button
                             key={opt.value}
                             onClick={() => update("theme", opt.value)}
-                            className={`flex flex-col items-center gap-2 rounded-xl border p-3 transition-all ${
+                            className={cn(
+                              "flex h-14 items-center justify-center gap-2.5 rounded-xl border transition-all duration-200",
                               isActive
-                                ? "border-[#7C3AED]/40 bg-[#7C3AED]/10"
-                                : "border-white/[0.06] bg-[#09090B] hover:border-white/[0.1]"
-                            }`}
+                                ? "border-accent bg-accent/10 shadow-[0_0_0_3px_var(--input-focus-ring)]"
+                                : "border-input-border bg-input-bg hover:border-border-hover"
+                            )}
                           >
-                            <Icon className={`h-4 w-4 ${isActive ? "text-[#7C3AED]" : "text-[#9CA3AF]"}`} />
-                            <span className={`text-xs font-medium ${isActive ? "text-white" : "text-[#9CA3AF]"}`}>{opt.label}</span>
+                            <Icon className={cn("h-4 w-4", isActive ? "text-accent" : "text-text-secondary")} />
+                            <span className={cn("text-sm font-medium", isActive ? "text-accent" : "text-text-secondary")}>{opt.label}</span>
                           </button>
                         );
                       })}
@@ -724,19 +788,20 @@ export default function SettingsPage() {
                   </div>
                   {/* Accent Color */}
                   <div>
-                    <label className="mb-2 block text-xs font-medium text-[#9CA3AF]">Accent Color</label>
+                    <label className="mb-3 block text-sm font-medium text-text-primary">Accent Color</label>
                     <div className="flex items-center gap-3">
                       {ACCENT_COLORS.map((color) => (
                         <button
                           key={color.value}
                           onClick={() => update("accentColor", color.value)}
-                          className={`flex h-8 w-8 items-center justify-center rounded-full transition-all ${
-                            settings.accentColor === color.value ? "ring-2 ring-white ring-offset-2 ring-offset-[#09090B]" : ""
-                          }`}
+                          className={cn(
+                            "flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 hover:scale-110",
+                            settings.accentColor === color.value ? "ring-2 ring-offset-2 ring-offset-card" : ""
+                          )}
                           style={{ backgroundColor: color.value }}
                           title={color.label}
                         >
-                          {settings.accentColor === color.value && <Check className="h-3.5 w-3.5 text-white" />}
+                          {settings.accentColor === color.value && <Check className="h-4 w-4 text-white" />}
                         </button>
                       ))}
                     </div>
@@ -744,7 +809,7 @@ export default function SettingsPage() {
                   {/* Animation Speed */}
                   <SettingsSlider label="Animation Speed" value={settings.animationSpeed} onChange={(v) => update("animationSpeed", v)} min={50} max={200} step={10} unit="%" />
                   {/* Compact Mode */}
-                  <div className="rounded-xl border border-white/[0.04] bg-[#09090B]/50 p-4">
+                  <div className="rounded-2xl border border-border bg-card p-5">
                     <SettingsRow label="Compact Mode" description="Reduce spacing and padding for a denser layout">
                       <Toggle checked={settings.compactMode} onChange={(v) => update("compactMode", v)} />
                     </SettingsRow>
@@ -755,8 +820,8 @@ export default function SettingsPage() {
 
             {/* ===== CONNECTED ACCOUNTS ===== */}
             <div id="connected" className="scroll-mt-32">
-              <SettingsCard title="Connected Accounts" description="Manage your linked social accounts" icon={<Link2 className="h-4 w-4" />}>
-                <div className="space-y-3">
+              <SettingsCard title="Connected Accounts" description="Manage your linked social accounts" icon={<Link2 className="h-5 w-5" />}>
+                <div className="space-y-4">
                   <ConnectedAccountCard
                     name="Google"
                     connected={settings.googleConnected}
@@ -769,7 +834,7 @@ export default function SettingsPage() {
                     connected={settings.githubConnected}
                     onToggle={(v) => update("githubConnected", v)}
                     lastSynced="5 minutes ago"
-                    color="#FFFFFF"
+                    color="#6366F1"
                   />
                   <ConnectedAccountCard
                     name="Discord"
@@ -784,10 +849,10 @@ export default function SettingsPage() {
 
             {/* ===== DANGER ZONE ===== */}
             <div id="danger" className="scroll-mt-32">
-              <SettingsCard title="Danger Zone" description="Irreversible and destructive actions" icon={<AlertTriangle className="h-4 w-4" />} variant="danger">
-                <div className="space-y-2">
+              <SettingsCard title="Danger Zone" description="Irreversible and destructive actions" icon={<AlertTriangle className="h-5 w-5" />} variant="danger">
+                <div className="space-y-4">
                   <DangerAction
-                    icon={<Trash2 className="h-4 w-4" />}
+                    icon={<Trash2 className="h-5 w-5" />}
                     title="Delete Account"
                     description="Permanently delete your account and all associated data. This action cannot be undone."
                     buttonLabel="Delete Account"
@@ -806,7 +871,7 @@ export default function SettingsPage() {
                     }}
                   />
                   <DangerAction
-                    icon={<Download className="h-4 w-4" />}
+                    icon={<Download className="h-5 w-5" />}
                     title="Export My Data"
                     description="Download a copy of all your data including submissions, profile, and settings."
                     buttonLabel="Export Data"
@@ -816,7 +881,7 @@ export default function SettingsPage() {
                     }}
                   />
                   <DangerAction
-                    icon={<Pause className="h-4 w-4" />}
+                    icon={<Pause className="h-5 w-5" />}
                     title="Deactivate Account"
                     description="Temporarily deactivate your account. You can reactivate it anytime by logging in."
                     buttonLabel="Deactivate"
@@ -835,7 +900,7 @@ export default function SettingsPage() {
                     }}
                   />
                   <DangerAction
-                    icon={<Shield className="h-4 w-4" />}
+                    icon={<Shield className="h-5 w-5" />}
                     title="Clear Saved Sessions"
                     description="Sign out from all devices and clear all active sessions."
                     buttonLabel="Clear Sessions"
@@ -854,7 +919,7 @@ export default function SettingsPage() {
                     }}
                   />
                   <DangerAction
-                    icon={<MessageSquareX className="h-4 w-4" />}
+                    icon={<MessageSquareX className="h-5 w-5" />}
                     title="Delete All AI Conversations"
                     description="Permanently delete all your AI chat history and conversations."
                     buttonLabel="Delete Conversations"
@@ -894,13 +959,134 @@ export default function SettingsPage() {
 }
 
 /* =============================================
+   Bio Character Counter
+   ============================================= */
+function BioCounter({ count, max }: { count: number; max: number }) {
+  const pct = count / max;
+  const color = pct >= 0.9 ? "text-danger" : pct >= 0.75 ? "text-warning" : "text-success";
+  return (
+    <span className={cn("text-[10px] font-medium tabular-nums", color)}>
+      {count} / {max}
+    </span>
+  );
+}
+
+/* =============================================
+   Live Profile Preview Card
+   ============================================= */
+function ProfilePreviewCard({
+  avatarUrl,
+  displayName,
+  username,
+  role,
+  bio,
+  country,
+  rating,
+  followers,
+  problemsSolved,
+  memberSince,
+}: {
+  avatarUrl?: string;
+  displayName: string;
+  username: string;
+  role: string;
+  bio: string;
+  country: string;
+  rating: number;
+  followers: number;
+  problemsSolved: number;
+  memberSince: string;
+}) {
+  return (
+    <div className="flex flex-col">
+      <p className="mb-3 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+        <Sparkles className="h-3 w-3" /> Live Preview
+      </p>
+
+      {/* Profile Card */}
+      <div className="relative flex-1 overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-[0_8px_30px_rgba(0,0,0,0.05)] transition-all duration-200 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)]">
+        {/* Cover gradient */}
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-accent/15 via-accent-secondary/10 to-transparent" />
+
+        <div className="relative flex flex-col items-center text-center">
+          {/* Avatar */}
+          <div className="relative -mt-2">
+            <div className="absolute -inset-2 rounded-full bg-accent/20 blur-lg" />
+            <div className="relative h-20 w-20 overflow-hidden rounded-full border-[3px] border-card shadow-lg">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-accent/10 text-xl font-bold text-accent">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Name + verified */}
+          <div className="mt-3 flex items-center gap-1.5">
+            <p className="text-sm font-bold text-text-primary">{displayName}</p>
+            <BadgeCheck className="h-4 w-4 text-accent" />
+          </div>
+          <p className="mt-0.5 flex items-center gap-1 text-xs text-text-secondary">
+            <AtSign className="h-3 w-3" />
+            {username}
+          </p>
+
+          {/* Role badge */}
+          <span className="mt-2 inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent">
+            {role}
+          </span>
+
+          {/* Bio */}
+          <p className="mt-3 line-clamp-3 text-xs leading-relaxed text-text-secondary">
+            {bio || "No bio yet."}
+          </p>
+
+          {/* Country */}
+          <div className="mt-3 flex items-center gap-1 text-[11px] text-text-secondary">
+            <MapPin className="h-3 w-3 text-text-muted" />
+            {country}
+          </div>
+
+          {/* Stats */}
+          <div className="mt-5 grid w-full grid-cols-3 gap-2 border-t border-border pt-4">
+            <StatItem icon={<Star className="h-3.5 w-3.5 text-warning" />} value={rating.toLocaleString()} label="Rating" />
+            <StatItem icon={<Users className="h-3.5 w-3.5 text-accent" />} value={followers.toLocaleString()} label="Followers" />
+            <StatItem icon={<Hash className="h-3.5 w-3.5 text-success" />} value={problemsSolved.toLocaleString()} label="Solved" />
+          </div>
+
+          {/* Member since */}
+          <div className="mt-4 flex items-center gap-1 text-[10px] text-text-muted">
+            <Clock className="h-3 w-3" />
+            Member since {memberSince}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatItem({ icon, value, label }: { icon: ReactNode; value: string; label: string }) {
+  return (
+    <div className="flex flex-col items-center rounded-xl bg-accent/5 px-2 py-2.5">
+      <div className="flex items-center gap-1">
+        {icon}
+        <span className="text-xs font-bold text-text-primary tabular-nums">{value}</span>
+      </div>
+      <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide text-text-muted">{label}</span>
+    </div>
+  );
+}
+
+/* =============================================
    Helper Components
    ============================================= */
 function VerifyButton() {
   return (
     <button
       onClick={(e) => e.stopPropagation()}
-      className="rounded-md bg-[#7C3AED]/15 px-2 py-1 text-[10px] font-semibold text-[#7C3AED] transition-colors hover:bg-[#7C3AED]/25"
+      className="rounded-lg bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent transition-colors duration-200 hover:bg-accent/20"
     >
       Verify
     </button>
@@ -914,9 +1100,9 @@ function ExternalLinkButton() {
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className="rounded-md p-1.5 text-[#6B7280] transition-colors hover:text-white"
+      className="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-accent/10 hover:text-accent"
     >
-      <ExternalLink className="h-3.5 w-3.5" />
+      <ExternalLink className="h-4 w-4" />
     </a>
   );
 }
@@ -935,29 +1121,29 @@ function ConnectedAccountCard({
   color: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-[#09090B]/50 p-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
-          {name === "Google" && <Globe className="h-4 w-4" style={{ color }} />}
-          {name === "GitHub" && <Code2 className="h-4 w-4" style={{ color }} />}
-          {name === "Discord" && <MessageSquareX className="h-4 w-4" style={{ color }} />}
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 transition-all duration-200 hover:border-border-hover">
+      <div className="flex items-center gap-3.5">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
+          {name === "Google" && <Globe className="h-5 w-5" style={{ color }} />}
+          {name === "GitHub" && <Code2 className="h-5 w-5" style={{ color }} />}
+          {name === "Discord" && <MessageSquareX className="h-5 w-5" style={{ color }} />}
         </div>
         <div>
-          <p className="text-sm font-medium text-white">{name}</p>
-          <p className="text-xs text-[#9CA3AF]">
+          <p className="text-sm font-medium text-text-primary">{name}</p>
+          <p className="text-xs text-text-secondary">
             {connected ? `Last synced: ${lastSynced}` : "Not connected"}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         {connected ? (
           <>
-            <span className="flex items-center gap-1 text-[10px] font-semibold text-[#22C55E]">
-              <Check className="h-3 w-3" /> Connected
+            <span className="flex items-center gap-1 text-[10px] font-semibold text-success">
+              <Check className="h-3.5 w-3.5" /> Connected
             </span>
             <button
               onClick={() => onToggle(false)}
-              className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-[#9CA3AF] transition-colors hover:border-[#EF4444]/30 hover:text-[#EF4444]"
+              className="rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-medium text-text-secondary transition-all duration-200 hover:border-danger/40 hover:text-danger"
             >
               Disconnect
             </button>
@@ -965,7 +1151,7 @@ function ConnectedAccountCard({
         ) : (
           <button
             onClick={() => onToggle(true)}
-            className="rounded-lg bg-[#7C3AED] px-3 py-1.5 text-xs font-bold text-white transition-all hover:shadow-[0_0_12px_rgba(124,58,237,0.3)]"
+            className="rounded-xl bg-accent px-4 py-2 text-xs font-bold text-white transition-all duration-200 hover:shadow-[0_0_12px_rgba(37,99,235,0.3)] active:scale-[0.98]"
           >
             Connect
           </button>
@@ -992,25 +1178,27 @@ function DangerAction({
 }) {
   const isDanger = variant === "danger";
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.04] bg-[#09090B]/30 p-4">
-      <div className="flex items-start gap-3">
-        <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-          isDanger ? "bg-[#EF4444]/10 text-[#EF4444]" : "bg-[#7C3AED]/10 text-[#7C3AED]"
-        }`}>
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3.5">
+        <div className={cn(
+          "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+          isDanger ? "bg-danger/10 text-danger" : "bg-accent/10 text-accent"
+        )}>
           {icon}
         </div>
         <div>
-          <p className="text-sm font-medium text-white">{title}</p>
-          <p className="text-xs text-[#9CA3AF] mt-0.5 leading-relaxed">{description}</p>
+          <p className="text-sm font-medium text-text-primary">{title}</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-text-secondary">{description}</p>
         </div>
       </div>
       <button
         onClick={onConfirm}
-        className={`shrink-0 rounded-lg px-3.5 py-2 text-xs font-bold transition-all ${
+        className={cn(
+          "shrink-0 rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-[0.98]",
           isDanger
-            ? "border border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444] hover:text-white"
-            : "border border-white/[0.08] bg-white/[0.04] text-white hover:border-white/[0.12]"
-        }`}
+            ? "border border-danger/30 text-danger hover:bg-danger hover:text-white"
+            : "border border-border bg-card text-text-primary hover:border-border-hover"
+        )}
       >
         {buttonLabel}
       </button>

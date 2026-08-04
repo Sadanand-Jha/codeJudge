@@ -8,7 +8,7 @@ interface ToastIconProps {
   className?: string;
 }
 
-const iconMap: Record<ToastType, typeof CheckCircle2> = {
+const iconMap: Record<ToastType, React.FC<React.SVGProps<SVGSVGElement>>> = {
   success: CheckCircle2,
   error: XCircle,
   warning: AlertTriangle,

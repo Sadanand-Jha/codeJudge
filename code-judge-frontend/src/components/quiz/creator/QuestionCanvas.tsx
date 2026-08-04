@@ -288,7 +288,7 @@ export default function QuestionCanvas({
             <textarea
               value={question.title}
               onChange={(e) => onChange({ title: e.target.value })}
-              placeholder="Write your question here... Supports Markdown, LaTeX, code blocks, and tables."
+              placeholder="Write your question here... "
               className="w-full min-h-[250px] p-5 bg-transparent text-lg text-white placeholder-[#6B7280] resize-y focus:outline-none leading-relaxed"
             />
           </div>

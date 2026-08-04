@@ -244,19 +244,20 @@ export default function AttemptReviewExperience() {
 
   return (
     <div className="min-h-screen bg-[#09090B] text-white">
-      <div className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <Link href="/quiz" className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-sm font-medium text-white transition-all hover:border-white/[0.16] hover:bg-white/[0.06]">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+      <div className="mx-auto max-w-[1600px] p-3 sm:p-4 md:p-6 lg:p-8">
+        <div className="mb-3 sm:mb-4 flex items-center justify-between gap-3">
+          <Link href="/quiz" className="inline-flex items-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-3 sm:px-4 py-2 text-sm font-medium text-white transition-all hover:border-white/[0.16] hover:bg-white/[0.06]">
+            <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Back to Dashboard</span>
+            <span className="sm:hidden">Back</span>
           </Link>
           <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">
-            <span className="rounded-full border border-[#EC4899]/20 bg-[#EC4899]/10 px-3 py-1 font-medium text-[#F472B6]">Attempt Review</span>
-            <span className="hidden sm:inline">LeetCode-style response review</span>
+            <span className="rounded-full border border-[#EC4899]/20 bg-[#EC4899]/10 px-2.5 sm:px-3 py-1 font-medium text-[#F472B6] text-[10px] sm:text-xs">Attempt Review</span>
+            <span className="hidden md:inline">LeetCode-style response review</span>
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[1.25fr_360px]">
+        <div className="grid gap-3 sm:gap-4 xl:grid-cols-[1.25fr_360px]">
           <div className="space-y-4">
             <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-3xl border border-white/[0.08] bg-[#10131A] p-5 sm:p-6">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">

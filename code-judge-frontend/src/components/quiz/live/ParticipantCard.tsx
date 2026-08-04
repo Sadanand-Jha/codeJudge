@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Wifi, Target, ListChecks } from "lucide-react";
 import type { LiveParticipant } from "@/types/liveAssessment";
 import { STATUS_META, CONNECTION_META } from "@/types/liveAssessment";
@@ -32,7 +32,7 @@ export function ParticipantCard({ participant, index = 0 }: ParticipantCardProps
       className="rounded-2xl border border-white/[0.06] bg-[#171923] p-3 hover:border-[#EC4899]/25 hover:bg-[#1E2030] transition-all"
     >
       <div className="flex items-start gap-3">
-        <div className="relative shrink-0">
+        <div className="relative shrink-0 group">
           <div
             className="w-11 h-11 rounded-full flex items-center justify-center text-lg overflow-hidden"
             style={{ border: `2px solid ${meta.ring}`, backgroundColor: "#111217", boxShadow: `0 0 12px ${meta.ring}25` }}
@@ -41,6 +41,29 @@ export function ParticipantCard({ participant, index = 0 }: ParticipantCardProps
             <img src={displayAvatarUrl} alt={participant.username} className="w-full h-full object-cover" loading="lazy" />
           </div>
           <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#171923]" style={{ backgroundColor: meta.dot }} />
+
+          {/* Hover preview similar to settings modal */}
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 4 }}
+              transition={{ duration: 0.15 }}
+              className="absolute left-14 top-1/2 -translate-y-1/2 z-50 w-48 rounded-xl border border-white/[0.1] bg-[#111827] p-3 shadow-2xl backdrop-blur-xl hidden group-hover:block"
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative">
+                  <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[#EC4899]/40 to-[#BE185D]/30 blur-md opacity-80" />
+                  <div className="relative h-14 w-14 overflow-hidden rounded-full border-2 border-white/10 bg-[#09090B] shadow-[0_6px_24px_rgba(0,0,0,0.45)]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={displayAvatarUrl} alt={participant.username} className="h-full w-full object-cover" />
+                  </div>
+                </div>
+                <p className="text-xs font-bold text-white truncate w-full text-center">{participant.username}</p>
+                <p className="text-[10px] text-[#9CA3AF] text-center">Participant</p>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
 
         <div className="flex-1 min-w-0">

@@ -64,6 +64,14 @@ export async function me(): Promise<AuthResponse> {
   return response.data;
 }
 
+export async function updatePreferences(payload: { theme?: "dark" | "light" }): Promise<AuthResponse> {
+  const response = await apiClient.put<AuthResponse>("/user/preferences", payload);
+  if (response.data && typeof response.data === "object" && "success" in response.data) {
+    return response.data as AuthResponse;
+  }
+  return response.data;
+}
+
 export async function register(payload: {
   username?: string;
   email: string;

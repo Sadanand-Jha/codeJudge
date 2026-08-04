@@ -71,6 +71,7 @@ export interface QuizDetails {
   subject: string;
   topic: string;
   difficulty: "Easy" | "Medium" | "Hard" | "Expert";
+  coverImage?: string;
   visibility: QuizVisibility;
   timeLimit: number; // minutes
   startDate: string;
