@@ -145,12 +145,12 @@ function QuizDashboardContent() {
     : currentQuizzes;
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-[#09090B] text-white p-4 sm:p-6 lg:p-8">
+    <div className="min-h-[calc(100vh-3.5rem)] bg-background text-text-primary p-4 sm:p-6 lg:p-8">
       {/* ===== HERO CARD ===== */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative mb-8 overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#171923] via-[#111217] to-[#171923]"
+        className="relative mb-8 overflow-hidden rounded-3xl border border-border bg-card"
       >
         {/* Decorative gradients */}
         <div className="absolute inset-0">
@@ -167,7 +167,7 @@ function QuizDashboardContent() {
                 <span className="px-2.5 py-1 rounded-full bg-[#EC4899]/10 border border-[#EC4899]/20 text-[10px] font-bold text-[#EC4899] uppercase tracking-wider">
                   Assessment Platform
                 </span>
-                <span className="px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[10px] font-medium text-[#A1A1AA]">
+                <span className="px-2.5 py-1 rounded-full bg-card-hover border border-border text-[10px] font-medium text-text-secondary">
                   v2.0
                 </span>
               </div>
@@ -175,7 +175,7 @@ function QuizDashboardContent() {
               <motion.h1
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3 tracking-tight"
+                className="text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary mb-3 tracking-tight"
               >
                 Assessment &{" "}
                 <span className="bg-gradient-to-r from-[#EC4899] to-[#F472B6] bg-clip-text text-transparent">
@@ -187,7 +187,7 @@ function QuizDashboardContent() {
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="text-sm sm:text-base text-[#A1A1AA] max-w-2xl leading-relaxed"
+                className="text-sm sm:text-base text-text-secondary max-w-2xl leading-relaxed"
               >
                 Discover, create and participate in assessments across academics, placements, coding interviews, certifications and organizations.
               </motion.p>
@@ -199,28 +199,28 @@ function QuizDashboardContent() {
                     <Users className="w-4 h-4 text-[#EC4899]" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">{quizzes.length}+</p>
-                    <p className="text-[9px] text-[#71717A]">Quizzes Available</p>
+                    <p className="text-sm font-bold text-text-primary">{quizzes.length}+</p>
+                    <p className="text-[9px] text-text-muted">Quizzes Available</p>
                   </div>
                 </div>
-                <div className="w-px h-8 bg-white/[0.08]" />
+                <div className="w-px h-8 bg-border" />
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/20 flex items-center justify-center">
-                    <BookOpen className="w-4 h-4 text-[#22C55E]" />
+                  <div className="w-8 h-8 rounded-xl bg-success/10 border border-success/20 flex items-center justify-center">
+                    <BookOpen className="w-4 h-4 text-success" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">{activeQuizzes.length}</p>
-                    <p className="text-[9px] text-[#71717A]">Active Now</p>
+                    <p className="text-sm font-bold text-text-primary">{activeQuizzes.length}</p>
+                    <p className="text-[9px] text-text-muted">Active Now</p>
                   </div>
                 </div>
-                <div className="w-px h-8 bg-white/[0.08]" />
+                <div className="w-px h-8 bg-border" />
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center">
-                    <Medal className="w-4 h-4 text-[#F59E0B]" />
+                  <div className="w-8 h-8 rounded-xl bg-warning/10 border border-warning/20 flex items-center justify-center">
+                    <Medal className="w-4 h-4 text-warning" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">{completedQuizzes.length}</p>
-                    <p className="text-[9px] text-[#71717A]">Completed</p>
+                    <p className="text-sm font-bold text-text-primary">{completedQuizzes.length}</p>
+                    <p className="text-[9px] text-text-muted">Completed</p>
                   </div>
                 </div>
               </div>
@@ -235,13 +235,13 @@ function QuizDashboardContent() {
             >
               <div className="relative">
                 <div className="absolute -inset-4 bg-gradient-to-r from-[#EC4899]/20 to-[#BE185D]/20 rounded-3xl blur-2xl" />
-                <div className="relative flex items-center gap-4 p-4 rounded-2xl border border-white/[0.08] bg-[#111217]/80 backdrop-blur-xl">
+                <div className="relative flex items-center gap-4 p-4 rounded-2xl border border-border bg-card/80 backdrop-blur-xl">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#EC4899] to-[#BE185D] flex items-center justify-center shadow-[0_0_30px_rgba(236,72,153,0.3)]">
                     <Sparkles className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">Ready to test yourself?</p>
-                    <p className="text-[10px] text-[#A1A1AA] mb-2">Create or join an assessment</p>
+                    <p className="text-sm font-bold text-text-primary">Ready to test yourself?</p>
+                    <p className="text-[10px] text-text-secondary mb-2">Create or join an assessment</p>
                     <Link href="/quiz/create">
                       <motion.button
                         whileHover={{ scale: 1.03 }}
@@ -274,10 +274,10 @@ function QuizDashboardContent() {
               onClick={() => setActiveCategory(cat.id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all whitespace-nowrap
                 ${isActive
-                  ? "bg-[#EC4899]/15 text-white border border-[#EC4899]/30 shadow-[0_0_12px_rgba(236,72,153,0.15)]"
-                  : "text-[#9CA3AF] hover:text-white hover:bg-white/[0.03] border border-transparent"}`}
+                  ? "bg-[#EC4899]/15 text-text-primary border border-[#EC4899]/30 shadow-[0_0_12px_rgba(236,72,153,0.15)]"
+                  : "text-text-secondary hover:text-text-primary hover:bg-accent/5 border border-transparent"}`}
             >
-              <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#EC4899]" : "text-[#71717A]"}`} />
+              <Icon className={`w-3.5 h-3.5 ${isActive ? "text-[#EC4899]" : "text-text-muted"}`} />
               {cat.label}
             </button>
           );
@@ -286,7 +286,7 @@ function QuizDashboardContent() {
 
       {/* ===== TABS + CONTROLS ===== */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#111217] border border-white/[0.06] overflow-x-auto">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-card border border-border overflow-x-auto">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -296,8 +296,8 @@ function QuizDashboardContent() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`relative px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 whitespace-nowrap
                   ${isActive
-                    ? "bg-[#EC4899]/15 text-white shadow-[0_0_12px_rgba(236,72,153,0.15)]"
-                    : "text-[#9CA3AF] hover:text-white hover:bg-white/[0.03]"}`}
+                    ? "bg-[#EC4899]/15 text-text-primary shadow-[0_0_12px_rgba(236,72,153,0.15)]"
+                    : "text-text-secondary hover:text-text-primary hover:bg-accent/5"}`}
               >
                 <Icon className="w-3 h-3" />
                 {tab.label}
@@ -309,33 +309,33 @@ function QuizDashboardContent() {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* Search */}
           <div className="relative flex-1 sm:flex-none">
-            <Search className="absolute left-2.5 w-3.5 h-3.5 text-[#71717A]" />
+            <Search className="absolute left-2.5 w-3.5 h-3.5 text-text-muted" />
             <input
               type="text"
               placeholder="Search quizzes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-white/[0.06] bg-[#111217] text-white placeholder-[#71717A] focus:outline-none focus:border-[#EC4899]/30 transition-colors w-full sm:w-56"
+              className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-input-border bg-input-bg text-text-primary placeholder-text-muted focus:outline-none focus:border-accent transition-colors w-full sm:w-56"
             />
           </div>
 
           {/* Filter */}
-          <button className="p-1.5 rounded-lg border border-white/[0.06] bg-[#111217] text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors">
+          <button className="p-1.5 rounded-lg border border-border bg-card text-text-secondary hover:text-text-primary hover:border-border-hover transition-colors">
             <Filter className="w-3.5 h-3.5" />
           </button>
 
           {/* View mode */}
-          <div className="flex items-center p-0.5 rounded-lg bg-[#111217] border border-white/[0.06]">
+          <div className="flex items-center p-0.5 rounded-lg bg-card border border-border">
             <button
               onClick={() => setViewMode("grid")}
-              className={`p-1 rounded text-xs transition-all ${viewMode === "grid" ? "bg-[#EC4899]/15 text-white" : "text-[#9CA3Af] hover:text-white"}`}
+              className={`p-1 rounded text-xs transition-all ${viewMode === "grid" ? "bg-[#EC4899]/15 text-text-primary" : "text-text-secondary hover:text-text-primary"}`}
               title="Grid view"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`p-1 rounded text-xs transition-all ${viewMode === "list" ? "bg-[#EC4899]/15 text-white" : "text-[#9CA3Af] hover:text-white"}`}
+              className={`p-1 rounded text-xs transition-all ${viewMode === "list" ? "bg-[#EC4899]/15 text-text-primary" : "text-text-secondary hover:text-text-primary"}`}
               title="List view"
             >
               <List className="w-3.5 h-3.5" />
@@ -355,7 +355,7 @@ function QuizDashboardContent() {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
           >
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-56 rounded-2xl bg-[#111217] animate-pulse" />
+              <div key={i} className="h-56 rounded-2xl bg-card animate-pulse" />
             ))}
           </motion.div>
         ) : currentList.length === 0 ? (
@@ -366,11 +366,11 @@ function QuizDashboardContent() {
             exit={{ opacity: 0 }}
             className="text-center py-16"
           >
-            <div className="w-16 h-16 rounded-2xl bg-[#171923] border border-white/[0.06] flex items-center justify-center mx-auto mb-4">
-              <BookOpen className="w-6 h-6 text-[#71717A]" />
+            <div className="w-16 h-16 rounded-2xl bg-card border border-border flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="w-6 h-6 text-text-muted" />
             </div>
-            <h3 className="text-lg font-medium text-white mb-1">No quizzes found</h3>
-            <p className="text-sm text-[#A1A1AA]">
+            <h3 className="text-lg font-medium text-text-primary mb-1">No quizzes found</h3>
+            <p className="text-sm text-text-secondary">
               {searchQuery ? "Try adjusting your search." : "No quizzes available in this category yet."}
             </p>
           </motion.div>

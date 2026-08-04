@@ -37,15 +37,15 @@ function LandingCard({ icon, title, description, gradient, onClick, href }: Land
           >
             <span className="text-4xl">{icon}</span>
           </motion.div>
-          <h3 className="text-2xl font-bold text-white mb-2">{title}</h3>
-          <p className="text-sm text-[#A1A1AA] flex-1 max-w-xs leading-relaxed">{description}</p>
+          <h3 className="text-2xl font-bold text-text-primary mb-2">{title}</h3>
+          <p className="text-sm text-text-secondary flex-1 max-w-xs leading-relaxed">{description}</p>
         </div>
         <motion.span
           className={`mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r ${gradient} text-xs font-bold text-white shadow-lg`}
           whileHover={{ scale: 1.04 }}
         >
           {href ? "Open" : "Get Started"}
-    y    </motion.span>
+        </motion.span>
       </div>
     </>
   );
@@ -53,7 +53,7 @@ function LandingCard({ icon, title, description, gradient, onClick, href }: Land
   return (
     <motion.div
       whileHover={{ y: -4 }}
-      className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#171923] to-[#111217] p-[1px] cursor-pointer h-full min-h-[280px]"
+      className="group relative overflow-hidden rounded-3xl border border-border bg-card p-[1px] cursor-pointer h-full min-h-[280px]"
       onClick={onClick}
     >
       {content}

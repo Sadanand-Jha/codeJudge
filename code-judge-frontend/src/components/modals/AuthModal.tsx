@@ -37,29 +37,29 @@ const features = [
     icon: Bot,
     title: "AI Coding Assistant",
     description: "Debug, optimize and explain your code.",
-    color: "text-[#7C3AED]",
-    bgColor: "bg-[#7C3AED]/10",
+    color: "text-accent",
+    bgColor: "bg-accent/10",
   },
   {
     icon: TrendingUp,
     title: "Track Progress",
     description: "Ratings, streaks and analytics.",
-    color: "text-[#22C55E]",
-    bgColor: "bg-[#22C55E]/10",
+    color: "text-success",
+    bgColor: "bg-success/10",
   },
   {
     icon: Bookmark,
     title: "Save Collections",
     description: "Bookmark problems and organize learning.",
-    color: "text-[#3B82F6]",
-    bgColor: "bg-[#3B82F6]/10",
+    color: "text-accent-secondary",
+    bgColor: "bg-accent-secondary/10",
   },
   {
     icon: Map,
     title: "Personalized Roadmaps",
     description: "AI generated learning paths.",
-    color: "text-[#F59E0B]",
-    bgColor: "bg-[#F59E0B]/10",
+    color: "text-warning",
+    bgColor: "bg-warning/10",
   },
   {
     icon: MessageSquare,
@@ -106,11 +106,11 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
             transition={{ duration: 0.3, ease: "easeOut" }}
             className="fixed left-1/2 top-1/2 z-50 w-full max-w-[520px] -translate-x-1/2 -translate-y-1/2"
           >
-            <div className="relative rounded-2xl border bg-[#111827] p-0 shadow-2xl" style={{ borderColor: "#23252F" }}>
+            <div className="relative rounded-2xl border border-border bg-card p-0 shadow-2xl">
               {/* Close Button */}
               <button
                 onClick={onClose}
-                className="absolute right-4 top-4 z-10 rounded-full p-1.5 text-[#6B7280] hover:bg-[#1F2937] hover:text-white transition-colors"
+                className="absolute right-4 top-4 z-10 rounded-full p-1.5 text-text-muted hover:bg-card-hover hover:text-text-primary transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -126,8 +126,8 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
                   <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7C3AED] to-[#3B82F6]">
                     <Lock className="h-7 w-7 text-white" />
                   </div>
-                  <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#111827]" style={{ borderColor: "#23252F", borderWidth: 2 }}>
-                    <Sparkles className="h-3 w-3 text-[#7C3AED]" />
+                  <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-card" style={{ borderColor: "var(--border)", borderWidth: 2 }}>
+                    <Sparkles className="h-3 w-3 text-accent" />
                   </div>
                 </motion.div>
 
@@ -135,7 +135,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.15 }}
-                  className="text-xl font-bold text-white"
+                  className="text-xl font-bold text-text-primary"
                 >
                   Continue with ByteClash
                 </motion.h2>
@@ -144,7 +144,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="mt-2 text-center text-[13px] text-[#9CA3AF] max-w-[380px]"
+                  className="mt-2 text-center text-[13px] text-text-secondary max-w-[380px]"
                 >
                   Create a free account to unlock submissions, AI assistance, contests, discussions and personalized progress tracking.
                 </motion.p>
@@ -168,14 +168,14 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
                         transition={{ delay: 0.3 + index * 0.05 }}
                         whileHover={{ scale: 1.02, y: -2 }}
                         className={`flex items-start gap-3 rounded-xl border p-3 transition-all cursor-default ${feature.bgColor}`}
-                        style={{ borderColor: "rgba(35, 37, 47, 0.5)" }}
+                        style={{ borderColor: "var(--border)" }}
                       >
                         <div className={`rounded-lg p-1.5 ${feature.bgColor}`}>
                           <Icon className={`h-4 w-4 ${feature.color}`} />
                         </div>
                         <div>
-                          <div className="text-[11px] font-semibold text-white">{feature.title}</div>
-                          <div className="text-[9px] text-[#6B7280]">{feature.description}</div>
+                          <div className="text-[11px] font-semibold text-text-primary">{feature.title}</div>
+                          <div className="text-[9px] text-text-muted">{feature.description}</div>
                         </div>
                       </motion.div>
                     );
@@ -193,7 +193,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
                 >
                   <Link
                     href={`/register${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] px-6 py-3.5 text-[14px] font-semibold text-white shadow-lg shadow-[#7C3AED]/25 hover:shadow-[#7C3AED]/40 transition-all hover:scale-[1.02]"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] px-6 py-3.5 text-[14px] font-semibold text-white shadow-lg shadow-accent/25 hover:shadow-accent/40 transition-all hover:scale-[1.02]"
                     onClick={onClose}
                   >
                     Create Free Account
@@ -202,8 +202,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
 
                   <Link
                     href={`/login${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`}
-                    className="flex items-center justify-center gap-2 rounded-xl border px-6 py-3.5 text-[14px] font-semibold text-white transition-all hover:bg-[#1F2937]"
-                    style={{ borderColor: "#23252F" }}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-border px-6 py-3.5 text-[14px] font-semibold text-text-primary transition-all hover:bg-card-hover"
                     onClick={onClose}
                   >
                     Sign In
@@ -214,9 +213,9 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.55 }}
-                  className="mt-4 flex items-center justify-center gap-1 text-[11px] text-[#6B7280]"
+                  className="mt-4 flex items-center justify-center gap-1 text-[11px] text-text-muted"
                 >
-                  <CheckCircle className="h-3 w-3 text-[#22C55E]" />
+                  <CheckCircle className="h-3 w-3 text-success" />
                   No credit card required
                   <span className="mx-1">·</span>
                   Free forever for practice
@@ -227,18 +226,17 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: showSocialProof ? 1 : 0 }}
-                className="border-t px-8 py-5"
-                style={{ borderColor: "#23252F" }}
+                className="border-t border-border px-8 py-5"
               >
                 <div className="flex items-center justify-center gap-6">
                   {socialProof.map((item, index) => {
                     const Icon = item.icon;
                     return (
                       <div key={index} className="flex items-center gap-2">
-                        <Icon className="h-3.5 w-3.5 text-[#6B7280]" />
+                        <Icon className="h-3.5 w-3.5 text-text-muted" />
                         <div>
-                          <div className="text-[12px] font-bold text-white">{item.stat}</div>
-                          <div className="text-[9px] text-[#6B7280]">{item.label}</div>
+                          <div className="text-[12px] font-bold text-text-primary">{item.stat}</div>
+                          <div className="text-[9px] text-text-muted">{item.label}</div>
                         </div>
                       </div>
                     );

@@ -63,10 +63,10 @@ function ContestsContent() {
       <AppLayout>
         <div className="px-6 py-6">
           <div className="max-w-7xl mx-auto space-y-6">
-            <div className="h-8 w-48 bg-[#111827] animate-pulse rounded-lg" />
+            <div className="h-8 w-48 bg-card animate-pulse rounded-lg" />
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-48 rounded-2xl bg-[#111827] animate-pulse" />
+                <div key={i} className="h-48 rounded-2xl bg-card animate-pulse" />
               ))}
             </div>
           </div>
@@ -81,48 +81,48 @@ function ContestsContent() {
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Page Title */}
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Contests</h1>
-            <p className="text-sm text-[#9CA3AF] mt-1">Compete with coders worldwide and climb the ranks.</p>
+            <h1 className="text-2xl font-bold text-text-primary tracking-tight">Contests</h1>
+            <p className="text-sm text-text-secondary mt-1">Compete with coders worldwide and climb the ranks.</p>
           </div>
 
           {/* Upcoming Contests */}
           <div>
-            <h2 className="text-sm font-semibold text-white mb-3">Upcoming Contests</h2>
+            <h2 className="text-sm font-semibold text-text-primary mb-3">Upcoming Contests</h2>
             {upcomingContests.length === 0 ? (
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827]/40 p-8 text-center">
-                <p className="text-sm text-[#9CA3AF]">No upcoming contests right now.</p>
+              <div className="rounded-2xl border border-border bg-card/40 p-8 text-center">
+                <p className="text-sm text-text-secondary">No upcoming contests right now.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {upcomingContests.map((contest) => (
                   <div
                     key={contest.id}
-                    className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#111827] p-5 transition-all hover:border-[#7C3AED]/30 hover:shadow-[0_0_24px_rgba(124,58,237,0.08)]"
+                    className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-all hover:border-accent/30 hover:shadow-[0_0_24px_rgba(37,99,235,0.08)]"
                   >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#7C3AED]/5 rounded-full blur-[60px]" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-[60px]" />
                     <div className="relative z-10">
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/30 flex items-center justify-center">
-                          <Trophy className="w-4 h-4 text-[#7C3AED]" />
+                        <div className="w-8 h-8 rounded-lg bg-accent/15 border border-accent/30 flex items-center justify-center">
+                          <Trophy className="w-4 h-4 text-accent" />
                         </div>
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-[#22C55E] bg-[#22C55E]/10 px-2 py-0.5 rounded-full border border-[#22C55E]/20">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-success bg-success/10 px-2 py-0.5 rounded-full border border-success/20">
                           Upcoming
                         </span>
                       </div>
-                      <h3 className="text-sm font-semibold text-white mb-3">{contest.name}</h3>
+                      <h3 className="text-sm font-semibold text-text-primary mb-3">{contest.name}</h3>
                       <div className="space-y-2 mb-4">
-                        <div className="flex items-center gap-2 text-[11px] text-[#9CA3AF]">
-                          <Clock className="w-3.5 h-3.5 text-[#F59E0B]" />
+                        <div className="flex items-center gap-2 text-[11px] text-text-secondary">
+                          <Clock className="w-3.5 h-3.5 text-warning" />
                           Starts in {formatStartsIn(contest.starttime)}
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-[#9CA3AF]">
-                          <Calendar className="w-3.5 h-3.5 text-[#7C3AED]" />
+                        <div className="flex items-center gap-2 text-[11px] text-text-secondary">
+                          <Calendar className="w-3.5 h-3.5 text-accent" />
                           {formatDuration(contest.duration)}
                         </div>
                       </div>
                       <Link
                         href={`/contests/${contest.id}/register`}
-                        className="block w-full px-3 py-2 rounded-lg text-[11px] font-semibold text-center text-white bg-[#7C3AED] hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] transition-all"
+                        className="block w-full px-3 py-2 rounded-lg text-[11px] font-semibold text-center text-white bg-accent hover:shadow-[0_0_12px_rgba(37,99,235,0.3)] transition-all"
                       >
                         Register Now
                       </Link>
@@ -135,42 +135,42 @@ function ContestsContent() {
 
           {/* Past Contests */}
           <div>
-            <h2 className="text-sm font-semibold text-white mb-3">Past Contests</h2>
+            <h2 className="text-sm font-semibold text-text-primary mb-3">Past Contests</h2>
             {pastContests.length === 0 ? (
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827]/40 p-8 text-center">
-                <p className="text-sm text-[#9CA3AF]">No past contests yet.</p>
+              <div className="rounded-2xl border border-border bg-card/40 p-8 text-center">
+                <p className="text-sm text-text-secondary">No past contests yet.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#111827]/40">
+              <div className="overflow-x-auto rounded-2xl border border-border bg-card/40">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-white/[0.06] bg-[#111827]">
-                      <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#6B7280] px-4 py-3">Contest</th>
-                      <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#6B7280] px-4 py-3">Date</th>
-                      <th className="text-right text-[10px] font-medium uppercase tracking-wider text-[#6B7280] px-4 py-3">Duration</th>
-                      <th className="text-center text-[10px] font-medium uppercase tracking-wider text-[#6B7280] px-4 py-3 w-12"></th>
+                    <tr className="border-b border-border bg-card">
+                      <th className="text-left text-[10px] font-medium uppercase tracking-wider text-text-muted px-4 py-3">Contest</th>
+                      <th className="text-right text-[10px] font-medium uppercase tracking-wider text-text-muted px-4 py-3">Date</th>
+                      <th className="text-right text-[10px] font-medium uppercase tracking-wider text-text-muted px-4 py-3">Duration</th>
+                      <th className="text-center text-[10px] font-medium uppercase tracking-wider text-text-muted px-4 py-3 w-12"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {pastContests.map((contest) => (
                       <tr
                         key={contest.id}
-                        className="group border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-colors"
+                        className="group border-b border-border last:border-0 hover:bg-accent/5 transition-colors"
                       >
                         <td className="px-4 py-3">
                           <Link
                             href={`/contests/${contest.id}`}
-                            className="text-sm font-medium text-white hover:text-[#7C3AED] transition-colors"
+                            className="text-sm font-medium text-text-primary hover:text-accent transition-colors"
                           >
                             {contest.name}
                           </Link>
                         </td>
-                        <td className="px-4 py-3 text-right text-xs text-[#9CA3AF]">{formatDate(contest.starttime)}</td>
-                        <td className="px-4 py-3 text-right text-xs text-[#9CA3AF]">{formatDuration(contest.duration)}</td>
+                        <td className="px-4 py-3 text-right text-xs text-text-secondary">{formatDate(contest.starttime)}</td>
+                        <td className="px-4 py-3 text-right text-xs text-text-secondary">{formatDuration(contest.duration)}</td>
                         <td className="px-4 py-3 text-center">
                           <Link
                             href={`/contests/${contest.id}`}
-                            className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#9CA3AF] hover:text-white hover:bg-[#7C3AED] hover:border-[#7C3AED] opacity-0 group-hover:opacity-100 transition-all"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-card-hover border border-border text-text-secondary hover:text-white hover:bg-accent hover:border-accent opacity-0 group-hover:opacity-100 transition-all"
                           >
                             <ArrowRight className="w-3.5 h-3.5" />
                           </Link>

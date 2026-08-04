@@ -60,29 +60,29 @@ export default function Navbar() {
   }, [setAuth]);
 
   return (
-    <header className="border-b border-white/[0.06] bg-[#09090B] sticky top-0 z-50">
+    <header className="border-b border-border bg-background sticky top-0 z-50">
       {/* ===== TOP BAR ===== */}
-      <div className="flex h-12 items-center justify-between border-b border-white/[0.06] px-4">
+      <div className="flex h-12 items-center justify-between border-b border-border px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
             <Code2 className="w-4 h-4 text-white" />
           </div>
-          <span className="text-sm font-bold text-white tracking-tight">ByteClash</span>
+          <span className="text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
         </Link>
 
         {/* User Utility Menu */}
-        <div className="flex items-center gap-3 text-xs text-[#9CA3AF]">
-          <button className="flex items-center gap-1 hover:text-white transition-colors">
+        <div className="flex items-center gap-3 text-xs text-text-secondary">
+          <button className="flex items-center gap-1 hover:text-text-primary transition-colors">
             <Bell className="h-3.5 w-3.5" />
           </button>
-          <button className="flex items-center gap-1 hover:text-white transition-colors">
+          <button className="flex items-center gap-1 hover:text-text-primary transition-colors">
             <Globe className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">EN</span>
           </button>
           {isAuthenticated ? (
             <>
-              <Link href="/profile" className="flex items-center gap-1 hover:text-white transition-colors">
+              <Link href="/profile" className="flex items-center gap-1 hover:text-text-primary transition-colors">
                 <User className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Profile</span>
               </Link>
@@ -92,7 +92,7 @@ export default function Navbar() {
                   useAuthStore.getState().logout();
                   toast.success("Logged out successfully");
                 }}
-                className="flex items-center gap-1 hover:text-[#EF4444] transition-colors"
+                className="flex items-center gap-1 hover:text-danger transition-colors"
               >
                 <LogOut className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Logout</span>
@@ -101,7 +101,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="flex items-center gap-1 hover:text-white transition-colors"
+              className="flex items-center gap-1 hover:text-text-primary transition-colors"
             >
               <LogIn className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Login</span>
@@ -111,7 +111,7 @@ export default function Navbar() {
       </div>
 
       {/* ===== PRIMARY NAV ===== */}
-      <div className="flex h-9 items-center border-b border-white/[0.06] bg-[#111827] px-4">
+      <div className="flex h-9 items-center border-b border-border bg-card px-4">
         <nav className="flex flex-1 items-center gap-0">
           {primaryTabs.map((tab) => {
             const isActive = pathname === tab.href && tab.label === "PROBLEMSET";
@@ -121,13 +121,13 @@ export default function Navbar() {
                 href={tab.href}
                 className={`relative flex items-center px-3 py-1 text-[11px] font-medium uppercase tracking-wider transition-colors ${
                   isActive
-                    ? "text-[#7C3AED]"
-                    : "text-[#9CA3AF] hover:text-white"
+                    ? "text-accent"
+                    : "text-text-secondary hover:text-text-primary"
                 }`}
               >
                 {tab.label}
                 {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#7C3AED]" />
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-accent" />
                 )}
               </Link>
             );
@@ -136,18 +136,18 @@ export default function Navbar() {
 
         {/* Search box on right */}
         <div className="relative ml-4 flex items-center">
-          <Search className="pointer-events-none absolute left-2 h-3 w-3 text-[#6B7280]" />
+          <Search className="pointer-events-none absolute left-2 h-3 w-3 text-text-muted" />
           <input
             type="text"
             placeholder="Search..."
-            className="w-32 rounded-lg border border-white/[0.06] bg-[#09090B] py-0.5 pl-6 pr-2 text-[11px] text-white placeholder-[#6B7280] outline-none focus:border-[#7C3AED]/40 transition-colors"
+            className="w-32 rounded-lg border border-input-border bg-input-bg py-0.5 pl-6 pr-2 text-[11px] text-text-primary placeholder-text-muted outline-none focus:border-accent/40 transition-colors"
           />
         </div>
       </div>
 
       {/* ===== SECONDARY NAV ===== */}
       {isProblemset && (
-        <div className="flex h-7 items-center border-b border-white/[0.06] bg-[#09090B] px-4">
+        <div className="flex h-7 items-center border-b border-border bg-background px-4">
           <nav className="flex items-center gap-0">
             {secondaryTabs.map((tab) => {
               const isActive = tab.label === "PROBLEMS";
@@ -157,13 +157,13 @@ export default function Navbar() {
                   href={tab.href}
                   className={`relative flex items-center px-3 py-0.5 text-[11px] font-medium transition-colors ${
                     isActive
-                      ? "text-[#7C3AED] font-semibold"
-                      : "text-[#9CA3AF] hover:text-white"
+                      ? "text-accent font-semibold"
+                      : "text-text-secondary hover:text-text-primary"
                   }`}
                 >
                   {tab.label}
                   {isActive && (
-                    <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-[#7C3AED]" />
+                    <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-accent" />
                   )}
                 </Link>
               );

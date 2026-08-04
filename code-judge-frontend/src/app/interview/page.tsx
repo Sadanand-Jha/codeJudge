@@ -20,8 +20,8 @@ export default function InterviewPage() {
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Interview Preparation</h1>
-            <p className="text-sm text-[#9CA3AF] mt-1">Structured practice for coding interviews.</p>
+            <h1 className="text-2xl font-bold text-text-primary tracking-tight">Interview Preparation</h1>
+            <p className="text-sm text-text-secondary mt-1">Structured practice for coding interviews.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -31,7 +31,7 @@ export default function InterviewPage() {
                 <Link
                   key={cat.title}
                   href={cat.href}
-                  className="group rounded-2xl border border-white/[0.06] bg-[#111827] p-5 transition-all hover:border-[#7C3AED]/30 hover:shadow-[0_0_24px_rgba(124,58,237,0.08)]"
+                  className="group rounded-2xl border border-border bg-card p-5 transition-all hover:border-accent/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.05)] hover:-translate-y-[3px]"
                 >
                   <div className="flex items-start gap-4">
                     <div
@@ -41,10 +41,10 @@ export default function InterviewPage() {
                       <Icon className="w-5 h-5" style={{ color: cat.color }} />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-white group-hover:text-[#7C3AED] transition-colors">{cat.title}</p>
-                      <p className="text-[10px] text-[#6B7280] mt-0.5">{cat.desc}</p>
+                      <p className="text-sm font-semibold text-text-primary group-hover:text-accent transition-colors">{cat.title}</p>
+                      <p className="text-[10px] text-text-muted mt-0.5">{cat.desc}</p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-[#6B7280] opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                    <ArrowRight className="w-4 h-4 text-text-muted opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                   </div>
                 </Link>
               );

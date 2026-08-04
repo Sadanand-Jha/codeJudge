@@ -5,7 +5,7 @@
    ============================================
    Background: #09090B (dark) / #F8FAFC (light)
    Cards: #111827 (dark) / #FFFFFF (light)
-   Borders: rgba(255,255,255,0.06) (dark) / #E8EDF3 (light)
+   Borders: rgba(255,255,255,0.06) (dark) / #E5E7EB (light)
    Primary Accent: #7C3AED (dark purple) / #2563EB (light blue)
    Success: #22C55E
    Warning: #F59E0B
@@ -46,8 +46,8 @@
   --foreground: #111827;
   --card: #FFFFFF;
   --card-hover: #F8FAFC;
-  --border: #E8EDF3;
-  --border-hover: #D9E2EC;
+  --border: #E5E7EB;
+  --border-hover: #D1D5DB;
   --accent: #2563EB;
   --accent-secondary: #3B82F6;
   --success: #22C55E;
@@ -56,11 +56,11 @@
   --danger: #EF4444;
   --text-primary: #111827;
   --text-secondary: #6B7280;
-  --text-muted: #94A3B8;
+  --text-muted: #9CA3AF;
   --link: #2563EB;
   --link-visited: #1D4ED8;
   --input-bg: #FFFFFF;
-  --input-border: #D9E2EC;
+  --input-border: #D1D5DB;
   --input-focus-ring: rgba(37, 99, 235, 0.12);
   --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
 }
@@ -445,7 +445,7 @@ button.cf-btn:hover {
 }
 
 /* ============================================
-   Light Theme Overrides — Remap hardcoded dark colors
+   Light Theme Overrides — Comprehensive
    This ensures every component (cards, tables, modals,
    dropdowns, inputs, etc.) gets a proper light variant
    without needing to edit every file.
@@ -453,22 +453,26 @@ button.cf-btn:hover {
    exclusively to [data-theme="light"].
    ============================================ */
 
-/* Page backgrounds → #F8FAFC */
+/* ===== Page backgrounds → #F8FAFC ===== */
 [data-theme="light"] .bg-\[\#09090B\] { background-color: #F8FAFC !important; }
 [data-theme="light"] .bg-\[\#0B0C0F\] { background-color: #F8FAFC !important; }
-
-/* Card backgrounds → #FFFFFF */
-[data-theme="light"] .bg-\[\#0B0D12\] { background-color: #FFFFFF !important; }
-[data-theme="light"] .bg-\[\#0B0D14\] { background-color: #FFFFFF !important; }
-[data-theme="light"] .bg-\[\#0F1522\] { background-color: #FFFFFF !important; }
-[data-theme="light"] .bg-\[\#111217\] { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-\[\#0B0D12\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#0B0D14\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#0F1115\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#0F1522\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#111217\] { background-color: #F8FAFC !important; }
 [data-theme="light"] .bg-\[\#111827\] { background-color: #FFFFFF !important; }
 [data-theme="light"] .bg-\[\#171923\] { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-\[\#1A1F2E\] { background-color: #F8FAFC !important; }
 [data-theme="light"] .bg-\[\#1B2433\] { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-\[\#1E2030\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#1F2937\] { background-color: #F3F4F6 !important; }
+[data-theme="light"] .bg-\[\#23252F\] { background-color: #F3F4F6 !important; }
 [data-theme="light"] .bg-\[\#263245\] { background-color: #F3F4F6 !important; }
 [data-theme="light"] .bg-\[\#2D3B52\] { background-color: #E5E7EB !important; }
+[data-theme="light"] .bg-\[\#3A4963\] { background-color: #E5E7EB !important; }
 
-/* White text → dark text (on light surfaces) */
+/* ===== White text → dark text (on light surfaces) ===== */
 [data-theme="light"] .text-white { color: #111827 !important; }
 [data-theme="light"] .text-\[\#F8FAFC\] { color: #111827 !important; }
 [data-theme="light"] .text-\[\#E5E7EB\] { color: #111827 !important; }
@@ -477,14 +481,16 @@ button.cf-btn:hover {
 [data-theme="light"] .text-\[\#71717A\] { color: #6B7280 !important; }
 [data-theme="light"] .text-\[\#9CA3AF\] { color: #6B7280 !important; }
 [data-theme="light"] .text-\[\#6B7280\] { color: #9CA3AF !important; }
+[data-theme="light"] .text-\[\#9CA3Af\] { color: #6B7280 !important; }
 
-/* Restore white text on colored/dark backgrounds */
+/* ===== Restore white text on colored/dark backgrounds ===== */
 [data-theme="light"] .bg-\[\#7C3AED\].text-white,
 [data-theme="light"] .bg-\[\#EC4899\].text-white,
 [data-theme="light"] .bg-\[\#EF4444\].text-white,
 [data-theme="light"] .bg-\[\#22C55E\].text-white,
 [data-theme="light"] .bg-\[\#F59E0B\].text-white,
 [data-theme="light"] .bg-\[\#3B82F6\].text-white,
+[data-theme="light"] .bg-\[\#BE185D\].text-white,
 [data-theme="light"] .bg-accent.text-white,
 [data-theme="light"] .bg-danger.text-white,
 [data-theme="light"] .bg-success.text-white,
@@ -497,6 +503,7 @@ button.cf-btn:hover {
 [data-theme="light"] .bg-\[\#EF4444\] .text-white,
 [data-theme="light"] .bg-\[\#22C55E\] .text-white,
 [data-theme="light"] .bg-\[\#3B82F6\] .text-white,
+[data-theme="light"] .bg-\[\#BE185D\] .text-white,
 [data-theme="light"] .bg-accent .text-white,
 [data-theme="light"] .bg-danger .text-white,
 [data-theme="light"] .bg-success .text-white,
@@ -507,34 +514,44 @@ button.cf-btn:hover {
   color: #FFFFFF !important;
 }
 
-/* Borders → light */
+/* ===== Borders → light ===== */
 [data-theme="light"] .border-white\/\[0\.02\] { border-color: #E5E7EB !important; }
 [data-theme="light"] .border-white\/\[0\.03\] { border-color: #E5E7EB !important; }
 [data-theme="light"] .border-white\/\[0\.04\] { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-white\/\[0\.05\] { border-color: #E5E7EB !important; }
 [data-theme="light"] .border-white\/\[0\.06\] { border-color: #E5E7EB !important; }
 [data-theme="light"] .border-white\/\[0\.08\] { border-color: #E5E7EB !important; }
 [data-theme="light"] .border-white\/\[0\.1\] { border-color: #E5E7EB !important; }
 [data-theme="light"] .border-white\/\[0\.12\] { border-color: #D1D5DB !important; }
 [data-theme="light"] .border-white\/\[0\.15\] { border-color: #D1D5DB !important; }
 [data-theme="light"] .border-white\/20 { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-white\/10 { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-\[\#23252F\] { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-\[\#3A4963\] { border-color: #E5E7EB !important; }
 
-/* Subtle white backgrounds → light grays */
+/* ===== Subtle white backgrounds → light grays ===== */
 [data-theme="light"] .bg-white\/\[0\.02\] { background-color: #F8FAFC !important; }
 [data-theme="light"] .bg-white\/\[0\.03\] { background-color: #F8FAFC !important; }
 [data-theme="light"] .bg-white\/\[0\.04\] { background-color: #F3F4F6 !important; }
+[data-theme="light"] .bg-white\/\[0\.05\] { background-color: #F3F4F6 !important; }
 [data-theme="light"] .bg-white\/\[0\.06\] { background-color: #F3F4F6 !important; }
 [data-theme="light"] .bg-white\/\[0\.08\] { background-color: #E5E7EB !important; }
+[data-theme="light"] .bg-white\/\[0\.1\] { background-color: #E5E7EB !important; }
+[data-theme="light"] .bg-white\/10 { background-color: #E5E7EB !important; }
+[data-theme="light"] .bg-white\/20 { background-color: #E5E7EB !important; }
 
-/* Hover states */
+/* ===== Hover states ===== */
 [data-theme="light"] .hover\:bg-white\/\[0\.02\]:hover { background-color: #F3F4F6 !important; }
 [data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover { background-color: #F3F4F6 !important; }
 [data-theme="light"] .hover\:bg-white\/\[0\.04\]:hover { background-color: #F3F4F6 !important; }
 [data-theme="light"] .hover\:bg-white\/\[0\.06\]:hover { background-color: #E5E7EB !important; }
+[data-theme="light"] .hover\:bg-white\/\[0\.08\]:hover { background-color: #E5E7EB !important; }
 [data-theme="light"] .hover\:text-white:hover { color: #111827 !important; }
 [data-theme="light"] .hover\:border-white\/\[0\.12\]:hover { border-color: #D1D5DB !important; }
 [data-theme="light"] .hover\:border-white\/\[0\.15\]:hover { border-color: #D1D5DB !important; }
+[data-theme="light"] .hover\:bg-\[\#1F2937\]:hover { background-color: #F3F4F6 !important; }
 
-/* Group hover — applies when parent .group is hovered */
+/* ===== Group hover — applies when parent .group is hovered ===== */
 [data-theme="light"] .group:hover .group-hover\:text-white { color: #111827 !important; }
 [data-theme="light"] .group:hover .group-hover\:text-\[\#7C3AED\] { color: #2563EB !important; }
 [data-theme="light"] .group:hover .group-hover\:text-\[\#EC4899\] { color: #2563EB !important; }
@@ -543,7 +560,7 @@ button.cf-btn:hover {
 [data-theme="light"] .group:hover .group-hover\:bg-\[\#7C3AED\]\/5 { background-color: rgba(37, 99, 235, 0.05) !important; }
 [data-theme="light"] .group:hover .group-hover\:bg-\[\#EC4899\]\/5 { background-color: rgba(37, 99, 235, 0.05) !important; }
 
-/* Shadows → softer */
+/* ===== Shadows → softer ===== */
 [data-theme="light"] .shadow-\[\#7C3AED\]\/20 { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important; }
 [data-theme="light"] .shadow-\[\#7C3AED\]\/40 { box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25) !important; }
 [data-theme="light"] .shadow-\[\#EC4899\]\/20 { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important; }
@@ -554,8 +571,18 @@ button.cf-btn:hover {
 [data-theme="light"] .shadow-xl { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important; }
 [data-theme="light"] .shadow-lg { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important; }
 
-/* Date inputs */
+/* ===== Inputs ===== */
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  color-scheme: light;
+}
+
+/* ===== Date inputs ===== */
 [data-theme="light"] [color-scheme\:dark] { color-scheme: light !important; }
+
+/* ===== Table rows hover ===== */
+[data-theme="light"] tr:hover { background-color: rgba(37, 99, 235, 0.04) !important; }
 
 /* ============================================
    Settings Slider — Custom Range Input

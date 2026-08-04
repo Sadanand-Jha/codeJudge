@@ -21,17 +21,18 @@ export default function ThemeToggle({ className }: { className?: string }) {
       role="switch"
       aria-checked={!isDark}
     >
-      {/* Track icons — always both visible */}
-      <Sun
-        className={cn(
-          "absolute left-1.5 z-10 h-3.5 w-3.5 transition-colors duration-200",
-          isDark ? "text-text-muted" : "text-[#F59E0B]"
-        )}
-      />
+      {/* Moon icon — left side, active in dark mode */}
       <Moon
         className={cn(
-          "absolute right-1.5 z-10 h-3.5 w-3.5 transition-colors duration-200",
+          "absolute left-1.5 z-10 h-3.5 w-3.5 transition-colors duration-200",
           isDark ? "text-[#9CA3AF]" : "text-text-muted"
+        )}
+      />
+      {/* Sun icon — right side, active in light mode */}
+      <Sun
+        className={cn(
+          "absolute right-1.5 z-10 h-3.5 w-3.5 transition-colors duration-200",
+          isDark ? "text-text-muted" : "text-[#F59E0B]"
         )}
       />
 

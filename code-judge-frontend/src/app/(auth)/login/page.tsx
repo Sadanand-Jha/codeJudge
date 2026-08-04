@@ -30,8 +30,8 @@ export default function LoginPage() {
 
   if (!hasHydrated) {
     return (
-      <div className="min-h-screen bg-[#09090B] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-[#7C3AED] animate-spin" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-accent animate-spin" />
       </div>
     );
   }
@@ -61,44 +61,44 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090B] flex items-center justify-center px-6">
+    <div className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent to-accent-secondary flex items-center justify-center">
             <Code2 className="w-5 h-5 text-white" />
           </div>
-          <span className="text-lg font-bold text-white tracking-tight">ByteClash</span>
+          <span className="text-lg font-bold text-text-primary tracking-tight">ByteClash</span>
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6">
-          <h1 className="text-lg font-bold text-white text-center mb-1">Welcome back</h1>
-          <p className="text-xs text-[#9CA3AF] text-center mb-6">Sign in to your account</p>
+        <div className="rounded-2xl border border-border bg-card p-6">
+          <h1 className="text-lg font-bold text-text-primary text-center mb-1">Welcome back</h1>
+          <p className="text-xs text-text-secondary text-center mb-6">Sign in to your account</p>
 
           <form className="space-y-4" onSubmit={submit}>
             <div>
-              <label className="block text-[11px] font-medium text-[#9CA3AF] mb-2">Email</label>
+              <label className="block text-[11px] font-medium text-text-secondary mb-2">Email</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl bg-[#09090B] border border-white/[0.06] pl-10 pr-3 py-2.5 text-sm text-white placeholder-[#6B7280] outline-none focus:border-[#7C3AED]/40 transition-colors"
+                  className="w-full rounded-xl bg-input-bg border border-input-border pl-10 pr-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
                   placeholder="your@email.com"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-[11px] font-medium text-[#9CA3AF] mb-2">Password</label>
+              <label className="block text-[11px] font-medium text-text-secondary mb-2">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl bg-[#09090B] border border-white/[0.06] pl-10 pr-3 py-2.5 text-sm text-white placeholder-[#6B7280] outline-none focus:border-[#7C3AED]/40 transition-colors"
+                  className="w-full rounded-xl bg-input-bg border border-input-border pl-10 pr-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
                   placeholder="••••••••"
                 />
               </div>
@@ -106,17 +106,17 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#7C3AED] hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-accent hover:shadow-[0_0_12px_rgba(37,99,235,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
 
-          <div className="mt-5 text-center text-xs text-[#6B7280]">
-            <Link href="/forgot-password" className="text-[#7C3AED] hover:underline">Forgot password?</Link>
+          <div className="mt-5 text-center text-xs text-text-muted">
+            <Link href="/forgot-password" className="text-accent hover:underline">Forgot password?</Link>
             <span className="mx-1.5">·</span>
-            <Link href="/register" className="text-[#7C3AED] hover:underline">Register</Link>
+            <Link href="/register" className="text-accent hover:underline">Register</Link>
           </div>
         </div>
       </div>

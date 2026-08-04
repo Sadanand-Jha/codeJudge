@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useCallback } from "react";
-import { useGuestMode } from "@/context/GuestModeContext";
+import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import AuthModal from "@/components/modals/AuthModal";
 
 type ProtectedAction = "submit" | "run" | "save" | "bookmark" | "like" | "comment" | "create-discussion" | "join-contest" | "ai-chat";
@@ -13,7 +13,7 @@ interface GuestGuardProps {
   fallback?: ReactNode;
 }
 
-export default function GuestGuard({ children, action, onAction, fallback }: GuestGuardProps) {
+function GuestGuardContent({ children, action, onAction, fallback }: GuestGuardProps) {
   const { requireAuth, isGuest } = useGuestMode();
 
   const handleClick = useCallback(() => {
@@ -53,6 +53,14 @@ export default function GuestGuard({ children, action, onAction, fallback }: Gue
       {child}
       <GlobalAuthModal />
     </>
+  );
+}
+
+export default function GuestGuard(props: GuestGuardProps) {
+  return (
+    <GuestModeProvider>
+      <GuestGuardContent {...props} />
+    </GuestModeProvider>
   );
 }
 
