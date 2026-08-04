@@ -227,6 +227,15 @@ export const meController = async (req: Request, res: Response) => {
   try {
     const session_token = req.cookies?.session_token || req.body.session_token;
 
+    if (!session_token) {
+      res.status(200).json({
+        success: false,
+        message: "Session ended",
+        statusCode: 200,
+      });
+      return;
+    }
+
     // Check if token is blacklisted
     const isBlacklisted = await redisClient.get(`blacklist:${session_token}`);
     if (isBlacklisted) {
@@ -334,10 +343,10 @@ export const getProfileController = async (req: Request, res: Response) => {
     const { session_token } = req.body;
 
     if (!session_token) {
-      res.status(400).json({
+      res.status(200).json({
         success: false,
-        message: "session_token is required",
-        statusCode: 400,
+        message: "Session ended",
+        statusCode: 200,
       });
       return;
     }

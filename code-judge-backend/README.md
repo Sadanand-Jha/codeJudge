@@ -130,17 +130,28 @@ backend/
 ## API Endpoints
 
 ### Auth
-- `POST /api/auth/register` - Register new user
+- `POST /api/auth/send-otp` - Send OTP to email for registration
+- `POST /api/auth/verify-otp` - Verify OTP and get registration token
+- `POST /api/auth/register` - Register new user with registration token
 - `POST /api/auth/login` - Login user
-- `POST /api/auth/me` - Verify session token and get user identity
+- `POST /api/auth/me` - Verify session token and get user identity (requires session_token in cookie or body)
 - `POST /api/auth/logout` - Logout user and revoke session
+
+**Authentication Notes:**
+- Login and Register set an httpOnly cookie named `session_token`
+- The `/me` endpoint accepts `session_token` from either cookies or request body
+- Protected routes use the `authenticate` middleware which validates the `session_token` cookie
+- Session tokens are JWT-based with configurable expiry (default: 10 days)
+- Logout blacklists the token in Redis for the remaining TTL
 
 ### User (v1)
 - `GET /api/v1/user/profile` - Get user profile (protected)
 - `GET /api/v1/user/info` - Get comprehensive user information including preferences (protected)
 - `PATCH /api/v1/user/avatar` - Update user avatar (protected)
-  - Body: `{ "avatarUrl": "https://api.dicebear.com/9.x/adventurer/svg?seed=Alex" }`
-  - Only accepts predefined avatar URLs
+  - Body: `{ "avatarUrl": "/images/avatar-1.png" }`
+  - Accepts predefined avatars: `/api/v1/avatars/1` through `/api/v1/avatars/21`
+  - Accepts custom backend images: `/images/*`, `/uploads/*`
+  - Custom avatars are automatically inserted into the avatar table
 
 ### Problems
 - `GET /api/problems` - List all problems

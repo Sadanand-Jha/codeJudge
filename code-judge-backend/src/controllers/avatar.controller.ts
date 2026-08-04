@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { pool } from "../app.ts";
-import { isValidPredefinedAvatar } from "../constants/avatars.ts";
+import { isValidPredefinedAvatar, PREDEFINED_AVATARS } from "../constants/avatars.ts";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -10,15 +10,37 @@ const __dirname = path.dirname(__filename);
 const AVATAR_DIR = path.resolve(__dirname, "../../public/avatars");
 
 /**
+ * Validate avatar URL to allow:
+ * - Predefined avatars (e.g., "/api/v1/avatars/1", "/images/avatar-1.png")
+ * - Custom backend images (e.g., "/images/custom-profile.jpg", "/uploads/avatar.png")
+ */
+function isValidAvatarUrl(url: string | null | undefined): boolean {
+  if (!url || typeof url !== 'string') return false;
+
+  // Allow predefined avatars
+  if (isValidPredefinedAvatar(url)) return true;
+
+  // Allow local backend images: /images/*, /api/v1/avatars/*, /uploads/*
+  const allowedPatterns = [
+    /^\/images\/[a-zA-Z0-9\-_\/\.]+$/,           // /images/filename.png
+    /^\/api\/v1\/avatars\/[0-9]+$/,              // /api/v1/avatars/1-21
+    /^\/uploads\/[a-zA-Z0-9\-_\/\.]+$/,          // /uploads/filename.png
+  ];
+
+  return allowedPatterns.some(pattern => pattern.test(url));
+}
+
+/**
  * PATCH /api/user/avatar
  * Updates the user's avatar URL
  *
  * Body: { "avatarUrl": "/images/avatar-1.png" }
  *
  * Validation:
- * - Accepts only one of the predefined 7 avatar URLs
- * - Rejects any other URL with 400 Bad Request
- * - Updates only the avatar_url column
+ * - Accepts predefined avatar URLs (e.g., "/api/v1/avatars/1", "/images/avatar-1.png")
+ * - Accepts custom backend image paths (e.g., "/images/custom-avatar.jpg", "/uploads/avatar.png")
+ * - Rejects invalid URLs with 400 Bad Request
+ * - Updates the avatar_id foreign key in users table
  */
 export const updateAvatar = async (req: Request, res: Response) => {
   try {
@@ -33,25 +55,53 @@ export const updateAvatar = async (req: Request, res: Response) => {
       return;
     }
 
-    // Validate that the avatar URL is one of the predefined avatars
-    if (!isValidPredefinedAvatar(avatarUrl)) {
+    // Validate that the avatar URL is one of the predefined avatars or a custom backend image
+    if (!isValidAvatarUrl(avatarUrl)) {
       res.status(400).json({
         success: false,
-        message: "Invalid avatar URL. Only predefined avatars are allowed.",
+        message: "Invalid avatar URL. Only predefined avatars or backend image paths are allowed.",
       });
       return;
     }
 
-    // Update only the avatar column
-    const query = `
+    let avatarId: number;
+
+    // Check if it's a predefined avatar (e.g., "/api/v1/avatars/1")
+    const predefinedMatch = avatarUrl.match(/^\/api\/v1\/avatars\/(\d+)$/);
+    if (predefinedMatch) {
+      avatarId = parseInt(predefinedMatch[1]);
+    } else {
+      // For custom backend images, insert or get existing avatar record
+      // This follows the same pattern as init.sql: INSERT ... ON CONFLICT (url) DO NOTHING
+      const insertQuery = `
+        INSERT INTO avatar (is_male, url, created_at, updated_at)
+        VALUES (true, $1, NOW(), NOW())
+        ON CONFLICT (url) DO NOTHING
+        RETURNING id
+      `;
+      
+      const insertResult = await pool.query(insertQuery, [avatarUrl]);
+      
+      // If not inserted (already exists), get the existing ID
+      if (insertResult.rows.length === 0) {
+        const selectQuery = `SELECT id FROM avatar WHERE url = $1`;
+        const selectResult = await pool.query(selectQuery, [avatarUrl]);
+        avatarId = selectResult.rows[0]?.id;
+      } else {
+        avatarId = insertResult.rows[0].id;
+      }
+    }
+
+    // Update user's avatar_id
+    const updateQuery = `
       UPDATE users
-      SET avatar = $1, updated_at = CURRENT_TIMESTAMP
+      SET avatar_id = $1, updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
-      RETURNING avatar
+      RETURNING avatar_id
     `;
-
-    const result = await pool.query(query, [avatarUrl, userId]);
-
+    
+    const result = await pool.query(updateQuery, [avatarId, userId]);
+    
     if (result.rows.length === 0) {
       res.status(404).json({
         success: false,
@@ -60,13 +110,12 @@ export const updateAvatar = async (req: Request, res: Response) => {
       return;
     }
 
-    const updatedAvatarUrl = result.rows[0].avatar;
-
     res.status(200).json({
       success: true,
       message: "Avatar updated successfully",
       data: {
-        avatarUrl: updatedAvatarUrl,
+        avatarUrl: avatarUrl,
+        avatarId: avatarId,
       },
     });
   } catch (error) {
