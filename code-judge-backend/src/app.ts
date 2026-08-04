@@ -6,7 +6,6 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import apiRoutes from "./routes/index.routes.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
-import { startQuizReportWorker } from "./workers/quizReportWorker.ts";
 import dns from "dns";
 
 
@@ -99,9 +98,6 @@ app.use("/api", apiRoutes);
 
 // Global error handler — must be registered after routes
 app.use(errorHandler);
-
-// Start quiz report worker
-startQuizReportWorker();
 
 app.get("/health", async (req, res) => {
   const health = {

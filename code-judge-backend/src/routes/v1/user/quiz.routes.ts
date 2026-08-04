@@ -28,6 +28,8 @@ import {
   getQuizAnalytics,
   joinQuiz,
   getPreviousQuizzes,
+  generateQuizResults,
+  retryQuizResultsEmail,
 } from "../../../controllers/quiz.controller.ts";
 
 const router = Router();
@@ -108,6 +110,14 @@ router.get("/result/:attemptId", getQuizResult);
 
 // GET /api/v1/user/quiz/result/:attemptId/review — get question-wise review
 router.get("/result/:attemptId/review", getQuizReview);
+
+// ==================== RESULT GENERATION ====================
+
+// POST /api/v1/user/quiz/:quizId/generate-results — manually generate results
+router.post("/:quizId/generate-results", generateQuizResults);
+
+// POST /api/v1/user/quiz/:quizId/retry-email — retry sending marksheet email
+router.post("/:quizId/retry-email", retryQuizResultsEmail);
 
 // ==================== LEADERBOARD ====================
 

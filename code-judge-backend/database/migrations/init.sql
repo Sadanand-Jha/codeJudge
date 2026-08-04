@@ -553,27 +553,6 @@ ALTER TABLE quiz_attempts DROP CONSTRAINT IF EXISTS fk_quiz_attempts_quiz;
 ALTER TABLE quiz_attempts ADD CONSTRAINT fk_quiz_attempts_quiz FOREIGN KEY (quiz_id) REFERENCES quiz(id);
 
 -- ==========================================
--- Quiz Report Generation
--- ==========================================
-
-CREATE TABLE IF NOT EXISTS quiz_report_jobs (
-    id SERIAL PRIMARY KEY,
-    quiz_id INTEGER NOT NULL,
-    status VARCHAR NOT NULL DEFAULT 'pending',
-    attempts_evaluated INTEGER DEFAULT 0,
-    total_attempts INTEGER DEFAULT 0,
-    error_message TEXT,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_quiz_report_jobs_quiz_id ON quiz_report_jobs(quiz_id);
-CREATE INDEX IF NOT EXISTS idx_quiz_report_jobs_status ON quiz_report_jobs(status);
-
-ALTER TABLE quiz_report_jobs DROP CONSTRAINT IF EXISTS fk_report_jobs_quiz;
-ALTER TABLE quiz_report_jobs ADD CONSTRAINT fk_report_jobs_quiz FOREIGN KEY (quiz_id) REFERENCES quiz(id);
-
--- ==========================================
 -- Missing Columns for Existing Tables
 -- ==========================================
 

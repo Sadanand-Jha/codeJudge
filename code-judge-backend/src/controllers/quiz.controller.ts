@@ -1,7 +1,9 @@
 import type { Request, Response } from "express";
 import { QuizService } from "../services/database/quiz.service.ts";
+import { ResultGenerationService } from "../services/resultGeneration.service.ts";
 
 const quizService = new QuizService();
+const resultGenerationService = new ResultGenerationService();
 
 // ==================== QUIZ SETTINGS ====================
 
@@ -1147,6 +1149,120 @@ export const getQuizReview = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching quiz review",
+    });
+  }
+};
+
+// ==================== RESULT GENERATION ====================
+
+/**
+ * POST /api/v1/user/quiz/:quizId/generate-results
+ * Manually generate results for a quiz (creator only)
+ * Body: { force?: boolean, sendEmail?: boolean }
+ */
+export const generateQuizResults = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+    const { force = false, sendEmail = true } = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+      return;
+    }
+
+    if (quiz.createdby !== Number(userId)) {
+      res.status(403).json({
+        success: false,
+        message: "You are not authorized to generate results for this quiz",
+      });
+      return;
+    }
+
+    const result = await resultGenerationService.generateResults(Number(quizId), { force, sendEmail });
+
+    res.status(200).json({
+      success: true,
+      message: result.emailSent
+        ? "Results generated and email sent successfully"
+        : "Results generated successfully, but email delivery failed",
+      data: result,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "RESULTS_ALREADY_GENERATED") {
+      res.status(409).json({
+        success: false,
+        message: "Results have already been generated. Use force=true to regenerate.",
+        code: "RESULTS_ALREADY_GENERATED",
+      });
+      return;
+    }
+    console.error("Error generating quiz results:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while generating quiz results",
+    });
+  }
+};
+
+/**
+ * POST /api/v1/user/quiz/:quizId/retry-email
+ * Retry sending the marksheet email without recalculating results (creator only)
+ */
+export const retryQuizResultsEmail = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+      return;
+    }
+
+    if (quiz.createdby !== Number(userId)) {
+      res.status(403).json({
+        success: false,
+        message: "You are not authorized to retry email for this quiz",
+      });
+      return;
+    }
+
+    const result = await resultGenerationService.retryEmail(Number(quizId));
+
+    res.status(200).json({
+      success: true,
+      message: result.emailSent ? "Email sent successfully" : "Email delivery failed",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error retrying quiz results email:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while retrying quiz results email",
     });
   }
 };

@@ -1201,6 +1201,10 @@ joinQuiz(data)
 getQuizLeaderboard(quizId)
 getQuizLeaderboardSettings(quizId)
 updateQuizLeaderboardSettings(quizId, settings)
+
+// Result Generation (creator only)
+generateQuizResults(quizId, options?)
+retryQuizResultsEmail(quizId)
 ```
 
 ---
@@ -1336,51 +1340,69 @@ useEffect(() => {
 
 ---
 
-## Automatic Marksheet Generation & Email Delivery
+## Manual Result Generation & Email Delivery
 
 ### Overview
-Automatic marksheet generation system that triggers 2 minutes after quiz completion.
+Manual result generation system that allows quiz creators to generate results and email marksheets on demand. There are **no cron jobs or background schedulers** — results are generated only when the quiz creator explicitly clicks the "Generate Results & Email" button.
 
 ### Architecture
 
 **Files:**
-- `src/workers/quizReportWorker.ts` - Background worker for report generation
+- `src/services/resultGeneration.service.ts` - Result generation service (evaluation, leaderboard, persistence, email)
 - `src/services/marksheet.service.ts` - Excel marksheet generation
 - `src/services/email.service.ts` - Email delivery service
+- `src/controllers/quiz.controller.ts` - API controller (`generateQuizResults`, `retryQuizResultsEmail`)
 
-**Database Table:**
-- `quiz_report_jobs` - Tracks report generation status
+### API Endpoints
 
-### Trigger Mechanism
+**POST /api/v1/user/quiz/:quizId/generate-results**
+- Manually generate results for a quiz (creator only)
+- Body: `{ force?: boolean, sendEmail?: boolean }`
+- Returns 409 if results already generated (unless `force: true`)
 
-**Cron Schedule:**
-- Runs every 2 minutes via `node-cron`
-- Checks for published quizzes with `endtime < NOW() - 2 minutes`
-- Skips quizzes that already have report jobs
+**POST /api/v1/user/quiz/:quizId/retry-email**
+- Retry sending the marksheet email without recalculating results (creator only)
 
-**Job Lifecycle:**
-1. `pending` - Job created
-2. `processing` - Generating marksheet and sending email
-3. `completed` - Report sent successfully
-4. `failed` - Error occurred (with error_message)
-
-### Report Generation Flow
+### Result Generation Flow
 
 ```
-Worker runs every 2 minutes
+Creator clicks "Generate Results & Email"
   ↓
-Find quizzes ready for report
+Show confirmation dialog
   ↓
-Create report job record
+POST /api/v1/user/quiz/:quizId/generate-results
+  ↓
+Check if results already exist (409 if not force)
+  ↓
+Fetch all completed submissions
+  ↓
+Evaluate every submission (reuse existing logic)
+  ↓
+Calculate marks, correct/wrong/unanswered, percentage
+  ↓
+Calculate ranks (leaderboard ordering)
+  ↓
+Persist all results in a transaction
   ↓
 Generate Excel marksheet
   ↓
-Fetch creator email
+Email marksheet to creator only
   ↓
-Send email with attachment
-  ↓
-Update job status to completed
+Return response (partial success if email fails)
 ```
+
+### Duplicate Prevention
+
+- If results have already been generated, the API returns `409` with `code: "RESULTS_ALREADY_GENERATED"`
+- Frontend shows a "Regenerate Results?" confirmation dialog
+- Passing `force: true` in the request body overwrites existing results
+
+### Partial Success Handling
+
+- If email sending fails, results are still saved in the database
+- API returns `200` with `emailSent: false` and `emailError` message
+- Creator can retry email sending via `POST /api/v1/user/quiz/:quizId/retry-email`
+- Retry does NOT recalculate results — only regenerates marksheet and sends email
 
 ### Excel Marksheet
 
@@ -1416,7 +1438,7 @@ Update job status to completed
 
 ### Email Delivery
 
-**To:** Quiz creator email
+**To:** Quiz creator email only (NOT students)
 
 **Subject:** `Quiz Report - <Quiz Name>`
 
@@ -1434,17 +1456,7 @@ Update job status to completed
 
 **Attachment:** Excel marksheet file
 
-**Retry Mechanism:**
-- Worker processes failed jobs on next run
-- Error logged with full stack trace
-- No duplicate emails sent (job status prevents reprocessing)
-
 ### Statistics Calculation
-
-**Dynamic Score Calculation:**
-- Scores computed from stored responses
-- No redundant data in database
-- Consistent with leaderboard/results
 
 **Metrics:**
 - `totalParticipants` - Completed attempts count
@@ -1469,10 +1481,9 @@ FROM_EMAIL=your-email@gmail.com
 ### Error Handling
 
 **Email Failures:**
-- Job marked as failed
-- Error message stored in database
-- Retry on next worker iteration
-- No duplicate reports
+- Results remain saved in the database
+- Partial success response returned
+- Creator can retry email without recalculating
 
 **Missing Data:**
 - Graceful handling of NULL roll numbers
@@ -1482,15 +1493,12 @@ FROM_EMAIL=your-email@gmail.com
 ### Performance
 
 **Optimizations:**
-- Batch queries (no N+1)
+- Batch database queries (no N+1)
+- All student responses fetched in a single query
+- All problems and options fetched in batch
+- Transaction for bulk updates
 - Single Excel generation per quiz
-- Async email sending
-- Job deduplication prevents reprocessing
-
-**Limits:**
-- Worker runs every 2 minutes
-- Processes one quiz at a time sequentially
-- Suitable for typical quiz sizes
+- Suitable for hundreds or thousands of submissions
 
 ---
 
