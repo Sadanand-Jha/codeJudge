@@ -173,22 +173,22 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
       <div className="max-w-7xl mx-auto">
         {/* Page Title */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Problems</h1>
-          <p className="text-sm text-[#9CA3AF] mt-1">Browse and solve coding challenges.</p>
+          <h1 className="text-2xl font-bold text-text-primary tracking-tight">Problems</h1>
+          <p className="text-sm text-text-secondary mt-1">Browse and solve coding challenges.</p>
         </div>
 
         {/* Search Bar */}
         <div className="relative group mb-5">
-          <div className="relative flex items-center bg-[#111827] border border-white/[0.06] rounded-2xl px-4 py-3 group-focus-within:border-[#7C3AED]/40 group-focus-within:shadow-[0_0_20px_rgba(124,58,237,0.08)] transition-all">
-            <Search className="w-5 h-5 text-[#6B7280] shrink-0" />
+          <div className="relative flex items-center bg-card border border-border rounded-2xl px-4 py-3 group-focus-within:border-accent/40 group-focus-within:shadow-[0_0_20px_rgba(37,99,235,0.08)] transition-all">
+            <Search className="w-5 h-5 text-text-secondary shrink-0" />
             <input
               type="text"
               placeholder="Search by title, ID, tag or company..."
               value={filters.query}
               onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder-[#6B7280] ml-3"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder-text-secondary ml-3"
             />
-            <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-[#9CA3AF] bg-white/[0.04] border border-white/[0.06] rounded-lg">
+            <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-text-secondary bg-card-hover border border-border rounded-lg">
               <span className="text-[9px]">⌘</span>K
             </kbd>
           </div>
@@ -196,7 +196,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
 
         {/* Status Filters */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-[#6B7280] mr-1">Status</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted mr-1">Status</span>
           {statusFilters.map((f) => {
             const isActive = filters.status === f.value;
             return (
@@ -205,8 +205,8 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                 onClick={() => setStatus(f.value)}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
                   isActive
-                    ? "bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.3)]"
-                    : "bg-white/[0.04] text-[#9CA3AF] border border-white/[0.06] hover:border-white/[0.12] hover:text-white"
+                    ? "bg-accent text-white shadow-[0_0_12px_rgba(37,99,235,0.3)]"
+                    : "bg-card-hover text-text-secondary border border-border hover:border-border-hover hover:text-text-primary"
                 }`}
               >
                 {f.label}
@@ -217,13 +217,13 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
 
         {/* Difficulty Filters */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-[#6B7280] mr-1">Difficulty</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted mr-1">Difficulty</span>
           <button
             onClick={() => setDifficulty(null)}
             className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
               filters.difficulty === null
-                ? "bg-white/[0.08] text-white border border-white/[0.12]"
-                : "bg-white/[0.04] text-[#9CA3AF] border border-white/[0.06] hover:border-white/[0.12]"
+                ? "bg-card-hover text-text-primary border border-border-hover"
+                : "bg-card-hover text-text-secondary border border-border hover:border-border-hover"
             }`}
           >
             All
@@ -238,8 +238,8 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                 className="px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border"
                 style={{
                   color,
-                  borderColor: isActive ? `${color}40` : "rgba(255,255,255,0.06)",
-                  backgroundColor: isActive ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
+                  borderColor: isActive ? `${color}40` : "rgba(0,0,0,0.08)",
+                  backgroundColor: isActive ? "rgba(0,0,0,0.06)" : "rgba(0,0,0,0.02)",
                 }}
               >
                 {d.label}

@@ -23,7 +23,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-[#9CA3AF] bg-[#111827] border border-white/[0.06] hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-text-secondary bg-card border border-border hover:bg-card-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         <ChevronLeft className="w-3.5 h-3.5" />
         Previous
@@ -31,15 +31,15 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
 
       {pages.map((p, i) =>
         p === "..." ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-xs text-[#6B7280]">...</span>
+          <span key={`ellipsis-${i}`} className="px-2 text-xs text-text-muted">...</span>
         ) : (
           <button
             key={p}
             onClick={() => onPageChange(p)}
             className={`w-9 h-9 rounded-xl text-xs font-medium transition-all ${
               currentPage === p
-                ? "bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.3)]"
-                : "text-[#9CA3AF] bg-[#111827] border border-white/[0.06] hover:bg-white/[0.04]"
+                ? "bg-accent text-white shadow-[0_0_12px_rgba(37,99,235,0.3)]"
+                : "text-text-secondary bg-card border border-border hover:bg-card-hover"
             }`}
           >
             {p}
@@ -50,7 +50,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-[#9CA3AF] bg-[#111827] border border-white/[0.06] hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-text-secondary bg-card border border-border hover:bg-card-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all"
       >
         Next
         <ChevronRight className="w-3.5 h-3.5" />

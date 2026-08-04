@@ -61,8 +61,8 @@ export default function FilterBar({
               onClick={() => onQuickFilterChange(f.value)}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
                 isActive
-                  ? "bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.3)]"
-                  : "bg-white/[0.04] text-[#9CA3AF] border border-white/[0.06] hover:border-white/[0.12] hover:text-white"
+                  ? "bg-accent text-white shadow-[0_0_12px_rgba(37,99,235,0.3)]"
+                  : "bg-card-hover text-text-secondary border border-border hover:border-border-hover hover:text-text-primary"
               }`}
             >
               {Icon && <Icon className="w-3 h-3" />}
@@ -78,8 +78,8 @@ export default function FilterBar({
           onClick={() => onDifficultyChange(null)}
           className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
             activeDifficulty === null
-              ? "bg-white/[0.08] text-white border border-white/[0.12]"
-              : "bg-white/[0.04] text-[#9CA3AF] border border-white/[0.06] hover:border-white/[0.12]"
+              ? "bg-card-hover text-text-primary border border-border-hover"
+              : "bg-card-hover text-text-secondary border border-border hover:border-border-hover"
           }`}
         >
           All Ratings
@@ -92,12 +92,12 @@ export default function FilterBar({
               onClick={() => onDifficultyChange(d.min)}
               className={`px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all border ${
                 isActive
-                  ? "bg-white/[0.08] shadow-[0_0_10px_rgba(124,58,237,0.15)]"
-                  : "bg-white/[0.04] hover:bg-white/[0.06]"
+                  ? "bg-card-hover shadow-[0_0_10px_rgba(37,99,235,0.15)]"
+                  : "bg-card-hover hover:bg-card"
               }`}
               style={{
                 color: d.color,
-                borderColor: isActive ? d.color + "40" : "rgba(255,255,255,0.06)",
+                borderColor: isActive ? d.color + "40" : "rgba(0,0,0,0.08)",
                 textShadow: isActive ? `0 0 8px ${d.color}40` : "none",
               }}
             >
@@ -117,8 +117,8 @@ export default function FilterBar({
               onClick={() => onTagToggle(tag)}
               className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all border ${
                 isActive
-                  ? "bg-[#7C3AED]/15 text-[#7C3AED] border-[#7C3AED]/30 shadow-[0_0_10px_rgba(124,58,237,0.1)]"
-                  : "bg-white/[0.04] text-[#9CA3AF] border-white/[0.06] hover:border-white/[0.12] hover:text-white"
+                  ? "bg-accent/15 text-accent border-accent/30 shadow-[0_0_10px_rgba(37,99,235,0.1)]"
+                  : "bg-card-hover text-text-secondary border-border hover:border-border-hover hover:text-text-primary"
               }`}
             >
               {tag}
