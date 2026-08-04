@@ -43,6 +43,7 @@ import {
 import QuestionBuilderStudio from "@/components/quiz/QuestionBuilderStudio";
 import QuizSettings from "@/components/quiz/QuizSettings";
 import QuizStudio from "@/components/quiz/QuizStudio";
+import { GenerateResultsButton } from "@/components/quiz/GenerateResultsButton";
 
 type DashboardTab =
   | "overview"
@@ -290,6 +291,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
             >
               {activeTab === "overview" && (
                 <OverviewTab
+                  quizId={quizId}
                   quizName={settings.general.name || quizName}
                   quizDescription={settings.general.description}
                   questionsCount={questions.length}
@@ -341,6 +343,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
 
 // ===== Overview Tab =====
 function OverviewTab({
+  quizId,
   quizName,
   quizDescription,
   questionsCount,
@@ -354,6 +357,7 @@ function OverviewTab({
   onPreview,
   onPublish,
 }: {
+  quizId: string;
   quizName: string;
   quizDescription: string;
   questionsCount: number;
@@ -413,6 +417,14 @@ function OverviewTab({
         <QuickActionButton icon={ListChecks} label="Open Question Builder" onClick={onOpenBuilder} color="#EC4899" />
         <QuickActionButton icon={Eye} label="Preview Quiz" onClick={onPreview} color="#22C55E" />
         <QuickActionButton icon={Send} label="Publish Quiz" onClick={onPublish} color="#F59E0B" />
+      </div>
+
+      {/* Generate Results */}
+      <div>
+        <h3 className="text-sm font-bold text-white mb-3">Results & Reports</h3>
+        <div className="max-w-xs">
+          <GenerateResultsButton quizId={quizId} quizName={quizName} />
+        </div>
       </div>
 
       {/* Completion Checklist + Recent Activity */}

@@ -199,9 +199,16 @@ function PodiumSpot({ user, rank, delay }: { user: User; rank: number; delay: nu
         <div className="text-[10px] text-text-muted">{user.problemsSolved} solved</div>
       </div>
 
-      <div className={`mt-4 w-32 ${heights[rank as 1 | 2 | 3]} rounded-t-lg bg-card border border-border`}>
+      <div
+        className={`mt-4 w-32 ${heights[rank as 1 | 2 | 3]} rounded-t-lg border border-border relative overflow-hidden`}
+        style={{
+          background: `linear-gradient(180deg, ${color.primary}33 0%, ${color.primary}22 50%, ${color.primary}11 100%)`,
+          borderColor: `${color.primary}66`,
+        }}
+      >
+        <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color.primary }} />
         <div className="flex h-full flex-col items-center justify-end pb-3">
-          <span className="text-[24px] font-bold text-text-muted">{rank}</span>
+          <span className="text-[24px] font-bold" style={{ color: color.primary }}>{rank}</span>
         </div>
       </div>
     </motion.div>

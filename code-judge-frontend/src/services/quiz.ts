@@ -558,3 +558,39 @@ export async function updateQuizLeaderboardSettings(quizId: string, settings: Pa
   const response = await apiClient.patch<QuizLeaderboardSettings>(`/v1/user/quiz/${quizId}/leaderboard/settings`, settings);
   return response.data;
 }
+
+// ─────────────────────────────────────────
+// Result Generation API
+// ─────────────────────────────────────────
+
+export interface GenerateResultsResponse {
+  resultsGenerated: boolean;
+  emailSent: boolean;
+  emailError?: string;
+  stats: {
+    totalSubmissions: number;
+    evaluated: number;
+    leaderboardUpdated: boolean;
+  };
+}
+
+/**
+ * Manually generate results for a quiz (creator only)
+ * POST /api/v1/user/quiz/:quizId/generate-results
+ */
+export async function generateQuizResults(quizId: string, options?: { force?: boolean; sendEmail?: boolean }): Promise<GenerateResultsResponse> {
+  const response = await apiClient.post<GenerateResultsResponse>(`/v1/user/quiz/${quizId}/generate-results`, {
+    force: options?.force ?? false,
+    sendEmail: options?.sendEmail ?? true,
+  });
+  return response.data;
+}
+
+/**
+ * Retry sending the marksheet email without recalculating results (creator only)
+ * POST /api/v1/user/quiz/:quizId/retry-email
+ */
+export async function retryQuizResultsEmail(quizId: string): Promise<{ emailSent: boolean; emailError?: string }> {
+  const response = await apiClient.post<{ emailSent: boolean; emailError?: string }>(`/v1/user/quiz/${quizId}/retry-email`);
+  return response.data;
+}

@@ -230,32 +230,39 @@ function formatDate(value: string) {
 function statusTone(status: AttemptStatus) {
   switch (status) {
     case "Completed":
-      return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      return "bg-success/10 text-success border-success/20";
     case "Submitted":
-      return "bg-sky-500/10 text-sky-400 border-sky-500/20";
+      return "bg-accent/10 text-accent border-accent/20";
     case "Timed Out":
-      return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+      return "bg-warning/10 text-warning border-warning/20";
     case "Left Early":
-      return "bg-rose-500/10 text-rose-400 border-rose-500/20";
+      return "bg-danger/10 text-danger border-danger/20";
   }
 }
 
 function visibilityTone(visibility: AttemptVisibility) {
   switch (visibility) {
     case "Public":
-      return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      return "bg-success/10 text-success border-success/20";
     case "College":
-      return "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
+      return "bg-accent/10 text-accent border-accent/20";
     case "Classroom":
-      return "bg-pink-500/10 text-pink-400 border-pink-500/20";
+      return "bg-[#EC4899]/10 text-[#EC4899] border-[#EC4899]/20";
   }
 }
 
 function scoreTone(percentage: number) {
-  if (percentage >= 85) return "text-emerald-400";
-  if (percentage >= 70) return "text-sky-400";
-  if (percentage >= 50) return "text-amber-400";
-  return "text-rose-400";
+  if (percentage >= 85) return "text-success";
+  if (percentage >= 70) return "text-accent";
+  if (percentage >= 50) return "text-warning";
+  return "text-danger";
+}
+
+function scoreBarTone(percentage: number) {
+  if (percentage >= 85) return "bg-success";
+  if (percentage >= 70) return "bg-accent";
+  if (percentage >= 50) return "bg-warning";
+  return "bg-danger";
 }
 
 function scoreFilterMatch(percentage: number, filter: string) {
@@ -327,7 +334,7 @@ export default function PreviousQuizzesSection() {
     return items;
   }, [filteredAttempts, sortBy]);
 
-  const pageSize = 4;
+  const pageSize = 20;
   const totalAttempts = sortedAttempts.length;
   const totalPages = Math.max(1, Math.ceil(totalAttempts / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -352,29 +359,29 @@ export default function PreviousQuizzesSection() {
 
   return (
     <section className="mb-8 sm:mb-10">
-      <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#111217] via-[#0F1117] to-[#09090B] p-[1px] shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(236,72,153,0.18),_transparent_30%),radial-gradient(circle_at_bottom_left,_rgba(59,130,246,0.12),_transparent_28%)]" />
-        <div className="relative rounded-3xl bg-[#0B0D12]/95 backdrop-blur-xl p-4 sm:p-6 lg:p-7">
-          <div className="flex flex-col lg:flex-row lg:items-end gap-4 lg:gap-6 mb-5">
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-[1px] shadow-xl">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(124,58,237,0.06),_transparent_30%),radial-gradient(circle_at_bottom_left,_rgba(59,130,246,0.04),_transparent_28%)]" />
+        <div className="relative rounded-2xl bg-card backdrop-blur-xl p-3 sm:p-4 lg:p-5">
+          <div className="flex flex-col lg:flex-row lg:items-end gap-3 lg:gap-4 mb-4">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#EC4899]/20 bg-[#EC4899]/10 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#F472B6]">
-                  <Sparkles className="w-3 h-3" />
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-accent/20 bg-accent/10 text-[9px] font-semibold uppercase tracking-[0.16em] text-accent">
+                  <Sparkles className="w-2.5 h-2.5" />
                   Student activity
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-white/[0.08] bg-white/[0.03] text-[10px] font-medium text-[#A1A1AA]">
-                  <BookOpen className="w-3 h-3" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border bg-card-hover text-[9px] font-medium text-text-secondary">
+                  <BookOpen className="w-2.5 h-2.5" />
                   Previous quizzes
                 </span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Previous Quizzes</h2>
-              <p className="mt-1.5 max-w-2xl text-sm text-[#A1A1AA]">
+              <h2 className="text-lg sm:text-xl font-bold text-text-primary tracking-tight">Previous Quizzes</h2>
+              <p className="mt-1 max-w-2xl text-xs text-text-secondary">
                 Review completed, submitted, timed-out, and early-exit attempts with deep score breakdowns, rankings, and reattempt actions.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3">
-              <SummaryStat label="Total Attempts" value={MOCK_ATTEMPTS.length} icon={Layers3} />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <SummaryStat label="Total" value={MOCK_ATTEMPTS.length} icon={Layers3} />
               <SummaryStat label="Completed" value={quickSummary.completed} icon={BadgeCheck} />
               <SummaryStat label="Avg Score" value={`${quickSummary.averageScore}%`} icon={BarChart3} />
               <SummaryStat label="Avg Time" value={`${quickSummary.averageTime}m`} icon={Clock3} />
@@ -382,7 +389,7 @@ export default function PreviousQuizzesSection() {
           </div>
 
           {/* Search - always visible */}
-          <div className="mb-3">
+          <div className="mb-2.5">
             <FieldInput
               icon={Search}
               label="Search Quiz"
@@ -393,7 +400,7 @@ export default function PreviousQuizzesSection() {
           </div>
 
           {/* Filter button for mobile, filters for desktop */}
-          <div className="mb-5">
+          <div className="mb-4">
             {/* Mobile: Filter Button + Bottom Sheet */}
             <div className="md:hidden">
               <MobileFilterBottomSheet
@@ -412,7 +419,7 @@ export default function PreviousQuizzesSection() {
             </div>
 
             {/* Desktop: Inline filters */}
-            <div className="hidden md:grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <div className="hidden md:grid gap-2.5 md:grid-cols-2 xl:grid-cols-6">
               <FieldSelect label="Subject" value={subject} options={allSubjects} onChange={setSubject} />
               <FieldSelect label="Date Range" value={dateRange} options={["All time", "Last 7 days", "Last 30 days", "Last 90 days"]} onChange={setDateRange} />
               <FieldSelect label="Status" value={status} options={[...STATUS_OPTIONS]} onChange={(v) => setStatus(v as (typeof STATUS_OPTIONS)[number])} />
@@ -429,35 +436,35 @@ export default function PreviousQuizzesSection() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-3xl border border-white/[0.08] bg-white/[0.03] px-5 py-8 text-center"
+              className="rounded-xl border border-border bg-card-hover px-5 py-8 text-center"
             >
-              <p className="text-base font-semibold text-white">No matching quizzes found.</p>
-              <p className="mt-1 text-sm text-[#A1A1AA]">Try a different filter or search term.</p>
+              <p className="text-base font-semibold text-text-primary">No matching quizzes found.</p>
+              <p className="mt-1 text-sm text-text-secondary">Try a different filter or search term.</p>
             </motion.div>
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-2">
                 {pageItems.map((attempt, index) => (
                   <AttemptCard key={attempt.id} attempt={attempt} index={index} />
                 ))}
               </div>
 
-              <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
-                <div className="text-xs text-[#A1A1AA]">
-                  Showing <span className="font-semibold text-white">{pageStart + 1}</span>–<span className="font-semibold text-white">{pageEnd}</span> of <span className="font-semibold text-white">{totalAttempts}</span> quizzes
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border bg-card-hover px-3 py-2">
+                <div className="text-xs text-text-secondary">
+                  Showing <span className="font-semibold text-text-primary">{pageStart + 1}</span>–<span className="font-semibold text-text-primary">{pageEnd}</span> of <span className="font-semibold text-text-primary">{totalAttempts}</span> quizzes
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="hidden sm:inline-flex text-xs text-[#71717A]">View Attempt Page</span>
+                <div className="flex items-center gap-2">
+                  <span className="hidden sm:inline-flex text-xs text-text-muted">View Attempt Page</span>
                   <button
                     type="button"
                     onClick={() => setPage((current) => Math.max(1, current - 1))}
                     disabled={currentPage === 1}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs font-medium text-white transition-all hover:border-white/[0.16] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex items-center gap-1 rounded-lg border border-border bg-card-hover px-2.5 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                     Prev
                   </button>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5">
                     {Array.from({ length: totalPages }).map((_, i) => {
                       const pageNumber = i + 1;
                       return (
@@ -465,10 +472,10 @@ export default function PreviousQuizzesSection() {
                           key={pageNumber}
                           type="button"
                           onClick={() => setPage(pageNumber)}
-                          className={`h-8 min-w-8 rounded-lg px-2 text-xs font-semibold transition-all ${
+                          className={`h-7 min-w-7 rounded-md px-1.5 text-xs font-semibold transition-all ${
                             pageNumber === currentPage
-                              ? "bg-[#EC4899]/15 text-white ring-1 ring-[#EC4899]/30"
-                              : "bg-white/[0.03] text-[#A1A1AA] hover:text-white"
+                              ? "bg-accent/15 text-accent ring-1 ring-accent/30"
+                              : "bg-card-hover text-text-secondary hover:text-text-primary"
                           }`}
                         >
                           {pageNumber}
@@ -480,7 +487,7 @@ export default function PreviousQuizzesSection() {
                     type="button"
                     onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                     disabled={currentPage === totalPages}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs font-medium text-white transition-all hover:border-white/[0.16] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex items-center gap-1 rounded-lg border border-border bg-card-hover px-2.5 py-1.5 text-xs font-medium text-text-primary transition-all hover:border-border-hover disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Next
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -497,12 +504,12 @@ export default function PreviousQuizzesSection() {
 
 function SummaryStat({ label, value, icon: Icon }: { label: string; value: string | number; icon: any }) {
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
-      <div className="flex items-center gap-2 text-[#A1A1AA] mb-1">
-        <Icon className="w-3.5 h-3.5 text-[#EC4899]" />
-        <span className="text-[10px] uppercase tracking-[0.18em]">{label}</span>
+    <div className="rounded-lg border border-border bg-card-hover px-2.5 py-2">
+      <div className="flex items-center gap-1.5 text-text-secondary mb-0.5">
+        <Icon className="w-3 h-3 text-accent" />
+        <span className="text-[9px] uppercase tracking-[0.14em]">{label}</span>
       </div>
-      <div className="text-lg font-bold text-white">{value}</div>
+      <div className="text-sm font-bold text-text-primary">{value}</div>
     </div>
   );
 }
@@ -523,15 +530,15 @@ function FieldInput({
   className?: string;
 }) {
   return (
-    <label className={`space-y-1.5 ${className || ""}`}>
-      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#71717A]">{label}</span>
-      <div className="flex items-center gap-2 rounded-2xl border border-white/[0.08] bg-[#0B0D12] px-3 py-2.5 transition-all focus-within:border-[#EC4899]/30 focus-within:ring-1 focus-within:ring-[#EC4899]/20">
-        <Icon className="w-4 h-4 shrink-0 text-[#71717A]" />
+    <label className={`space-y-1 ${className || ""}`}>
+      <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">{label}</span>
+      <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-2.5 py-2 transition-all focus-within:border-accent/30 focus-within:ring-1 focus-within:ring-accent/20">
+        <Icon className="w-3.5 h-3.5 shrink-0 text-text-muted" />
         <input
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full bg-transparent text-sm text-white placeholder:text-[#52525B] outline-none"
+          className="w-full bg-transparent text-xs text-text-primary placeholder:text-text-muted outline-none"
         />
       </div>
     </label>
@@ -550,12 +557,12 @@ function FieldSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="space-y-1.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#71717A]">{label}</span>
+    <label className="space-y-1">
+      <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-text-muted">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-white/[0.08] bg-[#0B0D12] px-3 py-2.5 text-sm text-white outline-none transition-all focus:border-[#EC4899]/30 focus:ring-1 focus:ring-[#EC4899]/20"
+        className="w-full rounded-xl border border-border bg-card px-2.5 py-2 text-xs text-text-primary outline-none transition-all focus:border-accent/30 focus:ring-1 focus:ring-accent/20"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -570,111 +577,140 @@ function FieldSelect({
 function AttemptCard({ attempt, index }: { attempt: AttemptCardData; index: number }) {
   return (
     <motion.article
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      whileHover={{ y: -3 }}
-      className="group relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[#10131A] transition-all hover:border-[#EC4899]/25 hover:shadow-[0_18px_48px_rgba(236,72,153,0.10)]"
+      transition={{ delay: Math.min(index * 0.02, 0.2) }}
+      whileHover={{ y: -1 }}
+      className="group relative overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-accent/25 hover:shadow-md"
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      <div className="relative grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_290px] lg:items-stretch lg:p-5">
-        <button
-          type="button"
-          onClick={() => window.location.assign(`/quiz/${attempt.quizId}/attempt/${attempt.attemptId}`)}
-          className="text-left"
-        >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold ${statusTone(attempt.status)}`}>
-                  {attempt.status}
-                </span>
-                <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold ${visibilityTone(attempt.visibility)}`}>
-                  {attempt.visibility}
-                </span>
-                {attempt.rank !== undefined && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[10px] font-semibold text-[#D1D5DB]">
-                    <Trophy className="w-3 h-3 text-[#F59E0B]" />
-                    Rank #{attempt.rank}
-                  </span>
-                )}
-              </div>
-
-              <h3 className="truncate text-lg font-semibold text-white transition-colors group-hover:text-[#F9A8D4]">{attempt.title}</h3>
-              <p className="mt-1 text-sm text-[#A1A1AA]">
-                {attempt.subject} · Created by {attempt.createdBy} ({attempt.creatorRole})
-              </p>
-
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-6">
-                <InfoChip label="Attempted" value={formatDate(attempt.attemptedAt)} icon={CalendarDays} />
-                <InfoChip label="Time Taken" value={attempt.timeTaken} icon={Clock3} />
-                <InfoChip label="Score" value={`${attempt.scoreEarned}/${attempt.totalScore}`} icon={BadgeCheck} />
-                <InfoChip label="Percent" value={`${attempt.percentage}%`} icon={BarChart3} tone={scoreTone(attempt.percentage)} />
-                <InfoChip label="Questions" value={attempt.totalQuestions} icon={Layers3} />
-                <InfoChip label="Submitted" value={formatDate(attempt.submittedAt)} icon={CalendarDays} />
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[#A1A1AA]">
-                <span>Correct {attempt.correctAnswers}</span>
-                <span className="h-1 w-1 rounded-full bg-white/20" />
-                <span>Wrong {attempt.wrongAnswers}</span>
-                <span className="h-1 w-1 rounded-full bg-white/20" />
-                <span>Skipped {attempt.skippedQuestions}</span>
-                <span className="h-1 w-1 rounded-full bg-white/20" />
-                <span>Created by {attempt.createdBy}</span>
-              </div>
-            </div>
+      <div className="relative p-2 lg:p-2.5">
+        {/* Row 1: Badges + Title + Score */}
+        <div className="flex items-start gap-2">
+          {/* Badges */}
+          <div className="flex flex-wrap items-center gap-1 shrink-0 pt-0.5">
+            <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-semibold ${statusTone(attempt.status)}`}>
+              {attempt.status}
+            </span>
+            <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-semibold ${visibilityTone(attempt.visibility)}`}>
+              {attempt.visibility}
+            </span>
+            {attempt.rank !== undefined && (
+              <span className="inline-flex items-center gap-0.5 rounded border border-border bg-card-hover px-1.5 py-0.5 text-[9px] font-semibold text-text-secondary">
+                <Trophy className="w-2.5 h-2.5 text-warning" />
+                #{attempt.rank}
+              </span>
+            )}
           </div>
-        </button>
 
-        <div className="flex flex-col justify-between rounded-2xl border border-white/[0.08] bg-[#0B0D12] p-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs text-[#A1A1AA]">
-              <span>Performance</span>
-              <span className={`font-semibold ${scoreTone(attempt.percentage)}`}>{attempt.percentage}%</span>
-            </div>
-            <div className="h-2 rounded-full bg-white/[0.06]">
+          {/* Title + Subtitle */}
+          <button
+            type="button"
+            onClick={() => window.location.assign(`/quiz/${attempt.quizId}/attempt/${attempt.attemptId}`)}
+            className="min-w-0 flex-1 text-left"
+          >
+            <h3 className="truncate text-sm font-semibold text-text-primary transition-colors group-hover:text-accent">{attempt.title}</h3>
+            <p className="truncate text-[11px] text-text-secondary">
+              {attempt.subject} · {attempt.createdBy} ({attempt.creatorRole})
+            </p>
+          </button>
+
+          {/* Score + Progress bar - desktop */}
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <span className={`text-sm font-bold ${scoreTone(attempt.percentage)}`}>{attempt.percentage}%</span>
+            <div className="h-1.5 w-14 rounded-full bg-border overflow-hidden">
               <div
-                className={`h-2 rounded-full bg-gradient-to-r ${attempt.percentage >= 85 ? "from-emerald-400 to-cyan-400" : attempt.percentage >= 70 ? "from-sky-400 to-cyan-300" : attempt.percentage >= 50 ? "from-amber-400 to-orange-300" : "from-rose-400 to-pink-300"}`}
+                className={`h-1.5 rounded-full ${scoreBarTone(attempt.percentage)}`}
                 style={{ width: `${attempt.percentage}%` }}
               />
             </div>
+          </div>
+        </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs text-[#A1A1AA]">
-              <MetricTile label="Correct" value={attempt.correctAnswers} tone="text-emerald-400" />
-              <MetricTile label="Wrong" value={attempt.wrongAnswers} tone="text-rose-400" />
-              <MetricTile label="Skipped" value={attempt.skippedQuestions} tone="text-zinc-400" />
-              <MetricTile label="Questions" value={attempt.totalQuestions} tone="text-white" />
-            </div>
+        {/* Row 2: Metadata inline + Stats + Actions */}
+        <div className="mt-1.5 flex flex-col gap-1.5 lg:flex-row lg:items-center lg:justify-between">
+          {/* Metadata chips */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-text-muted">
+            <span className="inline-flex items-center gap-0.5">
+              <CalendarDays className="w-2.5 h-2.5" />
+              {formatDate(attempt.attemptedAt)}
+            </span>
+            <span className="h-0.5 w-0.5 rounded-full bg-border" />
+            <span className="inline-flex items-center gap-0.5">
+              <Clock3 className="w-2.5 h-2.5" />
+              {attempt.timeTaken}
+            </span>
+            <span className="h-0.5 w-0.5 rounded-full bg-border" />
+            <span className="inline-flex items-center gap-0.5">
+              <BadgeCheck className="w-2.5 h-2.5" />
+              {attempt.scoreEarned}/{attempt.totalScore}
+            </span>
+            <span className="h-0.5 w-0.5 rounded-full bg-border" />
+            <span className={`inline-flex items-center gap-0.5 font-semibold ${scoreTone(attempt.percentage)}`}>
+              <BarChart3 className="w-2.5 h-2.5" />
+              {attempt.percentage}%
+            </span>
+            <span className="h-0.5 w-0.5 rounded-full bg-border" />
+            <span className="inline-flex items-center gap-0.5">
+              <Layers3 className="w-2.5 h-2.5" />
+              {attempt.totalQuestions}Q
+            </span>
+            <span className="h-0.5 w-0.5 rounded-full bg-border" />
+            <span className="inline-flex items-center gap-0.5">
+              <CalendarDays className="w-2.5 h-2.5" />
+              {formatDate(attempt.submittedAt)}
+            </span>
           </div>
 
-          <div className="mt-4 flex flex-col gap-2">
-            <Link
-              href={`/quiz/${attempt.quizId}/attempt/${attempt.attemptId}`}
-              onClick={(event) => event.stopPropagation()}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-2.5 text-xs font-semibold text-white transition-all hover:border-white/[0.16] hover:bg-white/[0.06]"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              View Attempt
-            </Link>
-            <Link
-              href={`/quiz/${attempt.quizId}/results/${attempt.attemptId}`}
-              onClick={(event) => event.stopPropagation()}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-500/30 bg-sky-500/10 px-4 py-2.5 text-xs font-semibold text-sky-300 transition-all hover:bg-sky-500/15"
-            >
-              <BarChart3 className="w-3.5 h-3.5" />
-              View Result
-            </Link>
-            {attempt.allowReattempt && (
+          {/* Stats + Actions */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {/* Compact 2x2 stats as inline chips */}
+            <div className="flex items-center gap-1.5 rounded-md border border-border bg-card-hover px-2 py-1">
+              <span className="text-[10px] font-semibold text-success">✓ {attempt.correctAnswers}</span>
+              <span className="text-[10px] font-semibold text-danger">✗ {attempt.wrongAnswers}</span>
+              <span className="text-[10px] font-semibold text-text-muted">⊘ {attempt.skippedQuestions}</span>
+              <span className="text-[10px] font-semibold text-text-secondary">Σ {attempt.totalQuestions}</span>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-1">
               <Link
-                href="#join-quiz"
+                href={`/quiz/${attempt.quizId}/attempt/${attempt.attemptId}`}
                 onClick={(event) => event.stopPropagation()}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#EC4899]/30 bg-[#EC4899]/10 px-4 py-2.5 text-xs font-semibold text-[#F472B6] transition-all hover:bg-[#EC4899]/15"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card-hover px-2 py-1 text-[10px] font-semibold text-text-primary transition-all hover:border-border-hover"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Reattempt
+                <Eye className="w-3 h-3" />
+                View
               </Link>
-            )}
+              <Link
+                href={`/quiz/${attempt.quizId}/results/${attempt.attemptId}`}
+                onClick={(event) => event.stopPropagation()}
+                className="inline-flex items-center gap-1 rounded-md border border-accent/30 bg-accent/10 px-2 py-1 text-[10px] font-semibold text-accent transition-all hover:bg-accent/15"
+              >
+                <BarChart3 className="w-3 h-3" />
+                Result
+              </Link>
+              {attempt.allowReattempt && (
+                <Link
+                  href="#join-quiz"
+                  onClick={(event) => event.stopPropagation()}
+                  className="inline-flex items-center gap-1 rounded-md border border-accent/30 bg-accent/10 px-2 py-1 text-[10px] font-semibold text-accent transition-all hover:bg-accent/15"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Reattempt
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile: Score + Progress bar */}
+        <div className="mt-1.5 flex items-center gap-2 lg:hidden">
+          <span className={`text-xs font-bold ${scoreTone(attempt.percentage)}`}>{attempt.percentage}%</span>
+          <div className="h-1.5 flex-1 rounded-full bg-border overflow-hidden">
+            <div
+              className={`h-1.5 rounded-full ${scoreBarTone(attempt.percentage)}`}
+              style={{ width: `${attempt.percentage}%` }}
+            />
           </div>
         </div>
       </div>
@@ -682,53 +718,19 @@ function AttemptCard({ attempt, index }: { attempt: AttemptCardData; index: numb
   );
 }
 
-function InfoChip({
-  label,
-  value,
-  icon: Icon,
-  tone = "text-white",
-}: {
-  label: string;
-  value: string | number;
-  icon: any;
-  tone?: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.16em] text-[#71717A]">
-        <Icon className="w-3 h-3 text-[#EC4899]" />
-        {label}
-      </div>
-      <div className={`mt-1 text-sm font-semibold ${tone} truncate`}>{value}</div>
-    </div>
-  );
-}
-
-function MetricTile({ label, value, tone }: { label: string; value: string | number; tone: string }) {
-  return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2">
-      <div className="text-[10px] uppercase tracking-[0.14em] text-[#71717A]">{label}</div>
-      <div className={`mt-1 text-sm font-semibold ${tone}`}>{value}</div>
-    </div>
-  );
-}
-
 function AttemptSkeletonGrid() {
   return (
-    <div className="grid grid-cols-1 gap-4">
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div key={index} className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-4">
-          <div className="animate-pulse space-y-4">
+    <div className="grid grid-cols-1 gap-2">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div key={index} className="rounded-lg border border-border bg-card-hover p-2.5">
+          <div className="animate-pulse space-y-2">
             <div className="flex items-center gap-2">
-              <div className="h-6 w-20 rounded-full bg-white/[0.08]" />
-              <div className="h-6 w-24 rounded-full bg-white/[0.08]" />
+              <div className="h-4 w-16 rounded bg-border" />
+              <div className="h-4 w-20 rounded bg-border" />
+              <div className="h-4 w-10 rounded bg-border" />
             </div>
-            <div className="h-5 w-3/4 rounded bg-white/[0.08]" />
-            <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
-              {Array.from({ length: 6 }).map((_, itemIndex) => (
-                <div key={itemIndex} className="h-16 rounded-2xl bg-white/[0.06]" />
-              ))}
-            </div>
+            <div className="h-3.5 w-2/3 rounded bg-border" />
+            <div className="h-2.5 w-1/2 rounded bg-border" />
           </div>
         </div>
       ))}
@@ -763,12 +765,12 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="w-full h-12 rounded-xl border border-white/[0.08] bg-white/[0.03] text-sm font-semibold text-white flex items-center justify-center gap-2 transition-all hover:border-white/[0.16] hover:bg-white/[0.06]"
+        className="w-full h-10 rounded-lg border border-border bg-card-hover text-xs font-semibold text-text-primary flex items-center justify-center gap-2 transition-all hover:border-border-hover hover:bg-card-hover"
       >
-        <Filter className="w-4 h-4" />
+        <Filter className="w-3.5 h-3.5" />
         Filters
         {activeFiltersCount > 0 && (
-          <span className="px-2 py-0.5 rounded-full bg-[#EC4899]/20 text-[#F472B6] text-[10px] font-bold">
+          <span className="px-1.5 py-0.5 rounded-full bg-accent/20 text-accent text-[9px] font-bold">
             {activeFiltersCount}
           </span>
         )}
@@ -789,29 +791,29 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed bottom-0 left-0 right-0 z-[60] max-h-[85vh] overflow-y-auto rounded-t-3xl border border-white/[0.12] bg-[#111217] p-5 shadow-2xl"
+              className="fixed bottom-0 left-0 right-0 z-[60] max-h-[85vh] overflow-y-auto rounded-t-2xl border border-border bg-card p-4 shadow-2xl"
             >
-              <div className="flex justify-center mb-3">
-                <div className="w-10 h-1 rounded-full bg-white/20" />
+              <div className="flex justify-center mb-2">
+                <div className="w-8 h-1 rounded-full bg-border" />
               </div>
 
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white">Filters</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-bold text-text-primary">Filters</h3>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-lg hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="p-1.5 rounded-lg hover:bg-card-hover text-text-muted hover:text-text-primary transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">Subject</label>
+                  <label className="block text-[9px] font-semibold uppercase tracking-wider text-text-muted mb-1">Subject</label>
                   <select
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    className="w-full h-12 rounded-xl border border-white/[0.08] bg-[#0B0D12] px-4 text-sm text-white outline-none"
+                    className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs text-text-primary outline-none"
                   >
                     {allSubjects.map(option => (
                       <option key={option} value={option}>{option}</option>
@@ -820,11 +822,11 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">Date Range</label>
+                  <label className="block text-[9px] font-semibold uppercase tracking-wider text-text-muted mb-1">Date Range</label>
                   <select
                     value={dateRange}
                     onChange={(e) => setDateRange(e.target.value)}
-                    className="w-full h-12 rounded-xl border border-white/[0.08] bg-[#0B0D12] px-4 text-sm text-white outline-none"
+                    className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs text-text-primary outline-none"
                   >
                     {["All time", "Last 7 days", "Last 30 days", "Last 90 days"].map(option => (
                       <option key={option} value={option}>{option}</option>
@@ -833,11 +835,11 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">Status</label>
+                  <label className="block text-[9px] font-semibold uppercase tracking-wider text-text-muted mb-1">Status</label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
-                    className="w-full h-12 rounded-xl border border-white/[0.08] bg-[#0B0D12] px-4 text-sm text-white outline-none"
+                    className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs text-text-primary outline-none"
                   >
                     {STATUS_OPTIONS.map(option => (
                       <option key={option} value={option}>{option}</option>
@@ -846,11 +848,11 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">Score</label>
+                  <label className="block text-[9px] font-semibold uppercase tracking-wider text-text-muted mb-1">Score</label>
                   <select
                     value={score}
                     onChange={(e) => setScore(e.target.value)}
-                    className="w-full h-12 rounded-xl border border-white/[0.08] bg-[#0B0D12] px-4 text-sm text-white outline-none"
+                    className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs text-text-primary outline-none"
                   >
                     {SCORE_OPTIONS.map(option => (
                       <option key={option} value={option}>{option}</option>
@@ -859,11 +861,11 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#71717A] mb-1.5">Sort By</label>
+                  <label className="block text-[9px] font-semibold uppercase tracking-wider text-text-muted mb-1">Sort By</label>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="w-full h-12 rounded-xl border border-white/[0.08] bg-[#0B0D12] px-4 text-sm text-white outline-none"
+                    className="w-full h-10 rounded-lg border border-border bg-card px-3 text-xs text-text-primary outline-none"
                   >
                     {SORT_OPTIONS.map(option => (
                       <option key={option} value={option}>{option}</option>
@@ -879,7 +881,7 @@ function MobileFilterBottomSheet({ subject, setSubject, dateRange, setDateRange,
                     setScore("All");
                     setSortBy("Newest");
                   }}
-                  className="w-full h-12 rounded-xl border border-white/[0.08] bg-white/[0.03] text-sm font-semibold text-white hover:border-white/[0.16] hover:bg-white/[0.06] transition-all"
+                  className="w-full h-10 rounded-lg border border-border bg-card-hover text-xs font-semibold text-text-primary hover:border-border-hover hover:bg-card-hover transition-all"
                 >
                   Reset All Filters
                 </button>
@@ -897,20 +899,20 @@ function EmptyState() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[#10131A] p-6 sm:p-10"
+      className="relative overflow-hidden rounded-xl border border-border bg-card p-6 sm:p-8"
     >
-      <div className="absolute -right-16 top-4 h-48 w-48 rounded-full bg-[#EC4899]/10 blur-3xl" />
+      <div className="absolute -right-16 top-4 h-48 w-48 rounded-full bg-accent/10 blur-3xl" />
       <div className="relative mx-auto max-w-xl text-center">
-        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-white/[0.08] bg-white/[0.03]">
-          <Building2 className="h-9 w-9 text-[#F472B6]" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-card-hover">
+          <Building2 className="h-7 w-7 text-accent" />
         </div>
-        <h3 className="text-2xl font-semibold text-white">You haven't attempted any quizzes yet.</h3>
-        <p className="mt-2 text-sm text-[#A1A1AA]">
+        <h3 className="text-lg font-semibold text-text-primary">You haven't attempted any quizzes yet.</h3>
+        <p className="mt-1.5 text-sm text-text-secondary">
           Join your first quiz to unlock a personal history of scores, rankings, mistakes, and reattempts.
         </p>
         <Link
           href="#join-quiz"
-          className="mt-6 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(236,72,153,0.22)] transition-transform hover:scale-[1.02]"
+          className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-accent to-accent-secondary px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-[1.02]"
         >
           Join Your First Quiz
           <ArrowRight className="h-4 w-4" />
