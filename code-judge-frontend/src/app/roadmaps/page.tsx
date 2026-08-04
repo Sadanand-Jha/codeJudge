@@ -314,8 +314,8 @@ export default function RoadmapsPage() {
           {/* Page Header */}
           <div className="flex items-start justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-white tracking-tight">Roadmaps</h1>
-              <p className="text-sm text-[#9CA3AF] mt-2 max-w-2xl">
+              <h1 className="text-3xl font-bold text-text-primary tracking-tight">Roadmaps</h1>
+              <p className="text-sm text-text-secondary mt-2 max-w-2xl">
                 Master Data Structures, Algorithms, Competitive Programming and Interviews through structured learning paths.
               </p>
             </div>
@@ -323,12 +323,12 @@ export default function RoadmapsPage() {
               {stats.map((stat) => {
                 const Icon = stat.icon;
                 return (
-                  <div key={stat.label} className="rounded-xl border border-white/[0.06] bg-[#111827] px-4 py-3 min-w-[120px]">
+                  <div key={stat.label} className="rounded-xl border border-border bg-card px-4 py-3 min-w-[120px]">
                     <div className="flex items-center gap-2 mb-1">
                       <Icon className={`w-3.5 h-3.5 ${stat.color}`} />
-                      <span className="text-[10px] text-[#9CA3AF] uppercase tracking-wider">{stat.label}</span>
+                      <span className="text-[10px] text-text-muted uppercase tracking-wider">{stat.label}</span>
                     </div>
-                    <p className="text-lg font-bold text-white">{stat.value}</p>
+                    <p className="text-lg font-bold text-text-primary">{stat.value}</p>
                   </div>
                 );
               })}
@@ -336,20 +336,20 @@ export default function RoadmapsPage() {
           </div>
 
           {/* Featured Roadmap Hero */}
-          <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#7C3AED]/10 via-[#111827] to-[#111827] p-6 mb-6 overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#7C3AED]/10 rounded-full blur-3xl" />
+          <div className="relative rounded-2xl border border-border bg-gradient-to-br from-accent/5 via-card to-card p-6 mb-6 overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-3xl" />
             <div className="relative flex items-start justify-between gap-6">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="px-2 py-0.5 rounded-md bg-[#7C3AED]/15 border border-[#7C3AED]/20 text-[10px] font-semibold text-[#7C3AED] uppercase tracking-wider">
+                  <span className="px-2 py-0.5 rounded-md bg-accent/10 border border-accent/20 text-[10px] font-semibold text-accent uppercase tracking-wider">
                     Current Roadmap
                   </span>
-                  <span className="px-2 py-0.5 rounded-md bg-[#3B82F6]/10 border border-[#3B82F6]/20 text-[10px] font-medium text-[#3B82F6]">
+                  <span className="px-2 py-0.5 rounded-md bg-accent-secondary/10 border border-accent-secondary/20 text-[10px] font-medium text-accent-secondary">
                     {featuredRoadmap.difficulty}
                   </span>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">{featuredRoadmap.title}</h2>
-                <div className="flex flex-wrap items-center gap-4 text-xs text-[#9CA3AF] mb-4">
+                <h2 className="text-2xl font-bold text-text-primary mb-2">{featuredRoadmap.title}</h2>
+                <div className="flex flex-wrap items-center gap-4 text-xs text-text-secondary mb-4">
                   <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> {featuredRoadmap.topics} Topics</span>
                   <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {featuredRoadmap.hours} Hours</span>
                   <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {featuredRoadmap.learners} Learners</span>
@@ -357,12 +357,12 @@ export default function RoadmapsPage() {
                 </div>
 
                 {/* Progress */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-medium text-white">{featuredRoadmap.progress}% Complete</span>
-                    <span className="text-[11px] text-[#9CA3AF]">~{featuredRoadmap.estimatedRemaining} remaining</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-medium text-text-primary">{featuredRoadmap.progress}% Complete</span>
+                      <span className="text-[11px] text-text-muted">~{featuredRoadmap.estimatedRemaining} remaining</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-border overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${featuredRoadmap.progress}%` }}
@@ -373,15 +373,15 @@ export default function RoadmapsPage() {
                 </div>
 
                 {/* Next Topic */}
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-[#7C3AED]/15 flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-[#7C3AED]" />
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-card-hover border border-border mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-accent" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-[10px] text-[#9CA3AF] uppercase tracking-wider">Next Topic</p>
-                    <p className="text-sm font-medium text-white">{featuredRoadmap.nextTopic}</p>
+                    <p className="text-[10px] text-text-muted uppercase tracking-wider">Next Topic</p>
+                    <p className="text-sm font-medium text-text-primary">{featuredRoadmap.nextTopic}</p>
                   </div>
-                  <span className="text-[11px] text-[#9CA3AF]">Expected: {featuredRoadmap.expectedCompletion}</span>
+                  <span className="text-[11px] text-text-muted">Expected: {featuredRoadmap.expectedCompletion}</span>
                 </div>
 
                 <button className="h-10 px-5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-white text-sm font-semibold hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] transition-all flex items-center gap-2">
@@ -395,25 +395,25 @@ export default function RoadmapsPage() {
           {/* Search & Filters */}
           <div className="mb-6 space-y-3">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search roadmaps..."
-                className="w-full h-12 bg-[#111827] border border-white/[0.06] rounded-xl pl-12 pr-4 text-sm text-white placeholder-[#6B7280] outline-none focus:border-[#7C3AED]/40 transition-colors"
+                className="w-full h-12 bg-card border border-border rounded-xl pl-12 pr-4 text-sm text-text-primary placeholder-text-muted outline-none focus:border-accent/40 transition-colors"
               />
             </div>
 
             <div className="flex items-center justify-between">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 text-xs font-medium text-[#9CA3AF] hover:text-white transition-colors"
+                className="flex items-center gap-2 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors"
               >
                 <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
                 Filters
                 {activeFilters.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-md bg-[#7C3AED]/15 text-[#7C3AED] text-[10px]">
+                  <span className="px-1.5 py-0.5 rounded-md bg-accent/15 text-accent text-[10px]">
                     {activeFilters.length}
                   </span>
                 )}
@@ -421,7 +421,7 @@ export default function RoadmapsPage() {
               {activeFilters.length > 0 && (
                 <button
                   onClick={() => setActiveFilters([])}
-                  className="text-[11px] text-[#9CA3AF] hover:text-white transition-colors"
+                  className="text-[11px] text-text-secondary hover:text-text-primary transition-colors"
                 >
                   Clear all
                 </button>
@@ -436,9 +436,9 @@ export default function RoadmapsPage() {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl border border-white/[0.06] bg-[#111827]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl border border-border bg-card">
                     <div>
-                      <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">Difficulty</p>
+                      <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">Difficulty</p>
                       <div className="flex flex-wrap gap-1.5">
                         {difficultyFilters.map((f) => (
                           <button
@@ -446,8 +446,8 @@ export default function RoadmapsPage() {
                             onClick={() => toggleFilter(f)}
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
                               activeFilters.includes(f)
-                                ? "border-[#7C3AED] bg-[#7C3AED]/10 text-[#7C3AED]"
-                                : "border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:border-white/[0.12]"
+                                ? "border-accent bg-accent/10 text-accent"
+                                : "border-border bg-card-hover text-text-secondary hover:border-border-hover"
                             }`}
                           >
                             {f}
@@ -456,7 +456,7 @@ export default function RoadmapsPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">Category</p>
+                      <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">Category</p>
                       <div className="flex flex-wrap gap-1.5">
                         {categoryFilters.map((f) => (
                           <button
@@ -464,8 +464,8 @@ export default function RoadmapsPage() {
                             onClick={() => toggleFilter(f)}
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
                               activeFilters.includes(f)
-                                ? "border-[#7C3AED] bg-[#7C3AED]/10 text-[#7C3AED]"
-                                : "border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:border-white/[0.12]"
+                                ? "border-accent bg-accent/10 text-accent"
+                                : "border-border bg-card-hover text-text-secondary hover:border-border-hover"
                             }`}
                           >
                             {f}
@@ -474,7 +474,7 @@ export default function RoadmapsPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">Languages</p>
+                      <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">Languages</p>
                       <div className="flex flex-wrap gap-1.5">
                         {languageFilters.map((f) => (
                           <button
@@ -482,8 +482,8 @@ export default function RoadmapsPage() {
                             onClick={() => toggleFilter(f)}
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
                               activeFilters.includes(f)
-                                ? "border-[#7C3AED] bg-[#7C3AED]/10 text-[#7C3AED]"
-                                : "border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:border-white/[0.12]"
+                                ? "border-accent bg-accent/10 text-accent"
+                                : "border-border bg-card-hover text-text-secondary hover:border-border-hover"
                             }`}
                           >
                             {f}
@@ -492,7 +492,7 @@ export default function RoadmapsPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">Status</p>
+                      <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-2">Status</p>
                       <div className="flex flex-wrap gap-1.5">
                         {statusFilters.map((f) => (
                           <button
@@ -500,8 +500,8 @@ export default function RoadmapsPage() {
                             onClick={() => toggleFilter(f)}
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
                               activeFilters.includes(f)
-                                ? "border-[#7C3AED] bg-[#7C3AED]/10 text-[#7C3AED]"
-                                : "border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:border-white/[0.12]"
+                                ? "border-accent bg-accent/10 text-accent"
+                                : "border-border bg-card-hover text-text-secondary hover:border-border-hover"
                             }`}
                           >
                             {f}
@@ -530,7 +530,7 @@ export default function RoadmapsPage() {
                       transition={{ duration: 0.3, delay: idx * 0.05 }}
                       whileHover={{ y: -4 }}
                       onClick={() => setSelectedRoadmap(rm.id === selectedRoadmap ? null : rm.id)}
-                      className="group rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden cursor-pointer hover:border-[#7C3AED]/30 hover:shadow-[0_8px_32px_rgba(124,58,237,0.1)] transition-all"
+                      className="group rounded-2xl border border-border bg-card overflow-hidden cursor-pointer hover:border-accent/30 hover:shadow-[0_8px_32px_rgba(124,58,237,0.1)] transition-all"
                     >
                       {/* Gradient Banner */}
                       <div className={`h-24 bg-gradient-to-r ${rm.gradient} relative overflow-hidden`}>
@@ -544,17 +544,17 @@ export default function RoadmapsPage() {
                             {rm.difficulty}
                           </span>
                         </div>
-                        <div className="absolute -bottom-4 left-4 w-12 h-12 rounded-xl bg-[#111827] border border-white/[0.08] flex items-center justify-center">
+                        <div className="absolute -bottom-4 left-4 w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center">
                           <Icon className="w-6 h-6 text-white" />
                         </div>
                       </div>
 
                       <div className="p-4 pt-6">
-                        <h3 className="text-sm font-bold text-white mb-1 group-hover:text-[#7C3AED] transition-colors">{rm.title}</h3>
-                        <p className="text-xs text-[#9CA3AF] leading-relaxed mb-3 line-clamp-2">{rm.description}</p>
+                        <h3 className="text-sm font-bold text-text-primary mb-1 group-hover:text-accent transition-colors">{rm.title}</h3>
+                        <p className="text-xs text-text-secondary leading-relaxed mb-3 line-clamp-2">{rm.description}</p>
 
                         {/* Metadata */}
-                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#9CA3AF] mb-3">
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-text-secondary mb-3">
                           <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {rm.topics} Topics</span>
                           <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {rm.hours}h</span>
                           <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {rm.learners}</span>
@@ -565,10 +565,10 @@ export default function RoadmapsPage() {
                         {rm.progress > 0 && (
                           <div className="mb-3">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] text-[#9CA3AF]">{rm.progress === 100 ? "Completed" : "In Progress"}</span>
-                              <span className="text-[10px] font-medium text-white">{rm.progress}%</span>
+                              <span className="text-[10px] text-text-muted">{rm.progress === 100 ? "Completed" : "In Progress"}</span>
+                              <span className="text-[10px] font-medium text-text-primary">{rm.progress}%</span>
                             </div>
-                            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                            <div className="h-1.5 rounded-full bg-border overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${rm.progress === 100 ? "bg-[#22C55E]" : "bg-gradient-to-r from-[#7C3AED] to-[#3B82F6]"}`}
                                 style={{ width: `${rm.progress}%` }}
@@ -580,10 +580,10 @@ export default function RoadmapsPage() {
                         {/* Continue Button */}
                         <button className={`w-full h-9 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-2 ${
                           rm.progress === 100
-                            ? "bg-[#22C55E]/10 border border-[#22C55E]/20 text-[#22C55E] hover:bg-[#22C55E]/20"
+                            ? "bg-success/10 border border-success/20 text-success hover:bg-success/20"
                             : rm.progress > 0
-                            ? "bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#7C3AED] hover:bg-[#7C3AED]/20"
-                            : "bg-white/[0.04] border border-white/[0.08] text-white hover:border-white/[0.12]"
+                            ? "bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20"
+                            : "bg-card-hover border border-border text-text-primary hover:border-border-hover"
                         }`}>
                           {rm.progress === 100 ? (
                             <><Check className="w-3.5 h-3.5" /> Completed</>
@@ -606,16 +606,16 @@ export default function RoadmapsPage() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="mt-6 rounded-2xl border border-white/[0.06] bg-[#111827] p-6 overflow-hidden"
+                    className="mt-6 rounded-2xl border border-border bg-card p-6 overflow-hidden"
                   >
                     <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h3 className="text-lg font-bold text-white">Roadmap Timeline</h3>
-                        <p className="text-xs text-[#9CA3AF] mt-1">Follow the path from basics to mastery</p>
+                        <h3 className="text-lg font-bold text-text-primary">Roadmap Timeline</h3>
+                        <p className="text-xs text-text-secondary mt-1">Follow the path from basics to mastery</p>
                       </div>
                       <button
                         onClick={() => setSelectedRoadmap(null)}
-                        className="text-xs text-[#9CA3AF] hover:text-white transition-colors"
+                        className="text-xs text-text-secondary hover:text-text-primary transition-colors"
                       >
                         Close
                       </button>
@@ -623,7 +623,7 @@ export default function RoadmapsPage() {
 
                     <div className="relative">
                       {/* Vertical Line */}
-                      <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-white/[0.06]" />
+                      <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-border" />
 
                       <div className="space-y-3">
                         {timelineTopics.map((topic, idx) => (
@@ -639,13 +639,13 @@ export default function RoadmapsPage() {
                               topic.completed
                                 ? "bg-gradient-to-br from-[#22C55E] to-[#3B82F6] shadow-[0_0_12px_rgba(34,197,94,0.3)]"
                                 : topic.locked
-                                ? "bg-[#1A1F2E] border border-white/[0.06]"
+                                ? "bg-card-hover border border-border"
                                 : "bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] shadow-[0_0_12px_rgba(124,58,237,0.3)]"
                             }`}>
                               {topic.completed ? (
                                 <Check className="w-4 h-4 text-white" />
                               ) : topic.locked ? (
-                                <Lock className="w-3.5 h-3.5 text-[#6B7280]" />
+                                <Lock className="w-3.5 h-3.5 text-text-muted" />
                               ) : (
                                 <span className="text-xs font-bold text-white">{idx + 1}</span>
                               )}
@@ -654,11 +654,11 @@ export default function RoadmapsPage() {
                             {/* Content */}
                             <div className={`flex-1 rounded-xl border p-3 transition-all ${
                               topic.locked
-                                ? "border-white/[0.04] bg-white/[0.01] opacity-50"
-                                : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]"
+                                ? "border-border bg-card-hover opacity-50"
+                                : "border-border bg-card-hover hover:border-border-hover"
                             }`}>
                               <div className="flex items-center justify-between gap-3 mb-1">
-                                <h4 className="text-sm font-medium text-white">{topic.name}</h4>
+                                <h4 className="text-sm font-medium text-text-primary">{topic.name}</h4>
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0 ${
                                   topic.difficulty === "Easy" ? "bg-[#22C55E]/10 border-[#22C55E]/20 text-[#22C55E]" :
                                   topic.difficulty === "Medium" ? "bg-[#F59E0B]/10 border-[#F59E0B]/20 text-[#F59E0B]" :
@@ -667,7 +667,7 @@ export default function RoadmapsPage() {
                                   {topic.difficulty}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-3 text-[11px] text-[#9CA3AF]">
+                              <div className="flex items-center gap-3 text-[11px] text-text-secondary">
                                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {topic.hours}</span>
                                 {!topic.locked && (
                                   <>
@@ -679,11 +679,11 @@ export default function RoadmapsPage() {
                               </div>
                               {!topic.locked && (
                                 <div className="flex items-center gap-2 mt-2">
-                                  <button className="text-[11px] font-medium text-[#7C3AED] hover:text-[#8B5CF6] transition-colors flex items-center gap-1">
+                                  <button className="text-[11px] font-medium text-accent hover:text-accent-secondary transition-colors flex items-center gap-1">
                                     {topic.completed ? "Review" : "Start"} <ArrowRight className="w-3 h-3" />
                                   </button>
                                   {!topic.completed && (
-                                    <button className="text-[11px] font-medium text-[#22C55E] hover:text-[#16A34A] transition-colors flex items-center gap-1">
+                                    <button className="text-[11px] font-medium text-success hover:text-success transition-colors flex items-center gap-1">
                                       <Check className="w-3 h-3" /> Mark Complete
                                     </button>
                                   )}
@@ -699,10 +699,10 @@ export default function RoadmapsPage() {
               </AnimatePresence>
 
               {/* Achievements */}
-              <div className="mt-6 rounded-2xl border border-white/[0.06] bg-[#111827] p-6">
+              <div className="mt-6 rounded-2xl border border-border bg-card p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <Award className="w-5 h-5 text-[#F59E0B]" />
-                  <h3 className="text-base font-semibold text-white">Achievements</h3>
+                  <Award className="w-5 h-5 text-warning" />
+                  <h3 className="text-base font-semibold text-text-primary">Achievements</h3>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                   {achievements.map((ach) => {
@@ -712,16 +712,16 @@ export default function RoadmapsPage() {
                         key={ach.name}
                         className={`rounded-xl border p-3 text-center transition-all ${
                           ach.unlocked
-                            ? "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.12]"
-                            : "border-white/[0.04] bg-white/[0.01] opacity-40"
+                            ? "border-border bg-card-hover hover:border-border-hover"
+                            : "border-border bg-card-hover opacity-40"
                         }`}
                       >
                         <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${ach.color} flex items-center justify-center mx-auto mb-2`}>
                           <Icon className="w-5 h-5 text-white" />
                         </div>
-                        <p className="text-[10px] font-medium text-white leading-tight">{ach.name}</p>
+                        <p className="text-[10px] font-medium text-text-primary leading-tight">{ach.name}</p>
                         {ach.unlocked && (
-                          <span className="text-[9px] text-[#22C55E] mt-1 block">Unlocked</span>
+                          <span className="text-[9px] text-success mt-1 block">Unlocked</span>
                         )}
                       </div>
                     );
@@ -730,14 +730,14 @@ export default function RoadmapsPage() {
               </div>
 
               {/* Community */}
-              <div className="mt-6 rounded-2xl border border-white/[0.06] bg-[#111827] p-6">
+              <div className="mt-6 rounded-2xl border border-border bg-card p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <MessageSquare className="w-5 h-5 text-[#7C3AED]" />
-                  <h3 className="text-base font-semibold text-white">Community</h3>
+                  <MessageSquare className="w-5 h-5 text-accent" />
+                  <h3 className="text-base font-semibold text-text-primary">Community</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-4">
-                    <h4 className="text-sm font-medium text-white mb-2">Top Contributors</h4>
+                  <div className="rounded-xl border border-border bg-card-hover p-4">
+                    <h4 className="text-sm font-medium text-text-primary mb-2">Top Contributors</h4>
                     <div className="space-y-2">
                       {[
                         { name: "Sarah Chen", contributions: 124 },
@@ -749,27 +749,27 @@ export default function RoadmapsPage() {
                             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-white text-[10px] font-bold">
                               {c.name.charAt(0)}
                             </div>
-                            <span className="text-xs text-white">{c.name}</span>
+                            <span className="text-xs text-text-primary">{c.name}</span>
                           </div>
-                          <span className="text-[11px] text-[#9CA3AF]">{c.contributions} notes</span>
+                          <span className="text-[11px] text-text-secondary">{c.contributions} notes</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-4">
-                    <h4 className="text-sm font-medium text-white mb-2">Tips & FAQ</h4>
+                  <div className="rounded-xl border border-border bg-card-hover p-4">
+                    <h4 className="text-sm font-medium text-text-primary mb-2">Tips & FAQ</h4>
                     <div className="space-y-2">
                       <div className="flex items-start gap-2">
-                        <ThumbsUp className="w-3.5 h-3.5 text-[#22C55E] mt-0.5 shrink-0" />
-                        <p className="text-[11px] text-[#9CA3AF] leading-relaxed">Practice at least 3 problems per topic to solidify concepts.</p>
+                        <ThumbsUp className="w-3.5 h-3.5 text-success mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-text-secondary leading-relaxed">Practice at least 3 problems per topic to solidify concepts.</p>
                       </div>
                       <div className="flex items-start gap-2">
-                        <ThumbsUp className="w-3.5 h-3.5 text-[#22C55E] mt-0.5 shrink-0" />
-                        <p className="text-[11px] text-[#9CA3AF] leading-relaxed">Don't skip the basics — strong fundamentals make advanced topics easier.</p>
+                        <ThumbsUp className="w-3.5 h-3.5 text-success mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-text-secondary leading-relaxed">Don't skip the basics — strong fundamentals make advanced topics easier.</p>
                       </div>
                       <div className="flex items-start gap-2">
-                        <ThumbsUp className="w-3.5 h-3.5 text-[#22C55E] mt-0.5 shrink-0" />
-                        <p className="text-[11px] text-[#9CA3AF] leading-relaxed">Use AI hints when stuck, but try solving first for at least 20 minutes.</p>
+                        <ThumbsUp className="w-3.5 h-3.5 text-success mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-text-secondary leading-relaxed">Use AI hints when stuck, but try solving first for at least 20 minutes.</p>
                       </div>
                     </div>
                   </div>
@@ -783,19 +783,19 @@ export default function RoadmapsPage() {
               {sidebarItems.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.label} className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4">
+                  <div key={item.label} className="rounded-2xl border border-border bg-card p-4">
                     <div className="flex items-center gap-2 mb-1">
                       <Icon className={`w-4 h-4 ${item.color}`} />
-                      <span className="text-[10px] text-[#9CA3AF] uppercase tracking-wider">{item.label}</span>
+                      <span className="text-[10px] text-text-muted uppercase tracking-wider">{item.label}</span>
                     </div>
-                    <p className="text-sm font-bold text-white">{item.value}</p>
+                    <p className="text-sm font-bold text-text-primary">{item.value}</p>
                   </div>
                 );
               })}
 
               {/* Recent Badges */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4">
-                <h4 className="text-xs font-semibold text-white mb-3">Recent Badges</h4>
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <h4 className="text-xs font-semibold text-text-primary mb-3">Recent Badges</h4>
                 <div className="space-y-2">
                   {recentBadges.map((badge) => {
                     const Icon = badge.icon;
@@ -804,7 +804,7 @@ export default function RoadmapsPage() {
                         <div className={`w-7 h-7 rounded-lg ${badge.color} flex items-center justify-center`}>
                           <Icon className="w-3.5 h-3.5" />
                         </div>
-                        <span className="text-xs text-white">{badge.name}</span>
+                        <span className="text-xs text-text-primary">{badge.name}</span>
                       </div>
                     );
                   })}
@@ -812,25 +812,25 @@ export default function RoadmapsPage() {
               </div>
 
               {/* Upcoming Contest */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Trophy className="w-4 h-4 text-[#F59E0B]" />
-                  <h4 className="text-xs font-semibold text-white">Upcoming Contest</h4>
+                  <Trophy className="w-4 h-4 text-warning" />
+                  <h4 className="text-xs font-semibold text-text-primary">Upcoming Contest</h4>
                 </div>
-                <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-3">
-                  <p className="text-xs font-medium text-white">ByteClash Weekly #247</p>
-                  <p className="text-[11px] text-[#9CA3AF] mt-0.5">Starts in 2 days</p>
-                  <button className="mt-2 w-full h-7 rounded-md bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#7C3AED] text-[11px] font-medium hover:bg-[#7C3AED]/20 transition-colors">
+                <div className="rounded-xl border border-border bg-card-hover p-3">
+                  <p className="text-xs font-medium text-text-primary">ByteClash Weekly #247</p>
+                  <p className="text-[11px] text-text-secondary mt-0.5">Starts in 2 days</p>
+                  <button className="mt-2 w-full h-7 rounded-md bg-accent/10 border border-accent/20 text-accent text-[11px] font-medium hover:bg-accent/20 transition-colors">
                     Register
                   </button>
                 </div>
               </div>
 
               {/* Recommended Roadmaps */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-[#7C3AED]" />
-                  <h4 className="text-xs font-semibold text-white">Recommended</h4>
+                  <Sparkles className="w-4 h-4 text-accent" />
+                  <h4 className="text-xs font-semibold text-text-primary">Recommended</h4>
                 </div>
                 <div className="space-y-2">
                   {[
@@ -838,19 +838,19 @@ export default function RoadmapsPage() {
                     { title: "System Design", reason: "For interview prep" },
                     { title: "Bit Manipulation", reason: "Quick win" },
                   ].map((rec) => (
-                    <div key={rec.title} className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-2.5 hover:border-white/[0.12] transition-colors cursor-pointer">
-                      <p className="text-xs font-medium text-white">{rec.title}</p>
-                      <p className="text-[10px] text-[#9CA3AF] mt-0.5">{rec.reason}</p>
+                    <div key={rec.title} className="rounded-lg border border-border bg-card-hover p-2.5 hover:border-border-hover transition-colors cursor-pointer">
+                      <p className="text-xs font-medium text-text-primary">{rec.title}</p>
+                      <p className="text-[10px] text-text-secondary mt-0.5">{rec.reason}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Friends Progress */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Users className="w-4 h-4 text-[#22C55E]" />
-                  <h4 className="text-xs font-semibold text-white">Friends Progress</h4>
+                  <Users className="w-4 h-4 text-success" />
+                  <h4 className="text-xs font-semibold text-text-primary">Friends Progress</h4>
                 </div>
                 <div className="space-y-2">
                   {[
@@ -863,10 +863,10 @@ export default function RoadmapsPage() {
                         {friend.name.charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] text-white truncate">{friend.name}</p>
-                        <p className="text-[10px] text-[#9CA3AF]">{friend.action}</p>
+                        <p className="text-[11px] text-text-primary truncate">{friend.name}</p>
+                        <p className="text-[10px] text-text-secondary">{friend.action}</p>
                       </div>
-                      <span className="text-[10px] text-[#7C3AED]">{friend.progress}%</span>
+                      <span className="text-[10px] text-accent">{friend.progress}%</span>
                     </div>
                   ))}
                 </div>
