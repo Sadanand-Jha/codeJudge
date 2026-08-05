@@ -21,7 +21,7 @@ import { useRouter } from "next/navigation";
 import { CountdownCard } from "@/components/quiz/live/CountdownCard";
 import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { ParticipantsDrawer } from "@/components/quiz/live/ParticipantsDrawer";
-import { MagicalBackground } from "@/components/quiz/live/MagicalBackground";
+import { WaitingRoomBackground } from "@/components/quiz/live/WaitingRoomBackground";
 import { WaitingRoomToast } from "@/components/quiz/live/WaitingRoomToast";
 import { mockLiveAssessmentRoom, mockEmptyLiveAssessmentRoom } from "@/mocks/liveAssessment";
 import { useToast } from "@/hooks/useToast";
@@ -68,14 +68,26 @@ export default function WaitingRoomPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [exitModalOpen, setExitModalOpen] = useState(false);
 
-  // Calculate remaining time
-  const remainingTime = useMemo(() => {
-    if (!room.scheduledStartAt) return "Soon";
-    const diff = new Date(room.scheduledStartAt).getTime() - Date.now();
-    if (diff <= 0) return "Starting soon";
-    const mins = Math.floor(diff / 60000);
-    const secs = Math.floor((diff % 60000) / 1000);
-    return `${mins}m ${secs}s`;
+  const [remainingTime, setRemainingTime] = useState("Soon");
+
+  // The countdown is time-driven, so "now" is sampled inside a timer callback
+  // (never during render) and state is updated from that callback. This keeps
+  // the component render pure and respects the effect-state rules.
+  useEffect(() => {
+    const update = () => {
+      if (!room.scheduledStartAt) {
+        setRemainingTime("Soon");
+        return;
+      }
+      const diff = new Date(room.scheduledStartAt).getTime() - Date.now();
+      setRemainingTime(
+        diff <= 0
+          ? "Starting soon"
+          : `${Math.floor(diff / 60000)}m ${Math.floor((diff % 60000) / 1000)}s`
+      );
+    };
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
   }, [room.scheduledStartAt]);
 
   useEffect(() => {
@@ -107,10 +119,8 @@ export default function WaitingRoomPage() {
 
   return (
     <div className="waiting-page h-screen bg-[#09090B] flex flex-col overflow-hidden relative">
-      {/* Magical Background */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <MagicalBackground />
-      </div>
+      {/* Encrypted, theme + viewport aware background image */}
+      <WaitingRoomBackground />
 
       {/* Full-screen roaming avatars - behind all UI */}
       <div className="fixed inset-0 z-[5] pointer-events-none">

@@ -81,6 +81,54 @@ export async function decryptSecureMedia(
   }
 }
 
+/**
+ * Fetches an encrypted image from the secure-media endpoint, decrypts it, and
+ * returns the raw image bytes as a Blob.
+ *
+ * This is the low-level building block for callers that need the decrypted
+ * bytes themselves — e.g. painting a full-viewport background onto a canvas —
+ * without the fixed-size canvas coupling of `renderSecureImage`.
+ */
+export async function getSecureImageBlob(imageName: string): Promise<Blob> {
+  const secretKey = process.env.NEXT_PUBLIC_AES_SECRET_KEY;
+
+  if (!secretKey) {
+    throw new Error('AES secret key not configured. Set NEXT_PUBLIC_AES_SECRET_KEY in environment.');
+  }
+
+  // Resolve the secure-media endpoint. Prefer the configured backend API
+  // origin (used everywhere else in the frontend via apiClient) so the
+  // encrypted fetch reaches the backend even when the Next.js dev server and
+  // API run on different origins. Fall back to a relative URL for the
+  // same-origin production deployment where `/api` is proxied to the backend.
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  const endpoint = baseUrl
+    ? `${baseUrl}/v1/secure-media/${encodeURIComponent(imageName)}`
+    : `/api/v1/secure-media/${encodeURIComponent(imageName)}`;
+
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    },
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Unknown error' }));
+    throw new Error(error.message || `HTTP ${response.status}: Failed to fetch secure media`);
+  }
+
+  const result = await response.json();
+
+  if (!result.success || !result.data) {
+    throw new Error('Invalid response format from server');
+  }
+
+  const decryptedBuffer = await decryptSecureMedia(result.data, secretKey);
+  return new Blob([decryptedBuffer], { type: 'image/png' });
+}
+
 export interface SecureMediaOptions {
   width?: number;
   height?: number;
