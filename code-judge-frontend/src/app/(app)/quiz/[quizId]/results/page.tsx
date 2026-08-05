@@ -2,7 +2,7 @@
 
 import { use } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, TrendingUp, Award, Target, ArrowLeft } from "lucide-react";
+import { CheckCircle, XCircle, TrendingUp, Award, Target, ArrowLeft, Trophy } from "lucide-react";
 import Link from "next/link";
 import { mockQuizzes, mockQuizQuestions } from "@/mocks/quizData";
 
@@ -24,6 +24,11 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
 
   const correctCount = questions.filter((_, i) => [0, 1, 3].includes(i)).length;
   const incorrectCount = questions.length - correctCount;
+
+  // Mock leaderboard settings - in real app, fetch from quiz settings
+  const leaderboardEnabled = true; // quiz.assessmentSettings?.enableLeaderboard ?? true
+  const isAdmin = false; // Mock - check user role
+  const isCreator = false; // Mock - check if user is quiz creator
 
   return (
     <div className="min-h-screen bg-[#09090B] p-6">
@@ -130,46 +135,76 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
           </div>
         </motion.div>
 
-        {/* Leaderboard */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6"
-        >
-          <h2 className="text-lg font-semibold text-white mb-4">Leaderboard</h2>
-          <div className="space-y-2">
-            {[
-              { rank: 1, username: "tourist", score: 95, percentage: 95 },
-              { rank: 2, username: "benq", score: 92, percentage: 92 },
-              { rank: 3, username: "petr", score: 88, percentage: 88 },
-              { rank: rank, username: "you", score, percentage },
-            ].map((entry) => (
-              <div
-                key={entry.rank}
-                className={`flex items-center gap-3 rounded-lg p-3 ${
-                  entry.username === "you" ? "bg-[#EC4899]/10 border border-[#EC4899]/20" : "bg-[#0B0D12]"
-                }`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  entry.rank === 1 ? "bg-[#F59E0B]/20 text-[#F59E0B]" :
-                  entry.rank === 2 ? "bg-[#9CA3AF]/20 text-[#9CA3AF]" :
-                  entry.rank === 3 ? "bg-[#EF4444]/20 text-[#EF4444]" :
-                  "bg-white/[0.06] text-[#9CA3AF]"
-                }`}>
-                  {entry.rank}
+        {/* Leaderboard Section */}
+        {(leaderboardEnabled || isAdmin || isCreator) ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Leaderboard</h2>
+              {!leaderboardEnabled && (isAdmin || isCreator) && (
+                <span className="text-[10px] px-2 py-1 rounded-full bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20">
+                  Creator View
+                </span>
+              )}
+            </div>
+
+            {leaderboardEnabled ? (
+              <>
+                <div className="space-y-2 mb-4">
+                  {[
+                    { rank: 1, username: "tourist", score: 95, percentage: 95 },
+                    { rank: 2, username: "benq", score: 92, percentage: 92 },
+                    { rank: 3, username: "petr", score: 88, percentage: 88 },
+                    { rank: rank, username: "you", score, percentage },
+                  ].map((entry) => (
+                    <div
+                      key={entry.rank}
+                      className={`flex items-center gap-3 rounded-lg p-3 ${
+                        entry.username === "you" ? "bg-[#7C3AED]/10 border border-[#7C3AED]/20" : "bg-[#0B0D12]"
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        entry.rank === 1 ? "bg-[#F59E0B]/20 text-[#F59E0B]" :
+                        entry.rank === 2 ? "bg-[#9CA3AF]/20 text-[#9CA3AF]" :
+                        entry.rank === 3 ? "bg-[#EF4444]/20 text-[#EF4444]" :
+                        "bg-white/[0.06] text-[#9CA3AF]"
+                      }`}>
+                        {entry.rank}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-white">{entry.username}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-white">{entry.score} pts</p>
+                        <p className="text-xs text-[#9CA3AF]">{entry.percentage}%</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-white">{entry.username}</p>
+
+                <Link
+                  href={`/quiz/${quizCode}/leaderboard`}
+                  className="flex items-center justify-center gap-2 w-full h-10 rounded-xl border border-[#7C3AED]/30 bg-[#7C3AED]/10 text-sm font-bold text-[#7C3AED] hover:bg-[#7C3AED]/20 transition-colors"
+                >
+                  <Trophy className="w-4 h-4" />
+                  View Full Leaderboard
+                </Link>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#6B7280]/10 mb-3">
+                  <Trophy className="w-6 h-6 text-[#6B7280]" />
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-white">{entry.score} pts</p>
-                  <p className="text-xs text-[#9CA3AF]">{entry.percentage}%</p>
-                </div>
+                <p className="text-sm font-medium text-white mb-1">Leaderboard Disabled</p>
+                <p className="text-xs text-[#9CA3AF]">The quiz creator has disabled leaderboard visibility for participants.</p>
               </div>
-            ))}
-          </div>
-        </motion.div>
+            )}
+          </motion.div>
+        ) : null}
 
         {/* Actions */}
         <div className="flex items-center gap-3">

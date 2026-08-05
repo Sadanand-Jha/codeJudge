@@ -17,8 +17,8 @@ export function Card({ children, className, hover = false, onClick }: {
       onClick={onClick}
       transition={{ duration: 0.2 }}
       className={`
-        rounded-2xl border bg-[#171923]
-        border-white/5
+        rounded-2xl border bg-card
+        border-border
         ${hover ? "group hover:border-[#EC4899]/30 hover:shadow-[0_8px_32px_rgba(236,72,153,0.08)] hover:-translate-y-0.5 transition-all duration-300" : ""}
         ${onClick ? "cursor-pointer" : ""}
         ${className || ""}
@@ -43,13 +43,13 @@ export function StatsCard({ label, value, icon: Icon, color = "#EC4899", sub }: 
   return (
     <Card className="p-4" hover>
       <div className="flex items-center gap-2.5 mb-2.5">
-        <div className="w-8 h-8 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-xl bg-card-hover border border-border flex items-center justify-center">
           <Icon className="w-4 h-4" style={{ color }} />
         </div>
-        <span className="text-[10px] font-medium text-[#A1A1AA] uppercase tracking-wider">{label}</span>
+        <span className="text-[10px] font-medium text-text-secondary uppercase tracking-wider">{label}</span>
       </div>
-      <p className="text-2xl font-bold text-white">{value}</p>
-      {sub && <p className="text-xs text-[#71717A] mt-0.5">{sub}</p>}
+      <p className="text-2xl font-bold text-text-primary">{value}</p>
+      {sub && <p className="text-xs text-text-muted mt-0.5">{sub}</p>}
     </Card>
   );
 }
@@ -167,8 +167,8 @@ export function QuizCard({ quiz, onClick, onRegister, onAttempt, compact = false
 
       <div className={`p-${compact ? "3" : "4"} space-y-${compact ? "2" : "3"}`}>
         <div>
-          <h3 className={`font-bold text-white line-clamp-1 ${compact ? "text-sm" : "text-base"}`}>{quiz.title}</h3>
-          <p className={`text-[#A1A1AA] line-clamp-2 ${compact ? "text-xs" : "text-sm"} mt-1`}>{quiz.description}</p>
+          <h3 className={`font-bold text-text-primary line-clamp-1 ${compact ? "text-sm" : "text-base"}`}>{quiz.title}</h3>
+          <p className={`text-text-secondary line-clamp-2 ${compact ? "text-xs" : "text-sm"} mt-1`}>{quiz.description}</p>
         </div>
 
         {!compact && (
@@ -181,28 +181,28 @@ export function QuizCard({ quiz, onClick, onRegister, onAttempt, compact = false
           </div>
         )}
 
-        <div className="flex items-center justify-between text-[10px] text-[#A1A1AA]">
+        <div className="flex items-center justify-between text-[10px] text-text-secondary">
           <span>by {quiz.creatorName}</span>
           <VisibilityBadge visibility={quiz.visibility} />
         </div>
 
-        <div className="grid grid-cols-3 gap-2 text-center text-[10px] text-[#A1A1AA]">
+        <div className="grid grid-cols-3 gap-2 text-center text-[10px] text-text-secondary">
           <div>
-            <span className="font-bold text-white text-xs">{quiz.questions}</span>
+            <span className="font-bold text-text-primary text-xs">{quiz.questions}</span>
             <p>Questions</p>
           </div>
           <div>
-            <span className="font-bold text-white text-xs">{quiz.totalPoints}</span>
+            <span className="font-bold text-text-primary text-xs">{quiz.totalPoints}</span>
             <p>Points</p>
           </div>
           <div>
-            <span className="font-bold text-white text-xs">{quiz.timeLimit || 0}m</span>
+            <span className="font-bold text-text-primary text-xs">{quiz.timeLimit || 0}m</span>
             <p>Duration</p>
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
-          <div className="flex items-center gap-3 text-[9px] text-[#A1A1AA]">
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <div className="flex items-center gap-3 text-[9px] text-text-secondary">
             <span className="flex items-center gap-1">
               👤 {quiz.registeredCount}
             </span>
@@ -219,7 +219,7 @@ export function QuizCard({ quiz, onClick, onRegister, onAttempt, compact = false
                   ? `bg-gradient-to-r ${pinkGradient} text-white hover:shadow-[0_0_20px_rgba(236,72,153,0.3)]`
                   : isUpcoming
                   ? "border border-[#EC4899]/30 bg-[#EC4899]/10 text-[#EC4899] hover:bg-[#EC4899]/20"
-                  : "border border-white/[0.08] bg-white/[0.02] text-[#A1A1AA] hover:text-white"}`}
+                  : "border border-border bg-card-hover text-text-secondary hover:text-text-primary"}`}
             >
               {isActive ? "Start" : isUpcoming ? "Register" : "View"}
             </motion.button>
@@ -253,24 +253,24 @@ export function AssessmentCard({ quiz, onClick }: AssessmentCardProps) {
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-white text-sm">{quiz.title}</h3>
+          <h3 className="font-semibold text-text-primary text-sm">{quiz.title}</h3>
           <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold" style={{ backgroundColor: `${statusColor}15`, color: statusColor }}>
             {status.toUpperCase()}
           </span>
         </div>
-        <p className="text-xs text-[#A1A1AA] mt-0.5 line-clamp-1">{quiz.description}</p>
+        <p className="text-xs text-text-secondary mt-0.5 line-clamp-1">{quiz.description}</p>
       </div>
-      <div className="flex items-center gap-4 text-right text-xs text-[#A1A1AA]">
+      <div className="flex items-center gap-4 text-right text-xs text-text-secondary">
         <div>
-          <span className="font-bold text-white">{quiz.registeredCount}</span>
+          <span className="font-bold text-text-primary">{quiz.registeredCount}</span>
           <p className="text-[9px]">Registered</p>
         </div>
         <div>
-          <span className="font-bold text-white">{quiz.timeLimit || 0}m</span>
+          <span className="font-bold text-text-primary">{quiz.timeLimit || 0}m</span>
           <p className="text-[9px]">Duration</p>
         </div>
         <div>
-          <span className="font-bold text-white">{quiz.attempts}</span>
+          <span className="font-bold text-text-primary">{quiz.attempts}</span>
           <p className="text-[9px]">Attempts</p>
         </div>
       </div>
@@ -308,7 +308,7 @@ export function QuestionTypeCard({ type, selected, onClick, index }: QuestionTyp
         relative group cursor-pointer rounded-2xl border p-4 text-center transition-all
         ${selected
           ? "border-[#EC4899] bg-[#EC4899]/10 shadow-[0_0_24px_rgba(236,72,153,0.15)]"
-          : "border-white/[0.08] bg-[#171923] hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5"}
+          : "border-border bg-card hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5"}
       `}
     >
       {selected && (
@@ -327,10 +327,10 @@ export function QuestionTypeCard({ type, selected, onClick, index }: QuestionTyp
         >
           <Icon className="w-5 h-5" />
         </div>
-        <h3 className={`text-sm font-semibold ${selected ? "text-white" : "text-[#E5E7EB] group-hover:text-white"}`}>
+        <h3 className={`text-sm font-semibold ${selected ? "text-text-primary" : "text-text-primary group-hover:text-text-primary"}`}>
           {type.label}
         </h3>
-        <p className="text-[9px] text-[#9CA3AF] group-hover:text-[#A1A1AA]">{type.description}</p>
+        <p className="text-[9px] text-text-secondary group-hover:text-text-secondary">{type.description}</p>
       </div>
     </motion.div>
   );
@@ -370,7 +370,7 @@ export function OptionCard({ option, index, onChange, onCorrect, onDelete, onDup
       className={`relative rounded-xl border p-2.5 transition-all
         ${isCorrect
           ? "border-[#EC4899]/40 bg-[#EC4899]/5 shadow-[0_0_16px_rgba(236,72,153,0.1)]"
-          : "border-white/[0.06] bg-[#171923] hover:border-white/[0.12] hover:bg-white/[0.02]"}`}
+          : "border-border bg-card hover:border-border-hover hover:bg-card-hover"}`}
     >
       <div className="flex items-start gap-2.5">
         {/* Correct toggle */}
@@ -508,28 +508,28 @@ export function Toolbar({
   rightActions,
 }: ToolbarProps) {
   return (
-    <div className="h-14 border-b border-white/[0.06] bg-[#0B0D14]/80 backdrop-blur-xl flex items-center px-4 gap-3 shrink-0">
+    <div className="h-14 border-b border-border bg-background/80 backdrop-blur-xl flex items-center px-4 gap-3 shrink-0">
       <button
         onClick={onExit}
-        className="h-8 px-2.5 rounded-lg border border-white/[0.06] bg-white/[0.03] text-xs font-medium text-[#A1A1AA] hover:text-white hover:border-white/[0.12] transition-colors flex items-center gap-1.5"
+        className="h-8 px-2.5 rounded-lg border border-border bg-card-hover text-xs font-medium text-text-secondary hover:text-text-primary hover:border-border-hover transition-colors flex items-center gap-1.5"
       >
         ← Exit
       </button>
 
-      <div className="w-px h-6 bg-white/[0.06]" />
+      <div className="w-px h-6 bg-border" />
 
       <div className="flex items-center gap-2">
         <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#EC4899] to-[#BE185D] flex items-center justify-center">
           <span className="text-xs font-bold text-white">📝</span>
         </div>
         <div>
-          <p className="text-xs font-bold text-white leading-tight">{quizTitle || "Untitled Quiz"}</p>
-          <p className="text-[9px] text-[#71717A]">Quiz Studio</p>
+          <p className="text-xs font-bold text-text-primary leading-tight">{quizTitle || "Untitled Quiz"}</p>
+          <p className="text-[9px] text-text-muted">Quiz Studio</p>
         </div>
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <div className="flex items-center gap-1.5 text-xs text-[#A1A1AA]">
+        <div className="flex items-center gap-1.5 text-xs text-text-secondary">
           {saveStatus === "saving" && (
             <>
               <span className="w-3 h-3 rounded-full bg-[#EC4899] animate-pulse" />
@@ -552,7 +552,7 @@ export function Toolbar({
 
         <button
           onClick={onPreview}
-          className="h-8 px-3 rounded-lg border border-white/[0.06] bg-white/[0.03] text-xs font-medium text-[#A1A1AA] hover:text-white hover:border-white/[0.12] transition-colors flex items-center gap-1.5"
+          className="h-8 px-3 rounded-lg border border-border bg-card-hover text-xs font-medium text-text-secondary hover:text-text-primary hover:border-border-hover transition-colors flex items-center gap-1.5"
         >
           👁️ Preview
         </button>

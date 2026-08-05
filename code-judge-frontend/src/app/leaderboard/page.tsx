@@ -30,26 +30,6 @@ import AppLayout from "@/components/layout/AppLayout";
 import { getAvatarUrlById } from "@/config/dicebear";
 
 // ─────────────────────────────────────────
-// Design Tokens
-// ─────────────────────────────────────────
-const COLORS = {
-  bg: "#09090B",
-  panel: "#111827",
-  surface: "#0F1115",
-  border: "#23252F",
-  borderHover: "#32364A",
-  accent: "#7C3AED",
-  gold: "#FFD700",
-  silver: "#C0C0C0",
-  bronze: "#CD7F32",
-  text: "#FFFFFF",
-  textSecondary: "#9CA3AF",
-  textMuted: "#6B7280",
-  success: "#22C55E",
-  error: "#EF4444",
-};
-
-// ─────────────────────────────────────────
 // Mock Data
 // ─────────────────────────────────────────
 interface User {
@@ -143,20 +123,20 @@ const allUsers = generateUsers(100);
 function RatingTrend({ change }: { change: number }) {
   if (change > 0) {
     return (
-      <span className="flex items-center gap-1 text-[#22C55E] text-[11px]">
+      <span className="flex items-center gap-1 text-success text-[11px]">
         <TrendingUp className="h-3 w-3" /> +{change}
       </span>
     );
   }
   if (change < 0) {
     return (
-      <span className="flex items-center gap-1 text-[#EF4444] text-[11px]">
+      <span className="flex items-center gap-1 text-danger text-[11px]">
         <TrendingDown className="h-3 w-3" /> {change}
       </span>
     );
   }
   return (
-    <span className="flex items-center gap-1 text-[#6B7280] text-[11px]">
+    <span className="flex items-center gap-1 text-text-muted text-[11px]">
       <Minus className="h-3 w-3" /> 0
     </span>
   );
@@ -176,9 +156,9 @@ function BadgeShine({ badge }: { badge: string }) {
 
 function PodiumSpot({ user, rank, delay }: { user: User; rank: number; delay: number }) {
   const colors = {
-    1: { primary: COLORS.gold, secondary: "from-[#FFD700]/20 to-transparent", glow: "shadow-[0_0_40px_rgba(255,215,0,0.3)]" },
-    2: { primary: COLORS.silver, secondary: "from-[#C0C0C0]/20 to-transparent", glow: "shadow-[0_0_40px_rgba(192,192,192,0.3)]" },
-    3: { primary: COLORS.bronze, secondary: "from-[#CD7F32]/20 to-transparent", glow: "shadow-[0_0_40px_rgba(205,127,50,0.3)]" },
+    1: { primary: "#FFD700", glow: "shadow-[0_0_40px_rgba(255,215,0,0.2)]" },
+    2: { primary: "#C0C0C0", glow: "shadow-[0_0_40px_rgba(192,192,192,0.2)]" },
+    3: { primary: "#CD7F32", glow: "shadow-[0_0_40px_rgba(205,127,50,0.2)]" },
   };
 
   const heights = { 1: "h-48", 2: "h-36", 3: "h-28" };
@@ -199,7 +179,7 @@ function PodiumSpot({ user, rank, delay }: { user: User; rank: number; delay: nu
           animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
           transition={{ duration: 3, repeat: Infinity }}
         />
-        <div className="relative h-24 w-24 overflow-hidden rounded-full border-4 bg-[#111827]" style={{ borderColor: color.primary }}>
+        <div className="relative h-24 w-24 overflow-hidden rounded-full border-4 bg-card" style={{ borderColor: color.primary }}>
           <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
         </div>
         <div
@@ -211,17 +191,24 @@ function PodiumSpot({ user, rank, delay }: { user: User; rank: number; delay: nu
       </div>
 
       <div className="text-center">
-        <div className="text-[13px] font-semibold text-white truncate max-w-[120px]">{user.name}</div>
-        <div className="text-[11px] text-[#6B7280]">{user.countryFlag} {user.country}</div>
+        <div className="text-[13px] font-semibold text-text-primary truncate max-w-[120px]">{user.name}</div>
+        <div className="text-[11px] text-text-muted">{user.countryFlag} {user.country}</div>
         <div className="mt-1 text-[16px] font-bold" style={{ color: color.primary }}>
           {user.rating}
         </div>
-        <div className="text-[10px] text-[#6B7280]">{user.problemsSolved} solved</div>
+        <div className="text-[10px] text-text-muted">{user.problemsSolved} solved</div>
       </div>
 
-      <div className={`mt-4 w-32 ${heights[rank as 1 | 2 | 3]} rounded-t-lg bg-gradient-to-t ${color.secondary}`} style={{ backgroundColor: rank === 1 ? "#1a1a2e" : rank === 2 ? "#1a1a2e" : "#1a1a2e" }}>
+      <div
+        className={`mt-4 w-32 ${heights[rank as 1 | 2 | 3]} rounded-t-lg border border-border relative overflow-hidden`}
+        style={{
+          background: `linear-gradient(180deg, ${color.primary}33 0%, ${color.primary}22 50%, ${color.primary}11 100%)`,
+          borderColor: `${color.primary}66`,
+        }}
+      >
+        <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: color.primary }} />
         <div className="flex h-full flex-col items-center justify-end pb-3">
-          <span className="text-[24px] font-bold text-white/20">{rank}</span>
+          <span className="text-[24px] font-bold" style={{ color: color.primary }}>{rank}</span>
         </div>
       </div>
     </motion.div>
@@ -238,64 +225,63 @@ function PlayerCard({ user, onClose }: { user: User; onClose: () => void }) {
       onClick={onClose}
     >
       <motion.div
-        className="relative w-full max-w-2xl rounded-2xl border bg-[#111827] p-6"
-        style={{ borderColor: COLORS.border }}
+        className="relative w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute right-4 top-4 rounded p-1 text-[#6B7280] hover:bg-[#1F2937] hover:text-white">
+        <button onClick={onClose} className="absolute right-4 top-4 rounded p-1 text-text-muted hover:bg-card-hover hover:text-text-primary">
           <ChevronDown className="h-5 w-5 rotate-180" />
         </button>
 
         <div className="flex items-start gap-4">
-          <div className="h-20 w-20 overflow-hidden rounded-full border-2" style={{ borderColor: COLORS.accent }}>
+          <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-accent">
             <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-xl font-bold text-white">{user.name}</h3>
+              <h3 className="text-xl font-bold text-text-primary">{user.name}</h3>
               <span className="text-xl">{user.countryFlag}</span>
             </div>
-            <div className="mt-1 text-[13px] text-[#9CA3AF]">{user.country}</div>
+            <div className="mt-1 text-[13px] text-text-secondary">{user.country}</div>
             <div className="mt-2 flex items-center gap-4">
               <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 text-[#FFD700]" />
-                <span className="text-[14px] font-bold text-white">{user.rating}</span>
+                <Star className="h-4 w-4 text-gold" />
+                <span className="text-[14px] font-bold text-text-primary">{user.rating}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Target className="h-4 w-4 text-[#22C55E]" />
-                <span className="text-[13px] text-[#9CA3AF]">{user.problemsSolved} solved</span>
+                <Target className="h-4 w-4 text-success" />
+                <span className="text-[13px] text-text-secondary">{user.problemsSolved} solved</span>
               </div>
               <div className="flex items-center gap-1">
-                <Flame className="h-4 w-4 text-[#F59E0B]" />
-                <span className="text-[13px] text-[#9CA3AF]">{user.streak} day streak</span>
+                <Flame className="h-4 w-4 text-warning" />
+                <span className="text-[13px] text-text-secondary">{user.streak} day streak</span>
               </div>
             </div>
           </div>
         </div>
 
         <div className="mt-6 grid grid-cols-3 gap-4">
-          <div className="rounded-lg border p-3" style={{ borderColor: COLORS.border, backgroundColor: COLORS.surface }}>
-            <div className="text-[10px] text-[#6B7280]">Accuracy</div>
-            <div className="mt-1 text-[18px] font-bold text-white">{user.accuracy}%</div>
+          <div className="rounded-lg border border-border bg-card-hover p-3">
+            <div className="text-[10px] text-text-muted">Accuracy</div>
+            <div className="mt-1 text-[18px] font-bold text-text-primary">{user.accuracy}%</div>
           </div>
-          <div className="rounded-lg border p-3" style={{ borderColor: COLORS.border, backgroundColor: COLORS.surface }}>
-            <div className="text-[10px] text-[#6B7280]">Contests</div>
-            <div className="mt-1 text-[18px] font-bold text-white">{user.contests}</div>
+          <div className="rounded-lg border border-border bg-card-hover p-3">
+            <div className="text-[10px] text-text-muted">Contests</div>
+            <div className="mt-1 text-[18px] font-bold text-text-primary">{user.contests}</div>
           </div>
-          <div className="rounded-lg border p-3" style={{ borderColor: COLORS.border, backgroundColor: COLORS.surface }}>
-            <div className="text-[10px] text-[#6B7280]">Percentile</div>
-            <div className="mt-1 text-[18px] font-bold text-[#7C3AED]">Top {user.percentile}%</div>
+          <div className="rounded-lg border border-border bg-card-hover p-3">
+            <div className="text-[10px] text-text-muted">Percentile</div>
+            <div className="mt-1 text-[18px] font-bold text-accent">Top {user.percentile}%</div>
           </div>
         </div>
 
         <div className="mt-6">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Rating History</div>
-          <div className="h-32 rounded-lg border p-3" style={{ borderColor: COLORS.border, backgroundColor: COLORS.surface }}>
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Rating History</div>
+          <div className="h-32 rounded-lg border border-border bg-card-hover p-3">
             <div className="flex h-full items-end gap-1">
               {user.contestHistory.map((rating, i) => (
                 <motion.div
                   key={i}
-                  className="flex-1 rounded-t bg-gradient-to-t from-[#7C3AED] to-[#3B82F6]"
+                  className="flex-1 rounded-t bg-gradient-to-t from-accent to-accent-secondary"
                   initial={{ height: 0 }}
                   animate={{ height: `${((rating - 800) / 2700) * 100}%` }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}
@@ -306,13 +292,13 @@ function PlayerCard({ user, onClose }: { user: User; onClose: () => void }) {
         </div>
 
         <div className="mt-4">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Badges & Achievements</div>
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Badges & Achievements</div>
           <div className="flex flex-wrap gap-2">
             {user.badges.map((badge, i) => (
               <BadgeShine key={i} badge={badge} />
             ))}
             {user.achievements.map((achievement, i) => (
-              <span key={i} className="rounded-full bg-[#7C3AED]/10 px-2 py-1 text-[10px] text-[#7C3AED]">
+              <span key={i} className="rounded-full bg-accent/10 px-2 py-1 text-[10px] text-accent">
                 {achievement}
               </span>
             ))}
@@ -320,15 +306,15 @@ function PlayerCard({ user, onClose }: { user: User; onClose: () => void }) {
         </div>
 
         <div className="mt-4">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Recent Submissions</div>
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Recent Submissions</div>
           <div className="space-y-2">
             {user.recentSubmissions.map((sub, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border p-2" style={{ borderColor: COLORS.border }}>
+              <div key={i} className="flex items-center justify-between rounded-lg border border-border p-2">
                 <div className="flex items-center gap-2">
-                  <Code className="h-3 w-3 text-[#6B7280]" />
-                  <span className="text-[12px] text-white">{sub.problem}</span>
+                  <Code className="h-3 w-3 text-text-muted" />
+                  <span className="text-[12px] text-text-primary">{sub.problem}</span>
                 </div>
-                <span className={`text-[10px] ${sub.status === "Accepted" ? "text-[#22C55E]" : "text-[#EF4444]"}`}>{sub.status}</span>
+                <span className={`text-[10px] ${sub.status === "Accepted" ? "text-success" : "text-danger"}`}>{sub.status}</span>
               </div>
             ))}
           </div>
@@ -343,17 +329,16 @@ function LeaderboardRow({ user, rank, onClick }: { user: User; rank: number; onC
     if (r === 1) return "text-[#FFD700]";
     if (r === 2) return "text-[#C0C0C0]";
     if (r === 3) return "text-[#CD7F32]";
-    if (r <= 10) return "text-[#7C3AED]";
-    return "text-[#6B7280]";
+    if (r <= 10) return "text-accent";
+    return "text-text-muted";
   };
 
   return (
     <motion.tr
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      whileHover={{ backgroundColor: "rgba(124, 58, 237, 0.05)" }}
-      className="cursor-pointer border-b transition-colors"
-      style={{ borderColor: COLORS.border }}
+      whileHover={{ backgroundColor: "rgba(37, 99, 235, 0.04)" }}
+      className="cursor-pointer border-b border-border transition-colors"
       onClick={onClick}
     >
       <td className="px-4 py-3">
@@ -365,38 +350,38 @@ function LeaderboardRow({ user, rank, onClick }: { user: User; rank: number; onC
             <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
           </div>
           <div>
-            <div className="text-[13px] font-medium text-white">{user.name}</div>
-            <div className="text-[10px] text-[#6B7280]">{user.countryFlag} {user.country}</div>
+            <div className="text-[13px] font-medium text-text-primary">{user.name}</div>
+            <div className="text-[10px] text-text-muted">{user.countryFlag} {user.country}</div>
           </div>
         </div>
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-[14px] font-bold text-white">{user.rating}</span>
+          <span className="text-[14px] font-bold text-text-primary">{user.rating}</span>
           <RatingTrend change={user.ratingChange} />
         </div>
       </td>
       <td className="px-4 py-3">
-        <span className="text-[13px] text-[#9CA3AF]">{user.problemsSolved}</span>
+        <span className="text-[13px] text-text-secondary">{user.problemsSolved}</span>
       </td>
       <td className="px-4 py-3">
-        <span className="text-[13px] text-[#9CA3AF]">{user.contests}</span>
+        <span className="text-[13px] text-text-secondary">{user.contests}</span>
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[#23252F]">
+          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-border">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#3B82F6]"
+              className="h-full rounded-full bg-gradient-to-r from-accent to-accent-secondary"
               style={{ width: `${user.accuracy}%` }}
             />
           </div>
-          <span className="text-[12px] text-[#9CA3AF]">{user.accuracy}%</span>
+          <span className="text-[12px] text-text-secondary">{user.accuracy}%</span>
         </div>
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1">
-          <Flame className="h-3 w-3 text-[#F59E0B]" />
-          <span className="text-[13px] text-[#9CA3AF]">{user.streak}</span>
+          <Flame className="h-3 w-3 text-warning" />
+          <span className="text-[13px] text-text-secondary">{user.streak}</span>
         </div>
       </td>
       <td className="px-4 py-3">
@@ -405,12 +390,12 @@ function LeaderboardRow({ user, rank, onClick }: { user: User; rank: number; onC
             <BadgeShine key={i} badge={badge} />
           ))}
           {user.badges.length > 3 && (
-            <span className="text-[10px] text-[#6B7280]">+{user.badges.length - 3}</span>
+            <span className="text-[10px] text-text-muted">+{user.badges.length - 3}</span>
           )}
         </div>
       </td>
       <td className="px-4 py-3">
-        <span className="text-[11px] text-[#6B7280]">{user.lastActive}</span>
+        <span className="text-[11px] text-text-muted">{user.lastActive}</span>
       </td>
     </motion.tr>
   );
@@ -461,34 +446,34 @@ export default function LeaderboardPage() {
 
   return (
     <AppLayout>
-      <div className="min-h-screen" style={{ backgroundColor: COLORS.bg }}>
+      <div className="min-h-screen bg-background">
         {/* Header */}
-        <div className="border-b" style={{ borderColor: COLORS.border }}>
+        <div className="border-b border-border">
           <div className="mx-auto max-w-7xl px-6 py-8">
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFD700] to-[#7C3AED]">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#FFD700] to-accent">
                     <Trophy className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-2xl font-bold text-white">Leaderboard</h1>
-                    <p className="text-[13px] text-[#9CA3AF]">Compete with the best programmers around the world.</p>
+                    <h1 className="text-2xl font-bold text-text-primary">Leaderboard</h1>
+                    <p className="text-[13px] text-text-secondary">Compete with the best programmers around the world.</p>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-6">
                 <div className="text-right">
-                  <div className="text-[10px] text-[#6B7280]">Your Rank</div>
-                  <div className="text-[20px] font-bold text-[#7C3AED]">#{Math.floor(Math.random() * 100) + 1}</div>
+                  <div className="text-[10px] text-text-muted">Your Rank</div>
+                  <div className="text-[20px] font-bold text-accent">#{Math.floor(Math.random() * 100) + 1}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[10px] text-[#6B7280]">Global Rating</div>
-                  <div className="text-[20px] font-bold text-white">{currentUser.rating}</div>
+                  <div className="text-[10px] text-text-muted">Global Rating</div>
+                  <div className="text-[20px] font-bold text-text-primary">{currentUser.rating}</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-[10px] text-[#6B7280]">Percentile</div>
-                  <div className="text-[20px] font-bold text-[#22C55E]">Top {currentUser.percentile}%</div>
+                  <div className="text-[10px] text-text-muted">Percentile</div>
+                  <div className="text-[20px] font-bold text-success">Top {currentUser.percentile}%</div>
                 </div>
               </div>
             </div>
@@ -498,7 +483,7 @@ export default function LeaderboardPage() {
         <div className="mx-auto max-w-7xl px-6 py-8">
           {/* Top Three Podium */}
           <div className="mb-8">
-            <div className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Top Performers</div>
+            <div className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Top Performers</div>
             <div className="flex items-end justify-center gap-8 py-8">
               <PodiumSpot user={topThree[1]} rank={2} delay={0.2} />
               <PodiumSpot user={topThree[0]} rank={1} delay={0.1} />
@@ -517,8 +502,8 @@ export default function LeaderboardPage() {
                     onClick={() => setScope(option.value as typeof scope)}
                     className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all ${
                       scope === option.value
-                        ? "bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/30"
-                        : "text-[#6B7280] hover:text-white border border-transparent hover:border-[#23252F]"
+                        ? "bg-accent/15 text-accent border border-accent/30"
+                        : "text-text-muted hover:text-text-primary border border-transparent hover:border-border"
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" />
@@ -534,8 +519,8 @@ export default function LeaderboardPage() {
                   onClick={() => setTimeframe(option.value as typeof timeframe)}
                   className={`rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all ${
                     timeframe === option.value
-                      ? "bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/30"
-                      : "text-[#6B7280] hover:text-white border border-transparent hover:border-[#23252F]"
+                      ? "bg-accent/15 text-accent border border-accent/30"
+                      : "text-text-muted hover:text-text-primary border border-transparent hover:border-border"
                   }`}
                 >
                   {option.label}
@@ -546,19 +531,19 @@ export default function LeaderboardPage() {
 
           <div className="flex gap-6">
             {/* Main Table */}
-            <div className="flex-1 rounded-xl border" style={{ borderColor: COLORS.border, backgroundColor: COLORS.panel }}>
+            <div className="flex-1 rounded-xl border border-border bg-card">
               <table className="w-full">
-                <thead className="sticky top-0" style={{ backgroundColor: COLORS.surface }}>
-                  <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
-                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">Rank</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">User</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">Rating</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">Solved</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">Contests</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">Accuracy</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">Streak</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">Badges</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">Active</th>
+                <thead className="sticky top-0 bg-card-hover">
+                  <tr className="border-b border-border">
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-text-muted">Rank</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-text-muted">User</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-text-muted">Rating</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-text-muted">Solved</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-text-muted">Contests</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-text-muted">Accuracy</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-text-muted">Streak</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-text-muted">Badges</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-text-muted">Active</th>
                   </tr>
                 </thead>
                 <tbody onScroll={handleScroll}>
@@ -578,7 +563,7 @@ export default function LeaderboardPage() {
                 <div className="flex items-center justify-center py-4">
                   <button
                     onClick={() => setVisibleCount((prev) => prev + 25)}
-                    className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] text-[#7C3AED] hover:bg-[#7C3AED]/10 transition-colors"
+                    className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] text-accent hover:bg-accent/10 transition-colors"
                   >
                     Load More <ChevronDown className="h-3 w-3" />
                   </button>
@@ -589,49 +574,49 @@ export default function LeaderboardPage() {
             {/* Right Sidebar */}
             <div className="w-80 space-y-4">
               {/* Your Stats */}
-              <div className="rounded-xl border p-4" style={{ borderColor: COLORS.border, backgroundColor: COLORS.panel }}>
+              <div className="rounded-xl border border-border bg-card p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <Crown className="h-4 w-4 text-[#FFD700]" />
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Your Progress</span>
+                  <Crown className="h-4 w-4 text-gold" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Your Progress</span>
                 </div>
                 <div className="space-y-3">
                   <div>
                     <div className="flex justify-between text-[11px]">
-                      <span className="text-[#9CA3AF]">Weekly Progress</span>
-                      <span className="text-[#22C55E]">+45 rating</span>
+                      <span className="text-text-secondary">Weekly Progress</span>
+                      <span className="text-success">+45 rating</span>
                     </div>
-                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#23252F]">
-                      <div className="h-full w-[65%] rounded-full bg-gradient-to-r from-[#7C3AED] to-[#3B82F6]" />
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-border">
+                      <div className="h-full w-[65%] rounded-full bg-gradient-to-r from-accent to-accent-secondary" />
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-[11px]">
-                      <span className="text-[#9CA3AF]">Problems This Week</span>
-                      <span className="text-white">24/50</span>
+                      <span className="text-text-secondary">Problems This Week</span>
+                      <span className="text-text-primary">24/50</span>
                     </div>
-                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#23252F]">
-                      <div className="h-full w-[48%] rounded-full bg-gradient-to-r from-[#F59E0B] to-[#EF4444]" />
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-border">
+                      <div className="h-full w-[48%] rounded-full bg-gradient-to-r from-warning to-danger" />
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Friends Ranking */}
-              <div className="rounded-xl border p-4" style={{ borderColor: COLORS.border, backgroundColor: COLORS.panel }}>
+              <div className="rounded-xl border border-border bg-card p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <Users className="h-4 w-4 text-[#7C3AED]" />
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Friends</span>
+                  <Users className="h-4 w-4 text-accent" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Friends</span>
                 </div>
                 <div className="space-y-3">
                   {allUsers.slice(0, 5).map((user, i) => (
                     <div key={user.id} className="flex items-center gap-3">
-                      <span className="text-[11px] font-bold text-[#6B7280] w-5">{i + 1}</span>
+                      <span className="text-[11px] font-bold text-text-muted w-5">{i + 1}</span>
                       <div className="h-7 w-7 overflow-hidden rounded-full">
                         <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="truncate text-[12px] text-white">{user.name}</div>
-                        <div className="text-[10px] text-[#6B7280]">{user.rating}</div>
+                        <div className="truncate text-[12px] text-text-primary">{user.name}</div>
+                        <div className="text-[10px] text-text-muted">{user.rating}</div>
                       </div>
                       <RatingTrend change={user.ratingChange} />
                     </div>
@@ -640,28 +625,28 @@ export default function LeaderboardPage() {
               </div>
 
               {/* Upcoming Contest */}
-              <div className="rounded-xl border p-4" style={{ borderColor: COLORS.border, backgroundColor: COLORS.panel }}>
+              <div className="rounded-xl border border-border bg-card p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-[#F59E0B]" />
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Upcoming Contest</span>
+                  <Trophy className="h-4 w-4 text-warning" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Upcoming Contest</span>
                 </div>
-                <div className="rounded-lg bg-gradient-to-br from-[#7C3AED]/10 to-[#3B82F6]/10 p-3">
-                  <div className="text-[13px] font-semibold text-white">Weekly Challenge #42</div>
-                  <div className="mt-1 flex items-center gap-1 text-[11px] text-[#9CA3AF]">
+                <div className="rounded-lg bg-gradient-to-br from-accent/10 to-accent-secondary/10 p-3">
+                  <div className="text-[13px] font-semibold text-text-primary">Weekly Challenge #42</div>
+                  <div className="mt-1 flex items-center gap-1 text-[11px] text-text-secondary">
                     <Clock className="h-3 w-3" />
                     Starts in 2h 34m
                   </div>
-                  <button className="mt-2 w-full rounded-lg bg-[#7C3AED] py-1.5 text-[11px] font-semibold text-white hover:bg-[#7C3AED]/90 transition-colors">
+                  <button className="mt-2 w-full rounded-lg bg-accent py-1.5 text-[11px] font-semibold text-white hover:bg-accent/90 transition-colors">
                     Register Now
                   </button>
                 </div>
               </div>
 
               {/* Top Rising Players */}
-              <div className="rounded-xl border p-4" style={{ borderColor: COLORS.border, backgroundColor: COLORS.panel }}>
+              <div className="rounded-xl border border-border bg-card p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-[#F59E0B]" />
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Rising Stars</span>
+                  <Zap className="h-4 w-4 text-warning" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Rising Stars</span>
                 </div>
                 <div className="space-y-3">
                   {filteredUsers
@@ -669,37 +654,37 @@ export default function LeaderboardPage() {
                     .slice(0, 5)
                     .map((user, i) => (
                       <div key={user.id} className="flex items-center gap-3">
-                        <span className="text-[11px] font-bold text-[#6B7280] w-5">{i + 1}</span>
+                        <span className="text-[11px] font-bold text-text-muted w-5">{i + 1}</span>
                         <div className="h-7 w-7 overflow-hidden rounded-full">
                           <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="truncate text-[12px] text-white">{user.name}</div>
-                          <div className="text-[10px] text-[#6B7280]">{user.countryFlag}</div>
+                          <div className="truncate text-[12px] text-text-primary">{user.name}</div>
+                          <div className="text-[10px] text-text-muted">{user.countryFlag}</div>
                         </div>
-                        <span className="text-[11px] font-bold text-[#22C55E]">+{user.ratingChange}</span>
+                        <span className="text-[11px] font-bold text-success">+{user.ratingChange}</span>
                       </div>
                     ))}
                 </div>
               </div>
 
               {/* Today's Challenge */}
-              <div className="rounded-xl border p-4" style={{ borderColor: COLORS.border, backgroundColor: COLORS.panel }}>
+              <div className="rounded-xl border border-border bg-card p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <Target className="h-4 w-4 text-[#EF4444]" />
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6B7280]">Daily Challenge</span>
+                  <Target className="h-4 w-4 text-danger" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Daily Challenge</span>
                 </div>
-                <div className="rounded-lg border p-3" style={{ borderColor: COLORS.accent }}>
+                <div className="rounded-lg border border-accent p-3">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#7C3AED]/20">
-                      <Code className="h-4 w-4 text-[#7C3AED]" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20">
+                      <Code className="h-4 w-4 text-accent" />
                     </div>
                     <div>
-                      <div className="text-[12px] font-medium text-white">Two Sum Variants</div>
-                      <div className="text-[10px] text-[#6B7280]">Hard · Array, Hash Table</div>
+                      <div className="text-[12px] font-medium text-text-primary">Two Sum Variants</div>
+                      <div className="text-[10px] text-text-muted">Hard · Array, Hash Table</div>
                     </div>
                   </div>
-                  <button className="mt-2 w-full rounded-lg border py-1.5 text-[11px] font-medium text-[#7C3AED] hover:bg-[#7C3AED]/10 transition-colors" style={{ borderColor: COLORS.accent }}>
+                  <button className="mt-2 w-full rounded-lg border border-accent py-1.5 text-[11px] font-medium text-accent hover:bg-accent/10 transition-colors">
                     Attempt Challenge
                   </button>
                 </div>

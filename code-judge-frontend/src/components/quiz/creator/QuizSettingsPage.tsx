@@ -35,6 +35,7 @@ import {
   Info,
   CheckCircle2,
   AlertTriangle,
+  Image as ImageIcon,
 } from "lucide-react";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, DIFFICULTY_OPTIONS, CreatorQuestionType } from "./types";
 import { saveQuizDetails } from "@/utils/quizStorage";
@@ -89,6 +90,115 @@ const QUESTION_TYPE_META: Array<{ id: CreatorQuestionType; label: string; icon: 
   { id: "paragraph", label: "Long Answer", icon: AlignLeft, color: "#F97316" },
   { id: "code_output", label: "Coding", icon: Code2, color: "#06B6D4" },
 ];
+
+// ─────────────────────────────────────────
+// Quiz Cover Image Options
+// image1-7.png are UNLOCKED (free to use)
+// image8-14.png and hero1-6.png are LOCKED (premium)
+// ─────────────────────────────────────────
+const QUIZ_IMAGES: Array<{ src: string; label: string; unlocked: boolean }> = [
+  { src: "/images/quiz/image1.png", label: "image1", unlocked: true },
+  { src: "/images/quiz/image2.png", label: "image2", unlocked: true },
+  { src: "/images/quiz/image3.png", label: "image3", unlocked: true },
+  { src: "/images/quiz/image4.png", label: "image4", unlocked: true },
+  { src: "/images/quiz/image5.png", label: "image5", unlocked: true },
+  { src: "/images/quiz/image6.png", label: "image6", unlocked: true },
+  { src: "/images/quiz/image7.png", label: "image7", unlocked: true },
+  { src: "/images/quiz/image8.png", label: "image8", unlocked: false },
+  { src: "/images/quiz/image9.png", label: "image9", unlocked: false },
+  { src: "/images/quiz/image10.png", label: "image10", unlocked: false },
+  { src: "/images/quiz/image11.png", label: "image11", unlocked: false },
+  { src: "/images/quiz/image12.png", label: "image12", unlocked: false },
+  { src: "/images/quiz/image13.png", label: "image13", unlocked: false },
+  { src: "/images/quiz/image14.png", label: "image14", unlocked: false },
+  { src: "/images/hero/hero1.png", label: "hero1", unlocked: false },
+  { src: "/images/hero/hero2.png", label: "hero2", unlocked: false },
+  { src: "/images/hero/hero3.png", label: "hero3", unlocked: false },
+  { src: "/images/hero/hero4.png", label: "hero4", unlocked: false },
+  { src: "/images/hero/hero5.png", label: "hero5", unlocked: false },
+  { src: "/images/hero/hero6.png", label: "hero6", unlocked: false },
+];
+
+function QuizImageSelector({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange: (src?: string) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider">
+          <ImageIcon className="w-3 h-3 text-[#C7DDEC]" />
+          Quiz Cover Image
+        </span>
+        <span className="rounded-full border border-[#22C55E]/20 bg-[#22C55E]/10 px-2 py-0.5 text-[9px] font-bold text-[#22C55E]">
+          {QUIZ_IMAGES.filter((img) => img.unlocked).length} unlocked
+        </span>
+      </div>
+
+      {/* Preview of selected image */}
+      {value && (
+        <div className="relative mb-3 rounded-xl overflow-hidden border border-[#C7DDEC]/30">
+          <img src={value} alt="Selected cover" className="w-full h-28 sm:h-36 object-cover" />
+          <button
+            onClick={() => onChange(undefined)}
+            className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/70 text-white hover:bg-black/90 transition-colors"
+            title="Remove cover image"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
+        {QUIZ_IMAGES.map((img) => {
+          const isSelected = value === img.src;
+          return (
+            <button
+              key={img.src}
+              onClick={() => img.unlocked && onChange(img.src)}
+              disabled={!img.unlocked}
+              className={`relative rounded-lg overflow-hidden border transition-all aspect-[4/3] ${
+                isSelected
+                  ? "border-[#C7DDEC] ring-2 ring-[#C7DDEC]/40"
+                  : img.unlocked
+                  ? "border-white/[0.08] hover:border-[#C7DDEC]/40 hover:scale-[1.02]"
+                  : "border-white/[0.06] opacity-60 cursor-not-allowed"
+              }`}
+            >
+              <img src={img.src} alt={img.label} className="w-full h-full object-cover" />
+              {isSelected && (
+                <div className="absolute inset-0 bg-[#C7DDEC]/20 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full bg-[#C7DDEC] flex items-center justify-center">
+                    <Check className="w-3.5 h-3.5 text-[#09090B]" />
+                  </div>
+                </div>
+              )}
+              {!img.unlocked && (
+                <div className="absolute inset-0 bg-[#0B0D14]/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-1">
+                  <Lock className="w-4 h-4 text-[#C7DDEC]" />
+                  <span className="text-[8px] font-bold uppercase tracking-wider text-[#C7DDEC]">Locked</span>
+                </div>
+              )}
+              {img.unlocked && (
+                <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[8px] font-bold text-white/80">
+                  {img.label}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="mt-2 text-[10px] text-[#6B7280]">
+        <span className="text-[#22C55E]">●</span> Free images are unlocked.{" "}
+        <Lock className="w-2.5 h-2.5 inline text-[#C7DDEC]" /> Premium images require upgrade.
+      </p>
+    </div>
+  );
+}
 
 function Toggle({ checked, onChange, label, description }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) {
   return (
@@ -234,7 +344,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
   };
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-[#09090B] text-white p-4 sm:p-6 lg:p-8">
+    <div className="min-h-[calc(100vh-3.5rem)] bg-[#09090B] text-white p-3 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-[1400px] mx-auto">
         {/* ===== Header ===== */}
         <div className="flex items-center justify-between mb-6">
@@ -290,6 +400,14 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                     placeholder="Describe what this quiz covers, who it's for, and any important instructions..."
                     rows={3}
                     className="w-full rounded-xl border border-white/[0.08] bg-[#0F1522] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all resize-none leading-relaxed"
+                  />
+                </div>
+
+                {/* Quiz Cover Image Selector */}
+                <div className="rounded-xl border border-white/[0.08] bg-[#0F1522] p-4">
+                  <QuizImageSelector
+                    value={details.coverImage}
+                    onChange={(src) => update({ coverImage: src })}
                   />
                 </div>
 

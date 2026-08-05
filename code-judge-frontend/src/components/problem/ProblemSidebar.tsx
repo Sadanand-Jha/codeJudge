@@ -38,7 +38,7 @@ export default function ProblemSidebar({
     <aside className="space-y-4">
       {/* Problem Information Card */}
       <div className="card-premium p-6">
-        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[#6B7280]">
+        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-text-muted">
           Problem Information
         </h3>
         <div className="space-y-3">
@@ -51,7 +51,7 @@ export default function ProblemSidebar({
         </div>
         {tags.length > 0 && (
           <div className="mt-6">
-            <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-[#6B7280]">
+            <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-text-muted">
               Tags
             </h4>
             <div className="flex flex-wrap gap-2">
@@ -99,8 +99,8 @@ interface InfoRowProps {
 function InfoRow({ label, value, mono }: InfoRowProps) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-sm text-[#6B7280]">{label}</span>
-      <span className={`text-sm font-medium text-[#111827] ${mono ? "font-mono" : ""}`}>
+      <span className="text-sm text-text-muted">{label}</span>
+      <span className={`text-sm font-medium text-text-primary ${mono ? "font-mono" : ""}`}>
         {value}
       </span>
     </div>
@@ -116,7 +116,7 @@ function NavItem({ label, disabled }: NavItemProps) {
   return (
     <button
       disabled={disabled}
-      className="w-full rounded-xl border border-[#E6E7EB] bg-white px-4 py-3 text-left text-sm font-medium text-[#6B7280] transition-all hover:border-[#D1D5E0] hover:text-[#111827] disabled:cursor-not-allowed disabled:opacity-50"
+      className="w-full rounded-xl border border-border bg-card px-4 py-3 text-left text-sm font-medium text-text-muted transition-all hover:border-border-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
     >
       {label}
     </button>

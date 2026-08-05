@@ -339,7 +339,7 @@ ALTER TABLE contest_registeration DROP CONSTRAINT IF EXISTS fk_contest_reg_user;
 ALTER TABLE contest_registeration ADD CONSTRAINT fk_contest_reg_user FOREIGN KEY (user_id) REFERENCES users(id);
 
 ALTER TABLE user_preferences DROP CONSTRAINT IF EXISTS fk_preferred_language_preferences_user;
-ALTER TABLE user_preferences ADD CONSTRAINT fk_preferred_language_preferences_user FOREIGN KEY (preffered_language) REFERENCES p_language(id);
+ALTER TABLE user_preferences ADD CONSTRAINT fk_preferred_language_preferences_user FOREIGN KEY (preferred_language) REFERENCES p_language(id);
 
 -- ==========================================
 -- Seed Data
@@ -498,3 +498,115 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 -- Used for URL routing
 CREATE INDEX IF NOT EXISTS idx_problems_slug ON problems(slug);
 CREATE INDEX IF NOT EXISTS idx_quiz_code ON quiz(code);
+
+
+-- ==========================================
+-- Missing Quiz Dependent Tables
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS quiz_difficulty (
+    id SERIAL PRIMARY KEY,
+    heading VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS quiz_visibility (
+    id SERIAL PRIMARY KEY,
+    heading VARCHAR,
+    description VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS quiz_student_response (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER,
+    problem_id INTEGER,
+    option CHAR,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS quiz_attempts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    quiz_id INTEGER NOT NULL,
+    score INTEGER DEFAULT 0,
+    percentage DECIMAL(5,2) DEFAULT 0,
+    rank INTEGER,
+    status VARCHAR NOT NULL DEFAULT 'in_progress',
+    completed_at TIMESTAMP,
+    time_taken INTEGER,
+    total_questions INTEGER,
+    correct_answers INTEGER DEFAULT 0,
+    wrong_answers INTEGER DEFAULT 0,
+    skipped_questions INTEGER DEFAULT 0,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_user_id ON quiz_attempts(user_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_quiz_id ON quiz_attempts(quiz_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_status ON quiz_attempts(status);
+
+ALTER TABLE quiz_attempts DROP CONSTRAINT IF EXISTS fk_quiz_attempts_user;
+ALTER TABLE quiz_attempts ADD CONSTRAINT fk_quiz_attempts_user FOREIGN KEY (user_id) REFERENCES users(id);
+
+ALTER TABLE quiz_attempts DROP CONSTRAINT IF EXISTS fk_quiz_attempts_quiz;
+ALTER TABLE quiz_attempts ADD CONSTRAINT fk_quiz_attempts_quiz FOREIGN KEY (quiz_id) REFERENCES quiz(id);
+
+-- ==========================================
+-- Missing Columns for Existing Tables
+-- ==========================================
+
+-- Append missing columns to `quiz` table
+ALTER TABLE quiz 
+ADD COLUMN IF NOT EXISTS visibility INTEGER,
+ADD COLUMN IF NOT EXISTS total_marks INTEGER,
+ADD COLUMN IF NOT EXISTS passing_marks INTEGER,
+ADD COLUMN IF NOT EXISTS difficulty INTEGER,
+ADD COLUMN IF NOT EXISTS shuffle_questions BOOLEAN,
+ADD COLUMN IF NOT EXISTS shuffle_options BOOLEAN,
+ADD COLUMN IF NOT EXISTS Show_Results_Immediately BOOLEAN,
+ADD COLUMN IF NOT EXISTS negative_marking BOOLEAN,
+ADD COLUMN IF NOT EXISTS leaderboard BOOLEAN,
+ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'draft';
+
+-- Append missing columns to `quiz_problems` table
+ALTER TABLE quiz_problems 
+ADD COLUMN IF NOT EXISTS question_number INTEGER,
+ADD COLUMN IF NOT EXISTS explaination VARCHAR,
+ADD COLUMN IF NOT EXISTS hint VARCHAR,
+ADD COLUMN IF NOT EXISTS difficulty INTEGER,
+ADD COLUMN IF NOT EXISTS reference_notes VARCHAR,
+ADD COLUMN IF NOT EXISTS internal_comments VARCHAR;
+
+-- ==========================================
+-- Missing Foreign Key Relations
+-- ==========================================
+
+-- Quiz relations
+ALTER TABLE quiz DROP CONSTRAINT IF EXISTS fk_quiz_visibility;
+ALTER TABLE quiz ADD CONSTRAINT fk_quiz_visibility FOREIGN KEY (visibility) REFERENCES quiz_visibility(id);
+
+ALTER TABLE quiz DROP CONSTRAINT IF EXISTS fk_quiz_difficulty;
+ALTER TABLE quiz ADD CONSTRAINT fk_quiz_difficulty FOREIGN KEY (difficulty) REFERENCES quiz_difficulty(id);
+
+-- Quiz Problems relations
+ALTER TABLE quiz_problems DROP CONSTRAINT IF EXISTS fk_quiz_problems_difficulty;
+ALTER TABLE quiz_problems ADD CONSTRAINT fk_quiz_problems_difficulty FOREIGN KEY (difficulty) REFERENCES quiz_difficulty(id);
+
+-- Quiz Student Response relations
+-- Note: Assuming user_id refers to the users table based on standard conventions, 
+-- though the link origin is slightly off-screen in the diagram, it's standard architecture.
+ALTER TABLE quiz_student_response DROP CONSTRAINT IF EXISTS fk_qsr_user;
+ALTER TABLE quiz_student_response ADD CONSTRAINT fk_qsr_user FOREIGN KEY (user_id) REFERENCES users(id);
+
+ALTER TABLE quiz_student_response DROP CONSTRAINT IF EXISTS fk_qsr_problem;
+ALTER TABLE quiz_student_response ADD CONSTRAINT fk_qsr_problem FOREIGN KEY (problem_id) REFERENCES quiz_problems(id);
+
+-- ==========================================
+-- Missing Indexes for New Relations
+-- ==========================================
+CREATE INDEX IF NOT EXISTS idx_quiz_visibility_id ON quiz(visibility);
+CREATE INDEX IF NOT EXISTS idx_quiz_difficulty_id ON quiz(difficulty);
+CREATE INDEX IF NOT EXISTS idx_quiz_problems_difficulty_id ON quiz_problems(difficulty);
+CREATE INDEX IF NOT EXISTS idx_qsr_user_id ON quiz_student_response(user_id);
+CREATE INDEX IF NOT EXISTS idx_qsr_problem_id ON quiz_student_response(problem_id);

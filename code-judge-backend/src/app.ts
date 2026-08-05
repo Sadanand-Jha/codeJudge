@@ -99,7 +99,6 @@ app.use("/api", apiRoutes);
 // Global error handler — must be registered after routes
 app.use(errorHandler);
 
-
 app.get("/health", async (req, res) => {
   const health = {
     status: "ok",

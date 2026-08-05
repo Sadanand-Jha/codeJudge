@@ -19,8 +19,6 @@ import {
   Flame,
   Route,
   Users,
-  Sun,
-  Moon,
   LogOut,
   BookOpen,
   Briefcase,
@@ -36,6 +34,8 @@ import { me, logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import AuthModal from "@/components/modals/AuthModal";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import { useTheme } from "@/context/ThemeContext";
 
 function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -52,26 +52,26 @@ function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onCo
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#111827] p-8 shadow-2xl"
+            className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           > 
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full bg-[#EF4444]/10 border border-[#EF4444]/20 flex items-center justify-center">
-                <LogOut className="w-5 h-5 text-[#EF4444]" />
+              <div className="w-10 h-10 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center">
+                <LogOut className="w-5 h-5 text-danger" />
               </div>
-              <h3 className="text-lg font-semibold text-white">Log out</h3>
+              <h3 className="text-lg font-semibold text-text-primary">Log out</h3>
             </div>
-            <p className="mt-2 text-sm text-[#9CA3AF]">Are you sure you want to log out of your account?</p>
+            <p className="mt-2 text-sm text-text-secondary">Are you sure you want to log out of your account?</p>
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 onClick={onCancel}
-                className="h-10 px-5 rounded-lg border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-white hover:border-white/[0.12] transition-colors"
+                className="h-10 px-5 rounded-lg border border-border bg-card-hover text-sm font-medium text-text-primary hover:border-border-hover transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={onConfirm}
-                className="h-10 px-5 rounded-lg bg-[#EF4444] text-sm font-bold text-white hover:shadow-[0_0_16px_rgba(239,68,68,0.4)] transition-all"
+                className="h-10 px-5 rounded-lg bg-danger text-sm font-bold text-white hover:shadow-[0_0_16px_rgba(239,68,68,0.4)] transition-all"
               >
                 Log out
               </button>
@@ -122,7 +122,6 @@ function isFullscreenRoute(pathname: string): boolean {
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalRedirect, setAuthModalRedirect] = useState<string | undefined>();
@@ -132,6 +131,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const setAuth = useAuthStore((s) => s.setAuth);
   const savedAvatar = useSavedAvatar();
   const { isGuest } = useGuestMode();
+  const { theme } = useTheme();
 
   // Sync auth state with session cookie on app load
   useEffect(() => {
@@ -151,12 +151,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, [setAuth]);
-
-  // Theme is currently dark-only for the premium design system.
-  // Toggle is wired for future light theme support.
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
 
   const handleLogout = async () => {
     try {
@@ -180,7 +174,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   // Fullscreen routes (waiting room, etc.) - no sidebar/navbar
   if (isFullscreenRoute(pathname)) {
     return (
-      <div className="min-h-screen bg-[#09090B]">
+      <div className="min-h-screen bg-background">
         {children}
         <AuthModal
           isOpen={authModalOpen}
@@ -195,7 +189,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090B] flex">
+    <div className="min-h-screen bg-background flex">
       {/* Mobile overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -211,7 +205,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* ===== SIDEBAR ===== */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-[#09090B] border-r border-white/[0.06] flex flex-col z-50 transition-transform duration-300 ${
+        className={`fixed left-0 top-0 h-screen w-64 bg-card border-r border-border flex flex-col z-50 transition-transform duration-300 ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -221,7 +215,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
               <Code2 className="w-4 h-4 text-white" />
             </div>
-            <span className="text-base font-bold text-white tracking-tight">ByteClash</span>
+            <span className="text-base font-bold text-text-primary tracking-tight">ByteClash</span>
           </Link>
         </div>
 
@@ -240,23 +234,23 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                       className={`absolute inset-0 rounded-xl transition-all pointer-events-none ${
                         isQuizActive
                           ? "bg-[#EC4899]/15 shadow-[0_0_20px_rgba(236,72,153,0.15)]"
-                          : "group-hover:bg-white/[0.04]"
+                          : "group-hover:bg-accent/5"
                       }`}
                     />
                     <item.icon
                       className={`w-4 h-4 relative z-10 transition-colors ${
-                        isQuizActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+                        isQuizActive ? "text-[#EC4899]" : "text-text-secondary group-hover:text-text-primary"
                       }`}
                     />
                     <span
                       className={`relative z-10 transition-colors ${
-                        isQuizActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+                        isQuizActive ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"
                       }`}
                     >
                       {item.label}
                     </span>
                     <ChevronDown
-                      className={`w-4 h-4 relative z-10 ml-auto text-[#6B7280] transition-transform ${
+                      className={`w-4 h-4 relative z-10 ml-auto text-text-muted transition-transform ${
                         assessmentExpanded ? "rotate-180" : ""
                       }`}
                     />
@@ -288,12 +282,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                               )}
                               <child.icon
                                 className={`w-3.5 h-3.5 relative z-10 transition-colors ${
-                                  isChildActive ? "text-[#EC4899]" : "text-[#6B7280] group-hover:text-[#EC4899]"
+                                  isChildActive ? "text-[#EC4899]" : "text-text-muted group-hover:text-[#EC4899]"
                                 }`}
                               />
                               <span
                                 className={`relative z-10 transition-colors ${
-                                  isChildActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+                                  isChildActive ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"
                                 }`}
                               >
                                 {child.label}
@@ -320,75 +314,69 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Bottom: Streak + Version */}
-        <div className="p-3 border-t border-white/[0.06] space-y-2">
+        <div className="p-3 border-t border-border space-y-2">
           {isAuthenticated ? (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03]">
-              <Flame className="w-4 h-4 text-[#F59E0B]" />
-              <span className="text-xs font-medium text-white">12 Day Streak</span>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent/5">
+              <Flame className="w-4 h-4 text-warning" />
+              <span className="text-xs font-medium text-text-primary">12 Day Streak</span>
             </div>
           ) : (
-            <div className="px-3 py-2 rounded-xl bg-[#7C3AED]/10 border border-[#7C3AED]/20">
-              <div className="text-[10px] text-[#9CA3AF] mb-1">{"You're browsing as a guest"}</div>
+            <div className="px-3 py-2 rounded-xl bg-accent/10 border border-accent/20">
+              <div className="text-[10px] text-text-secondary mb-1">{"You're browsing as a guest"}</div>
               <button
                 onClick={() => handleAuthRequired(pathname + window.location.search)}
-                className="text-[10px] font-semibold text-[#7C3AED] hover:text-[#8B5AF0] transition-colors"
+                className="text-[10px] font-semibold text-accent hover:text-accent-secondary transition-colors"
               >
                 Sign in to unlock all features →
               </button>
             </div>
           )}
-          <div className="px-3 text-[9px] text-[#6B7280]">ByteClash v1.0.0</div>
+          <div className="px-3 text-[9px] text-text-muted">ByteClash v1.0.0</div>
         </div>
       </aside>
 
       {/* ===== MAIN CONTENT ===== */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* ===== TOP HEADER ===== */}
-        <header className="h-14 border-b border-white/[0.06] bg-[#09090B]/80 backdrop-blur-xl flex items-center px-4 gap-4 sticky top-0 z-30">
+        <header className="h-14 border-b border-border bg-background/80 backdrop-blur-xl flex items-center px-4 gap-4 sticky top-0 z-30">
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-white/[0.04] text-[#9CA3AF]"
+            className="lg:hidden p-2 rounded-lg hover:bg-accent/5 text-text-secondary"
           >
             <Menu className="w-5 h-5" />
           </button>
 
           {/* Page title */}
-          <h1 className="text-sm font-semibold text-white hidden sm:block whitespace-nowrap">{pageTitle}</h1>
+          <h1 className="text-sm font-semibold text-text-primary hidden sm:block whitespace-nowrap">{pageTitle}</h1>
 
           {/* Global search */}
           <div className="flex-1 max-w-md mx-auto">
             <div className="relative flex items-center">
-              <Search className="absolute left-3 w-4 h-4 text-[#6B7280]" />
+              {/* <Search className="absolute left-3 w-4 h-4 text-text-muted" />
               <input
                 type="text"
                 placeholder="Search by title, ID, tag or company..."
-                className="w-full bg-[#111827] border border-white/[0.06] rounded-xl py-2 pl-10 pr-10 text-xs text-white placeholder-[#6B7280] outline-none focus:border-[#7C3AED]/40 transition-colors"
+                className="w-full bg-input-bg border border-input-border rounded-xl py-2 pl-10 pr-10 text-xs text-text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
               />
-              <kbd className="absolute right-3 flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-medium text-[#9CA3AF] bg-white/[0.04] border border-white/[0.06] rounded-md">
+              <kbd className="absolute right-3 flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-medium text-text-secondary bg-card-hover border border-border rounded-md">
                 ⌘K
-              </kbd>
+              </kbd> */}
             </div>
           </div>
 
           {/* Right icons */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-              className="p-2 rounded-lg hover:bg-white/[0.04] text-[#9CA3AF] hover:text-white transition-colors"
-              aria-label="Toggle theme"
-            >
-              {theme === "dark" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            </button>
-            <button className="p-2 rounded-lg hover:bg-white/[0.04] text-[#9CA3AF] hover:text-white transition-colors relative">
+            <ThemeToggle />
+            <button className="p-2 rounded-lg hover:bg-accent/5 text-text-secondary hover:text-text-primary transition-colors relative">
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#7C3AED]" />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" />
             </button>
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
                 <Link
                   href="/profile"
-                  className="w-8 h-8 rounded-full overflow-hidden border border-white/10 bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-white"
+                  className="w-8 h-8 rounded-full overflow-hidden border border-border bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-white"
                   title={user?.username || "Profile"}
                 >
                   {savedAvatar ? (
@@ -403,7 +391,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                 </Link>
                 <button
                   onClick={() => setLogoutConfirmOpen(true)}
-                  className="hidden sm:flex p-2 rounded-lg hover:bg-white/[0.04] text-[#9CA3AF] hover:text-[#EF4444] transition-colors"
+                  className="hidden sm:flex p-2 rounded-lg hover:bg-accent/5 text-text-secondary hover:text-danger transition-colors"
                   aria-label="Log out"
                 >
                   <LogOut className="w-4 h-4" />
@@ -412,7 +400,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             ) : (
               <button
                 onClick={() => handleAuthRequired(pathname + window.location.search)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#7C3AED] hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-accent hover:shadow-[0_0_12px_rgba(37,99,235,0.3)] transition-all"
               >
                 <UserPlus className="w-3 h-3" />
                 Sign in
@@ -479,18 +467,18 @@ function NavItem({ item, pathname, isGuest, onClick }: {
       {isActive && (
         <motion.div
           layoutId="activeNav"
-          className="absolute inset-0 rounded-xl bg-[#7C3AED]/15 shadow-[0_0_20px_rgba(124,58,237,0.15)] pointer-events-none"
+          className="absolute inset-0 rounded-xl bg-accent/15 shadow-[0_0_20px_rgba(37,99,235,0.15)] pointer-events-none"
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
         />
       )}
       <Icon
         className={`w-4 h-4 relative z-10 transition-colors ${
-          isActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+          isActive ? "text-accent" : "text-text-secondary group-hover:text-text-primary"
         }`}
       />
       <span
         className={`relative z-10 transition-colors ${
-          isActive ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+          isActive ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"
         }`}
       >
         {item.label}
@@ -498,8 +486,8 @@ function NavItem({ item, pathname, isGuest, onClick }: {
       {isProtected && (
         <span className="ml-auto">
           <span className="flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-[#7C3AED] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7C3AED]"></span>
+            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-accent opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
           </span>
         </span>
       )}

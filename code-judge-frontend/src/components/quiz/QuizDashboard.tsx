@@ -43,6 +43,7 @@ import {
 import QuestionBuilderStudio from "@/components/quiz/QuestionBuilderStudio";
 import QuizSettings from "@/components/quiz/QuizSettings";
 import QuizStudio from "@/components/quiz/QuizStudio";
+import { GenerateResultsButton } from "@/components/quiz/GenerateResultsButton";
 
 type DashboardTab =
   | "overview"
@@ -93,7 +94,7 @@ function defaultSettings(quizName: string): QuizSettingsConfig {
     scheduling: { timezone: "Asia/Kolkata", lateEntryPolicy: "allowed" },
     scoring: { positiveMarks: 10, negativeMarks: 0, negativeMarkValue: 0, partialMarking: false, bonusQuestions: false, mandatoryQuestions: false, weightage: false },
     certificates: { enabled: false, minimumPassingPercentage: 60, issueAutomatically: true },
-    leaderboard: { enabled: true, hideUntilEnd: false, anonymousMode: false, realtimeRanking: true },
+    leaderboard: { enabled: true, showToParticipants: true, showTop10Only: false, showOnlyOwnRank: false, anonymousMode: false, hideUntilEnd: false, showAfterQuizEnds: true, showLiveDuringQuiz: false, showAfterAllSubmitted: false, realtimeRanking: false },
     discussion: { enableComments: true, allowQuestions: true, moderation: false, anonymousDiscussions: false },
     security: { fullscreenMode: false, tabSwitchingDetection: false, copyProtection: false, pasteRestriction: false, devToolsDetection: false, ipRestriction: false, oneDeviceOnly: false },
     notifications: { reminderBeforeQuiz: true, resultPublished: true, registrationConfirmation: true, certificateReady: true, leaderboardUpdates: false },
@@ -181,13 +182,14 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
   return (
     <div className="h-screen bg-[#09090B] flex flex-col overflow-hidden">
       {/* ===== TOP BAR ===== */}
-      <div className="h-14 border-b border-white/[0.08] bg-[#09090B]/80 backdrop-blur-xl flex items-center px-4 gap-3 shrink-0">
+      <div className="h-14 border-b border-white/[0.08] bg-[#09090B]/80 backdrop-blur-xl flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0">
         <button
           onClick={onExit}
-          className="h-8 px-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+          className="h-8 px-2 sm:px-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
           title="Back to Quizzes"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Back</span>
         </button>
         <div className="w-px h-6 bg-white/[0.08]" />
 
@@ -195,34 +197,34 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#EC4899] to-[#EC4899] flex items-center justify-center">
             <LayoutDashboard className="w-3.5 h-3.5 text-white" />
           </div>
-          <div>
-            <p className="text-xs font-bold text-white leading-tight">{settings.general.name || quizName}</p>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-white leading-tight truncate">{settings.general.name || quizName}</p>
             <p className="text-[9px] text-[#6B7280]">Quiz Dashboard</p>
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={() => setShowQuestionBuilder(true)}
-            className="h-8 px-3 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-xs font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors flex items-center gap-1.5"
+            className="h-8 px-2 sm:px-3 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-xs font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors flex items-center gap-1"
           >
             <ListChecks className="w-3.5 h-3.5" />
-            Question Builder
+            <span className="hidden sm:inline">Questions</span>
           </button>
           <button
             onClick={() => setShowSettingsView(true)}
-            className="h-8 px-3 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+            className="h-8 px-2 sm:px-3 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1"
           >
             <Settings className="w-3.5 h-3.5" />
-            Settings
+            <span className="hidden sm:inline">Settings</span>
           </button>
         </div>
       </div>
 
       {/* ===== BODY: Sidebar + Main ===== */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-60 border-r border-white/[0.06] bg-[#0B0D12] flex flex-col shrink-0">
+        {/* Sidebar - hidden on mobile, shown as bottom sheet or drawer */}
+        <div className="hidden md:flex w-60 border-r border-white/[0.06] bg-[#0B0D12] flex-col shrink-0">
           <div className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
             {["Main", "Content", "People", "Insights", "Community", "Launch"].map((group) => {
               const items = NAV_ITEMS.filter((i) => i.group === group);
@@ -289,6 +291,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
             >
               {activeTab === "overview" && (
                 <OverviewTab
+                  quizId={quizId}
                   quizName={settings.general.name || quizName}
                   quizDescription={settings.general.description}
                   questionsCount={questions.length}
@@ -340,6 +343,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
 
 // ===== Overview Tab =====
 function OverviewTab({
+  quizId,
   quizName,
   quizDescription,
   questionsCount,
@@ -353,6 +357,7 @@ function OverviewTab({
   onPreview,
   onPublish,
 }: {
+  quizId: string;
   quizName: string;
   quizDescription: string;
   questionsCount: number;
@@ -412,6 +417,14 @@ function OverviewTab({
         <QuickActionButton icon={ListChecks} label="Open Question Builder" onClick={onOpenBuilder} color="#EC4899" />
         <QuickActionButton icon={Eye} label="Preview Quiz" onClick={onPreview} color="#22C55E" />
         <QuickActionButton icon={Send} label="Publish Quiz" onClick={onPublish} color="#F59E0B" />
+      </div>
+
+      {/* Generate Results */}
+      <div>
+        <h3 className="text-sm font-bold text-white mb-3">Results & Reports</h3>
+        <div className="max-w-xs">
+          <GenerateResultsButton quizId={quizId} quizName={quizName} />
+        </div>
       </div>
 
       {/* Completion Checklist + Recent Activity */}

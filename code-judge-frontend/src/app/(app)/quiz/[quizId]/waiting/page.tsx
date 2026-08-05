@@ -106,7 +106,7 @@ export default function WaitingRoomPage() {
   ];
 
   return (
-    <div className="h-screen bg-[#09090B] flex flex-col overflow-hidden relative">
+    <div className="waiting-page h-screen bg-[#09090B] flex flex-col overflow-hidden relative">
       {/* Magical Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <MagicalBackground />
@@ -130,7 +130,7 @@ export default function WaitingRoomPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setExitModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors"
+            className="waiting-back-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back
@@ -147,7 +147,7 @@ export default function WaitingRoomPage() {
         {/* Participants Button */}
         <button
           onClick={() => setDrawerOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-sm font-medium text-white hover:border-[#EC4899]/30 transition-colors"
+          className="waiting-participants-btn flex items-center gap-2 px-4 py-2 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-sm font-medium text-white hover:border-[#EC4899]/30 transition-colors"
         >
           <Users className="w-4 h-4 text-[#EC4899]" />
           Participants
@@ -178,7 +178,7 @@ export default function WaitingRoomPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-2xl sm:text-3xl font-bold text-white mb-1"
+          className="waiting-header-title text-2xl sm:text-3xl font-bold text-white mb-1"
         >
           {room.quizName}
         </motion.h1>
@@ -187,7 +187,7 @@ export default function WaitingRoomPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-sm text-[#9CA3AF]"
+          className="waiting-header-sub text-sm text-[#9CA3AF]"
         >
           by {room.teacherName} • {room.subject}
         </motion.p>
@@ -196,7 +196,7 @@ export default function WaitingRoomPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-xs text-[#F59E0B] mt-2"
+          className="waiting-header-hint text-xs text-[#F59E0B] mt-2"
         >
           Waiting for the teacher to start the quiz...
         </motion.p>
@@ -212,7 +212,7 @@ export default function WaitingRoomPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 + i * 0.05 }}
               whileHover={{ y: -2 }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#111217]/60 backdrop-blur-xl border border-white/[0.06] hover:border-white/[0.12] transition-colors"
+              className="waiting-stat-card flex items-center gap-2 px-3 py-2 rounded-xl bg-[#111217]/60 backdrop-blur-xl border border-white/[0.06] hover:border-white/[0.12] transition-colors"
             >
               <div
                 className="w-7 h-7 rounded-lg flex items-center justify-center"
@@ -221,8 +221,8 @@ export default function WaitingRoomPage() {
                 <card.icon className="w-3.5 h-3.5" style={{ color: card.color }} />
               </div>
               <div>
-                <p className="text-[9px] text-[#71717A] uppercase tracking-wider">{card.label}</p>
-                <p className="text-xs font-bold text-white">{card.value}</p>
+                <p className="waiting-stat-label text-[9px] text-[#71717A] uppercase tracking-wider">{card.label}</p>
+                <p className="waiting-stat-value text-xs font-bold text-white">{card.value}</p>
               </div>
             </motion.div>
           ))}
@@ -258,7 +258,7 @@ export default function WaitingRoomPage() {
               description: "Ambient classroom music will be available in a future update.",
             })
           }
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors"
+          className="waiting-quick-action flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors"
         >
           <Music className="w-3.5 h-3.5" />
           Music
@@ -275,7 +275,7 @@ export default function WaitingRoomPage() {
               description: "In-room chat with classmates will be available in a future update.",
             })
           }
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors"
+          className="waiting-quick-action flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors"
         >
           <MessageSquare className="w-3.5 h-3.5" />
           Chat
@@ -287,22 +287,22 @@ export default function WaitingRoomPage() {
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="px-4 py-3 rounded-2xl bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] shadow-xl"
+          className="waiting-summary-card px-4 py-3 rounded-2xl bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] shadow-xl"
         >
           <div className="flex items-center gap-4">
             <div className="text-center">
-              <p className="text-lg font-bold text-white">{room.stats.studentsJoined}</p>
-              <p className="text-[9px] text-[#9CA3AF] uppercase tracking-wider">Joined</p>
+              <p className="waiting-summary-value text-lg font-bold text-white">{room.stats.studentsJoined}</p>
+              <p className="waiting-summary-muted text-[9px] uppercase tracking-wider">Joined</p>
             </div>
-            <div className="w-px h-8 bg-white/[0.08]" />
+            <div className="waiting-summary-divider w-px h-8 bg-white/[0.08]" />
             <div className="text-center">
-              <p className="text-lg font-bold text-[#EC4899]">15-20</p>
-              <p className="text-[9px] text-[#9CA3AF] uppercase tracking-wider">Visible</p>
+              <p className="waiting-summary-accent text-lg font-bold text-[#EC4899]">15-20</p>
+              <p className="waiting-summary-muted text-[9px] uppercase tracking-wider">Visible</p>
             </div>
-            <div className="w-px h-8 bg-white/[0.08]" />
+            <div className="waiting-summary-divider w-px h-8 bg-white/[0.08]" />
             <div className="text-center">
-              <p className="text-lg font-bold text-[#F59E0B]">Soon</p>
-              <p className="text-[9px] text-[#9CA3AF] uppercase tracking-wider">Starts</p>
+              <p className="waiting-summary-warning text-lg font-bold text-[#F59E0B]">Soon</p>
+              <p className="waiting-summary-muted text-[9px] uppercase tracking-wider">Starts</p>
             </div>
           </div>
         </motion.div>
@@ -314,14 +314,14 @@ export default function WaitingRoomPage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#111217]/80 backdrop-blur-xl border border-[#EC4899]/20 shadow-xl"
+          className="waiting-announcement flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#111217]/80 backdrop-blur-xl border border-[#EC4899]/20 shadow-xl"
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#EC4899] to-[#BE185D] flex items-center justify-center text-sm">
             👩‍🏫
           </div>
           <div>
-            <p className="text-xs font-medium text-white">The teacher will start the quiz soon.</p>
-            <p className="text-[10px] text-[#9CA3AF]">Get ready and stay here! 🚀</p>
+            <p className="waiting-announcement-text text-xs font-medium text-white">The teacher will start the quiz soon.</p>
+            <p className="waiting-announcement-sub text-[10px] text-[#9CA3AF]">Get ready and stay here! 🚀</p>
           </div>
         </motion.div>
 
@@ -352,7 +352,7 @@ export default function WaitingRoomPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-md rounded-2xl border border-[#EC4899]/20 bg-[#111827] p-6 shadow-2xl"
+              className="waiting-exit-modal w-full max-w-md rounded-2xl border border-[#EC4899]/20 bg-[#111827] p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 mb-4">
@@ -360,23 +360,23 @@ export default function WaitingRoomPage() {
                   <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Leave Waiting Room?</h3>
-                  <p className="text-xs text-[#9CA3AF]">You won't be unregistered from the quiz</p>
+                  <h3 className="waiting-exit-modal-title text-lg font-semibold text-white">Leave Waiting Room?</h3>
+                  <p className="waiting-exit-modal-sub text-xs text-[#9CA3AF]">You won't be unregistered from the quiz</p>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/[0.06] bg-[#0B0D12] p-4 mb-4">
+              <div className="waiting-exit-modal-body rounded-xl border border-white/[0.06] bg-[#0B0D12] p-4 mb-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-[#9CA3AF]">Quiz starts in:</span>
-                  <span className="text-sm font-bold text-[#F59E0B]">{remainingTime}</span>
+                  <span className="waiting-exit-modal-label text-sm text-[#9CA3AF]">Quiz starts in:</span>
+                  <span className="waiting-exit-value text-sm font-bold text-[#F59E0B]">{remainingTime}</span>
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm text-[#9CA3AF]">Your registration:</span>
-                  <span className="text-sm font-bold text-[#22C55E]">Will be saved</span>
+                  <span className="waiting-exit-modal-label text-sm text-[#9CA3AF]">Your registration:</span>
+                  <span className="waiting-exit-value text-sm font-bold text-[#22C55E]">Will be saved</span>
                 </div>
               </div>
 
-              <p className="text-sm text-[#9CA3AF] mb-4">
+              <p className="waiting-exit-modal-sub text-sm text-[#9CA3AF] mb-4">
                 You can come back anytime before the quiz starts. The teacher will start the quiz soon!
               </p>
 

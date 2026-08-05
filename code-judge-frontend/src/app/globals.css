@@ -1,18 +1,17 @@
 @import "tailwindcss";
 
 /* ============================================
-   ByteClash Premium Dark Theme Design System
+   ByteClash Theme Design System
    ============================================
-   Background: #09090B
-   Cards: #111827
-   Borders: rgba(255,255,255,0.06)
-   Primary Accent: #7C3AED (Purple)
-   Secondary Accent: #3B82F6 (Blue)
+   Background: #09090B (dark) / #F8FAFC (light)
+   Cards: #111827 (dark) / #FFFFFF (light)
+   Borders: rgba(255,255,255,0.06) (dark) / #E5E7EB (light)
+   Primary Accent: #7C3AED (dark purple) / #2563EB (light blue)
    Success: #22C55E
    Warning: #F59E0B
    Gold: #FBBF24
-   Text Primary: White
-   Text Secondary: #9CA3AF
+   Text Primary: #FFFFFF (dark) / #111827 (light)
+   Text Secondary: #9CA3AF (dark) / #6B7280 (light)
 */
 
 :root {
@@ -33,6 +32,37 @@
   --text-muted: #6B7280;
   --link: #7C3AED;
   --link-visited: #A78BFA;
+  --input-bg: #0A0A0C;
+  --input-border: rgba(255, 255, 255, 0.08);
+  --input-focus-ring: rgba(124, 58, 237, 0.08);
+  --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* ============================================
+   Premium Light Theme
+   ============================================ */
+[data-theme="light"] {
+  --background: #FFFFFF;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-hover: #F8FAFC;
+  --border: #E2E8F0;
+  --border-hover: #CBD5E1;
+  --accent: #7C3AED;
+  --accent-secondary: #3B82F6;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --gold: #FBBF24;
+  --danger: #EF4444;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --link: #7C3AED;
+  --link-visited: #6D28D9;
+  --input-bg: #FFFFFF;
+  --input-border: #E2E8F0;
+  --input-focus-ring: rgba(124, 58, 237, 0.15);
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 @theme inline {
@@ -51,12 +81,14 @@
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
+  --color-input-bg: var(--input-bg);
+  --color-input-border: var(--input-border);
 }
 
-/* Base styles — Premium dark theme */
+/* Base styles */
 body {
-  background: #09090B;
-  color: #FFFFFF;
+  background: var(--background);
+  color: var(--text-primary);
   font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.5;
@@ -69,7 +101,31 @@ body {
   height: 100%;
 }
 
-/* Custom scrollbar — Dark theme */
+/* Theme transition utility — buttery-smooth dark ↔ light switching.
+   Placed inside @layer base so Tailwind's transition-* utilities
+   (which live in @layer utilities) keep their intended behavior,
+   while every other element still eases gracefully between themes. */
+@layer base {
+  html,
+  body,
+  *,
+  *::before,
+  *::after {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-duration: 0.4s;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -78,11 +134,19 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(128, 128, 128, 0.3);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(128, 128, 128, 0.5);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
 }
 
 /* Selection color */
@@ -91,9 +155,14 @@ body {
   color: #fff;
 }
 
-/* Problem HTML renderer — Dark theme */
+[data-theme="light"] ::selection {
+  background: rgba(37, 99, 235, 0.2);
+  color: #fff;
+}
+
+/* Problem HTML renderer */
 .problem-html {
-  color: #E5E7EB;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.7;
   max-width: 100%;
@@ -116,7 +185,7 @@ body {
 
 .problem-html strong {
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--text-primary);
 }
 
 .problem-html em {
@@ -126,18 +195,24 @@ body {
 .problem-html code {
   font-family: "Consolas", "Courier New", monospace;
   background: rgba(124, 58, 237, 0.1);
-  color: #A78BFA;
+  color: #7C3AED;
   padding: 2px 6px;
   border-radius: 6px;
   font-size: 12px;
   border: 1px solid rgba(124, 58, 237, 0.15);
 }
 
+[data-theme="light"] .problem-html code {
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563EB;
+  border-color: rgba(37, 99, 235, 0.25);
+}
+
 .problem-html pre {
   padding: 14px 18px;
   overflow-x: auto;
-  background: #09090B;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   margin: 0.8em 0;
   max-width: 100%;
@@ -146,7 +221,7 @@ body {
 
 .problem-html pre code {
   background: transparent;
-  color: #E5E7EB;
+  color: var(--text-secondary);
   padding: 0;
   border-radius: 0;
   border: none;
@@ -160,21 +235,25 @@ body {
 
 .problem-html th,
 .problem-html td {
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
   padding: 8px 12px;
-  color: #E5E7EB;
+  color: var(--text-secondary);
 }
 
 .problem-html th {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(128, 128, 128, 0.06);
   font-weight: 600;
+}
+
+[data-theme="light"] .problem-html th {
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .problem-html blockquote {
   margin: 0.8em 0;
   padding-left: 14px;
-  border-left: 3px solid #7C3AED;
-  color: #9CA3AF;
+  border-left: 3px solid var(--accent);
+  color: var(--text-secondary);
 }
 
 .problem-html img {
@@ -185,7 +264,7 @@ body {
 }
 
 .problem-html a {
-  color: #7C3AED;
+  color: var(--link);
   text-decoration: none;
 }
 
@@ -195,7 +274,7 @@ body {
 
 /* Math error fallback */
 .math-error {
-  color: #EF4444;
+  color: var(--danger);
   font-family: monospace;
   font-size: 12px;
 }
@@ -215,22 +294,26 @@ body {
 .constraint-text var {
   font-style: italic;
   font-weight: 500;
-  color: #E5E7EB;
+  color: var(--text-secondary);
 }
 
-/* Example box — Dark theme */
+/* Example box */
 .cf-example-box .zebra-stripe:nth-child(even) {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: rgba(128, 128, 128, 0.04);
 }
 .cf-example-box .zebra-stripe:nth-child(odd) {
   background-color: transparent;
 }
 
-/* Section headers — Dark theme */
+[data-theme="light"] .cf-example-box .zebra-stripe:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Section headers */
 .problem-section-header {
   font-size: 14px;
   font-weight: 700;
-  color: #FFFFFF;
+  color: var(--text-primary);
   margin-bottom: 0.5em;
 }
 
@@ -238,49 +321,58 @@ body {
   margin-bottom: 1.5em;
 }
 
-/* Select dropdown — Dark theme */
+/* Select dropdown */
 select.cf-select {
   font-family: inherit;
   font-size: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 10px;
-  background: #111827;
-  color: #FFFFFF;
+  background: var(--card);
+  color: var(--text-primary);
   outline: none;
 }
 
-/* Button — Dark theme */
+/* Button */
 button.cf-btn {
   font-family: inherit;
   font-size: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 18px;
-  background: #111827;
-  color: #FFFFFF;
+  background: var(--card);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
 }
 button.cf-btn:hover {
-  background: #1A1F2E;
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--card-hover);
+  border-color: var(--border-hover);
 }
 
 /* Premium card utility class */
 .card-premium {
-  background: #111827;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .card-premium {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
 }
 
 /* Glassmorphism utility */
 .glass {
-  background: rgba(17, 24, 39, 0.4);
+  background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 /* Glow effect */
@@ -291,17 +383,66 @@ button.cf-btn:hover {
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
 }
 
-/* KaTeX dark theme adjustments */
+[data-theme="light"] .glow-purple {
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+}
+[data-theme="light"] .glow-blue {
+  box-shadow: 0 0 20px rgba(37, 99, 235, 0.25);
+}
+
+/* KaTeX */
 .katex {
-  color: #E5E7EB;
+  color: var(--text-secondary);
 }
 .katex .mord {
-  color: #E5E7EB;
+  color: var(--text-secondary);
 }
 
 /* ============================================
    Toast Notification System — Premium Animations
    ============================================ */
+
+/* ===== White themed toasts (Light Theme only) =====
+   The Toaster lives outside ThemeProvider, so we key off
+   the [data-theme="light"] attribute on <html> via a
+   descendant selector. Dark theme stays completely untouched. */
+[data-theme="light"] .toast-card {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: #E2E8F0 !important;
+  border-left-color: var(--toast-accent, #2563EB) !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08), 0 1px 4px rgba(15, 23, 42, 0.04), 0 0 20px var(--toast-glow, rgba(59, 130, 246, 0.12)) !important;
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+[data-theme="light"] .toast-card h3 {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .toast-card p {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .toast-card .toast-action-btn {
+  color: var(--toast-accent, #2563EB) !important;
+}
+
+[data-theme="light"] .toast-card .toast-action-btn:hover {
+  background: rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .toast-card .toast-close-btn {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .toast-card .toast-close-btn:hover {
+  color: #0F172A !important;
+  background: rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme="light"] .toast-card .toast-progress-track {
+  background: rgba(15, 23, 42, 0.06) !important;
+}
 
 /* Shake animation for error toasts on appearance */
 @keyframes toast-shake {
@@ -354,6 +495,546 @@ button.cf-btn:hover {
 }
 
 /* ============================================
+   Light Theme Overrides — Comprehensive
+   This ensures every component (cards, tables, modals,
+   dropdowns, inputs, etc.) gets a proper light variant
+   without needing to edit every file.
+   Dark theme is untouched — these rules are scoped
+   exclusively to [data-theme="light"].
+   ============================================ */
+
+/* ===== Page backgrounds → #F8FAFC ===== */
+[data-theme="light"] .bg-\[\#09090B\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#0B0C0F\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#0B0D12\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#0B0D14\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#0F1115\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#0F1522\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#111217\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#111827\] { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-\[\#171923\] { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-\[\#1A1F2E\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#1B2433\] { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-\[\#1E2030\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#1F2937\] { background-color: #F3F4F6 !important; }
+[data-theme="light"] .bg-\[\#23252F\] { background-color: #F3F4F6 !important; }
+[data-theme="light"] .bg-\[\#263245\] { background-color: #F3F4F6 !important; }
+[data-theme="light"] .bg-\[\#2D3B52\] { background-color: #E5E7EB !important; }
+[data-theme="light"] .bg-\[\#3A4963\] { background-color: #E5E7EB !important; }
+
+/* ===== White text → dark text (on light surfaces) ===== */
+[data-theme="light"] .text-white { color: #111827 !important; }
+[data-theme="light"] .text-\[\#F8FAFC\] { color: #111827 !important; }
+[data-theme="light"] .text-\[\#E5E7EB\] { color: #111827 !important; }
+[data-theme="light"] .text-\[\#AAB6C8\] { color: #6B7280 !important; }
+[data-theme="light"] .text-\[\#A1A1AA\] { color: #6B7280 !important; }
+[data-theme="light"] .text-\[\#71717A\] { color: #6B7280 !important; }
+[data-theme="light"] .text-\[\#9CA3AF\] { color: #6B7280 !important; }
+[data-theme="light"] .text-\[\#6B7280\] { color: #9CA3AF !important; }
+[data-theme="light"] .text-\[\#9CA3Af\] { color: #6B7280 !important; }
+
+/* ===== Restore white text on colored/dark backgrounds ===== */
+[data-theme="light"] .bg-\[\#7C3AED\].text-white,
+[data-theme="light"] .bg-\[\#EC4899\].text-white,
+[data-theme="light"] .bg-\[\#EF4444\].text-white,
+[data-theme="light"] .bg-\[\#22C55E\].text-white,
+[data-theme="light"] .bg-\[\#F59E0B\].text-white,
+[data-theme="light"] .bg-\[\#3B82F6\].text-white,
+[data-theme="light"] .bg-\[\#BE185D\].text-white,
+[data-theme="light"] .bg-accent.text-white,
+[data-theme="light"] .bg-danger.text-white,
+[data-theme="light"] .bg-success.text-white,
+[data-theme="light"] .bg-warning.text-white,
+[data-theme="light"] .bg-gradient-to-r.text-white,
+[data-theme="light"] .bg-gradient-to-br.text-white,
+[data-theme="light"] .bg-gradient-to-b.text-white,
+[data-theme="light"] .bg-\[\#7C3AED\] .text-white,
+[data-theme="light"] .bg-\[\#EC4899\] .text-white,
+[data-theme="light"] .bg-\[\#EF4444\] .text-white,
+[data-theme="light"] .bg-\[\#22C55E\] .text-white,
+[data-theme="light"] .bg-\[\#3B82F6\] .text-white,
+[data-theme="light"] .bg-\[\#BE185D\] .text-white,
+[data-theme="light"] .bg-accent .text-white,
+[data-theme="light"] .bg-danger .text-white,
+[data-theme="light"] .bg-success .text-white,
+[data-theme="light"] .bg-warning .text-white,
+[data-theme="light"] .bg-gradient-to-r .text-white,
+[data-theme="light"] .bg-gradient-to-br .text-white,
+[data-theme="light"] .bg-gradient-to-b .text-white {
+  color: #FFFFFF !important;
+}
+
+/* ===== Borders → light ===== */
+[data-theme="light"] .border-white\/\[0\.02\] { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-white\/\[0\.03\] { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-white\/\[0\.04\] { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-white\/\[0\.05\] { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-white\/\[0\.06\] { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-white\/\[0\.08\] { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-white\/\[0\.1\] { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-white\/\[0\.12\] { border-color: #D1D5DB !important; }
+[data-theme="light"] .border-white\/\[0\.15\] { border-color: #D1D5DB !important; }
+[data-theme="light"] .border-white\/20 { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-white\/10 { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-\[\#23252F\] { border-color: #E5E7EB !important; }
+[data-theme="light"] .border-\[\#3A4963\] { border-color: #E5E7EB !important; }
+
+/* ===== Subtle white backgrounds → light grays ===== */
+[data-theme="light"] .bg-white\/\[0\.02\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-white\/\[0\.03\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-white\/\[0\.04\] { background-color: #F3F4F6 !important; }
+[data-theme="light"] .bg-white\/\[0\.05\] { background-color: #F3F4F6 !important; }
+[data-theme="light"] .bg-white\/\[0\.06\] { background-color: #F3F4F6 !important; }
+[data-theme="light"] .bg-white\/\[0\.08\] { background-color: #E5E7EB !important; }
+[data-theme="light"] .bg-white\/\[0\.1\] { background-color: #E5E7EB !important; }
+[data-theme="light"] .bg-white\/10 { background-color: #E5E7EB !important; }
+[data-theme="light"] .bg-white\/20 { background-color: #E5E7EB !important; }
+
+/* ===== Hover states ===== */
+[data-theme="light"] .hover\:bg-white\/\[0\.02\]:hover { background-color: #F3F4F6 !important; }
+[data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover { background-color: #F3F4F6 !important; }
+[data-theme="light"] .hover\:bg-white\/\[0\.04\]:hover { background-color: #F3F4F6 !important; }
+[data-theme="light"] .hover\:bg-white\/\[0\.06\]:hover { background-color: #E5E7EB !important; }
+[data-theme="light"] .hover\:bg-white\/\[0\.08\]:hover { background-color: #E5E7EB !important; }
+[data-theme="light"] .hover\:text-white:hover { color: #111827 !important; }
+[data-theme="light"] .hover\:border-white\/\[0\.12\]:hover { border-color: #D1D5DB !important; }
+[data-theme="light"] .hover\:border-white\/\[0\.15\]:hover { border-color: #D1D5DB !important; }
+[data-theme="light"] .hover\:bg-\[\#1F2937\]:hover { background-color: #F3F4F6 !important; }
+
+/* ===== Group hover — applies when parent .group is hovered ===== */
+[data-theme="light"] .group:hover .group-hover\:text-white { color: #111827 !important; }
+[data-theme="light"] .group:hover .group-hover\:text-\[\#7C3AED\] { color: #2563EB !important; }
+[data-theme="light"] .group:hover .group-hover\:text-\[\#EC4899\] { color: #2563EB !important; }
+[data-theme="light"] .group:hover .group-hover\:border-\[\#7C3AED\]\/30 { border-color: rgba(37, 99, 235, 0.3) !important; }
+[data-theme="light"] .group:hover .group-hover\:border-\[\#EC4899\]\/30 { border-color: rgba(37, 99, 235, 0.3) !important; }
+[data-theme="light"] .group:hover .group-hover\:bg-\[\#7C3AED\]\/5 { background-color: rgba(37, 99, 235, 0.05) !important; }
+[data-theme="light"] .group:hover .group-hover\:bg-\[\#EC4899\]\/5 { background-color: rgba(37, 99, 235, 0.05) !important; }
+
+/* ===== Shadows → softer ===== */
+[data-theme="light"] .shadow-\[\#7C3AED\]\/20 { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important; }
+[data-theme="light"] .shadow-\[\#7C3AED\]\/40 { box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25) !important; }
+[data-theme="light"] .shadow-\[\#EC4899\]\/20 { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important; }
+[data-theme="light"] .shadow-\[\#EC4899\]\/40 { box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25) !important; }
+[data-theme="light"] .shadow-black\/50 { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08) !important; }
+[data-theme="light"] .shadow-black\/40 { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08) !important; }
+[data-theme="light"] .shadow-2xl { box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08) !important; }
+[data-theme="light"] .shadow-xl { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important; }
+[data-theme="light"] .shadow-lg { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important; }
+
+/* ===== Global Form Elements (input, select, textarea) =====
+   Strips OS-level default styling (appearance: none) and
+   applies consistent dark-theme form controls across the
+   entire application. Light-theme overrides are scoped to
+   [data-theme="light"]. Checkbox, radio, file, range, and
+   color inputs are excluded to preserve their native behavior. */
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
+textarea,
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-color: #1e1e24;
+  color: #ffffff;
+  border: 1px solid #2a2a35;
+  border-radius: 6px;
+  padding: 8px 12px;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+/* Focus state — purple/indigo ring, no browser outline */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #5c5cff;
+  box-shadow: 0 0 0 3px rgba(92, 92, 255, 0.15);
+}
+
+/* Placeholder text */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"])::placeholder,
+textarea::placeholder {
+  color: #6b6b7b;
+}
+
+/* Custom select dropdown arrow (appearance: none removes native arrow) */
+select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b7b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  padding-right: 32px;
+}
+
+/* ===== Light Theme Form Element Overrides ===== */
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color-scheme: light;
+}
+
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
+[data-theme="light"] textarea:focus,
+[data-theme="light"] select:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"])::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #94a3b8;
+}
+
+[data-theme="light"] select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+}
+
+/* ===== Date inputs ===== */
+[data-theme="light"] [color-scheme\:dark] { color-scheme: light !important; }
+
+/* ===== Table rows hover ===== */
+[data-theme="light"] tr:hover { background-color: rgba(37, 99, 235, 0.04) !important; }
+
+/* ============================================
+   Problems List Page — Light Theme Polish
+   Scoped exclusively to the Problems List page
+   via semantic hook classes. Dark theme untouched.
+   ============================================ */
+
+/* Search box — white with depth */
+[data-theme="light"] .problems-search-box {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+}
+
+[data-theme="light"] .problems-search-box input::placeholder {
+  color: #94A3B8 !important;
+  font-weight: 400;
+}
+
+[data-theme="light"] .problems-search-box:focus-within {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Filter chips — inactive: white bg, border, medium gray text */
+[data-theme="light"] .problems-filter-chip {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problems-filter-chip:hover {
+  background-color: #EFF6FF !important;
+  border-color: #BFDBFE !important;
+  color: #1E40AF !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08) !important;
+}
+
+/* Difficulty chips — clean light surface */
+[data-theme="light"] .problems-difficulty-chip {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problems-difficulty-chip:hover {
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Topic chips — inactive: white bg, subtle border, medium gray text */
+[data-theme="light"] .problems-topic-chip {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problems-topic-chip:hover {
+  background-color: #F5F3FF !important;
+  border-color: #C4B5FD !important;
+  color: #5B21B6 !important;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.08) !important;
+}
+
+/* Results meta — softer tones */
+[data-theme="light"] .problems-results-meta {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .problems-results-meta span {
+  color: #334155 !important;
+}
+
+[data-theme="light"] .problems-clear-filters {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .problems-clear-filters:hover {
+  color: #DC2626 !important;
+}
+
+/* Empty state — clean light card */
+[data-theme="light"] .problems-empty-state {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Table — white rows, thin borders, rounded premium shell */
+[data-theme="light"] .problems-table {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .problems-table-head {
+  background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+}
+
+[data-theme="light"] .problems-table-head th {
+  color: #64748B !important;
+  letter-spacing: 0.06em;
+}
+
+[data-theme="light"] .problems-table-row {
+  border-color: #F1F5F9 !important;
+}
+
+[data-theme="light"] .problems-table-row:hover {
+  background-color: #F8FAFC !important;
+}
+
+/* Problem link — better hierarchy */
+[data-theme="light"] .problems-problem-link {
+  color: #1E293B !important;
+}
+
+[data-theme="light"] .problems-problem-link:hover {
+  color: #2563EB !important;
+}
+
+[data-theme="light"] .problems-problem-id {
+  color: #94A3B8 !important;
+}
+
+/* Difficulty badge — crisper contrast */
+[data-theme="light"] .problems-difficulty-badge {
+  border-width: 1px !important;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Acceptance track — softer gray rail, same green fill */
+[data-theme="light"] .problems-acceptance-track {
+  background-color: #E2E8F0 !important;
+  height: 6px !important;
+  border-radius: 9999px !important;
+}
+
+[data-theme="light"] .problems-acceptance-track div {
+  border-radius: 9999px !important;
+}
+
+/* Problem tags — light chips */
+[data-theme="light"] .problems-tag {
+  background-color: #F1F5F9 !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+}
+
+/* Action button — clean elevation on hover */
+[data-theme="light"] .problems-action-btn {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #64748B !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .problems-action-btn:hover {
+  background-color: #7C3AED !important;
+  border-color: #7C3AED !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+/* Pagination buttons */
+[data-theme="light"] .problems-page-btn {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .problems-page-btn:hover:not(:disabled) {
+  background-color: #F8FAFC !important;
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
+}
+
+/* ============================================
+   Problem Solve Page — Light Theme Polish
+   Scoped exclusively to the Problem Solve page.
+   The code editor / console stay intentionally
+   dark and untouched.
+   ============================================ */
+
+/* Header — cleaner badge appearance, softer divider */
+[data-theme="light"] .problem-solve-header {
+  background-color: #FFFFFF !important;
+  border-bottom-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problem-solve-header h1 {
+  color: #0F172A !important;
+}
+
+/* Metadata chips — better border, contrast, soft background */
+[data-theme="light"] .problem-solve-meta-chip {
+  background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problem-solve-meta-chip svg {
+  color: #64748B !important;
+}
+
+/* Header action buttons — same size, improved hover/elevation */
+[data-theme="light"] .problem-solve-btn {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #1E293B !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .problem-solve-btn:hover {
+  background-color: #F8FAFC !important;
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Sticky tabs — cleaner active/hover state */
+[data-theme="light"] .problem-solve-tabs {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-bottom-color: #E2E8F0 !important;
+}
+
+[data-theme="light"] .problem-solve-tab {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .problem-solve-tab:hover {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .problem-solve-tab.bg-accent\/15 {
+  background-color: #EFF6FF !important;
+  color: #1E40AF !important;
+  box-shadow: 0 0 20px rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Description panel — premium white surface */
+[data-theme="light"] .problem-solve-desc {
+  background-color: #FFFFFF !important;
+  border-right-color: #E2E8F0 !important;
+}
+
+/* Problem sections — better typography + paragraph spacing */
+[data-theme="light"] .problem-solve-section h2 {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .problem-solve-section-content {
+  color: #334155 !important;
+  line-height: 1.8;
+}
+
+[data-theme="light"] .problem-solve-section + .problem-solve-section {
+  border-top: 1px solid #F1F5F9;
+  padding-top: 1.5rem;
+}
+
+[data-theme="light"] .problem-solve-section .problem-html p {
+  margin: 0.85em 0;
+}
+
+[data-theme="light"] .problem-solve-section .problem-html p:first-child {
+  margin-top: 0;
+}
+
+/* Examples — cleaner cards */
+[data-theme="light"] .problem-solve-examples h2 {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .problem-solve-sample-tab {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problem-solve-sample-tab:hover {
+  border-color: #CBD5E1 !important;
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .problem-solve-example {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problem-solve-example:hover {
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+}
+
+[data-theme="light"] .problem-solve-example-head {
+  background-color: #F8FAFC !important;
+  border-bottom-color: #E2E8F0 !important;
+}
+
+[data-theme="light"] .problem-solve-example-head span {
+  color: #334155 !important;
+}
+
+/* Divider between description & editor — thin, soft, premium */
+[data-theme="light"] .problem-solve-divider {
+  background: #E2E8F0 !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05) !important;
+}
+
+[data-theme="light"] .problem-solve-divider:hover {
+  background: #2563EB !important;
+}
+
+/* ============================================
    Settings Slider — Custom Range Input
    ============================================ */
 .settings-slider {
@@ -363,6 +1044,7 @@ button.cf-btn:hover {
   border-radius: 3px;
   outline: none;
   cursor: pointer;
+  background: rgba(128, 128, 128, 0.25);
 }
 
 .settings-slider::-webkit-slider-thumb {
@@ -399,12 +1081,385 @@ button.cf-btn:hover {
   box-shadow: 0 0 12px rgba(124, 58, 237, 0.5);
 }
 
+[data-theme="light"] .settings-slider {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .settings-slider::-webkit-slider-thumb {
+  border-color: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+[data-theme="light"] .settings-slider::-moz-range-thumb {
+  border-color: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
 /* Settings sidebar scroll behavior */
 .settings-scroll::-webkit-scrollbar {
   width: 4px;
 }
 
 .settings-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(128, 128, 128, 0.2);
   border-radius: 2px;
 }
+
+[data-theme="light"] .settings-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* ============================================
+   Quiz Landing Page — Selection & Drag Prevention
+   Scoped exclusively to the Assessment & Quiz
+   Platform landing page via the .quiz-landing
+   hook class. Disables text selection, dragging,
+   and copy interactions on all non-editable UI
+   elements. Editable components (inputs, textareas,
+   code editors, contenteditable) retain normal
+   selection. Works for both Light and Dark themes.
+   ============================================ */
+
+/* Disable text selection on all non-editable elements */
+.quiz-landing,
+.quiz-landing * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Prevent double-click text selection on UI elements */
+.quiz-landing * {
+  -webkit-touch-callout: none;
+}
+
+/* Re-enable text selection for editable components */
+.quiz-landing input,
+.quiz-landing textarea,
+.quiz-landing [contenteditable],
+.quiz-landing [contenteditable] *,
+.quiz-landing .monaco-editor,
+.quiz-landing .monaco-editor *,
+.quiz-landing .cm-editor,
+.quiz-landing .cm-editor *,
+.quiz-landing .ace_editor,
+.quiz-landing .ace_editor * {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Prevent drag-and-drop for images and decorative elements */
+.quiz-landing img {
+  -webkit-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: auto;
+}
+
+/* Prevent drag on SVG icons (lucide-react) */
+.quiz-landing svg {
+  -webkit-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+/* ============================================
+   Global — Selection & Drag Prevention
+   Scoped to non-editable UI elements only.
+   Defaults all elements to user-select: none,
+   then re-enables text selection exclusively
+   for editable components (input, textarea,
+   select, contenteditable, code editors, rich
+   text editors). Prevents accidental highlighting
+   while clicking/dragging and disables drag on
+   images and SVG icons. Does NOT affect
+   accessibility, keyboard navigation, or
+   layout/styling. Works for both themes.
+   ============================================ */
+
+/* Disable selection & prevent double-click callout on ALL elements */
+*,
+*::before,
+*::after {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Preserve selection & editing in editable components */
+input,
+textarea,
+select,
+[contenteditable],
+[contenteditable] *,
+.monaco-editor,
+.monaco-editor *,
+.cm-editor,
+.cm-editor *,
+.ace_editor,
+.ace_editor * {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Prevent native drag of images and SVG icons */
+img,
+svg {
+  -webkit-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+/* ============================================
+   Waiting Page — Light Theme Polish
+   Toast notifications & stat/info boxes (cards).
+   Scoped exclusively to [data-theme="light"]
+   via semantic hook classes added in the Waiting
+   Room page and WaitingRoomToast components.
+   Dark theme is untouched — these rules only
+   fire when Light Theme is active.
+   ============================================ */
+
+/* ---- Page shell ---- */
+[data-theme="light"] .waiting-page {
+  background-color: #F8FAFC !important;
+}
+
+/* ---- Top bar ---- */
+[data-theme="light"] .waiting-top-bar {
+  background-color: #FFFFFF !important;
+  border-bottom-color: #E2E8F0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Waiting room back button */
+[data-theme="light"] .waiting-back-btn {
+  background: rgba(15, 23, 42, 0.03) !important;
+  border-color: #E2E8F0 !important;
+  color: #64748B !important;
+}
+
+[data-theme="light"] .waiting-back-btn:hover {
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+  background: rgba(15, 23, 42, 0.05) !important;
+}
+
+/* ---- Participant button ---- */
+[data-theme="light"] .waiting-participants-btn {
+  background: rgba(15, 23, 42, 0.03) !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] .waiting-participants-btn:hover {
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+
+/* ---- Header / branding ---- */
+[data-theme="light"] .waiting-header-title {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .waiting-header-sub {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .waiting-header-hint {
+  color: #B4530D !important;
+}
+
+/* ---- Toast waiting room overlay (backdrop for the whole toast list) ---- */
+[data-theme="light"] .toast-waiting-room {
+  /* no-op — positioning only; cards get individual styling */
+}
+
+/* Waiting room badge */
+[data-theme="light"] .waiting-room-badge {
+  background: rgba(236, 72, 153, 0.05) !important;
+  border-color: rgba(236, 72, 153, 0.15) !important;
+  color: #9D1C2F !important;
+}
+
+/* ---- Info stat cards ---- */
+[data-theme="light"] .waiting-stat-card {
+  background: rgba(15, 23, 42, 0.02) !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .waiting-stat-card:hover {
+  background: #FFFFFF !important;
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+}
+
+[data-theme="light"] .waiting-stat-label {
+  color: #94A3B8 !important;
+}
+
+[data-theme="light"] .waiting-stat-value {
+  color: #0F172A !important;
+}
+
+/* ---- Join button ---- */
+[data-theme="light"] .waiting-join-btn {
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.2) !important;
+}
+
+/* ---- Empty state ---- */
+[data-theme="light"] .waiting-empty {
+  color: #94A3B8 !important;
+}
+
+/* ---- Bottom-left quick action buttons ---- */
+[data-theme="light"] .waiting-quick-action {
+  background: rgba(15, 23, 42, 0.03) !important;
+  border-color: #E2E8F0 !important;
+  color: #64748B !important;
+}
+
+[data-theme="light"] .waiting-quick-action:hover {
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+
+/* ---- Bottom-right summary card ---- */
+[data-theme="light"] .waiting-summary-card {
+  background: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme="light"] .waiting-summary-value {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .waiting-summary-muted {
+  color: #94A3B8 !important;
+}
+
+[data-theme="light"] .waiting-summary-accent {
+  color: #C2410D !important;
+}
+
+[data-theme="light"] .waiting-summary-warning {
+  color: #B4530D !important;
+}
+
+[data-theme="light"] .waiting-summary-divider {
+  background-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+/* ---- Announcement card ---- */
+[data-theme="light"] .waiting-announcement {
+  background: #FFFFFF !important;
+  border-color: rgba(236, 72, 153, 0.15) !important;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
+[data-theme="light"] .waiting-announcement-text {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .waiting-announcement-sub {
+  color: #64748B !important;
+}
+
+/* ---- Exit confirmation modal ---- */
+[data-theme="light"] .waiting-exit-modal {
+  background-color: #FFFFFF !important;
+  border-color: rgba(236, 72, 153, 0.15) !important;
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme="light"] .waiting-exit-modal-title {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .waiting-exit-modal-sub {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .waiting-exit-modal-body {
+  background-color: rgba(15, 23, 42, 0.02) !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] .waiting-exit-modal-body .waiting-exit-value {
+  color: #0F172A !important;
+}
+
+
+[data-theme="light"] .waiting-exit-modal-label {
+  color: #B4530D !important;
+}
+
+/* ============================================
+   Join Quiz Modal — Light Theme Polish
+   Scoped exclusively to [data-theme="light"]
+   via the .join-quiz-* hook classes added in
+   JoinQuizModal.tsx. Dark theme is untouched.
+   ============================================ */
+
+/* Modal overlay — lighter dim */
+[data-theme="light"] .join-quiz-modal {
+  background: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 24px 54px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Title */
+[data-theme="light"] .join-quiz-title {
+  color: #0F172A !important;
+}
+
+/* Description */
+[data-theme="light"] .join-quiz-desc {
+  color: #64748B !important;
+}
+
+/* Label */
+[data-theme="light"] .join-quiz-label {
+  color: #64748B !important;
+}
+
+/* Input */
+[data-theme="light"] .join-quiz-input {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #0F172A !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme="light"] .join-quiz-input::placeholder {
+  color: #94A3B8 !important;
+}
+
+[data-theme="light"] .join-quiz-input:focus {
+  border-color: #2563EB !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* Close button */
+[data-theme="light"] .join-quiz-close {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .join-quiz-close:hover {
+  color: #0F172A !important;
+  background: rgba(15, 23, 42, 0.04) !important;
+}
+

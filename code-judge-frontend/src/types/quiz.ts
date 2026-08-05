@@ -407,8 +407,14 @@ export interface QuizCertificateSettings {
 
 export interface QuizLeaderboardSettings {
   enabled: boolean;
-  hideUntilEnd: boolean;
+  showToParticipants: boolean;
+  showTop10Only: boolean;
+  showOnlyOwnRank: boolean;
   anonymousMode: boolean;
+  hideUntilEnd: boolean;
+  showAfterQuizEnds: boolean;
+  showLiveDuringQuiz: boolean;
+  showAfterAllSubmitted: boolean;
   realtimeRanking: boolean;
 }
 

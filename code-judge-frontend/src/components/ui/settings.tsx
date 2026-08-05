@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Search, Check, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/helpers";
 
 /* =============================================
    Toggle — Animated Switch
+   Accent is blue in light, purple in dark via --accent
    ============================================= */
 interface ToggleProps {
   checked: boolean;
@@ -23,18 +25,21 @@ export function Toggle({ checked, onChange, label, description, disabled }: Togg
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED]/40 ${
+      className={cn(
+        "relative h-6 w-11 shrink-0 rounded-full transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
         checked
-          ? "bg-[#7C3AED] shadow-[0_0_12px_rgba(124,58,237,0.35)]"
-          : "bg-white/[0.08] border border-white/[0.06]"
-      } ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
+          ? "bg-accent shadow-[0_0_12px_rgba(37,99,235,0.35)]"
+          : "bg-card-hover border border-border",
+        disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+      )}
     >
       <motion.div
         layout
         transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-md ${
+        className={cn(
+          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-md",
           checked ? "left-[22px]" : "left-0.5"
-        }`}
+        )}
       />
     </button>
   );
@@ -44,8 +49,8 @@ export function Toggle({ checked, onChange, label, description, disabled }: Togg
   return (
     <div className="flex items-center justify-between gap-4 py-2">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-white">{label}</p>
-        {description && <p className="text-xs text-[#9CA3AF] mt-0.5">{description}</p>}
+        <p className="text-sm font-medium text-text-primary">{label}</p>
+        {description && <p className="text-xs text-text-secondary mt-0.5">{description}</p>}
       </div>
       {toggle}
     </div>
@@ -53,7 +58,7 @@ export function Toggle({ checked, onChange, label, description, disabled }: Togg
 }
 
 /* =============================================
-   SettingsCard — Glassmorphism Card Wrapper
+   SettingsCard — Premium Elevated Card
    ============================================= */
 interface SettingsCardProps {
   title?: string;
@@ -68,29 +73,27 @@ export function SettingsCard({ title, description, icon, children, variant = "de
   const isDanger = variant === "danger";
   return (
     <section
-      className={`group relative  rounded-[16px] border p-5 transition-all duration-300 hover:shadow-lg ${
+      className={cn(
+        "group relative rounded-[18px] border p-8 transition-all duration-200 hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)]",
         isDanger
-          ? "border-[#EF4444]/20 bg-[#EF4444]/[0.03]"
-          : "border-white/[0.06] bg-[#111827]/60 backdrop-blur-xl hover:border-white/[0.1]"
-      } ${className}`}
-      style={{
-        boxShadow: isDanger
-          ? "0 4px 24px rgba(239, 68, 68, 0.08)"
-          : "0 4px 24px rgba(0, 0, 0, 0.2)",
-      }}
+          ? "border-danger/20 bg-danger/[0.03]"
+          : "border-border bg-card shadow-[0_8px_30px_rgba(0,0,0,0.05)] hover:border-border-hover",
+        className
+      )}
     >
       {title && (
-        <header className="mb-4 flex items-center gap-3">
+        <header className="mb-6 flex items-start gap-3.5">
           {icon && (
-            <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${
-              isDanger ? "bg-[#EF4444]/10 text-[#EF4444]" : "bg-[#7C3AED]/10 text-[#7C3AED]"
-            }`}>
+            <div className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+              isDanger ? "bg-danger/10 text-danger" : "bg-accent/10 text-accent"
+            )}>
               {icon}
             </div>
           )}
           <div>
-            <h2 className="text-[15px] font-semibold text-white">{title}</h2>
-            {description && <p className="text-xs text-[#9CA3AF] mt-0.5">{description}</p>}
+            <h2 className="text-[15px] font-semibold text-text-primary leading-snug">{title}</h2>
+            {description && <p className="text-xs text-text-secondary mt-0.5 leading-relaxed">{description}</p>}
           </div>
         </header>
       )}
@@ -101,6 +104,7 @@ export function SettingsCard({ title, description, icon, children, variant = "de
 
 /* =============================================
    SettingsInput — Input with Label
+   Height 48px, blue focus ring, character counter
    ============================================= */
 interface SettingsInputProps {
   label: string;
@@ -113,6 +117,8 @@ interface SettingsInputProps {
   maxLength?: number;
   showCounter?: boolean;
   action?: ReactNode;
+  required?: boolean;
+  optional?: boolean;
 }
 
 export function SettingsInput({
@@ -126,20 +132,34 @@ export function SettingsInput({
   maxLength,
   showCounter,
   action,
+  required,
+  optional,
 }: SettingsInputProps) {
+  const pct = maxLength ? value.length / maxLength : 0;
+  const counterColor =
+    pct >= 0.9 ? "text-danger" : pct >= 0.75 ? "text-warning" : "text-success";
+
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between">
-        <label className="text-xs font-medium text-[#9CA3AF]">{label}</label>
+      <div className="mb-2 flex items-center justify-between">
+        <label className="text-sm font-medium text-text-primary">
+          {label}
+          {required && <span className="ml-0.5 text-danger">*</span>}
+          {optional && (
+            <span className="ml-1.5 text-[10px] font-medium uppercase tracking-wide text-text-muted">
+              Optional
+            </span>
+          )}
+        </label>
         {showCounter && maxLength && (
-          <span className="text-[10px] text-[#6B7280]">
-            {value.length}/{maxLength}
+          <span className={cn("text-[10px] font-medium tabular-nums", counterColor)}>
+            {value.length} / {maxLength}
           </span>
         )}
       </div>
       <div className="relative flex items-center">
         {icon && (
-          <div className="absolute left-3 text-[#6B7280] pointer-events-none">{icon}</div>
+          <div className="absolute left-3.5 text-text-muted pointer-events-none">{icon}</div>
         )}
         <input
           type={type}
@@ -148,12 +168,16 @@ export function SettingsInput({
           placeholder={placeholder}
           readOnly={readOnly}
           maxLength={maxLength}
-          className={`w-full rounded-xl border border-white/[0.06] bg-[#09090B] py-2.5 text-sm text-white placeholder-[#6B7280] outline-none transition-all focus:border-[#7C3AED]/40 focus:shadow-[0_0_0_3px_rgba(124,58,237,0.08)] ${
-            icon ? "pl-10" : "pl-3.5"
-          } ${action ? "pr-24" : "pr-3.5"} ${readOnly ? "opacity-60 cursor-not-allowed" : ""}`}
+          className={cn(
+            "w-full h-12 rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200",
+            "focus:border-accent focus:shadow-[0_0_0_3px_var(--input-focus-ring)]",
+            icon ? "pl-10" : "pl-4",
+            action ? "pr-24" : "pr-4",
+            readOnly && "opacity-60 cursor-not-allowed"
+          )}
         />
         {action && (
-          <div className="absolute right-2 flex items-center gap-1">{action}</div>
+          <div className="absolute right-2.5 flex items-center gap-1">{action}</div>
         )}
       </div>
     </div>
@@ -161,7 +185,7 @@ export function SettingsInput({
 }
 
 /* =============================================
-   SettingsSelect — Searchable Dropdown
+   SettingsSelect — Searchable Dropdown (48px)
    ============================================= */
 interface SelectOption {
   label: string;
@@ -175,9 +199,11 @@ interface SettingsSelectProps {
   options: SelectOption[];
   searchable?: boolean;
   placeholder?: string;
+  required?: boolean;
+  optional?: boolean;
 }
 
-export function SettingsSelect({ label, value, onChange, options, searchable, placeholder }: SettingsSelectProps) {
+export function SettingsSelect({ label, value, onChange, options, searchable, placeholder, required, optional }: SettingsSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -200,16 +226,24 @@ export function SettingsSelect({ label, value, onChange, options, searchable, pl
 
   return (
     <div ref={ref} className="relative">
-      <label className="mb-1.5 block text-xs font-medium text-[#9CA3AF]">{label}</label>
+      <label className="mb-2 block text-sm font-medium text-text-primary">
+        {label}
+        {required && <span className="ml-0.5 text-danger">*</span>}
+        {optional && (
+          <span className="ml-1.5 text-[10px] font-medium uppercase tracking-wide text-text-muted">
+            Optional
+          </span>
+        )}
+      </label>
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between rounded-xl border border-white/[0.06] bg-[#09090B] py-2.5 pl-3.5 pr-3 text-sm text-white outline-none transition-all hover:border-white/[0.1] focus:border-[#7C3AED]/40"
+        className="flex h-12 w-full items-center justify-between rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary outline-none transition-all duration-200 hover:border-border-hover focus:border-accent focus:shadow-[0_0_0_3px_var(--input-focus-ring)]"
       >
-        <span className={selected ? "text-white" : "text-[#6B7280]"}>
+        <span className={selected ? "text-text-primary" : "text-text-muted"}>
           {selected ? selected.label : placeholder || "Select..."}
         </span>
-        <ChevronDown className={`h-4 w-4 text-[#6B7280] transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={cn("h-4 w-4 text-text-muted transition-transform", open && "rotate-180")} />
       </button>
       <AnimatePresence>
         {open && (
@@ -218,23 +252,23 @@ export function SettingsSelect({ label, value, onChange, options, searchable, pl
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 mt-1.5 w-full overflow-hidden rounded-xl border border-white/[0.08] bg-[#111827] shadow-2xl"
+            className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-border bg-card shadow-xl"
           >
             {searchable && (
-              <div className="flex items-center border-b border-white/[0.06] px-3">
-                <Search className="h-3.5 w-3.5 text-[#6B7280]" />
+              <div className="flex items-center border-b border-border px-3.5">
+                <Search className="h-3.5 w-3.5 text-text-muted" />
                 <input
                   autoFocus
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search..."
-                  className="w-full bg-transparent py-2 pl-2 text-xs text-white placeholder-[#6B7280] outline-none"
+                  className="w-full bg-transparent py-2.5 pl-2 text-sm text-text-primary placeholder-text-muted outline-none"
                 />
               </div>
             )}
-            <div className="max-h-48 overflow-y-auto p-1">
+            <div className="max-h-48 overflow-y-auto p-1.5">
               {filtered.length === 0 ? (
-                <div className="px-3 py-2 text-xs text-[#6B7280]">No results found</div>
+                <div className="px-3 py-2.5 text-sm text-text-muted">No results found</div>
               ) : (
                 filtered.map((opt) => (
                   <button
@@ -245,14 +279,15 @@ export function SettingsSelect({ label, value, onChange, options, searchable, pl
                       setOpen(false);
                       setQuery("");
                     }}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition-colors",
                       opt.value === value
-                        ? "bg-[#7C3AED]/15 text-white"
-                        : "text-[#9CA3AF] hover:bg-white/[0.04] hover:text-white"
-                    }`}
+                        ? "bg-accent/15 text-accent font-medium"
+                        : "text-text-secondary hover:bg-accent/5 hover:text-text-primary"
+                    )}
                   >
                     {opt.label}
-                    {opt.value === value && <Check className="h-3.5 w-3.5 text-[#7C3AED]" />}
+                    {opt.value === value && <Check className="h-3.5 w-3.5 text-accent" />}
                   </button>
                 ))
               )}
@@ -266,6 +301,7 @@ export function SettingsSelect({ label, value, onChange, options, searchable, pl
 
 /* =============================================
    SettingsSlider — Range Slider
+   Accent is blue in light, purple in dark via --accent
    ============================================= */
 interface SettingsSliderProps {
   label: string;
@@ -282,8 +318,8 @@ export function SettingsSlider({ label, value, onChange, min, max, step = 1, uni
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
-        <label className="text-xs font-medium text-[#9CA3AF]">{label}</label>
-        <span className="text-xs font-semibold text-white">
+        <label className="text-sm font-medium text-text-primary">{label}</label>
+        <span className="text-sm font-semibold text-text-primary tabular-nums">
           {value}
           {unit}
         </span>
@@ -298,7 +334,7 @@ export function SettingsSlider({ label, value, onChange, min, max, step = 1, uni
           onChange={(e) => onChange(Number(e.target.value))}
           className="settings-slider w-full"
           style={{
-            background: `linear-gradient(to right, #7C3AED ${pct}%, rgba(255,255,255,0.08) ${pct}%)`,
+            background: `linear-gradient(to right, #2563EB ${pct}%, rgba(148,163,184,0.25) ${pct}%)`,
           }}
         />
       </div>
@@ -346,32 +382,34 @@ export function ConfirmDialog({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#111827] p-6 shadow-2xl"
+            className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                isDanger ? "bg-[#EF4444]/10 text-[#EF4444]" : "bg-[#7C3AED]/10 text-[#7C3AED]"
-              }`}>
+              <div className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-full",
+                isDanger ? "bg-danger/10 text-danger" : "bg-accent/10 text-accent"
+              )}>
                 {isDanger ? <AlertTriangle className="h-5 w-5" /> : <Check className="h-5 w-5" />}
               </div>
-              <h3 className="text-base font-semibold text-white">{title}</h3>
+              <h3 className="text-base font-semibold text-text-primary">{title}</h3>
             </div>
-            <p className="text-sm text-[#9CA3AF] leading-relaxed">{description}</p>
+            <p className="text-sm text-text-secondary leading-relaxed">{description}</p>
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 onClick={onCancel}
-                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-sm font-medium text-white transition-colors hover:border-white/[0.12]"
+                className="h-10 rounded-xl border border-border bg-card px-4 text-sm font-medium text-text-primary transition-all hover:border-border-hover hover:bg-accent/5"
               >
                 {cancelLabel}
               </button>
               <button
                 onClick={onConfirm}
-                className={`rounded-lg px-4 py-2 text-sm font-bold text-white transition-all ${
+                className={cn(
+                  "h-10 rounded-xl px-4 text-sm font-bold text-white transition-all",
                   isDanger
-                    ? "bg-[#EF4444] hover:shadow-[0_0_16px_rgba(239,68,68,0.4)]"
-                    : "bg-[#7C3AED] hover:shadow-[0_0_16px_rgba(124,58,237,0.4)]"
-                }`}
+                    ? "bg-danger hover:shadow-[0_0_16px_rgba(239,68,68,0.4)]"
+                    : "bg-accent hover:shadow-[0_0_16px_rgba(37,99,235,0.4)]"
+                )}
               >
                 {confirmLabel}
               </button>
@@ -394,10 +432,10 @@ interface SettingsRowProps {
 
 export function SettingsRow({ label, description, children }: SettingsRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-white/[0.04] py-3 last:border-0">
+    <div className="flex items-center justify-between gap-4 border-b border-border py-3.5 last:border-0">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-white">{label}</p>
-        {description && <p className="text-xs text-[#9CA3AF] mt-0.5">{description}</p>}
+        <p className="text-sm font-medium text-text-primary">{label}</p>
+        {description && <p className="text-xs text-text-secondary mt-0.5">{description}</p>}
       </div>
       <div className="shrink-0">{children}</div>
     </div>

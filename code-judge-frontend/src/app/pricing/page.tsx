@@ -51,33 +51,33 @@ export default function PricingPage() {
       <div className="px-6 py-6">
         <div className="max-w-5xl mx-auto space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Pricing</h1>
-            <p className="text-sm text-[#9CA3AF] mt-1">Choose the plan that&apos;s right for you.</p>
+            <h1 className="text-2xl font-bold text-text-primary tracking-tight">Pricing</h1>
+            <p className="text-sm text-text-secondary mt-1">Choose the plan that's right for you.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {plans.map((plan) => (
               <div
                 key={plan.name}
-                className={`relative rounded-2xl border p-6 ${
+                className={`relative rounded-2xl border bg-card p-6 ${
                   plan.name === "Pro"
-                    ? "border-[#7C3AED]/30 bg-[#111827] shadow-[0_0_24px_rgba(124,58,237,0.08)]"
-                    : "border-white/[0.06] bg-[#111827]"
+                    ? "border-accent/30 shadow-[0_0_24px_rgba(37,99,235,0.08)]"
+                    : "border-border"
                 }`}
               >
                 {plan.name === "Pro" && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-semibold text-white bg-[#7C3AED]">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-semibold text-white bg-accent">
                       <Sparkles className="w-3 h-3" />
                       Popular
                     </span>
                   </div>
                 )}
-                <h3 className="text-sm font-bold text-white mb-1">{plan.name}</h3>
-                <div className="text-2xl font-bold text-white mb-4">{plan.price}</div>
+                <h3 className="text-sm font-bold text-text-primary mb-1">{plan.name}</h3>
+                <div className="text-2xl font-bold text-text-primary mb-4">{plan.price}</div>
                 <ul className="space-y-2 mb-6">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-xs text-[#9CA3AF]">
+                    <li key={f} className="flex items-center gap-2 text-xs text-text-secondary">
                       <Check className="w-3.5 h-3.5" style={{ color: plan.color }} />
                       {f}
                     </li>
@@ -88,8 +88,8 @@ export default function PricingPage() {
                   disabled={plan.current || subscribing === plan.name}
                   className={`w-full px-4 py-2 rounded-xl text-xs font-semibold transition-all disabled:cursor-not-allowed ${
                     plan.current
-                      ? "bg-white/[0.04] text-[#6B7280] border border-white/[0.06] cursor-not-allowed"
-                      : "text-white bg-[#7C3AED] hover:shadow-[0_0_12px_rgba(124,58,237,0.3)] disabled:opacity-50"
+                      ? "bg-card-hover text-text-muted border border-border cursor-not-allowed"
+                      : "text-white bg-accent hover:shadow-[0_0_12px_rgba(37,99,235,0.3)] disabled:opacity-50"
                   }`}
                 >
                   {plan.current ? "Current Plan" : subscribing === plan.name ? "Processing..." : "Subscribe"}
@@ -100,7 +100,7 @@ export default function PricingPage() {
 
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-[#9CA3AF] hover:text-[#7C3AED] transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-text-secondary hover:text-accent transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Home

@@ -152,7 +152,7 @@ export function ToastCard({ toast }: ToastCardProps) {
       role="alert"
       aria-live={toast.type === "error" ? "assertive" : "polite"}
       aria-atomic="true"
-      className={`group relative flex w-full cursor-pointer items-start gap-3 overflow-hidden rounded-[15px] border border-l-[3px] p-3.5 outline-none backdrop-blur-xl ${
+      className={`toast-card group relative flex w-full cursor-pointer items-start gap-3 overflow-hidden rounded-[15px] border border-l-[3px] p-3.5 outline-none backdrop-blur-xl ${
         isError ? "toast-shake" : ""
       }`}
       style={{
@@ -161,7 +161,9 @@ export function ToastCard({ toast }: ToastCardProps) {
         borderLeftColor: accentColor,
         boxShadow: `0 8px 32px rgba(0, 0, 0, 0.35), 0 0 20px ${glowColor}`,
         WebkitBackdropFilter: "blur(16px)",
-      }}
+        "--toast-accent": accentColor,
+        "--toast-glow": glowColor,
+      } as React.CSSProperties}
     >
       {/* Icon */}
       <ToastIcon type={toast.type} />
@@ -196,7 +198,7 @@ export function ToastCard({ toast }: ToastCardProps) {
               toast.action?.onClick();
               dismiss();
             }}
-            className="mt-1 w-fit rounded-md px-2 py-1 text-[12px] font-medium transition-colors hover:bg-white/5"
+            className="toast-action-btn mt-1 w-fit rounded-md px-2 py-1 text-[12px] font-medium transition-colors hover:bg-white/5"
             style={{ color: accentColor }}
           >
             {toast.action.label}
@@ -211,7 +213,7 @@ export function ToastCard({ toast }: ToastCardProps) {
             e.stopPropagation();
             dismiss();
           }}
-          className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-[#6B7280] opacity-0 transition-all hover:bg-white/5 hover:text-white focus:opacity-100 group-hover:opacity-100"
+          className="toast-close-btn absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-md text-[#6B7280] opacity-0 transition-all hover:bg-white/5 hover:text-white focus:opacity-100 group-hover:opacity-100"
           aria-label="Dismiss notification"
         >
           <X className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -220,7 +222,7 @@ export function ToastCard({ toast }: ToastCardProps) {
 
       {/* Progress bar */}
       {!isPersistent && (
-        <div className="absolute bottom-0 left-0 h-[2.5px] w-full overflow-hidden rounded-b-[15px] bg-white/5">
+        <div className="toast-progress-track absolute bottom-0 left-0 h-[2.5px] w-full overflow-hidden rounded-b-[15px] bg-white/5">
           <div
             className="h-full rounded-full transition-none"
             style={{
