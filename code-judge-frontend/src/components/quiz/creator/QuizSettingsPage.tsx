@@ -35,7 +35,6 @@ import {
   Info,
   CheckCircle2,
   AlertTriangle,
-  Image as ImageIcon,
 } from "lucide-react";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, DIFFICULTY_OPTIONS, CreatorQuestionType } from "./types";
 import { saveQuizDetails } from "@/utils/quizStorage";
@@ -79,126 +78,6 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   Expert: "#EC4899",
 };
 
-
-const QUESTION_TYPE_META: Array<{ id: CreatorQuestionType; label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = [
-  { id: "single_choice", label: "MCQ", icon: ListChecks, color: "#3B82F6" },
-  { id: "multiple_choice", label: "Multiple Correct", icon: Check, color: "#22C55E" },
-  { id: "true_false", label: "True / False", icon: ToggleRight, color: "#F59E0B" },
-  { id: "fill_blanks", label: "Fill in the Blank", icon: FileText, color: "#14B8A6" },
-  { id: "integer", label: "Integer", icon: Hash, color: "#8B5CF6" },
-  { id: "text", label: "Short Answer", icon: Type, color: "#EC4899" },
-  { id: "paragraph", label: "Long Answer", icon: AlignLeft, color: "#F97316" },
-  { id: "code_output", label: "Coding", icon: Code2, color: "#06B6D4" },
-];
-
-// ─────────────────────────────────────────
-// Quiz Cover Image Options
-// image1-7.png are UNLOCKED (free to use)
-// image8-14.png and hero1-6.png are LOCKED (premium)
-// ─────────────────────────────────────────
-const QUIZ_IMAGES: Array<{ src: string; label: string; unlocked: boolean }> = [
-  { src: "/images/quiz/image1.png", label: "image1", unlocked: true },
-  { src: "/images/quiz/image2.png", label: "image2", unlocked: true },
-  { src: "/images/quiz/image3.png", label: "image3", unlocked: true },
-  { src: "/images/quiz/image4.png", label: "image4", unlocked: true },
-  { src: "/images/quiz/image5.png", label: "image5", unlocked: true },
-  { src: "/images/quiz/image6.png", label: "image6", unlocked: true },
-  { src: "/images/quiz/image7.png", label: "image7", unlocked: true },
-  { src: "/images/quiz/image8.png", label: "image8", unlocked: false },
-  { src: "/images/quiz/image9.png", label: "image9", unlocked: false },
-  { src: "/images/quiz/image10.png", label: "image10", unlocked: false },
-  { src: "/images/quiz/image11.png", label: "image11", unlocked: false },
-  { src: "/images/quiz/image12.png", label: "image12", unlocked: false },
-  { src: "/images/quiz/image13.png", label: "image13", unlocked: false },
-  { src: "/images/quiz/image14.png", label: "image14", unlocked: false },
-  { src: "/images/hero/hero1.png", label: "hero1", unlocked: false },
-  { src: "/images/hero/hero2.png", label: "hero2", unlocked: false },
-  { src: "/images/hero/hero3.png", label: "hero3", unlocked: false },
-  { src: "/images/hero/hero4.png", label: "hero4", unlocked: false },
-  { src: "/images/hero/hero5.png", label: "hero5", unlocked: false },
-  { src: "/images/hero/hero6.png", label: "hero6", unlocked: false },
-];
-
-function QuizImageSelector({
-  value,
-  onChange,
-}: {
-  value?: string;
-  onChange: (src?: string) => void;
-}) {
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider">
-          <ImageIcon className="w-3 h-3 text-[#C7DDEC]" />
-          Quiz Cover Image
-        </span>
-        <span className="rounded-full border border-[#22C55E]/20 bg-[#22C55E]/10 px-2 py-0.5 text-[9px] font-bold text-[#22C55E]">
-          {QUIZ_IMAGES.filter((img) => img.unlocked).length} unlocked
-        </span>
-      </div>
-
-      {/* Preview of selected image */}
-      {value && (
-        <div className="relative mb-3 rounded-xl overflow-hidden border border-[#C7DDEC]/30">
-          <img src={value} alt="Selected cover" className="w-full h-28 sm:h-36 object-cover" />
-          <button
-            onClick={() => onChange(undefined)}
-            className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/70 text-white hover:bg-black/90 transition-colors"
-            title="Remove cover image"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
-        {QUIZ_IMAGES.map((img) => {
-          const isSelected = value === img.src;
-          return (
-            <button
-              key={img.src}
-              onClick={() => img.unlocked && onChange(img.src)}
-              disabled={!img.unlocked}
-              className={`relative rounded-lg overflow-hidden border transition-all aspect-[4/3] ${
-                isSelected
-                  ? "border-[#C7DDEC] ring-2 ring-[#C7DDEC]/40"
-                  : img.unlocked
-                  ? "border-white/[0.08] hover:border-[#C7DDEC]/40 hover:scale-[1.02]"
-                  : "border-white/[0.06] opacity-60 cursor-not-allowed"
-              }`}
-            >
-              <img src={img.src} alt={img.label} className="w-full h-full object-cover" />
-              {isSelected && (
-                <div className="absolute inset-0 bg-[#C7DDEC]/20 flex items-center justify-center">
-                  <div className="w-6 h-6 rounded-full bg-[#C7DDEC] flex items-center justify-center">
-                    <Check className="w-3.5 h-3.5 text-[#09090B]" />
-                  </div>
-                </div>
-              )}
-              {!img.unlocked && (
-                <div className="absolute inset-0 bg-[#0B0D14]/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-1">
-                  <Lock className="w-4 h-4 text-[#C7DDEC]" />
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-[#C7DDEC]">Locked</span>
-                </div>
-              )}
-              {img.unlocked && (
-                <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[8px] font-bold text-white/80">
-                  {img.label}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      <p className="mt-2 text-[10px] text-[#6B7280]">
-        <span className="text-[#22C55E]">●</span> Free images are unlocked.{" "}
-        <Lock className="w-2.5 h-2.5 inline text-[#C7DDEC]" /> Premium images require upgrade.
-      </p>
-    </div>
-  );
-}
 
 function Toggle({ checked, onChange, label, description }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) {
   return (
@@ -296,24 +175,6 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
     onContinue(details);
   };
 
-  // ===== Question Configuration =====
-  const questionTypeSum = useMemo(() => {
-    return Object.values(details.questionTypeConfig).reduce((sum, n) => sum + (n || 0), 0);
-  }, [details.questionTypeConfig]);
-
-  const questionTypeMatch = questionTypeSum === details.totalQuestions;
-  const questionTypeRemaining = details.totalQuestions - questionTypeSum;
-
-  const updateQuestionType = (type: CreatorQuestionType, value: number) => {
-    const clamped = Math.max(0, value);
-    update({
-      questionTypeConfig: {
-        ...details.questionTypeConfig,
-        [type]: clamped,
-      },
-    });
-  };
-
   // ===== Marks =====
   const calculatedTotalMarks = useMemo(() => {
     if (details.marksPerQuestion > 0 && details.totalQuestions > 0) {
@@ -400,14 +261,6 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                     placeholder="Describe what this quiz covers, who it's for, and any important instructions..."
                     rows={3}
                     className="w-full rounded-xl border border-white/[0.08] bg-[#0F1522] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all resize-none leading-relaxed"
-                  />
-                </div>
-
-                {/* Quiz Cover Image Selector */}
-                <div className="rounded-xl border border-white/[0.08] bg-[#0F1522] p-4">
-                  <QuizImageSelector
-                    value={details.coverImage}
-                    onChange={(src) => update({ coverImage: src })}
                   />
                 </div>
 
@@ -548,59 +401,6 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                   </div>
                 </div>
 
-                <div>
-                  <FieldLabel>Question Type Distribution</FieldLabel>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {QUESTION_TYPE_META.map((meta) => {
-                      const Icon = meta.icon;
-                      const value = details.questionTypeConfig[meta.id] || 0;
-                      return (
-                        <div
-                          key={meta.id}
-                          className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-[#0F1522] px-4 py-3 hover:border-white/[0.15] transition-colors"
-                        >
-                          <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: `${meta.color}15`, border: `1px solid ${meta.color}25`, color: meta.color }}
-                          >
-                            <Icon className="w-3.5 h-3.5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-white">{meta.label}</p>
-                          </div>
-                          <input
-                            type="number"
-                            value={value || ""}
-                            onChange={(e) => updateQuestionType(meta.id, Number(e.target.value))}
-                            min={0}
-                            placeholder="0"
-                            className="w-16 h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-2 text-sm text-white text-center focus:outline-none focus:border-[#C7DDEC]/50 transition-colors"
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Live validation */}
-                <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-sm ${
-                  questionTypeMatch
-                    ? "border-[#22C55E]/30 bg-[#22C55E]/5 text-[#22C55E]"
-                    : "border-[#F59E0B]/30 bg-[#F59E0B]/5 text-[#F59E0B]"
-                }`}>
-                  {questionTypeMatch ? (
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  ) : (
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                  )}
-                  <span>
-                    {questionTypeMatch
-                      ? `All ${details.totalQuestions} questions accounted for ✓`
-                      : questionTypeRemaining > 0
-                      ? `${questionTypeRemaining} question(s) remaining to reach ${details.totalQuestions}`
-                      : `${Math.abs(questionTypeRemaining)} question(s) over the total of ${details.totalQuestions}`}
-                  </span>
-                </div>
               </div>
             </SectionCard>
 
@@ -842,24 +642,6 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                   <SummaryRow label="Visibility" value={details.visibility} icon={Globe} />
                   <SummaryRow label="Difficulty" value={details.difficulty} icon={BarChart3} />
 
-                  <div className="pt-3 border-t border-white/[0.06]">
-                    <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">Question Distribution</p>
-                    <div className="space-y-1.5">
-                      {QUESTION_TYPE_META.map((meta) => {
-                        const count = details.questionTypeConfig[meta.id] || 0;
-                        if (count === 0) return null;
-                        return (
-                          <div key={meta.id} className="flex items-center justify-between text-xs">
-                            <span className="text-[#9CA3AF]">{meta.label}</span>
-                            <span className="text-white font-semibold">{count}</span>
-                          </div>
-                        );
-                      })}
-                      {questionTypeSum === 0 && (
-                        <p className="text-xs text-[#6B7280]">No questions configured yet</p>
-                      )}
-                    </div>
-                  </div>
                 </div>
               </motion.div>
 

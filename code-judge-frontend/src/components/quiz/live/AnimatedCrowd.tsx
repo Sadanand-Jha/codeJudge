@@ -38,11 +38,11 @@ function createRoamingState(): RoamingState {
   return {
     targetX: pos.x,
     targetY: pos.y,
-    duration: 25 + Math.random() * 6, // 8-14 seconds to reach destination (slow, calm)
+    duration: 25 + Math.random() * 1, // 8-14 seconds to reach destination (slow, calm)
     delay: Math.random() * 1.5,
-    breathDuration: 20 + Math.random() * 3, // 4-7 seconds per breath (slower bobbing)
+    breathDuration: 12 + Math.random() * 3, // 4-7 seconds per breath (slower bobbing)
     breathDelay: Math.random() * 12,
-    rotateRange: 65 + Math.random() * 1, // 0.5-1.5 degrees (subtler sway)
+    rotateRange: 165 + Math.random() * 1, // 0.5-1.5 degrees (subtler sway)
   };
 }
 

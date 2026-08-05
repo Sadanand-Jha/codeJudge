@@ -100,7 +100,6 @@ export interface QuizCardData {
   id: string;
   title: string;
   description: string;
-  coverImage?: string;
   creatorName: string;
   difficulty: string;
   tags: string[];
@@ -139,32 +138,6 @@ export function QuizCard({ quiz, onClick, onRegister, onAttempt, compact = false
 
   return (
     <Card className="overflow-hidden" hover onClick={onClick}>
-      {/* Cover / Thumbnail */}
-      <div className="relative h-28 sm:h-32">
-        {quiz.coverImage ? (
-          <img src={quiz.coverImage} alt={quiz.title} className="w-full h-full object-cover" />
-        ) : (
-          <div className={`w-full h-full bg-gradient-to-br ${pinkGradient} flex items-center justify-center`}>
-            <span className="text-3xl font-bold text-white">{quiz.title.charAt(0)}</span>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-        <div className="absolute top-2 right-2">
-          <DifficultyBadge difficulty={quiz.difficulty} />
-        </div>
-        <div className="absolute top-2 left-2">
-          <span
-            className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase
-              ${isUpcoming ? "bg-[#F59E0B]/15 text-[#F59E0B]" : ""}
-              ${isActive ? "bg-[#22C55E]/15 text-[#22C55E]" : ""}
-              ${isCompleted || quiz.status === "draft" ? "bg-[#6B7280]/15 text-[#A1A1AA]" : ""}
-            `}
-          >
-            {quiz.status}
-          </span>
-        </div>
-      </div>
-
       <div className={`p-${compact ? "3" : "4"} space-y-${compact ? "2" : "3"}`}>
         <div>
           <h3 className={`font-bold text-text-primary line-clamp-1 ${compact ? "text-sm" : "text-base"}`}>{quiz.title}</h3>

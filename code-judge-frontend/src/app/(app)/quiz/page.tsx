@@ -63,7 +63,6 @@ function toQuizCardData(q: ApiQuiz): QuizCardData {
     id: q.code,
     title: q.name,
     description: "",
-    coverImage: undefined,
     creatorName: q.creator_name || "Unknown",
     difficulty: "Medium",
     tags: [],
