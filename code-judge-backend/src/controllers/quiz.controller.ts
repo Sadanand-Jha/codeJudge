@@ -1473,7 +1473,7 @@ export const joinQuiz = async (req: Request, res: Response) => {
 
 // ======================= SUBJECTS CONTROLLER =======================
 
-const getAllSubjects = async (req: Request, res: Response) => {
+export const getAllSubjects = async (req: Request, res: Response) => {
   try {
     const subjects = await quizService.getAllSubjects();
     res.status(200).json({

@@ -30,7 +30,7 @@ import {
   getPreviousQuizzes,
   generateQuizResults,
   retryQuizResultsEmail,
-  getAll
+  getAllSubjects
 } from "../../../controllers/quiz.controller.ts";
 
 const router = Router();
