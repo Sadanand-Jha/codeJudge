@@ -353,7 +353,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           {/* Global search */}
           <div className="flex-1 max-w-md mx-auto">
             <div className="relative flex items-center">
-              <Search className="absolute left-3 w-4 h-4 text-text-muted" />
+              {/* <Search className="absolute left-3 w-4 h-4 text-text-muted" />
               <input
                 type="text"
                 placeholder="Search by title, ID, tag or company..."
@@ -361,7 +361,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
               />
               <kbd className="absolute right-3 flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-medium text-text-secondary bg-card-hover border border-border rounded-md">
                 ⌘K
-              </kbd>
+              </kbd> */}
             </div>
           </div>
 
