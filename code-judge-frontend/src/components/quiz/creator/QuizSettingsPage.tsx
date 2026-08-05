@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, DIFFICULTY_OPTIONS, CreatorQuestionType } from "./types";
 import { saveQuizDetails } from "@/utils/quizStorage";
+import { getAllSubjects } from "@/services/quiz";
 
 interface QuizSettingsPageProps {
   initialDetails?: QuizDetails;
@@ -142,10 +143,28 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
   const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
   const [showTimezoneDropdown, setShowTimezoneDropdown] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [subjects, setSubjects] = useState<string[]>(SUBJECTS);
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
 
   const update = useCallback((patch: Partial<QuizDetails>) => {
     setDetails((d) => ({ ...d, ...patch }));
+  }, []);
+
+  // Load subjects from the backend (fall back to the static list on error)
+  useEffect(() => {
+    let active = true;
+    getAllSubjects()
+      .then((data) => {
+        if (!active) return;
+        const names = (data || []).map((s) => s.name).filter(Boolean);
+        if (names.length > 0) setSubjects(names);
+      })
+      .catch(() => {
+        // Keep the fallback SUBJECTS list if the request fails
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Autosave to localStorage (debounced)
@@ -285,7 +304,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                           className="absolute z-20 mt-2 w-full rounded-xl border border-white/[0.08] bg-[#171923] shadow-2xl shadow-black/50 overflow-hidden"
                         >
                           <div className="max-h-56 overflow-y-auto p-1.5">
-                            {SUBJECTS.map((s) => (
+                            {subjects.map((s) => (
                               <button
                                 key={s}
                                 onClick={() => { update({ subject: s }); setShowSubjectDropdown(false); }}

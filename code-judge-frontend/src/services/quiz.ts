@@ -71,6 +71,20 @@ export async function getAllQuizzes(): Promise<Quiz[]> {
   return response.data;
 }
 
+export interface QuizSubject {
+  id: number;
+  name: string;
+}
+
+/**
+ * Get all quiz subjects
+ * GET /api/v1/user/quiz/quiz-subjects
+ */
+export async function getAllSubjects(): Promise<QuizSubject[]> {
+  const response = await apiClient.get<QuizSubject[]>("/v1/user/quiz/quiz-subjects");
+  return response.data;
+}
+
 /**
  * Get a single quiz by ID
  * GET /api/v1/user/quiz/:quizId
