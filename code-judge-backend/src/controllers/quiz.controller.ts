@@ -26,6 +26,14 @@ export const getAllQuizzes = async (req: Request, res: Response) => {
 
     const userId = req.user?.userId ? Number(req.user.userId) : undefined;
 
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+      return;
+    }
+
     const result = await quizService.getAllQuizzes({
       page: Number(page),
       limit: Number(limit),
@@ -1461,3 +1469,22 @@ export const joinQuiz = async (req: Request, res: Response) => {
     });
   }
 };
+
+
+// ======================= SUBJECTS CONTROLLER =======================
+
+export const getAllSubjects = async (req: Request, res: Response) => {
+  try {
+    const subjects = await quizService.getAllSubjects();
+    res.status(200).json({
+      success: true,
+      data: subjects,
+    });
+  } catch (error) {
+    console.error("Error fetching subjects:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching subjects",
+    });
+  } 
+}

@@ -949,4 +949,11 @@ export class QuizRepository {
     const result = await pool.query(query, [attemptId, userId]);
     return result.rows;
   }
+
+  async getAllSubjects(): Promise<any[]> {
+    const query = `SELECT * FROM SUBJECTS`
+
+    const result = await pool.query(query);
+    return result.rows;
+  }
 }
