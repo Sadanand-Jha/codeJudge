@@ -30,6 +30,7 @@ import {
   getPreviousQuizzes,
   generateQuizResults,
   retryQuizResultsEmail,
+  getAll
 } from "../../../controllers/quiz.controller.ts";
 
 const router = Router();
@@ -136,5 +137,10 @@ router.post("/register", validate(quizRegistrationSchema), registerForQuiz);
 
 // POST /api/v1/user/quiz/join — join quiz by code or ID
 router.post("/join", validate(joinQuizSchema), joinQuiz);
+
+
+
+// ===================== SUBJECTS ==========
+router.get("/quiz-subjects", getAllSubjects)
 
 export default router;
