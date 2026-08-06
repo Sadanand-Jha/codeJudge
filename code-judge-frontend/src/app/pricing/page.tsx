@@ -11,6 +11,8 @@ import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import AppLayout from "@/components/layout/AppLayout";
 import ScrollStory from "@/components/pricing/story/ScrollStory";
+import LightScrollStory from "@/components/pricing/story/light/LightScrollStory";
+import { useTheme } from "@/context/ThemeContext";
 import { PLAN_CREDIT_ALLOWANCES, CREDIT_PACKS, AI_CREDIT_COSTS } from "@/config/aiCredits";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 
@@ -1992,6 +1994,8 @@ function PricingPageContent() {
 export default function PricingPage() {
   const [showStory, setShowStory] = useState(true);
   const prefersReducedMotion = useReducedMotion();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
 
   const handleEnterBuilder = useCallback(() => {
     setShowStory(false);
@@ -2000,8 +2004,12 @@ export default function PricingPage() {
   return (
     <AppLayout>
       {showStory && !prefersReducedMotion ? (
-        <div className="relative min-h-screen bg-[#050510]">
-          <ScrollStory onEnterBuilder={handleEnterBuilder} />
+        <div className={`relative min-h-screen ${isLight ? 'bg-[#FAFBFF]' : 'bg-[#050510]'}`}>
+          {isLight ? (
+            <LightScrollStory onEnterBuilder={handleEnterBuilder} />
+          ) : (
+            <ScrollStory onEnterBuilder={handleEnterBuilder} />
+          )}
         </div>
       ) : (
         <PricingPageContent />
