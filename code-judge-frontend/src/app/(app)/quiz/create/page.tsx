@@ -3,6 +3,8 @@
 import { useState } from "react";
 import QuizSettingsPage from "@/components/quiz/creator/QuizSettingsPage";
 import QuestionBuilder from "@/components/quiz/creator/QuestionBuilder";
+import AIStudio from "@/components/quiz/creator/AIStudio";
+import { Sparkles } from "lucide-react";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, CreatorQuestion } from "@/components/quiz/creator/types";
 import { loadQuizState, clearQuizState, saveQuizState } from "@/utils/quizStorage";
 import { toast } from "@/lib/toast";
@@ -38,6 +40,7 @@ export default function CreateQuizPage() {
   const [details, setDetails] = useState<QuizDetails>(initial.details);
   const [questions] = useState<CreatorQuestion[]>(initial.questions);
   const [activeQuestionId] = useState(initial.activeQuestionId);
+  const [showAIStudio, setShowAIStudio] = useState(false);
 
   const handleContinue = (quizDetails: QuizDetails) => {
     setDetails(quizDetails);
@@ -109,13 +112,35 @@ export default function CreateQuizPage() {
 
   if (stage === "builder") {
     return (
-      <QuestionBuilder
-        details={details}
-        initialQuestions={questions}
-        initialActiveQuestionId={activeQuestionId}
-        onBack={handleBack}
-        onPublish={handlePublish}
-      />
+      <>
+        <QuestionBuilder
+          details={details}
+          initialQuestions={questions}
+          initialActiveQuestionId={activeQuestionId}
+          onBack={handleBack}
+          onPublish={handlePublish}
+        />
+        {/* AI Studio Button */}
+        <button
+          onClick={() => setShowAIStudio(!showAIStudio)}
+          className="fixed right-4 top-1/2 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2 text-sm font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)]"
+        >
+          <Sparkles className="h-4 w-4" />
+          AI Studio
+        </button>
+        
+        {/* AI Studio Panel */}
+        {showAIStudio && (
+          <AIStudio
+            onQuestionsGenerated={(generatedQuestions) => {
+              // Add generated questions to the quiz
+              toast.success(`${generatedQuestions.length} questions generated!`);
+              setShowAIStudio(false);
+            }}
+            onClose={() => setShowAIStudio(false)}
+          />
+        )}
+      </>
     );
   }
 
