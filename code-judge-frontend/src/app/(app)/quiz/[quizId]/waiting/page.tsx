@@ -21,8 +21,10 @@ import { useRouter } from "next/navigation";
 import { CountdownCard } from "@/components/quiz/live/CountdownCard";
 import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { ParticipantsDrawer } from "@/components/quiz/live/ParticipantsDrawer";
-import { MagicalBackground } from "@/components/quiz/live/MagicalBackground";
+import { ThemeBackground } from "@/components/quiz/live/ThemeBackground";
+import { ThemeSelector } from "@/components/quiz/live/ThemeSelector";
 import { WaitingRoomToast } from "@/components/quiz/live/WaitingRoomToast";
+import { WaitingRoomThemeProvider } from "@/context/WaitingRoomThemeContext";
 import { mockLiveAssessmentRoom, mockEmptyLiveAssessmentRoom } from "@/mocks/liveAssessment";
 import { useToast } from "@/hooks/useToast";
 import { getQuizCode } from "@/services/quiz";
@@ -106,10 +108,11 @@ export default function WaitingRoomPage() {
   ];
 
   return (
+    <WaitingRoomThemeProvider>
     <div className="waiting-page h-screen bg-[#09090B] flex flex-col overflow-hidden relative">
-      {/* Magical Background */}
+      {/* Theme Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <MagicalBackground />
+        <ThemeBackground />
       </div>
 
       {/* Full-screen roaming avatars - behind all UI */}
@@ -121,19 +124,19 @@ export default function WaitingRoomPage() {
       <WaitingRoomToast />
 
       {/* Top Bar */}
-      <div className="relative z-[200] flex items-center justify-between px-4 sm:px-6 py-3 border-b border-white/[0.06]">
+      <div className="relative z-[200] flex items-center justify-between px-4 sm:px-6 py-3">
         <div className="flex items-center gap-3">
           {/* Back Button */}
           <motion.button
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ y: -2 }}
+            whileTap={{ y: 0 }}
             onClick={() => setExitModalOpen(true)}
-            className="waiting-back-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors"
+            className="nav-btn flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] backdrop-blur-xl border border-white/[0.12] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all duration-250"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Back
+            <span>Back</span>
           </motion.button>
 
           <div className="flex items-center gap-2">
@@ -144,17 +147,22 @@ export default function WaitingRoomPage() {
           </div>
         </div>
 
-        {/* Participants Button */}
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="waiting-participants-btn flex items-center gap-2 px-4 py-2 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-sm font-medium text-white hover:border-[#EC4899]/30 transition-colors"
-        >
-          <Users className="w-4 h-4 text-[#EC4899]" />
-          Participants
-          <span className="px-2 py-0.5 rounded-full bg-[#EC4899]/15 text-[10px] font-bold text-[#EC4899]">
-            {participants.length}
-          </span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Theme Selector */}
+          <ThemeSelector />
+
+          {/* Participants Button */}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="nav-btn flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] backdrop-blur-xl border border-white/[0.12] text-sm font-medium text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all duration-250"
+          >
+            <Users className="w-4 h-4" />
+            <span>Participants</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#A855F7] to-[#EC4899] text-[10px] font-bold text-white shadow-[0_0_12px_rgba(236,72,153,0.3)]">
+              {participants.length}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* Centered Header */}
@@ -250,35 +258,35 @@ export default function WaitingRoomPage() {
         <motion.button
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ y: -2 }}
+          whileTap={{ y: 0 }}
           onClick={() =>
             toast.info({
               title: "Music coming soon",
               description: "Ambient classroom music will be available in a future update.",
             })
           }
-          className="waiting-quick-action flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors"
+          className="nav-btn flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] backdrop-blur-xl border border-white/[0.12] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all duration-250"
         >
           <Music className="w-3.5 h-3.5" />
-          Music
+          <span>Music</span>
         </motion.button>
         <motion.button
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ y: -2 }}
+          whileTap={{ y: 0 }}
           onClick={() =>
             toast.info({
               title: "Chat coming soon",
               description: "In-room chat with classmates will be available in a future update.",
             })
           }
-          className="waiting-quick-action flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#111217]/80 backdrop-blur-xl border border-white/[0.08] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors"
+          className="nav-btn flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] backdrop-blur-xl border border-white/[0.12] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all duration-250"
         >
           <MessageSquare className="w-3.5 h-3.5" />
-          Chat
+          <span>Chat</span>
         </motion.button>
       </div>
 
@@ -409,5 +417,6 @@ export default function WaitingRoomPage() {
         participants={participants}
       />
     </div>
+    </WaitingRoomThemeProvider>
   );
 }
