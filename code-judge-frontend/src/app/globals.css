@@ -2761,3 +2761,149 @@ svg {
   background: rgba(15, 23, 42, 0.04) !important;
 }
 
+/* ============================================
+   Scroll Story — Cinematic Pricing Experience
+   ============================================ */
+
+/* Ensure story sections stack properly */
+.story-section {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.story-section > * {
+  pointer-events: auto;
+}
+
+/* Scroll progress bar */
+.story-progress-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 100;
+  transform-origin: left;
+  background: linear-gradient(90deg, #EC4899, #8B5CF6, #6366F1);
+}
+
+/* Smooth scroll container */
+.story-scroll-container {
+  height: 600vh;
+  width: 100%;
+  position: relative;
+}
+
+/* Sticky viewport */
+.story-viewport {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Reduced motion — disable all cinematic animations */
+@media (prefers-reduced-motion: reduce) {
+  .story-scroll-container {
+    display: none;
+  }
+  
+  .story-viewport {
+    position: relative;
+    overflow: auto;
+  }
+}
+
+/* Prevent FOUC on story sections */
+.story-section-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Glass effect utility for story cards */
+.story-glass {
+  background: rgba(10, 10, 30, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.story-glass-strong {
+  background: rgba(10, 10, 30, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Text glow */
+.story-text-glow {
+  text-shadow: 0 0 40px rgba(139, 92, 246, 0.3), 0 0 80px rgba(236, 72, 153, 0.15);
+}
+
+/* Orb glow animation */
+@keyframes story-orb-pulse {
+  0%, 100% {
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.4), 0 0 80px rgba(236, 72, 153, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 60px rgba(139, 92, 246, 0.6), 0 0 120px rgba(236, 72, 153, 0.35);
+  }
+}
+
+.story-orb {
+  animation: story-orb-pulse 4s ease-in-out infinite;
+}
+
+/* Smooth entrance keyframes */
+@keyframes story-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.story-fade-up {
+  animation: story-fade-up 0.8s ease-out;
+}
+
+/* Parallax layer depths */
+.story-parallax-deep {
+  transform: translateZ(-2px) scale(1.5);
+}
+
+.story-parallax-mid {
+  transform: translateZ(-1px) scale(1.2);
+}
+
+.story-parallax-close {
+  transform: translateZ(0) scale(1);
+}
+
+/* Holographic shimmer effect */
+@keyframes story-holographic {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.story-holographic {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.1), rgba(99, 102, 241, 0.15));
+  background-size: 200% 200%;
+  animation: story-holographic 6s ease infinite;
+}
+

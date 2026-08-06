@@ -120,26 +120,6 @@ export default function CreateQuizPage() {
           onBack={handleBack}
           onPublish={handlePublish}
         />
-        {/* AI Studio Button */}
-        <button
-          onClick={() => setShowAIStudio(!showAIStudio)}
-          className="fixed right-4 top-1/2 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2 text-sm font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)]"
-        >
-          <Sparkles className="h-4 w-4" />
-          AI Studio
-        </button>
-        
-        {/* AI Studio Panel */}
-        {showAIStudio && (
-          <AIStudio
-            onQuestionsGenerated={(generatedQuestions) => {
-              // Add generated questions to the quiz
-              toast.success(`${generatedQuestions.length} questions generated!`);
-              setShowAIStudio(false);
-            }}
-            onClose={() => setShowAIStudio(false)}
-          />
-        )}
       </>
     );
   }

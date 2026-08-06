@@ -28,6 +28,8 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { useProblemData } from "@/mocks/useProblemData";
 import { TabSkeleton, SubmissionRowSkeleton, DiscussionCardSkeleton } from "@/components/problem/ProblemSkeleton";
 import { useAuthStore } from "@/store/authStore";
+import AIStudio from "@/components/quiz/creator/AIStudio";
+import { toast } from "@/lib/toast";
 
 type TabType =
   | "description"
@@ -100,6 +102,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
   const handleCodeChange = useCallback((value: string) => {
     setCode(value);
   }, []);
+  const [showAIStudio, setShowAIStudio] = useState(false);
 
   const loadLayout = useCallback(
     (key: string, fallback: number) => {
@@ -137,6 +140,29 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* AI Studio Button */}
+      <button
+        onClick={() => setShowAIStudio(!showAIStudio)}
+        className="fixed right-4 top-1/2 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2 text-sm font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)]"
+      >
+        <Sparkles className="h-4 w-4" />
+        AI Studio
+      </button>
+
+      {/* AI Studio Panel */}
+      {showAIStudio && (
+        <AIStudio
+          onQuestionsGenerated={(generatedQuestions) => {
+            if (generatedQuestions.length > 0 && generatedQuestions[0].content) {
+              setCode(generatedQuestions[0].content);
+              toast.success("AI code applied to editor");
+            }
+            setShowAIStudio(false);
+          }}
+          onClose={() => setShowAIStudio(false)}
+        />
+      )}
+
       {/* Problem Header — clean, spacious, Codeforces + LeetCode inspired */}
       <div className="problem-solve-header shrink-0 border-b border-border bg-card">
         <div className="px-6 py-5">

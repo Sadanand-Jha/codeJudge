@@ -7,9 +7,10 @@ import {
   Shield, Palette, Smile, Type, Users, Plus, Minus,
   NotebookPen, CreditCard, Landmark, Wallet, Smartphone, ShoppingCart, ArrowDown
 } from "lucide-react";
-import { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useMemo, useCallback } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import AppLayout from "@/components/layout/AppLayout";
+import ScrollStory from "@/components/pricing/story/ScrollStory";
 import { PLAN_CREDIT_ALLOWANCES, CREDIT_PACKS, AI_CREDIT_COSTS } from "@/config/aiCredits";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 
@@ -1989,9 +1990,22 @@ function PricingPageContent() {
 }
 
 export default function PricingPage() {
+  const [showStory, setShowStory] = useState(true);
+  const prefersReducedMotion = useReducedMotion();
+
+  const handleEnterBuilder = useCallback(() => {
+    setShowStory(false);
+  }, []);
+
   return (
     <AppLayout>
-      <PricingPageContent />
+      {showStory && !prefersReducedMotion ? (
+        <div className="relative min-h-screen bg-[#050510]">
+          <ScrollStory onEnterBuilder={handleEnterBuilder} />
+        </div>
+      ) : (
+        <PricingPageContent />
+      )}
     </AppLayout>
   );
 }

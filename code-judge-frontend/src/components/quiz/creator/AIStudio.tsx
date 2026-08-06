@@ -7,7 +7,11 @@ import {
   Settings, Play, Pause, RotateCcw, Check, Edit3, Trash2,
   Wand2, FileSpreadsheet, FileType, Archive, CheckCircle2,
   AlertCircle, Loader2, Plus, Minus, Sliders, BookOpen,
-  BarChart3, Lightbulb, Tag, ImageIcon, HelpCircle
+  BarChart3, Lightbulb, Tag, ImageIcon, HelpCircle,
+  File, FileCode, FileImage, FileArchive, FileText as FileTxt,
+  ChevronLeft, GripVertical, Eye, Download, RefreshCw,
+  SlidersHorizontal, Target, Clock, Zap, Brain,
+  Presentation, Table, FileType2, Code2
 } from "lucide-react";
 import { useAICreditConsumption } from "@/hooks/useAICreditConsumption";
 import { toast } from "@/lib/toast";
@@ -67,12 +71,12 @@ const DEFAULT_OPTIONS: GenerationOptions = {
 };
 
 const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
-  mcq: "Multiple Choice",
+  mcq: "MCQ",
   coding: "Coding",
   true_false: "True/False",
-  fill: "Fill in the Blank",
-  short: "Short Answer",
+  fill: "Fill",
   integer: "Integer",
+  short: "Short Answer",
   long: "Long Answer",
 };
 
@@ -95,8 +99,70 @@ const BLOOMS_LABELS: Record<BloomsLevel, string> = {
 const SUPPORTED_FILE_TYPES = [
   ".pdf", ".ppt", ".pptx", ".doc", ".docx",
   ".xls", ".xlsx", ".csv", ".md", ".txt", ".zip",
-  ".png", ".jpg", ".jpeg"
+  ".png", ".jpg", ".jpeg", ".gif", ".webp"
 ];
+
+const FILE_TYPE_SUGGESTIONS: Record<string, { questionTypes: QuestionType[]; label: string }> = {
+  pdf: { questionTypes: ["mcq", "short", "fill"], label: "PDF Document" },
+  ppt: { questionTypes: ["mcq", "true_false"], label: "PowerPoint" },
+  pptx: { questionTypes: ["mcq", "true_false"], label: "PowerPoint" },
+  doc: { questionTypes: ["mcq", "short", "long"], label: "Word Document" },
+  docx: { questionTypes: ["mcq", "short", "long"], label: "Word Document" },
+  xls: { questionTypes: ["integer", "mcq"], label: "Excel Spreadsheet" },
+  xlsx: { questionTypes: ["integer", "mcq"], label: "Excel Spreadsheet" },
+  csv: { questionTypes: ["integer", "mcq"], label: "CSV Data" },
+  md: { questionTypes: ["mcq", "short", "fill"], label: "Markdown" },
+  txt: { questionTypes: ["mcq", "short", "fill"], label: "Text File" },
+  zip: { questionTypes: ["mcq", "coding", "short"], label: "ZIP Archive" },
+  png: { questionTypes: ["mcq", "short", "fill"], label: "Image" },
+  jpg: { questionTypes: ["mcq", "short", "fill"], label: "Image" },
+  jpeg: { questionTypes: ["mcq", "short", "fill"], label: "Image" },
+};
+
+const MOCK_EXTRACTED_CONTENT = `Chapter 4: Binary Trees
+
+Binary trees are hierarchical data structures consisting of nodes.
+
+Key Concepts:
+- Traversal: DFS (Pre-order, In-order, Post-order), BFS
+- Tree Height: Maximum depth from root to leaf
+- Balanced Tree: Height difference ≤ 1 between subtrees
+- Binary Search Tree: Left < Root < Right
+- AVL Tree: Self-balancing BST
+- Red-Black Tree: Self-balancing with color properties
+
+Operations:
+- Insertion: O(log n) average
+- Deletion: O(log n) average
+- Search: O(log n) average
+- Traversal: O(n)
+
+Applications:
+- Expression parsing
+- Decision trees
+- Database indexing
+- File systems`;
+
+/* ============================================
+   Helper Components
+   ============================================ */
+
+const FileIconComponent = ({ fileType, className }: { fileType: string; className?: string }) => {
+  if (fileType.includes("pdf")) return <FileText className={className} />;
+  if (fileType.includes("image")) return <FileImage className={className} />;
+  if (fileType.includes("zip") || fileType.includes("archive")) return <FileArchive className={className} />;
+  if (fileType.includes("excel") || fileType.includes("spreadsheet")) return <FileSpreadsheet className={className} />;
+  if (fileType.includes("powerpoint") || fileType.includes("presentation")) return <Presentation className={className} />;
+  if (fileType.includes("word") || fileType.includes("document")) return <FileType2 className={className} />;
+  if (fileType.includes("code") || fileType.includes("javascript") || fileType.includes("python")) return <Code2 className={className} />;
+  return <File className={className} />;
+};
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
 
 /* ============================================
    AI Studio Component
@@ -117,12 +183,14 @@ export default function AIStudio({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [estimatedCredits, setEstimatedCredits] = useState(0);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [showSmartSuggestions, setShowSmartSuggestions] = useState(true);
 
   const { consume, refund, completeRequest, balance, isLowCredit, recommendedPack } = useAICreditConsumption();
 
   // Calculate estimated credits
   useEffect(() => {
-    const baseCost = 8; // AI quiz generation base cost
+    const baseCost = 8;
     const perQuestion = 1.5;
     const estimated = Math.round(baseCost + (options.numberOfQuestions * perQuestion));
     setEstimatedCredits(estimated);
@@ -130,7 +198,7 @@ export default function AIStudio({
 
   /* ============================================
      File Upload Handlers
-     ============================================ */
+      ============================================ */
   const handleFileUpload = useCallback((files: FileList | null) => {
     if (!files) return;
 
@@ -145,7 +213,7 @@ export default function AIStudio({
         id: Date.now().toString() + Math.random(),
         name: file.name,
         size: file.size,
-        type: file.type,
+        type: file.type || ext,
         status: "uploading",
         progress: 0,
       };
@@ -155,7 +223,9 @@ export default function AIStudio({
       // Simulate upload progress
       let progress = 0;
       const interval = setInterval(() => {
-        progress += 10;
+        progress += Math.random() * 15 + 5;
+        if (progress > 100) progress = 100;
+
         setUploadedFiles((prev) =>
           prev.map((f) => (f.id === newFile.id ? { ...f, progress } : f))
         );
@@ -175,7 +245,8 @@ export default function AIStudio({
                 f.id === newFile.id ? { ...f, status: "ready" } : f
               )
             );
-            setExtractedText((prev) => prev + "\n\n" + `[Content extracted from ${file.name}]\nSample text content...`);
+            setExtractedText(MOCK_EXTRACTED_CONTENT);
+            toast.success(`Processed ${file.name}`);
           }, 2000);
         }
       }, 200);
@@ -184,6 +255,7 @@ export default function AIStudio({
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    setIsDragOver(false);
     handleFileUpload(e.dataTransfer.files);
   }, [handleFileUpload]);
 
@@ -193,31 +265,12 @@ export default function AIStudio({
 
   /* ============================================
      Generation Handlers
-     ============================================ */
+      ============================================ */
   const handleGenerate = async () => {
     if (uploadedFiles.length === 0 && !extractedText.trim()) {
       toast.error("Please upload learning material first");
       return;
     }
-
-    // Consume credits
-    const result = await consume("ai-quiz-generation", {
-      promptHash: extractedText.slice(0, 100),
-      onInsufficientCredits: () => {
-        toast.error("Not enough credits", {
-          description: recommendedPack
-            ? `Consider the ${recommendedPack.name} pack`
-            : "Purchase credits to continue",
-        });
-      },
-      onError: (reason) => {
-        if (reason !== "insufficient_credits") {
-          toast.error("Generation failed", { description: reason });
-        }
-      },
-    });
-
-    if (!result.allowed) return;
 
     setIsGenerating(true);
     setGenerationProgress(0);
@@ -225,7 +278,7 @@ export default function AIStudio({
     // Simulate progressive generation
     const totalSteps = options.numberOfQuestions;
     for (let i = 0; i < totalSteps; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 600));
       setGenerationProgress(((i + 1) / totalSteps) * 100);
     }
 
@@ -234,7 +287,7 @@ export default function AIStudio({
       id: `gen-${Date.now()}-${i}`,
       type: options.questionTypes[0],
       title: `Generated Question ${i + 1}`,
-      content: `This is a generated question based on the uploaded material.`,
+      content: `This is a generated question based on the uploaded material about binary trees.`,
       options: options.questionTypes.includes("mcq")
         ? [
             { id: "a", content: "Option A", isCorrect: true },
@@ -269,13 +322,6 @@ export default function AIStudio({
   };
 
   const handleRegenerate = async (questionId: string) => {
-    // Simulate regeneration with additional credits
-    const result = await consume("ai-quiz-generation", {
-      promptHash: `regen-${questionId}`,
-    });
-
-    if (!result.allowed) return;
-
     toast.info("Regenerating question...");
     await new Promise((resolve) => setTimeout(resolve, 1000));
     toast.success("Question regenerated");
@@ -286,8 +332,27 @@ export default function AIStudio({
   };
 
   /* ============================================
+     Smart Suggestions
+      ============================================ */
+  const getSmartSuggestions = () => {
+    if (uploadedFiles.length === 0) return null;
+
+    const fileExt = uploadedFiles[0].name.split(".").pop()?.toLowerCase() || "";
+    const suggestion = FILE_TYPE_SUGGESTIONS[fileExt];
+
+    if (!suggestion) return null;
+
+    return {
+      ...suggestion,
+      recommendedTypes: suggestion.questionTypes,
+    };
+  };
+
+  const smartSuggestion = getSmartSuggestions();
+
+  /* ============================================
      Render
-     ============================================ */
+      ============================================ */
   if (!isOpen) {
     return (
       <button
@@ -375,12 +440,25 @@ export default function AIStudio({
               {/* Drop Zone */}
               <div
                 onDrop={handleDrop}
-                onDragOver={(e) => e.preventDefault()}
-                className="rounded-2xl border-2 border-dashed border-border hover:border-accent/50 bg-card-hover/50 p-8 text-center transition-colors"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(true);
+                }}
+                onDragLeave={() => setIsDragOver(false)}
+                className={`rounded-2xl border-2 border-dashed p-8 text-center transition-all ${
+                  isDragOver
+                    ? "border-accent bg-accent/5 scale-[1.02]"
+                    : "border-border hover:border-accent/50 bg-card-hover/50"
+                }`}
               >
-                <Upload className="mx-auto h-12 w-12 text-text-muted mb-3" />
+                <motion.div
+                  animate={{ y: isDragOver ? -5 : 0, scale: isDragOver ? 1.1 : 1 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <Upload className="mx-auto h-12 w-12 text-text-muted mb-3" />
+                </motion.div>
                 <p className="text-sm font-medium text-text-primary mb-1">
-                  Drop learning material here
+                  {isDragOver ? "Drop files here" : "Drag & Drop Learning Material"}
                 </p>
                 <p className="text-[11px] text-text-muted mb-4">
                   PDF, PPT, DOC, Excel, CSV, MD, TXT, ZIP, Images
@@ -394,58 +472,113 @@ export default function AIStudio({
                 />
                 <label
                   htmlFor="file-upload"
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(236,72,153,0.3)]"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2 text-[12px] font-bold text-white shadow-[0_2px_10px_rgba(236,72,153,0.3)] hover:shadow-[0_4px_16px_rgba(236,72,153,0.4)] transition-shadow"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Browse Files
                 </label>
               </div>
 
+              {/* Smart Suggestions */}
+              {smartSuggestion && showSmartSuggestions && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-xl border border-accent/20 bg-gradient-to-br from-[#8B5CF6]/5 to-[#EC4899]/5 p-3"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Brain className="h-4 w-4 text-accent" />
+                      <span className="text-[11px] font-bold text-text-primary">
+                        Smart Suggestion
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setShowSmartSuggestions(false)}
+                      className="text-text-muted hover:text-text-primary"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-text-secondary mb-2">
+                    Based on {smartSuggestion.label}, we recommend:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {smartSuggestion.recommendedTypes.map((type) => (
+                      <span
+                        key={type}
+                        className="text-[10px] font-medium text-accent bg-accent/10 px-2 py-1 rounded-lg"
+                      >
+                        ✓ {QUESTION_TYPE_LABELS[type]}
+                      </span>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
               {/* Uploaded Files */}
               {uploadedFiles.length > 0 && (
                 <div className="space-y-2">
                   {uploadedFiles.map((file) => (
-                    <div
+                    <motion.div
                       key={file.id}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="rounded-xl border border-border bg-card p-3"
                     >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10">
-                        {file.type.includes("pdf") ? <FileText className="h-5 w-5 text-accent" /> :
-                         file.type.includes("image") ? <Image className="h-5 w-5 text-accent" /> :
-                         file.type.includes("zip") ? <Archive className="h-5 w-5 text-accent" /> :
-                         <FileType className="h-5 w-5 text-accent" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[11px] font-medium text-text-primary truncate">
-                          {file.name}
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10">
+                          <FileIconComponent fileType={file.type} className="h-5 w-5 text-accent" />
                         </div>
-                        <div className="text-[10px] text-text-muted">
-                          {(file.size / 1024).toFixed(1)} KB
-                        </div>
-                        {file.status === "uploading" && (
-                          <div className="mt-1 h-1 rounded-full bg-card-hover overflow-hidden">
-                            <motion.div
-                              animate={{ width: `${file.progress}%` }}
-                              className="h-full bg-gradient-to-r from-[#EC4899] to-[#8B5CF6]"
-                            />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] font-medium text-text-primary truncate">
+                            {file.name}
                           </div>
-                        )}
+                          <div className="text-[10px] text-text-muted mb-1">
+                            {formatFileSize(file.size)}
+                          </div>
+                          {file.status === "uploading" && (
+                            <div className="h-1 rounded-full bg-card-hover overflow-hidden">
+                              <motion.div
+                                animate={{ width: `${file.progress}%` }}
+                                className="h-full bg-gradient-to-r from-[#EC4899] to-[#8B5CF6]"
+                              />
+                            </div>
+                          )}
+                          {file.status === "processing" && (
+                            <div className="flex items-center gap-1 text-[10px] text-accent">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Processing...
+                            </div>
+                          )}
+                          {file.status === "ready" && (
+                            <div className="flex items-center gap-1 text-[10px] text-success">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Ready
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {file.status === "ready" && (
+                            <>
+                              <button className="rounded p-1 text-text-muted hover:text-accent">
+                                <Eye className="h-3.5 w-3.5" />
+                              </button>
+                              <button className="rounded p-1 text-text-muted hover:text-accent">
+                                <Download className="h-3.5 w-3.5" />
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={() => removeFile(file.id)}
+                            className="rounded p-1 text-text-muted hover:text-danger"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        {file.status === "ready" && (
-                          <CheckCircle2 className="h-4 w-4 text-success" />
-                        )}
-                        {file.status === "processing" && (
-                          <Loader2 className="h-4 w-4 animate-spin text-accent" />
-                        )}
-                        <button
-                          onClick={() => removeFile(file.id)}
-                          className="rounded p-1 text-text-muted hover:text-danger"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}
@@ -454,16 +587,42 @@ export default function AIStudio({
               {extractedText && (
                 <div className="rounded-xl border border-border bg-card p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-medium text-text-primary">
+                    <span className="text-[11px] font-medium text-text-primary flex items-center gap-1.5">
+                      <FileTxt className="h-3.5 w-3.5 text-accent" />
                       Extracted Content
                     </span>
                     <span className="text-[10px] text-text-muted">
                       {extractedText.split(/\s+/).length} words
                     </span>
                   </div>
-                  <div className="max-h-32 overflow-y-auto rounded-lg bg-card-hover p-2 text-[10px] text-text-secondary">
+                  <div className="max-h-32 overflow-y-auto rounded-lg bg-card-hover p-2 text-[10px] text-text-secondary leading-relaxed">
                     {extractedText}
                   </div>
+                </div>
+              )}
+
+              {/* Processing Timeline */}
+              {uploadedFiles.some((f) => f.status === "processing" || f.status === "ready") && (
+                <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+                  <span className="text-[11px] font-medium text-text-primary">Processing Pipeline</span>
+                  {[
+                    { label: "File Uploaded", done: true },
+                    { label: "Content Extracted", done: uploadedFiles.some((f) => f.status === "ready") },
+                    { label: "AI Understanding", done: false },
+                    { label: "Question Planning", done: false },
+                    { label: "Ready To Generate", done: false },
+                  ].map((step, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      {step.done ? (
+                        <CheckCircle2 className="h-4 w-4 text-success" />
+                      ) : (
+                        <div className="h-4 w-4 rounded-full border-2 border-border" />
+                      )}
+                      <span className={`text-[10px] ${step.done ? "text-text-primary" : "text-text-muted"}`}>
+                        {step.label}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -494,24 +653,33 @@ export default function AIStudio({
                   <HelpCircle className="h-3.5 w-3.5 text-accent" />
                   Question Types
                 </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(QUESTION_TYPE_LABELS).map(([key, label]) => (
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.entries(QUESTION_TYPE_LABELS) as [QuestionType, string][]).map(([key, label]) => (
                     <button
                       key={key}
                       onClick={() => {
                         setOptions((prev) => ({
                           ...prev,
-                          questionTypes: prev.questionTypes.includes(key as QuestionType)
+                          questionTypes: prev.questionTypes.includes(key)
                             ? prev.questionTypes.filter((t) => t !== key)
-                            : [...prev.questionTypes, key as QuestionType],
+                            : [...prev.questionTypes, key],
                         }));
                       }}
-                      className={`rounded-lg px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
-                        options.questionTypes.includes(key as QuestionType)
+                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium transition-all ${
+                        options.questionTypes.includes(key)
                           ? "bg-accent/20 text-accent border border-accent/30"
                           : "bg-card-hover text-text-secondary border border-border hover:border-accent/20"
                       }`}
                     >
+                      <div className={`h-4 w-4 rounded border-2 flex items-center justify-center ${
+                        options.questionTypes.includes(key)
+                          ? "border-accent bg-accent"
+                          : "border-border"
+                      }`}>
+                        {options.questionTypes.includes(key) && (
+                          <Check className="h-3 w-3 text-white" />
+                        )}
+                      </div>
                       {label}
                     </button>
                   ))}
@@ -521,24 +689,24 @@ export default function AIStudio({
               {/* Difficulty */}
               <div className="space-y-2">
                 <label className="text-[11px] font-medium text-text-primary flex items-center gap-1.5">
-                  <Sliders className="h-3.5 w-3.5 text-accent" />
+                  <SlidersHorizontal className="h-3.5 w-3.5 text-accent" />
                   Difficulty
                 </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(DIFFICULTY_LABELS).map(([key, label]) => (
+                <div className="flex flex-wrap gap-2">
+                  {(Object.entries(DIFFICULTY_LABELS) as [Difficulty, string][]).map(([key, label]) => (
                     <button
                       key={key}
                       onClick={() => {
                         setOptions((prev) => ({
                           ...prev,
-                          difficulty: prev.difficulty.includes(key as Difficulty)
+                          difficulty: prev.difficulty.includes(key)
                             ? prev.difficulty.filter((d) => d !== key)
-                            : [...prev.difficulty, key as Difficulty],
+                            : [...prev.difficulty, key],
                         }));
                       }}
-                      className={`rounded-lg px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
-                        options.difficulty.includes(key as Difficulty)
-                          ? "bg-accent/20 text-accent border border-accent/30"
+                      className={`rounded-lg px-3 py-1.5 text-[11px] font-medium transition-all ${
+                        options.difficulty.includes(key)
+                          ? "bg-accent text-white shadow-md"
                           : "bg-card-hover text-text-secondary border border-border hover:border-accent/20"
                       }`}
                     >
@@ -548,79 +716,119 @@ export default function AIStudio({
                 </div>
               </div>
 
-              {/* Number of Questions */}
+              {/* Question Count Slider */}
               <div className="space-y-2">
-                <label className="text-[11px] font-medium text-text-primary">
-                  Number of Questions: {options.numberOfQuestions}
+                <label className="text-[11px] font-medium text-text-primary flex items-center gap-1.5">
+                  <Target className="h-3.5 w-3.5 text-accent" />
+                  Number of Questions: <span className="text-accent">{options.numberOfQuestions}</span>
                 </label>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setOptions((prev) => ({ ...prev, numberOfQuestions: Math.max(1, prev.numberOfQuestions - 1) }))}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border hover:border-accent/30"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border hover:border-accent/30 transition-colors"
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
-                  <span className="flex-1 text-center text-sm font-bold text-text-primary">
-                    {options.numberOfQuestions}
-                  </span>
+                  <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    value={options.numberOfQuestions}
+                    onChange={(e) => setOptions((prev) => ({ ...prev, numberOfQuestions: parseInt(e.target.value) }))}
+                    className="flex-1 h-2 bg-card-hover rounded-lg appearance-none cursor-pointer accent-accent"
+                  />
                   <button
-                    onClick={() => setOptions((prev) => ({ ...prev, numberOfQuestions: Math.min(20, prev.numberOfQuestions + 1) }))}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border hover:border-accent/30"
+                    onClick={() => setOptions((prev) => ({ ...prev, numberOfQuestions: Math.min(50, prev.numberOfQuestions + 1) }))}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border hover:border-accent/30 transition-colors"
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
 
-              {/* Toggle Options */}
+              {/* Bloom's Taxonomy */}
               <div className="space-y-2">
-                {[
-                  { key: "includeExplanations", label: "Include Explanations" },
-                  { key: "includeHints", label: "Include Hints" },
-                  { key: "includeReferenceNotes", label: "Include Reference Notes" },
-                  { key: "includeTags", label: "Include Tags" },
-                  { key: "includeImages", label: "Include Images (OCR)" },
-                ].map((option) => (
-                  <div
-                    key={option.key}
-                    className="flex items-center justify-between rounded-xl border border-border bg-card p-3"
-                  >
-                    <span className="text-[11px] font-medium text-text-primary">
-                      {option.label}
-                    </span>
-                    <button
-                      onClick={() => setOptions((prev) => ({
-                        ...prev,
-                        [option.key]: !prev[option.key as keyof GenerationOptions],
-                      }))}
-                      className={`relative h-5 w-9 rounded-full transition-colors ${
-                        options[option.key as keyof GenerationOptions]
-                          ? "bg-accent"
-                          : "bg-card-hover"
-                      }`}
-                    >
-                      <motion.div
-                        animate={{ x: options[option.key as keyof GenerationOptions] ? 16 : 2 }}
-                        className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow"
-                      />
-                    </button>
-                  </div>
-                ))}
+                <label className="text-[11px] font-medium text-text-primary flex items-center gap-1.5">
+                  <Brain className="h-3.5 w-3.5 text-accent" />
+                  Bloom's Taxonomy Level
+                </label>
+                <select
+                  value={options.bloomsLevel[0] || "understand"}
+                  onChange={(e) => setOptions((prev) => ({ ...prev, bloomsLevel: [e.target.value as BloomsLevel] }))}
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-[11px] text-text-primary focus:border-accent focus:outline-none"
+                >
+                  {Object.entries(BLOOMS_LABELS).map(([key, label]) => (
+                    <option key={key} value={key}>{label}</option>
+                  ))}
+                </select>
               </div>
 
-              {/* Credit Estimate */}
-              <div className="rounded-xl border border-accent/30 bg-gradient-to-r from-[#8B5CF6]/10 to-[#EC4899]/10 p-3">
+              {/* Additional Options */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-medium text-text-primary">
+                  Additional Options
+                </label>
+                <div className="space-y-2">
+                  {[
+                    { key: "includeExplanations", label: "Include Explanations", icon: Lightbulb },
+                    { key: "includeHints", label: "Include Hints", icon: HelpCircle },
+                    { key: "includeReferenceNotes", label: "Include Reference Notes", icon: BookOpen },
+                    { key: "includeTags", label: "Include Tags", icon: Tag },
+                    { key: "includeImages", label: "Include Images", icon: ImageIcon },
+                  ].map((option) => (
+                    <div
+                      key={option.key}
+                      className="flex items-center justify-between rounded-xl border border-border bg-card p-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <option.icon className="h-4 w-4 text-accent" />
+                        <span className="text-[11px] font-medium text-text-primary">
+                          {option.label}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setOptions((prev) => ({
+                          ...prev,
+                          [option.key]: !prev[option.key as keyof GenerationOptions],
+                        }))}
+                        className={`relative h-5 w-9 rounded-full transition-colors ${
+                          options[option.key as keyof GenerationOptions]
+                            ? "bg-accent"
+                            : "bg-card-hover"
+                        }`}
+                      >
+                        <motion.div
+                          animate={{ x: options[option.key as keyof GenerationOptions] ? 16 : 2 }}
+                          className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow"
+                        />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Estimate Card */}
+              <div className="rounded-xl border border-accent/30 bg-gradient-to-br from-[#8B5CF6]/10 to-[#EC4899]/10 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-text-secondary">
-                    Estimated Cost
+                  <span className="text-[11px] font-medium text-text-secondary flex items-center gap-1.5">
+                    <Zap className="h-3.5 w-3.5 text-accent" />
+                    Estimated Questions
                   </span>
-                  <span className="text-sm font-bold text-accent">
-                    ~{estimatedCredits} credits
+                  <span className="text-sm font-bold text-accent">{options.numberOfQuestions}</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-text-muted">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Est. Time: ~{Math.round(options.numberOfQuestions * 1.5)}s
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <BarChart3 className="h-3 w-3" />
+                    Compute: Medium
                   </span>
                 </div>
-                <div className="mt-1 flex items-center justify-between text-[10px] text-text-muted">
-                  <span>Available: {balance.totalRemaining}</span>
-                  <span>Monthly: {balance.monthlyCredits - balance.monthlyCreditsConsumed}</span>
+                <div className="flex items-center justify-between text-[10px] text-text-muted pt-2 border-t border-accent/20">
+                  <span>Available: {balance.totalRemaining} credits</span>
+                  <span>Cost: ~{estimatedCredits} credits</span>
                 </div>
               </div>
 
@@ -628,7 +836,7 @@ export default function AIStudio({
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-3 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-3 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)] transition-shadow"
               >
                 {isGenerating ? (
                   <>
@@ -663,8 +871,10 @@ export default function AIStudio({
               ) : (
                 <>
                   {generatedQuestions.map((q) => (
-                    <div
+                    <motion.div
                       key={q.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                       className="rounded-xl border border-border bg-card p-4 space-y-3"
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -753,7 +963,7 @@ export default function AIStudio({
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
 
                   {/* Accept All Button */}
