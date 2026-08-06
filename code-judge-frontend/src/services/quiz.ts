@@ -81,7 +81,7 @@ export interface QuizSubject {
  * GET /api/v1/user/quiz/quiz-subjects
  */
 export async function getAllSubjects(): Promise<QuizSubject[]> {
-  const response = await apiClient.get<QuizSubject[]>("/v1/user/quiz/quiz-subjects");
+  const response = await apiClient.get<QuizSubject[]>("/v1/user/quiz-subjects");
   return response.data;
 }
 

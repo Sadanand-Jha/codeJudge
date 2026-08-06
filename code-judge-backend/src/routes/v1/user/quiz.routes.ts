@@ -140,7 +140,5 @@ router.post("/join", validate(joinQuizSchema), joinQuiz);
 
 
 
-// ===================== SUBJECTS ==========
-router.get("/quiz-subjects", getAllSubjects)
 
 export default router;
