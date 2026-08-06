@@ -58,6 +58,7 @@ export interface QuizDetails {
   name: string;
   description: string;
   subject: string;
+  subjectId: number | string;
   topic: string;
   difficulty: "Easy" | "Medium" | "Hard" | "Expert";
   visibility: QuizVisibility;
@@ -85,6 +86,7 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   name: "",
   description: "",
   subject: "",
+  subjectId: "",
   topic: "",
   difficulty: "Medium",
   visibility: "public",

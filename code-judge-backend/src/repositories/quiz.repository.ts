@@ -950,9 +950,13 @@ export class QuizRepository {
     return result.rows;
   }
 
-  async getAllSubjects(): Promise<any[]> {
-    const query = `SELECT * FROM SUBJECTS`
-
+  async getAllSubjects(search?: string): Promise<any[]> {
+    if (search) {
+      const query = `SELECT * FROM subjects WHERE subject_name ILIKE $1`;
+      const result = await pool.query(query, [`%${search}%`]);
+      return result.rows;
+    }
+    const query = `SELECT * FROM subjects ORDER BY name`;
     const result = await pool.query(query);
     return result.rows;
   }

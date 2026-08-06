@@ -73,15 +73,16 @@ export async function getAllQuizzes(): Promise<Quiz[]> {
 
 export interface QuizSubject {
   id: number;
-  name: string;
+  subject_name: string;
 }
 
 /**
  * Get all quiz subjects
  * GET /api/v1/user/quiz/quiz-subjects
  */
-export async function getAllSubjects(): Promise<QuizSubject[]> {
-  const response = await apiClient.get<QuizSubject[]>("/v1/user/quiz-subjects");
+export async function getAllSubjects(search?: string, signal?: AbortSignal): Promise<QuizSubject[]> {
+  const params = search ? { search } : undefined;
+  const response = await apiClient.get<QuizSubject[]>("/v1/user/quiz-subjects", { params, signal });
   return response.data;
 }
 

@@ -39,26 +39,12 @@ import {
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, DIFFICULTY_OPTIONS, CreatorQuestionType } from "./types";
 import { saveQuizDetails } from "@/utils/quizStorage";
 import { getAllSubjects } from "@/services/quiz";
+import { SearchableDropdown } from "@/components/ui";
 
 interface QuizSettingsPageProps {
   initialDetails?: QuizDetails;
   onContinue: (details: QuizDetails) => void;
 }
-
-const SUBJECTS = [
-  "Mathematics",
-  "Physics",
-  "Chemistry",
-  "Biology",
-  "Computer Science",
-  "English",
-  "History",
-  "Geography",
-  "Economics",
-  "General Knowledge",
-  "Aptitude",
-  "Programming",
-];
 
 const TIMEZONES = [
   "Asia/Kolkata",
@@ -140,31 +126,12 @@ const inputClass =
 export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSettingsPageProps) {
   const [details, setDetails] = useState<QuizDetails>(initialDetails || DEFAULT_QUIZ_DETAILS);
   const [tagInput, setTagInput] = useState("");
-  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
   const [showTimezoneDropdown, setShowTimezoneDropdown] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-  const [subjects, setSubjects] = useState<string[]>(SUBJECTS);
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
 
   const update = useCallback((patch: Partial<QuizDetails>) => {
     setDetails((d) => ({ ...d, ...patch }));
-  }, []);
-
-  // Load subjects from the backend (fall back to the static list on error)
-  useEffect(() => {
-    let active = true;
-    getAllSubjects()
-      .then((data) => {
-        if (!active) return;
-        const names = (data || []).map((s) => s.name).filter(Boolean);
-        if (names.length > 0) setSubjects(names);
-      })
-      .catch(() => {
-        // Keep the fallback SUBJECTS list if the request fails
-      });
-    return () => {
-      active = false;
-    };
   }, []);
 
   // Autosave to localStorage (debounced)
@@ -284,41 +251,24 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="relative">
+                  <div>
                     <FieldLabel icon={<GraduationCap className="w-3 h-3" />}>Subject</FieldLabel>
-                    <button
-                      onClick={() => setShowSubjectDropdown(!showSubjectDropdown)}
-                      className={`${inputClass} flex items-center justify-between text-left`}
-                    >
-                      <span className={details.subject ? "text-white" : "text-[#6B7280]"}>
-                        {details.subject || "Select subject..."}
-                      </span>
-                      <ChevronDown className={`w-4 h-4 text-[#6B7280] transition-transform ${showSubjectDropdown ? "rotate-180" : ""}`} />
-                    </button>
-                    <AnimatePresence>
-                      {showSubjectDropdown && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                          className="absolute z-20 mt-2 w-full rounded-xl border border-white/[0.08] bg-[#171923] shadow-2xl shadow-black/50 overflow-hidden"
-                        >
-                          <div className="max-h-56 overflow-y-auto p-1.5">
-                            {subjects.map((s) => (
-                              <button
-                                key={s}
-                                onClick={() => { update({ subject: s }); setShowSubjectDropdown(false); }}
-                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                                  details.subject === s ? "bg-[#C7DDEC]/10 text-[#C7DDEC]" : "text-[#9CA3AF] hover:text-white hover:bg-white/[0.04]"
-                                }`}
-                              >
-                                {s}
-                              </button>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                    <SearchableDropdown
+                      placeholder="Search subjects..."
+                      value={details.subject}
+                      selectedId={details.subjectId}
+                      onSelect={(option) => update({ subject: option.label, subjectId: option.id })}
+                      onClear={() => update({ subject: "", subjectId: "" })}
+                      searchFn={async (query, signal) => {
+                        const results = await getAllSubjects(query, signal);
+                        return results.map((s) => ({ id: s.id, label: s.subject_name }));
+                      }}
+                      minChars={1}
+                      debounceMs={300}
+                      maxVisible={8}
+                      icon={<GraduationCap className="w-3 h-3" />}
+                      optional
+                    />
                   </div>
                   <div>
                     <FieldLabel icon={<Hash className="w-3 h-3" />}>Topic</FieldLabel>
