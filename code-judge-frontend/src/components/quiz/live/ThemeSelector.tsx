@@ -31,7 +31,7 @@ export function ThemeSelector() {
         whileHover={{ y: -2 }}
         whileTap={{ y: 0 }}
         onClick={() => setOpen(true)}
-        className="nav-btn flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] backdrop-blur-xl border border-white/[0.12] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all duration-250"
+        className="nav-btn flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] backdrop-blur-xl border border-border-hover text-xs font-medium text-muted-foreground hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all duration-250"
       >
         <Palette className="w-3.5 h-3.5" style={{ color: activeConfig.primaryColor }} />
         <span>{activeConfig.icon} {activeConfig.name}</span>
@@ -45,7 +45,7 @@ export function ThemeSelector() {
         whileHover={{ y: -2 }}
         whileTap={{ y: 0 }}
         onClick={toggleSound}
-        className="nav-btn flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] backdrop-blur-xl border border-white/[0.12] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all duration-250"
+        className="nav-btn flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.05] backdrop-blur-xl border border-border-hover text-xs font-medium text-muted-foreground hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all duration-250"
       >
         {state.soundEnabled ? (
           <Volume2 className="w-3.5 h-3.5 text-[#22C55E]" />
@@ -71,18 +71,18 @@ export function ThemeSelector() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[401] mx-auto max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl border border-white/[0.1] bg-[#111827] p-6 shadow-2xl"
+              className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[401] mx-auto max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl border border-white/[0.1] bg-card p-6 shadow-2xl"
             >
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-bold text-white">Waiting Room Themes</h3>
-                  <p className="text-xs text-[#9CA3AF] mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Today's featured: <span className="text-[#EC4899] font-semibold">{THEME_CONFIGS[dailyTheme].icon} {THEME_CONFIGS[dailyTheme].name}</span>
                   </p>
                 </div>
                 <button
                   onClick={() => setOpen(false)}
-                  className="p-2 rounded-lg hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors"
+                  className="p-2 rounded-lg hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors"
                 >
                   ✕
                 </button>
@@ -115,7 +115,7 @@ export function ThemeSelector() {
                           className={`relative rounded-xl border p-3 text-left transition-all duration-300 ${
                             isActive
                               ? 'border-[#EC4899]/50 bg-[#EC4899]/10'
-                              : 'border-white/[0.08] bg-white/[0.03] hover:border-white/[0.15]'
+                              : 'border-border-hover bg-white/[0.03] hover:border-white/[0.15]'
                           } ${isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           {/* Theme preview */}
@@ -131,7 +131,7 @@ export function ThemeSelector() {
                               <span className="text-[11px] font-semibold text-white">{config.name}</span>
                             </div>
                             {isActive && <Check className="w-3.5 h-3.5 text-[#EC4899]" />}
-                            {isLocked && <Lock className="w-3 h-3 text-[#9CA3AF]" />}
+                            {isLocked && <Lock className="w-3 h-3 text-muted-foreground" />}
                           </div>
                           {isDaily && (
                             <div className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#F59E0B]/20 text-[8px] font-bold text-[#F59E0B]">
@@ -149,7 +149,7 @@ export function ThemeSelector() {
               {/* Premium note */}
               {!state.hasPremium && (
                 <div className="mt-4 p-3 rounded-xl border border-[#EC4899]/20 bg-[#EC4899]/5">
-                  <p className="text-[11px] text-[#9CA3AF]">
+                  <p className="text-[11px] text-muted-foreground">
                     <span className="text-[#EC4899] font-semibold">Premium themes</span> are available with a Premium subscription.
                     Unlock all 12 themes and override creator themes.
                   </p>

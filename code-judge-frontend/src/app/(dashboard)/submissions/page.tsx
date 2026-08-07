@@ -14,7 +14,7 @@ export default function SubmissionsPage() {
         <div className="max-w-7xl mx-auto space-y-6">
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Submissions</h1>
-            <p className="text-sm text-[#9CA3AF] mt-1">All your submissions across problems.</p>
+            <p className="text-sm text-muted-foreground mt-1">All your submissions across problems.</p>
           </div>
 
         <div className="overflow-x-auto rounded-2xl border border-border bg-card">

@@ -52,8 +52,8 @@ export function ActivityFeed({ events, className = "", limit = 12 }: ActivityFee
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[8px] font-semibold uppercase tracking-wide" style={{ color: meta.color }}>{meta.label}</span>
-                  {event.detail && <span className="text-[8px] text-[#71717A]">• {event.detail}</span>}
-                  <span className="text-[8px] text-[#71717A] ml-auto">{formatRelative(event.secondsAgo)}</span>
+                  {event.detail && <span className="text-[8px] text-muted-foreground">• {event.detail}</span>}
+                  <span className="text-[8px] text-muted-foreground ml-auto">{formatRelative(event.secondsAgo)}</span>
                 </div>
               </div>
             </motion.div>
@@ -63,8 +63,8 @@ export function ActivityFeed({ events, className = "", limit = 12 }: ActivityFee
 
       {shown.length === 0 && (
         <div className="text-center py-8">
-          <Radio className="w-6 h-6 mx-auto text-[#71717A] mb-2" />
-          <p className="text-xs text-[#71717A]">No activity yet</p>
+          <Radio className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
+          <p className="text-xs text-muted-foreground">No activity yet</p>
         </div>
       )}
     </div>

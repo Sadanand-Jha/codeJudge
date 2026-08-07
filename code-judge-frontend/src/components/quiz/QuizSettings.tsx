@@ -131,7 +131,7 @@ function Toggle({ checked, onChange, label, description }: { checked: boolean; o
 function NumberField({ label, value, onChange, min = 0, suffix, step = 1 }: { label: string; value: number; onChange: (v: number) => void; min?: number; suffix?: string; step?: number }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-medium text-[#9CA3AF]">{label}</label>
+      <label className="text-[10px] font-medium text-muted-foreground">{label}</label>
       <div className="flex items-center gap-2">
         <input
           type="number"
@@ -139,7 +139,7 @@ function NumberField({ label, value, onChange, min = 0, suffix, step = 1 }: { la
           onChange={(e) => onChange(Number(e.target.value))}
           min={min}
           step={step}
-          className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
+          className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
         />
         {suffix && <span className="text-[10px] text-[#6B7280] shrink-0">{suffix}</span>}
       </div>
@@ -150,13 +150,13 @@ function NumberField({ label, value, onChange, min = 0, suffix, step = 1 }: { la
 function TextField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-medium text-[#9CA3AF]">{label}</label>
+      <label className="text-[10px] font-medium text-muted-foreground">{label}</label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
+        className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
       />
     </div>
   );
@@ -165,13 +165,13 @@ function TextField({ label, value, onChange, placeholder }: { label: string; val
 function TextAreaField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-medium text-[#9CA3AF]">{label}</label>
+      <label className="text-[10px] font-medium text-muted-foreground">{label}</label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={3}
-        className="w-full px-2 py-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none resize-none"
+        className="w-full px-2 py-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none resize-none"
       />
     </div>
   );
@@ -180,12 +180,12 @@ function TextAreaField({ label, value, onChange, placeholder }: { label: string;
 function SelectField({ label, value, onChange, options, suffix }: { label: string; value: string; onChange: (v: string) => void; options: string[]; suffix?: string }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-[10px] font-medium text-[#9CA3AF]">{label}</label>
+      <label className="text-[10px] font-medium text-muted-foreground">{label}</label>
       <div className="flex items-center gap-2">
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
+          className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
         >
           {options.map((opt) => (
             <option key={opt} value={opt.toLowerCase().replace(/\s+/g, "_")}>{opt}</option>
@@ -199,7 +199,7 @@ function SelectField({ label, value, onChange, options, suffix }: { label: strin
 
 function SectionCard({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-[#111827] p-4 space-y-3">
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
       <div>
         <h3 className="text-xs font-bold text-white">{title}</h3>
         {description && <p className="text-[10px] text-[#6B7280] mt-0.5">{description}</p>}
@@ -394,7 +394,7 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-[#9CA3AF]">Tags</label>
+                <label className="text-[10px] font-medium text-muted-foreground">Tags</label>
                 <div className="flex flex-wrap gap-1.5">
                   {settings.general.tags.map((tag, i) => (
                     <span key={i} className="px-2 py-1 rounded-lg bg-[#EC4899]/10 border border-[#EC4899]/20 text-[9px] font-medium text-[#EC4899] flex items-center gap-1">
@@ -407,7 +407,7 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
                   <input
                     type="text"
                     placeholder="Add tag..."
-                    className="h-6 px-2 rounded-lg bg-transparent text-[10px] text-white placeholder-[#6B7280] focus:outline-none border border-white/[0.06] w-24"
+                    className="h-6 px-2 rounded-lg bg-transparent text-[10px] text-white placeholder-[#6B7280] focus:outline-none border border-border w-24"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
                         const val = (e.target as HTMLInputElement).value.trim();
@@ -431,13 +431,13 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
                 <NumberField label="Passing Marks (%)" value={settings.assessment.passingMarks} onChange={(v) => updateSection("assessment", { passingMarks: v })} min={0} suffix="%" />
                 <NumberField label="Time Per Question (seconds)" value={settings.assessment.timePerQuestion || 0} onChange={(v) => updateSection("assessment", { timePerQuestion: v })} min={0} suffix="s" />
               </div>
-              <div className="border-t border-white/[0.06] pt-2">
+              <div className="border-t border-border pt-2">
                 <Toggle label="Negative Marking" description="Deduct marks for wrong answers" checked={settings.assessment.negativeMarking} onChange={(v) => updateSection("assessment", { negativeMarking: v })} />
                 {settings.assessment.negativeMarking && (
                   <NumberField label="Negative Mark Value" value={settings.assessment.negativeMarkValue} onChange={(v) => updateSection("assessment", { negativeMarkValue: v })} min={0} />
                 )}
               </div>
-              <div className="border-t border-white/[0.06] pt-2 space-y-1">
+              <div className="border-t border-border pt-2 space-y-1">
                 <Toggle label="Randomize Questions" checked={settings.assessment.questionRandomization} onChange={(v) => updateSection("assessment", { questionRandomization: v })} />
                 <Toggle label="Randomize Options" checked={settings.assessment.optionRandomization} onChange={(v) => updateSection("assessment", { optionRandomization: v })} />
                 <Toggle label="Practice Mode" description="Allow learners to practice without score" checked={settings.assessment.practiceMode} onChange={(v) => updateSection("assessment", { practiceMode: v })} />
@@ -469,7 +469,7 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
               {Object.entries(LIFELINE_LABELS).map(([key, meta]) => {
                 const config = settings.lifelines[key] || { enabled: false, maxUses: 0, penalty: 0, description: meta.description };
                 return (
-                  <div key={key} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 space-y-2">
+                  <div key={key} className="rounded-xl border border-border bg-white/[0.02] p-3 space-y-2">
                     <div className="flex items-start gap-2.5">
                       <div className="w-7 h-7 rounded-lg bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center shrink-0">
                         <meta.icon className="w-3.5 h-3.5 text-[#EC4899]" />
@@ -527,7 +527,7 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
                     className={`flex items-start gap-2.5 rounded-xl border p-3 text-left transition-all ${
                       settings.visibility.type === opt.value
                         ? "border-[#EC4899]/40 bg-[#EC4899]/10"
-                        : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]"
+                        : "border-border bg-white/[0.02] hover:border-border-hover"
                     }`}
                   >
                     <opt.icon className={`w-4 h-4 mt-0.5 shrink-0 ${settings.visibility.type === opt.value ? "text-[#EC4899]" : "text-[#6B7280]"}`} />
@@ -557,39 +557,39 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
             <SectionCard title="Scheduling" description="Registration and assessment windows">
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-medium text-[#9CA3AF]">Registration Opens</label>
+                  <label className="text-[10px] font-medium text-muted-foreground">Registration Opens</label>
                   <input
                     type="datetime-local"
                     value={settings.scheduling.registrationOpens || ""}
                     onChange={(e) => updateSection("scheduling", { registrationOpens: e.target.value })}
-                    className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none [color-scheme:dark]"
+                    className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none [color-scheme:dark]"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-medium text-[#9CA3AF]">Registration Closes</label>
+                  <label className="text-[10px] font-medium text-muted-foreground">Registration Closes</label>
                   <input
                     type="datetime-local"
                     value={settings.scheduling.registrationCloses || ""}
                     onChange={(e) => updateSection("scheduling", { registrationCloses: e.target.value })}
-                    className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none [color-scheme:dark]"
+                    className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none [color-scheme:dark]"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-medium text-[#9CA3AF]">Assessment Starts</label>
+                  <label className="text-[10px] font-medium text-muted-foreground">Assessment Starts</label>
                   <input
                     type="datetime-local"
                     value={settings.scheduling.assessmentStarts || ""}
                     onChange={(e) => updateSection("scheduling", { assessmentStarts: e.target.value })}
-                    className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none [color-scheme:dark]"
+                    className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none [color-scheme:dark]"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-medium text-[#9CA3AF]">Assessment Ends</label>
+                  <label className="text-[10px] font-medium text-muted-foreground">Assessment Ends</label>
                   <input
                     type="datetime-local"
                     value={settings.scheduling.assessmentEnds || ""}
                     onChange={(e) => updateSection("scheduling", { assessmentEnds: e.target.value })}
-                    className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none [color-scheme:dark]"
+                    className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none [color-scheme:dark]"
                   />
                 </div>
                 <SelectField label="Timezone" value={settings.scheduling.timezone} onChange={(v) => updateSection("scheduling", { timezone: v })} options={["Asia/Kolkata", "UTC", "America/New_York", "Europe/London", "Asia/Tokyo"]} />
@@ -610,7 +610,7 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
                   <NumberField label="Negative Mark Value" value={settings.scoring.negativeMarkValue} onChange={(v) => updateSection("scoring", { negativeMarkValue: v })} min={0} />
                 )}
               </div>
-              <div className="border-t border-white/[0.06] pt-2 space-y-1">
+              <div className="border-t border-border pt-2 space-y-1">
                 <Toggle label="Partial Marking" description="Award partial marks for multiple correct" checked={settings.scoring.partialMarking} onChange={(v) => updateSection("scoring", { partialMarking: v })} />
                 <Toggle label="Bonus Questions" checked={settings.scoring.bonusQuestions} onChange={(v) => updateSection("scoring", { bonusQuestions: v })} />
                 <Toggle label="Mandatory Questions" checked={settings.scoring.mandatoryQuestions} onChange={(v) => updateSection("scoring", { mandatoryQuestions: v })} />
@@ -649,20 +649,20 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
               
               {settings.leaderboard.showToParticipants && (
                 <>
-                  <div className="border-t border-white/[0.06] pt-3 space-y-1">
+                  <div className="border-t border-border pt-3 space-y-1">
                     <Toggle label="Show only Top 10" description="Limit visible leaderboard to top 10 participants" checked={settings.leaderboard.showTop10Only} onChange={(v) => updateSection("leaderboard", { showTop10Only: v })} />
                     <Toggle label="Show only student's own rank" description="Participants see only their position in the leaderboard" checked={settings.leaderboard.showOnlyOwnRank} onChange={(v) => updateSection("leaderboard", { showOnlyOwnRank: v })} />
                     <Toggle label="Hide participant names (anonymous leaderboard)" description="Hide usernames from the leaderboard" checked={settings.leaderboard.anonymousMode} onChange={(v) => updateSection("leaderboard", { anonymousMode: v })} />
                   </div>
                   
-                  <div className="border-t border-white/[0.06] pt-3 space-y-1">
-                    <p className="text-[10px] font-medium text-[#9CA3AF] mb-2">Display Timing</p>
+                  <div className="border-t border-border pt-3 space-y-1">
+                    <p className="text-[10px] font-medium text-muted-foreground mb-2">Display Timing</p>
                     <Toggle label="Show leaderboard only after quiz ends" description="Leaderboard becomes visible only when the quiz ends" checked={settings.leaderboard.showAfterQuizEnds} onChange={(v) => updateSection("leaderboard", { showAfterQuizEnds: v })} />
                     <Toggle label="Show live leaderboard during quiz" description="Display real-time rankings while quiz is active" checked={settings.leaderboard.showLiveDuringQuiz} onChange={(v) => updateSection("leaderboard", { showLiveDuringQuiz: v })} />
                     <Toggle label="Show leaderboard after all participants have submitted" description="Wait until everyone completes before showing results" checked={settings.leaderboard.showAfterAllSubmitted} onChange={(v) => updateSection("leaderboard", { showAfterAllSubmitted: v })} />
                   </div>
 
-                  <div className="border-t border-white/[0.06] pt-3 space-y-1">
+                  <div className="border-t border-border pt-3 space-y-1">
                     <Toggle label="Real-time Ranking Updates" description="Update leaderboard rankings in real-time" checked={settings.leaderboard.realtimeRanking} onChange={(v) => updateSection("leaderboard", { realtimeRanking: v })} />
                   </div>
                 </>
@@ -730,12 +730,12 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
   };
 
   return (
-    <div className="h-screen bg-[#09090B] flex flex-col overflow-hidden">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* ===== TOP BAR ===== */}
-      <div className="h-14 border-b border-white/[0.08] bg-[#09090B]/80 backdrop-blur-xl flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0">
+      <div className="h-14 border-b border-border-hover bg-background/80 backdrop-blur-xl flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0">
         <button
           onClick={onBack}
-          className="h-8 px-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+          className="h-8 px-2.5 rounded-lg border border-border bg-white/[0.04] text-xs font-medium text-muted-foreground hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
           title="Back to Dashboard"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -765,8 +765,8 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
       {/* Body: Category Sidebar + Settings Panel */}
       <div className="flex-1 flex overflow-hidden">
         {/* Category Sidebar - hidden on mobile */}
-        <div className="hidden md:block w-64 border-r border-white/[0.06] bg-[#0B0D12] flex flex-col shrink-0">
-          <div className="p-3 border-b border-white/[0.06]">
+        <div className="hidden md:block w-64 border-r border-border bg-[#0B0D12] flex flex-col shrink-0">
+          <div className="p-3 border-b border-border">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#6B7280]" />
               <input
@@ -774,7 +774,7 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search settings..."
-                className="w-full h-8 pl-8 pr-2 rounded-lg border border-white/[0.06] bg-[#111827] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899]/40 focus:outline-none"
+                className="w-full h-8 pl-8 pr-2 rounded-lg border border-border bg-card text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899]/40 focus:outline-none"
               />
             </div>
           </div>
@@ -788,7 +788,7 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
                   className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all ${
                     isActive
                       ? "bg-[#EC4899]/10 text-white border border-[#EC4899]/20"
-                      : "text-[#9CA3AF] hover:text-white hover:bg-white/[0.04] border border-transparent"
+                      : "text-muted-foreground hover:text-white hover:bg-white/[0.04] border border-transparent"
                   }`}
                 >
                   <cat.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#EC4899]" : "text-[#6B7280]"}`} />

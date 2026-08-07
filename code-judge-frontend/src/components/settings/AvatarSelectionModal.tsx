@@ -133,27 +133,27 @@ export default function AvatarSelectionModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#111827] shadow-2xl flex flex-col"
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl border border-border-hover bg-card shadow-2xl flex flex-col"
           >
             {/* ===== Header ===== */}
-            <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
               <div>
                 <h2 className="text-lg font-bold text-white">Choose Your Avatar</h2>
-                <p className="text-xs text-[#9CA3AF] mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Select an image. Locked images are coming soon.
                 </p>
               </div>
               <button
                 onClick={handleCancel}
                 disabled={saving}
-                className="rounded-lg p-1.5 text-[#9CA3AF] transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-50"
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-white disabled:opacity-50"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {/* ===== Preview Section ===== */}
-            <div className="border-b border-white/[0.06] px-6 py-5">
+            <div className="border-b border-border px-6 py-5">
               <div className="flex flex-col items-center gap-3">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7280]">
                   Current Selection
@@ -168,7 +168,7 @@ export default function AvatarSelectionModal({
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ type: "spring", stiffness: 300, damping: 22 }}
-                      className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-white/10 bg-[#09090B] shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+                      className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-white/10 bg-background shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
                     >
                       {selectedAvatar ? (
                         <img
@@ -210,8 +210,8 @@ export default function AvatarSelectionModal({
                         isSelected
                           ? "border-[#7C3AED] bg-[#7C3AED]/10 shadow-[0_0_20px_rgba(124,58,237,0.3)]"
                           : img.unlocked
-                          ? "border-white/[0.06] bg-[#09090B] hover:border-white/[0.14] hover:bg-white/[0.03]"
-                          : "border-white/[0.04] bg-[#09090B] opacity-70 cursor-pointer"
+                          ? "border-border bg-background hover:border-white/[0.14] hover:bg-white/[0.03]"
+                          : "border-white/[0.04] bg-background opacity-70 cursor-pointer"
                       }`}
                     >
                       {/* Selected glow overlay */}
@@ -233,7 +233,7 @@ export default function AvatarSelectionModal({
                         {/* Lock overlay for locked images */}
                         {!img.unlocked && (
                           <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-[1px]">
-                            <Lock className="h-4 w-4 text-[#C7DDEC]" />
+                            <Lock className="h-4 w-4 text-foreground" />
                           </div>
                         )}
                       </div>
@@ -244,7 +244,7 @@ export default function AvatarSelectionModal({
                           isSelected
                             ? "text-white"
                             : img.unlocked
-                            ? "text-[#9CA3AF] group-hover:text-white"
+                            ? "text-muted-foreground group-hover:text-white"
                             : "text-[#6B7280]"
                         }`}
                       >
@@ -276,7 +276,7 @@ export default function AvatarSelectionModal({
                       {/* Small lock badge for locked images */}
                       {!img.unlocked && !isSelected && (
                         <div className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#1E293B] border-2 border-[#111827]">
-                          <Lock className="h-2.5 w-2.5 text-[#C7DDEC]" />
+                          <Lock className="h-2.5 w-2.5 text-foreground" />
                         </div>
                       )}
                     </motion.button>
@@ -286,11 +286,11 @@ export default function AvatarSelectionModal({
             </div>
 
             {/* ===== Footer Actions ===== */}
-            <div className="flex items-center justify-end gap-2.5 border-t border-white/[0.06] px-6 py-4 bg-[#09090B]/50">
+            <div className="flex items-center justify-end gap-2.5 border-t border-border px-6 py-4 bg-background/50">
               <button
                 onClick={handleCancel}
                 disabled={saving}
-                className="rounded-lg border border-white/[0.08] bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:border-white/[0.12] hover:bg-white/[0.06] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-lg border border-border-hover bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-white transition-all hover:border-border-hover hover:bg-white/[0.06] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -330,7 +330,7 @@ export default function AvatarSelectionModal({
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 10 }}
                   transition={{ type: "spring", stiffness: 300, damping: 24 }}
-                  className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-[#C7DDEC]/20 bg-[#111827] shadow-2xl"
+                  className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-[#C7DDEC]/20 bg-card shadow-2xl"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Glow effect */}
@@ -339,19 +339,19 @@ export default function AvatarSelectionModal({
                   <div className="relative flex flex-col items-center gap-4 p-8 text-center">
                     {/* Icon */}
                     <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#C7DDEC]/20 to-[#7C3AED]/20 border border-[#C7DDEC]/30">
-                      <Sparkles className="h-7 w-7 text-[#C7DDEC]" />
+                      <Sparkles className="h-7 w-7 text-foreground" />
                     </div>
 
                     {/* Title */}
                     <div>
                       <h3 className="text-lg font-bold text-white">Coming Soon</h3>
-                      <p className="text-sm text-[#9CA3AF] mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         This image is part of our premium collection and will be available soon.
                       </p>
                     </div>
 
                     {/* Badge */}
-                    <span className="rounded-full border border-[#C7DDEC]/20 bg-[#C7DDEC]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#C7DDEC]">
+                    <span className="rounded-full border border-[#C7DDEC]/20 bg-[#C7DDEC]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-foreground">
                       Premium
                     </span>
 

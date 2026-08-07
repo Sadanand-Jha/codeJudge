@@ -27,25 +27,25 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-[#9CA3AF]">Passing Score (%)</label>
+          <label className="text-xs font-medium text-muted-foreground">Passing Score (%)</label>
           <input
             type="number"
             value={settings.passingScore}
             onChange={(e) => update("passingScore", Number(e.target.value))}
             min="0"
             max="100"
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-border-hover bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-[#9CA3AF]">Attempts Allowed</label>
+          <label className="text-xs font-medium text-muted-foreground">Attempts Allowed</label>
           <input
             type="number"
             value={settings.attemptsAllowed}
             onChange={(e) => update("attemptsAllowed", Number(e.target.value))}
             min="1"
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-border-hover bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
@@ -56,7 +56,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
             value={settings.timeLimit || 30}
             onChange={(e) => update("timeLimit", Number(e.target.value))}
             min="1"
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-border-hover bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
@@ -65,7 +65,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
           <select
             value={settings.negativeMarking ? "yes" : "no"}
             onChange={(e) => update("negativeMarking", e.target.value === "yes")}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-border-hover bg-[#0B0D12] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           >
             <option value="no">No</option>
             <option value="yes">Yes</option>
@@ -78,7 +78,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
               min="0"
               max="100"
               placeholder="Penalty per wrong answer (%)"
-              className="w-full h-7 rounded-lg border border-white/[0.08] bg-[#09090B] px-2 text-[11px] text-white focus:border-[#EC4899] focus:outline-none mt-1"
+              className="w-full h-7 rounded-lg border border-border-hover bg-background px-2 text-[11px] text-white focus:border-[#EC4899] focus:outline-none mt-1"
             />
           )}
         </div>
@@ -95,7 +95,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
           { key: "enableBookmarks" as const, label: "Enable Bookmarks" },
           { key: "practiceMode" as const, label: "Practice Mode" },
         ].map((item) => (
-          <label key={item.key} className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3 cursor-pointer">
+          <label key={item.key} className="flex items-center justify-between rounded-xl border border-border-hover bg-[#0B0D12] p-3 cursor-pointer">
             <span className="text-xs font-medium text-white">{item.label}</span>
             <button
               type="button"
@@ -120,10 +120,10 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
       <div className="space-y-2">
         <h4 className="text-xs font-medium text-[#9CA3Af]">Lifelines</h4>
         {settings.lifelines.map((lifeline, index) => (
-          <div key={lifeline.type} className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
+          <div key={lifeline.type} className="flex items-center justify-between rounded-xl border border-border-hover bg-[#0B0D12] p-3">
             <div>
               <p className="text-xs font-semibold text-white">{lifeline.label}</p>
-              <p className="text-[11px] text-[#9CA3AF]">{lifeline.description}</p>
+              <p className="text-[11px] text-muted-foreground">{lifeline.description}</p>
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -136,7 +136,7 @@ export default function AssessmentSettingsPanel({ settings, onChange }: Assessme
                 }}
                 min="0"
                 disabled={!lifeline.enabled}
-                className="w-12 h-7 rounded-lg border border-white/[0.08] bg-[#09090B] px-1 text-[11px] text-white focus:border-[#EC4899] focus:outline-none disabled:opacity-50"
+                className="w-12 h-7 rounded-lg border border-border-hover bg-background px-1 text-[11px] text-white focus:border-[#EC4899] focus:outline-none disabled:opacity-50"
               />
               <button
                 type="button"

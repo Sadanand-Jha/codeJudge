@@ -202,7 +202,7 @@ function MarkdownRenderer({ content }: { content: string }) {
           const idx = line.indexOf(". ");
           return <li key={i} className="ml-4 list-decimal text-[13px] text-[#E5E7EB]">{line.slice(idx + 2)}</li>;
         }
-        if (line.startsWith("> ")) return <blockquote key={i} className="mb-1 border-l-2 border-[#7C3AED] pl-3 text-[12px] italic text-[#9CA3AF]">{line.slice(2)}</blockquote>;
+        if (line.startsWith("> ")) return <blockquote key={i} className="mb-1 border-l-2 border-[#7C3AED] pl-3 text-[12px] italic text-muted-foreground">{line.slice(2)}</blockquote>;
         if (line.startsWith("```")) return null;
         if (line.includes("`")) {
           const parts = line.split(/(`[^`]+`)/g);
@@ -246,15 +246,15 @@ function CodeBlock({ block }: { block: CodeBlock }) {
 
   return (
     <div className="my-3 overflow-hidden rounded-lg border border-[#23252F] bg-[#0F1115]">
-      <div className="flex items-center justify-between border-b border-[#23252F] bg-[#111827] px-3 py-1.5">
+      <div className="flex items-center justify-between border-b border-[#23252F] bg-card px-3 py-1.5">
         <div className="flex items-center gap-2">
           <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: langColors[block.language] || "#6B7280" }} />
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF]">{block.language}</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{block.language}</span>
         </div>
         <div className="flex items-center gap-0.5">
-          <button onClick={() => setShowOutput(!showOutput)} className="rounded p-1 text-[#9CA3AF] hover:bg-[#1F2937] hover:text-white transition-colors" title="Run"><Play className="h-3 w-3" /></button>
-          <button className="rounded p-1 text-[#9CA3AF] hover:bg-[#1F2937] hover:text-white transition-colors" title="Download"><Download className="h-3 w-3" /></button>
-          <button onClick={copy} className="rounded p-1 text-[#9CA3AF] hover:bg-[#1F2937] hover:text-white transition-colors" title="Copy">
+          <button onClick={() => setShowOutput(!showOutput)} className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Run"><Play className="h-3 w-3" /></button>
+          <button className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Download"><Download className="h-3 w-3" /></button>
+          <button onClick={copy} className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Copy">
             {copied ? <CheckCircle className="h-3 w-3 text-[#22C55E]" /> : <Copy className="h-3 w-3" />}
           </button>
         </div>
@@ -265,18 +265,18 @@ function CodeBlock({ block }: { block: CodeBlock }) {
         </pre>
       </div>
       {showOutput && (
-        <div className="border-t border-[#23252F] bg-[#111827]">
+        <div className="border-t border-[#23252F] bg-card">
           <div className="flex items-center gap-2 border-b border-[#23252F] bg-[#0F1115] px-3 py-1.5">
-            <Terminal className="h-3 w-3 text-[#9CA3AF]" />
-            <span className="text-[10px] font-medium text-[#9CA3AF]">Output</span>
+            <Terminal className="h-3 w-3 text-muted-foreground" />
+            <span className="text-[10px] font-medium text-muted-foreground">Output</span>
           </div>
           <div className="p-3">
-            <div className="flex items-center gap-4 text-[10px] text-[#9CA3AF]">
+            <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
               <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> 0.012s</span>
               <span className="flex items-center gap-1"><HardDrive className="h-3 w-3" /> 2.4 MB</span>
               <span className="flex items-center gap-1 text-[#22C55E]"><CheckCircle className="h-3 w-3" /> Accepted</span>
             </div>
-            <pre className="mt-2 rounded bg-[#0F1115] p-2 text-[12px] font-mono text-[#9CA3AF]">// Output will appear here...</pre>
+            <pre className="mt-2 rounded bg-[#0F1115] p-2 text-[12px] font-mono text-muted-foreground">// Output will appear here...</pre>
           </div>
         </div>
       )}
@@ -305,11 +305,11 @@ function MessageBubble({ message, onRegenerate }: { message: Message; onRegenera
             <p className="leading-relaxed">{message.content}</p>
           </div>
         ) : (
-          <div className="rounded-lg rounded-tl-sm border border-[#23252F] bg-[#111827] px-3 py-2 shadow-sm">
+          <div className="rounded-lg rounded-tl-sm border border-[#23252F] bg-card px-3 py-2 shadow-sm">
             {message.thinking && (
               <div className="mb-2 flex items-center gap-2 rounded border border-[#23252F] bg-[#0F1115] p-2">
                 <Spinner className="h-2.5 w-2.5 text-[#7C3AED]" />
-                <span className="text-[10px] text-[#9CA3AF]">Thinking...</span>
+                <span className="text-[10px] text-muted-foreground">Thinking...</span>
               </div>
             )}
             <MarkdownRenderer content={message.content} />
@@ -317,11 +317,11 @@ function MessageBubble({ message, onRegenerate }: { message: Message; onRegenera
             {message.executionResult && <ExecutionCard result={message.executionResult} />}
 
             <div className="mt-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button className="rounded p-1 text-[#9CA3AF] hover:bg-[#1F2937] hover:text-white transition-colors" title="Copy"><Copy className="h-3 w-3" /></button>
-              <button onClick={onRegenerate} className="rounded p-1 text-[#9CA3AF] hover:bg-[#1F2937] hover:text-white transition-colors" title="Regenerate"><RefreshCw className="h-3 w-3" /></button>
-              <button className="rounded p-1 text-[#9CA3AF] hover:bg-[#1F2937] hover:text-white transition-colors" title="Bookmark"><Bookmark className="h-3 w-3" /></button>
-              <button className="rounded p-1 text-[#9CA3AF] hover:bg-[#1F2937] hover:text-white transition-colors" title="Save"><Save className="h-3 w-3" /></button>
-              <button className="rounded p-1 text-[#9CA3AF] hover:bg-[#1F2937] hover:text-white transition-colors" title="Notes"><StickyNote className="h-3 w-3" /></button>
+              <button className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Copy"><Copy className="h-3 w-3" /></button>
+              <button onClick={onRegenerate} className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Regenerate"><RefreshCw className="h-3 w-3" /></button>
+              <button className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Bookmark"><Bookmark className="h-3 w-3" /></button>
+              <button className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Save"><Save className="h-3 w-3" /></button>
+              <button className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Notes"><StickyNote className="h-3 w-3" /></button>
             </div>
           </div>
         )}
@@ -340,7 +340,7 @@ function ExecutionCard({ result }: { result: ExecutionResult }) {
 
   return (
     <div className="my-3 overflow-hidden rounded-lg border border-[#23252F] bg-[#0F1115]">
-      <div className="flex items-center justify-between bg-[#111827] px-3 py-2">
+      <div className="flex items-center justify-between bg-card px-3 py-2">
         <div className="flex items-center gap-2">
           <CheckCircle className="h-3.5 w-3.5 text-[#22C55E]" />
           <span className={`text-[11px] font-semibold ${statusColor}`}>{result.status}</span>
@@ -352,7 +352,7 @@ function ExecutionCard({ result }: { result: ExecutionResult }) {
       </div>
       <div className="p-3">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[11px] text-[#9CA3AF]">Test Cases: {passed}/{total}</span>
+          <span className="text-[11px] text-muted-foreground">Test Cases: {passed}/{total}</span>
           <span className="text-[10px] text-[#6B7280]">{pct}%</span>
         </div>
         <div className="mb-2 h-1 overflow-hidden rounded-full bg-[#23252F]">
@@ -371,12 +371,12 @@ function EmptyState({ onSuggestion }: { onSuggestion: (prompt: string) => void }
         <LogoMark />
       </div>
       <h1 className="mb-2 text-2xl font-bold text-white">What would you like to build today?</h1>
-      <p className="mb-8 text-sm text-[#9CA3AF]">Ask anything about algorithms, competitive programming, debugging or interviews.</p>
+      <p className="mb-8 text-sm text-muted-foreground">Ask anything about algorithms, competitive programming, debugging or interviews.</p>
       <div className="grid max-w-3xl grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
         {SUGGESTIONS.map((s) => {
           const Icon = s.icon;
           return (
-            <button key={s.label} onClick={() => onSuggestion(s.prompt)} className="group flex flex-col items-center gap-2 rounded-xl border border-[#23252F] bg-[#111827] p-4 text-center hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/10 hover:shadow-[0_0_20px_rgba(124,58,237,0.15)] transition-all">
+            <button key={s.label} onClick={() => onSuggestion(s.prompt)} className="group flex flex-col items-center gap-2 rounded-xl border border-[#23252F] bg-card p-4 text-center hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/10 hover:shadow-[0_0_20px_rgba(124,58,237,0.15)] transition-all">
               <Icon className="h-5 w-5 text-[#7C3AED]" />
               <span className="text-[11px] font-medium text-[#E5E7EB] group-hover:text-white transition-colors">{s.label}</span>
             </button>
@@ -635,10 +635,10 @@ export default function AIChatPage() {
                         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] text-white">
                           <Sparkles className="h-3.5 w-3.5" />
                         </div>
-                        <div className="rounded-lg rounded-tl-sm border border-[#23252F] bg-[#111827] px-3 py-2">
+                        <div className="rounded-lg rounded-tl-sm border border-[#23252F] bg-card px-3 py-2">
                           <div className="mb-1 flex items-center gap-2">
                             <Spinner className="h-3 w-3 text-[#7C3AED]" />
-                            <span className="text-[11px] text-[#9CA3AF]">Thinking...</span>
+                            <span className="text-[11px] text-muted-foreground">Thinking...</span>
                           </div>
                           <TypingDots />
                         </div>

@@ -51,11 +51,11 @@ export default function ActivityHeatmap() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6"
+      className="rounded-2xl border border-border bg-card p-6"
     >
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-sm font-semibold text-white">Activity Heatmap</h3>
-        <span className="text-xs text-[#9CA3AF]">{totalSubmissions} submissions in the last year</span>
+        <span className="text-xs text-muted-foreground">{totalSubmissions} submissions in the last year</span>
       </div>
 
       <div className="overflow-x-auto">

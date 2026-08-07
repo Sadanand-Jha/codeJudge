@@ -75,16 +75,16 @@ export function ParticipantsDrawer({ open, onClose, participants }: Participants
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 360, damping: 38 }}
-            className="fixed top-0 right-0 h-screen w-[420px] max-w-[90vw] bg-[#0B0D14] border-l border-white/[0.08] z-[100] flex flex-col shadow-2xl shadow-black/50"
+            className="fixed top-0 right-0 h-screen w-[420px] max-w-[90vw] bg-[#0B0D14] border-l border-border-hover z-[100] flex flex-col shadow-2xl shadow-black/50"
           >
-            <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between shrink-0">
+            <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#EC4899] to-[#BE185D] flex items-center justify-center">
                   <Users className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-white">Participants</h2>
-                  <p className="text-[10px] text-[#71717A]">{filtered.length} of {participants.length} shown</p>
+                  <p className="text-[10px] text-muted-foreground">{filtered.length} of {participants.length} shown</p>
                 </div>
               </div>
               <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/[0.06] text-[#9CA3Af] hover:text-white transition-colors" aria-label="Close drawer">
@@ -94,8 +94,8 @@ export function ParticipantsDrawer({ open, onClose, participants }: Participants
 
             <div className="px-5 py-3 shrink-0">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#71717A]" />
-                <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search participants..." className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-white/[0.06] bg-[#111217] text-white placeholder-[#71717A] focus:outline-none focus:border-[#EC4899]/30 transition-colors" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search participants..." className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-border bg-[#111217] text-white placeholder-[#71717A] focus:outline-none focus:border-[#EC4899]/30 transition-colors" />
               </div>
             </div>
 
@@ -109,7 +109,7 @@ export function ParticipantsDrawer({ open, onClose, participants }: Participants
                     <button key={f.id} onClick={() => setFilter(f.id)} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium whitespace-nowrap transition-all ${active ? "text-white border" : "text-[#9CA3Af] hover:text-white border border-transparent hover:bg-white/[0.04]"}`} style={active ? { backgroundColor: `${f.color}15`, borderColor: `${f.color}40`, color: f.color } : undefined}>
                       <Icon className="w-3 h-3" />
                       {f.label}
-                      <span className="ml-0.5 px-1 py-0.5 rounded text-[8px] bg-white/[0.06] text-[#A1A1AA]">{count}</span>
+                      <span className="ml-0.5 px-1 py-0.5 rounded text-[8px] bg-white/[0.06] text-muted-foreground">{count}</span>
                     </button>
                   );
                 })}
@@ -117,10 +117,10 @@ export function ParticipantsDrawer({ open, onClose, participants }: Participants
             </div>
 
             <div className="px-5 pb-3 shrink-0 flex items-center gap-2">
-              <ArrowDownUp className="w-3 h-3 text-[#71717A]" />
+              <ArrowDownUp className="w-3 h-3 text-muted-foreground" />
               <div className="flex items-center gap-1 overflow-x-auto">
                 {SORTS.map((s) => (
-                  <button key={s.id} onClick={() => setSort(s.id)} className={`px-2 py-1 rounded-md text-[9px] font-medium whitespace-nowrap transition-all ${sort === s.id ? "bg-[#EC4899]/15 text-[#EC4899] border border-[#EC4899]/25" : "text-[#71717A] hover:text-white border border-transparent"}`}>
+                  <button key={s.id} onClick={() => setSort(s.id)} className={`px-2 py-1 rounded-md text-[9px] font-medium whitespace-nowrap transition-all ${sort === s.id ? "bg-[#EC4899]/15 text-[#EC4899] border border-[#EC4899]/25" : "text-muted-foreground hover:text-white border border-transparent"}`}>
                     {s.label}
                   </button>
                 ))}
@@ -131,11 +131,11 @@ export function ParticipantsDrawer({ open, onClose, participants }: Participants
               {filtered.length === 0 ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
-                    <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-[#171923] border border-white/[0.06] flex items-center justify-center">
-                      <Users className="w-6 h-6 text-[#71717A]" />
+                    <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-[#171923] border border-border flex items-center justify-center">
+                      <Users className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <p className="text-sm font-medium text-white">No participants</p>
-                    <p className="text-[10px] text-[#71717A] mt-1">{search ? "Try a different search." : "No one matches this filter."}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{search ? "Try a different search." : "No one matches this filter."}</p>
                   </div>
                 </div>
               ) : (

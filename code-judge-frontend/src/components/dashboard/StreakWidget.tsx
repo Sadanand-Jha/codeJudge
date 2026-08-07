@@ -19,13 +19,13 @@ export default function StreakWidget({ streak = 47, goal = 100 }: StreakWidgetPr
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
       whileHover={{ y: -4 }}
-      className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#111827] p-6"
+      className="relative overflow-hidden rounded-2xl border border-border bg-card p-6"
     >
       {/* Glow */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-[#F59E0B]/10 rounded-full blur-[60px]" />
 
       <div className="relative z-10 flex flex-col items-center">
-        <h3 className="text-xs font-medium uppercase tracking-widest text-[#9CA3AF] mb-4">Current Streak</h3>
+        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-4">Current Streak</h3>
 
         {/* Circular progress ring */}
         <div className="relative w-24 h-24 mb-4">
@@ -52,7 +52,7 @@ export default function StreakWidget({ streak = 47, goal = 100 }: StreakWidgetPr
           </div>
         </div>
 
-        <p className="text-xs text-[#9CA3AF] text-center">
+        <p className="text-xs text-muted-foreground text-center">
           {goal - streak} days to 100!
         </p>
         <p className="text-[10px] text-[#6B7280] mt-1 text-center">

@@ -20,74 +20,147 @@
 */
 
 :root {
+  /* == Core surfaces == */
   --background: #09090B;
   --foreground: #FFFFFF;
   --card: #111827;
+  --card-foreground: #FFFFFF;
   --card-hover: #1A1F2E;
-  --border: rgba(255, 255, 255, 0.06);
-  --border-hover: rgba(255, 255, 255, 0.12);
+  --popover: #111827;
+  --popover-foreground: #FFFFFF;
+
+  /* == Brand / state == */
+  --primary: #7C3AED;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1F2937;
+  --secondary-foreground: #F3F4F6;
   --accent: #7C3AED;
+  --accent-foreground: #FFFFFF;
   --accent-secondary: #3B82F6;
+  --muted: #1F2937;
+  --muted-foreground: #9CA3AF;
   --success: #22C55E;
   --warning: #F59E0B;
-  --gold: #FBBF24;
   --danger: #EF4444;
+  --gold: #FBBF24;
+
+  /* == Lines / controls == */
+  --border: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.08);
+  --input-bg: #0A0A0C;
+  --input-border: rgba(255, 255, 255, 0.08);
+  --input-focus-ring: rgba(124, 58, 237, 0.08);
+  --ring: #7C3AED;
+
+  /* == Navigation == */
+  --sidebar: #111827;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+
+  /* == Legacy aliases (kept for incremental migration) == */
   --text-primary: #FFFFFF;
   --text-secondary: #9CA3AF;
   --text-muted: #6B7280;
   --link: #7C3AED;
   --link-visited: #A78BFA;
-  --input-bg: #0A0A0C;
-  --input-border: rgba(255, 255, 255, 0.08);
-  --input-focus-ring: rgba(124, 58, 237, 0.08);
   --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
 }
 
 /* ============================================
-   Premium Light Theme
+   Light Theme — only the tokens change here.
+   Components never reference light/dark.
    ============================================ */
 [data-theme="light"] {
-  --background: #FFFFFF;
+  /* == Core surfaces == */
+  --background: #F8FAFC;
   --foreground: #0F172A;
   --card: #FFFFFF;
+  --card-foreground: #0F172A;
   --card-hover: #F8FAFC;
-  --border: #E2E8F0;
-  --border-hover: #CBD5E1;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+
+  /* == Brand / state == */
+  --primary: #7C3AED;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #0F172A;
   --accent: #7C3AED;
+  --accent-foreground: #FFFFFF;
   --accent-secondary: #3B82F6;
+  --muted: #F3F4F6;
+  --muted-foreground: #64748B;
   --success: #22C55E;
   --warning: #F59E0B;
-  --gold: #FBBF24;
   --danger: #EF4444;
+  --gold: #FBBF24;
+
+  /* == Lines / controls == */
+  --border: #E2E8F0;
+  --border-hover: #CBD5E1;
+  --input: #E2E8F0;
+  --input-bg: #FFFFFF;
+  --input-border: #E2E8F0;
+  --input-focus-ring: rgba(124, 58, 237, 0.15);
+  --ring: #7C3AED;
+
+  /* == Navigation == */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-border: #E2E8F0;
+
+  /* == Legacy aliases (kept for incremental migration) == */
   --text-primary: #0F172A;
   --text-secondary: #475569;
   --text-muted: #64748B;
   --link: #7C3AED;
   --link-visited: #6D28D9;
-  --input-bg: #FFFFFF;
-  --input-border: #E2E8F0;
-  --input-focus-ring: rgba(124, 58, 237, 0.15);
   --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 @theme inline {
+  /* Core surfaces */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
   --color-card-hover: var(--card-hover);
-  --color-border: var(--border);
-  --color-border-hover: var(--border-hover);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  /* Brand / state */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-accent-secondary: var(--accent-secondary);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-success: var(--success);
   --color-warning: var(--warning);
-  --color-gold: var(--gold);
   --color-danger: var(--danger);
+  --color-gold: var(--gold);
+
+  /* Lines / controls */
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-input: var(--input);
+  --color-input-bg: var(--input-bg);
+  --color-input-border: var(--input-border);
+  --color-ring: var(--ring);
+
+  /* Navigation */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+
+  /* Legacy aliases (kept for incremental migration) */
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
-  --color-input-bg: var(--input-bg);
-  --color-input-border: var(--input-border);
 }
 
 /* Base styles */

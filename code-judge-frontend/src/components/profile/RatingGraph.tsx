@@ -44,10 +44,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="rounded-xl bg-slate-800/90 backdrop-blur-xl border border-slate-700/50 px-3 py-2 shadow-xl text-xs">
         <p className="font-semibold text-slate-100">{label}</p>
-        <p className="text-slate-400 mt-0.5">
+        <p className="text-muted-foreground mt-0.5">
           Rating: <span className="font-bold text-cyan-400">{rating}</span>
         </p>
-        <p className="text-slate-400">Rank: #{payload[0]?.payload?.rank || "—"}</p>
+        <p className="text-muted-foreground">Rank: #{payload[0]?.payload?.rank || "—"}</p>
       </div>
     );
   }
@@ -65,7 +65,7 @@ export default function RatingGraph({ data = defaultData, currentRating }: Ratin
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xs font-medium uppercase tracking-widest text-slate-400">Rating History</h3>
+        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Rating History</h3>
         <span className="text-sm font-semibold text-cyan-400">{latestRating}</span>
       </div>
 

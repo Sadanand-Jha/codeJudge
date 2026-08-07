@@ -38,7 +38,7 @@ export default function AvatarSettings({
               <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] opacity-60 blur-[2px]" />
 
               {/* Avatar */}
-              <div className="relative h-[100px] w-[100px] overflow-hidden rounded-full border-2 border-white/10 bg-[#09090B] shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              <div className="relative h-[100px] w-[100px] overflow-hidden rounded-full border-2 border-white/10 bg-background shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
                 <img
                   src={effectiveAvatarUrl}
                   alt="Current avatar"
@@ -48,9 +48,9 @@ export default function AvatarSettings({
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col items-center text-center sm:items-start sm:text-left">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1.5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-white/[0.03] px-3 py-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#22C55E]" />
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Current Avatar
                 </span>
               </div>
@@ -66,7 +66,7 @@ export default function AvatarSettings({
           {/* ===== Change Avatar Button ===== */}
           <button
             onClick={() => setIsModalOpen(true)}
-            className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/10"
+            className="w-full rounded-xl border border-border-hover bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:border-[#7C3AED]/40 hover:bg-[#7C3AED]/10"
           >
             Change Avatar
           </button>

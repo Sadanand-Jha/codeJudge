@@ -11,7 +11,7 @@ import { getRatingHex } from "@/lib/helpers";
 function getRatingColor(rating: number | null): string {
   const hex = getRatingHex(rating);
   const map: Record<string, string> = {
-    "#9CA3AF": "text-[#9CA3AF]",
+    "#9CA3AF": "text-muted-foreground",
     "#22C55E": "text-[#22C55E]",
     "#F59E0B": "text-[#F59E0B]",
     "#3B82F6": "text-[#3B82F6]",
@@ -19,7 +19,7 @@ function getRatingColor(rating: number | null): string {
     "#F97316": "text-[#F97316]",
     "#EF4444": "text-[#EF4444]",
   };
-  return map[hex] ?? "text-[#9CA3AF]";
+  return map[hex] ?? "text-muted-foreground";
 }
 
 function getRatingBg(rating: number | null): string {

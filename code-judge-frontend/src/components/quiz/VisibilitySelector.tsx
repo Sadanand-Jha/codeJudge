@@ -49,18 +49,18 @@ export default function VisibilitySelector({ value, onChange, options }: Visibil
             className={`relative flex items-start gap-3 rounded-xl border p-4 text-left transition-all duration-200 ${
               isActive
                 ? "border-[#EC4899] bg-[#EC4899]/10 shadow-[0_0_20px_rgba(124,58,237,0.15)]"
-                : "border-white/[0.08] bg-[#111827] hover:border-white/[0.12] hover:bg-white/[0.02]"
+                : "border-border-hover bg-card hover:border-border-hover hover:bg-white/[0.02]"
             }`}
           >
             <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${
-              isActive ? "border-[#EC4899]/30 bg-[#EC4899]/20 text-[#EC4899]" : "border-white/[0.08] bg-white/[0.03] text-[#9CA3AF]"
+              isActive ? "border-[#EC4899]/30 bg-[#EC4899]/20 text-[#EC4899]" : "border-border-hover bg-white/[0.03] text-muted-foreground"
             }`}>
               <Icon className="h-5 w-5" />
             </div>
 
             <div className="flex-1">
               <p className={`text-sm font-semibold ${isActive ? "text-white" : "text-[#E5E7EB]"}`}>{option.label}</p>
-              <p className="mt-1 text-xs text-[#9CA3AF] leading-relaxed">{option.description}</p>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{option.description}</p>
             </div>
 
             {isActive && (

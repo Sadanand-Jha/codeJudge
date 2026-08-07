@@ -59,7 +59,7 @@ export default function StatsCards({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: i * 0.1, ease: "easeOut" }}
             whileHover={{ y: -4 }}
-            className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[#111827] p-5 transition-colors hover:border-white/[0.12]"
+            className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-colors hover:border-border-hover"
           >
             <div className="flex items-start justify-between mb-4">
               <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
@@ -72,7 +72,7 @@ export default function StatsCards({
               )}
             </div>
             <p className="text-3xl font-bold text-white tracking-tight">{stat.value}</p>
-            <p className="text-xs font-medium text-[#9CA3AF] mt-1">{stat.label}</p>
+            <p className="text-xs font-medium text-muted-foreground mt-1">{stat.label}</p>
             <p className="text-[10px] text-[#6B7280] mt-0.5">{stat.subtext}</p>
           </motion.div>
         );

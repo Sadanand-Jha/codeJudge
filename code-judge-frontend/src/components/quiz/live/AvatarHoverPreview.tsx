@@ -147,7 +147,7 @@ export function AvatarHoverPreview({ participant, onEnter, onLeave }: AvatarHove
               {/* Name and basic info */}
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-bold text-white truncate">{participant.username}</h3>
-                <p className="text-[10px] text-[#9CA3AF] mt-0.5">Roll #{participant.id.slice(-4)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Roll #{participant.id.slice(-4)}</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <div
                     className="w-1.5 h-1.5 rounded-full"
@@ -162,31 +162,31 @@ export function AvatarHoverPreview({ participant, onEnter, onLeave }: AvatarHove
 
             {/* Stats pills */}
             <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08]">
+              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover">
                 <Flame className="w-3 h-3 text-[#F59E0B]" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] text-[#71717A]">Streak</p>
+                  <p className="text-[9px] text-muted-foreground">Streak</p>
                   <p className="text-[11px] font-bold text-white">12 days</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08]">
+              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover">
                 <Trophy className="w-3 h-3 text-[#EC4899]" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] text-[#71717A]">Rating</p>
+                  <p className="text-[9px] text-muted-foreground">Rating</p>
                   <p className="text-[11px] font-bold text-white">1,847</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08]">
+              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover">
                 <Award className="w-3 h-3 text-[#8B5CF6]" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] text-[#71717A]">Solved</p>
+                  <p className="text-[9px] text-muted-foreground">Solved</p>
                   <p className="text-[11px] font-bold text-white">342</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08]">
+              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover">
                 <Users className="w-3 h-3 text-[#22C55E]" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] text-[#71717A]">Quizzes</p>
+                  <p className="text-[9px] text-muted-foreground">Quizzes</p>
                   <p className="text-[11px] font-bold text-white">28</p>
                 </div>
               </div>
@@ -203,26 +203,26 @@ export function AvatarHoverPreview({ participant, onEnter, onLeave }: AvatarHove
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] hover:border-[#A855F7]/40 hover:bg-white/[0.08] transition-all duration-250"
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover hover:border-[#A855F7]/40 hover:bg-white/[0.08] transition-all duration-250"
               >
                 <span className="text-sm">👋</span>
-                <span className="text-[10px] font-medium text-[#9CA3AF]">Wave</span>
+                <span className="text-[10px] font-medium text-muted-foreground">Wave</span>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] hover:border-[#A855F7]/40 hover:bg-white/[0.08] transition-all duration-250"
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover hover:border-[#A855F7]/40 hover:bg-white/[0.08] transition-all duration-250"
               >
                 <span className="text-sm">👏</span>
-                <span className="text-[10px] font-medium text-[#9CA3AF]">Clap</span>
+                <span className="text-[10px] font-medium text-muted-foreground">Clap</span>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-white/[0.08] hover:border-[#A855F7]/40 hover:bg-white/[0.08] transition-all duration-250"
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover hover:border-[#A855F7]/40 hover:bg-white/[0.08] transition-all duration-250"
               >
                 <span className="text-sm">❤️</span>
-                <span className="text-[10px] font-medium text-[#9CA3AF]">React</span>
+                <span className="text-[10px] font-medium text-muted-foreground">React</span>
               </motion.button>
             </div>
           </div>

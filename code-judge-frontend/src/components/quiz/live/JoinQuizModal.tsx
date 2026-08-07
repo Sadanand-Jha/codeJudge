@@ -42,7 +42,7 @@ export function JoinQuizModal({ open, onClose, onJoin }: JoinQuizModalProps) {
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md mx-4"
           >
-            <div className="join-quiz-modal relative rounded-3xl border border-white/[0.12] bg-gradient-to-br from-[#111217] to-[#0B0D14] p-6 shadow-2xl shadow-black/60">
+            <div className="join-quiz-modal relative rounded-3xl border border-border-hover bg-gradient-to-br from-[#111217] to-[#0B0D14] p-6 shadow-2xl shadow-black/60">
               <div className="join-quiz-glow absolute -inset-0.5 rounded-3xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] opacity-20 blur" />
               <div className="relative">
                 <div className="flex items-center justify-between mb-4">
@@ -52,17 +52,17 @@ export function JoinQuizModal({ open, onClose, onJoin }: JoinQuizModalProps) {
                     </div>
                     <h2 className="join-quiz-title text-lg font-bold text-white">Join Quiz</h2>
                   </div>
-                  <button onClick={onClose} className="join-quiz-close p-1.5 rounded-lg hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors">
+                  <button onClick={onClose} className="join-quiz-close p-1.5 rounded-lg hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <p className="join-quiz-desc text-xs text-[#A1A1AA] mb-5">
+                <p className="join-quiz-desc text-xs text-muted-foreground mb-5">
                   Enter the code shared by your teacher to join a live
                   assessment.
                 </p>
 
-                <label className="join-quiz-label block text-[10px] font-medium uppercase tracking-wider text-[#71717A] mb-1.5">
+                <label className="join-quiz-label block text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
                   Quiz Code
                 </label>
                 <input
@@ -72,7 +72,7 @@ export function JoinQuizModal({ open, onClose, onJoin }: JoinQuizModalProps) {
                   value={display}
                   onChange={(e) => setRaw(e.target.value)}
                   placeholder="ABCD-1234-EFGH-5678"
-                  className="join-quiz-input w-full text-center text-xl font-mono font-bold tracking-widest px-4 py-3 rounded-xl border border-white/[0.06] bg-[#171923] text-white placeholder-[#71717A] focus:outline-none focus:border-[#EC4899]/30 transition-colors"
+                  className="join-quiz-input w-full text-center text-xl font-mono font-bold tracking-widest px-4 py-3 rounded-xl border border-border bg-[#171923] text-white placeholder-[#71717A] focus:outline-none focus:border-[#EC4899]/30 transition-colors"
                 />
 
                 {!valid && digits.length > 0 && (

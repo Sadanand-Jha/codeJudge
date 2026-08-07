@@ -296,7 +296,7 @@ export function QuestionTypeCard({ type, selected, onClick, index }: QuestionTyp
           className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all
             ${selected
               ? "border-[#EC4899]/30 bg-[#EC4899]/20 text-[#EC4899]"
-              : "border-white/[0.08] bg-white/[0.03] text-[#EC4899] group-hover:border-[#EC4899]/30 group-hover:bg-[#EC4899]/10"}`}
+              : "border-border-hover bg-white/[0.03] text-[#EC4899] group-hover:border-[#EC4899]/30 group-hover:bg-[#EC4899]/10"}`}
         >
           <Icon className="w-5 h-5" />
         </div>
@@ -369,12 +369,12 @@ export function OptionCard({ option, index, onChange, onCorrect, onDelete, onDup
             >
               {option.label}
             </span>
-            <span className="text-[9px] text-[#9CA3AF] font-medium">Option</span>
+            <span className="text-[9px] text-muted-foreground font-medium">Option</span>
           </div>
 
           {option.imageUrl ? (
             <div className="space-y-1.5">
-              <img src={option.imageUrl} alt={option.caption || `Option ${option.label}`} className="w-full h-16 object-cover rounded-lg border border-white/[0.06]" />
+              <img src={option.imageUrl} alt={option.caption || `Option ${option.label}`} className="w-full h-16 object-cover rounded-lg border border-border" />
               <textarea
                 value={option.content}
                 onChange={(e) => onChange("content", e.target.value)}
@@ -399,7 +399,7 @@ export function OptionCard({ option, index, onChange, onCorrect, onDelete, onDup
               value={option.caption}
               onChange={(e) => onChange("caption", e.target.value)}
               placeholder="Caption..."
-              className="w-full bg-transparent text-[9px] text-[#9CA3AF] placeholder-[#71717A] focus:outline-none"
+              className="w-full bg-transparent text-[9px] text-muted-foreground placeholder-[#71717A] focus:outline-none"
             />
           )}
         </div>
@@ -424,7 +424,7 @@ export function OptionCard({ option, index, onChange, onCorrect, onDelete, onDup
               };
               input.click();
             }}
-            className="p-1 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors"
+            className="p-1 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors"
             title="Add image"
           >
             ⤴
@@ -543,7 +543,7 @@ export function Toolbar({
           className={`h-8 px-4 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5
             ${canPublish
               ? `bg-gradient-to-r ${pinkGradientStr} hover:shadow-[0_0_20px_rgba(236,72,153,0.3)]`
-              : "bg-[#3F3F46] text-[#71717A] cursor-not-allowed"}`}
+              : "bg-[#3F3F46] text-muted-foreground cursor-not-allowed"}`}
         >
           Publish
         </button>

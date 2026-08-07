@@ -17,7 +17,7 @@ export default function Achievements() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6"
+      className="rounded-2xl border border-border bg-card p-6"
     >
       <h3 className="text-sm font-semibold text-white mb-5">Achievements</h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -30,7 +30,7 @@ export default function Achievements() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, delay: i * 0.08 }}
               whileHover={{ y: -4 }}
-              className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-[#09090B] p-4 text-center"
+              className="relative overflow-hidden rounded-xl border border-border bg-background p-4 text-center"
               style={{ boxShadow: `0 0 20px ${a.glow}` }}
             >
               <div className={`w-10 h-10 mx-auto rounded-xl bg-gradient-to-br ${a.gradient} flex items-center justify-center mb-2`}>

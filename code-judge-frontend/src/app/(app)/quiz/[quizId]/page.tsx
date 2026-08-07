@@ -37,19 +37,19 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
       : "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20";
 
   return (
-    <div className="min-h-screen bg-[#09090B] p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-white/[0.08] bg-[#111827] overflow-hidden"
+          className="rounded-2xl border border-border-hover bg-card overflow-hidden"
         >
           <div className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
                 <h1 className="text-2xl font-bold text-white">{quiz.title}</h1>
-                <div className="flex items-center gap-2 text-sm text-[#9CA3AF]">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>by {quiz.creatorName}</span>
                   <span>•</span>
                   <span>{quiz.tags.join(", ")}</span>
@@ -62,14 +62,14 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
 
             <div className="flex items-center gap-2 mt-4">
               {quiz.tags.map((tag) => (
-                <span key={tag} className="px-2.5 py-1 bg-[#0B0D12] text-[11px] text-[#9CA3AF] rounded-full border border-white/[0.06]">
+                <span key={tag} className="px-2.5 py-1 bg-[#0B0D12] text-[11px] text-muted-foreground rounded-full border border-border">
                   {tag}
                 </span>
               ))}
             </div>
 
-            <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between">
-              <div className="flex items-center gap-6 text-sm text-[#9CA3AF]">
+            <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+              <div className="flex items-center gap-6 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-4 h-4" />
                   <span>{quiz.timeLimit} min</span>
@@ -102,42 +102,42 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6 space-y-4"
+          className="rounded-2xl border border-border-hover bg-card p-6 space-y-4"
         >
           <h2 className="text-lg font-semibold text-white">About This Assessment</h2>
-          <p className="text-sm text-[#9CA3AF]">{quiz.description}</p>
+          <p className="text-sm text-muted-foreground">{quiz.description}</p>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <span className="text-xs text-[#9CA3AF]">Passing Score</span>
+              <span className="text-xs text-muted-foreground">Passing Score</span>
               <p className="font-medium text-white">{quiz.passingScore ?? settings.passingScore}%</p>
             </div>
             <div>
-              <span className="text-xs text-[#9CA3AF]">Attempts Allowed</span>
+              <span className="text-xs text-muted-foreground">Attempts Allowed</span>
               <p className="font-medium text-white">{quiz.attemptsAllowed}</p>
             </div>
             <div>
-              <span className="text-xs text-[#9CA3AF]">Negative Marking</span>
+              <span className="text-xs text-muted-foreground">Negative Marking</span>
               <p className="font-medium text-white">{quiz.assessmentSettings?.negativeMarking ? "Yes" : "No"}</p>
             </div>
             <div>
-              <span className="text-xs text-[#9CA3AF]">Languages</span>
+              <span className="text-xs text-muted-foreground">Languages</span>
               <p className="font-medium text-white">{quiz.languagesSupported?.join(", ") || "English"}</p>
             </div>
             <div>
-              <span className="text-xs text-[#9CA3AF]">Certificate</span>
+              <span className="text-xs text-muted-foreground">Certificate</span>
               <p className="font-medium text-white">{quiz.certificateEligible ? "Yes" : "No"}</p>
             </div>
             <div>
-              <span className="text-xs text-[#9CA3AF]">Last Updated</span>
+              <span className="text-xs text-muted-foreground">Last Updated</span>
               <p className="font-medium text-white">{new Date(quiz.createdAt).toLocaleDateString()}</p>
             </div>
           </div>
 
           {quiz.learningOutcomes && (
             <div className="space-y-1">
-              <label className="text-xs font-medium text-[#9CA3AF]">Learning Outcomes</label>
-              <ul className="text-sm text-[#9CA3AF] space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Learning Outcomes</label>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 {quiz.learningOutcomes.map((outcome, i) => (
                   <li key={i} className="flex items-center gap-1.5">
                     <CheckCircle className="w-3.5 h-3.5 text-[#22C55E]" />
@@ -150,8 +150,8 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
 
           {quiz.prerequisites && (
             <div className="space-y-1">
-              <label className="text-xs font-medium text-[#9CA3AF]">Prerequisites</label>
-              <ul className="text-sm text-[#9CA3AF] space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Prerequisites</label>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 {quiz.prerequisites.map((pre, i) => (
                   <li key={i} className="flex items-center gap-1.5">
                     <ExternalLink className="w-3.5 h-3.5 text-[#EC4899]" />
@@ -168,7 +168,7 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6"
+          className="rounded-2xl border border-border-hover bg-card p-6"
         >
           <h2 className="text-lg font-semibold text-white mb-4">Statistics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -178,10 +178,10 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
               { label: "Avg. Score", value: `${quiz.averageScore}%`, icon: BarChart3, color: "text-[#EC4899]" },
               { label: "Bookmarks", value: "8", icon: ThumbsUp, color: "text-[#EF4444]" },
             ].map((stat) => (
-              <div key={stat.label} className="rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3">
+              <div key={stat.label} className="rounded-xl border border-border-hover bg-[#0B0D12] p-3">
                 <stat.icon className={`w-4 h-4 ${stat.color} mb-1`} />
                 <p className="text-lg font-bold text-white">{stat.value}</p>
-                <p className="text-[10px] text-[#9CA3AF]">{stat.label}</p>
+                <p className="text-[10px] text-muted-foreground">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -192,18 +192,18 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6"
+          className="rounded-2xl border border-border-hover bg-card p-6"
         >
           <h2 className="text-lg font-semibold text-white mb-4">About the Creator</h2>
           <div className="flex items-center gap-4">
-            <img src={mockQuizCreator.avatar} alt={mockQuizCreator.username} className="w-16 h-16 rounded-full border border-white/[0.08]" />
+            <img src={mockQuizCreator.avatar} alt={mockQuizCreator.username} className="w-16 h-16 rounded-full border border-border-hover" />
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-semibold text-white">{mockQuizCreator.username}</h3>
                 {mockQuizCreator.verified && <Verified className="w-4 h-4 text-[#EC4899]" />}
               </div>
-              <p className="text-xs text-[#9CA3AF]">{mockQuizCreator.bio}</p>
-              <div className="flex items-center gap-3 text-xs text-[#9CA3AF]">
+              <p className="text-xs text-muted-foreground">{mockQuizCreator.bio}</p>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span>{mockQuizCreator.college}</span>
                 <span>•</span>
                 <span>{mockQuizCreator.totalQuizzes} quizzes</span>
@@ -215,10 +215,10 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
               </div>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <button className="px-3 h-8 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs font-medium text-white hover:border-white/[0.12]">
+              <button className="px-3 h-8 rounded-lg border border-border-hover bg-[#0B0D12] text-xs font-medium text-white hover:border-border-hover">
                 Follow
               </button>
-              <button className="px-3 h-8 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs font-medium text-white hover:border-white/[0.12]">
+              <button className="px-3 h-8 rounded-lg border border-border-hover bg-[#0B0D12] text-xs font-medium text-white hover:border-border-hover">
                 View Profile
               </button>
             </div>

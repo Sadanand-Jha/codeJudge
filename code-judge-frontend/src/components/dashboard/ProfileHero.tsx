@@ -34,7 +34,7 @@ export default function ProfileHero({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-3xl border border-white/[0.06] bg-[#111827] p-8"
+      className="relative overflow-hidden rounded-3xl border border-border bg-card p-8"
     >
       {/* Animated gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/10 via-transparent to-[#3B82F6]/10" />
@@ -57,14 +57,14 @@ export default function ProfileHero({
                 Specialist
               </span>
             </div>
-            <p className="text-sm text-[#9CA3AF] mt-1">{email}</p>
+            <p className="text-sm text-muted-foreground mt-1">{email}</p>
             {bio && (
-              <p className="text-xs text-[#9CA3AF] mt-1 line-clamp-1">{bio}</p>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{bio}</p>
             )}
             <div className="flex items-center gap-2 mt-2">
-              {country && <span className="text-xs text-[#9CA3AF]">{country}</span>}
+              {country && <span className="text-xs text-muted-foreground">{country}</span>}
               {country && <span className="text-[#3F3F46]">•</span>}
-              <div className="flex items-center gap-1 text-xs text-[#9CA3AF]">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Calendar className="w-3 h-3" />
                 Joined {joinDate}
               </div>
@@ -74,7 +74,7 @@ export default function ProfileHero({
 
         {/* Center: Quote */}
         <div className="hidden lg:block flex-1 max-w-md mx-auto">
-          <p className="text-sm italic text-[#9CA3AF] text-center">
+          <p className="text-sm italic text-muted-foreground text-center">
             "Code is like humor. When you have to explain it, it's bad."
           </p>
         </div>
