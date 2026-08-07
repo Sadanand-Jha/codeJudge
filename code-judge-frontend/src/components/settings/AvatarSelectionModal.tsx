@@ -22,7 +22,7 @@ interface AvatarSelectionModalProps {
 // image1-14.png are UNLOCKED (free to use)
 // hero1-6.png are LOCKED (coming soon)
 // ─────────────────────────────────────────
-const PROFILE_IMAGES: Array<{ src: string; label: string; unlocked: boolean }> = [
+export const PROFILE_IMAGES: Array<{ src: string; label: string; unlocked: boolean }> = [
   { src: "/images/quiz/image1.png", label: "image1", unlocked: true },
   { src: "/images/quiz/image2.png", label: "image2", unlocked: true },
   { src: "/images/quiz/image3.png", label: "image3", unlocked: true },
@@ -76,6 +76,12 @@ export default function AvatarSelectionModal({
   const canSave = hasChanges && !saving;
 
   const selectedAvatarData = getPredefinedAvatarByUrl(selectedAvatar);
+  // The selection modal uses /images/quiz/imageN.png & /images/hero/heroN.png,
+  // which are not part of the predefined avatar set — resolve the display name
+  // from the picker's own list first, then fall back to predefined avatars.
+  const selectedImage = PROFILE_IMAGES.find((i) => i.src === selectedAvatar);
+  const selectedLabel =
+    selectedImage?.label || selectedAvatarData?.label || null;
 
   const handleImageClick = (img: { src: string; label: string; unlocked: boolean }) => {
     if (!img.unlocked) {
@@ -173,7 +179,7 @@ export default function AvatarSelectionModal({
                       {selectedAvatar ? (
                         <img
                           src={selectedAvatar}
-                          alt={selectedAvatarData?.label || "Selected avatar"}
+                          alt={selectedLabel || "Selected avatar"}
                           className="h-full w-full object-cover"
                         />
                       ) : (
@@ -185,7 +191,7 @@ export default function AvatarSelectionModal({
                   </AnimatePresence>
                 </div>
                 <p className="text-sm font-semibold text-white">
-                  {selectedAvatarData?.label || "No avatar selected"}
+                  {selectedLabel || "No avatar selected"}
                 </p>
               </div>
             </div>

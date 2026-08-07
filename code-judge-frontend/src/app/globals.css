@@ -2779,62 +2779,6 @@ svg {
 }
 
 /* ============================================
-   Join Quiz Modal — Light Theme Polish
-   Scoped exclusively to [data-theme="light"]
-   via the .join-quiz-* hook classes added in
-   JoinQuizModal.tsx. Dark theme is untouched.
-   ============================================ */
-
-/* Modal overlay — lighter dim */
-[data-theme="light"] .join-quiz-modal {
-  background: #FFFFFF !important;
-  border-color: #E2E8F0 !important;
-  box-shadow: 0 24px 54px rgba(15, 23, 42, 0.12) !important;
-}
-
-/* Title */
-[data-theme="light"] .join-quiz-title {
-  color: #0F172A !important;
-}
-
-/* Description */
-[data-theme="light"] .join-quiz-desc {
-  color: #64748B !important;
-}
-
-/* Label */
-[data-theme="light"] .join-quiz-label {
-  color: #64748B !important;
-}
-
-/* Input */
-[data-theme="light"] .join-quiz-input {
-  background-color: #FFFFFF !important;
-  border-color: #E2E8F0 !important;
-  color: #0F172A !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
-}
-
-[data-theme="light"] .join-quiz-input::placeholder {
-  color: #94A3B8 !important;
-}
-
-[data-theme="light"] .join-quiz-input:focus {
-  border-color: #2563EB !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
-}
-
-/* Close button */
-[data-theme="light"] .join-quiz-close {
-  color: #64748B !important;
-}
-
-[data-theme="light"] .join-quiz-close:hover {
-  color: #0F172A !important;
-  background: rgba(15, 23, 42, 0.04) !important;
-}
-
-/* ============================================
    Scroll Story — Cinematic Pricing Experience
    ============================================ */
 

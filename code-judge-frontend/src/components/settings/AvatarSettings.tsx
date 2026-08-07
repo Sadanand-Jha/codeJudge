@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { SettingsCard } from "@/components/ui/settings";
 import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
-import AvatarSelectionModal from "./AvatarSelectionModal";
+import AvatarSelectionModal, { PROFILE_IMAGES } from "./AvatarSelectionModal";
 
 interface AvatarSettingsProps {
   currentAvatarUrl?: string | null;
@@ -18,7 +18,12 @@ export default function AvatarSettings({
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const effectiveAvatarUrl = currentAvatarUrl || DEFAULT_AVATAR_URL;
-  const avatarData = getPredefinedAvatarByUrl(effectiveAvatarUrl);
+  // Resolve the display name from the modal's image list first (image1, hero2, …),
+  // then fall back to the predefined avatar set so a saved URL always shows its name.
+  const matchedImage = PROFILE_IMAGES.find((i) => i.src === effectiveAvatarUrl);
+  const avatarData = matchedImage
+    ? { label: matchedImage.label }
+    : getPredefinedAvatarByUrl(effectiveAvatarUrl);
 
   return (
     <>
