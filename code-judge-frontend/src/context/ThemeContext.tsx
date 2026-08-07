@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { updatePreferences } from "@/services/auth";
+import { STORAGE_KEYS } from "@/utils/storageKeys";
 
 type Theme = "dark" | "light";
 
@@ -14,7 +15,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "byteclash_theme";
+const STORAGE_KEY = STORAGE_KEYS.THEME;
 
 function getSystemTheme(): Theme {
   if (typeof window === "undefined") return "dark";

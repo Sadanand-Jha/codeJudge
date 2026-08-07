@@ -208,7 +208,11 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* ===== SIDEBAR ===== */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-card border-r border-border flex flex-col z-50 transition-transform duration-300 ${
+        onDragStart={(e) => e.preventDefault()}
+        onContextMenu={(e) => e.preventDefault()}
+        onCopy={(e) => e.preventDefault()}
+        onCut={(e) => e.preventDefault()}
+        className={`fixed left-0 top-0 h-screen w-64 bg-card border-r border-border flex flex-col z-50 select-none transition-transform duration-300 ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -341,7 +345,13 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       {/* ===== MAIN CONTENT ===== */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* ===== TOP HEADER ===== */}
-        <header className="h-14 border-b border-border bg-background/80 backdrop-blur-xl flex items-center px-4 gap-4 sticky top-0 z-30">
+        <header
+          onDragStart={(e) => e.preventDefault()}
+          onContextMenu={(e) => e.preventDefault()}
+          onCopy={(e) => e.preventDefault()}
+          onCut={(e) => e.preventDefault()}
+          className="h-14 border-b border-border bg-background/80 backdrop-blur-xl flex items-center px-4 gap-4 sticky top-0 z-30 select-none"
+        >
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(true)}

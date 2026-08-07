@@ -31,13 +31,14 @@ import { mockLiveAssessmentRoom, mockEmptyLiveAssessmentRoom } from "@/mocks/liv
 import { useToast } from "@/hooks/useToast";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
 import { getQuizCode } from "@/services/quiz";
+import { STORAGE_KEYS } from "@/utils/storageKeys";
 
 function useRealtimeStartFlag(code: string, startedRef: { current: boolean }) {
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
     if (startedRef.current) return;
-    const key = `live_quiz_started_${code}`;
+    const key = `${STORAGE_KEYS.LIVE_QUIZ_STARTED_PREFIX}${code}`;
     const t = setInterval(() => {
       try {
         const v = window.localStorage.getItem(key);

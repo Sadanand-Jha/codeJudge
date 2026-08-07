@@ -393,6 +393,7 @@ export default function SettingsPage() {
           email: data.email,
           firstName: data.firstName || "",
           lastName: data.lastName || "",
+          displayName: data.displayName || `${data.firstName || ""} ${data.lastName || ""}`.trim(),
           bio: data.bio || "",
           mobileNumber: data.mobile || "",
           avatar: data.avatarUrl || null,
@@ -720,9 +721,6 @@ export default function SettingsPage() {
                     <SettingsSelect label="Tab Width" value={settings.tabWidth} onChange={(v) => update("tabWidth", v)} options={TAB_WIDTHS} />
                   </div>
                   <div className="rounded-2xl border border-border bg-card p-5">
-                    <SettingsRow label="Auto Save" description="Automatically save your code as you type">
-                      <Toggle checked={settings.autoSave} onChange={(v) => update("autoSave", v)} />
-                    </SettingsRow>
                     <SettingsRow label="Word Wrap" description="Wrap long lines in the editor">
                       <Toggle checked={settings.wordWrap} onChange={(v) => update("wordWrap", v)} />
                     </SettingsRow>

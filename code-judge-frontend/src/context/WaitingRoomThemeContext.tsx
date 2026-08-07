@@ -11,6 +11,7 @@ import {
   THEME_CONFIGS,
 } from "@/types/waitingRoomTheme";
 import { useTheme } from "@/context/ThemeContext";
+import { STORAGE_KEYS } from "@/utils/storageKeys";
 
 interface WaitingRoomThemeContextValue {
   state: WaitingRoomThemeState;
@@ -26,7 +27,7 @@ interface WaitingRoomThemeContextValue {
 
 const WaitingRoomThemeContext = createContext<WaitingRoomThemeContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "waiting_room_theme_state";
+const STORAGE_KEY = STORAGE_KEYS.WAITING_ROOM_THEME_STATE;
 
 interface StoredState {
   activeTheme: WaitingRoomThemeId;

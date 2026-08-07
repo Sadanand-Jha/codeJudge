@@ -448,6 +448,7 @@ export function SearchableDropdown({
                     id="searchable-dropdown-listbox"
                     role="listbox"
                     className="py-1.5 overflow-y-auto"
+                    style={{ maxHeight: `${maxDropdownHeight}rem` }}
                   >
                     {options.map((option, index) => {
                       const isSelected =

@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { pool } from "../app.ts";
 import { QuizService } from "../services/database/quiz.service.ts";
 import { ResultGenerationService } from "../services/resultGeneration.service.ts";
 
@@ -127,8 +128,31 @@ export const getQuizByCode = async (req: Request, res: Response) => {
 
 /**
  * POST /api/v1/user/quiz
- * Create a new quiz
+ * Create a new quiz from the creator settings form.
  */
+const generateQuizCode = (): string => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code = "";
+  for (let i = 0; i < 16; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+};
+
+/**
+ * Resolve a difficulty value (numeric id or label like "Easy") to its
+ * `quiz_difficulty` id.
+ */
+const resolveDifficultyId = async (difficulty: unknown): Promise<number | null> => {
+  if (difficulty === undefined || difficulty === null) return null;
+  if (typeof difficulty === "number") return difficulty;
+  const result = await pool.query(
+    "SELECT id FROM quiz_difficulty WHERE LOWER(heading) = LOWER($1) LIMIT 1",
+    [String(difficulty)]
+  );
+  return result.rows.length ? result.rows[0].id : null;
+};
+
 export const createQuiz = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
@@ -142,9 +166,36 @@ export const createQuiz = async (req: Request, res: Response) => {
       return;
     }
 
+    const code = body.code || generateQuizCode();
+    const visibilityId =
+      typeof body.visibility === "number" ? body.visibility : null;
+    const difficultyId = await resolveDifficultyId(body.difficulty);
+
+    const calculatedTotal =
+      body.totalMarks ??
+      (body.marksPerQuestion ? body.marksPerQuestion * (body.totalQuestions || 0) : 0);
+    const calculatedPassing =
+      body.passingMarks ??
+      (body.passingPercentage && calculatedTotal
+        ? Math.ceil((calculatedTotal * body.passingPercentage) / 100)
+        : 0);
+
     const quiz = await quizService.createQuiz({
-      ...body,
+      name: body.name,
+      code,
       createdby: Number(userId),
+      starttime: body.starttime ? new Date(body.starttime) : undefined,
+      endtime: body.endtime ? new Date(body.endtime) : undefined,
+      visibility: visibilityId ?? undefined,
+      difficulty: difficultyId ?? undefined,
+      totalMarks: calculatedTotal,
+      passingMarks: calculatedPassing,
+      shuffleQuestions: body.randomizeQuestions,
+      shuffleOptions: body.randomizeOptions,
+      showResultsImmediately: body.showResultImmediately,
+      negativeMarking: body.negativeMarking,
+      leaderboard: true,
+      status: "draft",
     });
 
     res.status(201).json({
@@ -157,6 +208,25 @@ export const createQuiz = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while creating quiz",
+    });
+  }
+};
+
+/**
+ * GET /api/v1/user/quiz/visibility-options
+ * Returns the visibility options from the `quiz_visibility` table.
+ */
+export const getQuizVisibilityOptions = async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, heading, description FROM quiz_visibility ORDER BY id ASC"
+    );
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching quiz visibility options:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching quiz visibility options",
     });
   }
 };

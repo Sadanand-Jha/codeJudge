@@ -11,6 +11,7 @@ import { LiveStatsPanel } from "./LiveStatsPanel";
 import { ActivityFeed } from "./ActivityFeed";
 import { ParticipantsDrawer } from "./ParticipantsDrawer";
 import { computeStats } from "@/lib/liveAssessmentHelpers";
+import { STORAGE_KEYS } from "@/utils/storageKeys";
 
 interface LiveAssessmentRoomProps {
   data: LiveAssessmentRoomData;
@@ -76,7 +77,7 @@ export function LiveAssessmentRoom({ data, onBack }: LiveAssessmentRoomProps) {
     setStatus("live");
     try {
       window.localStorage.setItem(
-        `live_quiz_started_${data.quizId}`,
+        `${STORAGE_KEYS.LIVE_QUIZ_STARTED_PREFIX}${data.quizId}`,
         Date.now().toString()
       );
     } catch {}

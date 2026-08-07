@@ -102,7 +102,7 @@ export const quizSchema = z.object({
   starttime: z.string().optional(),
   endtime: z.string().optional(),
   visibility: z.number().int().positive().optional(),
-  difficulty: z.number().int().positive().optional(),
+  difficulty: z.union([z.string(), z.number().int().positive()]).optional(),
   totalMarks: z.number().nonnegative().optional(),
   passingMarks: z.number().nonnegative().optional(),
   shuffleQuestions: z.boolean().optional(),

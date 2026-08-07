@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { STORAGE_KEYS } from "@/utils/storageKeys";
 
-const STORAGE_KEY = "split-pane-left-width";
+const STORAGE_KEY = STORAGE_KEYS.SPLIT_PANE_LEFT_WIDTH;
 
 interface ResizableSplitPaneProps {
   left: ReactNode;

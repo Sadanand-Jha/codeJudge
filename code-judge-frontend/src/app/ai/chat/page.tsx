@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import ResizableSplitPane from "@/components/layout/ResizableSplitPane";
+import { STORAGE_KEYS } from "@/utils/storageKeys";
 
 /* ─────────────────────────────────────────
    Design Tokens
@@ -491,7 +492,7 @@ export default function AIChatPage() {
     <AppLayout>
       <div className="flex h-[calc(100vh-64px)] w-full overflow-hidden" style={{ backgroundColor: COLORS.bg }}>
         <ResizableSplitPane
-          storageKey="ai-left-panel"
+          storageKey={STORAGE_KEYS.AI_LEFT_PANEL}
           leftMin={220}
           rightMin={320}
           editorLayout={() => {}}

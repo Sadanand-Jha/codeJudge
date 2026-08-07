@@ -36,9 +36,10 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
-import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, DIFFICULTY_OPTIONS, CreatorQuestionType } from "./types";
-import { saveQuizDetails } from "@/utils/quizStorage";
-import { getAllSubjects } from "@/services/quiz";
+import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, DIFFICULTY_OPTIONS, CreatorQuestionType, QuizVisibility } from "./types";
+import { saveQuizDetails, clearQuizState } from "@/utils/quizStorage";
+import { getAllSubjects, getQuizVisibilityOptions, createQuiz } from "@/services/quiz";
+import { generateQuizCode } from "@/utils/quizCode";
 import { SearchableDropdown } from "@/components/ui";
 
 interface QuizSettingsPageProps {
@@ -95,9 +96,9 @@ function SectionCard({ icon: Icon, title, subtitle, children }: { icon: React.Co
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl border border-white/[0.08] bg-[#111827] overflow-hidden hover:border-white/[0.12] transition-colors"
+      className="rounded-2xl border border-white/[0.08] bg-[#111827] hover:border-white/[0.12] transition-colors"
     >
-      <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-white/[0.06]">
+      <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-white/[0.06] rounded-t-2xl">
         <div className="w-9 h-9 rounded-xl bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 flex items-center justify-center">
           <Icon className="w-4 h-4 text-[#C7DDEC]" />
         </div>
@@ -129,9 +130,33 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
   const [showTimezoneDropdown, setShowTimezoneDropdown] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
+  const timezoneDropdownRef = useRef<HTMLDivElement>(null);
+  const [visibilityOptions, setVisibilityOptions] = useState<Array<{ id: number; heading: string; description: string }>>([]);
+  const [savingToServer, setSavingToServer] = useState(false);
+  const [dateError, setDateError] = useState("");
+  const [continueError, setContinueError] = useState("");
 
   const update = useCallback((patch: Partial<QuizDetails>) => {
     setDetails((d) => ({ ...d, ...patch }));
+  }, []);
+
+  // Fetch visibility options from the `quiz_visibility` DB table (task: use table)
+  useEffect(() => {
+    let cancelled = false;
+    getQuizVisibilityOptions()
+      .then((opts) => {
+        if (!cancelled && Array.isArray(opts) && opts.length > 0) {
+          setVisibilityOptions(
+            opts.map((o) => ({ id: o.id, heading: o.heading, description: o.description || "" }))
+          );
+        }
+      })
+      .catch(() => {
+        // Fall back to hardcoded VISIBILITY_OPTIONS when the API/table is empty
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Autosave to localStorage (debounced)
@@ -147,6 +172,18 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
     };
   }, [details]);
 
+  // Close timezone dropdown when clicking outside
+  useEffect(() => {
+    if (!showTimezoneDropdown) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (timezoneDropdownRef.current && !timezoneDropdownRef.current.contains(event.target as Node)) {
+        setShowTimezoneDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showTimezoneDropdown]);
+
   const addTag = () => {
     const val = tagInput.trim();
     if (val && !details.tags.includes(val)) {
@@ -155,10 +192,71 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
     setTagInput("");
   };
 
-  const handleContinue = () => {
+  // Capitalize the first letter of each word (used before saving)
+  const capitalizeWords = (str: string) =>
+    str
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+
+  const handleContinue = async () => {
     if (!details.name.trim()) return;
-    saveQuizDetails(details);
-    onContinue(details);
+
+    // Prevent endtime < starttime (task)
+    if (details.startDate && details.endDate && details.endDate < details.startDate) {
+      setDateError("End Date cannot be before Start Date.");
+      return;
+    }
+    setDateError("");
+
+    const name = capitalizeWords(details.name);
+    const description = capitalizeWords(details.description);
+    const topic = capitalizeWords(details.topic);
+    const subject = capitalizeWords(details.subject);
+
+    setSavingToServer(true);
+    try {
+      const payload = {
+        name,
+        description,
+        subject,
+        topic,
+        code: generateQuizCode(),
+        difficulty: details.difficulty,
+        visibility: details.visibilityId ?? undefined,
+        timeLimit: details.timeLimit,
+        starttime: details.startDate || undefined,
+        endtime: details.endDate || undefined,
+        timeZone: details.timeZone,
+        maxParticipants: details.maxParticipants,
+        randomizeQuestions: details.randomizeQuestions,
+        randomizeOptions: details.randomizeOptions,
+        showResultImmediately: details.showResultImmediately,
+        showCorrectAnswersAfterSubmission: details.showCorrectAnswersAfterSubmission,
+        negativeMarking: details.negativeMarking,
+        negativeMarkValue: details.negativeMarkValue,
+        marksPerQuestion: details.marksPerQuestion,
+        totalQuestions: details.totalQuestions,
+        totalMarks: details.totalMarks,
+        passingPercentage: details.passingPercentage,
+        passingMarks: details.passingMarks,
+        tags: details.tags,
+      };
+
+      await createQuiz(payload);
+
+      // The quiz is saved on the server (status 2xx reached above), so
+      // remove the quiz draft from localStorage before moving on (task).
+      clearQuizState();
+      onContinue({ ...details, name, description, topic, subject });
+    } catch (err) {
+      console.error("Failed to create quiz:", err);
+      setContinueError("Could not save the quiz. Please try again.");
+    } finally {
+      setSavingToServer(false);
+    }
   };
 
   // ===== Marks =====
@@ -182,6 +280,14 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
     }
     return details.timeLimit;
   }, [details.totalQuestions, details.timeLimit]);
+
+  // Visibility options sourced from the `quiz_visibility` table (fallback to static)
+  const visibilitySource: Array<{ id: string | number; label: string; description: string; isDb: boolean }> =
+    visibilityOptions.length > 0
+      ? visibilityOptions.map((o) => ({ id: o.id, label: o.heading, description: o.description, isDb: true }))
+      : VISIBILITY_OPTIONS.map((o) => ({ id: o.id, label: o.label, description: o.description, isDb: false }));
+
+  const endtimeInvalid = Boolean(details.startDate && details.endDate && details.endDate < details.startDate);
 
   const addTagInput = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -449,11 +555,23 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                   <input
                     type="datetime-local"
                     value={details.endDate}
-                    onChange={(e) => update({ endDate: e.target.value })}
-                    className={`${inputClass} [color-scheme:dark]`}
+                    onChange={(e) => {
+                      update({ endDate: e.target.value });
+                      if (e.target.value && details.startDate && e.target.value < details.startDate) {
+                        setDateError("End Date cannot be before Start Date.");
+                      } else {
+                        setDateError("");
+                      }
+                    }}
+                    className={`${inputClass} [color-scheme:dark] ${endtimeInvalid ? "border-red-500/60 focus:border-red-500" : ""}`}
                   />
+                  {endtimeInvalid && (
+                    <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" /> End Date cannot be before Start Date.
+                    </p>
+                  )}
                 </div>
-                <div className="relative">
+                <div ref={timezoneDropdownRef} className="relative">
                   <FieldLabel icon={<Globe className="w-3 h-3" />}>Time Zone</FieldLabel>
                   <button
                     onClick={() => setShowTimezoneDropdown(!showTimezoneDropdown)}
@@ -468,7 +586,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
-                        className="absolute z-20 mt-2 w-full rounded-xl border border-white/[0.08] bg-[#171923] shadow-2xl shadow-black/50 overflow-hidden"
+                        className="absolute z-40 mt-2 w-full rounded-xl border border-white/[0.08] bg-[#171923] shadow-2xl shadow-black/50 overflow-hidden"
                       >
                         <div className="max-h-48 overflow-y-auto p-1.5">
                           {TIMEZONES.map((tz) => (
@@ -493,13 +611,18 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
             {/* ===== Visibility ===== */}
             <SectionCard icon={Globe} title="Visibility" subtitle="Who can see and attempt this quiz?">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {VISIBILITY_OPTIONS.map((opt) => {
-                  const active = details.visibility === opt.id;
-                  const Icon = opt.id === "public" ? Globe : opt.id === "private" ? Lock : opt.id === "college" ? School : Users;
+                {visibilitySource.map((opt) => {
+                  const active = opt.isDb ? details.visibilityId === opt.id : details.visibility === opt.id;
+                  const key = String(opt.label).toLowerCase();
+                  const Icon = key.includes("public") ? Globe : key.includes("private") ? Lock : key.includes("college") ? School : Users;
                   return (
                     <button
-                      key={opt.id}
-                      onClick={() => update({ visibility: opt.id })}
+                      key={String(opt.id)}
+                      onClick={() =>
+                        opt.isDb
+                          ? update({ visibility: opt.label as QuizVisibility, visibilityId: opt.id as number })
+                          : update({ visibility: opt.id as QuizVisibility, visibilityId: null })
+                      }
                       className={`relative p-4 rounded-xl border text-left transition-all ${
                         active
                           ? "border-[#C7DDEC]/40 bg-[#C7DDEC]/5 shadow-[0_0_20px_rgba(199,221,236,0.1)]"
@@ -546,12 +669,6 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                   onChange={(v) => update({ showCorrectAnswersAfterSubmission: v })}
                   label="Show Correct Answers"
                   description="Reveal correct answers after the quiz ends"
-                />
-                <Toggle
-                  checked={details.allowReattempt}
-                  onChange={(v) => update({ allowReattempt: v })}
-                  label="Allow Reattempt"
-                  description="Let participants retake the quiz"
                 />
                 <Toggle
                   checked={details.negativeMarking}
@@ -608,8 +725,13 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                   <SummaryRow label="Est. Completion" value={`${estimatedTime} min`} icon={Timer} />
                   <SummaryRow label="Total Marks" value={`${calculatedTotalMarks}`} icon={Award} />
                   <SummaryRow label="Passing Marks" value={`${calculatedPassingMarks}`} icon={Target} />
-                  <SummaryRow label="Visibility" value={details.visibility} icon={Globe} />
+                  <SummaryRow label="Visibility" value={details.visibility || "—"} icon={Globe} />
                   <SummaryRow label="Difficulty" value={details.difficulty} icon={BarChart3} />
+                  <SummaryRow label="Start" value={details.startDate ? new Date(details.startDate).toLocaleString() : "—"} icon={Calendar} />
+                  <SummaryRow label="End" value={details.endDate ? new Date(details.endDate).toLocaleString() : "—"} icon={Calendar} />
+                  <SummaryRow label="Time Zone" value={details.timeZone} icon={Globe} />
+                  <SummaryRow label="Negative Marking" value={details.negativeMarking ? "Yes" : "No"} icon={AlertTriangle} />
+                  <SummaryRow label="Show Results" value={details.showResultImmediately ? "Immediately" : "After End"} icon={CheckCircle2} />
 
                 </div>
               </motion.div>
@@ -620,15 +742,30 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.2 }}
                 onClick={handleContinue}
-                disabled={!details.name.trim()}
+                disabled={!details.name.trim() || savingToServer || endtimeInvalid}
                 className="group w-full h-12 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-sm font-bold text-white shadow-lg shadow-[#7C3AED]/20 hover:shadow-[#7C3AED]/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
               >
-                Continue to Question Builder
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                {savingToServer ? (
+                  <>
+                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    Saving Quiz...
+                  </>
+                ) : (
+                  <>
+                    Continue to Question Builder
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
               </motion.button>
 
               {!details.name.trim() && (
                 <p className="text-xs text-[#6B7280] text-center">Enter a quiz name to continue</p>
+              )}
+              {endtimeInvalid && (
+                <p className="text-xs text-red-400 text-center">Fix the schedule before continuing.</p>
+              )}
+              {continueError && (
+                <p className="text-xs text-red-400 text-center">{continueError}</p>
               )}
             </div>
           </div>
@@ -638,11 +775,20 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
         <div className="xl:hidden mt-6">
           <button
             onClick={handleContinue}
-            disabled={!details.name.trim()}
+            disabled={!details.name.trim() || savingToServer || endtimeInvalid}
             className="group w-full h-12 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-sm font-bold text-white shadow-lg shadow-[#7C3AED]/20 hover:shadow-[#7C3AED]/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
           >
-            Continue to Question Builder
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+            {savingToServer ? (
+              <>
+                <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                Saving Quiz...
+              </>
+            ) : (
+              <>
+                Continue to Question Builder
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+              </>
+            )}
           </button>
         </div>
       </div>

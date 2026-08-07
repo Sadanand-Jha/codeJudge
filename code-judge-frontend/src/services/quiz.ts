@@ -14,6 +14,48 @@ export interface Quiz {
   creator_name: string | null;
 }
 
+export interface QuizVisibilityOption {
+  id: number;
+  heading: string;
+  description: string | null;
+}
+
+/**
+ * Get visibility options from the `quiz_visibility` DB table
+ * GET /api/v1/user/quiz/visibility-options
+ */
+export async function getQuizVisibilityOptions(): Promise<QuizVisibilityOption[]> {
+  const response = await apiClient.get<QuizVisibilityOption[]>("/v1/user/quiz/visibility-options");
+  return response.data;
+}
+
+export interface CreateQuizPayload {
+  name: string;
+  description?: string;
+  subject?: string;
+  topic?: string;
+  code: string;
+  difficulty?: string;
+  visibility?: number;
+  timeLimit?: number;
+  starttime?: string;
+  endtime?: string;
+  timeZone?: string;
+  maxParticipants?: number;
+  randomizeQuestions?: boolean;
+  randomizeOptions?: boolean;
+  showResultImmediately?: boolean;
+  showCorrectAnswersAfterSubmission?: boolean;
+  negativeMarking?: boolean;
+  negativeMarkValue?: number;
+  marksPerQuestion?: number;
+  totalQuestions?: number;
+  totalMarks?: number;
+  passingPercentage?: number;
+  passingMarks?: number;
+  tags?: string[];
+}
+
 /**
  * Get quiz code from an identifier (code or numeric id fallback)
  */
@@ -132,24 +174,10 @@ export async function getMyQuizzes(): Promise<Quiz[]> {
 }
 
 /**
- * Create a new quiz
+ * Create a new quiz from the creator settings form
  * POST /api/v1/user/quiz
  */
-export async function createQuiz(data: {
-  name: string;
-  code: string;
-  starttime?: string;
-  endtime?: string;
-  visibility?: number;
-  difficulty?: number;
-  totalMarks?: number;
-  passingMarks?: number;
-  shuffleQuestions?: boolean;
-  shuffleOptions?: boolean;
-  showResultsImmediately?: boolean;
-  negativeMarking?: boolean;
-  leaderboard?: boolean;
-}): Promise<Quiz> {
+export async function createQuiz(data: CreateQuizPayload): Promise<Quiz> {
   const response = await apiClient.post<Quiz>("/v1/user/quiz", data);
   return response.data;
 }

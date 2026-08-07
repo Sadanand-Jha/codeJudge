@@ -1,8 +1,9 @@
 "use client";
 
 import { QuizDetails, CreatorQuestion, DEFAULT_QUIZ_DETAILS } from "@/components/quiz/creator/types";
+import { STORAGE_KEYS } from "@/utils/storageKeys";
 
-const STORAGE_KEY = "byteclash_quiz_creation";
+const STORAGE_KEY = STORAGE_KEYS.QUIZ_CREATION;
 
 export interface QuizCreationState {
   details: QuizDetails;

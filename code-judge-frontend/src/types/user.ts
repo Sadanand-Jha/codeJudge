@@ -5,6 +5,7 @@ export interface UserInfo {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  displayName: string | null;
   mobile: string | null;
   avatarUrl: string | null;
   avatarIsMale: boolean | null;

@@ -62,6 +62,7 @@ export interface QuizDetails {
   topic: string;
   difficulty: "Easy" | "Medium" | "Hard" | "Expert";
   visibility: QuizVisibility;
+  visibilityId: number | null;
   timeLimit: number; // minutes
   startDate: string;
   endDate: string;
@@ -90,6 +91,7 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   topic: "",
   difficulty: "Medium",
   visibility: "public",
+  visibilityId: null,
   timeLimit: 30,
   startDate: "",
   endDate: "",

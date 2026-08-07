@@ -285,6 +285,7 @@ export const meController = async (req: Request, res: Response) => {
       // Additional fields from info
       firstName: userInfo?.first_name || null,
       lastName: userInfo?.last_name || null,
+      displayName: userProfile?.display_name || userInfo?.display_name || null,
       mobile: userInfo?.mobile || null,
       avatarUrl: userProfile?.avatar_url || userInfo?.avatar_url || null,
       avatarIsMale: userProfile?.avatar_is_male ?? userInfo?.avatar_is_male ?? null,

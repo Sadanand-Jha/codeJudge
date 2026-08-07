@@ -42,8 +42,10 @@ type TabType =
   | "submissions"
   | "ai-analysis";
 
-const STORAGE_KEY_LEFT = "split-pane-left-width";
-const STORAGE_KEY_CONSOLE = "split-pane-console-height";
+const STORAGE_KEY_LEFT = STORAGE_KEYS.SPLIT_PANE_LEFT_WIDTH;
+const STORAGE_KEY_CONSOLE = STORAGE_KEYS.SPLIT_PANE_CONSOLE_HEIGHT;
+
+import { STORAGE_KEYS } from "@/utils/storageKeys";
 
 export default function ProblemClient({ problem }: { problem: Problem }) {
   const [activeTab, setActiveTab] = useState<TabType>("description");

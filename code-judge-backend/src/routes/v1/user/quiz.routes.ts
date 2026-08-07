@@ -30,7 +30,8 @@ import {
   getPreviousQuizzes,
   generateQuizResults,
   retryQuizResultsEmail,
-  getAllSubjects
+  getAllSubjects,
+  getQuizVisibilityOptions
 } from "../../../controllers/quiz.controller.ts";
 
 const router = Router();
@@ -51,6 +52,9 @@ router.get("/previous", getPreviousQuizzes);
 
 // GET /api/v1/user/quiz/code/:code — get a quiz by its code
 router.get("/code/:code", getQuizByCode);
+
+// GET /api/v1/user/quiz/visibility-options — get visibility options from quiz_visibility table
+router.get("/visibility-options", getQuizVisibilityOptions);
 
 // GET /api/v1/user/quiz/:quizId — get a single quiz
 router.get("/:quizId", getQuizById);
