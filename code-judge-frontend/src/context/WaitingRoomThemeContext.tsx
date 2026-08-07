@@ -10,6 +10,7 @@ import {
   getThemeConfig,
   THEME_CONFIGS,
 } from "@/types/waitingRoomTheme";
+import { useTheme } from "@/context/ThemeContext";
 
 interface WaitingRoomThemeContextValue {
   state: WaitingRoomThemeState;
@@ -47,6 +48,7 @@ function getStoredState(): StoredState | null {
 }
 
 export function WaitingRoomThemeProvider({ children }: { children: ReactNode }) {
+  const { theme: appTheme } = useTheme();
   const [state, setState] = useState<WaitingRoomThemeState>({
     activeTheme: "deep-space",
     themeLocked: false,
@@ -55,6 +57,20 @@ export function WaitingRoomThemeProvider({ children }: { children: ReactNode }) 
   });
   const [activeEvents, setActiveEvents] = useState<DynamicEvent[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+
+  // Sync with app theme: dark mode → Deep Space, light mode → AI Cloud
+  useEffect(() => {
+    if (!isHydrated) return;
+    
+    const targetTheme = appTheme === 'dark' ? 'deep-space' : 'ai-cloud';
+    setState((prev) => {
+      // Only update if not manually overridden by user
+      if (prev.activeTheme !== targetTheme && !prev.studentOverride) {
+        return { ...prev, activeTheme: targetTheme };
+      }
+      return prev;
+    });
+  }, [appTheme, isHydrated]);
 
   // Load stored state on mount
   useEffect(() => {
@@ -67,14 +83,15 @@ export function WaitingRoomThemeProvider({ children }: { children: ReactNode }) 
         studentOverride: stored.studentOverride,
       }));
     } else {
-      // Default to daily featured theme
+      // Default based on app theme
+      const defaultTheme = appTheme === 'dark' ? 'deep-space' : 'ai-cloud';
       setState((prev) => ({
         ...prev,
-        activeTheme: getDailyTheme(),
+        activeTheme: defaultTheme,
       }));
     }
     setIsHydrated(true);
-  }, []);
+  }, [appTheme]);
 
   // Persist state changes
   useEffect(() => {

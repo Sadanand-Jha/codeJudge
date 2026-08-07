@@ -72,32 +72,36 @@ function DeepSpaceBackground() {
 
   return (
     <>
-      {/* Nebula glows */}
+      {/* Stronger center glow for text readability */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px]"
+        style={{ background: 'radial-gradient(ellipse, rgba(88,80,236,0.25) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+
+      {/* Nebula glows - reduced opacity */}
       <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.15), transparent 70%)', filter: 'blur(40px)' }} />
+        style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.1), transparent 70%)', filter: 'blur(60px)' }} />
       <div className="absolute -bottom-40 -right-32 w-[600px] h-[600px] rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.12), transparent 70%)', filter: 'blur(50px)' }} />
+        style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.08), transparent 70%)', filter: 'blur(70px)' }} />
 
       {/* Aurora glow */}
       <motion.div
         animate={{ opacity: [0.05, 0.12, 0.05], x: [0, 20, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
         className="absolute top-[20%] left-[10%] w-[300px] h-[200px] rounded-full"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.15), transparent)', filter: 'blur(30px)' }}
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.15), transparent)', filter: 'blur(40px)' }}
       />
 
-      {/* Stars */}
+      {/* Stars - slightly brighter */}
       {stars.map((s) => (
         <motion.div
           key={s.id}
           className="absolute rounded-full bg-white"
-          style={{ left: `${s.left}%`, top: `${s.top}%`, width: s.size, height: s.size, opacity: s.opacity }}
-          animate={{ opacity: [s.opacity, s.opacity * 2, s.opacity], scale: [1, 1.5, 1] }}
+          style={{ left: `${s.left}%`, top: `${s.top}%`, width: s.size, height: s.size, opacity: s.opacity * 0.7 }}
+          animate={{ opacity: [s.opacity * 0.7, s.opacity * 1.2, s.opacity * 0.7], scale: [1, 1.3, 1] }}
           transition={{ duration: s.duration, delay: s.delay, repeat: Infinity, ease: 'easeInOut' }}
         />
       ))}
 
-      {/* Floating asteroids */}
+      {/* Floating asteroids - reduced opacity */}
       {asteroids.map((a) => (
         <motion.div
           key={a.id}
@@ -105,22 +109,22 @@ function DeepSpaceBackground() {
           style={{
             left: `${a.left}%`, top: `${a.top}%`,
             width: a.size, height: a.size,
-            background: 'radial-gradient(circle, rgba(139,92,246,0.3), rgba(0,0,0,0.3))',
-            boxShadow: '0 0 10px rgba(139,92,246,0.2)',
+            background: 'radial-gradient(circle, rgba(139,92,246,0.2), rgba(0,0,0,0.2))',
+            boxShadow: '0 0 8px rgba(139,92,246,0.15)',
           }}
           animate={{ y: [0, -15, 0], rotate: [0, 360], x: [0, 10, 0] }}
           transition={{ duration: a.duration, delay: a.delay, repeat: Infinity, ease: 'easeInOut' }}
         />
       ))}
 
-      {/* Distant planet */}
+      {/* Distant planet - softer glow */}
       <motion.div
         animate={{ y: [0, -8, 0] }}
         transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
         className="absolute right-[15%] top-[15%] w-16 h-16 rounded-full"
         style={{
           background: 'radial-gradient(circle at 30% 30%, #8B5CF6, #4C1D95 60%, #2E1065)',
-          boxShadow: '0 0 30px rgba(139,92,246,0.3)',
+          boxShadow: '0 0 20px rgba(139,92,246,0.2)',
         }}
       />
     </>

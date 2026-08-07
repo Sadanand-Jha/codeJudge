@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LiveParticipant } from "@/types/liveAssessment";
 import { StudentAvatar } from "./StudentAvatar";
@@ -8,6 +8,7 @@ import { StudentAvatar } from "./StudentAvatar";
 interface AnimatedCrowdProps {
   participants: LiveParticipant[];
   className?: string;
+  onHoverParticipant?: (participant: LiveParticipant | null) => void;
 }
 
 const MIN_VISIBLE = 15;
@@ -42,7 +43,7 @@ function createRoamingState(): RoamingState {
     delay: Math.random() * 1.5,
     breathDuration: 12 + Math.random() * 3, // 4-7 seconds per breath (slower bobbing)
     breathDelay: Math.random() * 12,
-    rotateRange: 165 + Math.random() * 1, // 0.5-1.5 degrees (subtler sway)
+    rotateRange: 56 + Math.random() * 1, // 0.5-1.5 degrees (subtler sway)
   };
 }
 
@@ -53,7 +54,10 @@ const MemoizedAvatar = React.memo<{
   count: number;
   size: "xs" | "sm" | "md" | "lg";
   state: RoamingState;
-}>(function AvatarItem({ participant, index, count, size, state }) {
+  isHovered: boolean;
+  onHover: (id: string, participant: LiveParticipant) => void;
+  onUnhover: (id: string) => void;
+}>(function AvatarItem({ participant, index, count, size, state, isHovered, onHover, onUnhover }) {
   return (
     <motion.div
       className="absolute pointer-events-auto"
@@ -61,12 +65,14 @@ const MemoizedAvatar = React.memo<{
         transform: "translate(-50%, -50%)",
         willChange: "transform, left, top",
       }}
+      data-participant-id={participant.id}
       // Animate left/top directly - Framer Motion smoothly transitions when target changes
       animate={{
         left: `${state.targetX}%`,
         top: `${state.targetY}%`,
         opacity: 1,
-        scale: 1,
+        scale: isHovered ? 1.12 : 1,
+        zIndex: isHovered ? 100 : 1,
       }}
       initial={{
         left: `${state.targetX}%`,
@@ -77,29 +83,32 @@ const MemoizedAvatar = React.memo<{
       exit={{ opacity: 0, scale: 0.7 }}
       transition={{
         left: {
-          duration: state.duration,
-          delay: state.delay,
-          ease: [0.4, 0, 0.2, 1], // Custom ease for natural walking feel
+          duration: isHovered ? 0 : state.duration,
+          delay: isHovered ? 0 : state.delay,
+          ease: [0.4, 0, 0.2, 1],
         },
         top: {
-          duration: state.duration,
-          delay: state.delay,
+          duration: isHovered ? 0 : state.duration,
+          delay: isHovered ? 0 : state.delay,
           ease: [0.4, 0, 0.2, 1],
         },
         opacity: { duration: 0.5 },
-        scale: { duration: 0.5, ease: "easeOut" },
+        scale: { duration: 0.2, ease: "easeOut" },
+        zIndex: { duration: 0 },
       }}
+      onMouseEnter={() => onHover(participant.id, participant)}
+      onMouseLeave={() => onUnhover(participant.id)}
     >
       {/* Inner div for breathing/bobbing while moving (transform-based, GPU accelerated) */}
       <motion.div
         animate={{
-          scale: [1, 1.03, 1],
-          rotate: [0, state.rotateRange, -state.rotateRange, 0],
-          y: [0, -2, 0, -1, 0], // Subtle bobbing while moving
+          scale: isHovered ? [1, 1.05, 1] : [1, 1.03, 1],
+          rotate: isHovered ? [0, 3, -3, 0] : [0, state.rotateRange, -state.rotateRange, 0],
+          y: isHovered ? [0, -3, 0] : [0, -2, 0, -1, 0],
         }}
         transition={{
-          duration: state.breathDuration,
-          delay: state.breathDelay,
+          duration: isHovered ? 1.5 : state.breathDuration,
+          delay: isHovered ? 0 : state.breathDelay,
           repeat: Infinity,
           ease: "easeInOut",
         }}
@@ -114,22 +123,49 @@ const MemoizedAvatar = React.memo<{
           showHoverCard
         />
       </motion.div>
+
+      {/* Hover glow effect */}
+      {isHovered && (
+        <motion.div
+          className="absolute inset-0 rounded-full pointer-events-none"
+          animate={{
+            boxShadow: [
+              '0 0 20px rgba(168, 85, 247, 0.4), 0 0 40px rgba(236, 72, 153, 0.3)',
+              '0 0 30px rgba(168, 85, 247, 0.6), 0 0 60px rgba(236, 72, 153, 0.5)',
+              '0 0 20px rgba(168, 85, 247, 0.4), 0 0 40px rgba(236, 72, 153, 0.3)',
+            ],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          style={{
+            borderRadius: '50%',
+            transform: 'translate(-50%, -50%)',
+            left: '50%',
+            top: '50%',
+          }}
+        />
+      )}
     </motion.div>
   );
 }, (prev, next) => {
-  // Only re-render if participant, size, or target position changed
+  // Only re-render if participant, size, target position, or hover state changed
   return (
     prev.participant.id === next.participant.id &&
     prev.size === next.size &&
     prev.state.targetX === next.state.targetX &&
-    prev.state.targetY === next.state.targetY
+    prev.state.targetY === next.state.targetY &&
+    prev.isHovered === next.isHovered
   );
 });
 
-export function AnimatedCrowd({ participants, className = "" }: AnimatedCrowdProps) {
+export function AnimatedCrowd({ participants, className = "", onHoverParticipant }: AnimatedCrowdProps) {
   const [visibleParticipants, setVisibleParticipants] = useState<LiveParticipant[]>([]);
   const [roamingStates, setRoamingStates] = useState<Map<string, RoamingState>>(new Map());
   const [isVisible, setIsVisible] = useState(true);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const fullPool = useMemo(() => participants, [participants]);
@@ -286,6 +322,16 @@ export function AnimatedCrowd({ participants, className = "" }: AnimatedCrowdPro
 
   const count = visibleParticipants.length;
 
+  const handleHover = useCallback((id: string, participant: LiveParticipant) => {
+    setHoveredId(id)
+    onHoverParticipant?.(participant)
+  }, [onHoverParticipant])
+
+  const handleUnhover = useCallback((id: string) => {
+    setHoveredId(id => null)
+    onHoverParticipant?.(null)
+  }, [onHoverParticipant])
+
   return (
     <div className={`relative w-full h-full pointer-events-none ${className}`}>
       <div className="relative w-full h-full" ref={containerRef}>
@@ -296,6 +342,7 @@ export function AnimatedCrowd({ participants, className = "" }: AnimatedCrowdPro
 
             const sizeVariant = (i % 4) as 0 | 1 | 2 | 3;
             const size = ["xs", "sm", "md", "lg"][sizeVariant] as "xs" | "sm" | "md" | "lg";
+            const isHovered = hoveredId === p.id
 
             return (
               <MemoizedAvatar
@@ -305,6 +352,9 @@ export function AnimatedCrowd({ participants, className = "" }: AnimatedCrowdPro
                 count={count}
                 size={size}
                 state={state}
+                isHovered={isHovered}
+                onHover={handleHover}
+                onUnhover={handleUnhover}
               />
             );
           })}
