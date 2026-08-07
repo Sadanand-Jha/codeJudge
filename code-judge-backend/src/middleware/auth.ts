@@ -21,7 +21,8 @@ declare global {
  */
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const token = req.cookies?.session_token;
+    const token = req.cookies?.session_token || req.headers.authorization?.replace(/^Bearer\s+/i, "");
+    console.log(req.cookies)
     console.log('Authenticating request. Token:', token);
 
     if (!token) {
