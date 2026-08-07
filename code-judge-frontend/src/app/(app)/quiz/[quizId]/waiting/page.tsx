@@ -29,6 +29,7 @@ import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/Waiting
 import { useTheme } from "@/context/ThemeContext";
 import { mockLiveAssessmentRoom, mockEmptyLiveAssessmentRoom } from "@/mocks/liveAssessment";
 import { useToast } from "@/hooks/useToast";
+import { useAvatarHover } from "@/hooks/useAvatarHover";
 import { getQuizCode } from "@/services/quiz";
 
 function useRealtimeStartFlag(code: string, startedRef: { current: boolean }) {
@@ -73,7 +74,8 @@ export default function WaitingRoomPage() {
   const [participants, setParticipants] = useState(room.participants);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [exitModalOpen, setExitModalOpen] = useState(false);
-  const [hoveredParticipant, setHoveredParticipant] = useState<LiveParticipant | null>(null);
+
+  const { hovered: hoveredParticipant, show: showHovered, armHide: armHideHover, cancelHide: cancelHideHover, hideNow: hideNowHover } = useAvatarHover();
 
   return (
     <WaitingRoomThemeProvider>
@@ -88,7 +90,10 @@ export default function WaitingRoomPage() {
         exitModalOpen={exitModalOpen}
         setExitModalOpen={setExitModalOpen}
         hoveredParticipant={hoveredParticipant}
-        setHoveredParticipant={setHoveredParticipant}
+        showHovered={showHovered}
+        armHideHover={armHideHover}
+        cancelHideHover={cancelHideHover}
+        hideNowHover={hideNowHover}
         router={router}
         toast={toast}
         isDark={isDark}
@@ -108,7 +113,10 @@ function WaitingRoomPageInner({
   exitModalOpen,
   setExitModalOpen,
   hoveredParticipant,
-  setHoveredParticipant,
+  showHovered,
+  armHideHover,
+  cancelHideHover,
+  hideNowHover,
   router,
   toast,
   isDark,
@@ -123,7 +131,10 @@ function WaitingRoomPageInner({
   exitModalOpen: boolean;
   setExitModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   hoveredParticipant: LiveParticipant | null;
-  setHoveredParticipant: React.Dispatch<React.SetStateAction<LiveParticipant | null>>;
+  showHovered: (p: LiveParticipant) => void;
+  armHideHover: () => void;
+  cancelHideHover: () => void;
+  hideNowHover: () => void;
   router: ReturnType<typeof useRouter>;
   toast: ReturnType<typeof useToast>;
   isDark: boolean;
@@ -183,7 +194,9 @@ function WaitingRoomPageInner({
         {participants.length > 0 && (
           <AnimatedCrowd
             participants={participants}
-            onHoverParticipant={setHoveredParticipant}
+            onShow={showHovered}
+            onArmHide={armHideHover}
+            onHideNow={hideNowHover}
           />
         )}
       </div>
@@ -191,7 +204,8 @@ function WaitingRoomPageInner({
       {/* Avatar hover preview */}
       <AvatarHoverPreview
         participant={hoveredParticipant}
-        onClose={() => setHoveredParticipant(null)}
+        onEnter={cancelHideHover}
+        onLeave={armHideHover}
       />
 
       {/* Custom Waiting Room Toast */}

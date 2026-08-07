@@ -1,86 +1,104 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Award, Flame, Trophy, Crown, Zap, Star } from 'lucide-react'
 import type { LiveParticipant } from '@/types/liveAssessment'
 
 interface AvatarHoverPreviewProps {
   participant: LiveParticipant | null
-  onClose: () => void
+  /** Cancel the pending hide — called whenever the cursor enters the card. */
+  onEnter: () => void
+  /** Arm the delayed hide — called whenever the cursor leaves the card. */
+  onLeave: () => void
 }
 
-export function AvatarHoverPreview({ participant, onClose }: AvatarHoverPreviewProps) {
+const CARD_WIDTH = 280
+const CARD_HEIGHT = 320
+const PADDING = 16
+
+export function AvatarHoverPreview({ participant, onEnter, onLeave }: AvatarHoverPreviewProps) {
+  const [mounted, setMounted] = useState(false)
   const [position, setPosition] = useState({ x: 0, y: 0 })
-  const [isVisible, setIsVisible] = useState(false)
-  const cardRef = useRef<HTMLDivElement>(null)
 
+  // Avoid rendering a portal on the server / before hydration.
   useEffect(() => {
-    if (!participant) {
-      setIsVisible(false)
-      return
-    }
+    setMounted(true)
+  }, [])
 
-    // Calculate position based on participant's current position
+  // Re-anchor the card to the avatar's live bounding rect whenever the hovered
+  // participant changes (the avatar stands still while hovered, so a single
+  // calculation per participant is accurate and avoids re-render churn).
+  useLayoutEffect(() => {
+    if (!participant) return
     const avatarEl = document.querySelector(`[data-participant-id="${participant.id}"]`)
     if (!avatarEl) return
 
     const rect = avatarEl.getBoundingClientRect()
-    const cardWidth = 280
-    const cardHeight = 320
-    const padding = 20
+    if (rect.width === 0 || rect.height === 0) return
 
-    let x = rect.right + padding
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+
+    // Prefer placing the card to the right of the avatar; flip to the left when
+    // there is not enough room on the right.
+    let x = rect.right + PADDING
+    if (x + CARD_WIDTH > vw - PADDING) {
+      x = rect.left - CARD_WIDTH - PADDING
+    }
+    // Always clamp fully inside the viewport (also covers near-left-edge avatars).
+    x = Math.max(PADDING, Math.min(x, vw - CARD_WIDTH - PADDING))
+
     let y = rect.top
-
-    // Prevent overflow on right edge
-    if (x + cardWidth > window.innerWidth - padding) {
-      x = rect.left - cardWidth - padding
+    if (y + CARD_HEIGHT > vh - PADDING) {
+      y = vh - CARD_HEIGHT - PADDING
     }
-
-    // Prevent overflow on bottom edge
-    if (y + cardHeight > window.innerHeight - padding) {
-      y = window.innerHeight - cardHeight - padding
-    }
-
-    // Ensure minimum top position
-    y = Math.max(padding, y)
+    y = Math.max(PADDING, y)
 
     setPosition({ x, y })
-    setIsVisible(true)
-  }, [participant])
+  }, [participant?.id, mounted])
 
-  if (!participant || !isVisible) return null
+  if (!mounted) return null
 
-  const statusColor = {
-    submitted: '#22C55E',
-    attempting: '#3B82F6',
-    idle: '#9CA3AF',
-    disconnected: '#EF4444',
-  }[participant.status]
+  const isOpen = !!participant
 
-  const statusLabel = {
-    submitted: 'Submitted',
-    attempting: 'Attempting',
-    idle: 'Waiting',
-    disconnected: 'Disconnected',
-  }[participant.status]
+  const statusColor = participant
+    ? {
+        submitted: '#22C55E',
+        attempting: '#3B82F6',
+        idle: '#9CA3AF',
+        disconnected: '#EF4444',
+      }[participant.status]
+    : '#9CA3AF'
 
-  return (
+  const statusLabel = participant
+    ? {
+        submitted: 'Submitted',
+        attempting: 'Attempting',
+        idle: 'Waiting',
+        disconnected: 'Disconnected',
+      }[participant.status]
+    : ''
+
+  return createPortal(
     <AnimatePresence>
-      {isVisible && (
+      {isOpen && participant && (
         <motion.div
-          ref={cardRef}
+          key={participant.id}
+          data-avatar-preview
           initial={{ opacity: 0, scale: 0.95, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 8 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="fixed z-[500] pointer-events-auto"
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="fixed z-[9999] pointer-events-auto"
           style={{
             left: `${position.x}px`,
             top: `${position.y}px`,
-            width: '280px',
+            width: `${CARD_WIDTH}px`,
           }}
+          onPointerEnter={onEnter}
+          onPointerLeave={onLeave}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Backdrop blur behind card */}
@@ -210,7 +228,8 @@ export function AvatarHoverPreview({ participant, onClose }: AvatarHoverPreviewP
           </div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
 
