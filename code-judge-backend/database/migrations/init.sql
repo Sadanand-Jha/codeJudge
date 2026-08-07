@@ -610,3 +610,7 @@ CREATE INDEX IF NOT EXISTS idx_quiz_difficulty_id ON quiz(difficulty);
 CREATE INDEX IF NOT EXISTS idx_quiz_problems_difficulty_id ON quiz_problems(difficulty);
 CREATE INDEX IF NOT EXISTS idx_qsr_user_id ON quiz_student_response(user_id);
 CREATE INDEX IF NOT EXISTS idx_qsr_problem_id ON quiz_student_response(problem_id);
+
+
+alter table users
+add column display_name varchar

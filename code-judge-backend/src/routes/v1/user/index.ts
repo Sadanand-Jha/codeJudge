@@ -7,6 +7,12 @@ import { userRegister, forgetPassword, profile } from "../../../controllers/user
 import { authenticate } from "../../../middleware/auth.ts";
 import { updateAvatar } from "../../../controllers/avatar.controller.ts";
 import { getAllSubjects } from "../../../controllers/quiz.controller.ts";
+import {
+  getCountries,
+  getStatesByCountry,
+  getCollegesByState,
+  updateUserLocation,
+} from "../../../controllers/profile.controller.ts";
 
 
 const router = Router();
@@ -28,6 +34,13 @@ router.post("/forget-password", forgetPassword);
 
 router.get("/profile", authenticate, profile);
 router.get("/info", authenticate, profile);
+
+// ===================== PROFILE LOCATION ==========
+router.get("/profile/countries", authenticate, getCountries);
+router.get("/profile/states", authenticate, getStatesByCountry);
+router.get("/profile/colleges", authenticate, getCollegesByState);
+router.patch("/profile/location", authenticate, updateUserLocation);
+
 router.patch("/avatar", authenticate, updateAvatar);
 
 

@@ -18,7 +18,8 @@ import {
   Toggle, SettingsCard, SettingsInput, SettingsSelect,
   SettingsSlider, ConfirmDialog, SettingsRow,
 } from "@/components/ui/settings";
-import { getUserInfo } from "@/services/user";
+import { SearchableDropdown } from "@/components/ui";
+import { getUserInfo, fetchCountries, fetchStatesByCountry, fetchCollegesByState, updateProfileLocation } from "@/services/user";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
 
@@ -248,6 +249,10 @@ export default function SettingsPage() {
   const [originalSettings, setOriginalSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(new Date());
+  // Selected ids for the backend-driven country/state/college dropdowns
+  const [countryId, setCountryId] = useState<number | null>(null);
+  const [stateId, setStateId] = useState<number | null>(null);
+  const [collegeId, setCollegeId] = useState<number | null>(null);
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;
@@ -290,10 +295,41 @@ export default function SettingsPage() {
     });
   };
 
+  // Selecting a fresh country resets dependent state + college selections
+  const handleCountrySelect = (o: { id: number | string; label: string }) => {
+    setCountryId(Number(o.id));
+    update("country", o.label);
+    setStateId(null);
+    setCollegeId(null);
+    update("state", "");
+    update("college", "");
+  };
+
+  // Selecting a fresh state resets the dependent college selection
+  const handleStateSelect = (o: { id: number | string; label: string }) => {
+    setStateId(Number(o.id));
+    update("state", o.label);
+    setCollegeId(null);
+    update("college", "");
+  };
+
+  const handleCollegeSelect = (o: { id: number | string; label: string }) => {
+    setCollegeId(Number(o.id));
+    update("college", o.label);
+  };
+
   // Save handler
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Persist the profile location (country/state/college) to the backend
+      if (countryId != null || stateId != null || collegeId != null) {
+        await updateProfileLocation({
+          countryId,
+          stateId,
+          collegeId,
+        });
+      }
       await new Promise((r) => setTimeout(r, 1000));
       setOriginalSettings(settings);
       setLastSaved(new Date());
@@ -603,9 +639,50 @@ export default function SettingsPage() {
                 <div className="grid gap-6 sm:grid-cols-2">
                   <SettingsInput label="Email Address" value={settings.email} onChange={(v) => update("email", v)} type="email" icon={<Mail className="h-4 w-4" />} required />
                   <SettingsInput label="Mobile Number" value={settings.mobileNumber} onChange={(v) => update("mobileNumber", v)} icon={<Phone className="h-4 w-4" />} optional />
-                  <SettingsSelect label="Country" value={settings.country} onChange={(v) => update("country", v)} options={COUNTRIES} searchable placeholder="Search country..." required />
-                  <SettingsSelect label="State" value={settings.state} onChange={(v) => update("state", v)} options={STATES_BY_COUNTRY[settings.country] || []} searchable placeholder="Search state..." optional />
-                  <SettingsSelect label="College" value={settings.college} onChange={(v) => update("college", v)} options={COLLEGES} searchable placeholder="Search college..." optional />
+                  <SearchableDropdown
+                    label="Country"
+                    placeholder="Search country..."
+                    required
+                    value={settings.country}
+                    selectedId={countryId ?? undefined}
+                    onSelect={handleCountrySelect}
+                    onClear={() => {
+                      setCountryId(null);
+                      update("country", "");
+                    }}
+                    searchFn={fetchCountries}
+                    minChars={1}
+                  />
+                  <SearchableDropdown
+                    label="State"
+                    placeholder="Search state..."
+                    optional
+                    disabled={countryId == null}
+                    value={settings.state}
+                    selectedId={stateId ?? undefined}
+                    onSelect={handleStateSelect}
+                    onClear={() => {
+                      setStateId(null);
+                      update("state", "");
+                    }}
+                    searchFn={(query, signal) => fetchStatesByCountry(countryId ?? 0, query, signal)}
+                    minChars={1}
+                  />
+                  <SearchableDropdown
+                    label="College"
+                    placeholder="Search college..."
+                    optional
+                    disabled={stateId == null}
+                    value={settings.college}
+                    selectedId={collegeId ?? undefined}
+                    onSelect={handleCollegeSelect}
+                    onClear={() => {
+                      setCollegeId(null);
+                      update("college", "");
+                    }}
+                    searchFn={(query, signal) => fetchCollegesByState(stateId ?? 0, query, signal)}
+                    minChars={1}
+                  />
                   <SettingsSelect label="Company" value={settings.company} onChange={(v) => update("company", v)} options={COMPANIES} searchable placeholder="Search company..." optional />
                   <SettingsInput label="Date of Birth" value={settings.dateOfBirth} onChange={(v) => update("dateOfBirth", v)} type="date" icon={<Calendar className="h-4 w-4" />} />
                   <SettingsSelect label="Gender" value={settings.gender} onChange={(v) => update("gender", v)} options={GENDERS} />
