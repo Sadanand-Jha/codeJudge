@@ -45,9 +45,6 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
           animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl border border-white/[0.08] bg-[#111827] overflow-hidden"
         >
-          {quiz.coverImage && (
-            <div className="h-48 w-full bg-cover bg-center" style={{ backgroundImage: `url('${quiz.coverImage}')` }} />
-          )}
           <div className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">

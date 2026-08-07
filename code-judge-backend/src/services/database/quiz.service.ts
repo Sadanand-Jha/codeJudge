@@ -184,4 +184,8 @@ export class QuizService {
   async getQuestionWiseReview(attemptId: number, userId: number): Promise<any[]> {
     return this.repository.getQuestionWiseReview(attemptId, userId);
   }
+
+  async getAllSubjects(search?: string): Promise<any[]> {
+    return this.repository.getAllSubjects(search);
+  }
 }
