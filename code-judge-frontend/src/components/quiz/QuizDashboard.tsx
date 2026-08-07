@@ -180,12 +180,12 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
   }
 
   return (
-    <div className="h-screen bg-[#09090B] flex flex-col overflow-hidden">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* ===== TOP BAR ===== */}
-      <div className="h-14 border-b border-white/[0.08] bg-[#09090B]/80 backdrop-blur-xl flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0">
+      <div className="h-14 border-b border-border-hover bg-background/80 backdrop-blur-xl flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0">
         <button
           onClick={onExit}
-          className="h-8 px-2 sm:px-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+          className="h-8 px-2 sm:px-2.5 rounded-lg border border-border bg-white/[0.04] text-xs font-medium text-muted-foreground hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
           title="Back to Quizzes"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -213,7 +213,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
           </button>
           <button
             onClick={() => setShowSettingsView(true)}
-            className="h-8 px-2 sm:px-3 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1"
+            className="h-8 px-2 sm:px-3 rounded-lg border border-border bg-white/[0.04] text-xs font-medium text-muted-foreground hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1"
           >
             <Settings className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Settings</span>
@@ -224,7 +224,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
       {/* ===== BODY: Sidebar + Main ===== */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar - hidden on mobile, shown as bottom sheet or drawer */}
-        <div className="hidden md:flex w-60 border-r border-white/[0.06] bg-[#0B0D12] flex-col shrink-0">
+        <div className="hidden md:flex w-60 border-r border-border bg-[#0B0D12] flex-col shrink-0">
           <div className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
             {["Main", "Content", "People", "Insights", "Community", "Launch"].map((group) => {
               const items = NAV_ITEMS.filter((i) => i.group === group);
@@ -253,7 +253,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
                           className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-all ${
                             isActive
                               ? "bg-[#EC4899]/10 text-white border border-[#EC4899]/20"
-                              : "text-[#9CA3AF] hover:text-white hover:bg-white/[0.04] border border-transparent"
+                              : "text-muted-foreground hover:text-white hover:bg-white/[0.04] border border-transparent"
                           }`}
                         >
                           <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#EC4899]" : "text-[#6B7280]"}`} />
@@ -389,7 +389,7 @@ function OverviewTab({
           <p className="text-xs text-[#6B7280] mt-1">{quizDescription || "No description yet"}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onPreview} className="h-8 px-3 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
+          <button onClick={onPreview} className="h-8 px-3 rounded-lg border border-border bg-white/[0.04] text-xs font-medium text-muted-foreground hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5">
             <Eye className="w-3.5 h-3.5" /> Preview Quiz
           </button>
           <button onClick={onPublish} className="h-8 px-3 rounded-lg bg-gradient-to-r from-[#EC4899] to-[#EC4899] text-xs font-bold text-white hover:shadow-lg hover:shadow-[#EC4899]/20 transition-all flex items-center gap-1.5">
@@ -401,7 +401,7 @@ function OverviewTab({
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-white/[0.06] bg-[#111827] p-4">
+          <div key={stat.label} className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-1.5 mb-2">
               <stat.icon className="w-3.5 h-3.5" style={{ color: stat.color }} />
               <p className="text-[9px] font-medium text-[#6B7280]">{stat.label}</p>
@@ -430,10 +430,10 @@ function OverviewTab({
       {/* Completion Checklist + Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Completion Checklist */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+        <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white">Completion Checklist</h3>
-            <span className="text-xs text-[#9CA3AF]">{readinessCount}/{checklist.length}</span>
+            <span className="text-xs text-muted-foreground">{readinessCount}/{checklist.length}</span>
           </div>
           <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden mb-4">
             <motion.div
@@ -451,19 +451,19 @@ function OverviewTab({
                 ) : (
                   <XCircle className="w-4 h-4 text-[#6B7280] shrink-0" />
                 )}
-                <span className={`text-xs ${item.passed ? "text-[#22C55E]" : "text-[#9CA3AF]"}`}>{item.label}</span>
+                <span className={`text-xs ${item.passed ? "text-[#22C55E]" : "text-muted-foreground"}`}>{item.label}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+        <div className="rounded-2xl border border-border bg-card p-5">
           <h3 className="text-sm font-bold text-white mb-4">Recent Activity</h3>
           <div className="space-y-3">
             {recentActivity.map((activity, i) => (
               <div key={i} className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-border-hover flex items-center justify-center shrink-0">
                   <activity.icon className="w-3.5 h-3.5 text-[#EC4899]" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -477,7 +477,7 @@ function OverviewTab({
       </div>
 
       {/* Question Status */}
-      <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+      <div className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-white">Questions Status</h3>
           <button onClick={onOpenBuilder} className="text-xs font-semibold text-[#EC4899] hover:text-[#DB2777] transition-colors flex items-center gap-1">
@@ -497,13 +497,13 @@ function OverviewTab({
             <span className="text-sm font-bold text-white">{validationSummary.valid}/{validationSummary.total}</span>
           </div>
           <div className="space-y-2">
-            <p className="text-xs text-[#9CA3AF]">
+            <p className="text-xs text-muted-foreground">
               <span className="text-[#22C55E] font-bold">{validationSummary.valid}</span> valid questions
             </p>
-            <p className="text-xs text-[#9CA3AF]">
+            <p className="text-xs text-muted-foreground">
               <span className="text-[#F59E0B] font-bold">{validationSummary.total - validationSummary.valid}</span> need attention
             </p>
-            <p className="text-xs text-[#9CA3AF]">
+            <p className="text-xs text-muted-foreground">
               <span className="text-white font-bold">{totalMarks}</span> total marks
             </p>
           </div>
@@ -518,13 +518,13 @@ function QuickActionButton({ icon: Icon, label, onClick, color }: { icon: any; l
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-[#111827] p-3.5 hover:border-white/[0.15] hover:bg-white/[0.04] transition-all group"
+      className="flex items-center gap-2.5 rounded-xl border border-border bg-card p-3.5 hover:border-white/[0.15] hover:bg-white/[0.04] transition-all group"
     >
       <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}15`, border: `1px solid ${color}30` }}>
         <Icon className="w-4 h-4" style={{ color }} />
       </div>
       <span className="text-xs font-medium text-white group-hover:text-white">{label}</span>
-      <ChevronRight className="w-3.5 h-3.5 text-[#6B7280] ml-auto group-hover:text-[#9CA3AF] transition-colors" />
+      <ChevronRight className="w-3.5 h-3.5 text-[#6B7280] ml-auto group-hover:text-muted-foreground transition-colors" />
     </button>
   );
 }
@@ -564,7 +564,7 @@ function PreviewTab({ quizName, questions, onEditQuestions }: { quizName: string
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-white/[0.06] px-6 py-3 flex items-center justify-between">
+      <div className="border-b border-border px-6 py-3 flex items-center justify-between">
         <h2 className="text-sm font-bold text-white">{quizName} — Preview</h2>
         <button onClick={onEditQuestions} className="text-xs font-semibold text-[#EC4899] hover:text-[#DB2777] transition-colors">
           Edit Questions
@@ -615,7 +615,7 @@ function PublishTab({
             <div
               key={item.id}
               className={`flex items-center gap-3 rounded-xl border p-3 ${
-                item.passed ? "border-[#22C55E]/20 bg-[#22C55E]/5" : "border-white/[0.06] bg-white/[0.02]"
+                item.passed ? "border-[#22C55E]/20 bg-[#22C55E]/5" : "border-border bg-white/[0.02]"
               }`}
             >
               {item.passed ? (
@@ -623,7 +623,7 @@ function PublishTab({
               ) : (
                 <XCircle className="w-4 h-4 text-[#6B7280] shrink-0" />
               )}
-              <span className={`text-xs flex-1 ${item.passed ? "text-[#22C55E]" : "text-[#9CA3AF]"}`}>{item.label}</span>
+              <span className={`text-xs flex-1 ${item.passed ? "text-[#22C55E]" : "text-muted-foreground"}`}>{item.label}</span>
               {!item.passed && item.id === "info" && (
                 <button onClick={onOpenSettings} className="text-[10px] font-semibold text-[#EC4899] hover:text-[#DB2777]">Fix</button>
               )}

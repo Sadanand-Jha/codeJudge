@@ -91,7 +91,7 @@ function ToolbarButton({ icon: Icon, label, onClick }: { icon: LucideIcon; label
   return (
     <button
       onClick={onClick}
-      className="p-1.5 rounded-lg hover:bg-[#2D3B52] text-[#AAB6C8] hover:text-[#F8FAFC] transition-colors"
+      className="p-1.5 rounded-lg hover:bg-[#2D3B52] text-muted-foreground hover:text-foreground transition-colors"
       title={label}
     >
       <Icon className="w-3.5 h-3.5" />
@@ -249,23 +249,23 @@ export default function QuestionBuilder({
   // ===== Preview Mode =====
   if (showPreview) {
     return (
-      <div className="fixed inset-0 z-50 bg-[#111827] text-[#F8FAFC] flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-card text-foreground flex flex-col overflow-hidden">
         <div className="h-14 border-b border-[#3A4963] bg-[#1B2433] flex items-center px-4 gap-3 shrink-0">
           <button
             onClick={() => setShowPreview(false)}
-            className="h-8 px-3 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-[#F8FAFC] hover:border-[#C7DDEC]/50 transition-colors flex items-center gap-1.5"
+            className="h-8 px-3 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-foreground hover:border-[#C7DDEC]/50 transition-colors flex items-center gap-1.5"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Editor
           </button>
           <div className="w-px h-6 bg-[#3A4963]" />
           <div className="flex items-center gap-2">
-            <Eye className="w-3.5 h-3.5 text-[#C7DDEC]" />
-            <span className="text-xs font-bold text-[#F8FAFC]">Preview Mode</span>
-            <span className="text-[9px] text-[#AAB6C8]">Student view</span>
+            <Eye className="w-3.5 h-3.5 text-foreground" />
+            <span className="text-xs font-bold text-foreground">Preview Mode</span>
+            <span className="text-[9px] text-muted-foreground">Student view</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-[10px] text-[#AAB6C8]">Question {activeIndex + 1} of {questions.length}</span>
+            <span className="text-[10px] text-muted-foreground">Question {activeIndex + 1} of {questions.length}</span>
             <button
               onClick={() => setShowPreview(false)}
               className="h-8 px-4 rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-xs font-bold text-white hover:shadow-[0_0_20px_rgba(124,58,237,0.3)] transition-all"
@@ -278,22 +278,22 @@ export default function QuestionBuilder({
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-3xl mx-auto px-8 py-12">
             <div className="mb-8">
-              <h1 className="text-2xl font-bold text-[#F8FAFC] mb-2">{quizName}</h1>
+              <h1 className="text-2xl font-bold text-foreground mb-2">{quizName}</h1>
               <p className="text-sm text-[#CBD5E1]">{details.description}</p>
             </div>
 
             <div className="rounded-2xl border border-[#3A4963] bg-[#202B3D] p-8">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-[#C7DDEC]">Question {activeIndex + 1}</span>
+                  <span className="text-xs font-bold text-foreground">Question {activeIndex + 1}</span>
                   <span className="px-2 py-0.5 rounded-md bg-[#263245] border border-[#3A4963] text-[9px] font-medium text-[#CBD5E1]">
                     {activeQuestion.marks} marks
                   </span>
                 </div>
-                <span className="text-[10px] text-[#AAB6C8]">{activeQuestion.expectedTime} min</span>
+                <span className="text-[10px] text-muted-foreground">{activeQuestion.expectedTime} min</span>
               </div>
 
-              <h2 className="text-lg font-medium text-[#F8FAFC] mb-6 leading-relaxed whitespace-pre-wrap">
+              <h2 className="text-lg font-medium text-foreground mb-6 leading-relaxed whitespace-pre-wrap">
                 {activeQuestion.title || "Untitled question"}
               </h2>
 
@@ -322,7 +322,7 @@ export default function QuestionBuilder({
                       <span className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold text-[#CBD5E1] bg-[#2D3B52]">
                         {option.label}
                       </span>
-                      <span className="text-sm text-[#F8FAFC]">{option.content || `Option ${option.label}`}</span>
+                      <span className="text-sm text-foreground">{option.content || `Option ${option.label}`}</span>
                     </div>
                   ))}
                 </div>
@@ -330,20 +330,20 @@ export default function QuestionBuilder({
 
               {isTextType && (
                 <div className="rounded-xl border border-[#3A4963] bg-[#263245] p-4">
-                  <p className="text-xs text-[#AAB6C8] mb-2">
+                  <p className="text-xs text-muted-foreground mb-2">
                     {activeQuestion.type === "paragraph" ? "Write your answer below" : "Type your answer"}
                   </p>
                   {activeQuestion.type === "paragraph" ? (
                     <textarea
                       placeholder="Your answer..."
                       rows={4}
-                      className="w-full bg-transparent text-sm text-[#F8FAFC] placeholder-[#94A3B8] focus:outline-none resize-none"
+                      className="w-full bg-transparent text-sm text-foreground placeholder-[#94A3B8] focus:outline-none resize-none"
                     />
                   ) : (
                     <input
                       type={activeQuestion.type === "integer" ? "number" : "text"}
                       placeholder="Your answer..."
-                      className="w-full bg-transparent text-sm text-[#F8FAFC] placeholder-[#94A3B8] focus:outline-none"
+                      className="w-full bg-transparent text-sm text-foreground placeholder-[#94A3B8] focus:outline-none"
                     />
                   )}
                 </div>
@@ -353,7 +353,7 @@ export default function QuestionBuilder({
                 <button
                   disabled={activeIndex === 0}
                   onClick={() => setActiveQuestionId(questions[activeIndex - 1].id)}
-                  className="h-9 px-4 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-[#F8FAFC] disabled:opacity-30 transition-colors"
+                  className="h-9 px-4 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-foreground disabled:opacity-30 transition-colors"
                 >
                   Previous
                 </button>
@@ -384,12 +384,12 @@ export default function QuestionBuilder({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#111827] text-[#F8FAFC] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-card text-foreground flex flex-col overflow-hidden">
       {/* ===== HEADER ===== */}
       <div className="h-14 border-b border-[#3A4963] bg-[#1B2433] flex items-center px-4 gap-3 shrink-0 z-30">
         <button
           onClick={onBack}
-          className="h-8 px-2.5 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-[#F8FAFC] hover:border-[#C7DDEC]/50 transition-colors flex items-center gap-1.5"
+          className="h-8 px-2.5 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-foreground hover:border-[#C7DDEC]/50 transition-colors flex items-center gap-1.5"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Back
@@ -405,7 +405,7 @@ export default function QuestionBuilder({
           <input
             value={quizName}
             onChange={(e) => setQuizName(e.target.value)}
-            className="bg-transparent text-sm font-bold text-[#F8FAFC] focus:outline-none focus:border-b focus:border-[#C7DDEC]/50 transition-colors w-48"
+            className="bg-transparent text-sm font-bold text-foreground focus:outline-none focus:border-b focus:border-[#C7DDEC]/50 transition-colors w-48"
             placeholder="Untitled Quiz"
           />
         </div>
@@ -414,7 +414,7 @@ export default function QuestionBuilder({
         <div className="flex items-center gap-1.5 text-xs text-[#CBD5E1]">
           {saveStatus === "saving" && (
             <>
-              <Loader2 className="w-3.5 h-3.5 text-[#C7DDEC] animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 text-foreground animate-spin" />
               <span>Saving...</span>
             </>
           )}
@@ -422,7 +422,7 @@ export default function QuestionBuilder({
             <>
               <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E]" />
               <span className="text-[#22C55E]">Saved</span>
-              {lastSaved && <span className="text-[9px] text-[#AAB6C8]">{formatLastSaved(lastSaved)}</span>}
+              {lastSaved && <span className="text-[9px] text-muted-foreground">{formatLastSaved(lastSaved)}</span>}
             </>
           )}
           {saveStatus === "idle" && (
@@ -435,14 +435,14 @@ export default function QuestionBuilder({
 
         {/* Quiz code */}
         <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#263245] border border-[#3A4963]">
-          <Hash className="w-3 h-3 text-[#C7DDEC]" />
+          <Hash className="w-3 h-3 text-foreground" />
           <span className="text-[10px] font-mono text-[#CBD5E1]">{quizCode.slice(0, 8)}...</span>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => setShowSettings(true)}
-            className="p-1.5 rounded-lg hover:bg-[#2D3B52] text-[#AAB6C8] hover:text-[#F8FAFC] transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#2D3B52] text-muted-foreground hover:text-foreground transition-colors"
             title="Quiz Settings"
           >
             <Settings2 className="w-3.5 h-3.5" />
@@ -450,7 +450,7 @@ export default function QuestionBuilder({
 
           <button
             onClick={() => setShowPreview(true)}
-            className="h-8 px-3 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-[#F8FAFC] hover:border-[#C7DDEC]/50 transition-colors flex items-center gap-1.5"
+            className="h-8 px-3 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-foreground hover:border-[#C7DDEC]/50 transition-colors flex items-center gap-1.5"
           >
             <Eye className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Preview</span>
@@ -472,8 +472,8 @@ export default function QuestionBuilder({
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Question metadata row */}
           <div className="flex items-center gap-2 px-6 pt-3 pb-2 shrink-0">
-            <span className="text-sm font-bold text-[#C7DDEC]">Question {activeIndex + 1}</span>
-            <span className="text-xs text-[#AAB6C8]">of {questions.length}</span>
+            <span className="text-sm font-bold text-foreground">Question {activeIndex + 1}</span>
+            <span className="text-xs text-muted-foreground">of {questions.length}</span>
             <div className="ml-auto flex items-center gap-2">
               {/* Difficulty chips */}
               <div className="flex items-center gap-1">
@@ -487,7 +487,7 @@ export default function QuestionBuilder({
                       className={`px-2 py-1 rounded-lg text-[9px] font-semibold transition-all ${
                         active
                           ? "text-white"
-                          : "text-[#AAB6C8] hover:text-[#F8FAFC] bg-[#263245] hover:bg-[#2D3B52]"
+                          : "text-muted-foreground hover:text-foreground bg-[#263245] hover:bg-[#2D3B52]"
                       }`}
                       style={active ? { backgroundColor: `${color}25`, color, border: `1px solid ${color}40` } : undefined}
                     >
@@ -501,13 +501,13 @@ export default function QuestionBuilder({
 
               {/* Marks */}
               <div className="flex items-center gap-1.5">
-                <Award className="w-3 h-3 text-[#C7DDEC]" />
+                <Award className="w-3 h-3 text-foreground" />
                 <input
                   type="number"
                   value={activeQuestion.marks}
                   onChange={(e) => updateQuestion(activeQuestion.id, { marks: Number(e.target.value) })}
                   min={0}
-                  className="w-14 h-7 rounded-lg border border-[#3A4963] bg-[#263245] px-2 text-[11px] text-[#F8FAFC] text-center focus:outline-none focus:border-[#C7DDEC]/50 transition-colors"
+                  className="w-14 h-7 rounded-lg border border-[#3A4963] bg-[#263245] px-2 text-[11px] text-foreground text-center focus:outline-none focus:border-[#C7DDEC]/50 transition-colors"
                 />
               </div>
 
@@ -515,15 +515,15 @@ export default function QuestionBuilder({
 
               {/* Expected time */}
               <div className="flex items-center gap-1.5">
-                <Clock className="w-3 h-3 text-[#C7DDEC]" />
+                <Clock className="w-3 h-3 text-foreground" />
                 <input
                   type="number"
                   value={activeQuestion.expectedTime}
                   onChange={(e) => updateQuestion(activeQuestion.id, { expectedTime: Number(e.target.value) })}
                   min={0}
-                  className="w-14 h-7 rounded-lg border border-[#3A4963] bg-[#263245] px-2 text-[11px] text-[#F8FAFC] text-center focus:outline-none focus:border-[#C7DDEC]/50 transition-colors"
+                  className="w-14 h-7 rounded-lg border border-[#3A4963] bg-[#263245] px-2 text-[11px] text-foreground text-center focus:outline-none focus:border-[#C7DDEC]/50 transition-colors"
                 />
-                <span className="text-[9px] text-[#AAB6C8]">min</span>
+                <span className="text-[9px] text-muted-foreground">min</span>
               </div>
             </div>
           </div>
@@ -540,8 +540,8 @@ export default function QuestionBuilder({
                     onClick={() => updateQuestion(activeQuestion.id, { type: type.id })}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium whitespace-nowrap transition-all ${
                       active
-                        ? "text-[#C7DDEC] shadow-lg"
-                        : "text-[#AAB6C8] hover:text-[#F8FAFC] bg-[#263245] hover:bg-[#2D3B52]"
+                        ? "text-foreground shadow-lg"
+                        : "text-muted-foreground hover:text-foreground bg-[#263245] hover:bg-[#2D3B52]"
                     }`}
                     style={active ? { backgroundColor: `${color}20`, border: `1px solid ${color}40` } : undefined}
                   >
@@ -575,7 +575,7 @@ export default function QuestionBuilder({
                   <div className="ml-auto flex items-center gap-1">
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-[10px] font-medium text-[#C7DDEC] hover:text-[#F8FAFC] transition-colors flex items-center gap-1"
+                      className="text-[10px] font-medium text-foreground hover:text-foreground transition-colors flex items-center gap-1"
                     >
                       <ImageIcon className="w-3 h-3" />
                       Add Image
@@ -588,7 +588,7 @@ export default function QuestionBuilder({
                   value={activeQuestion.title}
                   onChange={(e) => updateQuestion(activeQuestion.id, { title: e.target.value })}
                   placeholder="Write your question here... "
-                  className="w-full min-h-[180px] p-5 bg-transparent text-lg text-[#F8FAFC] placeholder-[#94A3B8] resize-none focus:outline-none leading-relaxed"
+                  className="w-full min-h-[180px] p-5 bg-transparent text-lg text-foreground placeholder-[#94A3B8] resize-none focus:outline-none leading-relaxed"
                 />
               </div>
 
@@ -613,13 +613,13 @@ export default function QuestionBuilder({
               {isChoiceType && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-[11px] font-semibold text-[#AAB6C8] uppercase tracking-wider">
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                       {activeQuestion.type === "multiple_choice" ? "Select all correct answers" : "Select the correct answer"}
                     </label>
                     {activeQuestion.type !== "true_false" && activeQuestion.options.length < 8 && (
                       <button
                         onClick={addOption}
-                        className="text-[10px] font-medium text-[#C7DDEC] hover:text-[#F8FAFC] transition-colors flex items-center gap-1"
+                        className="text-[10px] font-medium text-foreground hover:text-foreground transition-colors flex items-center gap-1"
                       >
                         <Plus className="w-3 h-3" />
                         Add Option
@@ -659,7 +659,7 @@ export default function QuestionBuilder({
                             }`}
                           >
                             {/* Drag handle */}
-                            <div className="pt-1 cursor-move text-[#AAB6C8] opacity-0 group-hover:opacity-100 transition-opacity" onMouseDown={(e) => e.stopPropagation()}>
+                            <div className="pt-1 cursor-move text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" onMouseDown={(e) => e.stopPropagation()}>
                               <GripVertical className="w-3 h-3" />
                             </div>
 
@@ -691,7 +691,7 @@ export default function QuestionBuilder({
                                 value={option.content}
                                 onChange={(e) => updateOption(optIndex, { content: e.target.value })}
                                 placeholder={`Enter option ${option.label}...`}
-                                className="w-full bg-transparent text-sm text-[#F8FAFC] placeholder-[#94A3B8] focus:outline-none"
+                                className="w-full bg-transparent text-sm text-foreground placeholder-[#94A3B8] focus:outline-none"
                               />
                               {option.imageUrl && (
                                 <div className="relative inline-block">
@@ -711,7 +711,7 @@ export default function QuestionBuilder({
                               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                 <button
                                   onClick={() => handleOptionImageUpload(optIndex)}
-                                  className="p-1 rounded-lg hover:bg-[#2D3B52] text-[#AAB6C8] hover:text-[#F8FAFC] transition-colors"
+                                  className="p-1 rounded-lg hover:bg-[#2D3B52] text-muted-foreground hover:text-foreground transition-colors"
                                   title="Add image"
                                 >
                                   <ImageIcon className="w-3 h-3" />
@@ -723,7 +723,7 @@ export default function QuestionBuilder({
                                     newOpts.splice(optIndex + 1, 0, dup);
                                     updateQuestion(activeQuestion.id, { options: newOpts.map((o, i) => ({ ...o, label: String.fromCharCode(65 + i) })) });
                                   }}
-                                  className="p-1 rounded-lg hover:bg-[#2D3B52] text-[#AAB6C8] hover:text-[#F8FAFC] transition-colors"
+                                  className="p-1 rounded-lg hover:bg-[#2D3B52] text-muted-foreground hover:text-foreground transition-colors"
                                   title="Duplicate option"
                                 >
                                   <Copy className="w-3 h-3" />
@@ -734,7 +734,7 @@ export default function QuestionBuilder({
                                       const newOpts = activeQuestion.options.filter((_, i) => i !== optIndex);
                                       updateQuestion(activeQuestion.id, { options: newOpts.map((o, i) => ({ ...o, label: String.fromCharCode(65 + i) })) });
                                     }}
-                                    className="p-1 rounded-lg hover:bg-[#EF4444]/10 text-[#AAB6C8] hover:text-[#EF4444] transition-colors"
+                                    className="p-1 rounded-lg hover:bg-[#EF4444]/10 text-muted-foreground hover:text-[#EF4444] transition-colors"
                                     title="Delete option"
                                   >
                                     <Trash2 className="w-3 h-3" />
@@ -749,7 +749,7 @@ export default function QuestionBuilder({
                   </div>
 
                   {/* Correct answer summary */}
-                  <div className="flex items-center gap-2 text-[10px] text-[#AAB6C8] pt-2">
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground pt-2">
                     <Check className="w-3 h-3 text-[#22C55E]" />
                     {activeQuestion.type === "multiple_choice" ? (
                       <span>{activeQuestion.options.filter((o) => o.isCorrect).length} correct answer(s) selected</span>
@@ -767,7 +767,7 @@ export default function QuestionBuilder({
               {/* ===== Text Answer ===== */}
               {isTextType && (
                 <div>
-                  <label className="text-[11px] font-semibold text-[#AAB6C8] uppercase tracking-wider mb-2 block">
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">
                     {activeQuestion.type === "paragraph" ? "Model Answer" : "Correct Answer"}
                   </label>
                   {activeQuestion.type === "paragraph" ? (
@@ -776,7 +776,7 @@ export default function QuestionBuilder({
                       onChange={(e) => updateQuestion(activeQuestion.id, { correctAnswer: e.target.value })}
                       placeholder="Enter the model answer..."
                       rows={3}
-                      className="w-full rounded-xl border border-[#3A4963] bg-[#202B3D] px-4 py-3 text-sm text-[#F8FAFC] placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors resize-none"
+                      className="w-full rounded-xl border border-[#3A4963] bg-[#202B3D] px-4 py-3 text-sm text-foreground placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors resize-none"
                     />
                   ) : (
                     <input
@@ -784,7 +784,7 @@ export default function QuestionBuilder({
                       value={String(activeQuestion.correctAnswer)}
                       onChange={(e) => updateQuestion(activeQuestion.id, { correctAnswer: e.target.value })}
                       placeholder={activeQuestion.type === "integer" ? "Enter the integer answer..." : "Enter the correct answer..."}
-                      className="w-full h-10 rounded-xl border border-[#3A4963] bg-[#202B3D] px-4 text-sm text-[#F8FAFC] placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors"
+                      className="w-full h-10 rounded-xl border border-[#3A4963] bg-[#202B3D] px-4 text-sm text-foreground placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors"
                     />
                   )}
                 </div>
@@ -798,14 +798,14 @@ export default function QuestionBuilder({
           {/* Question Navigator */}
           <div className="px-4 pt-4 pb-3 border-b border-[#3A4963]">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold text-[#F8FAFC] flex items-center gap-2">
-                <Hash className="w-3.5 h-3.5 text-[#C7DDEC]" />
+              <h3 className="text-xs font-bold text-foreground flex items-center gap-2">
+                <Hash className="w-3.5 h-3.5 text-foreground" />
                 Questions
-                <span className="px-1.5 py-0.5 rounded-md bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 text-[9px] font-bold text-[#C7DDEC]">
+                <span className="px-1.5 py-0.5 rounded-md bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 text-[9px] font-bold text-foreground">
                   {questions.length}
                 </span>
               </h3>
-              <span className="text-[9px] text-[#AAB6C8]">{completedCount}/{questions.length} done</span>
+              <span className="text-[9px] text-muted-foreground">{completedCount}/{questions.length} done</span>
             </div>
 
             {/* Progress bar */}
@@ -847,7 +847,7 @@ export default function QuestionBuilder({
               })}
               <button
                 onClick={addQuestion}
-                className="w-8 h-8 rounded-lg border border-dashed border-[#C7DDEC]/30 bg-[#C7DDEC]/5 text-[#C7DDEC] hover:bg-[#C7DDEC]/10 transition-colors flex items-center justify-center"
+                className="w-8 h-8 rounded-lg border border-dashed border-[#C7DDEC]/30 bg-[#C7DDEC]/5 text-foreground hover:bg-[#C7DDEC]/10 transition-colors flex items-center justify-center"
                 title="Add Question"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -855,7 +855,7 @@ export default function QuestionBuilder({
             </div>
 
             {/* Legend */}
-            <div className="flex items-center gap-3 mt-3 text-[9px] text-[#AAB6C8]">
+            <div className="flex items-center gap-3 mt-3 text-[9px] text-muted-foreground">
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-[#22C55E]" /> Complete
               </span>
@@ -875,8 +875,8 @@ export default function QuestionBuilder({
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {/* Explanation */}
             <div>
-              <label className="text-[11px] font-semibold text-[#AAB6C8] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <BookOpen className="w-3 h-3 text-[#C7DDEC]" />
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <BookOpen className="w-3 h-3 text-foreground" />
                 Explanation
               </label>
               <textarea
@@ -884,14 +884,14 @@ export default function QuestionBuilder({
                 onChange={(e) => updateQuestion(activeQuestion.id, { explanation: e.target.value })}
                 placeholder="Explain the correct answer..."
                 rows={4}
-                className="w-full rounded-xl border border-[#3A4963] bg-[#263245] px-3 py-2.5 text-xs text-[#F8FAFC] placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors resize-none"
+                className="w-full rounded-xl border border-[#3A4963] bg-[#263245] px-3 py-2.5 text-xs text-foreground placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors resize-none"
               />
             </div>
 
             {/* Hint */}
             <div>
-              <label className="text-[11px] font-semibold text-[#AAB6C8] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Lightbulb className="w-3 h-3 text-[#C7DDEC]" />
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <Lightbulb className="w-3 h-3 text-foreground" />
                 Hint
               </label>
               <textarea
@@ -899,14 +899,14 @@ export default function QuestionBuilder({
                 onChange={(e) => updateQuestion(activeQuestion.id, { hint: e.target.value })}
                 placeholder="Optional hint..."
                 rows={2}
-                className="w-full rounded-xl border border-[#3A4963] bg-[#263245] px-3 py-2.5 text-xs text-[#F8FAFC] placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors resize-none"
+                className="w-full rounded-xl border border-[#3A4963] bg-[#263245] px-3 py-2.5 text-xs text-foreground placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors resize-none"
               />
             </div>
 
             {/* Reference Notes */}
             <div>
-              <label className="text-[11px] font-semibold text-[#AAB6C8] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <StickyNote className="w-3 h-3 text-[#C7DDEC]" />
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <StickyNote className="w-3 h-3 text-foreground" />
                 Reference Notes
               </label>
               <textarea
@@ -914,20 +914,20 @@ export default function QuestionBuilder({
                 onChange={(e) => updateQuestion(activeQuestion.id, { topic: e.target.value })}
                 placeholder="Add reference notes, links, or resources..."
                 rows={2}
-                className="w-full rounded-xl border border-[#3A4963] bg-[#263245] px-3 py-2.5 text-xs text-[#F8FAFC] placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors resize-none"
+                className="w-full rounded-xl border border-[#3A4963] bg-[#263245] px-3 py-2.5 text-xs text-foreground placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors resize-none"
               />
             </div>
 
             {/* Internal Comments */}
             <div>
-              <label className="text-[11px] font-semibold text-[#AAB6C8] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <MessageSquare className="w-3 h-3 text-[#C7DDEC]" />
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <MessageSquare className="w-3 h-3 text-foreground" />
                 Internal Comments
               </label>
               <textarea
                 placeholder="Add internal comments for reviewers..."
                 rows={2}
-                className="w-full rounded-xl border border-[#3A4963] bg-[#263245] px-3 py-2.5 text-xs text-[#F8FAFC] placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors resize-none"
+                className="w-full rounded-xl border border-[#3A4963] bg-[#263245] px-3 py-2.5 text-xs text-foreground placeholder-[#94A3B8] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors resize-none"
               />
             </div>
           </div>
@@ -939,19 +939,19 @@ export default function QuestionBuilder({
         <button
           onClick={() => { if (activeIndex > 0) setActiveQuestionId(questions[activeIndex - 1].id); }}
           disabled={activeIndex === 0}
-          className="h-8 px-3 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-[#F8FAFC] hover:border-[#C7DDEC]/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+          className="h-8 px-3 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-foreground hover:border-[#C7DDEC]/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
           Previous
         </button>
 
-        <div className="text-xs text-[#AAB6C8]">
-          Question <span className="text-[#F8FAFC] font-semibold">{activeIndex + 1}</span> of {questions.length}
+        <div className="text-xs text-muted-foreground">
+          Question <span className="text-foreground font-semibold">{activeIndex + 1}</span> of {questions.length}
         </div>
 
         <div className="ml-auto flex items-center gap-2">
           {/* Stats */}
-          <div className="hidden md:flex items-center gap-3 text-[10px] text-[#AAB6C8]">
+          <div className="hidden md:flex items-center gap-3 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3 text-[#F59E0B]" />
               {totalTime} min
@@ -970,7 +970,7 @@ export default function QuestionBuilder({
 
           <button
             onClick={addQuestion}
-            className="h-8 px-3 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-[#F8FAFC] hover:border-[#C7DDEC]/50 transition-colors flex items-center gap-1.5"
+            className="h-8 px-3 rounded-lg border border-[#3A4963] bg-[#263245] text-xs font-medium text-[#CBD5E1] hover:text-foreground hover:border-[#C7DDEC]/50 transition-colors flex items-center gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Question
@@ -981,7 +981,7 @@ export default function QuestionBuilder({
               saveQuizQuestions(questions, activeQuestionId);
               toast.success("Quiz saved successfully!");
             }}
-            className="h-8 px-3 rounded-lg border border-[#C7DDEC]/30 bg-[#C7DDEC]/10 text-xs font-bold text-[#C7DDEC] hover:bg-[#C7DDEC]/20 transition-colors flex items-center gap-1.5"
+            className="h-8 px-3 rounded-lg border border-[#C7DDEC]/30 bg-[#C7DDEC]/10 text-xs font-bold text-foreground hover:bg-[#C7DDEC]/20 transition-colors flex items-center gap-1.5"
           >
             <Save className="w-3.5 h-3.5" />
             Save
@@ -1018,35 +1018,35 @@ export default function QuestionBuilder({
             >
               <div className="p-5 border-b border-[#3A4963] flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-bold text-[#F8FAFC] flex items-center gap-2">
-                    <Settings2 className="w-4 h-4 text-[#C7DDEC]" />
+                  <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Settings2 className="w-4 h-4 text-foreground" />
                     Quiz Settings
                   </h2>
                   <p className="text-xs text-[#CBD5E1] mt-0.5">Configure quiz-level options</p>
                 </div>
-                <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-lg hover:bg-[#2D3B52] text-[#AAB6C8] hover:text-[#F8FAFC] transition-colors">
+                <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-lg hover:bg-[#2D3B52] text-muted-foreground hover:text-foreground transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="text-[11px] font-semibold text-[#AAB6C8] uppercase tracking-wider mb-2 block">Quiz Name</label>
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Quiz Name</label>
                   <input
                     type="text"
                     value={quizName}
                     onChange={(e) => setQuizName(e.target.value)}
-                    className="w-full h-10 rounded-xl border border-[#3A4963] bg-[#263245] px-4 text-sm text-[#F8FAFC] focus:outline-none focus:border-[#C7DDEC]/50 transition-colors"
+                    className="w-full h-10 rounded-xl border border-[#3A4963] bg-[#263245] px-4 text-sm text-foreground focus:outline-none focus:border-[#C7DDEC]/50 transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-[#AAB6C8] uppercase tracking-wider mb-2 block">Quiz Code</label>
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Quiz Code</label>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 px-3 py-2 rounded-lg bg-[#263245] border border-[#3A4963] text-xs text-[#C7DDEC] font-mono">
+                    <code className="flex-1 px-3 py-2 rounded-lg bg-[#263245] border border-[#3A4963] text-xs text-foreground font-mono">
                       {quizCode}
                     </code>
                     <button
                       onClick={() => navigator.clipboard.writeText(quizCode)}
-                      className="p-2 rounded-lg border border-[#3A4963] bg-[#263245] text-[#AAB6C8] hover:text-[#F8FAFC] transition-colors"
+                      className="p-2 rounded-lg border border-[#3A4963] bg-[#263245] text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
@@ -1054,7 +1054,7 @@ export default function QuestionBuilder({
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <div>
-                    <p className="text-sm font-medium text-[#F8FAFC]">Shuffle Questions</p>
+                    <p className="text-sm font-medium text-foreground">Shuffle Questions</p>
                     <p className="text-xs text-[#CBD5E1] mt-0.5">Randomize question order</p>
                   </div>
                   <button

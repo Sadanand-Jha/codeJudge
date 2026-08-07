@@ -78,9 +78,9 @@ export default function LivePreview({
 
   if (!question) {
     return (
-      <div className="flex-1 flex items-center justify-center text-[#9CA3AF]">
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-white/[0.04] border border-border-hover flex items-center justify-center">
             <Monitor className="w-5 h-5 text-[#6B7280]" />
           </div>
           <p className="text-xs">Select a question to preview</p>
@@ -101,7 +101,7 @@ export default function LivePreview({
       <div className={`mx-auto ${deviceWidths[deviceMode]} transition-all duration-300`}>
         {/* Preview Header */}
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] font-medium text-[#9CA3AF] flex items-center gap-1.5">
+          <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
             Live Preview
           </span>
@@ -113,7 +113,7 @@ export default function LivePreview({
         </div>
 
         {/* Preview Card */}
-        <div className="rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+        <div className="rounded-2xl border border-border bg-card overflow-hidden">
           {/* Progress bar */}
           <div className="h-1 bg-white/[0.04]">
             <div
@@ -126,7 +126,7 @@ export default function LivePreview({
             {/* Question Header */}
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-bold text-[#9CA3AF]">
+                <span className="text-[10px] font-bold text-muted-foreground">
                   Question {questionNumber}
                 </span>
                 <span className="text-[9px] text-[#6B7280]">/ {totalQuestions}</span>
@@ -152,7 +152,7 @@ export default function LivePreview({
                       <img
                         src={img.url}
                         alt={img.caption || "Question image"}
-                        className="w-full rounded-xl border border-white/[0.08]"
+                        className="w-full rounded-xl border border-border-hover"
                       />
                       {img.caption && (
                         <p className="text-[9px] text-[#6B7280] mt-1 text-center">{img.caption}</p>
@@ -168,8 +168,8 @@ export default function LivePreview({
 
               {/* Code snippet */}
               {isCodeType && question.codeSnippet && (
-                <div className="mt-3 rounded-xl border border-white/[0.06] bg-[#0B0D12] overflow-hidden">
-                  <div className="flex items-center gap-1 px-3 py-1.5 border-b border-white/[0.06] bg-[#111827]">
+                <div className="mt-3 rounded-xl border border-border bg-[#0B0D12] overflow-hidden">
+                  <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border bg-card">
                     <span className="w-2 h-2 rounded-full bg-[#EF4444]/60" />
                     <span className="w-2 h-2 rounded-full bg-[#F59E0B]/60" />
                     <span className="w-2 h-2 rounded-full bg-[#22C55E]/60" />
@@ -199,7 +199,7 @@ export default function LivePreview({
                           ? isCorrect
                             ? "border-[#22C55E]/40 bg-[#22C55E]/10"
                             : "border-[#EC4899]/40 bg-[#EC4899]/10"
-                          : "border-white/[0.06] bg-white/[0.02] hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5"
+                          : "border-border bg-white/[0.02] hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5"
                       }`}
                       onClick={() => toggleOption(index)}
                     >
@@ -228,7 +228,7 @@ export default function LivePreview({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-2">
-                          <span className="text-[10px] font-bold text-[#9CA3AF] mt-0.5">
+                          <span className="text-[10px] font-bold text-muted-foreground mt-0.5">
                             {option.label}.
                           </span>
                           <span className="text-xs text-white flex-1">{option.content || `Option ${option.label}`}</span>
@@ -237,7 +237,7 @@ export default function LivePreview({
                           <img
                             src={option.imageUrl}
                             alt={option.caption || `Option ${option.label}`}
-                            className="mt-2 rounded-lg border border-white/[0.08] max-h-24"
+                            className="mt-2 rounded-lg border border-border-hover max-h-24"
                           />
                         )}
                         {option.caption && (
@@ -258,7 +258,7 @@ export default function LivePreview({
                   value={textAnswer}
                   onChange={(e) => setTextAnswer(e.target.value)}
                   placeholder="Type your answer here..."
-                  className="w-full h-10 px-3 rounded-xl border border-white/[0.06] bg-white/[0.02] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-white/[0.02] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
                 />
                 {question.caseSensitive && (
                   <p className="text-[9px] text-[#6B7280] flex items-center gap-1">
@@ -274,11 +274,11 @@ export default function LivePreview({
               <div className="space-y-2">
                 {(question.matchingPairs || []).map((pair, index) => (
                   <div key={pair.id} className="flex items-center gap-2">
-                    <div className="flex-1 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[10px] text-white">
+                    <div className="flex-1 rounded-lg border border-border bg-white/[0.02] px-3 py-2 text-[10px] text-white">
                       {pair.left || `Item ${index + 1}L`}
                     </div>
                     <span className="text-[#6B7280]">↔</span>
-                    <div className="flex-1 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[10px] text-white">
+                    <div className="flex-1 rounded-lg border border-border bg-white/[0.02] px-3 py-2 text-[10px] text-white">
                       {pair.right || `Item ${index + 1}R`}
                     </div>
                   </div>
@@ -292,7 +292,7 @@ export default function LivePreview({
                 {(question.orderingItems || []).map((item, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2"
+                    className="flex items-center gap-2 rounded-lg border border-border bg-white/[0.02] px-3 py-2"
                   >
                     <span className="text-[9px] font-bold text-[#6B7280] w-5">{index + 1}.</span>
                     <span className="text-[10px] text-white flex-1">{item || `Step ${index + 1}`}</span>
@@ -380,7 +380,7 @@ export default function LivePreview({
                             href={ref.url || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[10px] text-[#9CA3AF] hover:text-white hover:border-[#EC4899]/30 transition-colors"
+                            className="flex items-center gap-2 rounded-lg border border-border bg-white/[0.02] px-3 py-2 text-[10px] text-muted-foreground hover:text-white hover:border-[#EC4899]/30 transition-colors"
                           >
                             <BookOpen className="w-3 h-3 text-[#EC4899]" />
                             <span className="flex-1 truncate">{ref.title || "Untitled reference"}</span>
@@ -395,18 +395,18 @@ export default function LivePreview({
             )}
 
             {/* Actions */}
-            <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
+            <div className="flex items-center justify-between pt-3 border-t border-border">
               <div className="flex items-center gap-2">
                 {question.allowSkipping && (
-                  <button className="px-3 py-2 rounded-lg border border-white/[0.06] bg-white/[0.02] text-[10px] font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors flex items-center gap-1">
+                  <button className="px-3 py-2 rounded-lg border border-border bg-white/[0.02] text-[10px] font-medium text-muted-foreground hover:text-white hover:border-border-hover transition-colors flex items-center gap-1">
                     <SkipForward className="w-3 h-3" />
                     Skip
                   </button>
                 )}
-                <button className="px-3 py-2 rounded-lg border border-white/[0.06] bg-white/[0.02] text-[10px] font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors">
+                <button className="px-3 py-2 rounded-lg border border-border bg-white/[0.02] text-[10px] font-medium text-muted-foreground hover:text-white hover:border-border-hover transition-colors">
                   <ChevronLeft className="w-3 h-3" />
                 </button>
-                <button className="px-3 py-2 rounded-lg border border-white/[0.06] bg-white/[0.02] text-[10px] font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors">
+                <button className="px-3 py-2 rounded-lg border border-border bg-white/[0.02] text-[10px] font-medium text-muted-foreground hover:text-white hover:border-border-hover transition-colors">
                   <ChevronRight className="w-3 h-3" />
                 </button>
               </div>

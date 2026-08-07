@@ -37,15 +37,15 @@ export default function ProfilePage() {
     return (
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          <div className="h-32 rounded-3xl bg-[#111827] animate-pulse" />
+          <div className="h-32 rounded-3xl bg-card animate-pulse" />
           <div className="grid grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-32 rounded-2xl bg-[#111827] animate-pulse" />
+              <div key={i} className="h-32 rounded-2xl bg-card animate-pulse" />
             ))}
           </div>
           <div className="grid grid-cols-3 gap-6">
-            <div className="col-span-2 h-80 rounded-2xl bg-[#111827] animate-pulse" />
-            <div className="h-80 rounded-2xl bg-[#111827] animate-pulse" />
+            <div className="col-span-2 h-80 rounded-2xl bg-card animate-pulse" />
+            <div className="h-80 rounded-2xl bg-card animate-pulse" />
           </div>
         </div>
       </div>

@@ -23,7 +23,7 @@ export default function SampleTestCard({ sample, index }: SampleTestCardProps) {
       </div>
       {sample.explanation && (
         <div className="border-t border-[#E5E7EB] px-5 py-4">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wider text-[#9CA3AF]">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Explanation
           </p>
           <p className="text-sm leading-relaxed text-[#6B7280]">
@@ -56,12 +56,12 @@ function CodeBlock({ label, code }: CodeBlockProps) {
   return (
     <div className="px-5 py-3">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wider text-[#9CA3AF]">
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
         <button
           onClick={handleCopy}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-[#9CA3AF] transition-colors duration-200 hover:bg-[#F3F4F6] hover:text-[#6B7280]"
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors duration-200 hover:bg-[#F3F4F6] hover:text-[#6B7280]"
           aria-label={copied ? "Copied" : "Copy to clipboard"}
         >
           {copied ? (

@@ -2,9 +2,9 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="mt-auto border-t border-white/[0.06] bg-[#09090B]">
+    <footer className="mt-auto border-t border-border bg-background">
       <div className="mx-auto max-w-7xl px-4 py-3">
-        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#9CA3AF]">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="font-medium text-white">ByteClash</span>
             <span className="text-[#3F3F46]">|</span>

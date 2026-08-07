@@ -132,7 +132,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
       <div className="min-h-screen bg-[#0B0D14]">
         <div className="flex">
           {/* Sidebar placeholder */}
-          <div className="hidden lg:block w-64 border-r border-white/[0.06] bg-[#0F1117] p-4">
+          <div className="hidden lg:block w-64 border-r border-border bg-[#0F1117] p-4">
             <div className="h-8 w-32 bg-white/[0.06] animate-pulse rounded-lg mb-4" />
             <div className="space-y-2">
               {[1, 2, 3, 4].map((i) => (
@@ -162,8 +162,8 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
     return (
       <div className="min-h-screen bg-[#0B0D14] p-6">
         <div className="max-w-4xl mx-auto text-center py-16">
-          <p className="text-sm text-[#9CA3AF]">Quiz not found.</p>
-          <Link href="/quiz" className="text-[#C7DDEC] text-sm mt-2 inline-block">← Back to Quizzes</Link>
+          <p className="text-sm text-muted-foreground">Quiz not found.</p>
+          <Link href="/quiz" className="text-foreground text-sm mt-2 inline-block">← Back to Quizzes</Link>
         </div>
       </div>
     );
@@ -206,7 +206,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
     <div className="min-h-screen bg-[#0B0D14]">
       <div className="flex">
         {/* Sidebar - hidden on mobile, visible on lg+ */}
-        <div className="hidden lg:block w-64 border-r border-white/[0.06] bg-[#0F1117] shrink-0">
+        <div className="hidden lg:block w-64 border-r border-border bg-[#0F1117] shrink-0">
           <div className="p-4">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
@@ -225,19 +225,19 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
 
         {/* Main Content */}
         <div className="flex-1 min-w-0">
-          <div className="sticky top-0 z-10 border-b border-white/[0.06] bg-[#0B0D14]/80 backdrop-blur-xl">
+          <div className="sticky top-0 z-10 border-b border-border bg-[#0B0D14]/80 backdrop-blur-xl">
             <div className="px-4 sm:px-6 lg:px-8 py-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <Link
                     href={quizCodePath(quizCode)}
-                    className="inline-flex items-center gap-1.5 text-xs text-[#9CA3AF] hover:text-white transition-colors mb-2"
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors mb-2"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     Back to Quiz
                   </Link>
                   <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Register for Quiz</h1>
-                  <p className="text-sm text-[#9CA3AF] mt-1">Review the quiz details before starting your attempt.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Review the quiz details before starting your attempt.</p>
                 </div>
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${statusBadge.color}`}>
                   <StatusIcon className="w-3.5 h-3.5" />
@@ -256,7 +256,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6 sm:p-8"
+                    className="rounded-2xl border border-border-hover bg-card p-6 sm:p-8"
                   >
                     <div className="flex items-start gap-4 mb-6">
                       <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center shrink-0">
@@ -264,7 +264,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       </div>
                       <div className="flex-1 min-w-0">
                         <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">{quiz.name}</h2>
-                        <p className="text-sm text-[#9CA3AF]">by {quiz.creator_name || "Unknown Creator"}</p>
+                        <p className="text-sm text-muted-foreground">by {quiz.creator_name || "Unknown Creator"}</p>
                       </div>
                     </div>
 
@@ -294,10 +294,10 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6 sm:p-8"
+                    className="rounded-2xl border border-border-hover bg-card p-6 sm:p-8"
                   >
                     <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                      <Info className="w-5 h-5 text-[#C7DDEC]" />
+                      <Info className="w-5 h-5 text-foreground" />
                       Important Instructions
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -315,10 +315,10 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6 sm:p-8"
+                    className="rounded-2xl border border-border-hover bg-card p-6 sm:p-8"
                   >
                     <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                      <Layers3 className="w-5 h-5 text-[#C7DDEC]" />
+                      <Layers3 className="w-5 h-5 text-foreground" />
                       Question Distribution
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -327,7 +327,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                         return (
                           <div
                             key={type.label}
-                            className="rounded-xl border border-white/[0.08] bg-[#0F1117] p-4 hover:border-white/[0.15] transition-colors"
+                            className="rounded-xl border border-border-hover bg-[#0F1117] p-4 hover:border-white/[0.15] transition-colors"
                           >
                             <div className="flex items-center gap-3 mb-2">
                               <div
@@ -337,7 +337,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                                 <Icon className="w-5 h-5" style={{ color: type.color }} />
                               </div>
                               <div>
-                                <p className="text-xs text-[#9CA3AF]">{type.label}</p>
+                                <p className="text-xs text-muted-foreground">{type.label}</p>
                                 <p className="text-lg font-bold text-white">{type.count}</p>
                               </div>
                             </div>
@@ -352,10 +352,10 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6 sm:p-8"
+                    className="rounded-2xl border border-border-hover bg-card p-6 sm:p-8"
                   >
                     <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                      <Award className="w-5 h-5 text-[#C7DDEC]" />
+                      <Award className="w-5 h-5 text-foreground" />
                       Marks & Timing
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -376,10 +376,10 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 }}
-                      className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6"
+                      className="rounded-2xl border border-border-hover bg-card p-6"
                     >
                       <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                        <UserCheck className="w-4 h-4 text-[#C7DDEC]" />
+                        <UserCheck className="w-4 h-4 text-foreground" />
                         Student Information
                       </h3>
                       <div className="space-y-3">
@@ -389,7 +389,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-white truncate">{user?.username || "Student"}</p>
-                          <p className="text-xs text-[#9CA3AF]">@{user?.email || "student"}</p>
+                          <p className="text-xs text-muted-foreground">@{user?.email || "student"}</p>
                         </div>
                       </div>
                         <div className="space-y-2">
@@ -404,7 +404,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.2 }}
-                      className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6"
+                      className="rounded-2xl border border-border-hover bg-card p-6"
                     >
                       <h3 className="text-sm font-bold text-white mb-4">Quiz Details</h3>
                       <div className="space-y-2.5">
@@ -422,10 +422,10 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 }}
-                      className="rounded-2xl border border-white/[0.08] bg-[#111827] p-6"
+                      className="rounded-2xl border border-border-hover bg-card p-6"
                     >
                       <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-[#C7DDEC]" />
+                        <Shield className="w-4 h-4 text-foreground" />
                         Eligibility Status
                       </h3>
                       <div className="space-y-2">
@@ -452,7 +452,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       </button>
                       <Link
                         href={quizCodePath(quizCode)}
-                        className="block w-full h-12 rounded-xl border border-white/[0.08] bg-white/[0.03] text-sm font-semibold text-white hover:border-white/[0.16] hover:bg-white/[0.06] transition-all text-center"
+                        className="block w-full h-12 rounded-xl border border-border-hover bg-white/[0.03] text-sm font-semibold text-white hover:border-white/[0.16] hover:bg-white/[0.06] transition-all text-center"
                       >
                         Back to Quiz
                       </Link>
@@ -483,24 +483,24 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md mx-4"
             >
-              <div className="rounded-3xl border border-white/[0.12] bg-[#111827] p-6 sm:p-8 shadow-2xl">
+              <div className="rounded-3xl border border-border-hover bg-card p-6 sm:p-8 shadow-2xl">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
                   <Play className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-white text-center mb-2">Ready to Begin?</h3>
-                <p className="text-sm text-[#9CA3AF] text-center mb-6">Review your quiz details before starting</p>
+                <p className="text-sm text-muted-foreground text-center mb-6">Review your quiz details before starting</p>
 
                 <div className="space-y-2 mb-6">
-                  <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#0F1117] p-3">
-                    <span className="text-xs text-[#9CA3AF]">Duration</span>
+                  <div className="flex items-center justify-between rounded-xl border border-border-hover bg-[#0F1117] p-3">
+                    <span className="text-xs text-muted-foreground">Duration</span>
                     <span className="text-sm font-semibold text-white">{quizDuration}</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#0F1117] p-3">
-                    <span className="text-xs text-[#9CA3AF]">Questions</span>
+                  <div className="flex items-center justify-between rounded-xl border border-border-hover bg-[#0F1117] p-3">
+                    <span className="text-xs text-muted-foreground">Questions</span>
                     <span className="text-sm font-semibold text-white">{totalQuestions}</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#0F1117] p-3">
-                    <span className="text-xs text-[#9CA3AF]">Total Marks</span>
+                  <div className="flex items-center justify-between rounded-xl border border-border-hover bg-[#0F1117] p-3">
+                    <span className="text-xs text-muted-foreground">Total Marks</span>
                     <span className="text-sm font-semibold text-white">{totalMarks}</span>
                   </div>
                   <div className="flex items-center justify-between rounded-xl border border-[#F59E0B]/20 bg-[#F59E0B]/5 p-3">
@@ -512,7 +512,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowConfirmModal(false)}
-                    className="flex-1 h-12 rounded-xl border border-white/[0.08] bg-white/[0.03] text-sm font-semibold text-white hover:border-white/[0.16] hover:bg-white/[0.06] transition-all"
+                    className="flex-1 h-12 rounded-xl border border-border-hover bg-white/[0.03] text-sm font-semibold text-white hover:border-white/[0.16] hover:bg-white/[0.06] transition-all"
                   >
                     Cancel
                   </button>
@@ -547,7 +547,7 @@ function NavItem({ icon: Icon, label, href }: { icon: any; label: string; href: 
   return (
     <Link
       href={href}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#9CA3AF] hover:text-white hover:bg-white/[0.04] transition-colors"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-white hover:bg-white/[0.04] transition-colors"
     >
       <Icon className="w-4 h-4" />
       {label}
@@ -557,10 +557,10 @@ function NavItem({ icon: Icon, label, href }: { icon: any; label: string; href: 
 
 function InfoItem({ icon: Icon, label, value, mono }: { icon: any; label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-[#0F1117] p-3">
-      <Icon className="w-4 h-4 text-[#C7DDEC] mt-0.5 shrink-0" />
+    <div className="flex items-start gap-3 rounded-xl border border-border-hover bg-[#0F1117] p-3">
+      <Icon className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider mb-0.5">{label}</p>
+        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5">{label}</p>
         <p className={`text-sm text-white ${mono ? "font-mono" : ""}`}>{value}</p>
       </div>
     </div>
@@ -569,9 +569,9 @@ function InfoItem({ icon: Icon, label, value, mono }: { icon: any; label: string
 
 function InstructionItem({ icon: Icon, text }: { icon: any; text: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-[#0F1117] p-3">
+    <div className="flex items-start gap-3 rounded-xl border border-border-hover bg-[#0F1117] p-3">
       <div className="w-8 h-8 rounded-lg bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 flex items-center justify-center shrink-0">
-        <Icon className="w-4 h-4 text-[#C7DDEC]" />
+        <Icon className="w-4 h-4 text-foreground" />
       </div>
       <p className="text-xs text-[#D1D5DB] leading-relaxed">{text}</p>
     </div>
@@ -580,10 +580,10 @@ function InstructionItem({ icon: Icon, text }: { icon: any; text: string }) {
 
 function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color: string }) {
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[#0F1117] p-4">
+    <div className="rounded-xl border border-border-hover bg-[#0F1117] p-4">
       <div className="flex items-center gap-2 mb-2">
         <Icon className="w-4 h-4" style={{ color }} />
-        <span className="text-[10px] font-medium text-[#9CA3AF] uppercase tracking-wider">{label}</span>
+        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
       </div>
       <p className="text-lg font-bold text-white">{value}</p>
     </div>
@@ -592,8 +592,8 @@ function MetricCard({ label, value, icon: Icon, color }: { label: string; value:
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#0F1117] p-3">
-      <span className="text-xs text-[#9CA3AF]">{label}</span>
+    <div className="flex items-center justify-between rounded-xl border border-border-hover bg-[#0F1117] p-3">
+      <span className="text-xs text-muted-foreground">{label}</span>
       <span className="text-sm font-semibold text-white">{value}</span>
     </div>
   );
@@ -602,13 +602,13 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 function InputField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) {
   return (
     <div>
-      <label className="block text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF] mb-1.5">{label}</label>
+      <label className="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">{label}</label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2.5 rounded-xl border border-white/[0.08] bg-[#0F1117] text-sm text-white placeholder-[#71717A] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all"
+        className="w-full px-3 py-2.5 rounded-xl border border-border-hover bg-[#0F1117] text-sm text-white placeholder-[#71717A] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all"
       />
     </div>
   );

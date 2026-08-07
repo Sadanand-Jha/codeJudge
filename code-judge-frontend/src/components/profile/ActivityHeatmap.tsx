@@ -70,8 +70,8 @@ export default function ActivityHeatmap({ data }: ActivityHeatmapProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xs font-medium uppercase tracking-widest text-slate-400">Activity Heatmap</h3>
-        <span className="text-xs text-slate-400">{totalSubmissions} submissions in the last year</span>
+        <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Activity Heatmap</h3>
+        <span className="text-xs text-muted-foreground">{totalSubmissions} submissions in the last year</span>
       </div>
 
       {/* Heatmap Grid */}

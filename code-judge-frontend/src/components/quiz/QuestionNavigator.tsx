@@ -148,9 +148,9 @@ export default function QuestionNavigator({
   };
 
   return (
-    <div className="w-80 border-r border-white/[0.06] bg-[#09090B] flex flex-col h-full">
+    <div className="w-80 border-r border-border bg-background flex flex-col h-full">
       {/* Header */}
-      <div className="p-3 border-b border-white/[0.06] space-y-2">
+      <div className="p-3 border-b border-border space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-semibold text-white flex items-center gap-2">
             Questions
@@ -181,7 +181,7 @@ export default function QuestionNavigator({
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
             placeholder="Search questions, tags, topics..."
-            className="w-full h-8 pl-8 pr-8 rounded-lg border border-white/[0.06] bg-[#111827] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899]/40 focus:outline-none"
+            className="w-full h-8 pl-8 pr-8 rounded-lg border border-border bg-card text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899]/40 focus:outline-none"
           />
           {searchQuery && (
             <button
@@ -206,7 +206,7 @@ export default function QuestionNavigator({
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={onSelectAll}
-                    className="flex-1 h-7 rounded-lg border border-white/[0.06] bg-white/[0.02] text-[10px] font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.12] transition-colors flex items-center justify-center gap-1"
+                    className="flex-1 h-7 rounded-lg border border-border bg-white/[0.02] text-[10px] font-medium text-muted-foreground hover:text-white hover:border-border-hover transition-colors flex items-center justify-center gap-1"
                   >
                     {selected.size === questions.length && questions.length > 0 ? (
                       <>
@@ -231,12 +231,12 @@ export default function QuestionNavigator({
 
                 {selected.size > 0 && (
                   <div className="flex items-center gap-1.5 pt-1">
-                    <span className="text-[10px] text-[#9CA3AF] flex-1">
+                    <span className="text-[10px] text-muted-foreground flex-1">
                       {selected.size} selected
                     </span>
                     <button
                       onClick={handleBulkDuplicate}
-                      className="h-6 px-2 rounded-md bg-white/[0.04] border border-white/[0.08] text-[9px] font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.15] transition-colors flex items-center gap-1"
+                      className="h-6 px-2 rounded-md bg-white/[0.04] border border-border-hover text-[9px] font-medium text-muted-foreground hover:text-white hover:border-white/[0.15] transition-colors flex items-center gap-1"
                     >
                       <Copy className="w-2.5 h-2.5" />
                       Duplicate
@@ -293,7 +293,7 @@ export default function QuestionNavigator({
                     ? "border-[#EC4899]/40 bg-[#EC4899]/10 shadow-[0_0_20px_rgba(236,72,153,0.15)]"
                     : isSelected
                     ? "border-[#EC4899]/30 bg-[#EC4899]/5"
-                    : "border-white/[0.06] bg-transparent hover:border-white/[0.12] hover:bg-white/[0.02]"
+                    : "border-border bg-transparent hover:border-border-hover hover:bg-white/[0.02]"
                 }`}
                 onClick={() => onSelect(question.id)}
               >
@@ -331,14 +331,14 @@ export default function QuestionNavigator({
                     {/* Question Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-[10px] font-bold text-[#9CA3AF]">Q{index + 1}</span>
+                        <span className="text-[10px] font-bold text-muted-foreground">Q{index + 1}</span>
                         <span
-                          className="px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[9px] font-medium"
+                          className="px-1.5 py-0.5 rounded-md bg-white/[0.04] border border-border-hover text-[9px] font-medium"
                           style={{ color: meta.color }}
                         >
                           {meta.short}
                         </span>
-                        <span className="text-[9px] text-[#9CA3AF] ml-auto flex items-center gap-0.5">
+                        <span className="text-[9px] text-muted-foreground ml-auto flex items-center gap-0.5">
                           <Hash className="w-2.5 h-2.5" />
                           {question.marks} pts
                         </span>
@@ -388,7 +388,7 @@ export default function QuestionNavigator({
                             initial={{ opacity: 0, scale: 0.95, y: -5 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                            className="absolute right-0 top-full z-50 mt-1 w-40 rounded-xl border border-white/[0.08] bg-[#111827] shadow-2xl shadow-black/50 overflow-hidden"
+                            className="absolute right-0 top-full z-50 mt-1 w-40 rounded-xl border border-border-hover bg-card shadow-2xl shadow-black/50 overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
@@ -396,7 +396,7 @@ export default function QuestionNavigator({
                                 onDuplicate(question.id);
                                 setExpandedMenu(null);
                               }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-[10px] text-[#9CA3AF] hover:text-white hover:bg-white/[0.04] transition-colors"
+                              className="w-full flex items-center gap-2 px-3 py-2 text-[10px] text-muted-foreground hover:text-white hover:bg-white/[0.04] transition-colors"
                             >
                               <Copy className="w-3 h-3" />
                               Duplicate
@@ -425,7 +425,7 @@ export default function QuestionNavigator({
         </AnimatePresence>
 
         {filteredQuestions.length === 0 && (
-          <div className="text-center py-8 text-[#9CA3AF]">
+          <div className="text-center py-8 text-muted-foreground">
             {searchQuery ? (
               <>
                 <Search className="w-6 h-6 mx-auto mb-2 text-[#6B7280]" />
@@ -436,7 +436,7 @@ export default function QuestionNavigator({
                 <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center">
                   <Plus className="w-5 h-5 text-[#EC4899]" />
                 </div>
-                <p className="text-xs text-[#9CA3AF]">No questions yet</p>
+                <p className="text-xs text-muted-foreground">No questions yet</p>
                 <p className="text-[10px] text-[#6B7280] mt-1">Click "Add Question" to get started</p>
               </>
             )}
@@ -445,7 +445,7 @@ export default function QuestionNavigator({
       </div>
 
       {/* Bottom Add Button */}
-      <div className="p-3 border-t border-white/[0.06]">
+      <div className="p-3 border-t border-border">
         <button
           onClick={onAdd}
           className="w-full h-9 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-xs font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-all flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(236,72,153,0.15)]"

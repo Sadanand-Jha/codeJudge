@@ -28,7 +28,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
       className="space-y-4"
     >
       <div className="space-y-1">
-        <label className="text-xs font-medium text-[#9CA3AF]">College</label>
+        <label className="text-xs font-medium text-muted-foreground">College</label>
         <div className="flex flex-wrap gap-2">
           {mockColleges.map((college) => {
             const selected = filter.collegeIds.includes(college.id);
@@ -40,7 +40,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
                 className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                   selected
                     ? "border-[#EC4899] bg-[#EC4899]/15 text-[#EC4899]"
-                    : "border-white/[0.08] bg-[#111827] text-[#9CA3AF] hover:border-white/[0.12]"
+                    : "border-border-hover bg-card text-muted-foreground hover:border-border-hover"
                 }`}
               >
                 {college.name}
@@ -51,7 +51,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium text-[#9CA3AF]">Department</label>
+        <label className="text-xs font-medium text-muted-foreground">Department</label>
         <div className="flex flex-wrap gap-2">
           {allDepartments.map((dept) => {
             const selected = filter.departments.includes(dept);
@@ -63,7 +63,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
                 className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                   selected
                     ? "border-[#EC4899] bg-[#EC4899]/15 text-[#EC4899]"
-                    : "border-white/[0.08] bg-[#111827] text-[#9CA3AF] hover:border-white/[0.12]"
+                    : "border-border-hover bg-card text-muted-foreground hover:border-border-hover"
                 }`}
               >
                 {dept}
@@ -74,7 +74,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium text-[#9CA3AF]">Year</label>
+        <label className="text-xs font-medium text-muted-foreground">Year</label>
         <div className="flex flex-wrap gap-2">
           {years.map((year) => {
             const selected = filter.years.includes(year);
@@ -86,7 +86,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
                 className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                   selected
                     ? "border-[#EC4899] bg-[#EC4899]/15 text-[#EC4899]"
-                    : "border-white/[0.08] bg-[#111827] text-[#9CA3AF] hover:border-white/[0.12]"
+                    : "border-border-hover bg-card text-muted-foreground hover:border-border-hover"
                 }`}
               >
                 {year}
@@ -97,7 +97,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-medium text-[#9CA3AF]">Section</label>
+        <label className="text-xs font-medium text-muted-foreground">Section</label>
         <div className="flex flex-wrap gap-2">
           {allSections.map((section) => {
             const selected = filter.sections.includes(section);
@@ -109,7 +109,7 @@ export default function CollegeFilterPanel({ filter, onChange }: CollegeFilterPa
                 className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
                   selected
                     ? "border-[#EC4899] bg-[#EC4899]/15 text-[#EC4899]"
-                    : "border-white/[0.08] bg-[#111827] text-[#9CA3AF] hover:border-white/[0.12]"
+                    : "border-border-hover bg-card text-muted-foreground hover:border-border-hover"
                 }`}
               >
                 {section}

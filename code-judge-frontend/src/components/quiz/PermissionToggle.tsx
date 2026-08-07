@@ -38,10 +38,10 @@ export default function PermissionToggle({ permissions, onChange }: PermissionTo
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {permissionConfig.map((perm) => (
-          <label key={perm.key} className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[#111827] p-3 cursor-pointer">
+          <label key={perm.key} className="flex items-center justify-between rounded-xl border border-border-hover bg-card p-3 cursor-pointer">
             <div>
               <p className="text-xs font-semibold text-white">{perm.label}</p>
-              <p className="text-[11px] text-[#9CA3AF]">{perm.description}</p>
+              <p className="text-[11px] text-muted-foreground">{perm.description}</p>
             </div>
             <button
               type="button"

@@ -23,13 +23,13 @@ export default function RecentSubmissions() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6"
+      className="rounded-2xl border border-border bg-card p-6"
     >
       <h3 className="text-sm font-semibold text-white mb-5">Recent Submissions</h3>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-white/[0.06]">
+            <tr className="border-b border-border">
               <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#6B7280] pb-3">Problem</th>
               <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#6B7280] pb-3">Language</th>
               <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#6B7280] pb-3">Verdict</th>
@@ -42,14 +42,14 @@ export default function RecentSubmissions() {
             {submissions.map((s, i) => (
               <tr key={i} className="border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-colors">
                 <td className="py-3 text-sm text-white font-medium">{s.problem}</td>
-                <td className="py-3 text-sm text-[#9CA3AF]">{s.language}</td>
+                <td className="py-3 text-sm text-muted-foreground">{s.language}</td>
                 <td className="py-3">
                   <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border ${verdictStyles[s.verdict]}`}>
                     {s.verdict}
                   </span>
                 </td>
-                <td className="py-3 text-right text-sm text-[#9CA3AF]">{s.runtime}</td>
-                <td className="py-3 text-right text-sm text-[#9CA3AF]">{s.memory}</td>
+                <td className="py-3 text-right text-sm text-muted-foreground">{s.runtime}</td>
+                <td className="py-3 text-right text-sm text-muted-foreground">{s.memory}</td>
                 <td className="py-3 text-right text-xs text-[#6B7280]">{s.time}</td>
               </tr>
             ))}

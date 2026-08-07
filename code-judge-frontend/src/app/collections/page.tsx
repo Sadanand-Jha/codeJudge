@@ -390,7 +390,7 @@ export default function CollectionsPage() {
           <div className="flex items-start justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-white tracking-tight">Collections</h1>
-              <p className="text-sm text-[#9CA3AF] mt-2 max-w-2xl">
+              <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
                 Curated problem sets to master every concept, company interview and contest.
               </p>
             </div>
@@ -398,10 +398,10 @@ export default function CollectionsPage() {
               {stats.map((stat) => {
                 const Icon = stat.icon;
                 return (
-                  <div key={stat.label} className="rounded-xl border border-white/[0.06] bg-[#111827] px-4 py-3 min-w-[120px]">
+                  <div key={stat.label} className="rounded-xl border border-border bg-card px-4 py-3 min-w-[120px]">
                     <div className="flex items-center gap-2 mb-1">
                       <Icon className={`w-3.5 h-3.5 ${stat.color}`} />
-                      <span className="text-[10px] text-[#9CA3AF] uppercase tracking-wider">{stat.label}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</span>
                     </div>
                     <p className="text-lg font-bold text-white">{stat.value}</p>
                   </div>
@@ -411,7 +411,7 @@ export default function CollectionsPage() {
           </div>
 
           {/* Featured Collection Hero */}
-          <div className="relative rounded-2xl border border-white/[0.06] bg-gradient-to-br from-[#7C3AED]/10 via-[#111827] to-[#111827] p-6 mb-6 overflow-hidden">
+          <div className="relative rounded-2xl border border-border bg-gradient-to-br from-[#7C3AED]/10 via-[#111827] to-[#111827] p-6 mb-6 overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#7C3AED]/10 rounded-full blur-3xl" />
             <div className="relative flex items-start justify-between gap-6">
               <div className="flex-1">
@@ -424,8 +424,8 @@ export default function CollectionsPage() {
                   </span>
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-2">{featuredCollection.title}</h2>
-                <p className="text-xs text-[#9CA3AF] leading-relaxed mb-3 max-w-2xl">{featuredCollection.description}</p>
-                <div className="flex flex-wrap items-center gap-4 text-xs text-[#9CA3AF] mb-4">
+                <p className="text-xs text-muted-foreground leading-relaxed mb-3 max-w-2xl">{featuredCollection.description}</p>
+                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mb-4">
                   <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> {featuredCollection.problems} Problems</span>
                   <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {featuredCollection.hours} Hours</span>
                   <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {featuredCollection.followers} Followers</span>
@@ -433,10 +433,10 @@ export default function CollectionsPage() {
 
                 {/* Companies */}
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="text-[10px] text-[#9CA3AF] uppercase tracking-wider">Companies:</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Companies:</span>
                   <div className="flex items-center gap-1.5">
                     {featuredCollection.companies.map((company) => (
-                      <span key={company} className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-[10px] font-medium text-white">
+                      <span key={company} className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-border text-[10px] font-medium text-white">
                         {company}
                       </span>
                     ))}
@@ -447,7 +447,7 @@ export default function CollectionsPage() {
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs font-medium text-white">{featuredCollection.progress}% Complete</span>
-                    <span className="text-[11px] text-[#9CA3AF]">by {featuredCollection.creator}</span>
+                    <span className="text-[11px] text-muted-foreground">by {featuredCollection.creator}</span>
                   </div>
                   <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
                     <motion.div
@@ -476,14 +476,14 @@ export default function CollectionsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search collections..."
-                className="w-full h-12 bg-[#111827] border border-white/[0.06] rounded-xl pl-12 pr-4 text-sm text-white placeholder-[#6B7280] outline-none focus:border-[#7C3AED]/40 transition-colors"
+                className="w-full h-12 bg-card border border-border rounded-xl pl-12 pr-4 text-sm text-white placeholder-[#6B7280] outline-none focus:border-[#7C3AED]/40 transition-colors"
               />
             </div>
 
             <div className="flex items-center justify-between">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 text-xs font-medium text-[#9CA3AF] hover:text-white transition-colors"
+                className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-white transition-colors"
               >
                 <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
                 Filters
@@ -492,7 +492,7 @@ export default function CollectionsPage() {
                 )}
               </button>
               {activeFilters.length > 0 && (
-                <button onClick={() => setActiveFilters([])} className="text-[11px] text-[#9CA3AF] hover:text-white transition-colors">
+                <button onClick={() => setActiveFilters([])} className="text-[11px] text-muted-foreground hover:text-white transition-colors">
                   Clear all
                 </button>
               )}
@@ -501,9 +501,9 @@ export default function CollectionsPage() {
             <AnimatePresence>
               {showFilters && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl border border-white/[0.06] bg-[#111827]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl border border-border bg-card">
                     <div>
-                      <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">Difficulty</p>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Difficulty</p>
                       <div className="flex flex-wrap gap-1.5">
                         {difficultyFilters.map((f) => (
                           <button
@@ -512,7 +512,7 @@ export default function CollectionsPage() {
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
                               activeFilters.includes(f)
                                 ? "border-[#7C3AED] bg-[#7C3AED]/10 text-[#7C3AED]"
-                                : "border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:border-white/[0.12]"
+                                : "border-border bg-white/[0.02] text-muted-foreground hover:border-border-hover"
                             }`}
                           >
                             {f}
@@ -521,7 +521,7 @@ export default function CollectionsPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">Category</p>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Category</p>
                       <div className="flex flex-wrap gap-1.5">
                         {categoryFilters.map((f) => (
                           <button
@@ -530,7 +530,7 @@ export default function CollectionsPage() {
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
                               activeFilters.includes(f)
                                 ? "border-[#7C3AED] bg-[#7C3AED]/10 text-[#7C3AED]"
-                                : "border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:border-white/[0.12]"
+                                : "border-border bg-white/[0.02] text-muted-foreground hover:border-border-hover"
                             }`}
                           >
                             {f}
@@ -539,7 +539,7 @@ export default function CollectionsPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">Status</p>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Status</p>
                       <div className="flex flex-wrap gap-1.5">
                         {statusFilters.map((f) => (
                           <button
@@ -548,7 +548,7 @@ export default function CollectionsPage() {
                             className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
                               activeFilters.includes(f)
                                 ? "border-[#7C3AED] bg-[#7C3AED]/10 text-[#7C3AED]"
-                                : "border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:border-white/[0.12]"
+                                : "border-border bg-white/[0.02] text-muted-foreground hover:border-border-hover"
                             }`}
                           >
                             {f}
@@ -577,7 +577,7 @@ export default function CollectionsPage() {
                       transition={{ duration: 0.3, delay: idx * 0.05 }}
                       whileHover={{ y: -4 }}
                       onClick={() => setSelectedCollection(col.id === selectedCollection ? null : col.id)}
-                      className="group rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden cursor-pointer hover:border-[#7C3AED]/30 hover:shadow-[0_8px_32px_rgba(124,58,237,0.1)] transition-all"
+                      className="group rounded-2xl border border-border bg-card overflow-hidden cursor-pointer hover:border-[#7C3AED]/30 hover:shadow-[0_8px_32px_rgba(124,58,237,0.1)] transition-all"
                     >
                       {/* Gradient Banner */}
                       <div className={`h-32 bg-gradient-to-r ${col.gradient} relative overflow-hidden`}>
@@ -592,17 +592,17 @@ export default function CollectionsPage() {
                             {col.difficulty}
                           </span>
                         </div>
-                        <div className="absolute -bottom-4 left-4 w-12 h-12 rounded-xl bg-[#111827] border border-white/[0.08] flex items-center justify-center">
+                        <div className="absolute -bottom-4 left-4 w-12 h-12 rounded-xl bg-card border border-border-hover flex items-center justify-center">
                           <Icon className="w-6 h-6 text-white" />
                         </div>
                       </div>
 
                       <div className="p-4 pt-6">
                         <h3 className="text-sm font-bold text-white mb-1 group-hover:text-[#7C3AED] transition-colors">{col.title}</h3>
-                        <p className="text-xs text-[#9CA3AF] leading-relaxed mb-3 line-clamp-2">{col.description}</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">{col.description}</p>
 
                         {/* Metadata */}
-                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#9CA3AF] mb-3">
+                        <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground mb-3">
                           <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {col.problems} Problems</span>
                           <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {col.hours}h</span>
                           <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> {col.likes}</span>
@@ -612,7 +612,7 @@ export default function CollectionsPage() {
                         {/* Companies */}
                         <div className="flex items-center gap-1.5 mb-3">
                           {col.companies.map((company) => (
-                            <span key={company} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/[0.04] border border-white/[0.06] text-[#9CA3AF]">
+                            <span key={company} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-white/[0.04] border border-border text-muted-foreground">
                               {company}
                             </span>
                           ))}
@@ -622,7 +622,7 @@ export default function CollectionsPage() {
                         {col.completion > 0 && (
                           <div className="mb-3">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] text-[#9CA3AF]">{col.completion === 100 ? "Completed" : "In Progress"}</span>
+                              <span className="text-[10px] text-muted-foreground">{col.completion === 100 ? "Completed" : "In Progress"}</span>
                               <span className="text-[10px] font-medium text-white">{col.completion}%</span>
                             </div>
                             <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
@@ -640,7 +640,7 @@ export default function CollectionsPage() {
                             ? "bg-[#22C55E]/10 border border-[#22C55E]/20 text-[#22C55E] hover:bg-[#22C55E]/20"
                             : col.completion > 0
                             ? "bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#7C3AED] hover:bg-[#7C3AED]/20"
-                            : "bg-white/[0.04] border border-white/[0.08] text-white hover:border-white/[0.12]"
+                            : "bg-white/[0.04] border border-border-hover text-white hover:border-border-hover"
                         }`}>
                           {col.completion === 100 ? (
                             <><Check className="w-3.5 h-3.5" /> Completed</>
@@ -663,7 +663,7 @@ export default function CollectionsPage() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="mt-6 rounded-2xl border border-white/[0.06] bg-[#111827] overflow-hidden"
+                    className="mt-6 rounded-2xl border border-border bg-card overflow-hidden"
                   >
                     {/* Header */}
                     <div className={`h-32 bg-gradient-to-r ${selectedCollectionData.gradient} relative`}>
@@ -685,22 +685,22 @@ export default function CollectionsPage() {
                     </div>
 
                     {/* Stats */}
-                    <div className="p-6 border-b border-white/[0.06]">
+                    <div className="p-6 border-b border-border">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div>
-                          <p className="text-[10px] text-[#9CA3AF] uppercase tracking-wider mb-1">Problems</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Problems</p>
                           <p className="text-sm font-bold text-white">{selectedCollectionData.problems}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] text-[#9CA3AF] uppercase tracking-wider mb-1">Hours</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Hours</p>
                           <p className="text-sm font-bold text-white">{selectedCollectionData.hours}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] text-[#9CA3AF] uppercase tracking-wider mb-1">Followers</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Followers</p>
                           <p className="text-sm font-bold text-white">{selectedCollectionData.followers}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] text-[#9CA3AF] uppercase tracking-wider mb-1">Difficulty</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Difficulty</p>
                           <p className="text-sm font-bold text-white">{selectedCollectionData.difficulty}</p>
                         </div>
                       </div>
@@ -728,7 +728,7 @@ export default function CollectionsPage() {
                         {collectionProblems.map((problem) => (
                           <div
                             key={problem.id}
-                            className="flex items-center gap-4 p-3 rounded-xl border border-white/[0.04] bg-white/[0.02] hover:border-white/[0.12] transition-colors"
+                            className="flex items-center gap-4 p-3 rounded-xl border border-white/[0.04] bg-white/[0.02] hover:border-border-hover transition-colors"
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
@@ -739,7 +739,7 @@ export default function CollectionsPage() {
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-3 text-[11px] text-[#9CA3AF]">
+                              <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${
                                   problem.difficulty === "Easy" ? "bg-[#22C55E]/10 border-[#22C55E]/20 text-[#22C55E]" :
                                   problem.difficulty === "Medium" ? "bg-[#F59E0B]/10 border-[#F59E0B]/20 text-[#F59E0B]" :
@@ -755,7 +755,7 @@ export default function CollectionsPage() {
                               <button className="text-[11px] font-medium text-[#7C3AED] hover:text-[#8B5CF6] transition-colors">
                                 Solve
                               </button>
-                              <button className="p-1.5 rounded-md hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors">
+                              <button className="p-1.5 rounded-md hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors">
                                 <Bookmark className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -768,7 +768,7 @@ export default function CollectionsPage() {
               </AnimatePresence>
 
               {/* Achievements */}
-              <div className="mt-6 rounded-2xl border border-white/[0.06] bg-[#111827] p-6">
+              <div className="mt-6 rounded-2xl border border-border bg-card p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Award className="w-5 h-5 text-[#F59E0B]" />
                   <h3 className="text-base font-semibold text-white">Achievements</h3>
@@ -777,7 +777,7 @@ export default function CollectionsPage() {
                   {recentBadges.map((badge) => {
                     const Icon = badge.icon;
                     return (
-                      <div key={badge.name} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-center hover:border-white/[0.12] transition-colors">
+                      <div key={badge.name} className="rounded-xl border border-border bg-white/[0.02] p-3 text-center hover:border-border-hover transition-colors">
                         <div className={`w-10 h-10 rounded-full ${badge.color} flex items-center justify-center mx-auto mb-2`}>
                           <Icon className="w-5 h-5" />
                         </div>
@@ -789,7 +789,7 @@ export default function CollectionsPage() {
               </div>
 
               {/* Community */}
-              <div className="mt-6 rounded-2xl border border-white/[0.06] bg-[#111827] p-6">
+              <div className="mt-6 rounded-2xl border border-border bg-card p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <MessageSquare className="w-5 h-5 text-[#7C3AED]" />
                   <h3 className="text-base font-semibold text-white">Community</h3>
@@ -810,7 +810,7 @@ export default function CollectionsPage() {
                             </div>
                             <span className="text-xs text-white">{c.name}</span>
                           </div>
-                          <span className="text-[11px] text-[#9CA3AF]">{c.contributions} notes</span>
+                          <span className="text-[11px] text-muted-foreground">{c.contributions} notes</span>
                         </div>
                       ))}
                     </div>
@@ -820,11 +820,11 @@ export default function CollectionsPage() {
                     <div className="space-y-2">
                       <div className="flex items-start gap-2">
                         <ThumbsUp className="w-3.5 h-3.5 text-[#22C55E] mt-0.5 shrink-0" />
-                        <p className="text-[11px] text-[#9CA3AF] leading-relaxed">Solve at least 3 problems per day to build consistency.</p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">Solve at least 3 problems per day to build consistency.</p>
                       </div>
                       <div className="flex items-start gap-2">
                         <ThumbsUp className="w-3.5 h-3.5 text-[#22C55E] mt-0.5 shrink-0" />
-                        <p className="text-[11px] text-[#9CA3AF] leading-relaxed">Review solutions even if you solved the problem optimally.</p>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">Review solutions even if you solved the problem optimally.</p>
                       </div>
                     </div>
                   </div>
@@ -838,10 +838,10 @@ export default function CollectionsPage() {
               {sidebarItems.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.label} className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4">
+                  <div key={item.label} className="rounded-2xl border border-border bg-card p-4">
                     <div className="flex items-center gap-2 mb-1">
                       <Icon className={`w-4 h-4 ${item.color}`} />
-                      <span className="text-[10px] text-[#9CA3AF] uppercase tracking-wider">{item.label}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.label}</span>
                     </div>
                     <p className="text-sm font-bold text-white">{item.value}</p>
                   </div>
@@ -849,26 +849,26 @@ export default function CollectionsPage() {
               })}
 
               {/* Recommended Collections */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-4 h-4 text-[#7C3AED]" />
                   <h4 className="text-xs font-semibold text-white">Recommended</h4>
                 </div>
                 <div className="space-y-2">
                   {recommendedCollections.map((rec) => (
-                    <div key={rec.title} className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-2.5 hover:border-white/[0.12] transition-colors cursor-pointer">
+                    <div key={rec.title} className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-2.5 hover:border-border-hover transition-colors cursor-pointer">
                       <div className="flex items-center justify-between mb-1">
                         <p className="text-xs font-medium text-white">{rec.title}</p>
                         <span className="text-[10px] text-[#7C3AED]">{rec.progress}%</span>
                       </div>
-                      <p className="text-[10px] text-[#9CA3AF]">{rec.reason}</p>
+                      <p className="text-[10px] text-muted-foreground">{rec.reason}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Friends Learning */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Users className="w-4 h-4 text-[#22C55E]" />
                   <h4 className="text-xs font-semibold text-white">Friends Learning</h4>
@@ -881,7 +881,7 @@ export default function CollectionsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] text-white truncate">{friend.name}</p>
-                        <p className="text-[10px] text-[#9CA3AF]">{friend.collection}</p>
+                        <p className="text-[10px] text-muted-foreground">{friend.collection}</p>
                       </div>
                       <span className="text-[10px] text-[#7C3AED]">{friend.progress}%</span>
                     </div>
@@ -890,7 +890,7 @@ export default function CollectionsPage() {
               </div>
 
               {/* Recent Badges */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Award className="w-4 h-4 text-[#F59E0B]" />
                   <h4 className="text-xs font-semibold text-white">Recent Badges</h4>
@@ -911,14 +911,14 @@ export default function CollectionsPage() {
               </div>
 
               {/* Upcoming Contest */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Trophy className="w-4 h-4 text-[#F59E0B]" />
                   <h4 className="text-xs font-semibold text-white">Upcoming Contest</h4>
                 </div>
                 <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-3">
                   <p className="text-xs font-medium text-white">ByteClash Weekly #247</p>
-                  <p className="text-[11px] text-[#9CA3AF] mt-0.5">Starts in 2 days</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Starts in 2 days</p>
                   <button className="mt-2 w-full h-7 rounded-md bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#7C3AED] text-[11px] font-medium hover:bg-[#7C3AED]/20 transition-colors">
                     Register
                   </button>

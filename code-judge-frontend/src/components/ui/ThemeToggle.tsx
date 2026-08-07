@@ -25,7 +25,7 @@ export default function ThemeToggle({ className }: { className?: string }) {
       <Moon
         className={cn(
           "absolute left-1.5 z-10 h-3.5 w-3.5 transition-colors duration-200",
-          isDark ? "text-[#9CA3AF]" : "text-text-muted"
+          isDark ? "text-muted-foreground" : "text-text-muted"
         )}
       />
       {/* Sun icon — right side, active in light mode */}

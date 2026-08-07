@@ -40,52 +40,52 @@ export default function SchedulingPanel({ schedule, onChange }: SchedulingPanelP
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-[#9CA3AF]">Visible From</label>
+          <label className="text-xs font-medium text-muted-foreground">Visible From</label>
           <input
             type="datetime-local"
             value={schedule.visibleFrom || ""}
             onChange={(e) => update("visibleFrom", e.target.value)}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-border-hover bg-card px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-[#9CA3AF]">Visible Until</label>
+          <label className="text-xs font-medium text-muted-foreground">Visible Until</label>
           <input
             type="datetime-local"
             value={schedule.visibleUntil || ""}
             onChange={(e) => update("visibleUntil", e.target.value)}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-border-hover bg-card px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-[#9CA3AF]">Registration Deadline</label>
+          <label className="text-xs font-medium text-muted-foreground">Registration Deadline</label>
           <input
             type="datetime-local"
             value={schedule.registrationDeadline || ""}
             onChange={(e) => update("registrationDeadline", e.target.value)}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-border-hover bg-card px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-[#9CA3AF]">Attempt Window Start</label>
+          <label className="text-xs font-medium text-muted-foreground">Attempt Window Start</label>
           <input
             type="datetime-local"
             value={schedule.attemptWindow?.start || ""}
             onChange={(e) => updateAttemptWindow("start", e.target.value)}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-border-hover bg-card px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-[#9CA3AF]">Attempt Window End</label>
+          <label className="text-xs font-medium text-muted-foreground">Attempt Window End</label>
           <input
             type="datetime-local"
             value={schedule.attemptWindow?.end || ""}
             onChange={(e) => updateAttemptWindow("end", e.target.value)}
-            className="w-full h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
+            className="w-full h-9 rounded-lg border border-border-hover bg-card px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           />
         </div>
       </div>

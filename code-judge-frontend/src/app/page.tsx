@@ -197,7 +197,7 @@ export default function HomePage() {
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
-            <p className="text-sm text-[#9CA3AF] mt-1">Discover, learn, and connect with the developer community.</p>
+            <p className="text-sm text-muted-foreground mt-1">Discover, learn, and connect with the developer community.</p>
           </div>
 
           <div className="flex gap-6">
@@ -206,7 +206,7 @@ export default function HomePage() {
               {/* Featured Cards Row */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Featured Contest */}
-                <div className="md:col-span-2 rounded-2xl border border-white/[0.06] bg-[#111827] p-5 hover:border-white/[0.12] transition-colors cursor-pointer">
+                <div className="md:col-span-2 rounded-2xl border border-border bg-card p-5 hover:border-border-hover transition-colors cursor-pointer">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-2">
@@ -214,8 +214,8 @@ export default function HomePage() {
                         <span className="text-[10px] font-semibold text-[#7C3AED] uppercase tracking-wider">Featured Contest</span>
                       </div>
                       <h3 className="text-base font-semibold text-white mb-1">{featuredContest.title}</h3>
-                      <p className="text-xs text-[#9CA3AF] mb-3">{featuredContest.description}</p>
-                      <div className="flex items-center gap-3 text-[11px] text-[#9CA3AF]">
+                      <p className="text-xs text-muted-foreground mb-3">{featuredContest.description}</p>
+                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {featuredContest.startTime}
@@ -233,7 +233,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Daily Challenge */}
-                <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5 hover:border-white/[0.12] transition-colors cursor-pointer">
+                <div className="rounded-2xl border border-border bg-card p-5 hover:border-border-hover transition-colors cursor-pointer">
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="w-4 h-4 text-[#22C55E]" />
                     <span className="text-[10px] font-semibold text-[#22C55E] uppercase tracking-wider">Daily Challenge</span>
@@ -241,12 +241,12 @@ export default function HomePage() {
                   <h3 className="text-sm font-semibold text-white mb-2 line-clamp-2">{dailyChallenge.title}</h3>
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {dailyChallenge.tags.map((tag) => (
-                      <span key={tag} className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[10px] text-[#9CA3AF]">
+                      <span key={tag} className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-border-hover text-[10px] text-muted-foreground">
                         {tag}
                       </span>
                     ))}
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-[#9CA3AF]">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                     <span className="px-2 py-0.5 rounded-md bg-[#F59E0B]/10 text-[#F59E0B] border border-[#F59E0B]/20">{dailyChallenge.difficulty}</span>
                     <span>{dailyChallenge.acceptance} acceptance</span>
                   </div>
@@ -255,7 +255,7 @@ export default function HomePage() {
 
               {/* Weekly Challenge & Upcoming Events */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+                <div className="rounded-2xl border border-border bg-card p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <BookOpen className="w-4 h-4 text-[#3B82F6]" />
                     <span className="text-[10px] font-semibold text-[#3B82F6] uppercase tracking-wider">Weekly Challenge</span>
@@ -263,18 +263,18 @@ export default function HomePage() {
                   <h3 className="text-sm font-semibold text-white mb-2">{weeklyChallenge.title}</h3>
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {weeklyChallenge.tags.map((tag) => (
-                      <span key={tag} className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[10px] text-[#9CA3AF]">
+                      <span key={tag} className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-border-hover text-[10px] text-muted-foreground">
                         {tag}
                       </span>
                     ))}
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-[#9CA3AF]">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                     <span className="px-2 py-0.5 rounded-md bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20">{weeklyChallenge.difficulty}</span>
                     <span>{weeklyChallenge.acceptance} acceptance</span>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+                <div className="rounded-2xl border border-border bg-card p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <Compass className="w-4 h-4 text-[#EC4899]" />
                     <span className="text-[10px] font-semibold text-[#EC4899] uppercase tracking-wider">Upcoming Events</span>
@@ -284,9 +284,9 @@ export default function HomePage() {
                       <div key={event.title} className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-white truncate">{event.title}</p>
-                          <p className="text-[11px] text-[#9CA3AF] mt-0.5">{event.time}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{event.time}</p>
                         </div>
-                        <span className="shrink-0 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[10px] text-[#9CA3AF]">
+                        <span className="shrink-0 px-2 py-0.5 rounded-md bg-white/[0.04] border border-border-hover text-[10px] text-muted-foreground">
                           {event.type}
                         </span>
                       </div>
@@ -303,7 +303,7 @@ export default function HomePage() {
                     <button className="px-3 py-1.5 rounded-lg bg-[#7C3AED]/10 border border-[#7C3AED]/30 text-[#7C3AED] text-[11px] font-medium hover:bg-[#7C3AED]/20 transition-colors">
                       For You
                     </button>
-                    <button className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[#9CA3AF] text-[11px] font-medium hover:text-white hover:border-white/[0.12] transition-colors">
+                    <button className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-border-hover text-muted-foreground text-[11px] font-medium hover:text-white hover:border-border-hover transition-colors">
                       Following
                     </button>
                   </div>
@@ -311,7 +311,7 @@ export default function HomePage() {
 
                 <div className="space-y-4">
                   {feedPosts.map((post) => (
-                    <div key={post.id} className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5 hover:border-white/[0.12] transition-colors">
+                    <div key={post.id} className="rounded-2xl border border-border bg-card p-5 hover:border-border-hover transition-colors">
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-white text-xs font-bold">
@@ -319,10 +319,10 @@ export default function HomePage() {
                           </div>
                           <div>
                             <p className="text-xs font-semibold text-white">{post.author}</p>
-                            <p className="text-[11px] text-[#9CA3AF]">{post.time}</p>
+                            <p className="text-[11px] text-muted-foreground">{post.time}</p>
                           </div>
                         </div>
-                        <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[10px] text-[#9CA3AF] capitalize">
+                        <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-border-hover text-[10px] text-muted-foreground capitalize">
                           {post.type}
                         </span>
                       </div>
@@ -330,17 +330,17 @@ export default function HomePage() {
                       <h3 className="text-sm font-semibold text-white mb-2 hover:text-[#7C3AED] transition-colors cursor-pointer">
                         {post.title}
                       </h3>
-                      <p className="text-xs text-[#9CA3AF] leading-relaxed mb-3 line-clamp-2">{post.preview}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">{post.preview}</p>
 
                       <div className="flex flex-wrap gap-1.5 mb-4">
                         {post.tags.map((tag) => (
-                          <span key={tag} className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[10px] text-[#9CA3AF]">
+                          <span key={tag} className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-border-hover text-[10px] text-muted-foreground">
                             {tag}
                           </span>
                         ))}
                       </div>
 
-                      <div className="flex items-center gap-4 text-[#9CA3AF]">
+                      <div className="flex items-center gap-4 text-muted-foreground">
                         <button className="flex items-center gap-1.5 text-[11px] hover:text-[#EF4444] transition-colors">
                           <Heart className="w-3.5 h-3.5" />
                           {post.likes}
@@ -366,7 +366,7 @@ export default function HomePage() {
               {/* Bottom Sections */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Featured Learning Paths */}
-                <div className="lg:col-span-2 rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+                <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold text-white">Featured Learning Paths</h3>
                     <Link href="/learn" className="text-[11px] text-[#7C3AED] hover:text-[#8B5CF6] transition-colors flex items-center gap-1">
@@ -375,30 +375,30 @@ export default function HomePage() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {learningPaths.map((path) => (
-                      <div key={path.title} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 hover:border-white/[0.12] transition-colors">
+                      <div key={path.title} className="rounded-xl border border-border bg-white/[0.02] p-4 hover:border-border-hover transition-colors">
                         <h4 className="text-xs font-semibold text-white mb-1">{path.title}</h4>
-                        <p className="text-[11px] text-[#9CA3AF] mb-3">{path.lessons} lessons</p>
+                        <p className="text-[11px] text-muted-foreground mb-3">{path.lessons} lessons</p>
                         <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
                           <div className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#3B82F6]" style={{ width: `${path.progress}%` }} />
                         </div>
-                        <p className="text-[11px] text-[#9CA3AF] mt-1">{path.progress}% complete</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">{path.progress}% complete</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Company Preparation */}
-                <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+                <div className="rounded-2xl border border-border bg-card p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold text-white">Company Prep</h3>
-                    <Briefcase className="w-4 h-4 text-[#9CA3AF]" />
+                    <Briefcase className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div className="space-y-3">
                     {companyPreparation.map((company) => (
                       <div key={company.company}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-medium text-white">{company.company}</span>
-                          <span className="text-[11px] text-[#9CA3AF]">
+                          <span className="text-[11px] text-muted-foreground">
                             {company.completed}/{company.problems}
                           </span>
                         </div>
@@ -416,37 +416,37 @@ export default function HomePage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Recently Published Editorials */}
-                <div className="lg:col-span-2 rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+                <div className="lg:col-span-2 rounded-2xl border border-border bg-card p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold text-white">Recently Published Editorials</h3>
-                    <Newspaper className="w-4 h-4 text-[#9CA3AF]" />
+                    <Newspaper className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div className="space-y-3">
                     {recentEditorials.map((item) => (
-                      <div key={item.title} className="flex items-start justify-between gap-3 rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 hover:border-white/[0.12] transition-colors">
+                      <div key={item.title} className="flex items-start justify-between gap-3 rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 hover:border-border-hover transition-colors">
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-white truncate">{item.title}</p>
-                          <p className="text-[11px] text-[#9CA3AF] mt-0.5">
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
                             {item.author} · {item.date}
                           </p>
                         </div>
-                        <ExternalLink className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0 mt-0.5" />
+                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Coding News */}
-                <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+                <div className="rounded-2xl border border-border bg-card p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold text-white">Coding News</h3>
-                    <TrendingUp className="w-4 h-4 text-[#9CA3AF]" />
+                    <TrendingUp className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div className="space-y-3">
                     {codingNews.map((item) => (
-                      <div key={item.title} className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 hover:border-white/[0.12] transition-colors">
+                      <div key={item.title} className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 hover:border-border-hover transition-colors">
                         <p className="text-xs font-medium text-white leading-relaxed">{item.title}</p>
-                        <p className="text-[11px] text-[#9CA3AF] mt-1">
+                        <p className="text-[11px] text-muted-foreground mt-1">
                           {item.source} · {item.time}
                         </p>
                       </div>
@@ -459,7 +459,7 @@ export default function HomePage() {
             {/* Right Sidebar */}
             <div className="hidden xl:block w-80 shrink-0 space-y-4">
               {/* Trending Discussions */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <MessageSquare className="w-4 h-4 text-[#7C3AED]" />
                   <h3 className="text-sm font-semibold text-white">Trending Discussions</h3>
@@ -471,7 +471,7 @@ export default function HomePage() {
                         <p className="text-xs font-medium text-white leading-snug line-clamp-2 hover:text-[#7C3AED] transition-colors cursor-pointer">
                           {item.title}
                         </p>
-                        <p className="text-[11px] text-[#9CA3AF] mt-0.5">{item.replies} replies</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{item.replies} replies</p>
                       </div>
                       {item.hot && <Flame className="w-3.5 h-3.5 text-[#EF4444] shrink-0 mt-0.5" />}
                     </div>
@@ -480,18 +480,18 @@ export default function HomePage() {
               </div>
 
               {/* Top Blogs */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <BookOpen className="w-4 h-4 text-[#3B82F6]" />
                   <h3 className="text-sm font-semibold text-white">Top Blogs</h3>
                 </div>
                 <div className="space-y-3">
                   {topBlogs.map((item) => (
-                    <div key={item.title} className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 hover:border-white/[0.12] transition-colors">
+                    <div key={item.title} className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 hover:border-border-hover transition-colors">
                       <p className="text-xs font-medium text-white leading-snug line-clamp-2 hover:text-[#3B82F6] transition-colors cursor-pointer">
                         {item.title}
                       </p>
-                      <p className="text-[11px] text-[#9CA3AF] mt-1">
+                      <p className="text-[11px] text-muted-foreground mt-1">
                         {item.author} · {item.reads} reads
                       </p>
                     </div>
@@ -500,7 +500,7 @@ export default function HomePage() {
               </div>
 
               {/* Friend Activity */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Users className="w-4 h-4 text-[#22C55E]" />
                   <h3 className="text-sm font-semibold text-white">Friend Activity</h3>
@@ -519,7 +519,7 @@ export default function HomePage() {
                           <span className="font-medium">{item.name}</span> {item.action}{" "}
                           <span className="text-[#7C3AED]">{item.target}</span>
                         </p>
-                        <p className="text-[11px] text-[#9CA3AF]">{item.time}</p>
+                        <p className="text-[11px] text-muted-foreground">{item.time}</p>
                       </div>
                     </div>
                   ))}
@@ -527,7 +527,7 @@ export default function HomePage() {
               </div>
 
               {/* AI Recommended Problems */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Sparkles className="w-4 h-4 text-[#7C3AED]" />
                   <h3 className="text-sm font-semibold text-white">AI Recommended</h3>
@@ -537,18 +537,18 @@ export default function HomePage() {
                     <div key={item.title} className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 hover:border-[#7C3AED]/30 transition-colors cursor-pointer group">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-xs font-medium text-white group-hover:text-[#7C3AED] transition-colors">{item.title}</p>
-                        <span className="shrink-0 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[10px] text-[#9CA3AF]">
+                        <span className="shrink-0 px-2 py-0.5 rounded-md bg-white/[0.04] border border-border-hover text-[10px] text-muted-foreground">
                           {item.difficulty}
                         </span>
                       </div>
-                      <p className="text-[11px] text-[#9CA3AF] mt-1">{item.reason}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">{item.reason}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Upcoming Contests */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Trophy className="w-4 h-4 text-[#F59E0B]" />
                   <h3 className="text-sm font-semibold text-white">Upcoming Contests</h3>
@@ -562,16 +562,16 @@ export default function HomePage() {
                     <div key={contest.name} className="flex items-center justify-between gap-2 rounded-xl border border-white/[0.04] bg-white/[0.02] p-3">
                       <div>
                         <p className="text-xs font-medium text-white">{contest.name}</p>
-                        <p className="text-[11px] text-[#9CA3AF] mt-0.5">{contest.time}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{contest.time}</p>
                       </div>
-                      <span className="text-[11px] text-[#9CA3AF]">{contest.duration}</span>
+                      <span className="text-[11px] text-muted-foreground">{contest.duration}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Top Contributors */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp className="w-4 h-4 text-[#7C3AED]" />
                   <h3 className="text-sm font-semibold text-white">Top Contributors</h3>
@@ -584,7 +584,7 @@ export default function HomePage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-white">{contributor.name}</p>
-                        <p className="text-[11px] text-[#9CA3AF]">{contributor.contributions} contributions</p>
+                        <p className="text-[11px] text-muted-foreground">{contributor.contributions} contributions</p>
                       </div>
                     </div>
                   ))}
@@ -592,7 +592,7 @@ export default function HomePage() {
               </div>
 
               {/* Trending Algorithms */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <GitBranch className="w-4 h-4 text-[#22C55E]" />
                   <h3 className="text-sm font-semibold text-white">Trending Algorithms</h3>
@@ -601,14 +601,14 @@ export default function HomePage() {
                   {trendingAlgorithms.map((algo) => (
                     <div key={algo.name} className="flex items-center justify-between">
                       <span className="text-xs text-white">{algo.name}</span>
-                      <span className="text-[11px] text-[#9CA3AF]">{algo.count} problems</span>
+                      <span className="text-[11px] text-muted-foreground">{algo.count} problems</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Open Source Projects */}
-              <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+              <div className="rounded-2xl border border-border bg-card p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Code2 className="w-4 h-4 text-[#7C3AED]" />
@@ -617,12 +617,12 @@ export default function HomePage() {
                 </div>
                 <div className="space-y-3">
                   {openSourceProjects.map((project) => (
-                    <div key={project.name} className="flex items-center justify-between rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 hover:border-white/[0.12] transition-colors">
+                    <div key={project.name} className="flex items-center justify-between rounded-xl border border-white/[0.04] bg-white/[0.02] p-3 hover:border-border-hover transition-colors">
                       <div>
                         <p className="text-xs font-medium text-white">{project.name}</p>
-                        <p className="text-[11px] text-[#9CA3AF]">{project.language}</p>
+                        <p className="text-[11px] text-muted-foreground">{project.language}</p>
                       </div>
-                      <span className="text-[11px] text-[#9CA3AF]">⭐ {project.stars}</span>
+                      <span className="text-[11px] text-muted-foreground">⭐ {project.stars}</span>
                     </div>
                   ))}
                 </div>

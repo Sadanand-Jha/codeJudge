@@ -71,7 +71,7 @@ function Toggle({ checked, onChange, label, description }: { checked: boolean; o
     <div className="flex items-center justify-between py-3">
       <div>
         <p className="text-sm font-medium text-white">{label}</p>
-        {description && <p className="text-xs text-[#9CA3AF] mt-0.5">{description}</p>}
+        {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
       </div>
       <button
         onClick={() => onChange(!checked)}
@@ -95,15 +95,15 @@ function SectionCard({ icon: Icon, title, subtitle, children }: { icon: React.Co
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl border border-white/[0.08] bg-[#111827] overflow-hidden hover:border-white/[0.12] transition-colors"
+      className="rounded-2xl border border-border-hover bg-card overflow-hidden hover:border-border-hover transition-colors"
     >
-      <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-white/[0.06]">
+      <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-border">
         <div className="w-9 h-9 rounded-xl bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 flex items-center justify-center">
-          <Icon className="w-4 h-4 text-[#C7DDEC]" />
+          <Icon className="w-4 h-4 text-foreground" />
         </div>
         <div>
           <h2 className="text-sm font-bold text-white">{title}</h2>
-          {subtitle && <p className="text-[11px] text-[#9CA3AF] mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
         </div>
       </div>
       <div className="p-6">{children}</div>
@@ -113,7 +113,7 @@ function SectionCard({ icon: Icon, title, subtitle, children }: { icon: React.Co
 
 function FieldLabel({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
   return (
-    <label className="flex items-center gap-1.5 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">
+    <label className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
       {icon}
       {children}
     </label>
@@ -121,7 +121,7 @@ function FieldLabel({ children, icon }: { children: React.ReactNode; icon?: Reac
 }
 
 const inputClass =
-  "w-full h-11 rounded-xl border border-white/[0.08] bg-[#0F1522] px-4 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all";
+  "w-full h-11 rounded-xl border border-border-hover bg-[#0F1522] px-4 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all";
 
 export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSettingsPageProps) {
   const [details, setDetails] = useState<QuizDetails>(initialDetails || DEFAULT_QUIZ_DETAILS);
@@ -191,7 +191,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
   };
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-[#09090B] text-white p-3 sm:p-4 md:p-6 lg:p-8">
+    <div className="min-h-[calc(100vh-3.5rem)] bg-background text-white p-3 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-[1400px] mx-auto">
         {/* ===== Header ===== */}
         <div className="flex items-center justify-between mb-6">
@@ -200,14 +200,14 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center shadow-lg shadow-[#7C3AED]/20">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xs font-semibold text-[#9CA3AF] tracking-widest uppercase">Quiz Studio</span>
+              <span className="text-xs font-semibold text-muted-foreground tracking-widest uppercase">Quiz Studio</span>
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Create New Quiz</h1>
-            <p className="text-sm text-[#9CA3AF] mt-1">Configure your assessment settings. You will add questions in the next step.</p>
+            <p className="text-sm text-muted-foreground mt-1">Configure your assessment settings. You will add questions in the next step.</p>
           </div>
           <div className="flex items-center gap-2">
             {saveStatus === "saving" && (
-              <span className="text-xs text-[#9CA3AF] flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-full border-2 border-[#C7DDEC] border-t-transparent animate-spin" />
                 Saving...
               </span>
@@ -246,7 +246,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                     onChange={(e) => update({ description: e.target.value })}
                     placeholder="Describe what this quiz covers, who it's for, and any important instructions..."
                     rows={3}
-                    className="w-full rounded-xl border border-white/[0.08] bg-[#0F1522] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all resize-none leading-relaxed"
+                    className="w-full rounded-xl border border-border-hover bg-[#0F1522] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all resize-none leading-relaxed"
                   />
                 </div>
 
@@ -295,7 +295,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                           className={`flex-1 h-11 rounded-xl border text-sm font-semibold transition-all ${
                             active
                               ? "border-transparent text-white shadow-lg"
-                              : "border-white/[0.08] bg-[#0F1522] text-[#9CA3AF] hover:text-white hover:border-white/[0.15]"
+                              : "border-border-hover bg-[#0F1522] text-muted-foreground hover:text-white hover:border-white/[0.15]"
                           }`}
                           style={active ? { backgroundColor: `${color}20`, boxShadow: `0 0 20px ${color}20` } : undefined}
                         >
@@ -308,12 +308,12 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
 
                 <div>
                   <FieldLabel icon={<Tag className="w-3 h-3" />}>Tags</FieldLabel>
-                  <div className="rounded-xl border border-white/[0.08] bg-[#0F1522] p-4">
+                  <div className="rounded-xl border border-border-hover bg-[#0F1522] p-4">
                     <div className="flex flex-wrap gap-2 mb-3">
                       {details.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 text-xs font-medium text-[#C7DDEC]"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 text-xs font-medium text-foreground"
                         >
                           {tag}
                           <button onClick={() => update({ tags: details.tags.filter((t) => t !== tag) })} className="hover:text-white transition-colors">
@@ -333,7 +333,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                       />
                       <button
                         onClick={addTag}
-                        className="px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.15] transition-colors"
+                        className="px-3 py-1.5 rounded-lg border border-border-hover bg-white/[0.03] text-xs font-medium text-muted-foreground hover:text-white hover:border-white/[0.15] transition-colors"
                       >
                         Add
                       </button>
@@ -422,7 +422,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center gap-2 px-4 py-3 rounded-xl border border-[#C7DDEC]/20 bg-[#C7DDEC]/5 text-xs text-[#C7DDEC]">
+              <div className="mt-4 flex items-center gap-2 px-4 py-3 rounded-xl border border-[#C7DDEC]/20 bg-[#C7DDEC]/5 text-xs text-foreground">
                 <Info className="w-3.5 h-3.5 shrink-0" />
                 <span>
                   {details.marksPerQuestion > 0 && details.totalQuestions > 0
@@ -468,7 +468,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
-                        className="absolute z-20 mt-2 w-full rounded-xl border border-white/[0.08] bg-[#171923] shadow-2xl shadow-black/50 overflow-hidden"
+                        className="absolute z-20 mt-2 w-full rounded-xl border border-border-hover bg-[#171923] shadow-2xl shadow-black/50 overflow-hidden"
                       >
                         <div className="max-h-48 overflow-y-auto p-1.5">
                           {TIMEZONES.map((tz) => (
@@ -476,7 +476,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                               key={tz}
                               onClick={() => { update({ timeZone: tz }); setShowTimezoneDropdown(false); }}
                               className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                                details.timeZone === tz ? "bg-[#C7DDEC]/10 text-[#C7DDEC]" : "text-[#9CA3AF] hover:text-white hover:bg-white/[0.04]"
+                                details.timeZone === tz ? "bg-[#C7DDEC]/10 text-foreground" : "text-muted-foreground hover:text-white hover:bg-white/[0.04]"
                               }`}
                             >
                               {tz}
@@ -503,7 +503,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                       className={`relative p-4 rounded-xl border text-left transition-all ${
                         active
                           ? "border-[#C7DDEC]/40 bg-[#C7DDEC]/5 shadow-[0_0_20px_rgba(199,221,236,0.1)]"
-                          : "border-white/[0.08] bg-[#0F1522] hover:border-white/[0.15]"
+                          : "border-border-hover bg-[#0F1522] hover:border-white/[0.15]"
                       }`}
                     >
                       {active && (
@@ -511,8 +511,8 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                           <Check className="w-3 h-3 text-[#09090B]" />
                         </div>
                       )}
-                      <Icon className={`w-5 h-5 mb-2 ${active ? "text-[#C7DDEC]" : "text-[#6B7280]"}`} />
-                      <p className={`text-sm font-semibold ${active ? "text-white" : "text-[#9CA3AF]"}`}>{opt.label}</p>
+                      <Icon className={`w-5 h-5 mb-2 ${active ? "text-foreground" : "text-[#6B7280]"}`} />
+                      <p className={`text-sm font-semibold ${active ? "text-white" : "text-muted-foreground"}`}>{opt.label}</p>
                       <p className="text-xs text-[#6B7280] mt-0.5">{opt.description}</p>
                     </button>
                   );
@@ -522,7 +522,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
 
             {/* ===== Quiz Behaviour ===== */}
             <SectionCard icon={Settings2} title="Quiz Behaviour" subtitle="How the quiz behaves during attempts">
-              <div className="rounded-xl border border-white/[0.08] bg-[#0F1522] px-5 divide-y divide-white/[0.06]">
+              <div className="rounded-xl border border-border-hover bg-[#0F1522] px-5 divide-y divide-white/[0.06]">
                 <Toggle
                   checked={details.randomizeQuestions}
                   onChange={(v) => update({ randomizeQuestions: v })}
@@ -596,10 +596,10 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 }}
-                className="rounded-2xl border border-white/[0.08] bg-[#111827] overflow-hidden"
+                className="rounded-2xl border border-border-hover bg-card overflow-hidden"
               >
-                <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-[#C7DDEC]" />
+                <div className="px-5 py-4 border-b border-border flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-foreground" />
                   <h3 className="text-sm font-bold text-white">Quiz Summary</h3>
                 </div>
                 <div className="p-5 space-y-4">
@@ -653,8 +653,8 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
 function SummaryRow({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string }> }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-xs text-[#9CA3AF] flex items-center gap-2">
-        <Icon className="w-3.5 h-3.5 text-[#C7DDEC]" />
+      <span className="text-xs text-muted-foreground flex items-center gap-2">
+        <Icon className="w-3.5 h-3.5 text-foreground" />
         {label}
       </span>
       <span className="text-xs font-semibold text-white capitalize">{value}</span>

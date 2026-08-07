@@ -39,8 +39,8 @@ export function CountdownCard({ targetAt, onStarted, className = "" }: Countdown
   const pulse = seconds <= 10 && seconds > 0;
 
   return (
-    <motion.div className={`flex flex-col items-center gap-3 rounded-3xl border border-white/[0.06] bg-[#171923] px-6 py-5 ${className}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
-      <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-[#A1A1AA]">
+    <motion.div className={`flex flex-col items-center gap-3 rounded-3xl border border-border bg-[#171923] px-6 py-5 ${className}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
+      <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
         <Clock className="w-3.5 h-3.5 text-[#EC4899]" />
         Quiz starts in
       </div>

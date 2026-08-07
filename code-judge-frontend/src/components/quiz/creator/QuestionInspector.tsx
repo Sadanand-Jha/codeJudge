@@ -56,12 +56,12 @@ const AI_ACTIONS = [
 function Section({ title, icon: Icon, children, defaultOpen = true }: { title: string; icon: LucideIcon; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-white/[0.06]">
+    <div className="border-b border-border">
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
       >
-        <span className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-wider flex items-center gap-1.5">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
           <Icon className="w-3 h-3 text-[#EC4899]" />
           {title}
         </span>
@@ -87,14 +87,14 @@ function Section({ title, icon: Icon, children, defaultOpen = true }: { title: s
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-[10px] font-medium text-[#71717A] mb-1 block">{label}</label>
+      <label className="text-[10px] font-medium text-muted-foreground mb-1 block">{label}</label>
       {children}
     </div>
   );
 }
 
 const inputClass =
-  "w-full h-8 rounded-lg border border-white/[0.06] bg-[#111217] px-2.5 text-[11px] text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors";
+  "w-full h-8 rounded-lg border border-border bg-[#111217] px-2.5 text-[11px] text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors";
 
 export default function QuestionInspector({ question, onChange }: QuestionInspectorProps) {
   const [tagInput, setTagInput] = useState("");
@@ -110,9 +110,9 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
   };
 
   return (
-    <aside className="w-[320px] shrink-0 border-l border-white/[0.06] bg-[#0B0D14] flex flex-col h-full">
+    <aside className="w-[320px] shrink-0 border-l border-border bg-[#0B0D14] flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
         <h3 className="text-xs font-bold text-white flex items-center gap-2">
           <Settings2 className="w-3.5 h-3.5 text-[#EC4899]" />
           Inspector
@@ -129,7 +129,7 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
               Missing Answer
             </span>
           ) : (
-            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-[9px] font-bold text-[#71717A] flex items-center gap-0.5">
+            <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-border-hover text-[9px] font-bold text-muted-foreground flex items-center gap-0.5">
               <FileText className="w-2.5 h-2.5" />
               Draft
             </span>
@@ -139,12 +139,12 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
 
       <div className="flex-1 overflow-y-auto">
         {/* ===== AI Assistant ===== */}
-        <div className="border-b border-white/[0.06]">
+        <div className="border-b border-border">
           <button
             onClick={() => setShowAI(!showAI)}
             className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors"
           >
-            <span className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-[#EC4899]" />
               AI Assistant
             </span>
@@ -164,7 +164,7 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
                     {AI_ACTIONS.map((action) => (
                       <button
                         key={action.id}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/[0.06] bg-[#111217] text-[11px] font-medium text-[#A1A1AA] hover:text-white hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5 transition-all"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-[#111217] text-[11px] font-medium text-muted-foreground hover:text-white hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5 transition-all"
                       >
                         <action.icon className="w-3 h-3 text-[#EC4899]" />
                         {action.label}
@@ -189,7 +189,7 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
                     key={level}
                     onClick={() => onChange({ difficulty: level })}
                     className={`flex-1 px-1 py-1.5 rounded-lg text-[9px] font-medium transition-all ${
-                      active ? "text-white" : "text-[#9CA3AF] hover:text-white bg-white/[0.02]"
+                      active ? "text-white" : "text-muted-foreground hover:text-white bg-white/[0.02]"
                     }`}
                     style={active ? { backgroundColor: `${color}20`, color } : undefined}
                   >
@@ -289,7 +289,7 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
               onChange={(e) => onChange({ explanation: e.target.value })}
               placeholder="Explain the answer..."
               rows={3}
-              className="w-full rounded-lg border border-white/[0.06] bg-[#111217] px-2.5 py-2 text-[11px] text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors resize-none"
+              className="w-full rounded-lg border border-border bg-[#111217] px-2.5 py-2 text-[11px] text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors resize-none"
             />
           </Field>
           <Field label="Hint">
@@ -298,7 +298,7 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
               onChange={(e) => onChange({ hint: e.target.value })}
               placeholder="Optional hint..."
               rows={2}
-              className="w-full rounded-lg border border-white/[0.06] bg-[#111217] px-2.5 py-2 text-[11px] text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors resize-none"
+              className="w-full rounded-lg border border-border bg-[#111217] px-2.5 py-2 text-[11px] text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors resize-none"
             />
           </Field>
         </Section>
@@ -306,13 +306,13 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
         {/* ===== Visibility & Status ===== */}
         <Section title="Visibility & Status" icon={Eye}>
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-[#A1A1AA]">Visibility</span>
+            <span className="text-[11px] text-muted-foreground">Visibility</span>
             <button
               onClick={() => onChange({ visibility: question.visibility === "visible" ? "hidden" : "visible" })}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium transition-colors ${
                 question.visibility === "visible"
                   ? "border-[#22C55E]/30 bg-[#22C55E]/10 text-[#22C55E]"
-                  : "border-white/[0.06] bg-white/[0.02] text-[#9CA3AF]"
+                  : "border-border bg-white/[0.02] text-muted-foreground"
               }`}
             >
               {question.visibility === "visible" ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
@@ -321,13 +321,13 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-[#A1A1AA]">Status</span>
+            <span className="text-[11px] text-muted-foreground">Status</span>
             <button
               onClick={() => onChange({ status: question.status === "published" ? "draft" : "published" })}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium transition-colors ${
                 question.status === "published"
                   ? "border-[#EC4899]/30 bg-[#EC4899]/10 text-[#EC4899]"
-                  : "border-white/[0.06] bg-white/[0.02] text-[#9CA3AF]"
+                  : "border-border bg-white/[0.02] text-muted-foreground"
               }`}
             >
               {question.status === "published" ? <CheckCircle2 className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
@@ -336,7 +336,7 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-[#A1A1AA]">Required</span>
+            <span className="text-[11px] text-muted-foreground">Required</span>
             <button
               onClick={() => onChange({ required: !question.required })}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
@@ -351,12 +351,12 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
         {/* ===== Question ID ===== */}
         <Section title="Question ID" icon={Hash} defaultOpen={false}>
           <div className="flex items-center gap-2">
-            <code className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#111217] border border-white/[0.06] text-[10px] text-[#9CA3AF] font-mono">
+            <code className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#111217] border border-border text-[10px] text-muted-foreground font-mono">
               {question.id}
             </code>
             <button
               onClick={() => navigator.clipboard.writeText(question.id)}
-              className="p-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:text-white transition-colors"
+              className="p-1.5 rounded-lg border border-border bg-white/[0.02] text-muted-foreground hover:text-white transition-colors"
             >
               <Copy className="w-3 h-3" />
             </button>
