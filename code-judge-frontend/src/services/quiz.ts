@@ -71,6 +71,21 @@ export async function getAllQuizzes(): Promise<Quiz[]> {
   return response.data;
 }
 
+export interface QuizSubject {
+  id: number;
+  subject_name: string;
+}
+
+/**
+ * Get all quiz subjects
+ * GET /api/v1/user/quiz/quiz-subjects
+ */
+export async function getAllSubjects(search?: string, signal?: AbortSignal): Promise<QuizSubject[]> {
+  const params = search ? { search } : undefined;
+  const response = await apiClient.get<QuizSubject[]>("/v1/user/quiz-subjects", { params, signal });
+  return response.data;
+}
+
 /**
  * Get a single quiz by ID
  * GET /api/v1/user/quiz/:quizId

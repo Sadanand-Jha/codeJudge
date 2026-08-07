@@ -27,6 +27,7 @@ import {
   ClipboardList,
   Plus,
   ChevronDown,
+  Crown,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useSavedAvatar } from "@/store/avatarStore";
@@ -36,6 +37,7 @@ import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import AuthModal from "@/components/modals/AuthModal";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
+import LowCreditNotification from "@/components/ai/LowCreditNotification";
 
 function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -107,6 +109,7 @@ const navItems = [
   { label: "Editor", icon: BookOpen, href: "/editor" },
   { label: "Achievements", icon: TrendingUp, href: "/achievements" },
   { label: "Analytics", icon: Users, href: "/analytics" },
+  { label: "Upgrade", icon: Crown, href: "/pricing" },
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
@@ -365,13 +368,13 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {/* Right icons */}
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <button className="p-2 rounded-lg hover:bg-accent/5 text-text-secondary hover:text-text-primary transition-colors relative">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" />
-            </button>
+           {/* Right icons */}
+           <div className="flex items-center gap-2">
+             <ThemeToggle />
+             <button className="p-2 rounded-lg hover:bg-accent/5 text-text-secondary hover:text-text-primary transition-colors relative">
+               <Bell className="w-4 h-4" />
+               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" />
+             </button>
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
                 <Link
@@ -430,6 +433,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         }}
         redirectUrl={authModalRedirect}
       />
+      <LowCreditNotification />
     </div>
   );
 }
@@ -462,23 +466,23 @@ function NavItem({ item, pathname, isGuest, onClick }: {
           onClick?.();
         }
       }}
-      className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group cursor-pointer"
+      className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-[250ms] group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
     >
       {isActive && (
         <motion.div
           layoutId="activeNav"
-          className="absolute inset-0 rounded-xl bg-accent/15 shadow-[0_0_20px_rgba(37,99,235,0.15)] pointer-events-none"
+          className="absolute inset-0 rounded-xl bg-accent/15 shadow-[0_0_20px_rgba(124,58,237,0.15)] pointer-events-none"
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
         />
       )}
       <Icon
-        className={`w-4 h-4 relative z-10 transition-colors ${
-          isActive ? "text-accent" : "text-text-secondary group-hover:text-text-primary"
+        className={`w-4 h-4 relative z-10 transition-colors duration-[250ms] ${
+          isActive ? "text-accent" : "text-text-secondary group-hover:text-accent group-hover:scale-110"
         }`}
       />
       <span
-        className={`relative z-10 transition-colors ${
-          isActive ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"
+        className={`relative z-10 transition-colors duration-[250ms] ${
+          isActive ? "text-text-primary font-semibold" : "text-text-secondary group-hover:text-text-primary"
         }`}
       >
         {item.label}

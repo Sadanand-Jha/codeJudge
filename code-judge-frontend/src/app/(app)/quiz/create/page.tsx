@@ -3,6 +3,8 @@
 import { useState } from "react";
 import QuizSettingsPage from "@/components/quiz/creator/QuizSettingsPage";
 import QuestionBuilder from "@/components/quiz/creator/QuestionBuilder";
+import AIStudio from "@/components/quiz/creator/AIStudio";
+import { Sparkles } from "lucide-react";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, CreatorQuestion } from "@/components/quiz/creator/types";
 import { loadQuizState, clearQuizState, saveQuizState } from "@/utils/quizStorage";
 import { toast } from "@/lib/toast";
@@ -38,6 +40,7 @@ export default function CreateQuizPage() {
   const [details, setDetails] = useState<QuizDetails>(initial.details);
   const [questions] = useState<CreatorQuestion[]>(initial.questions);
   const [activeQuestionId] = useState(initial.activeQuestionId);
+  const [showAIStudio, setShowAIStudio] = useState(false);
 
   const handleContinue = (quizDetails: QuizDetails) => {
     setDetails(quizDetails);
@@ -109,13 +112,15 @@ export default function CreateQuizPage() {
 
   if (stage === "builder") {
     return (
-      <QuestionBuilder
-        details={details}
-        initialQuestions={questions}
-        initialActiveQuestionId={activeQuestionId}
-        onBack={handleBack}
-        onPublish={handlePublish}
-      />
+      <>
+        <QuestionBuilder
+          details={details}
+          initialQuestions={questions}
+          initialActiveQuestionId={activeQuestionId}
+          onBack={handleBack}
+          onPublish={handlePublish}
+        />
+      </>
     );
   }
 

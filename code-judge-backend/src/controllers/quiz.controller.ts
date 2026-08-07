@@ -1475,7 +1475,8 @@ export const joinQuiz = async (req: Request, res: Response) => {
 
 export const getAllSubjects = async (req: Request, res: Response) => {
   try {
-    const subjects = await quizService.getAllSubjects();
+    const { search = "" } = req.query;
+    const subjects = await quizService.getAllSubjects(search as string);
     res.status(200).json({
       success: true,
       data: subjects,
@@ -1486,5 +1487,5 @@ export const getAllSubjects = async (req: Request, res: Response) => {
       success: false,
       message: "Internal server error while fetching subjects",
     });
-  } 
+  }
 }

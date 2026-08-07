@@ -33,7 +33,10 @@ const { Pool } = pg;
 dns.setDefaultResultOrder("ipv4first");
 
 
-export const pool = new Pool();
+export const pool = new Pool({
+  ssl: {
+    rejectUnauthorized: false // <-- Yahan add karna hai
+  }});
 
 // export const pool = new Pool({
 //   connectionString: process.env.DATABASE_URL,

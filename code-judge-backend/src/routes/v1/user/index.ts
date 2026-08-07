@@ -8,6 +8,7 @@ import { authenticate } from "../../../middleware/auth.ts";
 import { updateAvatar } from "../../../controllers/avatar.controller.ts";
 import { getAllSubjects } from "../../../controllers/quiz.controller.ts";
 
+
 const router = Router();
 
 
@@ -28,6 +29,7 @@ router.post("/forget-password", forgetPassword);
 router.get("/profile", authenticate, profile);
 router.get("/info", authenticate, profile);
 router.patch("/avatar", authenticate, updateAvatar);
+
 
 
 // ===================== SUBJECTS ==========

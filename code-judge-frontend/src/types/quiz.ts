@@ -491,7 +491,6 @@ export interface Quiz {
   registeredCount: number;
   averageScore: number;
   assessmentSettings?: AssessmentSettings;
-  coverImage?: string;
   passingScore?: number;
   learningOutcomes?: string[];
   prerequisites?: string[];

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { LiveParticipant } from "@/types/liveAssessment";
 import { StudentAvatar } from "./StudentAvatar";
@@ -8,10 +8,16 @@ import { StudentAvatar } from "./StudentAvatar";
 interface AnimatedCrowdProps {
   participants: LiveParticipant[];
   className?: string;
+  /** Open/keep-open the preview for a participant. */
+  onShow?: (participant: LiveParticipant) => void;
+  /** Arm the delayed hide (called when the cursor leaves all avatars). */
+  onArmHide?: () => void;
+  /** Force an immediate hide (e.g. window blur). */
+  onHideNow?: () => void;
 }
 
-const MIN_VISIBLE = 15;
-const MAX_VISIBLE = 20;
+const MIN_VISIBLE = 25;
+const MAX_VISIBLE = 35;
 
 interface RoamingState {
   // Current target position (percentages)
@@ -38,11 +44,11 @@ function createRoamingState(): RoamingState {
   return {
     targetX: pos.x,
     targetY: pos.y,
-    duration: 25 + Math.random() * 6, // 8-14 seconds to reach destination (slow, calm)
+    duration: 25 + Math.random() * 1, // 8-14 seconds to reach destination (slow, calm)
     delay: Math.random() * 1.5,
-    breathDuration: 20 + Math.random() * 3, // 4-7 seconds per breath (slower bobbing)
+    breathDuration: 12 + Math.random() * 3, // 4-7 seconds per breath (slower bobbing)
     breathDelay: Math.random() * 12,
-    rotateRange: 65 + Math.random() * 1, // 0.5-1.5 degrees (subtler sway)
+    rotateRange: 56 + Math.random() * 1, // 0.5-1.5 degrees (subtler sway)
   };
 }
 
@@ -53,7 +59,8 @@ const MemoizedAvatar = React.memo<{
   count: number;
   size: "xs" | "sm" | "md" | "lg";
   state: RoamingState;
-}>(function AvatarItem({ participant, index, count, size, state }) {
+  isHovered: boolean;
+}>(function AvatarItem({ participant, index, count, size, state, isHovered }) {
   return (
     <motion.div
       className="absolute pointer-events-auto"
@@ -61,12 +68,14 @@ const MemoizedAvatar = React.memo<{
         transform: "translate(-50%, -50%)",
         willChange: "transform, left, top",
       }}
+      data-participant-id={participant.id}
       // Animate left/top directly - Framer Motion smoothly transitions when target changes
       animate={{
         left: `${state.targetX}%`,
         top: `${state.targetY}%`,
         opacity: 1,
-        scale: 1,
+        scale: isHovered ? 1.12 : 1,
+        zIndex: isHovered ? 100 : 1,
       }}
       initial={{
         left: `${state.targetX}%`,
@@ -77,29 +86,30 @@ const MemoizedAvatar = React.memo<{
       exit={{ opacity: 0, scale: 0.7 }}
       transition={{
         left: {
-          duration: state.duration,
-          delay: state.delay,
-          ease: [0.4, 0, 0.2, 1], // Custom ease for natural walking feel
+          duration: isHovered ? 0 : state.duration,
+          delay: isHovered ? 0 : state.delay,
+          ease: [0.4, 0, 0.2, 1],
         },
         top: {
-          duration: state.duration,
-          delay: state.delay,
+          duration: isHovered ? 0 : state.duration,
+          delay: isHovered ? 0 : state.delay,
           ease: [0.4, 0, 0.2, 1],
         },
         opacity: { duration: 0.5 },
-        scale: { duration: 0.5, ease: "easeOut" },
+        scale: { duration: 0.2, ease: "easeOut" },
+        zIndex: { duration: 0 },
       }}
     >
       {/* Inner div for breathing/bobbing while moving (transform-based, GPU accelerated) */}
       <motion.div
         animate={{
-          scale: [1, 1.03, 1],
-          rotate: [0, state.rotateRange, -state.rotateRange, 0],
-          y: [0, -2, 0, -1, 0], // Subtle bobbing while moving
+          scale: isHovered ? [1, 1.05, 1] : [1, 1.03, 1],
+          rotate: isHovered ? [0, 3, -3, 0] : [0, state.rotateRange, -state.rotateRange, 0],
+          y: isHovered ? [0, -3, 0] : [0, -2, 0, -1, 0],
         }}
         transition={{
-          duration: state.breathDuration,
-          delay: state.breathDelay,
+          duration: isHovered ? 1.5 : state.breathDuration,
+          delay: isHovered ? 0 : state.breathDelay,
           repeat: Infinity,
           ease: "easeInOut",
         }}
@@ -111,26 +121,64 @@ const MemoizedAvatar = React.memo<{
           count={count}
           size={size}
           showName={false}
-          showHoverCard
+          showHoverCard={false}
         />
       </motion.div>
+
+      {/* Hover glow effect */}
+      {isHovered && (
+        <motion.div
+          className="absolute inset-0 rounded-full pointer-events-none"
+          animate={{
+            boxShadow: [
+              '0 0 20px rgba(168, 85, 247, 0.4), 0 0 40px rgba(236, 72, 153, 0.3)',
+              '0 0 30px rgba(168, 85, 247, 0.6), 0 0 60px rgba(236, 72, 153, 0.5)',
+              '0 0 20px rgba(168, 85, 247, 0.4), 0 0 40px rgba(236, 72, 153, 0.3)',
+            ],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          style={{
+            borderRadius: '50%',
+            transform: 'translate(-50%, -50%)',
+            left: '50%',
+            top: '50%',
+          }}
+        />
+      )}
     </motion.div>
   );
 }, (prev, next) => {
-  // Only re-render if participant, size, or target position changed
+  // Only re-render if participant, size, target position, or hover state changed
   return (
     prev.participant.id === next.participant.id &&
     prev.size === next.size &&
     prev.state.targetX === next.state.targetX &&
-    prev.state.targetY === next.state.targetY
+    prev.state.targetY === next.state.targetY &&
+    prev.isHovered === next.isHovered
   );
 });
 
-export function AnimatedCrowd({ participants, className = "" }: AnimatedCrowdProps) {
+export function AnimatedCrowd({ participants, className = "", onShow, onArmHide, onHideNow }: AnimatedCrowdProps) {
   const [visibleParticipants, setVisibleParticipants] = useState<LiveParticipant[]>([]);
   const [roamingStates, setRoamingStates] = useState<Map<string, RoamingState>>(new Map());
   const [isVisible, setIsVisible] = useState(true);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Latest visible set, kept ref-synced so the (stable) pointer handler can
+  // resolve participants without re-binding on every render.
+  const visibleRef = useRef<LiveParticipant[]>([]);
+  useEffect(() => {
+    visibleRef.current = visibleParticipants;
+  }, [visibleParticipants]);
+
+  const hoveredIdRef = useRef<string | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const lastMoveRef = useRef<{ x: number; y: number } | null>(null);
 
   const fullPool = useMemo(() => participants, [participants]);
 
@@ -141,49 +189,25 @@ export function AnimatedCrowd({ participants, className = "" }: AnimatedCrowdPro
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
-  // Initial spawn - no duplicates
+  // Initial spawn - show all participants immediately
   useEffect(() => {
     if (fullPool.length === 0) return;
     if (visibleParticipants.length > 0) return;
 
-    const targetCount = Math.min(
-      MAX_VISIBLE,
-      Math.max(MIN_VISIBLE, Math.floor(fullPool.length * 0.5))
-    );
-
-    const shuffled = [...fullPool].sort(() => Math.random() - 0.5);
-    const seen = new Set<string>();
-    const initial: LiveParticipant[] = [];
-    for (const p of shuffled) {
-      if (seen.has(p.id)) continue;
-      seen.add(p.id);
-      initial.push(p);
-      if (initial.length >= targetCount) break;
-    }
-
-    const timers: NodeJS.Timeout[] = [];
-    initial.forEach((participant, index) => {
-      const timer = setTimeout(() => {
-        setVisibleParticipants((prev) => [...prev, participant]);
-        setRoamingStates((prev) => {
-          const next = new Map(prev);
-          next.set(participant.id, createRoamingState());
-          return next;
-        });
-
-        if ((window as any).__waitingRoomToast) {
-          (window as any).__waitingRoomToast(participant);
+    const all = [...fullPool];
+    setVisibleParticipants(all);
+    setRoamingStates((prev) => {
+      const next = new Map(prev);
+      all.forEach((p) => {
+        if (!next.has(p.id)) {
+          next.set(p.id, createRoamingState());
         }
-      }, 500 + index * 400);
-
-      timers.push(timer);
+      });
+      return next;
     });
-
-    return () => timers.forEach((timer) => clearTimeout(timer));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullPool]);
 
-  // Roaming: move 1-2 random avatars to new destinations every 10 seconds
+  // Roaming: move random avatars to new destinations every 8 seconds
   // Each avatar smoothly travels to its new position (no teleporting)
   useEffect(() => {
     if (visibleParticipants.length === 0 || !isVisible) return;
@@ -191,10 +215,9 @@ export function AnimatedCrowd({ participants, className = "" }: AnimatedCrowdPro
     const roamingTimer = setInterval(() => {
       if (document.hidden) return;
 
-      // Determine how many avatars to move (1-2, calmer crowd)
-      const seconds = Math.floor(Date.now() / 1000);
+      // Move 2-3 random avatars to new destinations
       const moveCount = Math.min(
-        Math.max(1, seconds % 3),
+        Math.max(2, Math.floor(visibleParticipants.length * 0.1)),
         visibleParticipants.length
       );
 
@@ -215,76 +238,109 @@ export function AnimatedCrowd({ participants, className = "" }: AnimatedCrowdPro
         });
         return next;
       });
-    }, 10000);
+    }, 8000);
 
     return () => clearInterval(roamingTimer);
   }, [visibleParticipants, isVisible]);
 
-  // Continuous replacement: every 10 seconds replace 1 avatar (no duplicates)
-  useEffect(() => {
-    if (visibleParticipants.length < 3 || !isVisible) return;
-
-    const replacementTimer = setInterval(() => {
-      if (document.hidden) return;
-
-      setVisibleParticipants((prev) => {
-        if (prev.length < 3) return prev;
-
-        const removeCount = 1; // gentler turnover
-        const removeIndices = new Set<number>();
-        while (removeIndices.size < removeCount && removeIndices.size < prev.length) {
-          removeIndices.add(Math.floor(Math.random() * prev.length));
-        }
-
-        const remaining = prev.filter((_, i) => !removeIndices.has(i));
-        const remainingIds = new Set(remaining.map((r) => r.id));
-
-        // Clean up roaming states for removed avatars
-        removeIndices.forEach((idx) => {
-          const removed = prev[idx];
-          if (removed) {
-            setRoamingStates((prevStates) => {
-              const next = new Map(prevStates);
-              next.delete(removed.id);
-              return next;
-            });
-          }
-        });
-
-        // Find available participants not currently visible (no duplicates)
-        const available = fullPool.filter((p) => !remainingIds.has(p.id));
-        if (available.length === 0) return prev;
-
-        const addCount = Math.min(removeCount, available.length);
-        const newOnes: LiveParticipant[] = [];
-        const shuffled = [...available].sort(() => Math.random() - 0.5);
-        const newIds = new Set<string>();
-
-        for (let i = 0; i < addCount && i < shuffled.length; i++) {
-          if (newIds.has(shuffled[i].id)) continue;
-          newIds.add(shuffled[i].id);
-          newOnes.push(shuffled[i]);
-
-          // Initialize roaming state for new avatar
-          setRoamingStates((prevStates) => {
-            const next = new Map(prevStates);
-            next.set(shuffled[i].id, createRoamingState());
-            return next;
-          });
-
-          if ((window as any).__waitingRoomToast) {
-            (window as any).__waitingRoomToast(shuffled[i]);
-          }
-        }
-
-        return [...remaining, ...newOnes];
-      });
-    }, 10000);
-
-    return () => clearInterval(replacementTimer);
-  }, [fullPool, visibleParticipants.length, isVisible]);
-
   const count = visibleParticipants.length;
+
+  // ---------------------------------------------------------------------------
+  // Reliable hover detection.
+  //
+  // Per-element mouseenter/mouseleave on continuously-moving avatars is
+  // unreliable: every scale/rotate/roaming frame can move the hitbox out from
+  // under the cursor and fire a spurious leave. Instead we hit-test with
+  // document.elementFromPoint on every pointer move (rAF-throttled). This uses
+  // the browser's real rendered geometry, so transformed/scaled/floating and
+  // overlapping avatars are all resolved correctly, and because we only
+  // re-evaluate when the pointer actually moves, the hover target stays stable
+  // while an avatar drifts beneath a stationary cursor.
+  // ---------------------------------------------------------------------------
+  const resolveHoverTarget = useCallback(
+    (x: number, y: number): { participant: LiveParticipant } | "keep" | null => {
+      const el = document.elementFromPoint(x, y) as Element | null;
+      if (!el) return null;
+      // Cursor is over the preview card → keep the current participant alive.
+      if (el.closest("[data-avatar-preview]")) return "keep";
+      const avatarEl = el.closest<HTMLElement>("[data-participant-id]");
+      if (!avatarEl) return null;
+      const id = avatarEl.dataset.participantId;
+      if (!id) return null;
+      const participant = visibleRef.current.find((p) => p.id === id);
+      return participant ? { participant } : null;
+    },
+    []
+  );
+
+  const handlePointerMove = useCallback(
+    (e: PointerEvent) => {
+      // Hover is a mouse/pen concept; touch should not trigger previews.
+      if (e.pointerType !== "mouse" && e.pointerType !== "pen") return;
+
+      const { clientX, clientY } = e;
+
+      // Ignore tiny jitter but still keep the current hover alive (harmless
+      // setState-with-same-reference bails out in React, so it is cheap).
+      const last = lastMoveRef.current;
+      if (last && Math.abs(last.x - clientX) < 3 && Math.abs(last.y - clientY) < 3) {
+        const cur = hoveredIdRef.current
+          ? visibleRef.current.find((p) => p.id === hoveredIdRef.current)
+          : null;
+        if (cur) onShow?.(cur);
+        return;
+      }
+      lastMoveRef.current = { x: clientX, y: clientY };
+
+      // Throttle the expensive hit-test to one per animation frame.
+      if (rafRef.current) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        const hit = resolveHoverTarget(clientX, clientY);
+
+        if (hit === "keep") {
+          const cur = hoveredIdRef.current
+            ? visibleRef.current.find((p) => p.id === hoveredIdRef.current)
+            : null;
+          if (cur) onShow?.(cur);
+          return;
+        }
+
+        if (hit) {
+          const id = hit.participant.id;
+          if (hoveredIdRef.current !== id) {
+            // Switching to a new avatar.
+            hoveredIdRef.current = id;
+            setHoveredId(id);
+            onShow?.(hit.participant);
+          } else {
+            // Stayed on the same avatar → keep the preview alive.
+            onShow?.(hit.participant);
+          }
+        } else if (hoveredIdRef.current !== null) {
+          // Cursor is outside every avatar/card → arm the delayed hide.
+          hoveredIdRef.current = null;
+          setHoveredId(null);
+          onArmHide?.();
+        }
+      });
+    },
+    [resolveHoverTarget, onShow, onArmHide]
+  );
+
+  // Bind the document-level pointer tracking once.
+  useEffect(() => {
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    // If the window loses focus, hide immediately.
+    const handleBlur = () => onHideNow?.();
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("blur", handleBlur);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, [handlePointerMove, onHideNow]);
 
   return (
     <div className={`relative w-full h-full pointer-events-none ${className}`}>
@@ -296,6 +352,7 @@ export function AnimatedCrowd({ participants, className = "" }: AnimatedCrowdPro
 
             const sizeVariant = (i % 4) as 0 | 1 | 2 | 3;
             const size = ["xs", "sm", "md", "lg"][sizeVariant] as "xs" | "sm" | "md" | "lg";
+            const isHovered = hoveredId === p.id
 
             return (
               <MemoizedAvatar
@@ -305,6 +362,7 @@ export function AnimatedCrowd({ participants, className = "" }: AnimatedCrowdPro
                 count={count}
                 size={size}
                 state={state}
+                isHovered={isHovered}
               />
             );
           })}

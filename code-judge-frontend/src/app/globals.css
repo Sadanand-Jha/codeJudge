@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Tailwind v4 — make `dark:` variant respond to the
+   `data-theme="dark"` attribute set on <html> by
+   ThemeContext instead of the OS media query. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /* ============================================
    ByteClash Theme Design System
    ============================================
@@ -99,6 +104,13 @@ body {
 html,
 body {
   height: 100%;
+}
+
+/* Spin keyframes for animated premium borders */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Theme transition utility — buttery-smooth dark ↔ light switching.
@@ -621,87 +633,201 @@ button.cf-btn:hover {
 [data-theme="light"] .shadow-xl { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important; }
 [data-theme="light"] .shadow-lg { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important; }
 
+/* ============================================
+   Pricing Page — Light Theme Polish
+   Scoped exclusively to the Pricing page via
+   semantic hook classes. Dark theme untouched.
+   ============================================ */
+
+/* Premium light background — soft pink/lavender mesh */
+[data-theme="light"] .pricing-bg-light {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(236,72,153,0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(139,92,246,0.09) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(192,132,252,0.06) 0%, transparent 60%),
+    linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
+}
+
+/* Pricing card — clean white surface with soft elevation */
+[data-theme="light"] .pricing-card-inner {
+  background-color: #FFFFFF !important;
+  border-color: #E5E7EB !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+}
+
+/* Popular card — pink/purple glow in light mode */
+[data-theme="light"] .pricing-card-popular {
+  background: linear-gradient(to bottom, rgba(236, 72, 153, 0.18), rgba(124, 58, 237, 0.06)) !important;
+  box-shadow: 0 8px 40px rgba(124, 58, 237, 0.15), 0 0 30px rgba(236, 72, 153, 0.12) !important;
+}
+
+/* Non-popular card border — pink-purple gradient */
+[data-theme="light"] .pricing-card-border {
+  background: linear-gradient(to bottom, rgba(236, 72, 153, 0.25), rgba(124, 58, 237, 0.15)) !important;
+}
+
+/* Limits box — soft pink-purple tint on white */
+[data-theme="light"] .pricing-limits-box {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.06), rgba(124, 58, 237, 0.06)) !important;
+  border-color: rgba(236, 72, 153, 0.2) !important;
+}
+
+/* Comparison table — white shell with pink/purple accents */
+[data-theme="light"] .pricing-compare-table {
+  background-color: #FFFFFF !important;
+  border-color: rgba(236, 72, 153, 0.2) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Stats section — white gradient with pink/purple accents */
+[data-theme="light"] .pricing-stats-section {
+  background: linear-gradient(to bottom, #FFFFFF, #F8FAFC) !important;
+  border-color: rgba(236, 72, 153, 0.2) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Payment section — white card with pink/purple border */
+[data-theme="light"] .pricing-payment-section {
+  background-color: #FFFFFF !important;
+  border-color: rgba(236, 72, 153, 0.2) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Billing toggle container — white pill with pink/purple border */
+[data-theme="light"] .pricing-billing-toggle {
+  background-color: #FFFFFF !important;
+  border-color: rgba(236, 72, 153, 0.25) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+/* Mobile sticky CTA — white translucent with pink/purple border */
+[data-theme="light"] .pricing-mobile-cta {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-top-color: rgba(236, 72, 153, 0.25) !important;
+}
+
+/* Feature showcase cards — clean white with pink/purple accents */
+[data-theme="light"] .pricing-feature-card {
+  background-color: #FFFFFF !important;
+  border-color: rgba(236, 72, 153, 0.15) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .pricing-feature-card:hover {
+  border-color: rgba(236, 72, 153, 0.4) !important;
+  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.15) !important;
+}
+
+/* FAQ cards — white with pink/purple accents */
+[data-theme="light"] .pricing-faq-card {
+  background-color: #FFFFFF !important;
+  border-color: rgba(236, 72, 153, 0.15) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .pricing-faq-card:hover {
+  border-color: rgba(236, 72, 153, 0.35) !important;
+}
+
+[data-theme="light"] .pricing-faq-card.pricing-faq-open {
+  border-color: rgba(236, 72, 153, 0.35) !important;
+  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.12) !important;
+}
+
+/* Pink/purple gradient for primary buttons in light mode pricing */
+[data-theme="light"] .pricing-payment-section button,
+[data-theme="light"] .pricing-mobile-cta button {
+  background: linear-gradient(135deg, #EC4899, #7C3AED) !important;
+}
+
 /* ===== Global Form Elements (input, select, textarea) =====
    Strips OS-level default styling (appearance: none) and
    applies consistent dark-theme form controls across the
    entire application. Light-theme overrides are scoped to
    [data-theme="light"]. Checkbox, radio, file, range, and
-   color inputs are excluded to preserve their native behavior. */
+   color inputs are excluded to preserve their native behavior.
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
-textarea,
-select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background-color: #1e1e24;
-  color: #ffffff;
-  border: 1px solid #2a2a35;
-  border-radius: 6px;
-  padding: 8px 12px;
-  outline: none;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 1.5;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
+   IMPORTANT: These are wrapped in @layer base so Tailwind's
+   utility layer (pl-*, pr-*, px-*, py-*, etc.) can override
+   the default padding. Without layering, this un-layered rule
+   beats Tailwind utilities, causing icons and placeholder text
+   to overlap on inputs that use pl-* with an inline icon. */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
+  textarea,
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: #1e1e24;
+    color: #ffffff;
+    border: 1px solid #2a2a35;
+    border-radius: 6px;
+    padding: 8px 12px;
+    outline: none;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
 
-/* Focus state — purple/indigo ring, no browser outline */
-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: #5c5cff;
-  box-shadow: 0 0 0 3px rgba(92, 92, 255, 0.15);
-}
+  /* Focus state — purple/indigo ring, no browser outline */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+    border-color: #5c5cff;
+    box-shadow: 0 0 0 3px rgba(92, 92, 255, 0.15);
+  }
 
-/* Placeholder text */
-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"])::placeholder,
-textarea::placeholder {
-  color: #6b6b7b;
-}
+  /* Placeholder text */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"])::placeholder,
+  textarea::placeholder {
+    color: #6b6b7b;
+  }
 
-/* Custom select dropdown arrow (appearance: none removes native arrow) */
-select {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b7b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 12px;
-  padding-right: 32px;
-}
+  /* Custom select dropdown arrow (appearance: none removes native arrow) */
+  select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b7b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    padding-right: 32px;
+  }
 
-/* ===== Light Theme Form Element Overrides ===== */
-[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
-[data-theme="light"] textarea,
-[data-theme="light"] select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background-color: #ffffff;
-  color: #0f172a;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  color-scheme: light;
-}
+  /* ===== Light Theme Form Element Overrides ===== */
+  [data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]),
+  [data-theme="light"] textarea,
+  [data-theme="light"] select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: #ffffff;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    color-scheme: light;
+  }
 
-[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
-[data-theme="light"] textarea:focus,
-[data-theme="light"] select:focus {
-  outline: none;
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
-}
+  [data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"]):focus,
+  [data-theme="light"] textarea:focus,
+  [data-theme="light"] select:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+  }
 
-[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"])::placeholder,
-[data-theme="light"] textarea::placeholder {
-  color: #94a3b8;
-}
+  [data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"])::placeholder,
+  [data-theme="light"] textarea::placeholder {
+    color: #94a3b8;
+  }
 
-[data-theme="light"] select {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 12px;
+  [data-theme="light"] select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+  }
 }
 
 /* ===== Date inputs ===== */
@@ -709,6 +835,1178 @@ select {
 
 /* ===== Table rows hover ===== */
 [data-theme="light"] tr:hover { background-color: rgba(37, 99, 235, 0.04) !important; }
+
+/* Pricing comparison table rows — soft hover */
+[data-theme="light"] .pricing-compare-table tr:hover {
+  background-color: #F8FAFC !important;
+}
+
+/* Pricing table header text — muted slate */
+[data-theme="light"] .pricing-table-header-text {
+  color: #64748B !important;
+}
+
+/* Pricing table check icons — green stays vivid, purple accent preserved */
+[data-theme="light"] .pricing-table-check-accent {
+  color: #7C3AED !important;
+}
+
+/* Pricing page ambient glows — lighter opacity for light theme */
+[data-theme="light"] .pricing-ambient-orb {
+  opacity: 0.5 !important;
+}
+
+/* Hide space/star effects in light mode (hero glow stays visible) */
+[data-theme="light"] .pricing-stars,
+[data-theme="light"] .pricing-shooting-star,
+[data-theme="light"] .pricing-nebula {
+  display: none !important;
+}
+
+/* Light theme hero glow — soft pink/purple animated backdrop */
+[data-theme="light"] .pricing-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(139,92,246,0.1) 0%, transparent 60%),
+    radial-gradient(circle at 30% 70%, rgba(236,72,153,0.08) 0%, transparent 55%);
+  animation: pricing-pulse-glow 8s ease-in-out infinite;
+}
+
+/* Animated gradient text for hero accent */
+@keyframes pricing-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.pricing-gradient-text {
+  background: linear-gradient(135deg, #EC4899, #8B5CF6, #C084FC, #EC4899);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: pricing-gradient-shift 6s ease infinite;
+}
+
+/* Billing toggle selected text — force white in both themes */
+.pricing-billing-toggle button.text-white {
+  color: #FFFFFF !important;
+}
+
+/* Card aurora for light mode — background comes from .p-a-* variants */
+[data-theme="light"] .pricing-card-aurora {
+  filter: blur(14px);
+}
+
+/* ============================================
+   Premium Light Theme — Pink/Purple Identity
+   ============================================ */
+
+/* Soft mesh gradient background */
+[data-theme="light"] .pricing-bg-light {
+  background:
+    radial-gradient(circle at 15% 10%, rgba(236,72,153,0.07) 0%, transparent 45%),
+    radial-gradient(circle at 85% 15%, rgba(192,132,252,0.06) 0%, transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(139,92,246,0.05) 0%, transparent 50%),
+    radial-gradient(circle at 20% 60%, rgba(236,72,153,0.04) 0%, transparent 35%),
+    linear-gradient(180deg, #FFFFFF 0%, #FDFBFF 50%, #F8FAFC 100%) !important;
+}
+
+/* Light mode cards — premium glass effect */
+[data-theme="light"] .pricing-card-inner {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: #F3E8FF !important;
+  box-shadow: 
+    0 1px 3px rgba(139, 92, 246, 0.04),
+    0 4px 12px rgba(236, 72, 153, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Light mode popular card — pink/purple glow */
+[data-theme="light"] .pricing-card-popular {
+  background: linear-gradient(135deg, rgba(236,72,153,0.12), rgba(139,92,246,0.08)) !important;
+  box-shadow: 
+    0 8px 32px rgba(236, 72, 153, 0.15),
+    0 0 40px rgba(139, 92, 246, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Light mode non-popular card border */
+[data-theme="light"] .pricing-card-border {
+  background: linear-gradient(135deg, rgba(236,72,153,0.2), rgba(139,92,246,0.15)) !important;
+}
+
+/* Light mode limits box */
+[data-theme="light"] .pricing-limits-box {
+  background: linear-gradient(135deg, rgba(236,72,153,0.04), rgba(139,92,246,0.04)) !important;
+  border-color: rgba(236, 72, 153, 0.15) !important;
+}
+
+/* Light mode billing toggle */
+[data-theme="light"] .pricing-billing-toggle {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: #F3E8FF !important;
+  box-shadow: 
+    0 2px 8px rgba(236, 72, 153, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+}
+
+/* Light mode feature cards */
+[data-theme="light"] .pricing-feature-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: #F3E8FF !important;
+  box-shadow: 
+    0 2px 8px rgba(236, 72, 153, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+}
+
+[data-theme="light"] .pricing-feature-card:hover {
+  border-color: rgba(236, 72, 153, 0.3) !important;
+  box-shadow: 
+    0 8px 24px rgba(236, 72, 153, 0.12),
+    0 0 20px rgba(139, 92, 246, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+}
+
+/* Light mode FAQ cards */
+[data-theme="light"] .pricing-faq-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: #F3E8FF !important;
+  box-shadow: 
+    0 2px 8px rgba(236, 72, 153, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+}
+
+[data-theme="light"] .pricing-faq-card:hover {
+  border-color: rgba(236, 72, 153, 0.25) !important;
+}
+
+[data-theme="light"] .pricing-faq-card.pricing-faq-open {
+  border-color: rgba(236, 72, 153, 0.3) !important;
+  box-shadow: 
+    0 8px 24px rgba(236, 72, 153, 0.1),
+    0 0 20px rgba(139, 92, 246, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+}
+
+/* Light mode comparison table */
+[data-theme="light"] .pricing-compare-table {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: #F3E8FF !important;
+  box-shadow: 
+    0 4px 16px rgba(236, 72, 153, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+}
+
+/* Light mode stats section */
+[data-theme="light"] .pricing-stats-section {
+  background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(253,251,255,0.95)) !important;
+  border-color: #F3E8FF !important;
+  box-shadow: 
+    0 4px 16px rgba(236, 72, 153, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+}
+
+/* Light mode payment section */
+[data-theme="light"] .pricing-payment-section {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: #F3E8FF !important;
+  box-shadow: 
+    0 4px 16px rgba(236, 72, 153, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+}
+
+/* Light mode mobile CTA */
+[data-theme="light"] .pricing-mobile-cta {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-top-color: #F3E8FF !important;
+  box-shadow: 0 -4px 16px rgba(236, 72, 153, 0.06) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Premium gradient buttons for light mode */
+[data-theme="light"] .pricing-payment-section button,
+[data-theme="light"] .pricing-mobile-cta button {
+  background: linear-gradient(135deg, #EC4899, #8B5CF6) !important;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.25) !important;
+}
+
+/* ============================================
+   Dark Space Theme — Cosmic Experience
+   ============================================ */
+
+/* Deep space background */
+[data-theme="dark"] .pricing-bg-space {
+  background: linear-gradient(135deg, #050510 0%, #09091A 50%, #120B24 100%) !important;
+}
+
+/* Stars container */
+[data-theme="dark"] .pricing-stars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Individual star */
+[data-theme="dark"] .pricing-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #ffffff;
+  border-radius: 50%;
+  opacity: 0;
+  animation: pricing-twinkle var(--twinkle-duration, 3s) ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0s);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+}
+
+/* Twinkle animation */
+@keyframes pricing-twinkle {
+  0%, 100% { 
+    opacity: 0.15; 
+    transform: translateY(0) scale(1); 
+  }
+  50% { 
+    opacity: 0.9; 
+    transform: translateY(-8px) scale(1.2); 
+  }
+}
+
+/* Slow drift animation */
+[data-theme="dark"] .pricing-star.drift {
+  animation: 
+    pricing-twinkle var(--twinkle-duration, 3s) ease-in-out infinite,
+    pricing-drift var(--drift-duration, 20s) linear infinite;
+  animation-delay: var(--twinkle-delay, 0s), var(--drift-delay, 0s);
+}
+
+@keyframes pricing-drift {
+  0% { transform: translateX(0); opacity: 0.25; }
+  50% { opacity: 0.7; }
+  100% { transform: translateX(30px); opacity: 0.25; }
+}
+
+/* Shooting star */
+[data-theme="dark"] .pricing-shooting-star {
+  position: absolute;
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(to right, 
+    rgba(255,255,255,0) 0%, 
+    rgba(255,255,255,0.95) 50%, 
+    rgba(236,72,153,0.9) 100%
+  );
+  border-radius: 999px;
+  opacity: 0;
+  animation: pricing-shoot var(--shoot-duration, 6s) ease-in-out infinite;
+  animation-delay: var(--shoot-delay, 0s);
+  filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.8));
+  pointer-events: none;
+}
+
+@keyframes pricing-shoot {
+  0% { 
+    transform: translateX(-150px) translateY(0) rotate(-15deg); 
+    opacity: 0; 
+  }
+  3% { 
+    opacity: 1; 
+  }
+  12% { 
+    transform: translateX(150px) translateY(50px) rotate(-15deg); 
+    opacity: 0; 
+  }
+  100% { 
+    opacity: 0; 
+  }
+}
+
+/* Nebula blobs */
+[data-theme="dark"] .pricing-nebula {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.3;
+  pointer-events: none;
+  animation: pricing-float 20s ease-in-out infinite alternate;
+  background: radial-gradient(circle, rgba(139,92,246,0.3), rgba(236,72,153,0.2));
+}
+
+@keyframes pricing-float {
+  0% { transform: translateY(0) translateX(0) scale(1); }
+  100% { transform: translateY(-40px) translateX(30px) scale(1.1); }
+}
+
+/* Hero glow for dark theme */
+[data-theme="dark"] .pricing-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(139,92,246,0.15) 0%, transparent 60%),
+    radial-gradient(circle at 30% 70%, rgba(236,72,153,0.1) 0%, transparent 55%);
+  animation: pricing-pulse-glow 8s ease-in-out infinite;
+}
+
+@keyframes pricing-pulse-glow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* Card aurora for dark theme */
+[data-theme="dark"] .pricing-card-aurora {
+  position: absolute;
+  inset: -1px;
+  border-radius: 1.5rem;
+  pointer-events: none;
+  background: linear-gradient(120deg, 
+    rgba(236,72,153,0.15), 
+    rgba(139,92,246,0.15), 
+    rgba(99,102,241,0.1)
+  );
+  filter: blur(16px);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: -1;
+}
+
+[data-theme="dark"] .pricing-card-wrap:hover .pricing-card-aurora {
+  opacity: 1;
+}
+
+/* Dark mode card hover glow */
+[data-theme="dark"] .pricing-card-wrap:hover > div:first-child {
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    0 0 50px rgba(139, 92, 246, 0.2),
+    0 0 30px rgba(236, 72, 153, 0.15) !important;
+}
+
+/* ============================================
+   Premium Animations
+   ============================================ */
+
+/* Smooth page fade-in */
+@keyframes pricing-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pricing-page-content {
+  animation: pricing-fade-in 0.6s ease-out;
+}
+
+/* Button ripple effect */
+@keyframes pricing-ripple {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.pricing-btn-ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.pricing-btn-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+  opacity: 0;
+  transform: scale(0);
+  transition: transform 0.5s, opacity 0.5s;
+}
+
+.pricing-btn-ripple:active::after {
+  animation: pricing-ripple 0.6s ease-out;
+}
+
+/* Floating animation for hero elements */
+@keyframes pricing-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.pricing-float {
+  animation: pricing-float 6s ease-in-out infinite;
+}
+
+/* ============================================
+   Accessibility & Contrast
+   ============================================ */
+
+/* Ensure all text is readable in both themes */
+.pricing-page-content {
+  color-scheme: light dark;
+}
+
+/* Focus visible states */
+.pricing-page-content button:focus-visible,
+.pricing-page-content a:focus-visible {
+  outline: 2px solid #8B5CF6;
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .pricing-star,
+  .pricing-shooting-star,
+  .pricing-nebula,
+  .pricing-hero-glow,
+  .pricing-float,
+  .pricing-gradient-text {
+    animation: none !important;
+  }
+  
+  .pricing-card-wrap:hover > div:first-child {
+    transform: none !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .pricing-card-inner {
+    border-width: 2px !important;
+  }
+  
+  .pricing-feature-card,
+  .pricing-faq-card,
+  .pricing-compare-table {
+    border-width: 2px !important;
+  }
+}
+
+/* ============================================
+   Pricing Page — Dark Space Theme
+   Scoped exclusively to the Pricing page via
+   semantic hook classes. Light theme untouched.
+   ============================================ */
+
+/* Deep space background */
+[data-theme="dark"] .pricing-bg-space {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(124,58,237,0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(236,72,153,0.06) 0%, transparent 45%),
+    linear-gradient(135deg, #050510 0%, #09091A 50%, #120B24 100%) !important;
+}
+
+/* Tiny stars */
+[data-theme="dark"] .pricing-stars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .pricing-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #ffffff;
+  border-radius: 50%;
+  opacity: 0;
+  animation: pricing-twinkle var(--twinkle-duration, 3s) ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0s);
+}
+
+@keyframes pricing-twinkle {
+  0%, 100% { opacity: 0.15; transform: translateY(0); }
+  50% { opacity: 0.9; transform: translateY(-6px); }
+}
+
+/* Slow drift */
+[data-theme="dark"] .pricing-star.drift {
+  animation: pricing-drift var(--drift-duration, 20s) linear infinite;
+  animation-delay: var(--drift-delay, 0s);
+}
+
+@keyframes pricing-drift {
+  0% { transform: translateX(0); opacity: 0.25; }
+  50% { opacity: 0.7; }
+  100% { transform: translateX(40px); opacity: 0.25; }
+}
+
+/* Shooting star */
+[data-theme="dark"] .pricing-shooting-star {
+  position: absolute;
+  width: 80px;
+  height: 1px;
+  background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.9), rgba(255,255,255,0));
+  border-radius: 999px;
+  opacity: 0;
+  animation: pricing-shoot var(--shoot-duration, 6s) ease-in-out infinite;
+  animation-delay: var(--shoot-delay, 0s);
+  filter: drop-shadow(0 0 4px rgba(236,72,153,0.6));
+}
+
+@keyframes pricing-shoot {
+  0% { transform: translateX(-120px) translateY(0) rotate(-15deg); opacity: 0; }
+  5% { opacity: 0.9; }
+  15% { transform: translateX(120px) translateY(40px) rotate(-15deg); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* Nebula blobs */
+[data-theme="dark"] .pricing-nebula {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  pointer-events: none;
+  animation: pricing-float 18s ease-in-out infinite alternate;
+}
+
+@keyframes pricing-float {
+  0% { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(-30px) translateX(20px); }
+}
+
+/* Hero glow */
+[data-theme="dark"] .pricing-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(124,58,237,0.18) 0%, transparent 60%),
+    radial-gradient(circle at 30% 70%, rgba(236,72,153,0.12) 0%, transparent 55%);
+  animation: pricing-pulse-glow 8s ease-in-out infinite;
+}
+
+@keyframes pricing-pulse-glow {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* Card aurora */
+[data-theme="dark"] .pricing-card-aurora {
+  position: absolute;
+  inset: -1px;
+  border-radius: 1.5rem;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(236,72,153,0.12), rgba(124,58,237,0.12), rgba(59,130,246,0.08));
+  filter: blur(12px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+[data-theme="dark"] .pricing-card-wrap:hover .pricing-card-aurora {
+  opacity: 1;
+}
+
+/* ============================================
+   Pricing Page — Billing Toggle (Contrast Fix)
+   Selected button: white text on gradient pill.
+   Unselected: theme-aware text. Fully accessible.
+   ============================================ */
+
+/* Toggle button base — theme-aware text */
+.pricing-toggle-btn {
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.pricing-toggle-btn:hover {
+  transform: scale(1.04);
+  color: var(--accent);
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.15);
+}
+
+/* Selected button — white text on gradient pill (never dark-on-dark) */
+.pricing-toggle-btn-selected {
+  color: #FFFFFF !important;
+  font-weight: 700;
+}
+
+.pricing-toggle-btn-selected:hover {
+  color: #FFFFFF !important;
+  transform: scale(1.04);
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.35);
+}
+
+/* Animated selection pill */
+.pricing-toggle-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #EC4899, #8B5CF6);
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.4), 0 2px 8px rgba(236, 72, 153, 0.3);
+}
+
+/* Save badge inside toggle */
+.pricing-toggle-save {
+  margin-left: 6px;
+  border-radius: 9999px;
+  background: rgba(34, 197, 94, 0.15);
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #22C55E;
+}
+
+/* Selected state — save badge stays readable on gradient */
+.pricing-toggle-btn-selected .pricing-toggle-save {
+  background: rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
+}
+
+/* ============================================
+   Pricing Page — Plan Glow Identities
+   Free: subtle neutral · Student Pro: pink+purple
+   Creator Pro: blue+purple · Ultimate: animated shimmer
+   ============================================ */
+
+/* Free — soft neutral border */
+.pricing-glow-free {
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.25), rgba(139, 92, 246, 0.12));
+}
+
+/* Student Pro — purple + pink glow */
+.pricing-glow-student {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.55), rgba(139, 92, 246, 0.45));
+  box-shadow: 0 0 30px rgba(236, 72, 153, 0.18), 0 0 50px rgba(139, 92, 246, 0.12);
+}
+
+[data-theme="dark"] .pricing-glow-student {
+  box-shadow: 0 0 40px rgba(236, 72, 153, 0.25), 0 0 60px rgba(139, 92, 246, 0.18);
+}
+
+/* Creator Pro — blue + purple glow */
+.pricing-glow-creator {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.55), rgba(139, 92, 246, 0.45));
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.18), 0 0 50px rgba(139, 92, 246, 0.12);
+}
+
+[data-theme="dark"] .pricing-glow-creator {
+  box-shadow: 0 0 40px rgba(99, 102, 241, 0.25), 0 0 60px rgba(139, 92, 246, 0.18);
+}
+
+/* Ultimate — animated pink-purple gradient border with shimmer */
+.pricing-glow-ultimate {
+  background: linear-gradient(135deg, #EC4899, #8B5CF6, #6366F1, #C084FC, #EC4899);
+  background-size: 300% 300%;
+  animation: pricing-ultimate-shimmer 6s ease infinite;
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.2), 0 0 50px rgba(236, 72, 153, 0.12);
+}
+
+[data-theme="dark"] .pricing-glow-ultimate {
+  box-shadow: 0 0 45px rgba(139, 92, 246, 0.28), 0 0 70px rgba(236, 72, 153, 0.2);
+}
+
+@keyframes pricing-ultimate-shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ============================================
+   Pricing Page — Card Aurora Variants
+   ============================================ */
+
+.pricing-card-aurora {
+  position: absolute;
+  inset: -1px;
+  border-radius: 1.5rem;
+  pointer-events: none;
+  filter: blur(14px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: -1;
+}
+
+.pricing-card-wrap:hover .pricing-card-aurora {
+  opacity: 1;
+}
+
+.p-a-free {
+  background: linear-gradient(120deg, rgba(148, 163, 184, 0.12), rgba(139, 92, 246, 0.1));
+}
+
+.p-a-student {
+  background: linear-gradient(120deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2), rgba(192, 132, 252, 0.12));
+}
+
+.p-a-creator {
+  background: linear-gradient(120deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2), rgba(192, 132, 252, 0.12));
+}
+
+.p-a-ultimate {
+  background: linear-gradient(120deg, rgba(236, 72, 153, 0.22), rgba(139, 92, 246, 0.22), rgba(99, 102, 241, 0.18));
+}
+
+/* ============================================
+   Pricing Page — Light Theme Gradient Blobs
+   Large blurred blobs with very low opacity.
+   ============================================ */
+
+.pricing-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(90px);
+  opacity: 0.5;
+}
+
+[data-theme="light"] .pricing-blob-1 {
+  top: -80px;
+  left: -60px;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.14) 0%, transparent 70%);
+  animation: pricing-blob-drift 18s ease-in-out infinite alternate;
+}
+
+[data-theme="light"] .pricing-blob-2 {
+  bottom: -100px;
+  right: -80px;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.14) 0%, transparent 70%);
+  animation: pricing-blob-drift 22s ease-in-out infinite alternate-reverse;
+}
+
+[data-theme="light"] .pricing-blob-3 {
+  top: 40%;
+  left: 30%;
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(192, 132, 252, 0.1) 0%, transparent 70%);
+  animation: pricing-blob-drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes pricing-blob-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, -30px) scale(1.08); }
+}
+
+/* ============================================
+   Pricing Page — Enhanced Dark Space Stars
+   Uses --star-opacity for per-star brightness.
+   ============================================ */
+
+[data-theme="dark"] .pricing-star {
+  opacity: 0;
+  animation: pricing-twinkle var(--twinkle-duration, 3s) ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0s);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
+}
+
+@keyframes pricing-twinkle {
+  0%, 100% { opacity: calc(var(--star-opacity, 0.5) * 0.25); transform: translateY(0) scale(1); }
+  50% { opacity: var(--star-opacity, 0.5); transform: translateY(-6px) scale(1.15); }
+}
+
+[data-theme="dark"] .pricing-star.drift {
+  animation:
+    pricing-twinkle var(--twinkle-duration, 3s) ease-in-out infinite,
+    pricing-drift var(--drift-duration, 20s) linear infinite;
+  animation-delay: var(--twinkle-delay, 0s), var(--drift-delay, 0s);
+}
+
+@keyframes pricing-drift {
+  0% { transform: translateX(0); opacity: calc(var(--star-opacity, 0.5) * 0.3); }
+  50% { opacity: var(--star-opacity, 0.5); }
+  100% { transform: translateX(40px); opacity: calc(var(--star-opacity, 0.5) * 0.3); }
+}
+
+/* ============================================
+   Pricing Page — Modular Subscription Builder
+   Feature cards, radio options, summary panel,
+   recommendations, bundle, mobile bar.
+   ============================================ */
+
+/* ---- Audience tab (Everything / Students / Creators) ----
+   Selected tab sits on a dark purple→pink gradient pill.
+   Force white text in BOTH themes — the global light-theme
+   override [data-theme="light"] .text-white would otherwise
+   turn the selected label dark and make it unreadable. */
+.audience-tab-selected {
+  color: #FFFFFF !important;
+  font-weight: 700;
+}
+
+.audience-tab-selected:hover {
+  color: #FFFFFF !important;
+}
+
+/* ---- Category icon ---- */
+.category-icon {
+  display: flex;
+  height: 36px;
+  width: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.12));
+  color: var(--accent);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+/* ---- Feature card ---- */
+.feature-card {
+  position: relative;
+  border-radius: 1.25rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 1.25rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.feature-card:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.08);
+}
+
+/* Selected state — purple → pink animated border + glow */
+.feature-card-selected {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(135deg, #EC4899, #8B5CF6, #C084FC, #EC4899) border-box;
+  background-size: 100% 100%, 300% 300%;
+  animation: pricing-ultimate-shimmer 6s ease infinite;
+  box-shadow: 0 0 24px rgba(236, 72, 153, 0.15), 0 0 40px rgba(139, 92, 246, 0.1);
+}
+
+/* ---- Feature icon ---- */
+.feature-icon {
+  display: flex;
+  height: 36px;
+  width: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--accent);
+  transition: all 0.3s ease;
+}
+
+.feature-icon-active {
+  background: linear-gradient(135deg, #EC4899, #8B5CF6);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(236, 72, 153, 0.35);
+}
+
+/* ---- Feature text ---- */
+.feature-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.feature-desc {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.feature-price {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.feature-price-period {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+/* ---- Includes toggle ---- */
+.includes-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  transition: color 0.2s ease;
+}
+
+.includes-toggle:hover {
+  color: #EC4899;
+}
+
+.includes-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.includes-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ---- Checkbox button ---- */
+.feature-check-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-hover);
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.feature-check-btn:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.1);
+}
+
+.feature-check-btn.on {
+  border-color: transparent;
+  background: linear-gradient(135deg, #EC4899, #8B5CF6);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.3);
+}
+
+.feature-checkbox {
+  display: flex;
+  height: 18px;
+  width: 18px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 2px solid var(--border-hover);
+  background: var(--card);
+  transition: all 0.25s ease;
+}
+
+.feature-check-btn.on .feature-checkbox {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.feature-check-price {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ---- Radio options ---- */
+.radio-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-hover);
+  padding: 8px 12px;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.radio-option:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.radio-option.selected {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--card-hover), var(--card-hover)) padding-box,
+    linear-gradient(135deg, #EC4899, #8B5CF6) border-box;
+  box-shadow: 0 0 16px rgba(236, 72, 153, 0.15);
+}
+
+.radio-dot {
+  display: flex;
+  height: 16px;
+  width: 16px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--border-hover);
+  transition: all 0.25s ease;
+}
+
+.radio-option.selected .radio-dot {
+  border-color: #EC4899;
+}
+
+.radio-dot-inner {
+  height: 8px;
+  width: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #EC4899, #8B5CF6);
+}
+
+/* ---- Quantity buttons ---- */
+.qty-btn {
+  display: flex;
+  height: 28px;
+  width: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-hover);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.qty-btn:hover:not(:disabled) {
+  border-color: rgba(139, 92, 246, 0.4);
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.qty-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---- Summary panel ---- */
+.summary-panel {
+  border-radius: 1.5rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 40px rgba(139, 92, 246, 0.06);
+  overflow: hidden;
+}
+
+[data-theme="light"] .summary-panel {
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.08), 0 0 30px rgba(236, 72, 153, 0.05);
+}
+
+.summary-billing-active {
+  color: #fff !important;
+  font-weight: 700;
+}
+
+/* ---- Recommendation row ---- */
+.recommendation-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 12px 14px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.recommendation-row:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.08);
+}
+
+/* ---- Ultimate bundle card ---- */
+.bundle-card {
+  position: relative;
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  transition: all 0.3s ease;
+}
+
+.bundle-card-highlight {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(135deg, #EC4899, #8B5CF6, #6366F1, #C084FC, #EC4899) border-box;
+  background-size: 100% 100%, 300% 300%;
+  animation: pricing-ultimate-shimmer 6s ease infinite;
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.15), 0 0 50px rgba(236, 72, 153, 0.1);
+}
+
+/* ============================================
+   AI Credits Dashboard + Compact Widget
+   ============================================ */
+
+.ai-credits-dashboard {
+  color: var(--text-primary);
+}
+
+.ai-credits-dashboard .rounded-2xl {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ai-credits-dashboard .rounded-2xl:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.08);
+}
+
+/* Compact credit bar */
+.ai-credit-bar-compact {
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--card-hover);
+  overflow: hidden;
+}
+
+.ai-credit-bar-compact > div {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #8B5CF6, #EC4899);
+  transition: width 0.6s ease;
+}
+
+/* ---- Mobile summary bar ---- */
+.mobile-summary-bar {
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .mobile-summary-bar {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 -4px 20px rgba(139, 92, 246, 0.08);
+}
 
 /* ============================================
    Problems List Page — Light Theme Polish
@@ -1461,5 +2759,151 @@ svg {
 [data-theme="light"] .join-quiz-close:hover {
   color: #0F172A !important;
   background: rgba(15, 23, 42, 0.04) !important;
+}
+
+/* ============================================
+   Scroll Story — Cinematic Pricing Experience
+   ============================================ */
+
+/* Ensure story sections stack properly */
+.story-section {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.story-section > * {
+  pointer-events: auto;
+}
+
+/* Scroll progress bar */
+.story-progress-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 100;
+  transform-origin: left;
+  background: linear-gradient(90deg, #EC4899, #8B5CF6, #6366F1);
+}
+
+/* Smooth scroll container */
+.story-scroll-container {
+  height: 600vh;
+  width: 100%;
+  position: relative;
+}
+
+/* Sticky viewport */
+.story-viewport {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Reduced motion — disable all cinematic animations */
+@media (prefers-reduced-motion: reduce) {
+  .story-scroll-container {
+    display: none;
+  }
+  
+  .story-viewport {
+    position: relative;
+    overflow: auto;
+  }
+}
+
+/* Prevent FOUC on story sections */
+.story-section-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Glass effect utility for story cards */
+.story-glass {
+  background: rgba(10, 10, 30, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.story-glass-strong {
+  background: rgba(10, 10, 30, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Text glow */
+.story-text-glow {
+  text-shadow: 0 0 40px rgba(139, 92, 246, 0.3), 0 0 80px rgba(236, 72, 153, 0.15);
+}
+
+/* Orb glow animation */
+@keyframes story-orb-pulse {
+  0%, 100% {
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.4), 0 0 80px rgba(236, 72, 153, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 60px rgba(139, 92, 246, 0.6), 0 0 120px rgba(236, 72, 153, 0.35);
+  }
+}
+
+.story-orb {
+  animation: story-orb-pulse 4s ease-in-out infinite;
+}
+
+/* Smooth entrance keyframes */
+@keyframes story-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.story-fade-up {
+  animation: story-fade-up 0.8s ease-out;
+}
+
+/* Parallax layer depths */
+.story-parallax-deep {
+  transform: translateZ(-2px) scale(1.5);
+}
+
+.story-parallax-mid {
+  transform: translateZ(-1px) scale(1.2);
+}
+
+.story-parallax-close {
+  transform: translateZ(0) scale(1);
+}
+
+/* Holographic shimmer effect */
+@keyframes story-holographic {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.story-holographic {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(236, 72, 153, 0.1), rgba(99, 102, 241, 0.15));
+  background-size: 200% 200%;
+  animation: story-holographic 6s ease infinite;
 }
 

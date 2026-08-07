@@ -54,24 +54,13 @@ export interface CreatorQuestion {
   updatedAt: string;
 }
 
-export interface QuestionTypeConfig {
-  single_choice: number;
-  multiple_choice: number;
-  true_false: number;
-  fill_blanks: number;
-  integer: number;
-  text: number;
-  paragraph: number;
-  code_output: number;
-}
-
 export interface QuizDetails {
   name: string;
   description: string;
   subject: string;
+  subjectId: number | string;
   topic: string;
   difficulty: "Easy" | "Medium" | "Hard" | "Expert";
-  coverImage?: string;
   visibility: QuizVisibility;
   timeLimit: number; // minutes
   startDate: string;
@@ -88,27 +77,16 @@ export interface QuizDetails {
   maxParticipants: number;
   tags: string[];
   totalQuestions: number;
-  questionTypeConfig: QuestionTypeConfig;
   totalMarks: number;
   marksPerQuestion: number;
   passingMarks: number;
 }
 
-export const DEFAULT_QUESTION_TYPE_CONFIG: QuestionTypeConfig = {
-  single_choice: 0,
-  multiple_choice: 0,
-  true_false: 0,
-  fill_blanks: 0,
-  integer: 0,
-  text: 0,
-  paragraph: 0,
-  code_output: 0,
-};
-
 export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   name: "",
   description: "",
   subject: "",
+  subjectId: "",
   topic: "",
   difficulty: "Medium",
   visibility: "public",
@@ -127,7 +105,6 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   maxParticipants: 0,
   tags: [],
   totalQuestions: 0,
-  questionTypeConfig: { ...DEFAULT_QUESTION_TYPE_CONFIG },
   totalMarks: 0,
   marksPerQuestion: 10,
   passingMarks: 0,
