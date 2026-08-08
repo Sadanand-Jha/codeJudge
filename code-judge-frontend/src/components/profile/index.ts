@@ -5,3 +5,4 @@ export { default as ProblemTags } from "./ProblemTags";
 export { default as ProfileWorkspace } from "./ProfileWorkspace";
 export { default as ProfileSidebar, ProfileMobileNav, PROFILE_NAV_ITEMS, isProfilePathActive } from "./ProfileSidebar";
 export { default as ProfileSectionHeader } from "./ProfileSectionHeader";
+export { default as ProfileOverview } from "./ProfileOverview";
