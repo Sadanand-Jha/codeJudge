@@ -2907,3 +2907,16 @@ svg {
   animation: story-holographic 6s ease infinite;
 }
 
+
+/* ═══ Your Activity — animated progress bar shimmer ═══ */
+@keyframes bar-shimmer-sweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+}
+
+.bar-shimmer {
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: bar-shimmer-sweep 2.4s ease-in-out infinite;
+}
+
