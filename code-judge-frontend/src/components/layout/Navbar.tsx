@@ -73,7 +73,8 @@ export default function Navbar() {
         </Link>
 
         {/* Pro/Ultimate Promo Widget — always visible, auto-rotates between plans */}
-        <NavbarPromoWidget className="mr-6" />
+        {/* <NavbarPromoWidget className="mr-6" /> */}
+        
 
         {/* User Utility Menu */}
         <div className="flex items-center gap-3 text-xs text-text-secondary">

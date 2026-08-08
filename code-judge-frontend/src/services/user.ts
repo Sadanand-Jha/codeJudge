@@ -115,3 +115,19 @@ export async function updateProfileLocation(payload: {
   await apiClient.patch("/v1/user/profile/location", body);
 }
 
+/* =============================================
+   Minimal public user lookup (for collaborators)
+   GET /api/v1/user/users/:userId
+   Returns only { id, username } — no private info.
+   ============================================= */
+
+export interface UserLookupResult {
+  id: string;
+  username: string;
+}
+
+export async function lookupUserById(userId: string): Promise<UserLookupResult> {
+  const response = await apiClient.get<UserLookupResult>(`/v1/user/users/${encodeURIComponent(userId)}`);
+  return response.data;
+}
+

@@ -32,7 +32,14 @@ import {
   generateQuizResults,
   retryQuizResultsEmail,
   getAllSubjects,
-  getQuizVisibilityOptions
+  getQuizVisibilityOptions,
+  sendCollaboratorRequest,
+  getQuizCollaborators,
+  getIncomingCollaboratorRequests,
+  respondToCollaboratorRequest,
+  removeQuizCollaborator,
+  getQuizResponses,
+  getStudentResponseDetail
 } from "../../../controllers/quiz.controller.ts";
 import { QuizService } from "../../../services/database/quiz.service.ts";
 
@@ -121,6 +128,12 @@ router.get("/code/:code", getQuizByCode);
 // GET /api/v1/user/quiz/visibility-options — get visibility options from quiz_visibility table
 router.get("/visibility-options", getQuizVisibilityOptions);
 
+// GET /api/v1/user/quiz/collaborator-requests/incoming — get the user's incoming collaborator requests
+router.get("/collaborator-requests/incoming", getIncomingCollaboratorRequests);
+
+// PATCH /api/v1/user/quiz/collaborator-requests/:quizId — accept/reject an incoming request (recipient only)
+router.patch("/collaborator-requests/:quizId", respondToCollaboratorRequest);
+
 // GET /api/v1/user/quiz/:quizId — get a single quiz
 router.get("/:quizId", getQuizById);
 
@@ -198,6 +211,25 @@ router.get("/:quizId/leaderboard", getQuizLeaderboard);
 
 // GET /api/v1/user/quiz/:quizId/analytics — get quiz analytics
 router.get("/:quizId/analytics", getQuizAnalytics);
+
+// ==================== COLLABORATORS ====================
+
+// POST /api/v1/user/quiz/:quizId/collaborators/request — send a collaborator request (owner only)
+router.post("/:quizId/collaborators/request", sendCollaboratorRequest);
+
+// GET /api/v1/user/quiz/:quizId/collaborators — get requests + accepted collaborators (owner/collaborator)
+router.get("/:quizId/collaborators", getQuizCollaborators);
+
+// DELETE /api/v1/user/quiz/:quizId/collaborators/:targetUserId — owner removes collaborator / cancels request
+router.delete("/:quizId/collaborators/:targetUserId", removeQuizCollaborator);
+
+// ==================== RESPONSES (admin view) ====================
+
+// GET /api/v1/user/quiz/:quizId/responses — complete response dashboard (owner/collaborator)
+router.get("/:quizId/responses", getQuizResponses);
+
+// GET /api/v1/user/quiz/:quizId/responses/:userId — single student detail (owner/collaborator)
+router.get("/:quizId/responses/:userId", getStudentResponseDetail);
 
 // ==================== JOIN QUIZ ====================
 

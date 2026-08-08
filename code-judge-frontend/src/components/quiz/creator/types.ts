@@ -54,6 +54,12 @@ export interface CreatorQuestion {
   updatedAt: string;
 }
 
+export interface QuizCollaborator {
+  userId: string;
+  username?: string;
+  addedAt: string;
+}
+
 export interface QuizDetails {
   name: string;
   description: string;
@@ -90,6 +96,7 @@ export interface QuizDetails {
   leaderboardShowScore: boolean;
   leaderboardShowTime: boolean;
   resultVisibility: "immediate" | "after_end" | "manual";
+  collaborators: QuizCollaborator[];
 }
 
 export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
@@ -128,6 +135,7 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   leaderboardShowScore: true,
   leaderboardShowTime: true,
   resultVisibility: "immediate",
+  collaborators: [],
 };
 
 export const QUESTION_TYPE_LABELS: Record<CreatorQuestionType, string> = {

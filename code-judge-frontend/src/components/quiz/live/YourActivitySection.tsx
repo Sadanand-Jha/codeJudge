@@ -663,7 +663,7 @@ function MyQuizRow({ quiz, index }: { quiz: MyQuiz; index: number }) {
           {/* ── RIGHT: actions ── */}
           <div className="flex shrink-0 items-center gap-2 lg:w-56 lg:flex-col lg:items-stretch lg:border-l lg:border-border lg:pl-6">
             <ActionButton icon={BarChart2} label={expanded ? "Less" : "Details"} onClick={() => setExpanded((e) => !e)} />
-            <ActionButton icon={FileText} label="Edit" href={`/quiz/${quiz.code}/edit`} variant="accent" />
+            <ActionButton icon={FileText} label="Edit" href={`/quiz/${quiz.code}/settings/info`} variant="accent" />
             <ActionButton icon={Copy} label="Duplicate" />
             <ActionButton icon={Share2} label="Share" />
             {isLive && <ActionButton icon={Send} label="Send Results" />}

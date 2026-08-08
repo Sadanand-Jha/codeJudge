@@ -13,6 +13,7 @@ import {
   RecentSubmissions,
   Achievements,
   StreakWidget,
+  CollaboratorRequestsInbox,
 } from "@/components/dashboard";
 
 export default function ProfilePage() {
@@ -37,20 +38,28 @@ export default function ProfilePage() {
     return (
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          <div className="h-32 rounded-3xl bg-[#111827] animate-pulse" />
+          <div className="h-32 rounded-3xl bg-card animate-pulse" />
           <div className="grid grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-32 rounded-2xl bg-[#111827] animate-pulse" />
+              <div key={i} className="h-32 rounded-2xl bg-card animate-pulse" />
             ))}
           </div>
           <div className="grid grid-cols-3 gap-6">
-            <div className="col-span-2 h-80 rounded-2xl bg-[#111827] animate-pulse" />
-            <div className="h-80 rounded-2xl bg-[#111827] animate-pulse" />
+            <div className="col-span-2 h-80 rounded-2xl bg-card animate-pulse" />
+            <div className="h-80 rounded-2xl bg-card animate-pulse" />
           </div>
         </div>
       </div>
     );
   }
+
+  const fullName =
+    profile?.displayName || `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() || undefined;
+  const location = profile?.college
+    ? typeof profile.college === "string"
+      ? profile.college
+      : profile.college?.name
+    : undefined;
 
   return (
     <div className="px-6 py-6">
@@ -58,11 +67,13 @@ export default function ProfilePage() {
         <ProfileHero
           username={profile?.username || "User"}
           email={profile?.email || "user@example.com"}
+          fullName={fullName}
           avatarUrl={profile?.avatarUrl}
           bio={profile?.bio}
           rating={profile?.rating}
           maxRating={profile?.maxRating}
-          country={profile?.country}
+          country={profile?.country ? (typeof profile.country === "string" ? profile.country : profile.country?.name) : undefined}
+          location={location}
           joinDate={profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : undefined}
         />
         <StatsCards solved={127} currentRating={profile?.rating || 0} maxRating={profile?.maxRating || 0} contributions={23} />
@@ -81,6 +92,8 @@ export default function ProfilePage() {
           <RecentContests />
           <RecentSubmissions />
         </div>
+
+        <CollaboratorRequestsInbox />
 
         <Achievements />
       </div>

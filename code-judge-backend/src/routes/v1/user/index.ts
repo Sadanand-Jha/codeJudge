@@ -3,7 +3,8 @@ import editorRoutes from "./editor.routes.ts";
 import contestRoutes from "./contest.routes.ts";
 import quizRoutes from "./quiz.routes.ts";
 import { validate, registerSchema } from "../../../middleware/validate.ts";
-import { userRegister, forgetPassword, profile } from "../../../controllers/user.controller.ts";
+import { userRegister, forgetPassword, profile, lookupUser } from "../../../controllers/user.controller.ts";
+import { getTimezones } from "../../../controllers/timezone.controller.ts";
 import { authenticate } from "../../../middleware/auth.ts";
 import { updateAvatar } from "../../../controllers/avatar.controller.ts";
 import { getAllSubjects } from "../../../controllers/quiz.controller.ts";
@@ -47,5 +48,11 @@ router.patch("/avatar", authenticate, updateAvatar);
 
 // ===================== SUBJECTS ==========
 router.get("/quiz-subjects", getAllSubjects)
+
+// ===================== TIMEZONES ==========
+router.get("/timezones", authenticate, getTimezones);
+
+// ===================== USER LOOKUP (for collaborators) ==========
+router.get("/users/:userId", authenticate, lookupUser);
 
 export default router;

@@ -20,9 +20,9 @@ export default function TopicMastery() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6"
+      className="rounded-2xl border border-border bg-card p-6"
     >
-      <h3 className="text-sm font-semibold text-white mb-5">Topic Proficiency</h3>
+      <h3 className="text-sm font-semibold text-text-primary mb-5">Topic Proficiency</h3>
       <div className="space-y-4">
         {topics.map((topic, i) => {
           const Icon = topic.icon;
@@ -37,10 +37,10 @@ export default function TopicMastery() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium text-white">{topic.name}</span>
-                  <span className="text-[10px] text-[#9CA3AF]">{topic.solved}/{topic.total}</span>
+                  <span className="text-xs font-medium text-text-primary">{topic.name}</span>
+                  <span className="text-[10px] text-text-secondary">{topic.solved}/{topic.total}</span>
                 </div>
-                <div className="h-1.5 w-full bg-white/[0.04] rounded-full overflow-hidden">
+                <div className="h-1.5 w-full bg-card-hover rounded-full overflow-hidden">
                   <motion.div
                     className="h-full rounded-full"
                     style={{ backgroundColor: topic.color }}

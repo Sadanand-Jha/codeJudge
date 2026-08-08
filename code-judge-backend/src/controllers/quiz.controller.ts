@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { pool } from "../app.ts";
 import { QuizService } from "../services/database/quiz.service.ts";
 import { ResultGenerationService } from "../services/resultGeneration.service.ts";
+import { sendCollaboratorInviteEmail } from "../services/email.ts";
 
 const quizService = new QuizService();
 const resultGenerationService = new ResultGenerationService();
@@ -426,7 +427,9 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
       return;
     }
 
-    if (quiz.createdby !== Number(userId)) {
+    const isOwner = quiz.createdby === Number(userId);
+    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), Number(quizId));
+    if (!isOwner && !isCollaborator) {
       res.status(403).json({
         success: false,
         message: "You are not authorized to update this quiz",
@@ -1559,3 +1562,334 @@ export const getAllSubjects = async (req: Request, res: Response) => {
     });
   }
 }
+
+// ==================== COLLABORATOR REQUESTS ====================
+
+/**
+ * POST /api/v1/user/quiz/:quizId/collaborators/request
+ * Send a collaborator request (owner only). Does NOT add the user directly.
+ * Body: { userId: string | number }
+ */
+export const sendCollaboratorRequest = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+    const { userId: targetIdentifier } = req.body;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    if (!targetIdentifier) {
+      res.status(400).json({ success: false, message: "userId is required" });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+
+    if (quiz.createdby !== Number(userId)) {
+      res.status(403).json({ success: false, message: "Only the quiz owner can send collaborator requests" });
+      return;
+    }
+
+    const targetUserId = await quizService.resolveUserId(String(targetIdentifier).trim());
+    if (!targetUserId) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
+
+    if (targetUserId === Number(userId)) {
+      res.status(400).json({ success: false, message: "You cannot invite yourself" });
+      return;
+    }
+
+    if (await quizService.isAcceptedCollaborator(targetUserId, Number(quizId))) {
+      res.status(409).json({ success: false, message: "This user is already a collaborator" });
+      return;
+    }
+
+    const existing = await quizService.getCollaboratorRequest(Number(quizId), targetUserId);
+    if (existing && existing.status === "pending") {
+      res.status(409).json({ success: false, message: "A request is already pending for this user" });
+      return;
+    }
+
+    const request = await quizService.sendCollaboratorRequest({
+      quizId: Number(quizId),
+      userId: targetUserId,
+      invitedBy: Number(userId),
+    });
+
+    // Fire-and-forget email notification to the invitee.
+    const targetUser = await quizService.getUserContactById(targetUserId);
+    const inviter = await quizService.getUserContactById(Number(userId));
+    if (targetUser?.email) {
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+      const inviteUrl = `${frontendUrl}/profile`;
+      sendCollaboratorInviteEmail({
+        to: targetUser.email,
+        quizName: quiz.name,
+        inviterUsername: inviter?.username || "A user",
+        inviteUrl,
+      }).catch((err) => console.error("Failed to send collaborator invite email:", err));
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Collaborator request sent",
+      data: request,
+    });
+  } catch (error) {
+    console.error("Error sending collaborator request:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while sending collaborator request",
+    });
+  }
+};
+
+/**
+ * GET /api/v1/user/quiz/:quizId/collaborators
+ * Get all collaborator requests (with status) + accepted collaborators — owner/collaborator only.
+ */
+export const getQuizCollaborators = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+
+    const isOwner = quiz.createdby === Number(userId);
+    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), Number(quizId));
+    if (!isOwner && !isCollaborator) {
+      res.status(403).json({ success: false, message: "You are not authorized to view collaborators" });
+      return;
+    }
+
+    const requests = await quizService.getCollaboratorRequests(Number(quizId));
+    const collaborators = requests.filter((r: any) => r.status === "accepted");
+    const pending = requests.filter((r: any) => r.status === "pending");
+    const rejected = requests.filter((r: any) => r.status === "rejected");
+
+    res.status(200).json({
+      success: true,
+      data: { requests, collaborators, pending, rejected },
+    });
+  } catch (error) {
+    console.error("Error fetching quiz collaborators:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching quiz collaborators",
+    });
+  }
+};
+
+/**
+ * GET /api/v1/user/quiz/collaborator-requests/incoming
+ * Get incoming collaborator requests for the authenticated user (recipient).
+ */
+export const getIncomingCollaboratorRequests = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const requests = await quizService.getIncomingCollaboratorRequests(Number(userId));
+    res.status(200).json({ success: true, data: requests });
+  } catch (error) {
+    console.error("Error fetching incoming collaborator requests:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching collaborator requests",
+    });
+  }
+};
+
+/**
+ * PATCH /api/v1/user/quiz/collaborator-requests/:quizId
+ * Accept or reject a collaborator request (recipient only).
+ * Body: { status: "accepted" | "rejected" }
+ */
+export const respondToCollaboratorRequest = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+    const { status } = req.body;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    if (status !== "accepted" && status !== "rejected") {
+      res.status(400).json({ success: false, message: "status must be 'accepted' or 'rejected'" });
+      return;
+    }
+
+    const request = await quizService.getCollaboratorRequest(Number(quizId), Number(userId));
+    if (!request) {
+      res.status(404).json({ success: false, message: "Collaborator request not found" });
+      return;
+    }
+
+    if (request.status === "accepted" && status === "accepted") {
+      res.status(409).json({ success: false, message: "You are already a collaborator on this quiz" });
+      return;
+    }
+
+    const updated = await quizService.updateCollaboratorRequest(Number(quizId), Number(userId), status);
+    res.status(200).json({
+      success: true,
+      message: status === "accepted" ? "Collaborator request accepted" : "Collaborator request rejected",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("Error responding to collaborator request:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while responding to collaborator request",
+    });
+  }
+};
+
+/**
+ * DELETE /api/v1/user/quiz/:quizId/collaborators/:targetUserId
+ * Owner removes an accepted collaborator or cancels a pending/rejected request.
+ */
+export const removeQuizCollaborator = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId, targetUserId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+
+    if (quiz.createdby !== Number(userId)) {
+      res.status(403).json({ success: false, message: "Only the quiz owner can remove collaborators" });
+      return;
+    }
+
+    const removed = await quizService.removeCollaborator(Number(quizId), Number(targetUserId));
+    if (!removed) {
+      res.status(404).json({ success: false, message: "No collaborator request found for this user" });
+      return;
+    }
+
+    res.status(200).json({ success: true, message: "Collaborator removed" });
+  } catch (error) {
+    console.error("Error removing collaborator:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while removing collaborator",
+    });
+  }
+};
+
+// ==================== RESPONSES (ADMIN / COLLABORATOR) ====================
+
+/**
+ * GET /api/v1/user/quiz/:quizId/responses
+ * Complete student response dashboard — owner or accepted collaborator only.
+ */
+export const getQuizResponses = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+
+    const isOwner = quiz.createdby === Number(userId);
+    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), Number(quizId));
+    if (!isOwner && !isCollaborator) {
+      res.status(403).json({ success: false, message: "You are not authorized to view responses" });
+      return;
+    }
+
+    const data = await quizService.getQuizResponses(Number(quizId));
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error("Error fetching quiz responses:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching quiz responses",
+    });
+  }
+};
+
+/**
+ * GET /api/v1/user/quiz/:quizId/responses/:userId
+ * Detailed result for a single student — owner or accepted collaborator only.
+ * Includes question-wise review when an attempt exists.
+ */
+export const getStudentResponseDetail = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId, userId: targetUserId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+
+    const isOwner = quiz.createdby === Number(userId);
+    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), Number(quizId));
+    if (!isOwner && !isCollaborator) {
+      res.status(403).json({ success: false, message: "You are not authorized to view student responses" });
+      return;
+    }
+
+    const attempt = await quizService.getStudentAttemptDetails(Number(quizId), Number(targetUserId));
+    if (!attempt) {
+      res.status(404).json({ success: false, message: "No attempt found for this student" });
+      return;
+    }
+
+    const review = await quizService.getStudentQuestionReview(attempt.attempt_id);
+    res.status(200).json({ success: true, data: { attempt, review } });
+  } catch (error) {
+    console.error("Error fetching student response detail:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching student response detail",
+    });
+  }
+};

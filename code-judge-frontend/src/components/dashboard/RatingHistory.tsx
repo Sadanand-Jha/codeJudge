@@ -37,12 +37,24 @@ const filterRanges: Record<Filter, number> = {
   "1Y": 12,
 };
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayloadItem {
+  value?: number | string | null;
+}
+
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-xl bg-[#111827] border border-white/[0.06] px-3 py-2 shadow-xl text-xs">
-        <p className="font-semibold text-white">{label}</p>
-        <p className="text-[#9CA3AF] mt-0.5">
+      <div className="rounded-xl bg-card border border-border px-3 py-2 shadow-xl text-xs">
+        <p className="font-semibold text-text-primary">{label}</p>
+        <p className="text-text-secondary mt-0.5">
           Rating: <span className="font-bold text-[#7C3AED]">{payload[0].value}</span>
         </p>
       </div>
@@ -61,22 +73,22 @@ export default function RatingHistory() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6"
+      className="rounded-2xl border border-border bg-card p-6"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-sm font-semibold text-white">Rating History</h3>
+        <h3 className="text-sm font-semibold text-text-primary">Rating History</h3>
         <div className="flex items-center gap-4">
           <span className="text-sm font-bold text-[#7C3AED]">{currentRating}</span>
-          <div className="flex items-center gap-1 bg-[#09090B] rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-card-hover dark:bg-[#09090B] rounded-lg p-0.5">
             {filters.map((f) => (
               <button
                 key={f}
                 onClick={() => setActiveFilter(f)}
                 className={`px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all ${
                   activeFilter === f
-                    ? "bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.3)]"
-                    : "text-[#9CA3AF] hover:text-white"
+                    ? "bg-[#7C3AED] text-text-primary shadow-[0_0_12px_rgba(124,58,237,0.3)]"
+                    : "text-text-secondary hover:text-text-primary"
                 }`}
               >
                 {f}
@@ -96,7 +108,7 @@ export default function RatingHistory() {
                 <stop offset="100%" stopColor="#7C3AED" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
             <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#6B7280" }} tickLine={false} axisLine={false} />
             <YAxis domain={["dataMin - 100", "dataMax + 100"]} tick={{ fontSize: 11, fill: "#6B7280" }} tickLine={false} axisLine={false} />
             <Tooltip content={<CustomTooltip />} />

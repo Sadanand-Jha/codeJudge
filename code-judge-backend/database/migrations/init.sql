@@ -615,6 +615,32 @@ CREATE INDEX IF NOT EXISTS idx_qsr_problem_id ON quiz_student_response(problem_i
 alter table users
 add column display_name varchar
 
+-- ==========================================
+-- Collaborator Requests (send / accept / reject)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS quiz_collaborator_request (
+    id SERIAL PRIMARY KEY,
+    quiz_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    invited_by INTEGER NOT NULL,
+    status VARCHAR NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (quiz_id, user_id)
+);
+
+ALTER TABLE quiz_collaborator_request DROP CONSTRAINT IF EXISTS fk_qcr_quiz;
+ALTER TABLE quiz_collaborator_request ADD CONSTRAINT fk_qcr_quiz FOREIGN KEY (quiz_id) REFERENCES quiz(id);
+
+ALTER TABLE quiz_collaborator_request DROP CONSTRAINT IF EXISTS fk_qcr_user;
+ALTER TABLE quiz_collaborator_request ADD CONSTRAINT fk_qcr_user FOREIGN KEY (user_id) REFERENCES users(id);
+
+ALTER TABLE quiz_collaborator_request DROP CONSTRAINT IF EXISTS fk_qcr_invited_by;
+ALTER TABLE quiz_collaborator_request ADD CONSTRAINT fk_qcr_invited_by FOREIGN KEY (invited_by) REFERENCES users(id);
+
+CREATE INDEX IF NOT EXISTS idx_qcr_user_status ON quiz_collaborator_request(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_qcr_quiz ON quiz_collaborator_request(quiz_id);
+
 -- Create the timezone table
 CREATE TABLE timezones (
     id INT PRIMARY KEY,

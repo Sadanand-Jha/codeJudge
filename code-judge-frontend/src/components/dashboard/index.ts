@@ -8,3 +8,4 @@ export { default as RecentContests } from "./RecentContests";
 export { default as RecentSubmissions } from "./RecentSubmissions";
 export { default as Achievements } from "./Achievements";
 export { default as StreakWidget } from "./StreakWidget";
+export { default as CollaboratorRequestsInbox } from "./CollaboratorRequestsInbox";
