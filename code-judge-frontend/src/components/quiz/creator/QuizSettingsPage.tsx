@@ -1,146 +1,94 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  BarChart3,
   BookOpen,
   Calendar,
   Clock,
   Globe,
   GraduationCap,
-  Hash,
   Lock,
+  Save,
   School,
-  Tag,
-  Timer,
   Users,
   Check,
   X,
-  Sparkles,
-  ChevronDown,
-  FileText,
-  ListChecks,
-  ToggleRight,
-  Type,
-  AlignLeft,
-  Code2,
-  Award,
-  Target,
-  BarChart3,
-  Settings2,
-  RotateCcw,
-  Percent,
-  Zap,
-  Info,
   CheckCircle2,
   AlertTriangle,
+  Info,
+  Loader2,
 } from "lucide-react";
-import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, DIFFICULTY_OPTIONS, CreatorQuestionType, QuizVisibility } from "./types";
+import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, QuizVisibility } from "./types";
 import { saveQuizDetails, clearQuizState } from "@/utils/quizStorage";
 import { getAllSubjects, getQuizVisibilityOptions, createQuiz } from "@/services/quiz";
 import { generateQuizCode } from "@/utils/quizCode";
 import { SearchableDropdown } from "@/components/ui";
+import { SettingsCard, SettingsInput, Toggle, SettingsRow } from "@/components/ui/settings";
+import { useToast } from "@/hooks/useToast";
+import { cn } from "@/lib/helpers";
+import { useAICreditsStore } from "@/store/aiCreditsStore";
 
 interface QuizSettingsPageProps {
   initialDetails?: QuizDetails;
   onContinue: (details: QuizDetails) => void;
 }
 
-const TIMEZONES = [
-  "Asia/Kolkata",
-  "Asia/Dubai",
-  "Asia/Singapore",
-  "Asia/Tokyo",
-  "Europe/London",
-  "Europe/Berlin",
-  "America/New_York",
-  "America/Los_Angeles",
-  "UTC",
-];
+/* =============================================
+   Navigation Sections
+   ============================================= */
+const SECTIONS = [
+  { id: "info", label: "Quiz Info", icon: BookOpen },
+  { id: "registration", label: "Registration", icon: Users },
+  { id: "responses", label: "Responses", icon: BarChart3 },
+] as const;
 
-const DIFFICULTY_COLORS: Record<string, string> = {
-  Easy: "#22C55E",
-  Medium: "#F59E0B",
-  Hard: "#EF4444",
-  Expert: "#EC4899",
+type SectionId = (typeof SECTIONS)[number]["id"];
+
+/* =============================================
+   Plan student limits
+   ============================================= */
+const PLAN_STUDENT_LIMITS: Record<string, { label: string; limit: number }> = {
+  free: { label: "Free", limit: 100 },
+  "student-pro": { label: "Student Pro", limit: 200 },
+  "creator-pro": { label: "Creator Pro", limit: 200 },
+  ultimate: { label: "Ultimate", limit: 500 },
 };
 
-
-function Toggle({ checked, onChange, label, description }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) {
-  return (
-    <div className="flex items-center justify-between py-3">
-      <div>
-        <p className="text-sm font-medium text-white">{label}</p>
-        {description && <p className="text-xs text-[#9CA3AF] mt-0.5">{description}</p>}
-      </div>
-      <button
-        onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 shrink-0 ${
-          checked ? "bg-[#C7DDEC]" : "bg-white/10"
-        }`}
-      >
-        <span
-          className={`inline-block h-4 w-4 rounded-full bg-white shadow-lg transition-transform duration-200 ${
-            checked ? "translate-x-6" : "translate-x-1"
-          }`}
-        />
-      </button>
-    </div>
-  );
-}
-
-function SectionCard({ icon: Icon, title, subtitle, children }: { icon: React.ComponentType<{ className?: string }>; title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl border border-white/[0.08] bg-[#111827] hover:border-white/[0.12] transition-colors"
-    >
-      <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-white/[0.06] rounded-t-2xl">
-        <div className="w-9 h-9 rounded-xl bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 flex items-center justify-center">
-          <Icon className="w-4 h-4 text-[#C7DDEC]" />
-        </div>
-        <div>
-          <h2 className="text-sm font-bold text-white">{title}</h2>
-          {subtitle && <p className="text-[11px] text-[#9CA3AF] mt-0.5">{subtitle}</p>}
-        </div>
-      </div>
-      <div className="p-6">{children}</div>
-    </motion.div>
-  );
-}
-
-function FieldLabel({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
-  return (
-    <label className="flex items-center gap-1.5 text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wider mb-2">
-      {icon}
-      {children}
-    </label>
-  );
-}
+const RESULT_VISIBILITY_OPTIONS = [
+  { id: "immediate", label: "Immediately after submission", description: "Students see their results the moment they submit" },
+  { id: "after_end", label: "After quiz ends", description: "Results unlock when the quiz closes" },
+  { id: "manual", label: "When creator publishes results", description: "You control when results are released" },
+] as const;
 
 const inputClass =
-  "w-full h-11 rounded-xl border border-white/[0.08] bg-[#0F1522] px-4 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all";
+  "w-full h-11 rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all";
 
 export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSettingsPageProps) {
+  const toast = useToast();
+  const router = useRouter();
+  const planId = useAICreditsStore((s) => s.balance.planId);
+
+  const plan = PLAN_STUDENT_LIMITS[planId] || PLAN_STUDENT_LIMITS.free;
+
   const [details, setDetails] = useState<QuizDetails>(initialDetails || DEFAULT_QUIZ_DETAILS);
   const [tagInput, setTagInput] = useState("");
-  const [showTimezoneDropdown, setShowTimezoneDropdown] = useState(false);
+  const [activeSection, setActiveSection] = useState<SectionId>("info");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
-  const saveTimer = useRef<NodeJS.Timeout | null>(null);
-  const timezoneDropdownRef = useRef<HTMLDivElement>(null);
-  const [visibilityOptions, setVisibilityOptions] = useState<Array<{ id: number; heading: string; description: string }>>([]);
   const [savingToServer, setSavingToServer] = useState(false);
-  const [dateError, setDateError] = useState("");
-  const [continueError, setContinueError] = useState("");
+  const [attempted, setAttempted] = useState(false);
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [visibilityOptions, setVisibilityOptions] = useState<Array<{ id: number; heading: string; description: string }>>([]);
 
   const update = useCallback((patch: Partial<QuizDetails>) => {
     setDetails((d) => ({ ...d, ...patch }));
   }, []);
 
-  // Fetch visibility options from the `quiz_visibility` DB table (task: use table)
+  /* ---- Fetch visibility options from the `quiz_visibility` DB table ---- */
   useEffect(() => {
     let cancelled = false;
     getQuizVisibilityOptions()
@@ -151,15 +99,13 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
           );
         }
       })
-      .catch(() => {
-        // Fall back to hardcoded VISIBILITY_OPTIONS when the API/table is empty
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Autosave to localStorage (debounced)
+  /* ---- Autosave to localStorage (debounced) ---- */
   useEffect(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
@@ -172,18 +118,41 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
     };
   }, [details]);
 
-  // Close timezone dropdown when clicking outside
+  /* ---- Scroll spy for active section ---- */
   useEffect(() => {
-    if (!showTimezoneDropdown) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      if (timezoneDropdownRef.current && !timezoneDropdownRef.current.contains(event.target as Node)) {
-        setShowTimezoneDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showTimezoneDropdown]);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id as SectionId);
+          }
+        });
+      },
+      { rootMargin: "-20% 0px -60% 0px" }
+    );
 
+    SECTIONS.forEach((s) => {
+      const el = document.getElementById(s.id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  /* ---- Visibility options sourced from the `quiz_visibility` table (fallback to static) ---- */
+  const visibilitySource: Array<{ id: string | number; label: string; description: string; isDb: boolean }> =
+    visibilityOptions.length > 0
+      ? visibilityOptions.map((o) => ({ id: o.id, label: o.heading, description: o.description, isDb: true }))
+      : VISIBILITY_OPTIONS.filter((o) => o.id !== "college").map((o) => ({ id: o.id, label: o.label, description: o.description, isDb: false }));
+
+  /* ---- Tags (Topics) ---- */
   const addTag = () => {
     const val = tagInput.trim();
     if (val && !details.tags.includes(val)) {
@@ -192,7 +161,57 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
     setTagInput("");
   };
 
-  // Capitalize the first letter of each word (used before saving)
+  const addTagInput = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag();
+    }
+  };
+
+  /* ---- Validation ---- */
+  const registrationEndInvalid = Boolean(
+    details.registrationEnabled &&
+    details.registrationStart &&
+    details.registrationEnd &&
+    details.registrationEnd < details.registrationStart
+  );
+  const maxStudentsExceeded = details.maxParticipants > 0 && details.maxParticipants > plan.limit;
+
+  const errors = useMemo(() => {
+    const e: Partial<Record<string, string>> = {};
+    if (!details.name.trim()) e.name = "Quiz name is required.";
+    if (!details.subject.trim()) e.subject = "Subject is required.";
+    if (details.registrationEnabled) {
+      if (!details.registrationStart) e.registrationStart = "Registration start time is required.";
+      if (!details.registrationEnd) e.registrationEnd = "Registration end time is required.";
+      if (registrationEndInvalid) e.registrationEnd = "Registration end cannot be before start.";
+      if (!details.startDate) e.startDate = "Quiz start time is required.";
+    }
+    if (details.timeLimit <= 0) e.timeLimit = "Duration must be greater than 0.";
+    if (maxStudentsExceeded) e.maxStudents = `Your ${plan.label} plan supports up to ${plan.limit} students per quiz.`;
+    return e;
+  }, [details, registrationEndInvalid, maxStudentsExceeded, plan]);
+
+  /* ---- Progress for sidebar status ---- */
+  const progress = useMemo(() => {
+    let score = 0;
+    if (details.name.trim()) score += 20;
+    if (details.subject.trim()) score += 20;
+    if (details.visibility) score += 10;
+    if (details.tags.length > 0) score += 5;
+    if (details.timeLimit > 0) score += 10;
+    if (details.registrationEnabled) {
+      if (details.registrationStart) score += 8;
+      if (details.registrationEnd) score += 7;
+    } else {
+      score += 15;
+    }
+    if (details.maxParticipants > 0) score += 5;
+    if (details.resultVisibility) score += 5;
+    return Math.min(100, score);
+  }, [details]);
+
+  /* ---- Save & Continue ---- */
   const capitalizeWords = (str: string) =>
     str
       .trim()
@@ -201,15 +220,29 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
 
-  const handleContinue = async () => {
-    if (!details.name.trim()) return;
+  const handleSaveDraft = () => {
+    saveQuizDetails(details);
+    toast.success({
+      title: "Draft saved",
+      description: "Your quiz settings have been saved as a draft.",
+    });
+  };
 
-    // Prevent endtime < starttime (task)
-    if (details.startDate && details.endDate && details.endDate < details.startDate) {
-      setDateError("End Date cannot be before Start Date.");
+  const handleCancel = () => {
+    router.push("/quiz");
+  };
+
+  const handleContinue = async () => {
+    setAttempted(true);
+    if (Object.keys(errors).length > 0) {
+      const firstSection = details.registrationEnabled ? "registration" : "info";
+      scrollToSection(firstSection);
+      toast.error({
+        title: "Missing information",
+        description: "Please fix the highlighted fields before continuing.",
+      });
       return;
     }
-    setDateError("");
 
     const name = capitalizeWords(details.name);
     const description = capitalizeWords(details.description);
@@ -233,7 +266,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
         maxParticipants: details.maxParticipants,
         randomizeQuestions: details.randomizeQuestions,
         randomizeOptions: details.randomizeOptions,
-        showResultImmediately: details.showResultImmediately,
+        showResultImmediately: details.resultVisibility === "immediate",
         showCorrectAnswersAfterSubmission: details.showCorrectAnswersAfterSubmission,
         negativeMarking: details.negativeMarking,
         negativeMarkValue: details.negativeMarkValue,
@@ -243,124 +276,205 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
         passingPercentage: details.passingPercentage,
         passingMarks: details.passingMarks,
         tags: details.tags,
+        registrationEnabled: details.registrationEnabled,
+        registrationStart: details.registrationStart || undefined,
+        registrationEnd: details.registrationEnd || undefined,
+        emailResults: details.emailResults,
+        leaderboard: details.leaderboard,
+        leaderboardShowRank: details.leaderboardShowRank,
+        leaderboardShowScore: details.leaderboardShowScore,
+        leaderboardShowTime: details.leaderboardShowTime,
+        resultVisibility: details.resultVisibility,
       };
 
       await createQuiz(payload);
 
-      // The quiz is saved on the server (status 2xx reached above), so
-      // remove the quiz draft from localStorage before moving on (task).
       clearQuizState();
       onContinue({ ...details, name, description, topic, subject });
     } catch (err) {
       console.error("Failed to create quiz:", err);
-      setContinueError("Could not save the quiz. Please try again.");
-    } finally { 
+      toast.error({
+        title: "Could not save quiz",
+        description: "Something went wrong. Please try again.",
+      });
+    } finally {
       setSavingToServer(false);
     }
   };
 
-  // ===== Marks =====
-  const calculatedTotalMarks = useMemo(() => {
-    if (details.marksPerQuestion > 0 && details.totalQuestions > 0) {
-      return details.marksPerQuestion * details.totalQuestions;
-    }
-    return details.totalMarks;
-  }, [details.marksPerQuestion, details.totalQuestions, details.totalMarks]);
-
-  const calculatedPassingMarks = useMemo(() => {
-    if (calculatedTotalMarks > 0 && details.passingPercentage > 0) {
-      return Math.ceil((calculatedTotalMarks * details.passingPercentage) / 100);
-    }
-    return details.passingMarks;
-  }, [calculatedTotalMarks, details.passingPercentage, details.passingMarks]);
-
-  const estimatedTime = useMemo(() => {
-    if (details.totalQuestions > 0) {
-      return Math.max(details.timeLimit, Math.ceil(details.totalQuestions * 1.5));
-    }
-    return details.timeLimit;
-  }, [details.totalQuestions, details.timeLimit]);
-
-  // Visibility options sourced from the `quiz_visibility` table (fallback to static)
-  const visibilitySource: Array<{ id: string | number; label: string; description: string; isDb: boolean }> =
-    visibilityOptions.length > 0
-      ? visibilityOptions.map((o) => ({ id: o.id, label: o.heading, description: o.description, isDb: true }))
-      : VISIBILITY_OPTIONS.map((o) => ({ id: o.id, label: o.label, description: o.description, isDb: false }));
-
-  const endtimeInvalid = Boolean(details.startDate && details.endDate && details.endDate < details.startDate);
-
-  const addTagInput = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addTag();
-    }
+  const visibilityIcon = (label: string) => {
+    const key = label.toLowerCase();
+    if (key.includes("public")) return Globe;
+    if (key.includes("private")) return Lock;
+    if (key.includes("class")) return GraduationCap;
+    if (key.includes("college")) return School;
+    return Globe;
   };
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-[#09090B] text-white p-3 sm:p-4 md:p-6 lg:p-8">
-      <div className="max-w-[1400px] mx-auto">
-        {/* ===== Header ===== */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center shadow-lg shadow-[#7C3AED]/20">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-xs font-semibold text-[#9CA3AF] tracking-widest uppercase">Quiz Studio</span>
-            </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Create New Quiz</h1>
-            <p className="text-sm text-[#9CA3AF] mt-1">Configure your assessment settings. You will add questions in the next step.</p>
+    <div className="flex min-h-screen bg-background">
+      {/* ===== Settings Sidebar ===== */}
+      <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
+        <nav className="settings-scroll h-full overflow-y-auto p-4">
+          <p className="px-3 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+            Quiz Settings
+          </p>
+          <div className="space-y-1">
+            {SECTIONS.map((section) => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => scrollToSection(section.id)}
+                  className={cn(
+                    "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? "bg-accent/10 text-accent"
+                      : "text-text-secondary hover:bg-accent/5 hover:text-text-primary"
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "h-5 w-5 shrink-0 transition-colors",
+                      isActive ? "text-accent" : "text-text-muted group-hover:text-text-primary"
+                    )}
+                    strokeWidth={isActive ? 2.2 : 2}
+                  />
+                  <span className={cn("font-medium", isActive && "font-semibold")}>{section.label}</span>
+                  {isActive && (
+                    <motion.span
+                      layoutId="activeQuizSettingsIndicator"
+                      className="ml-auto h-1.5 w-1.5 rounded-full bg-accent"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <div className="flex items-center gap-2">
-            {saveStatus === "saving" && (
-              <span className="text-xs text-[#9CA3AF] flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full border-2 border-[#C7DDEC] border-t-transparent animate-spin" />
-                Saving...
-              </span>
-            )}
-            {saveStatus === "saved" && (
-              <span className="text-xs text-[#22C55E] flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Saved
-              </span>
-            )}
+
+          {/* ===== Quiz Status ===== */}
+          <div className="mt-8 rounded-xl border border-border bg-background p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Quiz Status</p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="rounded-full bg-warning/10 px-2.5 py-1 text-[10px] font-semibold text-warning">Draft</span>
+              <span className="text-[10px] font-medium text-text-secondary">Saved locally</span>
+            </div>
+            <div className="mt-4">
+              <div className="mb-1.5 flex items-center justify-between text-[10px] font-medium text-text-secondary">
+                <span>Quiz Setup</span>
+                <span className="tabular-nums text-accent">{progress}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-card-hover">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-[#EC4899] to-[#7C3AED]"
+                  initial={false}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                />
+              </div>
+            </div>
+          </div>
+        </nav>
+      </aside>
+
+      {/* ===== Main Content ===== */}
+      <div className="flex-1 overflow-y-auto">
+        {/* ===== Page Header ===== */}
+        <div className="sticky top-14 z-20 border-b border-border bg-background/80 px-6 py-5 backdrop-blur-xl lg:px-8">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight text-text-primary">Quiz Settings</h1>
+                <span className="rounded-full bg-warning/10 px-2.5 py-1 text-[10px] font-semibold text-warning">Draft</span>
+              </div>
+              <p className="mt-0.5 text-xs text-text-secondary">
+                Configure your quiz before adding questions and inviting students.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {saveStatus === "saving" && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1.5 text-[10px] font-semibold text-accent"
+                >
+                  <Loader2 className="h-3 w-3 animate-spin" /> Saving...
+                </motion.span>
+              )}
+              {saveStatus === "saved" && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-[10px] font-semibold text-success"
+                >
+                  <CheckCircle2 className="h-3 w-3" /> Auto saved
+                </motion.span>
+              )}
+            </div>
+          </div>
+
+          {/* ===== Mobile/Tablet Tab Nav ===== */}
+          <div className="mt-4 flex gap-1 overflow-x-auto pb-1 lg:hidden">
+            {SECTIONS.map((section) => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => scrollToSection(section.id)}
+                  className={cn(
+                    "flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200",
+                    isActive ? "bg-accent/10 text-accent" : "text-text-secondary hover:bg-accent/5"
+                  )}
+                >
+                  <Icon className="h-4 w-4" strokeWidth={2.2} />
+                  {section.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="flex gap-6">
-          {/* ===== Main Content ===== */}
-          <div className="flex-1 min-w-0 space-y-6">
-            {/* ===== Basic Information ===== */}
-            <SectionCard icon={BookOpen} title="Basic Information" subtitle="Core details about your quiz">
-              <div className="space-y-5">
+        {/* ===== Sections ===== */}
+        <div className="mx-auto max-w-4xl space-y-8 px-6 py-8 lg:px-8">
+          {/* ===== QUIZ INFO ===== */}
+          <div id="info" ref={(el) => { sectionRefs.current["info"] = el; }} className="scroll-mt-32">
+            <SettingsCard
+              title="Quiz Info"
+              description="Core details about your quiz"
+              icon={<BookOpen className="h-5 w-5" />}
+            >
+              <div className="space-y-6">
                 <div>
-                  <FieldLabel>Quiz Name</FieldLabel>
-                  <input
-                    type="text"
+                  <SettingsInput
+                    label="Quiz Name"
                     value={details.name}
-                    onChange={(e) => update({ name: e.target.value })}
-                    placeholder="e.g. Data Structures & Algorithms — Midterm"
-                    className={`${inputClass} text-base font-medium`}
-                    autoFocus
+                    onChange={(v) => update({ name: v })}
+                    placeholder="e.g. Data Structures Midterm"
+                    required
                   />
+                  {attempted && errors.name && <FieldError message={errors.name} />}
                 </div>
 
                 <div>
-                  <FieldLabel>Description</FieldLabel>
+                  <label className="mb-2 block text-sm font-medium text-text-primary">Description</label>
                   <textarea
                     value={details.description}
                     onChange={(e) => update({ description: e.target.value })}
-                    placeholder="Describe what this quiz covers, who it's for, and any important instructions..."
+                    placeholder="Briefly describe what this quiz covers..."
                     rows={3}
-                    className="w-full rounded-xl border border-white/[0.08] bg-[#0F1522] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all resize-none leading-relaxed"
+                    className="w-full rounded-xl border border-input-border bg-input-bg px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:border-accent focus:shadow-[0_0_0_3px_var(--input-focus-ring)] resize-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid gap-6 sm:grid-cols-2">
                   <div>
-                    <FieldLabel icon={<GraduationCap className="w-3 h-3" />}>Subject</FieldLabel>
                     <SearchableDropdown
+                      label="Subject"
                       placeholder="Search subjects..."
+                      required
                       value={details.subject}
                       selectedId={details.subjectId}
                       onSelect={(option) => update({ subject: option.label, subjectId: option.id })}
@@ -372,438 +486,362 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                       minChars={1}
                       debounceMs={300}
                       maxVisible={8}
-                      icon={<GraduationCap className="w-3 h-3" />}
-                      optional
                     />
+                    {attempted && errors.subject && <FieldError message={errors.subject} />}
                   </div>
                   <div>
-                    <FieldLabel icon={<Hash className="w-3 h-3" />}>Topic</FieldLabel>
-                    <input
-                      type="text"
-                      value={details.topic}
-                      onChange={(e) => update({ topic: e.target.value })}
-                      placeholder="e.g. Binary Trees"
-                      className={inputClass}
-                    />
+                    <label className="mb-2 block text-sm font-medium text-text-primary">Topics</label>
+                    <div className="rounded-xl border border-input-border bg-input-bg px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        {details.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-accent/10 border border-accent/20 px-2.5 py-1 text-xs font-medium text-accent"
+                          >
+                            {tag}
+                            <button onClick={() => update({ tags: details.tags.filter((t) => t !== tag) })} className="hover:text-text-primary transition-colors">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                        <input
+                          type="text"
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={addTagInput}
+                          onBlur={addTag}
+                          placeholder={details.tags.length === 0 ? "Add topics, press Enter..." : "Add more..."}
+                          className="min-w-[140px] flex-1 bg-transparent text-sm text-text-primary placeholder-text-muted focus:outline-none"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
+                {/* Visibility */}
                 <div>
-                  <FieldLabel>Difficulty</FieldLabel>
-                  <div className="flex items-center gap-2">
-                    {DIFFICULTY_OPTIONS.map((level) => {
-                      const active = details.difficulty === level;
-                      const color = DIFFICULTY_COLORS[level];
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="text-sm font-medium text-text-primary">Visibility</label>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    {visibilitySource.map((opt) => {
+                      const Icon = visibilityIcon(opt.label);
+                      const active = opt.isDb ? details.visibilityId === opt.id : details.visibility === opt.id;
                       return (
                         <button
-                          key={level}
-                          onClick={() => update({ difficulty: level })}
-                          className={`flex-1 h-11 rounded-xl border text-sm font-semibold transition-all ${
+                          key={String(opt.id)}
+                          onClick={() =>
+                            opt.isDb
+                              ? update({ visibility: opt.label as QuizVisibility, visibilityId: opt.id as number })
+                              : update({ visibility: opt.id as QuizVisibility, visibilityId: null })
+                          }
+                          className={cn(
+                            "relative rounded-xl border p-4 text-left transition-all duration-200",
                             active
-                              ? "border-transparent text-white shadow-lg"
-                              : "border-white/[0.08] bg-[#0F1522] text-[#9CA3AF] hover:text-white hover:border-white/[0.15]"
-                          }`}
-                          style={active ? { backgroundColor: `${color}20`, boxShadow: `0 0 20px ${color}20` } : undefined}
+                              ? "border-accent bg-accent/10 shadow-[0_0_0_3px_var(--input-focus-ring)]"
+                              : "border-input-border bg-input-bg hover:border-border-hover"
+                          )}
                         >
-                          <span style={active ? { color } : undefined}>{level}</span>
+                          <div className="flex items-start justify-between">
+                            <Icon className={cn("h-5 w-5", active ? "text-accent" : "text-text-muted")} />
+                            {active && (
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent">
+                                <Check className="h-3 w-3 text-white" />
+                              </span>
+                            )}
+                          </div>
+                          <p className={cn("mt-2 text-sm font-semibold", active ? "text-accent" : "text-text-primary")}>
+                            {opt.label}
+                          </p>
+                          <p className="mt-0.5 text-xs text-text-muted">{opt.description}</p>
                         </button>
                       );
                     })}
                   </div>
                 </div>
-
-                <div>
-                  <FieldLabel icon={<Tag className="w-3 h-3" />}>Tags</FieldLabel>
-                  <div className="rounded-xl border border-white/[0.08] bg-[#0F1522] p-4">
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {details.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 text-xs font-medium text-[#C7DDEC]"
-                        >
-                          {tag}
-                          <button onClick={() => update({ tags: details.tags.filter((t) => t !== tag) })} className="hover:text-white transition-colors">
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        onKeyDown={addTagInput}
-                        placeholder="Type a tag and press Enter..."
-                        className="flex-1 bg-transparent text-sm text-white placeholder-[#6B7280] focus:outline-none"
-                      />
-                      <button
-                        onClick={addTag}
-                        className="px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-xs font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.15] transition-colors"
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
-            </SectionCard>
-
-            {/* ===== Question Configuration ===== */}
-            <SectionCard icon={BarChart3} title="Question Configuration" subtitle="Define the structure of your quiz">
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <FieldLabel icon={<Hash className="w-3 h-3" />}>Total Questions</FieldLabel>
-                    <input
-                      type="number"
-                      value={details.totalQuestions || ""}
-                      onChange={(e) => update({ totalQuestions: Number(e.target.value) })}
-                      min={0}
-                      placeholder="e.g. 25"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel icon={<Clock className="w-3 h-3" />}>Quiz Duration (min)</FieldLabel>
-                    <input
-                      type="number"
-                      value={details.timeLimit}
-                      onChange={(e) => update({ timeLimit: Number(e.target.value) })}
-                      min={1}
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-
-              </div>
-            </SectionCard>
-
-            {/* ===== Marks ===== */}
-            <SectionCard icon={Award} title="Marks" subtitle="Scoring configuration">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <FieldLabel icon={<Award className="w-3 h-3" />}>Total Marks</FieldLabel>
-                  <input
-                    type="number"
-                    value={calculatedTotalMarks || ""}
-                    onChange={(e) => update({ totalMarks: Number(e.target.value) })}
-                    min={0}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <FieldLabel icon={<Zap className="w-3 h-3" />}>Marks Per Question</FieldLabel>
-                  <input
-                    type="number"
-                    value={details.marksPerQuestion || ""}
-                    onChange={(e) => update({ marksPerQuestion: Number(e.target.value) })}
-                    min={0}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <FieldLabel icon={<Percent className="w-3 h-3" />}>Passing %</FieldLabel>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={details.passingPercentage}
-                      onChange={(e) => update({ passingPercentage: Number(e.target.value) })}
-                      min={0}
-                      max={100}
-                      className={inputClass}
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#6B7280]">%</span>
-                  </div>
-                </div>
-                <div>
-                  <FieldLabel icon={<Target className="w-3 h-3" />}>Passing Marks</FieldLabel>
-                  <input
-                    type="number"
-                    value={calculatedPassingMarks || ""}
-                    onChange={(e) => update({ passingMarks: Number(e.target.value) })}
-                    min={0}
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center gap-2 px-4 py-3 rounded-xl border border-[#C7DDEC]/20 bg-[#C7DDEC]/5 text-xs text-[#C7DDEC]">
-                <Info className="w-3.5 h-3.5 shrink-0" />
-                <span>
-                  {details.marksPerQuestion > 0 && details.totalQuestions > 0
-                    ? `Auto-calculated: ${details.marksPerQuestion} × ${details.totalQuestions} = ${calculatedTotalMarks} total marks. Passing at ${details.passingPercentage}% = ${calculatedPassingMarks} marks.`
-                    : "Set marks per question or total marks to see automatic calculations."}
-                </span>
-              </div>
-            </SectionCard>
-
-            {/* ===== Schedule ===== */}
-            <SectionCard icon={Calendar} title="Schedule" subtitle="When should this quiz be available?">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <FieldLabel icon={<Calendar className="w-3 h-3" />}>Start Date</FieldLabel>
-                  <input
-                    type="datetime-local"
-                    value={details.startDate}
-                    onChange={(e) => update({ startDate: e.target.value })}
-                    className={`${inputClass} [color-scheme:dark]`}
-                  />
-                </div>
-                <div>
-                  <FieldLabel icon={<Calendar className="w-3 h-3" />}>End Date</FieldLabel>
-                  <input
-                    type="datetime-local"
-                    value={details.endDate}
-                    onChange={(e) => {
-                      update({ endDate: e.target.value });
-                      if (e.target.value && details.startDate && e.target.value < details.startDate) {
-                        setDateError("End Date cannot be before Start Date.");
-                      } else {
-                        setDateError("");
-                      }
-                    }}
-                    className={`${inputClass} [color-scheme:dark] ${endtimeInvalid ? "border-red-500/60 focus:border-red-500" : ""}`}
-                  />
-                  {endtimeInvalid && (
-                    <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5" /> End Date cannot be before Start Date.
-                    </p>
-                  )}
-                </div>
-                <div ref={timezoneDropdownRef} className="relative">
-                  <FieldLabel icon={<Globe className="w-3 h-3" />}>Time Zone</FieldLabel>
-                  <button
-                    onClick={() => setShowTimezoneDropdown(!showTimezoneDropdown)}
-                    className={`${inputClass} flex items-center justify-between text-left`}
-                  >
-                    <span className="text-white">{details.timeZone}</span>
-                    <ChevronDown className={`w-4 h-4 text-[#6B7280] transition-transform ${showTimezoneDropdown ? "rotate-180" : ""}`} />
-                  </button>
-                  <AnimatePresence>
-                    {showTimezoneDropdown && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        className="absolute z-40 mt-2 w-full rounded-xl border border-white/[0.08] bg-[#171923] shadow-2xl shadow-black/50 overflow-hidden"
-                      >
-                        <div className="max-h-48 overflow-y-auto p-1.5">
-                          {TIMEZONES.map((tz) => (
-                            <button
-                              key={tz}
-                              onClick={() => { update({ timeZone: tz }); setShowTimezoneDropdown(false); }}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                                details.timeZone === tz ? "bg-[#C7DDEC]/10 text-[#C7DDEC]" : "text-[#9CA3AF] hover:text-white hover:bg-white/[0.04]"
-                              }`}
-                            >
-                              {tz}
-                            </button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </SectionCard>
-
-            {/* ===== Visibility ===== */}
-            <SectionCard icon={Globe} title="Visibility" subtitle="Who can see and attempt this quiz?">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {visibilitySource.map((opt) => {
-                  const active = opt.isDb ? details.visibilityId === opt.id : details.visibility === opt.id;
-                  const key = String(opt.label).toLowerCase();
-                  const Icon = key.includes("public") ? Globe : key.includes("private") ? Lock : key.includes("college") ? School : Users;
-                  return (
-                    <button
-                      key={String(opt.id)}
-                      onClick={() =>
-                        opt.isDb
-                          ? update({ visibility: opt.label as QuizVisibility, visibilityId: opt.id as number })
-                          : update({ visibility: opt.id as QuizVisibility, visibilityId: null })
-                      }
-                      className={`relative p-4 rounded-xl border text-left transition-all ${
-                        active
-                          ? "border-[#C7DDEC]/40 bg-[#C7DDEC]/5 shadow-[0_0_20px_rgba(199,221,236,0.1)]"
-                          : "border-white/[0.08] bg-[#0F1522] hover:border-white/[0.15]"
-                      }`}
-                    >
-                      {active && (
-                        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#C7DDEC] flex items-center justify-center">
-                          <Check className="w-3 h-3 text-[#09090B]" />
-                        </div>
-                      )}
-                      <Icon className={`w-5 h-5 mb-2 ${active ? "text-[#C7DDEC]" : "text-[#6B7280]"}`} />
-                      <p className={`text-sm font-semibold ${active ? "text-white" : "text-[#9CA3AF]"}`}>{opt.label}</p>
-                      <p className="text-xs text-[#6B7280] mt-0.5">{opt.description}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </SectionCard>
-
-            {/* ===== Quiz Behaviour ===== */}
-            <SectionCard icon={Settings2} title="Quiz Behaviour" subtitle="How the quiz behaves during attempts">
-              <div className="rounded-xl border border-white/[0.08] bg-[#0F1522] px-5 divide-y divide-white/[0.06]">
-                <Toggle
-                  checked={details.randomizeQuestions}
-                  onChange={(v) => update({ randomizeQuestions: v })}
-                  label="Shuffle Questions"
-                  description="Shuffle question order for each participant"
-                />
-                <Toggle
-                  checked={details.randomizeOptions}
-                  onChange={(v) => update({ randomizeOptions: v })}
-                  label="Shuffle Options"
-                  description="Shuffle answer options for each participant"
-                />
-                <Toggle
-                  checked={details.showResultImmediately}
-                  onChange={(v) => update({ showResultImmediately: v })}
-                  label="Show Results Immediately"
-                  description="Display score right after submission"
-                />
-                <Toggle
-                  checked={details.showCorrectAnswersAfterSubmission}
-                  onChange={(v) => update({ showCorrectAnswersAfterSubmission: v })}
-                  label="Show Correct Answers"
-                  description="Reveal correct answers after the quiz ends"
-                />
-                <Toggle
-                  checked={details.negativeMarking}
-                  onChange={(v) => update({ negativeMarking: v })}
-                  label="Negative Marking"
-                  description="Deduct marks for incorrect answers"
-                />
-              </div>
-
-              {details.negativeMarking && (
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <FieldLabel icon={<RotateCcw className="w-3 h-3" />}>Negative Marks Value</FieldLabel>
-                    <input
-                      type="number"
-                      value={details.negativeMarkValue}
-                      onChange={(e) => update({ negativeMarkValue: Number(e.target.value) })}
-                      min={0}
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel icon={<Users className="w-3 h-3" />}>Maximum Participants</FieldLabel>
-                    <input
-                      type="number"
-                      value={details.maxParticipants || ""}
-                      onChange={(e) => update({ maxParticipants: Number(e.target.value) })}
-                      placeholder="Unlimited"
-                      min={0}
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-              )}
-            </SectionCard>
+            </SettingsCard>
           </div>
 
-          {/* ===== Right Summary Card ===== */}
-          <div className="hidden xl:block w-80 shrink-0">
-            <div className="sticky top-20 space-y-4">
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                className="rounded-2xl border border-white/[0.08] bg-[#111827] overflow-hidden"
-              >
-                <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-[#C7DDEC]" />
-                  <h3 className="text-sm font-bold text-white">Quiz Summary</h3>
+          {/* ===== REGISTRATION ===== */}
+          <div id="registration" ref={(el) => { sectionRefs.current["registration"] = el; }} className="scroll-mt-32">
+            <SettingsCard
+              title="Registration"
+              description="Configure registration and availability"
+              icon={<Users className="h-5 w-5" />}
+            >
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <SettingsRow
+                  label="Registration"
+                  description={details.registrationEnabled ? "Students must register before the quiz" : "Anyone can take the quiz without registering"}
+                >
+                  <Toggle
+                    checked={details.registrationEnabled}
+                    onChange={(v) => update({ registrationEnabled: v })}
+                  />
+                </SettingsRow>
+              </div>
+
+              {details.registrationEnabled && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.25 }}
+                  className="mt-6 grid gap-6 sm:grid-cols-2"
+                >
+                  <DateTimeField
+                    label="Registration Start"
+                    value={details.registrationStart}
+                    onChange={(v) => update({ registrationStart: v })}
+                    required
+                    error={(attempted && errors.registrationStart) || undefined}
+                  />
+                  <DateTimeField
+                    label="Registration End"
+                    value={details.registrationEnd}
+                    onChange={(v) => update({ registrationEnd: v })}
+                    required
+                    error={(attempted && errors.registrationEnd) || undefined}
+                  />
+                  <DateTimeField
+                    label="Quiz Start Time"
+                    value={details.startDate}
+                    onChange={(v) => update({ startDate: v })}
+                    required
+                    error={(attempted && errors.startDate) || undefined}
+                  />
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-text-primary">
+                      Duration <span className="ml-0.5 text-danger">*</span>
+                    </label>
+                    <div className="relative">
+                      <Clock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                      <input
+                        type="number"
+                        min={1}
+                        value={details.timeLimit}
+                        onChange={(e) => update({ timeLimit: Number(e.target.value) })}
+                        className={cn(inputClass, "pl-10")}
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-text-muted">
+                        minutes
+                      </span>
+                    </div>
+                    {attempted && errors.timeLimit && <FieldError message={errors.timeLimit} />}
+                  </div>
+
+                  {/* Max students */}
+                  <div className="sm:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-text-primary">Maximum Students</label>
+                    <div className="relative">
+                      <Users className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="Unlimited"
+                        value={details.maxParticipants || ""}
+                        onChange={(e) => update({ maxParticipants: Number(e.target.value) })}
+                        className={cn(inputClass, "pl-10")}
+                      />
+                    </div>
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-text-secondary">
+                      <Info className="h-3.5 w-3.5 shrink-0 text-accent" />
+                      Your {plan.label} plan supports up to {plan.limit} students per quiz.
+                    </div>
+                    {attempted && errors.maxStudents && <FieldError message={errors.maxStudents} />}
+                  </div>
+                </motion.div>
+              )}
+            </SettingsCard>
+          </div>
+
+          {/* ===== RESPONSES ===== */}
+          <div id="responses" ref={(el) => { sectionRefs.current["responses"] = el; }} className="scroll-mt-32">
+            <SettingsCard
+              title="Responses"
+              description="How results and the leaderboard behave"
+              icon={<BarChart3 className="h-5 w-5" />}
+            >
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <SettingsRow
+                    label="Email Results"
+                    description="Send quiz results to students after the quiz is processed"
+                  >
+                    <Toggle
+                      checked={details.emailResults}
+                      onChange={(v) => update({ emailResults: v })}
+                    />
+                  </SettingsRow>
                 </div>
-                <div className="p-5 space-y-4">
-                  <SummaryRow label="Duration" value={`${details.timeLimit} min`} icon={Clock} />
-                  <SummaryRow label="Questions" value={`${details.totalQuestions}`} icon={Hash} />
-                  <SummaryRow label="Est. Completion" value={`${estimatedTime} min`} icon={Timer} />
-                  <SummaryRow label="Total Marks" value={`${calculatedTotalMarks}`} icon={Award} />
-                  <SummaryRow label="Passing Marks" value={`${calculatedPassingMarks}`} icon={Target} />
-                  <SummaryRow label="Visibility" value={details.visibility || "—"} icon={Globe} />
-                  <SummaryRow label="Difficulty" value={details.difficulty} icon={BarChart3} />
-                  <SummaryRow label="Start" value={details.startDate ? new Date(details.startDate).toLocaleString() : "—"} icon={Calendar} />
-                  <SummaryRow label="End" value={details.endDate ? new Date(details.endDate).toLocaleString() : "—"} icon={Calendar} />
-                  <SummaryRow label="Time Zone" value={details.timeZone} icon={Globe} />
-                  <SummaryRow label="Negative Marking" value={details.negativeMarking ? "Yes" : "No"} icon={AlertTriangle} />
-                  <SummaryRow label="Show Results" value={details.showResultImmediately ? "Immediately" : "After End"} icon={CheckCircle2} />
 
+                {/* Leaderboard */}
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <SettingsRow
+                    label="Leaderboard"
+                    description="Show a ranked leaderboard for this quiz"
+                  >
+                    <Toggle
+                      checked={details.leaderboard}
+                      onChange={(v) => update({ leaderboard: v })}
+                    />
+                  </SettingsRow>
+                  {details.leaderboard && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      transition={{ duration: 0.25 }}
+                      className="mt-2 space-y-1"
+                    >
+                      <Toggle
+                        checked={details.leaderboardShowRank}
+                        onChange={(v) => update({ leaderboardShowRank: v })}
+                        label="Show Rank"
+                      />
+                      <Toggle
+                        checked={details.leaderboardShowScore}
+                        onChange={(v) => update({ leaderboardShowScore: v })}
+                        label="Show Score"
+                      />
+                      <Toggle
+                        checked={details.leaderboardShowTime}
+                        onChange={(v) => update({ leaderboardShowTime: v })}
+                        label="Show Time Taken"
+                      />
+                    </motion.div>
+                  )}
                 </div>
-              </motion.div>
 
-              {/* Continue button */}
-              <motion.button
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-                onClick={handleContinue}
-                disabled={!details.name.trim() || savingToServer || endtimeInvalid}
-                className="group w-full h-12 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-sm font-bold text-white shadow-lg shadow-[#7C3AED]/20 hover:shadow-[#7C3AED]/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
-              >
-                {savingToServer ? (
-                  <>
-                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                    Saving Quiz...
-                  </>
-                ) : (
-                  <>
-                    Continue to Question Builder
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-                  </>
-                )}
-              </motion.button>
-
-              {!details.name.trim() && (
-                <p className="text-xs text-[#6B7280] text-center">Enter a quiz name to continue</p>
-              )}
-              {endtimeInvalid && (
-                <p className="text-xs text-red-400 text-center">Fix the schedule before continuing.</p>
-              )}
-              {continueError && (
-                <p className="text-xs text-red-400 text-center">{continueError}</p>
-              )}
-            </div>
+                {/* Result visibility */}
+                <div>
+                  <div className="mb-2 flex items-center gap-1.5">
+                    <label className="text-sm font-medium text-text-primary">Result Visibility</label>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {RESULT_VISIBILITY_OPTIONS.map((opt) => {
+                      const active = details.resultVisibility === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => update({ resultVisibility: opt.id })}
+                          className={cn(
+                            "flex items-start justify-between gap-4 rounded-xl border p-4 text-left transition-all duration-200",
+                            active
+                              ? "border-accent bg-accent/10 shadow-[0_0_0_3px_var(--input-focus-ring)]"
+                              : "border-input-border bg-input-bg hover:border-border-hover"
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <span
+                              className={cn(
+                                "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                                active ? "border-accent bg-accent" : "border-text-muted"
+                              )}
+                            >
+                              {active && <Check className="h-3 w-3 text-white" />}
+                            </span>
+                            <div>
+                              <p className={cn("text-sm font-semibold", active ? "text-accent" : "text-text-primary")}>
+                                {opt.label}
+                              </p>
+                              <p className="mt-0.5 text-xs text-text-muted">{opt.description}</p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </SettingsCard>
           </div>
         </div>
 
-        {/* ===== Mobile/Tablet Continue Button ===== */}
-        <div className="xl:hidden mt-6">
-          <button
-            onClick={handleContinue}
-            disabled={!details.name.trim() || savingToServer || endtimeInvalid}
-            className="group w-full h-12 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-sm font-bold text-white shadow-lg shadow-[#7C3AED]/20 hover:shadow-[#7C3AED]/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
-          >
-            {savingToServer ? (
-              <>
-                <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                Saving Quiz...
-              </>
-            ) : (
-              <>
-                Continue to Question Builder
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-              </>
-            )}
-          </button>
+        {/* ===== Sticky Bottom Action Bar ===== */}
+        <div className="sticky bottom-0 z-20 border-t border-border bg-background/90 px-6 py-4 backdrop-blur-xl lg:px-8">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
+            <button
+              onClick={handleSaveDraft}
+              className="flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-xs font-medium text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover"
+            >
+              <Save className="h-4 w-4" /> Save Draft
+            </button>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleCancel}
+                className="h-11 rounded-xl border border-border bg-card px-4 text-xs font-medium text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleContinue}
+                disabled={savingToServer}
+                className="group flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] px-5 text-xs font-bold text-white transition-all duration-200 hover:shadow-[0_4px_16px_rgba(124,58,237,0.35)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {savingToServer ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Saving Quiz...
+                  </>
+                ) : (
+                  <>
+                    Save &amp; Continue
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function SummaryRow({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string }> }) {
+/* =============================================
+   Helpers
+   ============================================= */
+function FieldError({ message }: { message: string }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-[#9CA3AF] flex items-center gap-2">
-        <Icon className="w-3.5 h-3.5 text-[#C7DDEC]" />
+    <p className="mt-1.5 flex items-center gap-1 text-xs text-danger">
+      <AlertTriangle className="h-3 w-3" /> {message}
+    </p>
+  );
+}
+
+function DateTimeField({
+  label,
+  value,
+  onChange,
+  required,
+  error,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+  error?: string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-text-primary">
         {label}
-      </span>
-      <span className="text-xs font-semibold text-white capitalize">{value}</span>
+        {required && <span className="ml-0.5 text-danger">*</span>}
+      </label>
+      <div className="relative">
+        <Calendar className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        <input
+          type="datetime-local"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn(
+            inputClass,
+            "pl-10 [color-scheme:light] dark:[color-scheme:dark]",
+            error && "!border-danger focus:!border-danger focus:ring-danger/10"
+          )}
+        />
+      </div>
+      {error && <FieldError message={error} />}
     </div>
   );
 }

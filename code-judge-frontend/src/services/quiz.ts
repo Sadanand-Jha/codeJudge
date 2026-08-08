@@ -54,6 +54,15 @@ export interface CreateQuizPayload {
   passingPercentage?: number;
   passingMarks?: number;
   tags?: string[];
+  registrationEnabled?: boolean;
+  registrationStart?: string;
+  registrationEnd?: string;
+  emailResults?: boolean;
+  leaderboard?: boolean;
+  leaderboardShowRank?: boolean;
+  leaderboardShowScore?: boolean;
+  leaderboardShowTime?: boolean;
+  resultVisibility?: "immediate" | "after_end" | "manual";
 }
 
 /**

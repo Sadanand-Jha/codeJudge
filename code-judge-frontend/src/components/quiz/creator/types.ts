@@ -81,6 +81,15 @@ export interface QuizDetails {
   totalMarks: number;
   marksPerQuestion: number;
   passingMarks: number;
+  registrationEnabled: boolean;
+  registrationStart: string;
+  registrationEnd: string;
+  emailResults: boolean;
+  leaderboard: boolean;
+  leaderboardShowRank: boolean;
+  leaderboardShowScore: boolean;
+  leaderboardShowTime: boolean;
+  resultVisibility: "immediate" | "after_end" | "manual";
 }
 
 export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
@@ -110,6 +119,15 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   totalMarks: 0,
   marksPerQuestion: 10,
   passingMarks: 0,
+  registrationEnabled: false,
+  registrationStart: "",
+  registrationEnd: "",
+  emailResults: false,
+  leaderboard: false,
+  leaderboardShowRank: true,
+  leaderboardShowScore: true,
+  leaderboardShowTime: true,
+  resultVisibility: "immediate",
 };
 
 export const QUESTION_TYPE_LABELS: Record<CreatorQuestionType, string> = {
