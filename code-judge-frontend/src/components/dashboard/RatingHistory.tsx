@@ -74,7 +74,6 @@ export default function RatingHistory() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="rounded-2xl border border-border bg-card p-6"
-      className="rounded-2xl border border-border bg-card p-6"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
