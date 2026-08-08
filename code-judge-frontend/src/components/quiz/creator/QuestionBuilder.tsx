@@ -46,7 +46,7 @@ import {
 import { QuizDetails, CreatorQuestion, CreatorQuestionType, createDefaultQuestion, getQuestionStatus } from "./types";
 import { saveQuizQuestions, saveActiveQuestionId } from "@/utils/quizStorage";
 import { toast } from "@/lib/toast";
-import { generateQuizCode } from "@/utils/quizCode";
+import { generateQuizCode, formatQuizCode } from "@/utils/quizCode";
 
 interface QuestionBuilderProps {
   details: QuizDetails;
@@ -1042,10 +1042,10 @@ export default function QuestionBuilder({
                   <label className="text-[11px] font-semibold text-[#AAB6C8] uppercase tracking-wider mb-2 block">Quiz Code</label>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 px-3 py-2 rounded-lg bg-[#263245] border border-[#3A4963] text-xs text-[#C7DDEC] font-mono">
-                      {quizCode}
+                      {formatQuizCode(quizCode)}
                     </code>
                     <button
-                      onClick={() => navigator.clipboard.writeText(quizCode)}
+                      onClick={() => navigator.clipboard.writeText(formatQuizCode(quizCode))}
                       className="p-2 rounded-lg border border-[#3A4963] bg-[#263245] text-[#AAB6C8] hover:text-[#F8FAFC] transition-colors"
                     >
                       <Copy className="w-3.5 h-3.5" />

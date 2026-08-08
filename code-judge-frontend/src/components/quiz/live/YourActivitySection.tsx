@@ -13,6 +13,7 @@ import {
   Filter, BarChart2, CircleDot, GraduationCap, Check
 } from "lucide-react";
 import { getOldQuizzes, getMyCreatedQuizzes } from "@/services/quiz";
+import { formatQuizCode } from "@/utils/quizCode";
 
 /* ═══════════════════════════════════════════════════════════════
    TYPES
@@ -205,12 +206,13 @@ function RankChip({ rank }: { rank: number }) {
 
 function CodeCopyChip({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
+  const formatted = formatQuizCode(code);
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(formatted);
     } catch {
       const ta = document.createElement("textarea");
-      ta.value = code;
+      ta.value = formatted;
       ta.style.position = "fixed";
       ta.style.opacity = "0";
       document.body.appendChild(ta);
@@ -226,7 +228,7 @@ function CodeCopyChip({ code }: { code: string }) {
       className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 transition-colors ${copied ? "border-success/40 bg-success/10" : "border-border bg-card-hover"}`}
       title="Quiz code"
     >
-      <code className="text-[11px] font-bold tracking-wider text-text-primary">{code}</code>
+      <code className="text-[11px] font-bold tracking-wider text-text-primary">{formatted}</code>
       <button
         type="button"
         onClick={handleCopy}
