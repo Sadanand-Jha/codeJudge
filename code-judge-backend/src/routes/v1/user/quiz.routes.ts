@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Request, Response } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
 import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, cloneQuizSchema, joinQuizSchema } from "../../../middleware/validate.ts";
 import {
@@ -33,6 +34,9 @@ import {
   getAllSubjects,
   getQuizVisibilityOptions
 } from "../../../controllers/quiz.controller.ts";
+import { QuizService } from "../../../services/database/quiz.service.ts";
+
+const quizService = new QuizService();
 
 const router = Router();
 
@@ -49,6 +53,67 @@ router.get("/my", getMyQuizzes);
 
 // GET /api/v1/user/quiz/previous — get previous quizzes (attempted by student)
 router.get("/previous", getPreviousQuizzes);
+
+// GET /api/v1/user/quiz/old-quizzes — get quizzes participated by current user
+router.get("/old-quizzes", getPreviousQuizzes);
+
+// ==================== MY CREATED QUIZZES ====================
+
+/**
+ * GET /api/v1/user/quiz/my-quizzes
+ * Get quizzes created by the authenticated user
+ */
+router.get("/my-quizzes", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+      return;
+    }
+
+    const {
+      page = "1",
+      limit = "10",
+      search = "",
+      status,
+      visibility,
+      sortBy = "created_at",
+      sortOrder = "DESC",
+    } = req.query;
+
+    const result = await quizService.getAllQuizzes({
+      page: Number(page),
+      limit: Number(limit),
+      search: search as string,
+      status: status as string,
+      visibility: visibility ? Number(visibility) : undefined,
+      sortBy: sortBy as string,
+      sortOrder: sortOrder as string,
+      userId: Number(userId),
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result.quizzes,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total: result.total,
+        totalPages: Math.ceil(result.total / Number(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching my quizzes:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching my quizzes",
+    });
+  }
+});
 
 // GET /api/v1/user/quiz/code/:code — get a quiz by its code
 router.get("/code/:code", getQuizByCode);

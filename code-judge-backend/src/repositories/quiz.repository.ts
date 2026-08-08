@@ -860,7 +860,7 @@ export class QuizRepository {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const conditions: string[] = ["qa.user_id = $1", "qa.status = 'completed'"];
+    const conditions: string[] = ["qa.user_id = $1"];
     const queryParams: any[] = [userId];
     let paramCount = 1;
 

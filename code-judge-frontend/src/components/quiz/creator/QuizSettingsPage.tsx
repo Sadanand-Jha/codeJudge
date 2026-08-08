@@ -254,7 +254,7 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
     } catch (err) {
       console.error("Failed to create quiz:", err);
       setContinueError("Could not save the quiz. Please try again.");
-    } finally {
+    } finally { 
       setSavingToServer(false);
     }
   };

@@ -174,6 +174,56 @@ export async function getMyQuizzes(): Promise<Quiz[]> {
 }
 
 /**
+ * Get quizzes created by the current user
+ * GET /api/v1/user/quiz/my-quizzes
+ */
+export async function getMyCreatedQuizzes(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  visibility?: number;
+  sortBy?: string;
+  sortOrder?: string;
+}): Promise<{ quizzes: Quiz[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+  const response = await apiClient.get("/v1/user/quiz/my-quizzes", { params });
+  // After interceptor, response.data is the quizzes array
+  const quizzes = (response.data || []) as Quiz[];
+  // Pagination info is preserved by the interceptor as response.pagination
+  const pagination = (response as any).pagination;
+  const limitVal = params.limit || 10;
+  const pageVal = params.page || 1;
+  const total = pagination?.total || quizzes.length;
+  const totalPages = pagination?.totalPages || Math.ceil(total / limitVal);
+  return {
+    quizzes,
+    pagination: {
+      page: pageVal,
+      limit: limitVal,
+      total,
+      totalPages,
+    },
+  };
+}
+
+/**
+ * Get old quizzes (quizzes participated by current user)
+ * GET /api/v1/user/quiz/old-quizzes
+ */
+export async function getOldQuizzes(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: string;
+}): Promise<{ quizzes: PreviousQuiz[]; total: number }> {
+  const response = await apiClient.get("/v1/user/quiz/old-quizzes", { params });
+  // After interceptor, response.data is the quizzes array
+  const quizzes = (response.data || []) as PreviousQuiz[];
+  return { quizzes, total: quizzes.length };
+}
+
+/**
  * Create a new quiz from the creator settings form
  * POST /api/v1/user/quiz
  */
@@ -498,7 +548,9 @@ export async function getPreviousQuizzes(params: {
   sortOrder?: string;
 }): Promise<{ quizzes: PreviousQuiz[]; total: number }> {
   const response = await apiClient.get("/v1/user/quiz/previous", { params });
-  return response.data;
+  const quizzes = (response.data || []) as PreviousQuiz[];
+  const pagination = (response as any).pagination;
+  return { quizzes, total: pagination?.total ?? quizzes.length };
 }
 
 // ─────────────────────────────────────────
