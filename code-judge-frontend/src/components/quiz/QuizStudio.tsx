@@ -669,9 +669,9 @@ export default function QuizStudio() {
   };
 
   return (
-    <div className="h-screen bg-[#09090B] flex flex-col overflow-hidden">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* ===== TOP BAR ===== */}
-      <div className="h-14 border-b border-white/[0.08] bg-[#09090B]/80 backdrop-blur-xl flex items-center px-4 gap-4 shrink-0">
+      <div className="h-14 border-b border-border-hover bg-background/80 backdrop-blur-xl flex items-center px-4 gap-4 shrink-0">
         {/* Quiz brand */}
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#EC4899] to-[#EC4899] flex items-center justify-center">
@@ -696,7 +696,7 @@ export default function QuizStudio() {
         </div>
 
         {/* Save status */}
-        <div className="flex items-center gap-2 text-xs text-[#9CA3AF]">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {saveStatus === "saving" ? (
             <div className="flex items-center gap-2">
               <Loader2 className="w-3.5 h-3.5 text-[#EC4899] animate-spin" />
@@ -723,7 +723,7 @@ export default function QuizStudio() {
           {/* Import */}
           <button
             onClick={() => document.getElementById("import-file")?.click()}
-            className="h-8 px-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+            className="h-8 px-2.5 rounded-lg border border-border bg-white/[0.04] text-xs font-medium text-muted-foreground hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
             title="Import questions (JSON/CSV)"
           >
             <Upload className="w-3.5 h-3.5" />
@@ -739,22 +739,22 @@ export default function QuizStudio() {
           {/* Export */}
           <div className="relative group">
             <button
-              className="h-8 px-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+              className="h-8 px-2.5 rounded-lg border border-border bg-white/[0.04] text-xs font-medium text-muted-foreground hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
               title="Export"
             >
               <Download className="w-3.5 h-3.5" />
             </button>
-            <div className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-white/[0.08] bg-[#111827] shadow-2xl shadow-black/50 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+            <div className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-border-hover bg-card shadow-2xl shadow-black/50 overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
               <button
                 onClick={() => handleExport("json")}
-                className="w-full flex items-center gap-2 px-3 py-2 text-[10px] text-[#9CA3AF] hover:text-white hover:bg-white/[0.04] transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 text-[10px] text-muted-foreground hover:text-white hover:bg-white/[0.04] transition-colors"
               >
                 <FileJson className="w-3 h-3" />
                 Export as JSON
               </button>
               <button
                 onClick={() => handleExport("csv")}
-                className="w-full flex items-center gap-2 px-3 py-2 text-[10px] text-[#9CA3AF] hover:text-white hover:bg-white/[0.04] transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 text-[10px] text-muted-foreground hover:text-white hover:bg-white/[0.04] transition-colors"
               >
                 <FileText className="w-3 h-3" />
                 Export as CSV
@@ -781,7 +781,7 @@ export default function QuizStudio() {
             className={`h-8 px-2.5 rounded-lg border text-xs font-medium transition-all flex items-center gap-1.5 ${
               rightPanelOpen === "history"
                 ? "border-white/[0.15] bg-white/[0.08] text-white"
-                : "border-white/[0.06] bg-white/[0.04] text-[#9CA3AF] hover:text-white hover:bg-white/[0.06]"
+                : "border-border bg-white/[0.04] text-muted-foreground hover:text-white hover:bg-white/[0.06]"
             }`}
             title="Version History"
           >
@@ -795,7 +795,7 @@ export default function QuizStudio() {
             className={`h-8 px-2.5 rounded-lg border text-xs font-medium transition-all flex items-center gap-1.5 ${
               rightPanelOpen === "collaborators"
                 ? "border-white/[0.15] bg-white/[0.08] text-white"
-                : "border-white/[0.06] bg-white/[0.04] text-[#9CA3AF] hover:text-white hover:bg-white/[0.06]"
+                : "border-border bg-white/[0.04] text-muted-foreground hover:text-white hover:bg-white/[0.06]"
             }`}
             title="Collaborators"
           >
@@ -806,7 +806,7 @@ export default function QuizStudio() {
           {/* Keyboard Shortcuts */}
           <button
             onClick={() => setShowShortcuts(!showShortcuts)}
-            className="h-8 px-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="h-8 px-2.5 rounded-lg border border-border bg-white/[0.04] text-xs font-medium text-muted-foreground hover:text-white hover:bg-white/[0.06] transition-colors"
             title="Keyboard Shortcuts (?)"
           >
             <Keyboard className="w-3.5 h-3.5" />
@@ -817,7 +817,7 @@ export default function QuizStudio() {
           {/* Validation toggle */}
           <button
             onClick={() => setShowValidation(!showValidation)}
-            className="h-8 px-3 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
+            className="h-8 px-3 rounded-lg border border-border bg-white/[0.04] text-xs font-medium text-muted-foreground hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5"
           >
             <AlertCircle className={`w-3.5 h-3.5 ${validationResults.some((r) => !r.isValid) ? "text-[#EF4444]" : "text-[#22C55E]"}`} />
             Validation
@@ -851,7 +851,7 @@ export default function QuizStudio() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="border-b border-white/[0.08] bg-[#111827] overflow-hidden"
+            className="border-b border-border-hover bg-card overflow-hidden"
           >
             <div className="px-6 py-4">
               <div className="flex items-center justify-between mb-3">
@@ -860,7 +860,7 @@ export default function QuizStudio() {
                   Publish Readiness
                 </h3>
                 <div className="flex items-center gap-4">
-                  <span className="text-xs text-[#9CA3AF]">
+                  <span className="text-xs text-muted-foreground">
                     Progress: <span className="text-white font-bold">{readinessCount}/{publishReadiness.length}</span>
                   </span>
                   <div className="w-40 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
@@ -880,7 +880,7 @@ export default function QuizStudio() {
                     className={`flex items-start gap-2 rounded-lg border p-2.5 transition-all ${
                       check.passed
                         ? "border-[#22C55E]/20 bg-[#22C55E]/5"
-                        : "border-white/[0.06] bg-white/[0.02]"
+                        : "border-border bg-white/[0.02]"
                     }`}
                   >
                     <div className="pt-0.5">
@@ -918,17 +918,17 @@ export default function QuizStudio() {
               initial={{ scale: 0.95, y: 10 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 10 }}
-              className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#111827] shadow-2xl shadow-black/50 overflow-hidden"
+              className="w-full max-w-md rounded-2xl border border-border-hover bg-card shadow-2xl shadow-black/50 overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <Keyboard className="w-4 h-4 text-[#EC4899]" />
                   Keyboard Shortcuts
                 </h3>
                 <button
                   onClick={() => setShowShortcuts(false)}
-                  className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -943,8 +943,8 @@ export default function QuizStudio() {
                   { keys: "?", description: "Show Keyboard Shortcuts" },
                 ].map((shortcut) => (
                   <div key={shortcut.keys} className="flex items-center justify-between">
-                    <span className="text-xs text-[#9CA3AF]">{shortcut.description}</span>
-                    <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.08] text-[10px] font-bold text-white font-mono">
+                    <span className="text-xs text-muted-foreground">{shortcut.description}</span>
+                    <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-border-hover text-[10px] font-bold text-white font-mono">
                       {shortcut.keys}
                     </span>
                   </div>
@@ -1008,9 +1008,9 @@ export default function QuizStudio() {
                 initial={{ x: 20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 20, opacity: 0 }}
-                className="absolute right-4 top-4 bottom-4 w-72 rounded-2xl border border-[#EC4899]/20 bg-[#111827]/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden flex flex-col z-40"
+                className="absolute right-4 top-4 bottom-4 w-72 rounded-2xl border border-[#EC4899]/20 bg-card/95 backdrop-blur-xl shadow-2xl shadow-black/40 overflow-hidden flex flex-col z-40"
               >
-                <div className="p-3 border-b border-white/[0.06] flex items-center justify-between">
+                <div className="p-3 border-b border-border flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#EC4899] to-[#EC4899] flex items-center justify-center">
                       <Sparkles className="w-3 h-3 text-white" />
@@ -1022,7 +1022,7 @@ export default function QuizStudio() {
                   </div>
                   <button
                     onClick={() => setShowAI(false)}
-                    className="p-1 rounded-lg hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors"
+                    className="p-1 rounded-lg hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -1034,9 +1034,9 @@ export default function QuizStudio() {
                       key={action.id}
                       onClick={() => handleAIAction(action.id)}
                       disabled={aiLoading !== null}
-                      className="w-full flex items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5 hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed text-left"
+                      className="w-full flex items-center gap-2.5 rounded-xl border border-border bg-white/[0.02] p-2.5 hover:border-[#EC4899]/30 hover:bg-[#EC4899]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed text-left"
                     >
-                      <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-border-hover flex items-center justify-center shrink-0">
                         {aiLoading === action.id ? (
                           <Loader2 className="w-3.5 h-3.5 text-[#EC4899] animate-spin" />
                         ) : (
@@ -1059,7 +1059,7 @@ export default function QuizStudio() {
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       exit={{ y: 20, opacity: 0 }}
-                      className="border-t border-white/[0.06] p-3 space-y-2"
+                      className="border-t border-border p-3 space-y-2"
                     >
                       <div className="flex items-center justify-between">
                         <p className="text-[10px] font-bold text-[#EC4899]">{aiResponse.title}</p>
@@ -1090,10 +1090,10 @@ export default function QuizStudio() {
         </div>
 
         {/* RIGHT: Live Preview */}
-        <div className="w-[26rem] border-l border-white/[0.08] flex flex-col shrink-0">
+        <div className="w-[26rem] border-l border-border-hover flex flex-col shrink-0">
           {/* Preview header with device toggle */}
-          <div className="h-12 border-b border-white/[0.08] px-3 flex items-center justify-center gap-2">
-            <span className="text-[10px] font-medium text-[#9CA3AF] mr-auto flex items-center gap-1.5">
+          <div className="h-12 border-b border-border-hover px-3 flex items-center justify-center gap-2">
+            <span className="text-[10px] font-medium text-muted-foreground mr-auto flex items-center gap-1.5">
               <Eye className="w-3 h-3" />
               Preview
             </span>
@@ -1103,7 +1103,7 @@ export default function QuizStudio() {
                 className={`p-1.5 rounded-lg transition-all ${
                   deviceMode === "desktop"
                     ? "bg-[#EC4899]/10 text-[#EC4899]"
-                    : "text-[#9CA3AF] hover:text-white"
+                    : "text-muted-foreground hover:text-white"
                 }`}
                 title="Desktop"
               >
@@ -1114,7 +1114,7 @@ export default function QuizStudio() {
                 className={`p-1.5 rounded-lg transition-all ${
                   deviceMode === "tablet"
                     ? "bg-[#EC4899]/10 text-[#EC4899]"
-                    : "text-[#9CA3AF] hover:text-white"
+                    : "text-muted-foreground hover:text-white"
                 }`}
                 title="Tablet"
               >
@@ -1125,7 +1125,7 @@ export default function QuizStudio() {
                 className={`p-1.5 rounded-lg transition-all ${
                   deviceMode === "mobile"
                     ? "bg-[#EC4899]/10 text-[#EC4899]"
-                    : "text-[#9CA3AF] hover:text-white"
+                    : "text-muted-foreground hover:text-white"
                 }`}
                 title="Mobile"
               >
@@ -1148,7 +1148,7 @@ export default function QuizStudio() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="border-t border-white/[0.08] overflow-hidden"
+                className="border-t border-border-hover overflow-hidden"
               >
                 {rightPanelOpen === "history" && (
                   <div className="p-3 space-y-2">
@@ -1159,14 +1159,14 @@ export default function QuizStudio() {
                       </h4>
                       <button
                         onClick={() => setRightPanelOpen(null)}
-                        className="p-1 rounded-lg hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors"
+                        className="p-1 rounded-lg hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </div>
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
                       {versionHistory.slice().reverse().map((version) => (
-                        <div key={version.id} className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                        <div key={version.id} className="flex items-center gap-2 rounded-lg border border-border bg-white/[0.02] px-3 py-2">
                           <div className="w-6 h-6 rounded-lg bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center">
                             <History className="w-3 h-3 text-[#EC4899]" />
                           </div>
@@ -1176,7 +1176,7 @@ export default function QuizStudio() {
                               {new Date(version.createdAt).toLocaleString()}
                             </p>
                           </div>
-                          <button className="px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[9px] text-[#9CA3AF] hover:text-white hover:border-white/[0.15] transition-colors">
+                          <button className="px-2 py-1 rounded-lg bg-white/[0.04] border border-border-hover text-[9px] text-muted-foreground hover:text-white hover:border-white/[0.15] transition-colors">
                             Restore
                           </button>
                         </div>
@@ -1194,14 +1194,14 @@ export default function QuizStudio() {
                       </h4>
                       <button
                         onClick={() => setRightPanelOpen(null)}
-                        className="p-1 rounded-lg hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors"
+                        className="p-1 rounded-lg hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </div>
                     <div className="space-y-1.5">
                       {collaborators.map((user) => (
-                        <div key={user.userId} className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                        <div key={user.userId} className="flex items-center gap-2 rounded-lg border border-border bg-white/[0.02] px-3 py-2">
                           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#EC4899] to-[#EC4899] flex items-center justify-center text-[8px] font-bold text-white">
                             {user.username.charAt(0)}
                           </div>
@@ -1249,7 +1249,7 @@ function EmptyState({ onCreateFirst }: { onCreateFirst: () => void }) {
           <ListChecks className="w-9 h-9 text-white" />
         </motion.div>
         <h2 className="text-lg font-bold text-white mb-2">No questions have been added yet.</h2>
-        <p className="text-xs text-[#9CA3AF] mb-6 leading-relaxed">
+        <p className="text-xs text-muted-foreground mb-6 leading-relaxed">
           Start building your quiz by creating your first question.
           You can add dozens or even hundreds of questions with rich formatting, images, code, and math.
         </p>
@@ -1266,9 +1266,9 @@ function EmptyState({ onCreateFirst }: { onCreateFirst: () => void }) {
             { icon: Image, label: "Images" },
             { icon: Sparkles, label: "AI-Powered" },
           ].map(({ icon: Icon, label }) => (
-            <div key={label} className="rounded-xl border border-white/[0.06] bg-[#111827] p-3">
+            <div key={label} className="rounded-xl border border-border bg-card p-3">
               <Icon className="w-4 h-4 mx-auto mb-1.5 text-[#EC4899]" />
-              <p className="text-[9px] text-[#9CA3AF]">{label}</p>
+              <p className="text-[9px] text-muted-foreground">{label}</p>
             </div>
           ))}
         </div>

@@ -260,7 +260,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                 className={`problems-topic-chip px-3 py-1 rounded-full text-[11px] font-medium transition-all border ${
                   isActive
                     ? "bg-[#7C3AED]/15 text-[#7C3AED] border-[#7C3AED]/30"
-                    : "bg-white/[0.04] text-[#9CA3AF] border-white/[0.06] hover:border-white/[0.12] hover:text-white"
+                    : "bg-white/[0.04] text-muted-foreground border-border hover:border-border-hover hover:text-white"
                 }`}
               >
                 {tag}
@@ -272,13 +272,13 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
         {/* Results count + active filters */}
         <div className="problems-results-meta flex items-center justify-between mb-3">
           <div className="text-[10px] text-[#6B7280]">
-            Showing <span className="text-[#9CA3AF] font-medium">{paginated.length}</span> of{" "}
-            <span className="text-[#9CA3AF] font-medium">{filtered.length}</span> problems
+            Showing <span className="text-muted-foreground font-medium">{paginated.length}</span> of{" "}
+            <span className="text-muted-foreground font-medium">{filtered.length}</span> problems
           </div>
           {activeFilterCount > 0 && (
             <button
               onClick={clearAllFilters}
-              className="problems-clear-filters flex items-center gap-1 text-[10px] text-[#9CA3AF] hover:text-white transition-colors"
+              className="problems-clear-filters flex items-center gap-1 text-[10px] text-muted-foreground hover:text-white transition-colors"
             >
               <X className="w-3 h-3" />
               Clear {activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""}
@@ -288,18 +288,18 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
 
         {/* Premium Table */}
         {paginated.length === 0 ? (
-          <div className="problems-empty-state flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.06] bg-[#111827] py-16 text-center">
+          <div className="problems-empty-state flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card py-16 text-center">
             <div className="w-12 h-12 rounded-xl bg-white/[0.03] flex items-center justify-center mb-3">
               <Search className="w-5 h-5 text-[#6B7280]" />
             </div>
-            <p className="text-sm font-medium text-[#9CA3AF]">No problems found</p>
+            <p className="text-sm font-medium text-muted-foreground">No problems found</p>
             <p className="mt-1 text-xs text-[#6B7280]">Try adjusting your search or filters.</p>
           </div>
         ) : (
-          <div className="problems-table overflow-x-auto rounded-2xl border border-white/[0.06] bg-[#111827]/40">
+          <div className="problems-table overflow-x-auto rounded-2xl border border-border bg-card/40">
             <table className="w-full">
               <thead>
-                <tr className="problems-table-head border-b border-white/[0.06] bg-[#111827]">
+                <tr className="problems-table-head border-b border-border bg-card">
                   <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#6B7280] px-4 py-3 w-10">Status</th>
                   <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#6B7280] px-4 py-3">Problem</th>
                   <th className="text-left text-[10px] font-medium uppercase tracking-wider text-[#6B7280] px-4 py-3">Difficulty</th>
@@ -378,7 +378,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                               style={{ width: `${acceptance}%` }}
                             />
                           </div>
-                          <span className="text-[10px] text-[#9CA3AF]">{acceptance}%</span>
+                          <span className="text-[10px] text-muted-foreground">{acceptance}%</span>
                         </div>
                       </td>
 
@@ -388,7 +388,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                           {(problem.tags || []).slice(0, 2).map((tag) => (
                             <span
                               key={tag}
-                              className="problems-tag px-2 py-0.5 rounded-full text-[9px] font-medium text-[#9CA3AF] bg-white/[0.04] border border-white/[0.06]"
+                              className="problems-tag px-2 py-0.5 rounded-full text-[9px] font-medium text-muted-foreground bg-white/[0.04] border border-border"
                             >
                               {tag}
                             </span>
@@ -400,7 +400,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                       </td>
 
                       {/* Solved count */}
-                      <td className="px-4 py-3 text-right text-xs text-[#9CA3AF]">
+                      <td className="px-4 py-3 text-right text-xs text-muted-foreground">
                         {solves >= 1000 ? `${(solves / 1000).toFixed(1)}K` : solves}
                       </td>
 
@@ -425,7 +425,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                       <td className="px-4 py-3 text-center">
                         <Link
                           href={`/problems/${problem.problem_id}`}
-                          className="problems-action-btn inline-flex items-center justify-center w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] text-[#9CA3AF] hover:text-white hover:bg-[#7C3AED] hover:border-[#7C3AED] opacity-0 group-hover:opacity-100 transition-all"
+                          className="problems-action-btn inline-flex items-center justify-center w-7 h-7 rounded-lg bg-white/[0.04] border border-border text-muted-foreground hover:text-white hover:bg-[#7C3AED] hover:border-[#7C3AED] opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
@@ -444,7 +444,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="problems-page-btn flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-[#9CA3AF] bg-[#111827] border border-white/[0.06] hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="problems-page-btn flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground bg-card border border-border hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
               Previous
@@ -459,7 +459,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
                   className={`w-9 h-9 rounded-xl text-xs font-medium transition-all ${
                     currentPage === p
                       ? "bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.3)]"
-                      : "problems-page-btn text-[#9CA3AF] bg-[#111827] border border-white/[0.06] hover:bg-white/[0.04]"
+                      : "problems-page-btn text-muted-foreground bg-card border border-border hover:bg-white/[0.04]"
                   }`}
                 >
                   {p}
@@ -469,7 +469,7 @@ export default function ProblemsList({ problems }: ProblemsListProps) {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="problems-page-btn flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-[#9CA3AF] bg-[#111827] border border-white/[0.06] hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="problems-page-btn flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium text-muted-foreground bg-card border border-border hover:bg-white/[0.04] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               Next
               <ChevronRight className="w-3.5 h-3.5" />

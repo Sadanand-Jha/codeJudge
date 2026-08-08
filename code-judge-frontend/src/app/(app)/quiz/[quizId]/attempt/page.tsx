@@ -198,27 +198,27 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   if (showResults) {
     const percentage = Math.round((score / quiz.totalPoints) * 100);
     return (
-      <div className="min-h-screen bg-[#09090B] p-4 sm:p-6">
+      <div className="min-h-screen bg-background p-4 sm:p-6">
         <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border border-white/[0.08] bg-[#111827] p-5 sm:p-8 text-center"
+            className="rounded-2xl border border-border-hover bg-card p-5 sm:p-8 text-center"
           >
             <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/20 flex items-center justify-center">
               <CheckCircle className="w-8 h-8 sm:w-10 sm:h-10 text-[#22C55E]" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">Quiz Completed!</h1>
-            <p className="text-xs sm:text-sm text-[#9CA3AF] mb-4 sm:mb-6">Great effort! Here's how you did:</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">Great effort! Here's how you did:</p>
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-              <div className="rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3 sm:p-4">
+              <div className="rounded-xl border border-border-hover bg-[#0B0D12] p-3 sm:p-4">
                 <p className="text-2xl sm:text-3xl font-bold text-white">{score}/{quiz.totalPoints}</p>
-                <p className="text-[10px] sm:text-xs text-[#9CA3AF]">Total Score</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Total Score</p>
               </div>
-              <div className="rounded-xl border border-white/[0.08] bg-[#0B0D12] p-3 sm:p-4">
+              <div className="rounded-xl border border-border-hover bg-[#0B0D12] p-3 sm:p-4">
                 <p className="text-2xl sm:text-3xl font-bold text-white">{percentage}%</p>
-                <p className="text-[10px] sm:text-xs text-[#9CA3AF]">Accuracy</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Accuracy</p>
               </div>
             </div>
 
@@ -226,7 +226,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
               {questions.map((q, index) => {
                 const isCorrect = answers[q.id] === q.correctAnswer;
                 return (
-                  <div key={q.id} className="flex items-start gap-2.5 sm:gap-3 rounded-lg border border-white/[0.08] bg-[#0B0D12] p-2.5 sm:p-3 text-left">
+                  <div key={q.id} className="flex items-start gap-2.5 sm:gap-3 rounded-lg border border-border-hover bg-[#0B0D12] p-2.5 sm:p-3 text-left">
                     {isCorrect ? (
                       <CheckCircle className="w-4 h-4 text-[#22C55E] shrink-0 mt-0.5" />
                     ) : (
@@ -235,7 +235,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-white">Q{index + 1}: {q.question}</p>
                       {!isCorrect && q.explanation && (
-                        <p className="text-[10px] text-[#9CA3AF] mt-1 line-clamp-2">{q.explanation}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{q.explanation}</p>
                       )}
                     </div>
                     <span className="text-xs font-bold text-white shrink-0">{isCorrect ? `+${q.points}` : "0"}</span>
@@ -268,13 +268,13 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   }, [quizProgress, quizCode]);
 
   return (
-    <div className="min-h-screen bg-[#09090B] flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="shrink-0 border-b border-white/[0.08] bg-[#0B0C0F]">
+      <div className="shrink-0 border-b border-border-hover bg-[#0B0C0F]">
         <div className="flex items-center justify-between px-4 sm:px-6 py-3">
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-semibold text-white truncate">{quiz.title}</h1>
-            <p className="text-xs text-[#9CA3AF]">Q {currentQuestionIndex + 1} of {questions.length}</p>
+            <p className="text-xs text-muted-foreground">Q {currentQuestionIndex + 1} of {questions.length}</p>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -312,13 +312,13 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="quiz-watermark-container rounded-2xl border border-white/[0.08] bg-[#111827] p-4 sm:p-6"
+            className="quiz-watermark-container rounded-2xl border border-border-hover bg-card p-4 sm:p-6"
           >
             {watermarkText && <div className="quiz-watermark" data-watermark={watermarkText}></div>}
             <div className="quiz-watermark-content">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-[#9CA3AF]">Q{currentQuestionIndex + 1}</span>
+                <span className="text-xs font-medium text-muted-foreground">Q{currentQuestionIndex + 1}</span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#EC4899]/10 text-[#EC4899]">
                   {currentQuestion.points} pts
                 </span>
@@ -336,7 +336,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
                       className={`w-full text-left p-4 sm:p-4 rounded-xl border transition-all min-h-[56px] ${
                         isSelected
                           ? "border-[#EC4899] bg-[#EC4899]/10"
-                          : "border-white/[0.08] bg-[#0B0D12] hover:border-white/[0.12] active:scale-[0.98]"
+                          : "border-border-hover bg-[#0B0D12] hover:border-border-hover active:scale-[0.98]"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -358,12 +358,12 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       </div>
 
       {/* Navigation Footer */}
-      <div className="shrink-0 border-t border-white/[0.08] bg-[#0B0C0F] px-4 sm:px-6 py-3">
+      <div className="shrink-0 border-t border-border-hover bg-[#0B0C0F] px-4 sm:px-6 py-3">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-2">
           <button
             onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
             disabled={currentQuestionIndex === 0}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-10 sm:h-9 rounded-lg border border-white/[0.08] bg-white/5 text-xs sm:text-xs font-medium text-white hover:border-white/[0.12] transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-10 sm:h-9 rounded-lg border border-border-hover bg-white/5 text-xs sm:text-xs font-medium text-white hover:border-border-hover transition-colors disabled:opacity-50"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Previous</span>
@@ -384,7 +384,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           <button
             onClick={() => setCurrentQuestionIndex((prev) => Math.min(questions.length - 1, prev + 1))}
             disabled={currentQuestionIndex === questions.length - 1}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-10 sm:h-9 rounded-lg border border-white/[0.08] bg-white/5 text-xs sm:text-xs font-medium text-white hover:border-white/[0.12] transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-10 sm:h-9 rounded-lg border border-border-hover bg-white/5 text-xs sm:text-xs font-medium text-white hover:border-border-hover transition-colors disabled:opacity-50"
           >
             <span className="hidden sm:inline">Next</span>
             <span className="sm:hidden">Next</span>

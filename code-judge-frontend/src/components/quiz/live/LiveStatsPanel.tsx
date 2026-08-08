@@ -38,13 +38,13 @@ export function LiveStatsPanel({ stats, className = "" }: LiveStatsPanelProps) {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="rounded-2xl border border-white/[0.06] bg-[#171923] p-3 hover:border-[#EC4899]/20 transition-all"
+            className="rounded-2xl border border-border bg-[#171923] p-3 hover:border-[#EC4899]/20 transition-all"
           >
             <div className="flex items-center gap-1.5 mb-2">
               <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${item.color}15`, border: `1px solid ${item.color}25` }}>
                 <Icon className="w-3 h-3" style={{ color: item.color }} />
               </div>
-              <span className="text-[9px] font-medium text-[#A1A1AA] uppercase tracking-wide leading-tight">{item.label}</span>
+              <span className="text-[9px] font-medium text-muted-foreground uppercase tracking-wide leading-tight">{item.label}</span>
             </div>
             <p className="text-lg font-bold text-white tabular-nums">{value}</p>
           </motion.div>

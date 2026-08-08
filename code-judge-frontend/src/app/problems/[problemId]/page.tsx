@@ -55,7 +55,7 @@ export default async function ProblemPage({ params }: ProblemPageProps) {
         <div className="flex flex-col items-center justify-center text-center">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#F3F4F6]">
             <svg
-              className="h-8 w-8 text-[#9CA3AF]"
+              className="h-8 w-8 text-muted-foreground"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}

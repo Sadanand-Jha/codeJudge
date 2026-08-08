@@ -28,7 +28,7 @@ const menuItems = [
 
 export default function Sidebar() {
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-[#09090B] border-r border-white/[0.06] flex flex-col z-50">
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-background border-r border-border flex flex-col z-50">
       {/* Logo */}
       <div className="px-6 py-6">
         <Link href="/" className="flex items-center gap-2.5">
@@ -58,12 +58,12 @@ export default function Sidebar() {
               )}
               <Icon
                 className={`w-4 h-4 relative z-10 transition-colors ${
-                  item.active ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+                  item.active ? "text-white" : "text-muted-foreground group-hover:text-white"
                 }`}
               />
               <span
                 className={`relative z-10 transition-colors ${
-                  item.active ? "text-white" : "text-[#9CA3AF] group-hover:text-white"
+                  item.active ? "text-white" : "text-muted-foreground group-hover:text-white"
                 }`}
               >
                 {item.label}
@@ -74,14 +74,14 @@ export default function Sidebar() {
       </nav>
 
       {/* User mini card at bottom */}
-      <div className="p-3 border-t border-white/[0.06]">
+      <div className="p-3 border-t border-border">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors cursor-pointer">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-white">
             U
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold text-white truncate">User</p>
-            <p className="text-[10px] text-[#9CA3AF] truncate">user@example.com</p>
+            <p className="text-[10px] text-muted-foreground truncate">user@example.com</p>
           </div>
         </div>
       </div>

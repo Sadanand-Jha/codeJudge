@@ -47,7 +47,7 @@ export default function ProfileStats({ username, email, solved, contributions, r
                 Specialist
               </span>
             </div>
-            <p className="text-sm text-slate-400 mt-0.5">{email}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{email}</p>
           </div>
         </div>
       </motion.div>
@@ -63,9 +63,9 @@ export default function ProfileStats({ username, email, solved, contributions, r
             className="md:col-span-3 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl transition-colors hover:border-cyan-500/30"
           >
             <div className="flex items-start justify-between mb-4">
-              <p className="text-xs font-medium uppercase tracking-widest text-slate-400">{stat.label}</p>
+              <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{stat.label}</p>
               <div className="w-8 h-8 rounded-lg border border-slate-700/50 bg-slate-700/30 flex items-center justify-center">
-                <Icon className="w-4 h-4 text-slate-400" />
+                <Icon className="w-4 h-4 text-muted-foreground" />
               </div>
             </div>
             <p className="text-3xl font-semibold tracking-tight text-slate-100">{stat.value}</p>

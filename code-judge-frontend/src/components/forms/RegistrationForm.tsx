@@ -507,7 +507,7 @@ export default function RegistrationForm() {
                   type="button"
                   disabled={countdown > 0 || sendingOtp}
                   onClick={handleResendOtp}
-                  className="text-[11px] text-[#2563EB] transition-colors hover:text-[#1D4ED8] disabled:cursor-not-allowed disabled:text-[#9CA3AF]"
+                  className="text-[11px] text-[#2563EB] transition-colors hover:text-[#1D4ED8] disabled:cursor-not-allowed disabled:text-muted-foreground"
                 >
                   {sendingOtp
                     ? "Resending..."

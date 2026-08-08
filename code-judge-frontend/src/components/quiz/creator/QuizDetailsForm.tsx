@@ -55,7 +55,7 @@ function Toggle({ checked, onChange, label, description }: { checked: boolean; o
     <div className="flex items-center justify-between py-3">
       <div>
         <p className="text-sm font-medium text-white">{label}</p>
-        {description && <p className="text-xs text-[#71717A] mt-0.5">{description}</p>}
+        {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
       </div>
       <button
         onClick={() => onChange(!checked)}
@@ -75,7 +75,7 @@ function Toggle({ checked, onChange, label, description }: { checked: boolean; o
 
 function FieldLabel({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
   return (
-    <label className="flex items-center gap-1.5 text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-wider mb-2">
+    <label className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
       {icon}
       {children}
     </label>
@@ -103,10 +103,10 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
   };
 
   const inputClass =
-    "w-full h-11 rounded-xl border border-white/[0.08] bg-[#111217] px-4 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/40 focus:ring-2 focus:ring-[#EC4899]/10 transition-all";
+    "w-full h-11 rounded-xl border border-border-hover bg-[#111217] px-4 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/40 focus:ring-2 focus:ring-[#EC4899]/10 transition-all";
 
   return (
-    <div className="min-h-screen bg-[#09090B] text-white">
+    <div className="min-h-screen bg-background text-white">
       {/* Subtle background glow */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#EC4899]/5 blur-[120px] rounded-full" />
@@ -125,12 +125,12 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#EC4899] to-[#BE185D] flex items-center justify-center shadow-[0_0_20px_rgba(236,72,153,0.3)]">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xs font-semibold text-[#A1A1AA] tracking-widest uppercase">Quiz Studio</span>
+            <span className="text-xs font-semibold text-muted-foreground tracking-widest uppercase">Quiz Studio</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white mb-3">
             Create New Quiz
           </h1>
-          <p className="text-base text-[#A1A1AA] max-w-lg leading-relaxed">
+          <p className="text-base text-muted-foreground max-w-lg leading-relaxed">
             Set up the foundation of your assessment. {"You'll add questions in the next step."}
           </p>
         </motion.div>
@@ -173,7 +173,7 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
                   onChange={(e) => update({ description: e.target.value })}
                   placeholder="Describe what this quiz covers, who it's for, and any important instructions..."
                   rows={4}
-                  className="w-full rounded-xl border border-white/[0.08] bg-[#111217] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/40 focus:ring-2 focus:ring-[#EC4899]/10 transition-all resize-none leading-relaxed"
+                  className="w-full rounded-xl border border-border-hover bg-[#111217] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/40 focus:ring-2 focus:ring-[#EC4899]/10 transition-all resize-none leading-relaxed"
                 />
               </div>
 
@@ -194,7 +194,7 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
                     <motion.div
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="absolute z-20 mt-2 w-full rounded-xl border border-white/[0.08] bg-[#171923] shadow-2xl shadow-black/50 overflow-hidden"
+                      className="absolute z-20 mt-2 w-full rounded-xl border border-border-hover bg-[#171923] shadow-2xl shadow-black/50 overflow-hidden"
                     >
                       <div className="max-h-56 overflow-y-auto p-1.5">
                         {SUBJECTS.map((s) => (
@@ -202,7 +202,7 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
                             key={s}
                             onClick={() => { update({ subject: s }); setShowSubjectDropdown(false); }}
                             className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                              details.subject === s ? "bg-[#EC4899]/10 text-[#EC4899]" : "text-[#A1A1AA] hover:text-white hover:bg-white/[0.04]"
+                              details.subject === s ? "bg-[#EC4899]/10 text-[#EC4899]" : "text-muted-foreground hover:text-white hover:bg-white/[0.04]"
                             }`}
                           >
                             {s}
@@ -238,7 +238,7 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
                         className={`flex-1 h-11 rounded-xl border text-sm font-semibold transition-all ${
                           active
                             ? "border-transparent text-white shadow-lg"
-                            : "border-white/[0.08] bg-[#111217] text-[#A1A1AA] hover:text-white hover:border-white/[0.15]"
+                            : "border-border-hover bg-[#111217] text-muted-foreground hover:text-white hover:border-white/[0.15]"
                         }`}
                         style={active ? { backgroundColor: `${color}20`, boxShadow: `0 0 20px ${color}20` } : undefined}
                       >
@@ -271,7 +271,7 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
                     className={`relative p-4 rounded-xl border text-left transition-all ${
                       active
                         ? "border-[#EC4899]/40 bg-[#EC4899]/5 shadow-[0_0_20px_rgba(236,72,153,0.1)]"
-                        : "border-white/[0.08] bg-[#111217] hover:border-white/[0.15]"
+                        : "border-border-hover bg-[#111217] hover:border-white/[0.15]"
                     }`}
                   >
                     {active && (
@@ -280,8 +280,8 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
                       </div>
                     )}
                     <Icon className={`w-5 h-5 mb-2 ${active ? "text-[#EC4899]" : "text-[#6B7280]"}`} />
-                    <p className={`text-sm font-semibold ${active ? "text-white" : "text-[#A1A1AA]"}`}>{opt.label}</p>
-                    <p className="text-xs text-[#71717A] mt-0.5">{opt.description}</p>
+                    <p className={`text-sm font-semibold ${active ? "text-white" : "text-muted-foreground"}`}>{opt.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>
                   </button>
                 );
               })}
@@ -341,7 +341,7 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
               <h2 className="text-sm font-bold text-white tracking-wide">Assessment Rules</h2>
             </div>
 
-            <div className="rounded-xl border border-white/[0.08] bg-[#111217] px-5 divide-y divide-white/[0.06]">
+            <div className="rounded-xl border border-border-hover bg-[#111217] px-5 divide-y divide-white/[0.06]">
               <Toggle
                 checked={details.randomizeQuestions}
                 onChange={(v) => update({ randomizeQuestions: v })}
@@ -401,7 +401,7 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
               <h2 className="text-sm font-bold text-white tracking-wide">Tags</h2>
             </div>
 
-            <div className="rounded-xl border border-white/[0.08] bg-[#111217] p-4">
+            <div className="rounded-xl border border-border-hover bg-[#111217] p-4">
               <div className="flex flex-wrap gap-2 mb-3">
                 {details.tags.map((tag) => (
                   <span
@@ -426,7 +426,7 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
                 />
                 <button
                   onClick={addTag}
-                  className="px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.03] text-xs font-medium text-[#A1A1AA] hover:text-white hover:border-white/[0.15] transition-colors"
+                  className="px-3 py-1.5 rounded-lg border border-border-hover bg-white/[0.03] text-xs font-medium text-muted-foreground hover:text-white hover:border-white/[0.15] transition-colors"
                 >
                   Add
                 </button>
@@ -443,7 +443,7 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
           className="sticky bottom-0 mt-16 -mx-6 sm:-mx-8 px-6 sm:px-8 py-5 bg-gradient-to-t from-[#09090B] via-[#09090B]/95 to-transparent"
         >
           <div className="flex items-center justify-between">
-            <div className="text-xs text-[#71717A]">
+            <div className="text-xs text-muted-foreground">
               {details.name.trim() ? (
                 <span className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />

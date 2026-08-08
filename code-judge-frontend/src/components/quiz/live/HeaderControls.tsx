@@ -52,9 +52,9 @@ export function HeaderControls({
   const progressPct = Math.min(100, (totalDuration > 0 ? (elapsedSeconds / totalDuration) * 100 : 0));
 
   return (
-    <div className="border-b border-white/[0.08] bg-[#0B0D14]/80 backdrop-blur-xl shrink-0 z-30">
+    <div className="border-b border-border-hover bg-[#0B0D14]/80 backdrop-blur-xl shrink-0 z-30">
       <div className="flex items-center gap-3 px-4 py-2.5 flex-wrap">
-        <button onClick={onBack} className="h-8 px-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3Af] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5" title="Back to dashboard">
+        <button onClick={onBack} className="h-8 px-2.5 rounded-lg border border-border bg-white/[0.04] text-xs font-medium text-[#9CA3Af] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5" title="Back to dashboard">
           <ArrowLeft className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Back</span>
         </button>
@@ -67,7 +67,7 @@ export function HeaderControls({
           </div>
           <div className="min-w-0">
             <p className="text-sm font-bold text-white truncate max-w-[220px] sm:max-w-none">{quizName}</p>
-            <p className="text-[9px] text-[#71717A]">Live Assessment Room</p>
+            <p className="text-[9px] text-muted-foreground">Live Assessment Room</p>
           </div>
         </div>
 
@@ -80,22 +80,22 @@ export function HeaderControls({
           <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: badge.color }}>{badge.label}</span>
         </div>
 
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-border">
           <Clock className="w-3.5 h-3.5 text-[#EC4899]" />
           <span className="text-xs font-bold text-white tabular-nums">{formatDuration(elapsedSeconds)}</span>
-          <span className="text-[9px] text-[#71717A] hidden md:inline">/ {formatDuration(totalDuration)}</span>
+          <span className="text-[9px] text-muted-foreground hidden md:inline">/ {formatDuration(totalDuration)}</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-border">
             <Users className="w-3.5 h-3.5 text-[#3B82F6]" />
             <span className="text-xs font-bold text-white tabular-nums">{studentsJoined}</span>
-            <span className="text-[9px] text-[#71717A] hidden md:inline">joined</span>
+            <span className="text-[9px] text-muted-foreground hidden md:inline">joined</span>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/[0.03] border border-border">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E]" />
             <span className="text-xs font-bold text-white tabular-nums">{studentsSubmitted}</span>
-            <span className="text-[9px] text-[#71717A] hidden md:inline">submitted</span>
+            <span className="text-[9px] text-muted-foreground hidden md:inline">submitted</span>
           </div>
         </div>
 
@@ -122,7 +122,7 @@ export function HeaderControls({
             <Square className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">End</span>
           </motion.button>
-          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={onRefresh} className="h-8 px-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] text-xs font-medium text-[#9CA3Af] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5" title="Refresh">
+          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={onRefresh} className="h-8 px-2.5 rounded-lg border border-border bg-white/[0.04] text-xs font-medium text-[#9CA3Af] hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5" title="Refresh">
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
           </motion.button>
 

@@ -165,7 +165,7 @@ function StatusBadge({ status }: { status: string }) {
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: any; color: string }) {
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-[#111827] p-4">
+    <div className="rounded-xl border border-border-hover bg-card p-4">
       <div className="flex items-center gap-2 mb-2">
         <Icon className={`w-4 h-4 ${color}`} />
         <span className="text-[10px] font-medium text-[#6B7280]">{label}</span>
@@ -298,7 +298,7 @@ export default function QuizLeaderboardPage() {
                 <div className="flex items-center gap-3 mb-2">
                   <button
                     onClick={() => router.back()}
-                    className="flex items-center gap-1 text-xs text-[#9CA3AF] hover:text-white transition-colors"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-white transition-colors"
                   >
                     <TrendingUp className="w-3 h-3 rotate-180" />
                     Back
@@ -310,7 +310,7 @@ export default function QuizLeaderboardPage() {
                   </div>
                   <div>
                     <h1 className="text-2xl font-bold text-white">Quiz Leaderboard</h1>
-                    <p className="text-[13px] text-[#9CA3AF]">
+                    <p className="text-[13px] text-muted-foreground">
                       {stats.participants} participants • Sorted by highest marks, then lowest time
                     </p>
                   </div>
@@ -359,14 +359,14 @@ export default function QuizLeaderboardPage() {
                   placeholder="Search students..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-8 pl-8 pr-3 rounded-lg border border-white/[0.08] bg-[#111827] text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none w-64"
+                  className="h-8 pl-8 pr-3 rounded-lg border border-border-hover bg-card text-xs text-white placeholder-[#6B7280] focus:border-[#7C3AED] focus:outline-none w-64"
                 />
               </div>
 
               <select
                 value={selectedCollege}
                 onChange={(e) => setSelectedCollege(e.target.value)}
-                className="h-8 px-3 rounded-lg border border-white/[0.08] bg-[#111827] text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+                className="h-8 px-3 rounded-lg border border-border-hover bg-card text-xs text-white focus:border-[#7C3AED] focus:outline-none"
               >
                 <option value="all">All Colleges</option>
                 {colleges.map(college => (
@@ -377,7 +377,7 @@ export default function QuizLeaderboardPage() {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="h-8 px-3 rounded-lg border border-white/[0.08] bg-[#111827] text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+                className="h-8 px-3 rounded-lg border border-border-hover bg-card text-xs text-white focus:border-[#7C3AED] focus:outline-none"
               >
                 <option value="all">All Status</option>
                 <option value="completed">Completed</option>
@@ -390,7 +390,7 @@ export default function QuizLeaderboardPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="h-8 px-3 rounded-lg border border-white/[0.08] bg-[#111827] text-xs text-white focus:border-[#7C3AED] focus:outline-none"
+                className="h-8 px-3 rounded-lg border border-border-hover bg-card text-xs text-white focus:border-[#7C3AED] focus:outline-none"
               >
                 <option value="rank">Sort by Rank</option>
                 <option value="marks">Sort by Marks</option>
@@ -400,7 +400,7 @@ export default function QuizLeaderboardPage() {
 
               <button
                 onClick={() => setHideNames(!hideNames)}
-                className="h-8 px-3 rounded-lg border border-white/[0.08] bg-[#111827] text-xs text-white hover:border-[#7C3AED] transition-colors flex items-center gap-1.5"
+                className="h-8 px-3 rounded-lg border border-border-hover bg-card text-xs text-white hover:border-[#7C3AED] transition-colors flex items-center gap-1.5"
                 title={hideNames ? "Show Names" : "Hide Names"}
               >
                 {hideNames ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -410,7 +410,7 @@ export default function QuizLeaderboardPage() {
           </div>
 
           {/* Leaderboard: Cards on mobile, Table on desktop */}
-          <div className="rounded-xl border border-white/[0.08] bg-[#111827] overflow-hidden">
+          <div className="rounded-xl border border-border-hover bg-card overflow-hidden">
             {/* Mobile Card List */}
             <div className="md:hidden space-y-3 p-3 sm:p-4">
               <AnimatePresence>
@@ -423,7 +423,7 @@ export default function QuizLeaderboardPage() {
                     className={`rounded-xl border p-4 ${
                       entry.isCurrentUser
                         ? "border-[#7C3AED]/30 bg-[#7C3AED]/5"
-                        : "border-white/[0.08] bg-white/[0.02]"
+                        : "border-border-hover bg-white/[0.02]"
                     }`}
                   >
                     <div className="flex items-start gap-3 mb-3">
@@ -437,7 +437,7 @@ export default function QuizLeaderboardPage() {
                             <div className="text-sm font-medium text-white truncate">
                               {hideNames ? "Anonymous" : entry.username}
                             </div>
-                            <div className="text-[10px] text-[#9CA3AF]">
+                            <div className="text-[10px] text-muted-foreground">
                               {hideNames ? "Hidden" : entry.college || "N/A"}
                             </div>
                           </div>
@@ -447,12 +447,12 @@ export default function QuizLeaderboardPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
-                        <div className="text-[10px] text-[#71717A] mb-0.5">Score</div>
+                      <div className="rounded-lg border border-border bg-white/[0.03] px-3 py-2">
+                        <div className="text-[10px] text-muted-foreground mb-0.5">Score</div>
                         <div className="text-sm font-bold text-white">{entry.marks}/{entry.totalMarks}</div>
                       </div>
-                      <div className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
-                        <div className="text-[10px] text-[#71717A] mb-0.5">Accuracy</div>
+                      <div className="rounded-lg border border-border bg-white/[0.03] px-3 py-2">
+                        <div className="text-[10px] text-muted-foreground mb-0.5">Accuracy</div>
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-1.5 rounded-full bg-white/[0.06]">
                             <div className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#3B82F6]" style={{ width: `${entry.percentage}%` }} />
@@ -462,7 +462,7 @@ export default function QuizLeaderboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 text-[11px] text-[#9CA3AF]">
+                    <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <span className="text-[#22C55E]">✓</span> {entry.correctCount}
                       </span>
@@ -539,7 +539,7 @@ export default function QuizLeaderboardPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-[12px] text-[#9CA3AF]">{hideNames ? "Hidden" : entry.college || "N/A"}</span>
+                          <span className="text-[12px] text-muted-foreground">{hideNames ? "Hidden" : entry.college || "N/A"}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-[14px] font-bold text-white">{entry.marks}</span>
@@ -552,7 +552,7 @@ export default function QuizLeaderboardPage() {
                                 style={{ width: `${entry.percentage}%` }}
                               />
                             </div>
-                            <span className="text-[12px] text-[#9CA3AF]">{entry.percentage}%</span>
+                            <span className="text-[12px] text-muted-foreground">{entry.percentage}%</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
@@ -565,7 +565,7 @@ export default function QuizLeaderboardPage() {
                           <span className="text-[13px] text-[#F59E0B] font-medium">{entry.skippedCount}</span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-[13px] text-[#9CA3AF]">{formatTime(entry.timeTaken)}</span>
+                          <span className="text-[13px] text-muted-foreground">{formatTime(entry.timeTaken)}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-[11px] text-[#6B7280]">
@@ -583,7 +583,7 @@ export default function QuizLeaderboardPage() {
             </div>
 
             {visibleCount < filteredEntries.length && !leaderboardSettings.showTop10Only && (
-              <div className="flex items-center justify-center py-4 border-t border-white/[0.06]">
+              <div className="flex items-center justify-center py-4 border-t border-border">
                 <button
                   onClick={() => setVisibleCount((prev) => prev + 25)}
                   className="flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] text-[#7C3AED] hover:bg-[#7C3AED]/10 transition-colors"

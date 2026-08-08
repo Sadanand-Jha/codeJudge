@@ -214,7 +214,7 @@ function WaitingRoomPageInner({
 
       {/* Top Bar */}
       <div className={`relative z-[200] flex items-center justify-between px-4 sm:px-6 py-3 transition-all duration-350 ${
-        isDark ? 'border-b border-white/[0.06]' : 'border-b border-black/[0.06]'
+        isDark ? 'border-b border-border' : 'border-b border-black/[0.06]'
       }`}>
         <div className="flex items-center gap-3">
           {/* Back Button */}
@@ -226,7 +226,7 @@ function WaitingRoomPageInner({
             onClick={() => setExitModalOpen(true)}
             className={`nav-btn flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-250 ${
               isDark
-                ? 'bg-white/[0.05] border-white/[0.12] text-[#9CA3AF] hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
+                ? 'bg-white/[0.05] border-border-hover text-muted-foreground hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
                 : 'bg-black/[0.03] border-black/[0.12] text-[#5a5a7a] hover:text-[#1a1a2e] hover:border-[#8B5CF6]/40 hover:bg-black/[0.06] hover:shadow-[0_0_20px_rgba(139,92,246,0.12)]'
             }`}
           >
@@ -248,7 +248,7 @@ function WaitingRoomPageInner({
             onClick={() => setDrawerOpen(true)}
             className={`nav-btn flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-250 ${
               isDark
-                ? 'bg-white/[0.05] border-white/[0.12] text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
+                ? 'bg-white/[0.05] border-border-hover text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
                 : 'bg-black/[0.03] border-black/[0.12] text-[#1a1a2e] hover:border-[#8B5CF6]/40 hover:bg-black/[0.06] hover:shadow-[0_0_20px_rgba(139,92,246,0.12)]'
             }`}
           >
@@ -364,8 +364,8 @@ function WaitingRoomPageInner({
               animate={{ opacity: 1 }}
               className="text-center"
             >
-              <Users className="w-10 h-10 mx-auto text-[#71717A] mb-3" />
-              <p className="text-sm text-[#A1A1AA]">Waiting for participants...</p>
+              <Users className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">Waiting for participants...</p>
             </motion.div>
           </div>
         )}
@@ -386,7 +386,7 @@ function WaitingRoomPageInner({
           }
           className={`nav-btn flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-250 ${
             isDark
-              ? 'bg-white/[0.05] border-white/[0.12] text-[#9CA3AF] hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
+              ? 'bg-white/[0.05] border-border-hover text-muted-foreground hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
               : 'bg-black/[0.03] border-black/[0.12] text-[#5a5a7a] hover:text-[#1a1a2e] hover:border-[#8B5CF6]/40 hover:bg-black/[0.06] hover:shadow-[0_0_20px_rgba(139,92,246,0.12)]'
           }`}
         >
@@ -407,7 +407,7 @@ function WaitingRoomPageInner({
           }
           className={`nav-btn flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-250 ${
             isDark
-              ? 'bg-white/[0.05] border-white/[0.12] text-[#9CA3AF] hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
+              ? 'bg-white/[0.05] border-border-hover text-muted-foreground hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
               : 'bg-black/[0.03] border-black/[0.12] text-[#5a5a7a] hover:text-[#1a1a2e] hover:border-[#8B5CF6]/40 hover:bg-black/[0.06] hover:shadow-[0_0_20px_rgba(139,92,246,0.12)]'
           }`}
         >
@@ -423,7 +423,7 @@ function WaitingRoomPageInner({
           animate={{ opacity: 1, x: 0 }}
           className={`waiting-summary-card px-4 py-3 rounded-2xl backdrop-blur-xl border shadow-xl transition-all duration-350 ${
             isDark
-              ? 'bg-[#111217]/80 border-white/[0.08] shadow-black/40'
+              ? 'bg-[#111217]/80 border-border-hover shadow-black/40'
               : 'bg-white/80 border-black/[0.08] shadow-black/10'
           }`}
         >
@@ -433,7 +433,7 @@ function WaitingRoomPageInner({
                 isDark ? 'text-white' : 'text-[#1a1a2e]'
               }`}>{room.stats.studentsJoined}</p>
               <p className={`waiting-summary-muted text-[9px] uppercase tracking-wider transition-colors duration-350 ${
-                isDark ? 'text-[#71717A]' : 'text-[#9ca3af]'
+                isDark ? 'text-muted-foreground' : 'text-[#9ca3af]'
               }`}>Joined</p>
             </div>
             <div className={`waiting-summary-divider w-px h-8 transition-colors duration-350 ${
@@ -442,7 +442,7 @@ function WaitingRoomPageInner({
             <div className="text-center">
               <p className="waiting-summary-accent text-lg font-bold text-[#EC4899]">15-20</p>
               <p className={`waiting-summary-muted text-[9px] uppercase tracking-wider transition-colors duration-350 ${
-                isDark ? 'text-[#71717A]' : 'text-[#9ca3af]'
+                isDark ? 'text-muted-foreground' : 'text-[#9ca3af]'
               }`}>Visible</p>
             </div>
             <div className={`waiting-summary-divider w-px h-8 transition-colors duration-350 ${
@@ -451,7 +451,7 @@ function WaitingRoomPageInner({
             <div className="text-center">
               <p className="waiting-summary-warning text-lg font-bold text-[#F59E0B]">Soon</p>
               <p className={`waiting-summary-muted text-[9px] uppercase tracking-wider transition-colors duration-350 ${
-                isDark ? 'text-[#71717A]' : 'text-[#9ca3af]'
+                isDark ? 'text-muted-foreground' : 'text-[#9ca3af]'
               }`}>Starts</p>
             </div>
           </div>
@@ -471,7 +471,7 @@ function WaitingRoomPageInner({
           </div>
           <div>
             <p className="waiting-announcement-text text-xs font-medium text-white">The teacher will start the quiz soon.</p>
-            <p className="waiting-announcement-sub text-[10px] text-[#9CA3AF]">Get ready and stay here! 🚀</p>
+            <p className="waiting-announcement-sub text-[10px] text-muted-foreground">Get ready and stay here! 🚀</p>
           </div>
         </motion.div>
 
@@ -502,7 +502,7 @@ function WaitingRoomPageInner({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="waiting-exit-modal w-full max-w-md rounded-2xl border border-[#EC4899]/20 bg-[#111827] p-6 shadow-2xl"
+              className="waiting-exit-modal w-full max-w-md rounded-2xl border border-[#EC4899]/20 bg-card p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 mb-4">
@@ -511,29 +511,29 @@ function WaitingRoomPageInner({
                 </div>
                 <div>
                   <h3 className="waiting-exit-modal-title text-lg font-semibold text-white">Leave Waiting Room?</h3>
-                  <p className="waiting-exit-modal-sub text-xs text-[#9CA3AF]">You won't be unregistered from the quiz</p>
+                  <p className="waiting-exit-modal-sub text-xs text-muted-foreground">You won't be unregistered from the quiz</p>
                 </div>
               </div>
 
-              <div className="waiting-exit-modal-body rounded-xl border border-white/[0.06] bg-[#0B0D12] p-4 mb-4">
+              <div className="waiting-exit-modal-body rounded-xl border border-border bg-[#0B0D12] p-4 mb-4">
                 <div className="flex items-center justify-between">
-                  <span className="waiting-exit-modal-label text-sm text-[#9CA3AF]">Quiz starts in:</span>
+                  <span className="waiting-exit-modal-label text-sm text-muted-foreground">Quiz starts in:</span>
                   <span className="waiting-exit-value text-sm font-bold text-[#F59E0B]">{remainingTime}</span>
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="waiting-exit-modal-label text-sm text-[#9CA3AF]">Your registration:</span>
+                  <span className="waiting-exit-modal-label text-sm text-muted-foreground">Your registration:</span>
                   <span className="waiting-exit-value text-sm font-bold text-[#22C55E]">Will be saved</span>
                 </div>
               </div>
 
-              <p className="waiting-exit-modal-sub text-sm text-[#9CA3AF] mb-4">
+              <p className="waiting-exit-modal-sub text-sm text-muted-foreground mb-4">
                 You can come back anytime before the quiz starts. The teacher will start the quiz soon!
               </p>
 
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setExitModalOpen(false)}
-                  className="flex-1 h-10 rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-white hover:border-white/[0.12] transition-colors"
+                  className="flex-1 h-10 rounded-xl border border-border-hover bg-white/[0.04] text-sm font-medium text-white hover:border-border-hover transition-colors"
                 >
                   Stay Here
                 </button>

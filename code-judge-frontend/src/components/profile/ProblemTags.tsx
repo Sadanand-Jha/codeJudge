@@ -32,7 +32,7 @@ export default function ProblemTags({ data = defaultData }: ProblemTagsProps) {
       className="md:col-span-4 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl transition-colors hover:border-cyan-500/30"
     >
       {/* Header */}
-      <h3 className="text-xs font-medium uppercase tracking-widest text-slate-400 mb-6">Topic Proficiency</h3>
+      <h3 className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-6">Topic Proficiency</h3>
 
       {/* Topic List */}
       <div className="space-y-5">

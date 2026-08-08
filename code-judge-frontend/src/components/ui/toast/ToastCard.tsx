@@ -185,7 +185,7 @@ export function ToastCard({ toast }: ToastCardProps) {
         </div>
         {toast.description && (
           <p
-            className="text-[#9CA3AF]"
+            className="text-muted-foreground"
             style={{ fontSize: "13px", lineHeight: "1.45" }}
           >
             {toast.description}

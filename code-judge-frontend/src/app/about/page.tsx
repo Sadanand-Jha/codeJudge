@@ -21,11 +21,11 @@ export default function AboutPage() {
         <div className="max-w-4xl mx-auto space-y-6">
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">About ByteClash</h1>
-            <p className="text-sm text-[#9CA3AF] mt-1">AI-powered competitive programming platform.</p>
+            <p className="text-sm text-muted-foreground mt-1">AI-powered competitive programming platform.</p>
           </div>
 
-          <div className="rounded-2xl border border-white/[0.06] bg-[#111827] p-6">
-            <p className="text-sm text-[#9CA3AF] leading-relaxed">
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               ByteClash is a modern competitive programming platform designed to help you improve your algorithmic
               thinking and problem-solving skills. Practice with thousands of problems, compete in contests, and
               get AI-powered assistance to accelerate your learning.
@@ -36,7 +36,7 @@ export default function AboutPage() {
             {features.map((f) => {
               const Icon = f.icon;
               return (
-                <div key={f.title} className="rounded-2xl border border-white/[0.06] bg-[#111827] p-5">
+                <div key={f.title} className="rounded-2xl border border-border bg-card p-5">
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
                     style={{ backgroundColor: `${f.color}15`, border: `1px solid ${f.color}30` }}
@@ -52,7 +52,7 @@ export default function AboutPage() {
 
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-[#9CA3AF] hover:text-[#7C3AED] transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#7C3AED] transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Home

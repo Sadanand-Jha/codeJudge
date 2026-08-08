@@ -83,7 +83,7 @@ function ToolbarButton({ icon: Icon, label, onClick }: { icon: LucideIcon; label
   return (
     <button
       onClick={onClick}
-      className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors"
+      className="p-1.5 rounded-lg hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors"
       title={label}
     >
       <Icon className="w-3.5 h-3.5" />
@@ -202,26 +202,26 @@ export default function QuestionCanvas({
   };
 
   return (
-    <main className="flex-1 overflow-y-auto bg-[#09090B]">
+    <main className="flex-1 overflow-y-auto bg-background">
       <div className="max-w-4xl mx-auto px-8 py-8 space-y-8">
         {/* ===== Question Header ===== */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-sm font-bold text-[#EC4899]">Question {index + 1}</span>
-            <span className="text-xs text-[#71717A]">of {total}</span>
+            <span className="text-xs text-muted-foreground">of {total}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onPrevious}
               disabled={index === 0}
-              className="px-3 py-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] text-xs font-medium text-[#A1A1AA] hover:text-white hover:border-white/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-border bg-white/[0.02] text-xs font-medium text-muted-foreground hover:text-white hover:border-border-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               Previous
             </button>
             <button
               onClick={onNext}
               disabled={index === total - 1}
-              className="px-3 py-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] text-xs font-medium text-[#A1A1AA] hover:text-white hover:border-white/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-border bg-white/[0.02] text-xs font-medium text-muted-foreground hover:text-white hover:border-border-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               Next
             </button>
@@ -231,7 +231,7 @@ export default function QuestionCanvas({
         {/* ===== Question Editor (Notion-like) ===== */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-wider">Question</label>
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Question</label>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -245,7 +245,7 @@ export default function QuestionCanvas({
           </div>
 
           {/* Rich text toolbar */}
-          <div className="flex items-center gap-0.5 p-1.5 rounded-xl border border-white/[0.06] bg-[#111217] flex-wrap">
+          <div className="flex items-center gap-0.5 p-1.5 rounded-xl border border-border bg-[#111217] flex-wrap">
             <ToolbarButton icon={Bold} label="Bold (Ctrl+B)" />
             <ToolbarButton icon={Italic} label="Italic (Ctrl+I)" />
             <div className="w-px h-4 bg-white/[0.08] mx-1" />
@@ -271,7 +271,7 @@ export default function QuestionCanvas({
             <div className="flex flex-wrap gap-2">
               {question.images.map((img) => (
                 <div key={img.id} className="relative group">
-                  <img src={img.url} alt={img.caption || "Question image"} className="h-20 w-32 object-cover rounded-lg border border-white/[0.08]" />
+                  <img src={img.url} alt={img.caption || "Question image"} className="h-20 w-32 object-cover rounded-lg border border-border-hover" />
                   <button
                     onClick={() => onChange({ images: question.images.filter((i) => i.id !== img.id) })}
                     className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-[#EF4444] text-white opacity-0 group-hover:opacity-100 transition-opacity"
@@ -284,7 +284,7 @@ export default function QuestionCanvas({
           )}
 
           {/* Large question editor */}
-          <div className="rounded-xl border border-white/[0.06] bg-[#111217] overflow-hidden focus-within:border-[#EC4899]/30 transition-colors">
+          <div className="rounded-xl border border-border bg-[#111217] overflow-hidden focus-within:border-[#EC4899]/30 transition-colors">
             <textarea
               value={question.title}
               onChange={(e) => onChange({ title: e.target.value })}
@@ -296,32 +296,32 @@ export default function QuestionCanvas({
 
         {/* ===== Attachments ===== */}
         <div className="space-y-3">
-          <label className="text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-wider">Attachments</label>
+          <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Attachments</label>
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => handleAttachmentUpload("image")}
-              className="h-9 px-3 rounded-lg border border-white/[0.06] bg-white/[0.02] text-xs font-medium text-[#A1A1AA] hover:text-white hover:border-white/[0.12] transition-colors flex items-center gap-1.5"
+              className="h-9 px-3 rounded-lg border border-border bg-white/[0.02] text-xs font-medium text-muted-foreground hover:text-white hover:border-border-hover transition-colors flex items-center gap-1.5"
             >
               <Image className="w-3.5 h-3.5" />
               Upload Image
             </button>
             <button
               onClick={() => handleAttachmentUpload("pdf")}
-              className="h-9 px-3 rounded-lg border border-white/[0.06] bg-white/[0.02] text-xs font-medium text-[#A1A1AA] hover:text-white hover:border-white/[0.12] transition-colors flex items-center gap-1.5"
+              className="h-9 px-3 rounded-lg border border-border bg-white/[0.02] text-xs font-medium text-muted-foreground hover:text-white hover:border-border-hover transition-colors flex items-center gap-1.5"
             >
               <FileText className="w-3.5 h-3.5" />
               Upload PDF
             </button>
             <button
               onClick={() => handleAttachmentUpload("audio")}
-              className="h-9 px-3 rounded-lg border border-white/[0.06] bg-white/[0.02] text-xs font-medium text-[#A1A1AA] hover:text-white hover:border-white/[0.12] transition-colors flex items-center gap-1.5"
+              className="h-9 px-3 rounded-lg border border-border bg-white/[0.02] text-xs font-medium text-muted-foreground hover:text-white hover:border-border-hover transition-colors flex items-center gap-1.5"
             >
               <Mic className="w-3.5 h-3.5" />
               Upload Audio
             </button>
             <button
               onClick={() => handleAttachmentUpload("video")}
-              className="h-9 px-3 rounded-lg border border-white/[0.06] bg-white/[0.02] text-xs font-medium text-[#A1A1AA] hover:text-white hover:border-white/[0.12] transition-colors flex items-center gap-1.5"
+              className="h-9 px-3 rounded-lg border border-border bg-white/[0.02] text-xs font-medium text-muted-foreground hover:text-white hover:border-border-hover transition-colors flex items-center gap-1.5"
             >
               <Video className="w-3.5 h-3.5" />
               Upload Video
@@ -331,8 +331,8 @@ export default function QuestionCanvas({
           {question.attachments.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {question.attachments.map((att) => (
-                <div key={att.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/[0.06] bg-[#111217]">
-                  <Paperclip className="w-3 h-3 text-[#9CA3AF]" />
+                <div key={att.id} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-[#111217]">
+                  <Paperclip className="w-3 h-3 text-muted-foreground" />
                   <span className="text-xs text-white">{att.name}</span>
                   <button
                     onClick={() => onChange({ attachments: question.attachments.filter((a) => a.id !== att.id) })}
@@ -348,9 +348,9 @@ export default function QuestionCanvas({
 
         {/* ===== Question Type ===== */}
         <div className="space-y-3">
-          <label className="text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-wider">Question Type</label>
+          <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Question Type</label>
           <div className="relative">
-            <div className="flex items-center gap-1 p-1 rounded-xl border border-white/[0.06] bg-[#111217] overflow-x-auto">
+            <div className="flex items-center gap-1 p-1 rounded-xl border border-border bg-[#111217] overflow-x-auto">
               {QUESTION_TYPES.map((type) => {
                 const active = question.type === type.id;
                 const color = TYPE_COLORS[type.id];
@@ -359,7 +359,7 @@ export default function QuestionCanvas({
                     key={type.id}
                     onClick={() => onChange({ type: type.id })}
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all ${
-                      active ? "text-white shadow-lg" : "text-[#9CA3AF] hover:text-white hover:bg-white/[0.04]"
+                      active ? "text-white shadow-lg" : "text-muted-foreground hover:text-white hover:bg-white/[0.04]"
                     }`}
                     style={active ? { backgroundColor: `${color}20`, boxShadow: `0 0 12px ${color}15` } : undefined}
                   >
@@ -376,7 +376,7 @@ export default function QuestionCanvas({
         {isChoiceType && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-wider">
+              <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 {question.type === "multiple_choice" ? "Select all correct answers" : "Select the correct answer"}
               </label>
               {question.type !== "true_false" && question.options.length < 8 && (
@@ -420,7 +420,7 @@ export default function QuestionCanvas({
                           ? "border-[#EC4899]/60 bg-[#EC4899]/10 shadow-[0_0_20px_rgba(236,72,153,0.15)]"
                           : option.isCorrect
                           ? "border-[#22C55E]/40 bg-[#22C55E]/5 shadow-[0_0_16px_rgba(34,197,94,0.1)]"
-                          : "border-white/[0.06] bg-[#111217] hover:border-white/[0.12] hover:bg-[#171923]"
+                          : "border-border bg-[#111217] hover:border-border-hover hover:bg-[#171923]"
                       }`}
                     >
                       {/* Drag handle */}
@@ -461,7 +461,7 @@ export default function QuestionCanvas({
                         />
                         {option.imageUrl && (
                           <div className="relative inline-block">
-                            <img src={option.imageUrl} alt={option.caption || `Option ${option.label}`} className="h-20 rounded-lg border border-white/[0.08]" />
+                            <img src={option.imageUrl} alt={option.caption || `Option ${option.label}`} className="h-20 rounded-lg border border-border-hover" />
                             <button
                               onClick={() => updateOption(optIndex, { imageUrl: undefined })}
                               className="absolute -top-1.5 -right-1.5 p-0.5 rounded-full bg-[#EF4444] text-white"
@@ -525,7 +525,7 @@ export default function QuestionCanvas({
         {/* ===== Text Answer ===== */}
         {isTextType && (
           <div className="space-y-3">
-            <label className="text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-wider">
+            <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               {question.type === "paragraph" ? "Model Answer" : "Correct Answer"}
             </label>
             {question.type === "paragraph" ? (
@@ -534,7 +534,7 @@ export default function QuestionCanvas({
                 onChange={(e) => onChange({ correctAnswer: e.target.value })}
                 placeholder="Enter the model answer..."
                 rows={4}
-                className="w-full rounded-xl border border-white/[0.06] bg-[#111217] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors resize-none"
+                className="w-full rounded-xl border border-border bg-[#111217] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors resize-none"
               />
             ) : (
               <input
@@ -542,7 +542,7 @@ export default function QuestionCanvas({
                 value={String(question.correctAnswer)}
                 onChange={(e) => onChange({ correctAnswer: e.target.value })}
                 placeholder={question.type === "integer" ? "Enter the integer answer..." : "Enter the correct answer..."}
-                className="w-full h-11 rounded-xl border border-white/[0.06] bg-[#111217] px-4 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors"
+                className="w-full h-11 rounded-xl border border-border bg-[#111217] px-4 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors"
               />
             )}
           </div>
@@ -550,13 +550,13 @@ export default function QuestionCanvas({
 
         {/* ===== Explanation ===== */}
         <div className="space-y-3">
-          <label className="text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-wider">Explanation</label>
+          <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Explanation</label>
           <textarea
             value={question.explanation}
             onChange={(e) => onChange({ explanation: e.target.value })}
             placeholder="Explain the correct answer..."
             rows={3}
-            className="w-full rounded-xl border border-white/[0.06] bg-[#111217] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors resize-none"
+            className="w-full rounded-xl border border-border bg-[#111217] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#EC4899]/30 transition-colors resize-none"
           />
         </div>
       </div>

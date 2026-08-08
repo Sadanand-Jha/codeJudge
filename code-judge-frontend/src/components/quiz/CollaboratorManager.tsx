@@ -57,7 +57,7 @@ export default function CollaboratorManager({ collaborators, onChange }: Collabo
             if (e.target.value) addCollaborator(e.target.value);
             e.target.value = "";
           }}
-          className="flex-1 h-9 rounded-lg border border-white/[0.08] bg-[#111827] px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
+          className="flex-1 h-9 rounded-lg border border-border-hover bg-card px-3 text-xs text-white focus:border-[#EC4899] focus:outline-none"
           defaultValue=""
         >
           <option value="" disabled>Add collaborator...</option>
@@ -70,17 +70,17 @@ export default function CollaboratorManager({ collaborators, onChange }: Collabo
       {/* Collaborator list */}
       <div className="space-y-2">
         {collaborators.map((collab) => (
-          <div key={collab.id} className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-[#111827] p-3">
+          <div key={collab.id} className="flex items-center gap-3 rounded-xl border border-border-hover bg-card p-3">
             <img src={collab.avatar} alt={collab.username} className="h-8 w-8 rounded-full bg-white/[0.06]" />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-white truncate">{collab.username}</p>
-              <p className="text-[11px] text-[#9CA3AF]">Added {collab.addedAt}</p>
+              <p className="text-[11px] text-muted-foreground">Added {collab.addedAt}</p>
             </div>
 
             <select
               value={collab.role}
               onChange={(e) => updateRole(collab.id, e.target.value as CollaboratorRole)}
-              className="h-7 rounded-lg border border-white/[0.08] bg-[#0B0D12] px-2 text-[11px] text-white focus:border-[#EC4899] focus:outline-none"
+              className="h-7 rounded-lg border border-border-hover bg-[#0B0D12] px-2 text-[11px] text-white focus:border-[#EC4899] focus:outline-none"
             >
               {roles.map((role) => (
                 <option key={role} value={role}>{role}</option>
@@ -89,7 +89,7 @@ export default function CollaboratorManager({ collaborators, onChange }: Collabo
 
             <button type="button"
               onClick={() => removeCollaborator(collab.id)}
-              className="p-1.5 rounded-lg border border-white/[0.08] text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
+              className="p-1.5 rounded-lg border border-border-hover text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>

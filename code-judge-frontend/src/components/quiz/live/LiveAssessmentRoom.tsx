@@ -84,7 +84,7 @@ export function LiveAssessmentRoom({ data, onBack }: LiveAssessmentRoomProps) {
   }, [data.quizId]);
 
   return (
-    <div className="h-screen bg-[#09090B] flex flex-col overflow-hidden">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <HeaderControls
         quizName={data.quizName}
         status={status}
@@ -107,8 +107,8 @@ export function LiveAssessmentRoom({ data, onBack }: LiveAssessmentRoomProps) {
           <AnimatedCrowd participants={participants} />
         </div>
 
-        <aside className="hidden lg:flex w-80 xl:w-96 border-l border-white/[0.06] bg-[#0B0D14] flex-col shrink-0">
-          <div className="flex items-center gap-1 p-2 border-b border-white/[0.06]">
+        <aside className="hidden lg:flex w-80 xl:w-96 border-l border-border bg-[#0B0D14] flex-col shrink-0">
+          <div className="flex items-center gap-1 p-2 border-b border-border">
             <TabButton active={rightTab === "stats"} onClick={() => setRightTab("stats")} icon={BarChart3} label="Statistics" />
             <TabButton active={rightTab === "activity"} onClick={() => setRightTab("activity")} icon={Activity} label="Activity" badge={activity.length} />
           </div>
@@ -117,12 +117,12 @@ export function LiveAssessmentRoom({ data, onBack }: LiveAssessmentRoomProps) {
             {rightTab === "stats" ? (
               <>
                 <div>
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#71717A] mb-2">Live Statistics</h3>
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Live Statistics</h3>
                   <LiveStatsPanel stats={stats} />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#71717A]">Recent Activity</h3>
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Recent Activity</h3>
                     <button onClick={() => setRightTab("activity")} className="text-[10px] font-semibold text-[#EC4899] hover:text-[#DB2777]">View all</button>
                   </div>
                   <ActivityFeed events={activity} limit={4} />
@@ -130,7 +130,7 @@ export function LiveAssessmentRoom({ data, onBack }: LiveAssessmentRoomProps) {
               </>
             ) : (
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#71717A] mb-2">Live Activity Feed</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Live Activity Feed</h3>
                 <ActivityFeed events={activity} limit={20} />
               </div>
             )}
@@ -152,7 +152,7 @@ export function LiveAssessmentRoom({ data, onBack }: LiveAssessmentRoomProps) {
 function TabButton({ active, onClick, icon: Icon, label, badge }: { active: boolean; onClick: () => void; icon: ComponentType<SVGProps<SVGSVGElement>>; label: string; badge?: number }) {
   return (
     <button onClick={onClick} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${active ? "bg-[#EC4899]/15 text-white border border-[#EC4899]/25" : "text-[#9CA3Af] hover:text-white hover:bg-white/[0.04] border border-transparent"}`}>
-      <Icon className={`w-3.5 h-3.5 ${active ? "text-[#EC4899]" : "text-[#71717A]"}`} />
+      <Icon className={`w-3.5 h-3.5 ${active ? "text-[#EC4899]" : "text-muted-foreground"}`} />
       {label}
       {badge !== undefined && badge > 0 && <span className="px-1.5 py-0.5 rounded-full bg-[#EC4899]/15 text-[9px] font-bold text-[#EC4899]">{badge}</span>}
     </button>

@@ -326,7 +326,7 @@ export default function QuestionEditor({
             <button
               onClick={onPrevious}
               disabled={!hasPrevious}
-              className="p-2 rounded-lg border border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:text-white hover:border-white/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-lg border border-border bg-white/[0.02] text-muted-foreground hover:text-white hover:border-border-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Previous Question (↑)"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -334,7 +334,7 @@ export default function QuestionEditor({
             <button
               onClick={onNext}
               disabled={!hasNext}
-              className="p-2 rounded-lg border border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:text-white hover:border-white/[0.12] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-2 rounded-lg border border-border bg-white/[0.02] text-muted-foreground hover:text-white hover:border-border-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Next Question (↓)"
             >
               <ChevronRight className="w-4 h-4" />
@@ -361,17 +361,17 @@ export default function QuestionEditor({
         )}
 
         {/* ===== Question Settings Bar ===== */}
-        <div className="rounded-xl border border-white/[0.06] bg-[#111827] p-4 space-y-4">
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {/* Question Type */}
             <div className="space-y-1.5 relative">
-              <label className="text-[10px] font-medium text-[#9CA3AF] flex items-center gap-1">
+              <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
                 <Type className="w-3 h-3" />
                 Question Type
               </label>
               <button
                 onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white flex items-center justify-between hover:border-[#EC4899]/40 transition-colors"
+                className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white flex items-center justify-between hover:border-[#EC4899]/40 transition-colors"
               >
                 <span className="truncate">{currentTypeMeta?.label || question.type}</span>
                 <ChevronDown className={`w-3 h-3 text-[#6B7280] transition-transform ${showTypeDropdown ? "rotate-180" : ""}`} />
@@ -383,7 +383,7 @@ export default function QuestionEditor({
                     initial={{ opacity: 0, y: -5, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -5, scale: 0.98 }}
-                    className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border border-white/[0.08] bg-[#111827] shadow-2xl shadow-black/50 overflow-hidden"
+                    className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border border-border-hover bg-card shadow-2xl shadow-black/50 overflow-hidden"
                   >
                     {questionTypes.map((type) => (
                       <button
@@ -395,7 +395,7 @@ export default function QuestionEditor({
                         className={`w-full flex items-start gap-2 px-3 py-2 text-left transition-colors ${
                           question.type === type.value
                             ? "bg-[#EC4899]/10 text-white"
-                            : "text-[#9CA3AF] hover:bg-white/[0.04] hover:text-white"
+                            : "text-muted-foreground hover:bg-white/[0.04] hover:text-white"
                         }`}
                       >
                         <type.icon className="w-3.5 h-3.5 mt-0.5 shrink-0" />
@@ -412,7 +412,7 @@ export default function QuestionEditor({
 
             {/* Marks */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-medium text-[#9CA3AF] flex items-center gap-1">
+              <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
                 <Hash className="w-3 h-3" />
                 Marks
               </label>
@@ -421,13 +421,13 @@ export default function QuestionEditor({
                 value={question.marks}
                 onChange={(e) => update("marks", Number(e.target.value))}
                 min="0"
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
+                className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
               />
             </div>
 
             {/* Estimated Time */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-medium text-[#9CA3AF] flex items-center gap-1">
+              <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 Time (min)
               </label>
@@ -437,13 +437,13 @@ export default function QuestionEditor({
                 onChange={(e) => update("estimatedTime", Number(e.target.value))}
                 min="0"
                 placeholder="Auto"
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
+                className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
               />
             </div>
 
             {/* Tags */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-medium text-[#9CA3AF] flex items-center gap-1">
+              <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
                 <Tag className="w-3 h-3" />
                 Tags
               </label>
@@ -452,7 +452,7 @@ export default function QuestionEditor({
                 value={question.tags.join(", ")}
                 onChange={(e) => update("tags", e.target.value.split(",").map((t) => t.trim()).filter(Boolean))}
                 placeholder="e.g. arrays, dp"
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
+                className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
               />
             </div>
           </div>
@@ -460,7 +460,7 @@ export default function QuestionEditor({
           {/* Topic & Subtopic */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-medium text-[#9CA3AF] flex items-center gap-1">
+              <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
                 <GraduationCap className="w-3 h-3" />
                 Topic
               </label>
@@ -469,11 +469,11 @@ export default function QuestionEditor({
                 value={question.topic || ""}
                 onChange={(e) => update("topic", e.target.value)}
                 placeholder="e.g. Data Structures"
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
+                className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-medium text-[#9CA3AF] flex items-center gap-1">
+              <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
                 <Target className="w-3 h-3" />
                 Subtopic
               </label>
@@ -482,15 +482,15 @@ export default function QuestionEditor({
                 value={question.subtopic || ""}
                 onChange={(e) => update("subtopic", e.target.value)}
                 placeholder="e.g. Linked Lists"
-                className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
+                className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
               />
             </div>
           </div>
 
           {/* Difficulty and Advanced Toggle */}
-          <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between pt-3 border-t border-border">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-medium text-[#9CA3AF]">Difficulty:</span>
+              <span className="text-[10px] font-medium text-muted-foreground">Difficulty:</span>
               <div className="flex items-center gap-1">
                 {difficultyLevels.map((level) => (
                   <button
@@ -499,7 +499,7 @@ export default function QuestionEditor({
                     className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
                       question.difficulty === level.value
                         ? "bg-white/[0.06] border border-white/[0.15] text-white"
-                        : "bg-white/[0.02] text-[#9CA3AF] border border-white/[0.06] hover:text-white"
+                        : "bg-white/[0.02] text-muted-foreground border border-border hover:text-white"
                     }`}
                     style={question.difficulty === level.value ? { color: level.color, borderColor: `${level.color}40`, background: `${level.color}10` } : {}}
                   >
@@ -536,53 +536,53 @@ export default function QuestionEditor({
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/[0.06] bg-[#111827] overflow-hidden">
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
             {/* Toolbar */}
-            <div className="flex items-center gap-0.5 p-1.5 border-b border-white/[0.06] bg-[#0B0D12] flex-wrap">
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Bold (Ctrl+B)">
+            <div className="flex items-center gap-0.5 p-1.5 border-b border-border bg-[#0B0D12] flex-wrap">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Bold (Ctrl+B)">
                 <Bold className="w-3.5 h-3.5" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Italic (Ctrl+I)">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Italic (Ctrl+I)">
                 <Italic className="w-3.5 h-3.5" />
               </button>
               <div className="w-px h-4 bg-white/[0.08] mx-1" />
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Bullet List">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Bullet List">
                 <List className="w-3.5 h-3.5" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Numbered List">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Numbered List">
                 <ListOrdered className="w-3.5 h-3.5" />
               </button>
               <div className="w-px h-4 bg-white/[0.08] mx-1" />
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Insert Image">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Insert Image">
                 <Image className="w-3.5 h-3.5" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Code Block">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Code Block">
                 <Code className="w-3.5 h-3.5" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Inline Code">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Inline Code">
                 <Hash className="w-3.5 h-3.5" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Link">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Link">
                 <Link className="w-3.5 h-3.5" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Table">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Table">
                 <Table className="w-3.5 h-3.5" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Quote">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Quote">
                 <Quote className="w-3.5 h-3.5" />
               </button>
               <div className="w-px h-4 bg-white/[0.08] mx-1" />
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Math (LaTeX)">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Math (LaTeX)">
                 <span className="text-[10px] font-bold">∑</span>
               </button>
               <div className="w-px h-4 bg-white/[0.08] mx-1" />
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Undo">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Undo">
                 <Undo2 className="w-3.5 h-3.5" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Redo">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Redo">
                 <Redo2 className="w-3.5 h-3.5" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors ml-auto" title="Clear formatting">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors ml-auto" title="Clear formatting">
                 <Eraser className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -596,9 +596,9 @@ export default function QuestionEditor({
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="p-3 border-b border-white/[0.06] bg-[#0B0D12]">
+                  <div className="p-3 border-b border-border bg-[#0B0D12]">
                     <div
-                      className="rounded-lg border-2 border-dashed border-white/[0.08] p-4 text-center hover:border-[#EC4899]/40 transition-colors cursor-pointer"
+                      className="rounded-lg border-2 border-dashed border-border-hover p-4 text-center hover:border-[#EC4899]/40 transition-colors cursor-pointer"
                       onClick={() => fileInputRef.current?.click()}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
@@ -614,7 +614,7 @@ export default function QuestionEditor({
                       }}
                     >
                       <Upload className="w-4 h-4 mx-auto mb-1 text-[#6B7280]" />
-                      <p className="text-[10px] text-[#9CA3AF]">Drag & drop, paste, or click to upload</p>
+                      <p className="text-[10px] text-muted-foreground">Drag & drop, paste, or click to upload</p>
                       <p className="text-[9px] text-[#6B7280] mt-0.5">PNG, JPG, GIF up to 5MB</p>
                     </div>
                     <input
@@ -631,13 +631,13 @@ export default function QuestionEditor({
 
             {/* Question images */}
             {question.images.length > 0 && (
-              <div className="flex flex-wrap gap-2 p-2 border-b border-white/[0.06] bg-[#0B0D12]">
+              <div className="flex flex-wrap gap-2 p-2 border-b border-border bg-[#0B0D12]">
                 {question.images.map((img) => (
                   <div key={img.id} className="relative group">
                     <img
                       src={img.url}
                       alt={img.caption || "Question image"}
-                      className="h-16 w-24 object-cover rounded-lg border border-white/[0.08]"
+                      className="h-16 w-24 object-cover rounded-lg border border-border-hover"
                     />
                     <button
                       onClick={() => removeImage(img.id)}
@@ -674,7 +674,7 @@ export default function QuestionEditor({
               <div className="relative">
                 <button
                   onClick={() => setShowCodeLanguage(!showCodeLanguage)}
-                  className="h-7 px-2.5 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-[10px] font-medium text-[#9CA3AF] hover:text-white hover:border-white/[0.15] transition-colors flex items-center gap-1.5"
+                  className="h-7 px-2.5 rounded-lg border border-border-hover bg-[#0B0D12] text-[10px] font-medium text-muted-foreground hover:text-white hover:border-white/[0.15] transition-colors flex items-center gap-1.5"
                 >
                   {question.codeLanguage || "Select Language"}
                   <ChevronDown className={`w-3 h-3 transition-transform ${showCodeLanguage ? "rotate-180" : ""}`} />
@@ -685,7 +685,7 @@ export default function QuestionEditor({
                       initial={{ opacity: 0, y: -5, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -5, scale: 0.98 }}
-                      className="absolute z-50 right-0 top-full mt-1 w-40 rounded-xl border border-white/[0.08] bg-[#111827] shadow-2xl shadow-black/50 overflow-hidden"
+                      className="absolute z-50 right-0 top-full mt-1 w-40 rounded-xl border border-border-hover bg-card shadow-2xl shadow-black/50 overflow-hidden"
                     >
                       {codeLanguages.map((lang) => (
                         <button
@@ -697,7 +697,7 @@ export default function QuestionEditor({
                           className={`w-full px-3 py-1.5 text-[10px] text-left transition-colors ${
                             question.codeLanguage === lang
                               ? "bg-[#EC4899]/10 text-[#EC4899]"
-                              : "text-[#9CA3AF] hover:bg-white/[0.04] hover:text-white"
+                              : "text-muted-foreground hover:bg-white/[0.04] hover:text-white"
                           }`}
                         >
                           {lang}
@@ -708,8 +708,8 @@ export default function QuestionEditor({
                 </AnimatePresence>
               </div>
             </div>
-            <div className="rounded-xl border border-white/[0.06] bg-[#0B0D12] overflow-hidden">
-              <div className="flex items-center gap-1 px-3 py-1.5 border-b border-white/[0.06] bg-[#111827]">
+            <div className="rounded-xl border border-border bg-[#0B0D12] overflow-hidden">
+              <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border bg-card">
                 <span className="w-2 h-2 rounded-full bg-[#EF4444]/60" />
                 <span className="w-2 h-2 rounded-full bg-[#F59E0B]/60" />
                 <span className="w-2 h-2 rounded-full bg-[#22C55E]/60" />
@@ -770,7 +770,7 @@ export default function QuestionEditor({
                   className={`group flex items-start gap-3 rounded-xl border p-3 transition-all ${
                     option.isCorrect
                       ? "border-[#22C55E]/30 bg-[#22C55E]/5"
-                      : "border-white/[0.06] bg-[#111827] hover:border-white/[0.12]"
+                      : "border-border bg-card hover:border-border-hover"
                   } ${dragOverOption === index ? "border-[#EC4899]/50 shadow-[0_0_20px_rgba(236,72,153,0.15)]" : ""}`}
                 >
                   {/* Drag handle */}
@@ -806,7 +806,7 @@ export default function QuestionEditor({
                   </div>
 
                   {/* Option Label */}
-                  <div className="w-6 pt-0.5 text-[11px] font-bold text-[#9CA3AF]">
+                  <div className="w-6 pt-0.5 text-[11px] font-bold text-muted-foreground">
                     {option.label}
                   </div>
 
@@ -824,7 +824,7 @@ export default function QuestionEditor({
                         <img
                           src={option.imageUrl}
                           alt={option.caption || `Option ${option.label}`}
-                          className="h-20 rounded-lg border border-white/[0.08]"
+                          className="h-20 rounded-lg border border-border-hover"
                         />
                         <button
                           onClick={() => updateOption(index, "imageUrl", undefined)}
@@ -840,7 +840,7 @@ export default function QuestionEditor({
                         value={option.caption || ""}
                         onChange={(e) => updateOption(index, "caption", e.target.value)}
                         placeholder="Caption or explanation (optional)"
-                        className="flex-1 bg-transparent text-xs text-[#9CA3AF] placeholder-[#6B7280] focus:outline-none"
+                        className="flex-1 bg-transparent text-xs text-muted-foreground placeholder-[#6B7280] focus:outline-none"
                       />
                       <button
                         onClick={() => {
@@ -917,7 +917,7 @@ export default function QuestionEditor({
                 <Type className="w-3.5 h-3.5 text-[#EC4899]" />
               Correct Answer
             </label>
-            <div className="rounded-xl border border-white/[0.06] bg-[#111827] p-3">
+            <div className="rounded-xl border border-border bg-card p-3">
               <input
                 type="text"
                 value={(question.correctAnswer as string) || ""}
@@ -932,7 +932,7 @@ export default function QuestionEditor({
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-medium transition-colors ${
                   question.caseSensitive
                     ? "border-[#EC4899]/30 bg-[#EC4899]/10 text-[#EC4899]"
-                    : "border-white/[0.06] bg-white/[0.02] text-[#9CA3AF] hover:text-white"
+                    : "border-border bg-white/[0.02] text-muted-foreground hover:text-white"
                 }`}
               >
                 <CaseSensitive className="w-3 h-3" />
@@ -966,8 +966,8 @@ export default function QuestionEditor({
             </div>
             <div className="space-y-2">
               {(question.matchingPairs || []).map((pair, index) => (
-                <div key={pair.id} className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#111827] p-3">
-                  <span className="text-[10px] font-bold text-[#9CA3AF] w-6">{index + 1}.</span>
+                <div key={pair.id} className="flex items-center gap-2 rounded-xl border border-border bg-card p-3">
+                  <span className="text-[10px] font-bold text-muted-foreground w-6">{index + 1}.</span>
                   <input
                     type="text"
                     value={pair.left}
@@ -1027,9 +1027,9 @@ export default function QuestionEditor({
             </div>
             <div className="space-y-2">
               {(question.orderingItems || []).map((item, index) => (
-                <div key={index} className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#111827] p-3">
+                <div key={index} className="flex items-center gap-2 rounded-xl border border-border bg-card p-3">
                   <GripVertical className="w-3.5 h-3.5 text-[#6B7280] cursor-move" />
-                  <span className="text-[10px] font-bold text-[#9CA3AF] w-6">{index + 1}.</span>
+                  <span className="text-[10px] font-bold text-muted-foreground w-6">{index + 1}.</span>
                   <input
                     type="text"
                     value={item}
@@ -1063,21 +1063,21 @@ export default function QuestionEditor({
             Explanation
             <span className="text-[9px] text-[#6B7280]">Shown after submission</span>
           </label>
-          <div className="rounded-xl border border-white/[0.06] bg-[#111827] overflow-hidden">
-            <div className="flex items-center gap-0.5 p-1.5 border-b border-white/[0.06] bg-[#0B0D12]">
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Bold">
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center gap-0.5 p-1.5 border-b border-border bg-[#0B0D12]">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Bold">
                 <Bold className="w-3 h-3" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Italic">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Italic">
                 <Italic className="w-3 h-3" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Code">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Code">
                 <Code className="w-3 h-3" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Image">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Image">
                 <Image className="w-3 h-3" />
               </button>
-              <button className="p-1.5 rounded hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors" title="Math">
+              <button className="p-1.5 rounded hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors" title="Math">
                 <span className="text-[10px] font-bold">∑</span>
               </button>
             </div>
@@ -1107,7 +1107,7 @@ export default function QuestionEditor({
                 }
               }}
               className={`text-[10px] font-medium transition-colors ${
-                showHint ? "text-[#9CA3AF] hover:text-white" : "text-[#EC4899] hover:text-[#DB2777]"
+                showHint ? "text-muted-foreground hover:text-white" : "text-[#EC4899] hover:text-[#DB2777]"
               }`}
             >
               {showHint ? "Remove Hint" : "+ Add Hint"}
@@ -1149,7 +1149,7 @@ export default function QuestionEditor({
                 if (!showReferences) addReference();
               }}
               className={`text-[10px] font-medium transition-colors ${
-                showReferences ? "text-[#9CA3AF] hover:text-white" : "text-[#EC4899] hover:text-[#DB2777]"
+                showReferences ? "text-muted-foreground hover:text-white" : "text-[#EC4899] hover:text-[#DB2777]"
               }`}
             >
               {showReferences ? "Hide References" : "+ Add Reference"}
@@ -1164,11 +1164,11 @@ export default function QuestionEditor({
                 className="overflow-hidden space-y-2"
               >
                 {question.references.map((ref) => (
-                  <div key={ref.id} className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-[#111827] p-3">
+                  <div key={ref.id} className="flex items-center gap-2 rounded-xl border border-border bg-card p-3">
                     <select
                       value={ref.type}
                       onChange={(e) => updateReference(ref.id, "type", e.target.value)}
-                      className="h-7 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-[10px] text-white focus:border-[#EC4899] focus:outline-none"
+                      className="h-7 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-[10px] text-white focus:border-[#EC4899] focus:outline-none"
                     >
                       {referenceTypes.map((rt) => (
                         <option key={rt.value} value={rt.value}>
@@ -1188,7 +1188,7 @@ export default function QuestionEditor({
                       value={ref.url || ""}
                       onChange={(e) => updateReference(ref.id, "url", e.target.value)}
                       placeholder="URL (optional)"
-                      className="w-40 bg-transparent text-xs text-[#9CA3AF] placeholder-[#6B7280] focus:outline-none"
+                      className="w-40 bg-transparent text-xs text-muted-foreground placeholder-[#6B7280] focus:outline-none"
                     />
                     <button
                       onClick={() => removeReference(ref.id)}
@@ -1201,7 +1201,7 @@ export default function QuestionEditor({
                 {question.references.length === 0 && (
                   <button
                     onClick={addReference}
-                    className="w-full h-9 rounded-xl border border-dashed border-white/[0.08] text-[10px] text-[#6B7280] hover:text-[#9CA3AF] hover:border-white/[0.15] transition-colors flex items-center justify-center gap-1.5"
+                    className="w-full h-9 rounded-xl border border-dashed border-border-hover text-[10px] text-[#6B7280] hover:text-muted-foreground hover:border-white/[0.15] transition-colors flex items-center justify-center gap-1.5"
                   >
                     <Plus className="w-3 h-3" />
                     Add Reference
@@ -1216,7 +1216,7 @@ export default function QuestionEditor({
         <div className="space-y-2">
           <button
             onClick={() => setShowScoring(!showScoring)}
-            className="w-full flex items-center justify-between rounded-xl border border-white/[0.06] bg-[#111827] px-4 py-3 hover:border-white/[0.12] transition-colors"
+            className="w-full flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 hover:border-border-hover transition-colors"
           >
             <span className="text-xs font-medium text-white flex items-center gap-1.5">
               <Award className="w-3.5 h-3.5 text-[#FBBF24]" />
@@ -1232,26 +1232,26 @@ export default function QuestionEditor({
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="rounded-xl border border-white/[0.06] bg-[#111827] p-4 space-y-4">
+                <div className="rounded-xl border border-border bg-card p-4 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-medium text-[#9CA3AF]">Marks</label>
+                      <label className="text-[10px] font-medium text-muted-foreground">Marks</label>
                       <input
                         type="number"
                         value={question.marks}
                         onChange={(e) => update("marks", Number(e.target.value))}
                         min="0"
-                        className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
+                        className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-medium text-[#9CA3AF]">Negative Marks</label>
+                      <label className="text-[10px] font-medium text-muted-foreground">Negative Marks</label>
                       <input
                         type="number"
                         value={question.negativeMarks}
                         onChange={(e) => update("negativeMarks", Number(e.target.value))}
                         min="0"
-                        className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
+                        className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
                       />
                     </div>
                   </div>
@@ -1324,7 +1324,7 @@ export default function QuestionEditor({
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
-            className="space-y-4 rounded-xl border border-white/[0.06] bg-[#111827] p-4"
+            className="space-y-4 rounded-xl border border-border bg-card p-4"
           >
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Settings2 className="w-4 h-4 text-[#EC4899]" />
@@ -1332,7 +1332,7 @@ export default function QuestionEditor({
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-[#9CA3AF] flex items-center gap-1">
+                <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
                   <Timer className="w-3 h-3" />
                   Time Limit (seconds)
                 </label>
@@ -1341,19 +1341,19 @@ export default function QuestionEditor({
                   value={question.timeLimitPerQuestion || ""}
                   onChange={(e) => update("timeLimitPerQuestion", Number(e.target.value))}
                   placeholder="No limit"
-                  className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
+                  className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white placeholder-[#6B7280] focus:border-[#EC4899] focus:outline-none"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-medium text-[#9CA3AF] flex items-center gap-1">
+                <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
                   <Eye className="w-3 h-3" />
                   Visibility
                 </label>
                 <select
                   value={question.visibility || "visible"}
                   onChange={(e) => update("visibility", e.target.value)}
-                  className="w-full h-9 px-2 rounded-lg border border-white/[0.08] bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
+                  className="w-full h-9 px-2 rounded-lg border border-border-hover bg-[#0B0D12] text-xs text-white focus:border-[#EC4899] focus:outline-none"
                 >
                   <option value="visible">Visible</option>
                   <option value="hidden">Hidden</option>

@@ -140,7 +140,7 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md rounded-3xl border border-white/[0.08] bg-[#0B0D12] p-8 shadow-2xl"
+          className="w-full max-w-md rounded-3xl border border-border-hover bg-[#0B0D12] p-8 shadow-2xl"
         >
           <div className="flex flex-col items-center text-center">
             <div className="w-16 h-16 rounded-2xl bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center mb-5">
@@ -290,12 +290,12 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-md rounded-3xl border border-white/[0.08] bg-[#0B0D12] p-6 shadow-2xl"
+          className="w-full max-w-md rounded-3xl border border-border-hover bg-[#0B0D12] p-6 shadow-2xl"
         >
           {/* Close button */}
           <button
             onClick={reset}
-            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/[0.06] text-[#9CA3AF] hover:text-white transition-colors"
+            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -317,7 +317,7 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
           </h3>
 
           {/* Description */}
-          <p className="text-xs text-[#9CA3AF] text-center mb-6 leading-relaxed">
+          <p className="text-xs text-muted-foreground text-center mb-6 leading-relaxed">
             {state === "regenerate-confirm" ? (
               <>
                 Results have already been generated for this quiz.
@@ -337,15 +337,15 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
 
           {/* Stats preview */}
           <div className="grid grid-cols-3 gap-2 mb-6">
-            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 text-center">
+            <div className="rounded-lg border border-border bg-white/[0.02] p-2.5 text-center">
               <FileSpreadsheet className="w-4 h-4 text-[#EC4899] mx-auto mb-1" />
               <p className="text-[9px] text-[#6B7280] uppercase tracking-wider">Evaluate</p>
             </div>
-            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 text-center">
+            <div className="rounded-lg border border-border bg-white/[0.02] p-2.5 text-center">
               <Trophy className="w-4 h-4 text-[#F59E0B] mx-auto mb-1" />
               <p className="text-[9px] text-[#6B7280] uppercase tracking-wider">Rank</p>
             </div>
-            <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 text-center">
+            <div className="rounded-lg border border-border bg-white/[0.02] p-2.5 text-center">
               <Mail className="w-4 h-4 text-[#22C55E] mx-auto mb-1" />
               <p className="text-[9px] text-[#6B7280] uppercase tracking-wider">Email</p>
             </div>
@@ -355,7 +355,7 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
           <div className="flex items-center gap-3">
             <button
               onClick={reset}
-              className="flex-1 h-11 rounded-xl border border-white/[0.08] bg-white/[0.04] text-xs font-semibold text-[#9CA3AF] hover:text-white hover:bg-white/[0.06] transition-colors"
+              className="flex-1 h-11 rounded-xl border border-border-hover bg-white/[0.04] text-xs font-semibold text-muted-foreground hover:text-white hover:bg-white/[0.06] transition-colors"
             >
               Cancel
             </button>
