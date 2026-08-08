@@ -51,7 +51,6 @@ export interface CreateQuizPayload {
   starttime?: string;
   endtime?: string;
   timeZone?: string;
-  maxParticipants?: number;
   randomizeQuestions?: boolean;
   randomizeOptions?: boolean;
   showResultImmediately?: boolean;

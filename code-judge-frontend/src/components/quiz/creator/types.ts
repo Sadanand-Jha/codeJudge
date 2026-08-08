@@ -81,7 +81,6 @@ export interface QuizDetails {
   showCorrectAnswersAfterSubmission: boolean;
   negativeMarking: boolean;
   negativeMarkValue: number;
-  maxParticipants: number;
   tags: string[];
   totalQuestions: number;
   totalMarks: number;
@@ -120,7 +119,6 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   showCorrectAnswersAfterSubmission: true,
   negativeMarking: false,
   negativeMarkValue: 0,
-  maxParticipants: 0,
   tags: [],
   totalQuestions: 0,
   totalMarks: 0,

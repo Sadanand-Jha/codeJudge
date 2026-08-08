@@ -11,9 +11,8 @@ import {
   Clock,
   Globe,
   GraduationCap,
-  Info,
-  Loader2,
   Lock,
+  Loader2,
   Mail,
   Save,
   School,
@@ -33,7 +32,6 @@ import { SearchableDropdown } from "@/components/ui";
 import { SettingsCard, SettingsInput, Toggle, SettingsRow, SettingsSelect } from "@/components/ui/settings";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/helpers";
-import { useAICreditsStore } from "@/store/aiCreditsStore";
 
 interface QuizSettingsPageProps {
   initialDetails?: QuizDetails;
@@ -59,16 +57,6 @@ const SECTION_ICON_TONES: Record<SectionId, string> = {
   info: "bg-pink-500/10 text-pink-500",
   registration: "bg-violet-500/10 text-violet-500",
   responses: "bg-blue-500/10 text-blue-500",
-};
-
-/* =============================================
-   Plan student limits
-   ============================================= */
-const PLAN_STUDENT_LIMITS: Record<string, { label: string; limit: number }> = {
-  free: { label: "Free", limit: 100 },
-  "student-pro": { label: "Student Pro", limit: 200 },
-  "creator-pro": { label: "Creator Pro", limit: 200 },
-  ultimate: { label: "Ultimate", limit: 500 },
 };
 
 const RESULT_VISIBILITY_OPTIONS = [
@@ -196,9 +184,6 @@ export default function QuizSettingsPage({
 }: QuizSettingsPageProps) {
   const toast = useToast();
   const router = useRouter();
-  const planId = useAICreditsStore((s) => s.balance.planId);
-
-  const plan = PLAN_STUDENT_LIMITS[planId] || PLAN_STUDENT_LIMITS.free;
 
   const [details, setDetails] = useState<QuizDetails>(initialDetails || DEFAULT_QUIZ_DETAILS);
   const [tagInput, setTagInput] = useState("");
@@ -347,7 +332,6 @@ export default function QuizSettingsPage({
     details.registrationEnd &&
     details.registrationEnd < details.registrationStart
   );
-  const maxStudentsExceeded = details.maxParticipants > 0 && details.maxParticipants > plan.limit;
 
   const errors = useMemo(() => {
     const e: Partial<Record<string, string>> = {};
@@ -357,12 +341,10 @@ export default function QuizSettingsPage({
       if (!details.registrationStart) e.registrationStart = "Registration start time is required.";
       if (!details.registrationEnd) e.registrationEnd = "Registration end time is required.";
       if (registrationEndInvalid) e.registrationEnd = "Registration end cannot be before start.";
-      if (!details.startDate) e.startDate = "Quiz start time is required.";
     }
     if (details.timeLimit <= 0) e.timeLimit = "Duration must be greater than 0.";
-    if (maxStudentsExceeded) e.maxStudents = `Your ${plan.label} plan supports up to ${plan.limit} students per quiz.`;
     return e;
-  }, [details, registrationEndInvalid, maxStudentsExceeded, plan]);
+  }, [details, registrationEndInvalid]);
 
   /* ---- Progress for sidebar status ---- */
   const progress = useMemo(() => {
@@ -378,7 +360,6 @@ export default function QuizSettingsPage({
     } else {
       score += 15;
     }
-    if (details.maxParticipants > 0) score += 5;
     if (details.resultVisibility) score += 5;
     return Math.min(100, score);
   }, [details]);
@@ -435,7 +416,6 @@ export default function QuizSettingsPage({
         starttime: details.startDate || undefined,
         endtime: details.endDate || undefined,
         timeZone: details.timeZone,
-        maxParticipants: details.maxParticipants,
         randomizeQuestions: details.randomizeQuestions,
         randomizeOptions: details.randomizeOptions,
         showResultImmediately: details.resultVisibility === "immediate",
@@ -897,13 +877,6 @@ export default function QuizSettingsPage({
                     required
                     error={(attempted && errors.registrationEnd) || undefined}
                   />
-                  <DateTimeField
-                    label="Quiz Start Time"
-                    value={details.startDate}
-                    onChange={(v) => update({ startDate: v })}
-                    required
-                    error={(attempted && errors.startDate) || undefined}
-                  />
                   <div>
                     <label className="mb-2 block text-sm font-medium text-text-primary">
                       Duration <span className="ml-0.5 text-danger">*</span>
@@ -922,27 +895,6 @@ export default function QuizSettingsPage({
                       </span>
                     </div>
                     {attempted && errors.timeLimit && <FieldError message={errors.timeLimit} />}
-                  </div>
-
-                  {/* Max students */}
-                  <div className="sm:col-span-2">
-                    <label className="mb-2 block text-sm font-medium text-text-primary">Maximum Students</label>
-                    <div className="relative">
-                      <Users className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                      <input
-                        type="number"
-                        min={0}
-                        placeholder="Unlimited"
-                        value={details.maxParticipants || ""}
-                        onChange={(e) => update({ maxParticipants: Number(e.target.value) })}
-                        className={cn(inputClass, "pl-10")}
-                      />
-                    </div>
-                    <div className="mt-2 flex items-center gap-1.5 text-xs text-text-secondary">
-                      <Info className="h-3.5 w-3.5 shrink-0 text-violet-500" />
-                      Your {plan.label} plan supports up to {plan.limit} students per quiz.
-                    </div>
-                    {attempted && errors.maxStudents && <FieldError message={errors.maxStudents} />}
                   </div>
                 </motion.div>
               )}

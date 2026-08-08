@@ -389,17 +389,6 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#6B7280]">%</span>
                 </div>
               </div>
-              <div>
-                <FieldLabel icon={<Users className="w-3 h-3" />}>Maximum Participants</FieldLabel>
-                <input
-                  type="number"
-                  value={details.maxParticipants || ""}
-                  onChange={(e) => update({ maxParticipants: Number(e.target.value) })}
-                  placeholder="Unlimited"
-                  min={0}
-                  className={inputClass}
-                />
-              </div>
             </div>
           </section>
 

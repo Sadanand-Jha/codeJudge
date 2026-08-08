@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Clock, Globe, Info, Users } from "lucide-react";
+import { Clock, Globe, Users } from "lucide-react";
 import { SettingsCard, Toggle, SettingsRow, SettingsSelect } from "@/components/ui/settings";
 import { getTimezones } from "@/services/quiz";
 import { useQuizSettings } from "./QuizSettingsContext";
@@ -25,13 +25,6 @@ function formatTimezoneLabel(name: string): string {
 }
 
 const toTimezoneOptions = (zones: string[]) => zones.map((tz) => ({ label: formatTimezoneLabel(tz), value: tz }));
-
-const PLAN_STUDENT_LIMITS: Record<string, { label: string; limit: number }> = {
-  free: { label: "Free", limit: 100 },
-  "student-pro": { label: "Student Pro", limit: 200 },
-  "creator-pro": { label: "Creator Pro", limit: 200 },
-  ultimate: { label: "Ultimate", limit: 500 },
-};
 
 export default function RegistrationSection() {
   const { details, updateDetails } = useQuizSettings();
@@ -67,7 +60,6 @@ export default function RegistrationSection() {
     if (!details.registrationStart) errors.registrationStart = "Registration start time is required.";
     if (!details.registrationEnd) errors.registrationEnd = "Registration end time is required.";
     if (registrationEndInvalid) errors.registrationEnd = "Registration end cannot be before start.";
-    if (!details.startDate) errors.startDate = "Quiz start time is required.";
   }
   if (details.timeLimit <= 0) errors.timeLimit = "Duration must be greater than 0.";
 
@@ -108,13 +100,6 @@ export default function RegistrationSection() {
             required
             error={errors.registrationEnd || undefined}
           />
-          <DateTimeField
-            label="Quiz Start Time"
-            value={details.startDate}
-            onChange={(v) => update({ startDate: v })}
-            required
-            error={errors.startDate || undefined}
-          />
           <div>
             <label className="mb-2 block text-sm font-medium text-text-primary">
               Duration <span className="ml-0.5 text-danger">*</span>
@@ -133,26 +118,6 @@ export default function RegistrationSection() {
               </span>
             </div>
             {errors.timeLimit && <FieldError message={errors.timeLimit} />}
-          </div>
-
-          {/* Max students */}
-          <div className="sm:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-text-primary">Maximum Students</label>
-            <div className="relative">
-              <Users className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-              <input
-                type="number"
-                min={0}
-                placeholder="Unlimited"
-                value={details.maxParticipants || ""}
-                onChange={(e) => update({ maxParticipants: Number(e.target.value) })}
-                className={cn(settingsInputClass, "pl-10")}
-              />
-            </div>
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-text-secondary">
-              <Info className="h-3.5 w-3.5 shrink-0 text-violet-500" />
-              Your plan supports up to {PLAN_STUDENT_LIMITS.free.limit} students per quiz.
-            </div>
           </div>
         </motion.div>
       )}

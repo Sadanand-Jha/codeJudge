@@ -33,6 +33,8 @@ import { useAuthStore } from "@/store/authStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { me, logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
+import { isNestedQuizPath } from "@/lib/quizWorkspace";
+import { cn } from "@/lib/helpers";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import AuthModal from "@/components/modals/AuthModal";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -136,6 +138,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { isGuest } = useGuestMode();
   const { theme } = useTheme();
 
+  // Nested quiz creator workspace — the project sidebar slides out of the
+  // viewport and the Quiz Settings / Problem workspace takes its place.
+  const nestedWorkspace = isNestedQuizPath(pathname);
+
   // Sync auth state with session cookie on app load
   useEffect(() => {
     let cancelled = false;
@@ -212,9 +218,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         onContextMenu={(e) => e.preventDefault()}
         onCopy={(e) => e.preventDefault()}
         onCut={(e) => e.preventDefault()}
-        className={`fixed left-0 top-0 h-screen w-64 bg-card border-r border-border flex flex-col z-50 select-none transition-transform duration-300 ${
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
+        className={cn(
+          "fixed left-0 top-0 h-screen w-64 bg-card border-r border-border flex flex-col z-50 select-none",
+          "transition-transform duration-300 ease-out",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+          nestedWorkspace && "lg:-translate-x-full lg:pointer-events-none"
+        )}
       >
         {/* Logo */}
         <div className="px-6 py-6">
@@ -343,7 +352,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ===== MAIN CONTENT ===== */}
-      <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+      <div
+        className={cn(
+          "flex-1 flex flex-col min-h-screen transition-[margin] duration-300 ease-out",
+          nestedWorkspace ? "lg:ml-0" : "lg:ml-64"
+        )}
+      >
         {/* ===== TOP HEADER ===== */}
         <header
           onDragStart={(e) => e.preventDefault()}

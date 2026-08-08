@@ -1,17 +1,15 @@
 "use client";
 
-import { use } from "react";
-import { getQuizCode } from "@/services/quiz";
-import { QuizSettingsProvider } from "@/components/quiz/creator/settings/QuizSettingsContext";
 import QuizSettingsShell from "@/components/quiz/creator/settings/QuizSettingsShell";
 
-export default function QuizSettingsLayout({ params, children }: { params: Promise<{ quizId: string }>; children: React.ReactNode }) {
-  const { quizId } = use(params);
-  const code = getQuizCode(quizId);
-
-  return (
-    <QuizSettingsProvider code={code}>
-      <QuizSettingsShell>{children}</QuizSettingsShell>
-    </QuizSettingsProvider>
-  );
+/**
+ * Settings workspace layout.
+ *
+ * The provider and the workspace frame (Quiz Settings sidebar + problem nav)
+ * are mounted one level up in `quiz/[quizId]/layout.tsx`, which is active for
+ * all creator routes. This layout only renders the persistent settings shell:
+ * the page header, mobile tab nav and the start/end confirmation modals.
+ */
+export default function QuizSettingsLayout({ children }: { children: React.ReactNode }) {
+  return <QuizSettingsShell>{children}</QuizSettingsShell>;
 }

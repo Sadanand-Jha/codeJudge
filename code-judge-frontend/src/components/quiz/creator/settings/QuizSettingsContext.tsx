@@ -2,9 +2,11 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { getQuizByCode, type Quiz } from "@/services/quiz";
+import { getQuizByCode, getQuizProblems, updateQuiz, updateQuizStatus, type Quiz } from "@/services/quiz";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS } from "@/components/quiz/creator/types";
-import { loadQuizState } from "@/utils/quizStorage";
+import { loadQuizState, saveQuizDetails } from "@/utils/quizStorage";
+import { useQuizProblemsStore } from "@/store/quizProblemsStore";
+import { useToast } from "@/hooks/useToast";
 
 export type QuizStatus = "draft" | "scheduled" | "registration_open" | "live" | "ended" | "completed";
 
@@ -44,6 +46,22 @@ function deriveQuizStatus(opts: {
   return "live";
 }
 
+/**
+ * Validate the quiz configuration that is required before it can be started.
+ * Returns a human-readable message describing the first missing requirement,
+ * or `null` when everything needed is in place.
+ */
+function validateQuizStart(details: QuizDetails): string | null {
+  if (!details.name.trim()) return "Quiz name is required.";
+  if (!details.subject.trim()) return "Subject is required.";
+  if (details.timeLimit <= 0) return "Quiz duration must be greater than 0 minutes.";
+  if (details.registrationEnabled) {
+    if (!details.registrationStart) return "Registration start time is required.";
+    if (!details.registrationEnd) return "Registration end time is required.";
+  }
+  return null;
+}
+
 interface QuizSettingsContextValue {
   code: string;
   quizId?: number;
@@ -56,6 +74,16 @@ interface QuizSettingsContextValue {
   details: QuizDetails;
   updateDetails: (patch: Partial<QuizDetails>) => void;
   refresh: () => Promise<void>;
+  confirmingStart: boolean;
+  confirmingEnd: boolean;
+  actionBusy: boolean;
+  startValidationError: string | null;
+  requestStart: () => Promise<void>;
+  confirmStart: () => Promise<void>;
+  cancelStart: () => void;
+  requestEnd: () => void;
+  confirmEnd: () => Promise<void>;
+  cancelEnd: () => void;
 }
 
 const QuizSettingsContext = createContext<QuizSettingsContextValue | null>(null);
@@ -75,9 +103,14 @@ export function QuizSettingsProvider({
   code: string;
   children: ReactNode;
 }) {
+  const toast = useToast();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingStart, setConfirmingStart] = useState(false);
+  const [confirmingEnd, setConfirmingEnd] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [startValidationError, setStartValidationError] = useState<string | null>(null);
   const [details, setDetails] = useState<QuizDetails>(() => {
     const saved = loadQuizState();
     if (saved?.details) return { ...DEFAULT_QUIZ_DETAILS, ...saved.details };
@@ -115,7 +148,120 @@ export function QuizSettingsProvider({
 
   const updateDetails = useCallback((patch: Partial<QuizDetails>) => {
     setDetails((d) => ({ ...d, ...patch }));
+    // Editing settings clears any stale "cannot start" validation message.
+    setStartValidationError(null);
   }, []);
+
+  const hydrateProblems = useQuizProblemsStore((s) => s.hydrate);
+
+  /**
+   * Validate the current quiz configuration and, when valid, open the
+   * "Start Quiz" confirmation. When something is missing, the message is
+   * surfaced inline in the sidebar and as a toast instead of starting.
+   */
+  const requestStart = useCallback(async () => {
+    if (!quiz?.id) {
+      setStartValidationError("Save the quiz before starting it.");
+      toast.error({
+        title: "Cannot start quiz",
+        description: "Save the quiz first, then try starting it again.",
+      });
+      return;
+    }
+
+    const message = validateQuizStart(details);
+    if (message) {
+      setStartValidationError(message);
+      toast.error({ title: "Cannot start quiz", description: message });
+      return;
+    }
+
+    // A quiz needs at least one problem before it can be started. Check the
+    // local creator workspace first, then fall back to the backend.
+    hydrateProblems();
+    const localCount = useQuizProblemsStore.getState().problems.length;
+    let backendCount = 0;
+    try {
+      const problems = await getQuizProblems(String(quiz.id));
+      backendCount = problems.length;
+    } catch {
+      // Ignore backend errors here — the local workspace may still have problems.
+    }
+    if (localCount === 0 && backendCount === 0) {
+      setStartValidationError("Add at least one problem before starting the quiz.");
+      toast.error({
+        title: "Cannot start quiz",
+        description: "Add at least one problem before starting the quiz.",
+      });
+      return;
+    }
+
+    setStartValidationError(null);
+    setConfirmingStart(true);
+  }, [quiz, details, toast, hydrateProblems]);
+
+  /**
+   * Confirm the quiz start: persist the current settings, then publish the
+   * quiz so it is immediately accessible to students.
+   */
+  const confirmStart = useCallback(async () => {
+    if (!quiz?.id) return;
+    setActionBusy(true);
+    try {
+      saveQuizDetails(details);
+      await updateQuiz(String(quiz.id), { name: details.name, code });
+      await updateQuizStatus(String(quiz.id), "published");
+      await refresh();
+      setConfirmingStart(false);
+      toast.success({
+        title: "Quiz started",
+        description: "Your quiz is now active for registered students.",
+      });
+    } catch (err) {
+      console.error("Failed to start quiz:", err);
+      toast.error({
+        title: "Could not start quiz",
+        description: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setActionBusy(false);
+    }
+  }, [quiz, details, code, refresh, toast]);
+
+  const cancelStart = useCallback(() => {
+    setConfirmingStart(false);
+    setStartValidationError(null);
+  }, []);
+
+  const requestEnd = useCallback(() => {
+    if (!quiz?.id) return;
+    setConfirmingEnd(true);
+  }, [quiz]);
+
+  const confirmEnd = useCallback(async () => {
+    if (!quiz?.id) return;
+    setActionBusy(true);
+    try {
+      await updateQuizStatus(String(quiz.id), "archived");
+      await refresh();
+      setConfirmingEnd(false);
+      toast.success({
+        title: "Quiz ended",
+        description:
+          "Further participation is stopped. All submitted responses and results are preserved.",
+      });
+    } catch (err) {
+      console.error("Failed to end quiz:", err);
+      toast.error({
+        title: "Could not end quiz",
+        description: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setActionBusy(false);
+    }
+  }, [quiz, refresh, toast]);
+
+  const cancelEnd = useCallback(() => setConfirmingEnd(false), []);
 
   const derivedStatus = useMemo<QuizStatus>(
     () =>
@@ -147,8 +293,39 @@ export function QuizSettingsProvider({
       details,
       updateDetails,
       refresh,
+      confirmingStart,
+      confirmingEnd,
+      actionBusy,
+      startValidationError,
+      requestStart,
+      confirmStart,
+      cancelStart,
+      requestEnd,
+      confirmEnd,
+      cancelEnd,
     }),
-    [code, quiz, loading, error, derivedStatus, isLive, isEnded, details, updateDetails, refresh]
+    [
+      code,
+      quiz,
+      loading,
+      error,
+      derivedStatus,
+      isLive,
+      isEnded,
+      details,
+      updateDetails,
+      refresh,
+      confirmingStart,
+      confirmingEnd,
+      actionBusy,
+      startValidationError,
+      requestStart,
+      confirmStart,
+      cancelStart,
+      requestEnd,
+      confirmEnd,
+      cancelEnd,
+    ]
   );
 
   return <QuizSettingsContext.Provider value={value}>{children}</QuizSettingsContext.Provider>;

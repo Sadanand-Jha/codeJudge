@@ -15,11 +15,10 @@ import {
   Zap,
   AlertTriangle,
   CheckCircle2,
-  ArrowLeft,
   Play,
   ListChecks,
 } from "lucide-react";
-import { updateQuiz, updateQuizStatus } from "@/services/quiz";
+import { updateQuiz } from "@/services/quiz";
 import { useToast } from "@/hooks/useToast";
 import { useQuizSettings } from "./QuizSettingsContext";
 import { cn } from "@/lib/helpers";
@@ -34,7 +33,7 @@ export const SETTINGS_SECTIONS = [
 
 type SectionId = (typeof SETTINGS_SECTIONS)[number]["id"];
 
-const STATUS_META: Record<string, { label: string; badge: string; dot: string }> = {
+export const STATUS_META: Record<string, { label: string; badge: string; dot: string }> = {
   draft: {
     label: "DRAFT",
     badge: "border-amber-500/30 bg-amber-500/10 text-amber-500",
@@ -70,11 +69,25 @@ const STATUS_META: Record<string, { label: string; badge: string; dot: string }>
 export default function QuizSettingsShell({ children }: { children: React.ReactNode }) {
   const toast = useToast();
   const pathname = usePathname();
-  const { code, quizId, derivedStatus, isLive, isEnded, details, updateDetails, refresh } = useQuizSettings();
+  const {
+    code,
+    quizId,
+    derivedStatus,
+    isLive,
+    isEnded,
+    details,
+    refresh,
+    confirmingStart,
+    confirmingEnd,
+    actionBusy,
+    requestStart,
+    confirmStart,
+    cancelStart,
+    requestEnd,
+    confirmEnd,
+    cancelEnd,
+  } = useQuizSettings();
 
-  const [confirmingStart, setConfirmingStart] = useState(false);
-  const [confirmingEnd, setConfirmingEnd] = useState(false);
-  const [actionBusy, setActionBusy] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const activeSection: SectionId =
@@ -136,177 +149,8 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
     }
   };
 
-  const handleStartQuiz = async () => {
-    if (!quizId) return;
-    setActionBusy(true);
-    try {
-      const updated = await updateQuizStatus(String(quizId), "published");
-      updateDetails({});
-      await refresh();
-      setConfirmingStart(false);
-      toast.success({
-        title: "Quiz started",
-        description: "Your quiz is now active for registered students.",
-      });
-      void updated;
-    } catch (err) {
-      console.error("Failed to start quiz:", err);
-      toast.error({
-        title: "Could not start quiz",
-        description: "Something went wrong. Please try again.",
-      });
-    } finally {
-      setActionBusy(false);
-    }
-  };
-
-  const handleEndQuiz = async () => {
-    if (!quizId) return;
-    setActionBusy(true);
-    try {
-      await updateQuizStatus(String(quizId), "archived");
-      await refresh();
-      setConfirmingEnd(false);
-      toast.success({
-        title: "Quiz ended",
-        description: "Further participation is stopped. All submitted responses and results are preserved.",
-      });
-    } catch (err) {
-      console.error("Failed to end quiz:", err);
-      toast.error({
-        title: "Could not end quiz",
-        description: "Something went wrong. Please try again.",
-      });
-    } finally {
-      setActionBusy(false);
-    }
-  };
-
   return (
     <div className="flex min-h-screen bg-background">
-      {/* ===== Settings Sidebar ===== */}
-      <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
-        <nav className="settings-scroll h-full overflow-y-auto p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <Link
-              href={`/quiz/${code}`}
-              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-text-muted transition-colors hover:bg-pink-500/5 hover:text-text-primary"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" /> Quiz
-            </Link>
-          </div>
-
-          <p className="px-3 pb-3 pt-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-            Quiz Settings
-          </p>
-          <div className="space-y-1">
-            {SETTINGS_SECTIONS.map((section) => {
-              const Icon = section.icon;
-              const isActive = activeSection === section.id;
-              const isPink = section.tone === "pink";
-              return (
-                <Link
-                  key={section.id}
-                  href={settingsPath(section.href)}
-                  className={cn(
-                    "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? isPink
-                        ? "bg-pink-500/10 text-pink-500 shadow-[inset_0_0_0_1px_rgba(236,72,153,0.2)]"
-                        : "bg-accent/10 text-accent shadow-[inset_0_0_0_1px_rgba(124,58,237,0.2)]"
-                      : "text-text-secondary hover:bg-pink-500/5 hover:text-text-primary"
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      "h-5 w-5 shrink-0 transition-colors",
-                      isActive ? (isPink ? "text-pink-500" : "text-accent") : "text-text-muted group-hover:text-text-primary"
-                    )}
-                    strokeWidth={isActive ? 2.2 : 2}
-                  />
-                  <span className={cn("font-medium", isActive && "font-semibold")}>{section.label}</span>
-                  {isActive && (
-                    <motion.span
-                      layoutId="activeQuizSettingsIndicator"
-                      className={cn("ml-auto h-1.5 w-1.5 rounded-full", isPink ? "bg-pink-500" : "bg-accent")}
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* ===== Question Builder ===== */}
-          <div className="mt-6">
-            <p className="px-3 pb-3 pt-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">Creator</p>
-            <div className="space-y-1">
-              <Link
-                href={`/quiz/${code}/questions`}
-                className="group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-text-secondary transition-all duration-200 hover:bg-pink-500/5 hover:text-text-primary"
-              >
-                <ListChecks
-                  className="h-5 w-5 shrink-0 text-text-muted transition-colors group-hover:text-text-primary"
-                  strokeWidth={2}
-                />
-                <span className="font-medium">Questions</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* ===== Quick Action ===== */}
-          <div className="mt-8 rounded-xl border border-border bg-background p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Quick Action</p>
-            <div className="mt-3">
-              {quizId && !isEnded ? (
-                isLive ? (
-                  <button
-                    onClick={() => setConfirmingEnd(true)}
-                    disabled={actionBusy}
-                    className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 px-4 py-3 text-xs font-bold text-white shadow-[0_4px_16px_rgba(239,68,68,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(239,68,68,0.55)] hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Square className="h-4 w-4" />}
-                    End Quiz
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setConfirmingStart(true)}
-                    disabled={actionBusy}
-                    className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-4 py-3 text-xs font-bold text-white shadow-[0_4px_16px_rgba(16,185,129,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(16,185,129,0.55)] hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                    Start Quiz
-                  </button>
-                )
-              ) : (
-                <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card-hover px-4 py-3 text-xs font-bold text-text-muted">
-                  <Square className="h-4 w-4" />
-                  {isEnded ? "Quiz Ended" : "Save to enable"}
-                </div>
-              )}
-            </div>
-            <p className="mt-2 text-[10px] font-medium leading-relaxed text-text-muted">
-              {isLive
-                ? "The quiz is live. Ending it stops further participation."
-                : isEnded
-                ? "This quiz has ended."
-                : "Starts this quiz so registered students can participate."}
-            </p>
-          </div>
-
-          {/* ===== Quiz Status ===== */}
-          <div className="mt-4 rounded-xl border border-border bg-background p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Quiz Status</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold", statusMeta.badge)}>
-                <span className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)} />
-                {statusMeta.label}
-              </span>
-            </div>
-          </div>
-        </nav>
-      </aside>
-
       {/* ===== Main Content ===== */}
       <div className="flex-1 overflow-y-auto">
         {/* ===== Page Header ===== */}
@@ -332,7 +176,7 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
               {quizId && !isEnded && (
                 isLive ? (
                   <button
-                    onClick={() => setConfirmingEnd(true)}
+                    onClick={requestEnd}
                     disabled={actionBusy}
                     className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(239,68,68,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(239,68,68,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
                   >
@@ -341,7 +185,7 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
                   </button>
                 ) : (
                   <button
-                    onClick={() => setConfirmingStart(true)}
+                    onClick={requestStart}
                     disabled={actionBusy}
                     className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(16,185,129,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(16,185,129,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
                   >
@@ -416,8 +260,8 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
         ]}
         confirmLabel="Start Quiz"
         busy={actionBusy}
-        onConfirm={handleStartQuiz}
-        onCancel={() => setConfirmingStart(false)}
+        onConfirm={confirmStart}
+        onCancel={cancelStart}
       />
 
       {/* ===== End Quiz Confirmation (danger) ===== */}
@@ -434,8 +278,8 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
         ]}
         confirmLabel="End Quiz"
         busy={actionBusy}
-        onConfirm={handleEndQuiz}
-        onCancel={() => setConfirmingEnd(false)}
+        onConfirm={confirmEnd}
+        onCancel={cancelEnd}
       />
     </div>
   );
