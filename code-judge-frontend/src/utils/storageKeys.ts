@@ -15,6 +15,7 @@ export const STORAGE_KEYS = {
   SPLIT_PANE_LEFT_WIDTH: "byteclash_split_pane_left_width",
   SPLIT_PANE_CONSOLE_HEIGHT: "byteclash_split_pane_console_height",
   AI_LEFT_PANEL: "byteclash_ai_left_panel",
+  QUIZ_SYNC_SIGNATURE_PREFIX: "byteclash_quiz_sync_",
 } as const;
 
 /**

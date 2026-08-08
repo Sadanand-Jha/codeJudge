@@ -214,24 +214,6 @@ function AvatarBadge({ plan, size = 46 }: { plan: Plan; size?: number }) {
 
       {plan === "ultimate" && (
         <motion.div
-          className="absolute rounded-full"
-          style={{
-            inset: -4,
-            background: cfg.ringGradient,
-            mask: "radial-gradient(circle, transparent 62%, #000 64%)",
-            WebkitMask: "radial-gradient(circle, transparent 62%, #000 64%)",
-          }}
-          animate={{ rotate: -360 }}
-          transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
-        />
-      )}
-
-      <FireArc flame={cfg.flame} />
-      <RisingEmbers flame={cfg.flame} />
-      <SparkleOrb flame={cfg.flame} />
-
-      {plan === "ultimate" && (
-        <motion.div
           className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full"
           style={{
             background: "linear-gradient(135deg, #FBBF24, #F59E0B)",
@@ -243,6 +225,48 @@ function AvatarBadge({ plan, size = 46 }: { plan: Plan; size?: number }) {
           <Crown className="h-2.5 w-2.5 text-white" strokeWidth={2.5} />
         </motion.div>
       )}
+
+      <FireArc flame={cfg.flame} />
+      <RisingEmbers flame={cfg.flame} />
+      <SparkleOrb flame={cfg.flame} />
+
+      {plan === "ultimate" && (
+        <motion.div
+          className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full"
+          style={{
+            background: cfg.ringGradient,
+            mask: "radial-gradient(circle, transparent 62%, #000 64%)",
+            WebkitMask: "radial-gradient(circle, transparent 62%, #000 64%)",
+          }}
+          animate={{ rotate: -360 }}
+          transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
+        />
+      )}
+
+      <style jsx global>{`
+        .navbar-promo-widget {
+          --promo-surface: linear-gradient(160deg, rgba(26, 29, 46, 0.96), rgba(17, 19, 33, 0.98));
+          --promo-muted-color: rgba(156, 163, 175, 0.95);
+          --promo-accent: #c084fc;
+          --promo-avatar-bg: #151726;
+        }
+        .navbar-promo-widget .promo-surface {
+          background: var(--promo-surface);
+        }
+        .navbar-promo-widget .avatar-bg {
+          background: var(--promo-avatar-bg);
+        }
+        .navbar-promo-widget .promo-muted {
+          color: var(--promo-muted-color);
+        }
+
+        [data-theme="light"] .navbar-promo-widget {
+          --promo-surface: linear-gradient(160deg, #ffffff, #f7f0ff);
+          --promo-muted-color: rgba(100, 116, 139, 0.95);
+          --promo-accent: #9333ea;
+          --promo-avatar-bg: #ffffff;
+        }
+      `}</style>
     </div>
   );
 }
@@ -335,6 +359,7 @@ export default function NavbarPromoWidget({
             animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
           />
+
           <div className="relative flex h-full w-full items-center overflow-hidden rounded-[12px] promo-surface">
             <div className="flex h-full min-w-0 flex-1 items-center" style={{ paddingLeft: 48, paddingRight: 8 }}>
               <div className="min-w-0 flex-1">

@@ -31,15 +31,17 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useSavedAvatar } from "@/store/avatarStore";
+import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { me, logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
-import { isNestedQuizPath } from "@/lib/quizWorkspace";
+import { isNestedQuizPath, isQuizProblemsPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import AuthModal from "@/components/modals/AuthModal";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
 import LowCreditNotification from "@/components/ai/LowCreditNotification";
+import AiAssistantStrip from "@/components/ai/AiAssistantStrip";
 
 function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -135,12 +137,24 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const setAuth = useAuthStore((s) => s.setAuth);
   const savedAvatar = useSavedAvatar();
+  const creditBalance = useAICreditsStore((s) => s.balance);
+  // A user is "premium" (PRO / ULTIMATE) when they have an active paid
+  // subscription. Derived solely from existing subscription/credit state —
+  // never faked in the frontend.
+  const isPremium = !!(
+    creditBalance?.hasActiveSubscription &&
+    creditBalance?.planId &&
+    !["free", "student"].includes((creditBalance.planId as string).toLowerCase())
+  );
   const { isGuest } = useGuestMode();
   const { theme } = useTheme();
 
   // Nested quiz creator workspace — the project sidebar slides out of the
   // viewport and the Quiz Settings / Problem workspace takes its place.
   const nestedWorkspace = isNestedQuizPath(pathname);
+  // The AI assistant is only relevant inside the quiz creator's problem
+  // building section (/quiz/{code}/problems and /quiz/{code}/problems/{id}).
+  const showAiAssistant = isQuizProblemsPath(pathname);
 
   // Sync auth state with session cookie on app load
   useEffect(() => {
@@ -198,7 +212,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex" data-ai-scope>
       {/* Mobile overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -374,27 +388,35 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Page title */}
-          <h1 className="text-sm font-semibold text-text-primary hidden sm:block whitespace-nowrap">{pageTitle}</h1>
+           {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
+           <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="ByteClash home">
+             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
+               <Code2 className="w-4 h-4 text-white" />
+             </div>
+             <span className="hidden sm:block text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
+           </Link>
 
-          {/* Global search */}
-          <div className="flex-1 max-w-md mx-auto">
-            <div className="relative flex items-center">
-              {/* <Search className="absolute left-3 w-4 h-4 text-text-muted" />
-              <input
-                type="text"
-                placeholder="Search by title, ID, tag or company..."
-                className="w-full bg-input-bg border border-input-border rounded-xl py-2 pl-10 pr-10 text-xs text-text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
-              />
-              <kbd className="absolute right-3 flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-medium text-text-secondary bg-card-hover border border-border rounded-md">
-                ⌘K
-              </kbd> */}
-            </div>
-          </div>
+           {/* Page title */}
+           <h1 className="text-sm font-semibold text-text-primary hidden md:block whitespace-nowrap">{pageTitle}</h1>
 
-           {/* Right icons */}
-           <div className="flex items-center gap-2">
-             <ThemeToggle />
+           {/* Global search */}
+           <div className="flex-1 max-w-md mx-auto">
+             <div className="relative flex items-center">
+               {/* <Search className="absolute left-3 w-4 h-4 text-text-muted" />
+               <input
+                 type="text"
+                 placeholder="Search by title, ID, tag or company..."
+                 className="w-full bg-input-bg border border-input-border rounded-xl py-2 pl-10 pr-10 text-xs text-text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
+               />
+               <kbd className="absolute right-3 flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-medium text-text-secondary bg-card-hover border border-border rounded-md">
+                 ⌘K
+               </kbd> */}
+             </div>
+           </div>
+
+            {/* Right icons */}
+            <div className="flex items-center gap-2">
+               <ThemeToggle />
              <button className="p-2 rounded-lg hover:bg-accent/5 text-text-secondary hover:text-text-primary transition-colors relative">
                <Bell className="w-4 h-4" />
                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" />
@@ -406,16 +428,24 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                   className="w-8 h-8 rounded-full overflow-hidden border border-border bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-white"
                   title={user?.username || "Profile"}
                 >
-                  {savedAvatar ? (
-                    <img
-                      src={savedAvatar.url}
-                      alt={savedAvatar.label}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    (user?.username || "U").charAt(0).toUpperCase()
-                  )}
-                </Link>
+                   {savedAvatar ? (
+                     <img
+                       src={savedAvatar.url}
+                       alt={savedAvatar.label}
+                       className="h-full w-full object-cover"
+                     />
+                   ) : (
+                     (user?.username || "U").charAt(0).toUpperCase()
+                   )}
+                 </Link>
+                 {isPremium && (
+                   <span
+                     className="inline-flex items-center rounded-md bg-gradient-to-r from-[#EC4899]/20 to-[#8B5CF6]/20 px-1.5 py-0.25 text-[10px] font-semibold tracking-wider text-[#EC4899] ring-1 ring-[#8B5CF6]/40"
+                     aria-label="PRO subscriber"
+                   >
+                     PRO
+                   </span>
+                 )}
                 <button
                   onClick={() => setLogoutConfirmOpen(true)}
                   className="hidden sm:flex p-2 rounded-lg hover:bg-accent/5 text-text-secondary hover:text-danger transition-colors"
@@ -458,6 +488,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         redirectUrl={authModalRedirect}
       />
       <LowCreditNotification />
+      {showAiAssistant && <AiAssistantStrip />}
     </div>
   );
 }

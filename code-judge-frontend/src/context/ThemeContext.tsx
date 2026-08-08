@@ -4,8 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 import { useAuthStore } from "@/store/authStore";
 import { updatePreferences } from "@/services/auth";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
-
-type Theme = "dark" | "light";
+import { getInitialTheme, applyThemeToDOM, Theme } from "@/utils/theme";
 
 interface ThemeContextValue {
   theme: Theme;
@@ -15,46 +14,21 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const STORAGE_KEY = STORAGE_KEYS.THEME;
-
-function getSystemTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-}
-
-function getStoredTheme(): Theme | null {
-  if (typeof window === "undefined") return null;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark") return stored;
-  return null;
-}
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [theme, setThemeState] = useState<Theme>(() => getInitialTheme());
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  // Load theme on mount
+  // Keep the DOM attribute in sync with the React state.
+  // The critical inline script in layout.tsx already set the correct value
+  // before first paint; this effect is a safety net that keeps the attribute
+  // correct whenever the theme changes (toggle, system preference updates, etc.).
   useEffect(() => {
-    const stored = getStoredTheme();
-    if (stored) {
-      setThemeState(stored);
-    } else {
-      setThemeState(getSystemTheme());
-    }
-    setIsHydrated(true);
-  }, []);
-
-  // Apply theme to document
-  useEffect(() => {
-    if (!isHydrated) return;
-    const root = document.documentElement;
-    root.setAttribute("data-theme", theme);
-  }, [theme, isHydrated]);
+    applyThemeToDOM(theme);
+  }, [theme]);
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem(STORAGE_KEY, newTheme);
+    localStorage.setItem(STORAGE_KEYS.THEME, newTheme);
 
     // Sync to backend if authenticated
     if (isAuthenticated) {
@@ -66,8 +40,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      localStorage.setItem(STORAGE_KEY, next);
+      const next: Theme = prev === "dark" ? "light" : "dark";
+      localStorage.setItem(STORAGE_KEYS.THEME, next);
 
       // Sync to backend if authenticated
       if (isAuthenticated) {

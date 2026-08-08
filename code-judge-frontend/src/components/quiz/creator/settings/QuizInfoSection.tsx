@@ -13,7 +13,7 @@ import { cn } from "@/lib/helpers";
 import { saveQuizDetails } from "@/utils/quizStorage";
 
 export default function QuizInfoSection() {
-  const { details, updateDetails, quizId, code, refresh } = useQuizSettings();
+  const { details, updateDetails, quizId, code } = useQuizSettings();
   const [tagInput, setTagInput] = useState("");
   const [visibilityOptions, setVisibilityOptions] = useState<Array<{ id: number; heading: string; description: string }>>([]);
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -23,10 +23,9 @@ export default function QuizInfoSection() {
     saveQuizDetails(next);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      if (!quizId) return;
+      if (!quizId || !next.name.trim()) return;
       try {
         await updateQuiz(String(quizId), { name: next.name, code });
-        await refresh();
       } catch (err) {
         console.error("Failed to quick-save quiz name:", err);
       }
@@ -99,10 +98,8 @@ export default function QuizInfoSection() {
           <SettingsInput
             label="Quiz Name"
             value={details.name}
-            onChange={(v) => {
-              update({ name: v });
-              quickSave({ name: v });
-            }}
+            onChange={(v) => update({ name: v })}
+            onBlur={() => quickSave({ name: details.name })}
             placeholder="e.g. Data Structures Midterm"
             required
           />

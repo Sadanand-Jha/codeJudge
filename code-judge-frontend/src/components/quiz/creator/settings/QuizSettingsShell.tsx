@@ -154,8 +154,8 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
       {/* ===== Main Content ===== */}
       <div className="flex-1 overflow-y-auto">
         {/* ===== Page Header ===== */}
-        <div className="sticky top-14 z-20 border-b border-border bg-background/80 px-6 py-5 backdrop-blur-xl lg:px-8">
-          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="sticky top-0 z-20 h-14 border-b border-border bg-background px-6 py-2 lg:px-8">
+          <div className="flex h-full w-full flex-wrap items-start justify-between gap-x-4 gap-y-3">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-xl font-bold tracking-tight text-text-primary">
@@ -207,7 +207,19 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
           </div>
 
           {/* ===== Mobile/Tablet Tab Nav ===== */}
-          <div className="mt-4 flex gap-1 overflow-x-auto pb-1 lg:hidden">
+          <div className="mt-2.5 flex gap-1 overflow-x-auto pb-1 lg:hidden">
+            <Link
+              href={`/quiz/${code}/problems`}
+              className={cn(
+                "flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200",
+                pathname.includes("/problems")
+                  ? "bg-pink-500/10 text-pink-500"
+                  : "text-text-secondary hover:bg-pink-500/5"
+              )}
+            >
+              <ListChecks className="h-4 w-4" strokeWidth={2.2} />
+              Questions
+            </Link>
             {SETTINGS_SECTIONS.map((section) => {
               const Icon = section.icon;
               const isActive = activeSection === section.id;
@@ -229,16 +241,6 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
                 </Link>
               );
             })}
-            <Link
-              href={`/quiz/${code}/questions`}
-              className={cn(
-                "flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200",
-                pathname.includes("/questions") ? "bg-accent/10 text-accent" : "text-text-secondary hover:bg-pink-500/5"
-              )}
-            >
-              <ListChecks className="h-4 w-4" strokeWidth={2.2} />
-              Questions
-            </Link>
           </div>
         </div>
 

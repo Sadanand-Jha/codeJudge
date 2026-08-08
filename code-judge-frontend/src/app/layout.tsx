@@ -100,8 +100,20 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
+        {/* Critical theme script — runs synchronously before first paint so the
+            correct data-theme attribute is present before CSS is evaluated.
+            Reads from localStorage (byteclash_theme) or falls back to the
+            OS prefers-color-scheme. This eliminates theme flash on initial
+            load, refresh, and direct navigation to any route. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){try{var t;var s=localStorage.getItem('byteclash_theme')||localStorage.getItem('quizDibba_theme')||localStorage.getItem('quizdibba_theme');if(s==='light'||s==='dark'){t=s}else{t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
+            `,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet" />

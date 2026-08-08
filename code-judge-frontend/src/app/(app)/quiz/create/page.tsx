@@ -1,128 +1,78 @@
 "use client";
 
-import { useState } from "react";
-import QuizSettingsPage from "@/components/quiz/creator/QuizSettingsPage";
-import QuestionBuilder from "@/components/quiz/creator/QuestionBuilder";
-import AIStudio from "@/components/quiz/creator/AIStudio";
-import { Sparkles } from "lucide-react";
-import { QuizDetails, DEFAULT_QUIZ_DETAILS, CreatorQuestion } from "@/components/quiz/creator/types";
-import { loadQuizState, clearQuizState, saveQuizState } from "@/utils/quizStorage";
-import { toast } from "@/lib/toast";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, Loader2, PenLine } from "lucide-react";
+import { createQuiz } from "@/services/quiz";
+import { generateQuizCode } from "@/utils/quizCode";
 
-interface InitialState {
-  stage: "settings" | "builder";
-  details: QuizDetails;
-  questions: CreatorQuestion[];
-  activeQuestionId: string;
-}
-
-function getInitialState(): InitialState {
-  const saved = loadQuizState();
-  if (saved) {
-    return {
-      stage: saved.currentStage,
-      details: saved.details,
-      questions: saved.questions,
-      activeQuestionId: saved.activeQuestionId,
-    };
-  }
-  return {
-    stage: "settings",
-    details: DEFAULT_QUIZ_DETAILS,
-    questions: [],
-    activeQuestionId: "",
-  };
-}
-
+/**
+ * Single settings page entry point.
+ *
+ * Creating a quiz drops you straight into the unified quiz settings
+ * workspace (`/quiz/{code}/settings`) — the same page used to edit an
+ * existing quiz. There is a single settings page with the sidebar ordered
+ * Questions → Quiz Info → Registration → Collaborators → Responses.
+ */
 export default function CreateQuizPage() {
-  const [initial] = useState<InitialState>(getInitialState);
-  const [stage, setStage] = useState<"settings" | "builder">(initial.stage);
-  const [details, setDetails] = useState<QuizDetails>(initial.details);
-  const [questions] = useState<CreatorQuestion[]>(initial.questions);
-  const [activeQuestionId] = useState(initial.activeQuestionId);
-  const [showAIStudio, setShowAIStudio] = useState(false);
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
-  const handleContinue = (quizDetails: QuizDetails) => {
-    setDetails(quizDetails);
-    setStage("builder");
-    // Save the stage transition
-    const saved = loadQuizState();
-    saveQuizState({
-      details: quizDetails,
-      questions: saved?.questions || [],
-      activeQuestionId: saved?.activeQuestionId || "",
-      currentStage: "builder",
-      updatedAt: new Date().toISOString(),
-    });
-  };
+  useEffect(() => {
+    let cancelled = false;
 
-  const handleBack = () => {
-    setStage("settings");
-    const saved = loadQuizState();
-    if (saved) {
-      saveQuizState({
-        ...saved,
-        currentStage: "settings",
-        updatedAt: new Date().toISOString(),
-      });
-    }
-  };
-
-  const handlePublish = () => {
-    // Read complete quiz from localStorage
-    const saved = loadQuizState();
-    if (!saved) {
-      toast.error("No quiz data found. Please start over.");
-      return;
-    }
-
-    // Validate all data
-    const incomplete = saved.questions.filter((q) => {
-      const hasTitle = q.title.trim().length > 0;
-      if (!hasTitle) return true;
-      if (q.type === "single_choice" || q.type === "multiple_choice" || q.type === "true_false") {
-        const hasOptions = q.options.length >= 2 && q.options.every((o) => o.content.trim() !== "");
-        const hasCorrect = q.options.some((o) => o.isCorrect);
-        return !hasOptions || !hasCorrect;
+    const createAndEnter = async () => {
+      try {
+        const quiz = await createQuiz({
+          name: "Untitled Quiz",
+          code: generateQuizCode(),
+        });
+        const code = quiz?.code;
+        if (cancelled) return;
+        if (code) {
+          router.replace(`/quiz/${code}/settings/info`);
+        } else {
+          setError("The quiz was created but no code was returned.");
+        }
+      } catch (err) {
+        console.error("Failed to create quiz:", err);
+        if (!cancelled) {
+          setError("Could not create the quiz. Please try again.");
+        }
       }
-      return String(q.correctAnswer).trim().length === 0;
-    });
-
-    if (incomplete.length > 0) {
-      toast.error(`${incomplete.length} question(s) are incomplete. Please complete them before publishing.`);
-      return;
-    }
-
-    // Build the complete payload
-    const payload = {
-      details: saved.details,
-      questions: saved.questions,
-      totalQuestions: saved.questions.length,
-      totalMarks: saved.questions.reduce((sum, q) => sum + q.marks, 0),
-      totalTime: saved.questions.reduce((sum, q) => sum + q.expectedTime, 0),
     };
 
-    // TODO: Send single API request with the complete quiz payload
-    console.log("Publishing quiz:", payload);
+    createAndEnter();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
-    // If submission succeeds, clear localStorage
-    clearQuizState();
-    toast.success("Quiz published successfully!");
-  };
-
-  if (stage === "builder") {
+  if (error) {
     return (
-      <>
-        <QuestionBuilder
-          details={details}
-          initialQuestions={questions}
-          initialActiveQuestionId={activeQuestionId}
-          onBack={handleBack}
-          onPublish={handlePublish}
-        />
-      </>
+      <div className="flex min-h-[60vh] items-center justify-center px-6">
+        <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-center">
+          <AlertTriangle className="mx-auto h-8 w-8 text-red-500" />
+          <p className="mt-2 text-sm font-semibold text-red-500">Could not create quiz</p>
+          <p className="mt-1 text-xs text-text-secondary">{error}</p>
+          <button
+            onClick={() => router.refresh()}
+            className="mt-4 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-2.5 text-xs font-bold text-white"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
     );
   }
 
-  return <QuizSettingsPage initialDetails={details} onContinue={handleContinue} />;
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500">
+        <PenLine className="h-6 w-6" />
+      </div>
+      <Loader2 className="h-6 w-6 animate-spin text-accent" />
+      <p className="text-sm text-text-secondary">Creating your quiz...</p>
+    </div>
+  );
 }

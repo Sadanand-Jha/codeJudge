@@ -121,6 +121,7 @@ interface SettingsInputProps {
   action?: ReactNode;
   required?: boolean;
   optional?: boolean;
+  onBlur?: () => void;
 }
 
 export function SettingsInput({
@@ -136,6 +137,7 @@ export function SettingsInput({
   action,
   required,
   optional,
+  onBlur,
 }: SettingsInputProps) {
   const pct = maxLength ? value.length / maxLength : 0;
   const counterColor =
@@ -167,6 +169,7 @@ export function SettingsInput({
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           placeholder={placeholder}
           readOnly={readOnly}
           maxLength={maxLength}

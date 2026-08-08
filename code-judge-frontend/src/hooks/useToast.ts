@@ -8,7 +8,7 @@
  *   toast.promise(fetchData, { loading: {...}, success: {...}, error: {...} });
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useToastStore } from "@/store/toastStore";
 import type { ToastApi, ToastOptions, ToastType } from "@/types/toast";
 
@@ -75,14 +75,17 @@ export function useToast(): ToastApi {
     [addToast, updateToast]
   );
 
-  return {
-    success,
-    error,
-    warning,
-    info,
-    loading,
-    dismiss,
-    update,
-    promise,
-  };
+  return useMemo(
+    () => ({
+      success,
+      error,
+      warning,
+      info,
+      loading,
+      dismiss,
+      update,
+      promise,
+    }),
+    [success, error, warning, info, loading, dismiss, update, promise]
+  );
 }

@@ -6,12 +6,13 @@ import Link from "next/link";
 import {
   Search, Sparkles, History, BookOpen, Clock, TrendingUp,
   CheckCircle2, XCircle, AlertTriangle, Award, Trophy, Globe,
-  Lock, Send, Users, Shield, Copy, Share2, LayoutDashboard,
+  Lock, Send, Users, Shield, Copy,
   FileText, HelpCircle, Code2, Brain, Beaker, Calculator,
   Globe2, Palette, Database, Network, Hash, Target, Layers3,
   ChevronDown, Calendar, Timer, Plus, ArrowRight, X, Milestone,
-  Filter, BarChart2, CircleDot, GraduationCap, Check
+  Filter, BarChart2, CircleDot, GraduationCap, Check,
 } from "lucide-react";
+import { cn } from "@/lib/helpers";
 import { getOldQuizzes, getMyCreatedQuizzes } from "@/services/quiz";
 import { formatQuizCode } from "@/utils/quizCode";
 
@@ -60,7 +61,6 @@ type MyQuiz = {
 const STORAGE_KEY = "your-activity-active-tab";
 const STATUS_OPTIONS = ["All", "Completed", "Submitted", "Timed Out", "Left Early"] as const;
 const SORT_OPTIONS = ["Newest", "Oldest", "Highest Score", "Lowest Score"] as const;
-const MY_QUIZ_STATUS_OPTIONS = ["All", "draft", "published", "archived", "scheduled"] as const;
 const TAB_LIST: { key: TabType; label: string; icon: React.ElementType }[] = [
   { key: "recent", label: "Recent Quizzes", icon: History },
   { key: "my-quizzes", label: "My Quizzes", icon: GraduationCap },
@@ -105,8 +105,8 @@ type ChipCfg = {
   color: string;
   bg: string;
   border: string;
-  bar: string;      // top accent / progress gradient
-  glow: string;     // soft radial atmosphere
+  bar: string;
+  glow: string;
 };
 
 const STATUS_CONFIG: Record<string, ChipCfg> = {
@@ -156,8 +156,7 @@ function getStatusConfig(status: string): ChipCfg {
   return STATUS_CONFIG[status] || STATUS_CONFIG["Completed"];
 }
 
-/* ─── Score → tone (user ranges) ───
-   90–100 green · 70–89 purple/blue · 50–69 orange · below 50 red */
+/* ─── Score → tone ─── */
 function scoreTone(pct: number): { text: string; bar: string; chipGlow: string; ring: string } {
   if (pct >= 90) return { text: "text-success", bar: "from-emerald-400 to-success", chipGlow: "shadow-[0_0_20px_rgba(34,197,94,0.35)]", ring: "ring-success/40" };
   if (pct >= 70) return { text: "text-accent", bar: "from-accent to-fuchsia-400", chipGlow: "shadow-[0_0_20px_rgba(124,58,237,0.35)]", ring: "ring-accent/40" };
@@ -165,7 +164,7 @@ function scoreTone(pct: number): { text: string; bar: string; chipGlow: string; 
   return { text: "text-danger", bar: "from-rose-400 to-danger", chipGlow: "shadow-[0_0_20px_rgba(239,68,68,0.35)]", ring: "ring-danger/40" };
 }
 
-/* ─── My-quiz visibility → label/icon ─── */
+/* ─── My-quiz visibility ─── */
 function visibilityInfo(v: number): { text: string; icon: React.ElementType; color: string; bg: string; border: string } {
   if (v === 1) return { text: "Public", icon: Globe, color: "text-success", bg: "bg-success/10", border: "border-success/25" };
   if (v === 2) return { text: "Classroom", icon: Users, color: "text-accent-secondary", bg: "bg-accent-secondary/10", border: "border-accent-secondary/25" };
@@ -176,9 +175,53 @@ function visibilityInfo(v: number): { text: string; icon: React.ElementType; col
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
+/* ─── My-quiz helpers ─── */
+function isQuizLive(quiz: MyQuiz): boolean {
+  if (quiz.status !== "published") return false;
+  const now = new Date();
+  const start = quiz.starttime ? new Date(quiz.starttime) : null;
+  const end = quiz.endtime ? new Date(quiz.endtime) : null;
+  if (start && start > now) return false;
+  if (end && end <= now) return false;
+  return true;
+}
+
+function isQuizCompleted(quiz: MyQuiz): boolean {
+  if (quiz.status === "archived") return true;
+  if (quiz.status !== "published") return false;
+  if (!quiz.endtime) return false;
+  return new Date(quiz.endtime) <= new Date();
+}
+
+function quizDuration(starttime: string | null, endtime: string | null): string | null {
+  if (!starttime || !endtime) return null;
+  const start = new Date(starttime);
+  const end = new Date(endtime);
+  const diffMins = Math.round((end.getTime() - start.getTime()) / 60000);
+  if (diffMins <= 0) return null;
+  if (diffMins < 60) return `${diffMins} min`;
+  const hours = Math.floor(diffMins / 60);
+  const mins = diffMins % 60;
+  return `${hours}h ${mins}m`;
+}
+
+function formatDateShort(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function myQuizStatusDisplay(quiz: MyQuiz): { dot: string; text: string; tone: string } {
+  if (isQuizLive(quiz)) return { dot: "🟢", text: "Live", tone: "text-success" };
+  if (quiz.status === "draft") return { dot: "🟡", text: "Draft", tone: "text-warning" };
+  if (quiz.status === "scheduled") return { dot: "🟣", text: "Scheduled", tone: "text-accent-secondary" };
+  if (quiz.status === "archived") return { dot: "⚪", text: "Archived", tone: "text-text-muted" };
+  if (quiz.status === "published") return { dot: "🟢", text: "Published", tone: "text-success" };
+  return { dot: "⚪", text: quiz.status || "Unknown", tone: "text-text-secondary" };
+}
+
 
 /* ═══════════════════════════════════════════════════════════════
-   SHARED UI PRIMITIVES
+   SHARED UI PRIMITIVES (used by Recent tab)
    ═══════════════════════════════════════════════════════════════ */
 
 function StatusChip({ status }: { status: string }) {
@@ -312,7 +355,6 @@ function SubjectTile({ icon: Icon, color }: { icon: React.ElementType; color: st
     </div>
   );
 }
-
 
 function MetaChip({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
@@ -449,7 +491,7 @@ function ActionButton({ icon: Icon, label, onClick, href, variant = "ghost" }: {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   RECENT QUIZ ROW  (student participated)
+   RECENT QUIZ ROW  (student participated — unchanged)
    ═══════════════════════════════════════════════════════════════ */
 function RecentQuizRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
   const [expanded, setExpanded] = useState(false);
@@ -479,12 +521,10 @@ function RecentQuizRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
       className="group relative"
     >
       <div className="relative overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-border-hover hover:shadow-2xl hover:shadow-black/10 dark:hover:border-accent/30 dark:hover:shadow-black/40">
-        {/* status accent glow + top bar */}
         <div className={`pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.10),transparent_55%)] transition-opacity duration-300 ${accent.glow} group-hover:opacity-100`} />
         <div className={`absolute left-0 right-0 top-0 h-1 bg-gradient-to-r ${accent.bar}`} />
 
         <div className="relative flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center">
-          {/* ── LEFT: identity + meta ── */}
           <div className="min-w-0 flex-1">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <StatusChip status={quiz.status} />
@@ -504,14 +544,12 @@ function RecentQuizRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
               </div>
             </div>
 
-            {/* metadata */}
             <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
               <MetaChip icon={Calendar}>{dateFormatted}</MetaChip>
               <MetaChip icon={Timer}>{timeTaken}</MetaChip>
               <MetaChip icon={Milestone}>{totalAnswered}/{quiz.total_questions} answered</MetaChip>
             </div>
 
-            {/* answer summary */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <AnswerChip icon={CheckCircle2} count={quiz.correct_answers} tone="success" />
               <AnswerChip icon={XCircle} count={quiz.wrong_answers} tone="danger" />
@@ -519,8 +557,6 @@ function RecentQuizRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
               <AnswerChip icon={CircleDot} count={quiz.total_questions} tone="accent" />
             </div>
 
-
-            {/* expandable breakdown */}
             <AnimatePresence initial={false}>
               {expanded && (
                 <motion.div
@@ -548,7 +584,6 @@ function RecentQuizRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
             </AnimatePresence>
           </div>
 
-          {/* ── RIGHT: score + actions ── */}
           <div className="flex shrink-0 flex-col gap-4 lg:w-60 lg:border-l lg:border-border lg:pl-6">
             <ScoreBlock pct={quiz.percentage} score={quiz.score} totalMarks={quiz.total_marks} />
             <div className="flex items-center gap-2 lg:flex-col lg:items-stretch">
@@ -565,120 +600,266 @@ function RecentQuizRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
 
 
 /* ═══════════════════════════════════════════════════════════════
-   MY QUIZ ROW  (created by user)
+   MY QUIZZES — COMPACT DASHBOARD DESIGN
    ═══════════════════════════════════════════════════════════════ */
-function MyQuizRow({ quiz, index }: { quiz: MyQuiz; index: number }) {
-  const [expanded, setExpanded] = useState(false);
-  const accent = getStatusConfig(quiz.status);
-  const vis = visibilityInfo(quiz.visibility);
-  const subject = getSubjectInfo(quiz.name);
 
-  const isLive = quiz.status === "published" && quiz.starttime && quiz.endtime
-    ? new Date(quiz.starttime) <= new Date() && new Date(quiz.endtime) > new Date()
-    : false;
+const MY_QUIZ_FILTERS_CONFIG = [
+  { key: "All", label: "All" },
+  { key: "Live", label: "🟢 Live" },
+  { key: "Draft", label: "🟡 Draft" },
+  { key: "Completed", label: "✓ Completed" },
+] as const;
 
-  const completionPct = Math.round(quiz.completion_rate * 100);
-  const createdFormatted = quiz.created_at
-    ? new Date(quiz.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-    : "—";
-  const completionTone = scoreTone(completionPct);
+function MyQuizzesSummaryStrip({ quizzes }: { quizzes: MyQuiz[] }) {
+  const summary = useMemo(() => {
+    const total = quizzes.length;
+    const participants = quizzes.reduce((sum, q) => sum + (q.participants || 0), 0);
+    const active = quizzes.filter((q) => isQuizLive(q)).length;
+    const avgCompletion =
+      total > 0
+        ? Math.round((quizzes.reduce((sum, q) => sum + (q.completion_rate || 0), 0) / total) * 100)
+        : 0;
+    return { total, participants, active, avgCompletion };
+  }, [quizzes]);
+
+  const items = [
+    { emoji: "📝", value: summary.total, label: "Quizzes", tone: "text-accent" },
+    { emoji: "👥", value: summary.participants, label: "Participants", tone: "text-accent-secondary" },
+    { emoji: "🏆", value: summary.active, label: "Active", tone: "text-warning" },
+    { emoji: "📊", value: `${summary.avgCompletion}%`, label: "Avg. Completion", tone: "text-success" },
+  ];
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.05, 0.3), duration: 0.45, ease: EASE }}
-      className="group relative"
-    >
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-border-hover hover:shadow-2xl hover:shadow-black/10 dark:hover:border-accent/30 dark:hover:shadow-black/40">
-        <div className={`pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.10),transparent_55%)] transition-opacity duration-300 ${accent.glow} group-hover:opacity-100`} />
-        <div className={`absolute left-0 right-0 top-0 h-1 bg-gradient-to-r ${accent.bar}`} />
+    <div className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border/50 backdrop-blur-sm sm:grid-cols-4">
+      {items.map((it) => (
+        <div key={it.label} className="flex items-center justify-center gap-1.5 px-3 py-2.5 sm:justify-start">
+          <span className="text-sm">{it.emoji}</span>
+          <span className={cn("tabular-nums font-bold", it.tone)}>{it.value}</span>
+          <span className="text-[9px] font-medium uppercase tracking-wider text-text-muted">{it.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-        <div className="relative flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center">
-          {/* ── LEFT ── */}
-          <div className="min-w-0 flex-1">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <StatusChip status={quiz.status} />
-              <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium ${vis.border} ${vis.bg} ${vis.color}`}>
-                <vis.icon className="h-3 w-3" />{vis.text}
-              </span>
-              <CodeCopyChip code={quiz.code} />
-              {isLive && (
-                <motion.span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-[11px] font-semibold text-success">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/60 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
-                  </span>
-                  Live
-                </motion.span>
+function MyQuizzesFilterBar({
+  active,
+  onChange,
+}: {
+  active: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {MY_QUIZ_FILTERS_CONFIG.map((f) => {
+        const isActive = active === f.key;
+        return (
+          <button
+            key={f.key}
+            type="button"
+            onClick={() => onChange(f.key)}
+            className={cn(
+              "relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-medium transition-all duration-200",
+              isActive
+                ? "border border-accent/40 bg-gradient-to-r from-accent/20 to-fuchsia-500/10 text-accent"
+                : "border border-border text-text-secondary hover:border-accent/20 hover:bg-card-hover hover:text-text-primary"
+            )}
+          >
+            {isActive && (
+              <span className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_12px_rgba(124,58,237,0.20)] dark:shadow-[0_0_12px_rgba(236,72,153,0.15)]" />
+            )}
+            {f.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function MyQuizCompactRow({ quiz, index }: { quiz: MyQuiz; index: number }) {
+  const completionPct = Math.round(quiz.completion_rate * 100);
+  const vis = visibilityInfo(quiz.visibility);
+  const sd = myQuizStatusDisplay(quiz);
+  const dateStr = formatDateShort(quiz.created_at || quiz.starttime);
+  const duration = quizDuration(quiz.starttime, quiz.endtime);
+  const formattedCode = formatQuizCode(quiz.code);
+  const codeShort = formattedCode.length > 12 ? `${formattedCode.slice(0, 8)}…` : formattedCode;
+  const tone = scoreTone(completionPct);
+  const isLive = isQuizLive(quiz);
+
+  return (
+    <Link href={`/quiz/${quiz.code}/settings/info`} className="group block cursor-pointer">
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: Math.min(index * 0.03, 0.2), duration: 0.3, ease: EASE }}
+        className={cn(
+          "relative mb-1 flex flex-col gap-2.5 rounded-xl border border-border bg-card px-4 py-3 transition-all duration-200 last:mb-0",
+          isLive && "border-l-2 border-l-success/50",
+          "group-hover:-translate-y-0.5 group-hover:border-accent/30 group-hover:bg-card-hover",
+          "group-hover:shadow-[0_0_24px_rgba(124,58,237,0.10)] dark:group-hover:shadow-[0_0_24px_rgba(236,72,153,0.08)]"
+        )}
+      >
+        {/* ambient hover glow */}
+        <span
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute -inset-0.5 rounded-xl opacity-0 transition-opacity duration-300",
+            "bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.06),transparent_55%)]",
+            "group-hover:opacity-100"
+          )}
+        />
+
+        {/* top: title + status/visibility/code */}
+        <div className="relative flex items-baseline justify-between gap-2">
+          <h3 className="flex items-center gap-1.5 font-semibold text-sm text-text-primary sm:text-base truncate">
+            <span className="text-base">📝</span>
+            {quiz.name}
+          </h3>
+          <div className="flex shrink-0 items-center gap-1.5 text-[11px] text-text-secondary">
+            <span className={cn("inline-flex items-center gap-1 font-medium", sd.tone)}>
+              {isLive ? (
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/60 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+                </span>
+              ) : (
+                <span>{sd.dot}</span>
               )}
-            </div>
-
-            <div className="flex items-start gap-3">
-              <SubjectTile icon={subject.icon} color={subject.color} />
-              <div className="min-w-0">
-                <h3 className="truncate text-lg font-bold leading-snug text-text-primary transition-colors group-hover:text-accent sm:text-xl">
-                  {quiz.name}
-                </h3>
-                <p className="mt-0.5 text-xs text-text-secondary">{subject.label} <span className="mx-1 text-text-muted">·</span> Created {createdFormatted}</p>
-              </div>
-            </div>
-
-            {/* metrics */}
-            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-              <MetaChip icon={Users}>{quiz.participants} participants</MetaChip>
-              <MetaChip icon={Milestone}>{quiz.total_questions} questions</MetaChip>
-              <MetaChip icon={Award}>{quiz.total_marks} marks</MetaChip>
-            </div>
-
-            {/* completion performance */}
-            <div className="mt-4 max-w-xs">
-              <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Completion</span>
-                <span className={`text-xs font-bold ${completionTone.text}`}>{completionPct}%</span>
-              </div>
-              <ProgressTrack value={completionPct} barClass={completionTone.bar} />
-            </div>
-
-
-            {/* expandable result details */}
-            <AnimatePresence initial={false}>
-              {expanded && quiz.status === "published" && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-warning/25 bg-warning/10 px-2.5 py-1 text-[11px] font-semibold text-warning">
-                    <AlertTriangle className="h-3 w-3" /> Results ready — {completionPct}% completed
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* ── RIGHT: actions ── */}
-          <div className="flex shrink-0 items-center gap-2 lg:w-56 lg:flex-col lg:items-stretch lg:border-l lg:border-border lg:pl-6">
-            <ActionButton icon={BarChart2} label={expanded ? "Less" : "Details"} onClick={() => setExpanded((e) => !e)} />
-            <ActionButton icon={FileText} label="Edit" href={`/quiz/${quiz.code}/settings/info`} variant="accent" />
-            <ActionButton icon={Copy} label="Duplicate" />
-            <ActionButton icon={Share2} label="Share" />
-            {isLive && <ActionButton icon={Send} label="Send Results" />}
-            {isLive && <ActionButton icon={LayoutDashboard} label="Dashboard" href={`/quiz/${quiz.code}/dashboard`} variant="filled" />}
+              <span>{sd.text}</span>
+            </span>
+            <span className="text-text-muted">•</span>
+            <span className={cn("inline-flex items-center gap-1", vis.color)}>
+              <vis.icon className="h-3 w-3" />
+              {vis.text}
+            </span>
+            <span className="text-text-muted">·</span>
+            <span className="font-mono text-[10px] text-text-muted">CODE: {codeShort}</span>
           </div>
         </div>
+
+        {/* bottom: stats + progress */}
+        <div className="relative flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-secondary">
+            <span className="inline-flex items-center gap-1">
+              <span>❓</span>
+              <span>{quiz.total_questions || 0} Question{quiz.total_questions !== 1 ? "s" : ""}</span>
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span>👥</span>
+              <span>{quiz.participants || 0} Student{quiz.participants !== 1 ? "s" : ""}</span>
+            </span>
+            {duration && (
+              <span className="inline-flex items-center gap-1">
+                <span>⏱</span>
+                <span>{duration}</span>
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1">
+              <span>📅</span>
+              <span>{dateStr}</span>
+            </span>
+          </div>
+
+          {/* completion progress */}
+          <div className="flex items-center gap-2 self-start lg:self-auto">
+            <span className="text-[11px] text-text-secondary">completed</span>
+            <span className={cn("text-sm font-bold", tone.text)}>{completionPct}%</span>
+            <div className="relative h-1.5 w-16 overflow-hidden rounded-full bg-text-muted/15 sm:w-20">
+              <motion.div
+                className={cn("relative h-full rounded-full bg-gradient-to-r", tone.bar)}
+                initial={{ width: 0 }}
+                animate={{ width: `${completionPct}%` }}
+                transition={{ duration: 0.6, ease: EASE }}
+              >
+                <span className="bar-shimmer absolute inset-0" />
+              </motion.div>
+            </div>
+            {/* peek hint — visible on hover */}
+            <ArrowRight
+              className="hidden h-3.5 w-3.5 shrink-0 text-text-muted opacity-0 transition-all duration-200 group-hover:translate-x-0.5 group-hover:opacity-60 lg:inline-block"
+              aria-hidden="true"
+            />
+          </div>
+        </div>
+      </motion.div>
+    </Link>
+  );
+}
+
+function MyQuizzesEmptyState() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: EASE }}
+      className="relative flex flex-col items-center gap-5 py-14 text-center"
+    >
+      <div className="absolute -top-16 -right-16 h-52 w-52 rounded-full bg-accent/5 blur-3xl" />
+      <div className="absolute -bottom-16 -left-16 h-52 w-52 rounded-full bg-fuchsia-500/5 blur-3xl" />
+
+      <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl border border-accent/20 bg-gradient-to-br from-accent/5 to-fuchsia-500/5 shadow-lg">
+        <span className="text-3xl">📝</span>
       </div>
+
+      <div className="flex flex-col items-center gap-1.5">
+        <h3 className="text-lg font-semibold text-text-primary">No quizzes yet</h3>
+        <p className="max-w-xs text-sm text-text-secondary">
+          Create your first quiz and start building something amazing.
+        </p>
+      </div>
+
+      <Link
+        href="/quiz/create"
+        className={cn(
+          "inline-flex items-center justify-center gap-1.5 rounded-xl",
+          "bg-gradient-to-r from-accent to-fuchsia-500 px-5 py-2.5",
+          "text-xs font-semibold text-white shadow-lg shadow-accent/25",
+          "transition-all duration-200 hover:scale-105 hover:shadow-accent/50"
+        )}
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Create your first quiz
+      </Link>
     </motion.div>
   );
 }
 
+function MyQuizzesSkeleton() {
+  return (
+    <div className="flex flex-col gap-1">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="rounded-xl border border-border bg-card px-4 py-3">
+          <div className="flex items-baseline justify-between">
+            <div className="flex items-center gap-1.5">
+              <div className="h-4 w-4 rounded bg-white/5" />
+              <div className="h-4 w-2/3 rounded bg-white/5" />
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-3 w-3 rounded-full bg-white/5" />
+              <div className="h-3 w-14 rounded bg-white/5" />
+              <span className="text-text-muted">·</span>
+              <div className="h-3 w-20 rounded bg-white/5" />
+            </div>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="h-3 w-16 rounded bg-white/5" />
+            <div className="h-3 w-16 rounded bg-white/5" />
+            <div className="h-3 w-12 rounded bg-white/5" />
+            <div className="h-3 w-10 rounded bg-white/5" />
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <div className="h-3 w-8 rounded bg-white/5" />
+            <div className="h-3 w-8 rounded bg-white/5" />
+            <div className="h-1.5 w-16 rounded-full bg-white/5 sm:w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-/* ═══════════════════════════════════════════════════════════════
-   EMPTY STATE + SKELETON
-   ═══════════════════════════════════════════════════════════════ */
 function EmptyState({ variant }: { variant: "recent" | "my-quizzes" }) {
   const isRecent = variant === "recent";
   const title = isRecent ? "No quiz attempts yet" : "No quizzes created yet";
@@ -806,7 +987,6 @@ export default function YourActivitySection() {
       page: 1,
       limit: pageSize,
       search: mySearch || undefined,
-      status: myStatus === "All" ? undefined : myStatus,
       sortBy: mySort === "Newest" ? "created_at" : mySort === "Oldest" ? "created_at" : "name",
       sortOrder: mySort === "Oldest" ? "ASC" : "DESC",
     })
@@ -814,15 +994,26 @@ export default function YourActivitySection() {
       .catch(() => {})
       .finally(() => { if (!cancelled) setMyLoading(false); });
     return () => { cancelled = true; };
-  }, [isHydrated, mySearch, myStatus, mySort]);
+  }, [isHydrated, mySearch, mySort]);
 
-  /* Unified activity overview ribbon */
+  /* Unified activity overview (recent tab) */
   const overview = useMemo(() => {
     const list = recentQuizzes || [];
     const completed = list.filter((q) => q.status === "Completed").length;
     const avgScore = list.length ? Math.round(list.reduce((s, q) => s + q.percentage, 0) / list.length) : 0;
     return { totalAttempts: list.length, completed, created: (myQuizzes || []).length, avgScore };
   }, [recentQuizzes, myQuizzes]);
+
+  /* Client-side filter for my-quizzes tab */
+  const filteredMyQuizzes = useMemo(() => {
+    if (!myQuizzes) return [];
+    return myQuizzes.filter((q) => {
+      if (myStatus === "Draft") return q.status === "draft";
+      if (myStatus === "Live") return isQuizLive(q);
+      if (myStatus === "Completed") return isQuizCompleted(q);
+      return true; // "All"
+    });
+  }, [myQuizzes, myStatus]);
 
   if (!isHydrated) return null;
 
@@ -835,34 +1026,53 @@ export default function YourActivitySection() {
         <div className="relative p-4 sm:p-6 lg:p-7">
           {/* ── HEADER ── */}
           <div className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="mb-2 flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
                   <Sparkles className="h-3 w-3" /> Your Activity
                 </span>
               </div>
-              <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-text-primary sm:text-3xl">
-                Your Activity
-              </h2>
-              <p className="mt-1.5 max-w-2xl text-sm text-text-secondary">
-                Track your quiz history and manage the assessments you have created.
-              </p>
+
+              {activeTab === "my-quizzes" ? (
+                <>
+                  <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-text-primary sm:text-3xl">
+                    My Quizzes
+                  </h2>
+                  <p className="mt-1.5 max-w-2xl text-sm text-text-secondary">
+                    Create, manage and monitor your quizzes.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-text-primary sm:text-3xl">
+                    Your Activity
+                  </h2>
+                  <p className="mt-1.5 max-w-2xl text-sm text-text-secondary">
+                    Track your quiz history and manage the assessments you have created.
+                  </p>
+                </>
+              )}
             </div>
 
-            <div className="shrink-0">
+            <div className="flex shrink-0 items-end gap-3">
+              {activeTab === "my-quizzes" && (
+                <Link
+                  href="/quiz/create"
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-xl",
+                    "bg-gradient-to-r from-accent to-fuchsia-500 px-4 py-2.5",
+                    "text-xs font-semibold text-white shadow-lg shadow-accent/25",
+                    "transition-all hover:scale-105 hover:shadow-accent/50"
+                  )}
+                >
+                  ＋ Create Quiz
+                </Link>
+              )}
               <SegmentedTabs active={activeTab} onChange={setActiveTab} />
             </div>
           </div>
 
-          {/* ── STATS RIBBON ── */}
-          <div className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border/60 md:grid-cols-4">
-            <StatItem icon={BookOpen} label="Total Attempts" value={overview.totalAttempts} tone="purple" delay={0} />
-            <StatItem icon={CheckCircle2} label="Completed" value={overview.completed} tone="green" delay={0.05} />
-            <StatItem icon={Plus} label="Quizzes Created" value={overview.created} tone="orange" delay={0.1} />
-            <StatItem icon={TrendingUp} label="Avg Score" value={`${overview.avgScore}%`} tone="blue" delay={0.15} />
-          </div>
-
-
+          {/* ── TAB CONTENT ── */}
           <AnimatePresence mode="wait">
             {activeTab === "recent" && (
               <motion.div
@@ -880,6 +1090,14 @@ export default function YourActivitySection() {
                     <FilterSelect icon={Filter} value={recentStatus} options={STATUS_OPTIONS} onChange={setRecentStatus} />
                     <FilterSelect icon={TrendingUp} value={recentSort} options={SORT_OPTIONS} onChange={setRecentSort} />
                   </div>
+                </div>
+
+                {/* stats ribbon */}
+                <div className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border/60 md:grid-cols-4">
+                  <StatItem icon={BookOpen} label="Total Attempts" value={overview.totalAttempts} tone="purple" delay={0} />
+                  <StatItem icon={CheckCircle2} label="Completed" value={overview.completed} tone="green" delay={0.05} />
+                  <StatItem icon={Plus} label="Quizzes Created" value={overview.created} tone="orange" delay={0.1} />
+                  <StatItem icon={TrendingUp} label="Avg Score" value={`${overview.avgScore}%`} tone="blue" delay={0.15} />
                 </div>
 
                 {/* list */}
@@ -902,22 +1120,29 @@ export default function YourActivitySection() {
                 transition={{ duration: 0.2 }}
                 className="space-y-4"
               >
-                {/* toolbar */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <SearchField value={mySearch} onChange={setMySearch} placeholder="Search my quizzes..." />
-                  <div className="ml-auto flex flex-wrap items-center gap-2">
-                    <FilterSelect icon={Filter} value={myStatus} options={MY_QUIZ_STATUS_OPTIONS} onChange={setMyStatus} />
+                {/* summary strip */}
+                <MyQuizzesSummaryStrip quizzes={myQuizzes || []} />
+
+                {/* toolbar: search + filters */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="min-w-[200px] flex-1">
+                    <SearchField value={mySearch} onChange={setMySearch} placeholder="Search quizzes..." />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <MyQuizzesFilterBar active={myStatus} onChange={setMyStatus} />
                     <FilterSelect icon={TrendingUp} value={mySort} options={SORT_OPTIONS} onChange={setMySort} />
                   </div>
                 </div>
 
-                {/* list */}
-                <div className="flex flex-col gap-3.5">
+                {/* quiz list */}
+                <div className="flex flex-col">
                   {myLoading
-                    ? Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)
-                    : (myQuizzes || []).length === 0
-                      ? <EmptyState variant="my-quizzes" />
-                      : (myQuizzes || []).map((quiz, i) => <MyQuizRow key={quiz.id} quiz={quiz} index={i} />)}
+                    ? <MyQuizzesSkeleton />
+                    : filteredMyQuizzes.length === 0
+                      ? <MyQuizzesEmptyState />
+                      : filteredMyQuizzes.map((quiz, i) => (
+                        <MyQuizCompactRow key={quiz.id} quiz={quiz} index={i} />
+                      ))}
                 </div>
               </motion.div>
             )}
@@ -927,4 +1152,3 @@ export default function YourActivitySection() {
     </section>
   );
 }
-

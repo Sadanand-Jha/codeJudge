@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from "react";
 import { getQuizByCode, getQuizProblems, updateQuiz, updateQuizStatus, type Quiz } from "@/services/quiz";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS } from "@/components/quiz/creator/types";
-import { loadQuizState, saveQuizDetails } from "@/utils/quizStorage";
+import { loadQuizState, saveQuizDetails, computeQuestionsSignature, getSyncedSignature } from "@/utils/quizStorage";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import { useToast } from "@/hooks/useToast";
 
@@ -140,11 +140,15 @@ export function QuizSettingsProvider({
   }, [refresh]);
 
   useEffect(() => {
+    // Only hydrate the name from the backend when the quiz object itself
+    // changes (initial load or explicit refresh) — never while the user is
+    // actively editing the name field.
     if (quiz?.name && !details.name.trim()) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate the quiz name once loaded
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate the quiz name from backend when quiz object changes
       setDetails((d) => ({ ...d, name: quiz.name }));
     }
-  }, [quiz, details.name]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: only sync once per quiz load, not on every keystroke
+  }, [quiz]);
 
   const updateDetails = useCallback((patch: Partial<QuizDetails>) => {
     setDetails((d) => ({ ...d, ...patch }));
@@ -179,7 +183,8 @@ export function QuizSettingsProvider({
     // A quiz needs at least one problem before it can be started. Check the
     // local creator workspace first, then fall back to the backend.
     hydrateProblems();
-    const localCount = useQuizProblemsStore.getState().problems.length;
+    const localQuestions = useQuizProblemsStore.getState().problems;
+    const localCount = localQuestions.length;
     let backendCount = 0;
     try {
       const problems = await getQuizProblems(String(quiz.id));
@@ -196,9 +201,23 @@ export function QuizSettingsProvider({
       return;
     }
 
+    // All local questions must be saved to the server before the quiz can start.
+    if (localCount > 0) {
+      const signature = computeQuestionsSignature(localQuestions);
+      const savedSignature = getSyncedSignature(code);
+      if (!savedSignature || signature !== savedSignature) {
+        setStartValidationError("Save all questions before starting the quiz.");
+        toast.error({
+          title: "Cannot start quiz",
+          description: "Save all questions before starting the quiz.",
+        });
+        return;
+      }
+    }
+
     setStartValidationError(null);
     setConfirmingStart(true);
-  }, [quiz, details, toast, hydrateProblems]);
+  }, [quiz, details, code, toast, hydrateProblems]);
 
   /**
    * Confirm the quiz start: persist the current settings, then publish the

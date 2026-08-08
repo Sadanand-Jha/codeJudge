@@ -2920,3 +2920,102 @@ svg {
   animation: bar-shimmer-sweep 2.4s ease-in-out infinite;
 }
 
+/* ═══ AI Assistant strip — idle animations ═══ */
+@keyframes ai-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0px 2px rgba(236, 72, 153, 0.4), 0 0 8px rgba(236, 72, 153, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 12px 4px rgba(236, 72, 153, 0.55), 0 0 26px 10px rgba(124, 58, 237, 0.4);
+  }
+}
+
+@keyframes ai-shimmer {
+  0% {
+    transform: translateY(-120%);
+  }
+  100% {
+    transform: translateY(240px);
+  }
+}
+
+@keyframes ai-sparkle {
+  0%,
+  100% {
+    transform: translateY(0) scale(0.85);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(6px) scale(1);
+    opacity: 0.8;
+  }
+}
+
+/* ═══ AI Assistant — page-wide "AI mode" transition ═══
+     Toggled on [data-ai-scope] by the AI strip when the panel opens.
+     Shifts the whole palette toward an energetic pink → purple → blue AI
+     gradient. Does NOT alter the user's data-theme (dark/light) selection.
+     Existing cards/components smoothly adopt the new palette. */
+[data-ai-scope][data-ai-mode] {
+  --background: #0a0c17;
+  --foreground: #f8fafc;
+  --card: #0f1326;
+  --card-hover: #131830;
+  --border: rgba(236, 72, 153, 0.22);
+  --border-hover: rgba(124, 58, 237, 0.32);
+  --accent: #a855f7;
+  --accent-secondary: #60a5fa;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --link: #a855f7;
+  --input-bg: #0b0f1e;
+  --input-border: rgba(236, 72, 153, 0.22);
+  --input-focus-ring: rgba(168, 85, 247, 0.12);
+}
+
+[data-theme="light"][data-ai-scope][data-ai-mode] {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-hover: #f8fafc;
+  --border: #d1d5e0;
+  --border-hover: #b3c0d3;
+  --accent: #a855f7;
+  --accent-secondary: #60a5fa;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --link: #a855f7;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --input-focus-ring: rgba(168, 85, 247, 0.2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Let the page background breathe into AI mode */
+  [data-ai-scope][data-ai-mode],
+  [data-ai-scope][data-ai-mode] [class*="bg-"]:not([class*="transition-"]):not([data-ai-panel]):not([data-ai-ignore]),
+  [data-ai-scope][data-ai-mode] [class*="border-"]:not([class*="transition-"]):not([data-ai-panel]):not([data-ai-ignore]),
+  [data-ai-scope][data-ai-mode] [class*="text-"]:not([class*="transition-"]):not([data-ai-panel]):not([data-ai-ignore]) {
+    transition-property: background-color, border-color, color;
+    transition-duration: 600ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Keep the AI panel + its strip own elements crisp (no page color fade inside them) */
+  [data-ai-panel],
+  [data-ai-panel] *,
+  [data-ai-ignore],
+  [data-ai-ignore] * {
+    transition: none !important;
+  }
+}
+
+
+
