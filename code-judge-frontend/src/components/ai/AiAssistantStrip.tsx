@@ -28,20 +28,20 @@ export default function AiAssistantStrip() {
 
   const label = "✨ AI ASSISTANT";
 
-  // Toggle page-wide AI mode with the panel lifecycle. The page keeps the
-  // AI palette for slightly longer than the panel exit so the close feels
-  // seamless (no sudden color snap while the panel fades out).
+  // AI-mode palette toggle is disconnected — the assistant now follows the
+  // user's normal theme (white in light mode, dark in dark mode) instead of
+  // the pink/purple AI palette. Code is kept intact, just not applied.
   useEffect(() => {
     const scope = document.querySelector<HTMLElement>(AI_SCOPE_SELECTOR);
     if (!scope) return;
-    if (open) {
-      scope.setAttribute("data-ai-mode", "");
-    } else {
-      const t = window.setTimeout(() => {
-        scope.removeAttribute("data-ai-mode");
-      }, 380);
-      return () => clearTimeout(t);
-    }
+    // if (open) {
+    //   scope.setAttribute("data-ai-mode", "");
+    // } else {
+    //   const t = window.setTimeout(() => {
+    //     scope.removeAttribute("data-ai-mode");
+    //   }, 380);
+    //   return () => clearTimeout(t);
+    // }
   }, [open]);
 
   return (

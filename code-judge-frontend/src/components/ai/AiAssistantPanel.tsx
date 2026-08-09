@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
+import { streamChat } from "@/services/ai";
+import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
+import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
 
 interface UploadedFile {
   id: string;
@@ -27,6 +30,15 @@ interface UploadedFile {
   size: number;
   type: string;
   status: "uploading" | "ready" | "error";
+}
+
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  reasoningContent?: string;
+  isReasoning?: boolean;
+  isStreaming?: boolean;
 }
 
 const SUPPORTED_FILE_TYPES = [
@@ -86,9 +98,9 @@ const TIME_STAGES = ["30 min", "12 min", "4 min", "45 sec", "a few seconds"];
 /**
  * Sliding AI workspace panel.
  *
- * UI layer only — uploads and "Ask AI" are simulated locally. Swap the
- * placeholder handlers with real AI / upload API calls when ready; the
- * surrounding UI is isolated from that integration.
+ * Uploads are simulated locally (status toggles to "ready" after a delay);
+ * the "Ask AI" flow calls the real `/ai/chat` backend and shows the reply
+ * inline in the panel.
  */
 export default function AiAssistantPanel({
   open,
@@ -103,7 +115,9 @@ export default function AiAssistantPanel({
   const [sending, setSending] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [timeStage, setTimeStage] = useState(0);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // "You just upgraded your workflow" onboarding: welcome banner + counter
   // cycle, first few seconds only (this component only mounts while `open`).
@@ -129,6 +143,11 @@ export default function AiAssistantPanel({
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
   }, [prompt]);
+
+  // Keep the latest AI reply in view
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const addFiles = (incoming: FileList | null) => {
     if (!incoming) return;
@@ -171,20 +190,71 @@ export default function AiAssistantPanel({
     setFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const handleSend = () => {
-    if (!prompt.trim() || files.length === 0 || sending) return;
+  const finalizeMessage = (id: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === id ? { ...m, isReasoning: false, isStreaming: false } : m
+      )
+    );
+  };
+
+  const handleSend = async () => {
+    if (!prompt.trim() || sending) return;
     if (files.some((f) => f.status === "uploading")) {
       toast.error("Please wait for uploads to finish");
       return;
     }
+    const userMsg: ChatMessage = {
+      id: `m-${Date.now()}`,
+      role: "user",
+      content: prompt.trim(),
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setPrompt("");
     setSending(true);
-    setTimeout(() => {
-      setPrompt("");
-      setSending(false);
-      toast.info("Ask AI is not yet connected.", {
-        description: "Your documents and instructions will be sent to the AI backend here.",
+
+    const aiId = `m-${Date.now()}-ai`;
+    const aiMsg: ChatMessage = {
+      id: aiId,
+      role: "assistant",
+      content: "",
+      reasoningContent: "",
+      isReasoning: true,
+      isStreaming: true,
+    };
+    setMessages((prev) => [...prev, aiMsg]);
+
+    try {
+      await streamChat(userMsg.content, {
+        onReasoning: (chunk) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === aiId
+                ? { ...m, reasoningContent: (m.reasoningContent || "") + chunk }
+                : m
+            )
+          );
+        },
+        onContent: (chunk) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === aiId ? { ...m, content: m.content + chunk } : m
+            )
+          );
+        },
+        onDone: () => finalizeMessage(aiId),
       });
-    }, 1200);
+    } catch (error) {
+      finalizeMessage(aiId);
+      const err = error as Error;
+      if (err.name !== "AbortError") {
+        toast.error("Failed to get AI response", {
+          description: err.message || "Please try again.",
+        });
+      }
+    } finally {
+      setSending(false);
+    }
   };
 
   const TRADITIONAL = ["Write", "Format", "Add questions", "Configure", "Review"];
@@ -350,6 +420,39 @@ export default function AiAssistantPanel({
                 )}
               </AnimatePresence>
 
+              {/* Conversation thread */}
+              {messages.length > 0 && (
+                <div className="space-y-3 border-b border-border px-5 py-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                    Conversation
+                  </p>
+                  {messages.map((m) => (
+                    <div key={m.id} className={`flex w-full gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
+                      <div
+                        className={cn(
+                          "max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed text-text-primary",
+                          m.role === "user"
+                            ? "whitespace-pre-wrap rounded-tr-sm border border-pink-500/30 bg-pink-500/15"
+                            : "rounded-tl-sm border border-border bg-card-hover/40"
+                        )}
+                      >
+                        {m.role === "user" ? (
+                          m.content
+                        ) : (
+                          <>
+                            {(m.reasoningContent || m.isReasoning) && (
+                              <AIThinkingBlock reasoning={m.reasoningContent || ""} isReasoning={!!m.isReasoning} />
+                            )}
+                            {m.content && <MarkdownRenderer content={m.content} />}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
+
               {/* Upload area */}
               <div className="px-5 py-4">
                 <div
@@ -453,7 +556,7 @@ export default function AiAssistantPanel({
             <div className="border-t border-border p-4">
               <button
                 onClick={handleSend}
-                disabled={!prompt.trim() || files.length === 0 || sending || files.some((f) => f.status === "uploading")}
+                disabled={!prompt.trim() || sending || files.some((f) => f.status === "uploading")}
                 className={cn(
                   "inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2.5 text-xs font-bold text-white shadow-[0_2px_10px_rgba(236,72,153,0.25)] transition-all hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 )}

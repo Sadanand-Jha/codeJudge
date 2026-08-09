@@ -3034,5 +3034,156 @@ svg {
   }
 }
 
+/* ═══ AI Markdown — code syntax token colors ═══
+   Used by rehype-highlight (highlight.js). Token colors adapt to the
+   active theme via the CSS variables below. */
+:root {
+  --md-code-keyword: #c586c0;
+  --md-code-string: #ce9178;
+  --md-code-number: #b5cea8;
+  --md-code-title: #dcdcaa;
+  --md-code-function: #dcdcaa;
+  --md-code-comment: #6a9955;
+  --md-code-builtin: #4ec9b0;
+  --md-code-type: #4ec9b0;
+  --md-code-meta: #9cdcfe;
+  --md-code-variable: #9cdcfe;
+}
+
+[data-theme="light"] {
+  --md-code-keyword: #0000ff;
+  --md-code-string: #a31515;
+  --md-code-number: #098658;
+  --md-code-title: #795e26;
+  --md-code-function: #795e26;
+  --md-code-comment: #008000;
+  --md-code-builtin: #267f99;
+  --md-code-type: #267f99;
+  --md-code-meta: #267f99;
+  --md-code-variable: #267f99;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link,
+.hljs-name {
+  color: var(--md-code-keyword);
+}
+
+.hljs-string,
+.hljs-doctag,
+.hljs-regexp,
+.hljs-addition {
+  color: var(--md-code-string);
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--md-code-number);
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-title.class_ {
+  color: var(--md-code-title);
+}
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-params {
+  color: var(--md-code-variable);
+}
+
+.hljs-built_in,
+.hljs-type,
+.hljs-class .hljs-title {
+  color: var(--md-code-builtin);
+}
+
+.hljs-meta,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: var(--md-code-meta);
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--md-code-comment);
+  font-style: italic;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 600;
+}
+
+.hljs-deletion {
+  color: var(--md-code-string);
+  text-decoration: line-through;
+}
+
+/* Inline code uses accent token color; keep the highlighted
+   tokens inside the block code element readable. */
+.markdown-body code.hljs {
+  background: transparent;
+  padding: 0;
+}
+
+/* ═══ AI Thinking — subtle secondary styling ═══
+   Reasoning is secondary/internal info: smaller, muted, lower contrast.
+   The container is fixed-height and scrolls internally, but the scrollbar
+   itself is hidden so it stays unobtrusive. */
+.ai-thinking-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ai-thinking-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.ai-thinking-body {
+  min-height: 0;
+}
+.ai-thinking-body .markdown-body {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.ai-thinking-body .markdown-body p,
+.ai-thinking-body .markdown-body li,
+.ai-thinking-body .markdown-body td,
+.ai-thinking-body .markdown-body blockquote,
+.ai-thinking-body .markdown-body a {
+  color: var(--text-secondary);
+}
+.ai-thinking-body .markdown-body h1,
+.ai-thinking-body .markdown-body h2,
+.ai-thinking-body .markdown-body h3,
+.ai-thinking-body .markdown-body h4,
+.ai-thinking-body .markdown-body h5,
+.ai-thinking-body .markdown-body strong {
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.ai-thinking-body .markdown-body code:not(.hljs) {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.ai-thinking-body .markdown-body ul,
+.ai-thinking-body .markdown-body ol {
+  padding-left: 1.1rem;
+}
+
+
 
 

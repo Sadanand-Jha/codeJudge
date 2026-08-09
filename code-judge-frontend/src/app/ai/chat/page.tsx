@@ -21,7 +21,6 @@ import {
   Cpu,
   HardDrive,
   CheckCircle,
-  Loader2,
   Mic,
   X,
   FileText,
@@ -53,10 +52,15 @@ import {
   LayoutTemplate,
   PanelLeftClose,
   PanelLeftOpen,
+  Square,
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import ResizableSplitPane from "@/components/layout/ResizableSplitPane";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
+import { streamChat } from "@/services/ai";
+import { toast } from "@/lib/toast";
+import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
+import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
 
 /* ─────────────────────────────────────────
    Design Tokens
@@ -129,20 +133,6 @@ function LogoMark() {
   );
 }
 
-function Spinner({ className = "h-4 w-4" }: { className?: string }) {
-  return <Loader2 className={`animate-spin ${className}`} />;
-}
-
-function TypingDots() {
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#6B7280]" style={{ animationDelay: "0ms" }} />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#6B7280]" style={{ animationDelay: "150ms" }} />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[#6B7280]" style={{ animationDelay: "300ms" }} />
-    </span>
-  );
-}
-
 type MessageRole = "user" | "assistant";
 
 interface Message {
@@ -154,6 +144,9 @@ interface Message {
   codeBlocks?: CodeBlock[];
   executionResult?: ExecutionResult;
   thinking?: string;
+  reasoningContent?: string;
+  isReasoning?: boolean;
+  isStreaming?: boolean;
 }
 
 interface CodeBlock {
@@ -187,43 +180,6 @@ interface Conversation {
   messages: number;
   model: string;
   unread?: boolean;
-}
-
-/* ─── MARKDOWN RENDERER ─── */
-function MarkdownRenderer({ content }: { content: string }) {
-  const lines = content.split("\n");
-  return (
-    <div className="text-[13px] leading-relaxed text-[#E5E7EB]">
-      {lines.map((line, i) => {
-        if (line.startsWith("### ")) return <h3 key={i} className="mb-1 mt-3 text-[14px] font-bold text-white">{line.slice(4)}</h3>;
-        if (line.startsWith("## ")) return <h2 key={i} className="mb-1 mt-4 text-[16px] font-bold text-white">{line.slice(3)}</h2>;
-        if (line.startsWith("# ")) return <h1 key={i} className="mb-2 mt-5 text-[18px] font-bold text-white">{line.slice(2)}</h1>;
-        if (line.match(/^[-*] /)) return <li key={i} className="ml-4 list-disc text-[13px] text-[#E5E7EB]">{line.slice(2)}</li>;
-        if (line.match(/^\d+\. /)) {
-          const idx = line.indexOf(". ");
-          return <li key={i} className="ml-4 list-decimal text-[13px] text-[#E5E7EB]">{line.slice(idx + 2)}</li>;
-        }
-        if (line.startsWith("> ")) return <blockquote key={i} className="mb-1 border-l-2 border-[#7C3AED] pl-3 text-[12px] italic text-muted-foreground">{line.slice(2)}</blockquote>;
-        if (line.startsWith("```")) return null;
-        if (line.includes("`")) {
-          const parts = line.split(/(`[^`]+`)/g);
-          return (
-            <p key={i} className="mb-1 text-[13px]">
-              {parts.map((part, j) =>
-                part.startsWith("`") && part.endsWith("`") ? (
-                  <code key={j} className="rounded bg-[#1F2937] px-1 py-0.5 text-[11px] font-mono text-[#A5F3FC]">{part.slice(1, -1)}</code>
-                ) : (
-                  <span key={j}>{part}</span>
-                )
-              )}
-            </p>
-          );
-        }
-        if (line.trim() === "") return <div key={i} className="h-2" />;
-        return <p key={i} className="mb-1 text-[13px] leading-relaxed text-[#E5E7EB]">{line}</p>;
-      })}
-    </div>
-  );
 }
 
 /* ─── CODE BLOCK ─── */
@@ -307,11 +263,11 @@ function MessageBubble({ message, onRegenerate }: { message: Message; onRegenera
           </div>
         ) : (
           <div className="rounded-lg rounded-tl-sm border border-[#23252F] bg-card px-3 py-2 shadow-sm">
-            {message.thinking && (
-              <div className="mb-2 flex items-center gap-2 rounded border border-[#23252F] bg-[#0F1115] p-2">
-                <Spinner className="h-2.5 w-2.5 text-[#7C3AED]" />
-                <span className="text-[10px] text-muted-foreground">Thinking...</span>
-              </div>
+            {(message.reasoningContent || message.isReasoning) && (
+              <AIThinkingBlock
+                reasoning={message.reasoningContent || ""}
+                isReasoning={!!message.isReasoning}
+              />
             )}
             <MarkdownRenderer content={message.content} />
             {message.codeBlocks?.map((block) => <CodeBlock key={block.id} block={block} />)}
@@ -408,6 +364,7 @@ export default function AIChatPage() {
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const now = Date.now();
@@ -441,33 +398,84 @@ export default function AIChatPage() {
     }
   }, [input]);
 
-  const sendMessage = useCallback(() => {
+  const finalizeMessage = useCallback((id: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === id ? { ...m, isReasoning: false, isStreaming: false } : m
+      )
+    );
+  }, []);
+
+  const stopGeneration = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
+  const sendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
     const userMsg: Message = { id: `msg-${Date.now()}`, role: "user", content: input.trim(), timestamp: Date.now() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
 
-    setTimeout(() => {
-      const aiMsg: Message = {
-        id: `msg-${Date.now()}-ai`,
-        role: "assistant",
-        content: "Here is an analysis of your code. **Time complexity:** O(n log n). **Space complexity:** O(n).\n\n```python\ndef solve(arr):\n    arr.sort()\n    return [x * 2 for x in arr]\n```\n\nThe main bottleneck is the sorting step.",
-        timestamp: Date.now(),
-        model: model.toUpperCase(),
-        codeBlocks: [{ id: "cb-1", language: "python", code: "def solve(arr):\n    arr.sort()\n    return [x * 2 for x in arr]" }],
-        executionResult: {
-          status: "Accepted", stdout: "[2, 4, 6, 8, 10]", stderr: "", time: "0.012s", memory: "2.4 MB",
-          testCases: [
-            { id: 0, passed: true, input: "[1,2,3,4,5]", expected: "[2,4,6,8,10]", output: "[2,4,6,8,10]" },
-            { id: 1, passed: true, input: "[]", expected: "[]", output: "[]" },
-          ],
+    const aiId = `msg-${Date.now()}-ai`;
+    const aiMsg: Message = {
+      id: aiId,
+      role: "assistant",
+      content: "",
+      reasoningContent: "",
+      isReasoning: true,
+      isStreaming: true,
+      timestamp: Date.now(),
+      model: model.toUpperCase(),
+    };
+    setMessages((prev) => [...prev, aiMsg]);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    try {
+      await streamChat(
+        userMsg.content,
+        {
+          onReasoning: (chunk) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === aiId
+                  ? { ...m, reasoningContent: (m.reasoningContent || "") + chunk }
+                  : m
+              )
+            );
+          },
+          onContent: (chunk) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === aiId ? { ...m, content: m.content + chunk } : m
+              )
+            );
+          },
+          onDone: () => {
+            finalizeMessage(aiId);
+          },
         },
-      };
-      setMessages((prev) => [...prev, aiMsg]);
+        controller.signal
+      );
+    } catch (error) {
+      const err = error as Error;
+      if (err.name === "AbortError") {
+        finalizeMessage(aiId);
+      } else {
+        finalizeMessage(aiId);
+        toast.error("Failed to get AI response", {
+          description: err.message || "Please try again.",
+        });
+      }
+    } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
       setIsLoading(false);
-    }, 2000);
-  }, [input, isLoading, model]);
+    }
+  }, [input, isLoading, model, finalizeMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -631,20 +639,6 @@ export default function AIChatPage() {
                 ) : (
                   <div className="mx-auto max-w-3xl space-y-5 px-4 py-5">
                     {messages.map((msg) => <MessageBubble key={msg.id} message={msg} onRegenerate={() => {}} />)}
-                    {isLoading && (
-                      <div className="flex gap-3">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] text-white">
-                          <Sparkles className="h-3.5 w-3.5" />
-                        </div>
-                        <div className="rounded-lg rounded-tl-sm border border-[#23252F] bg-card px-3 py-2">
-                          <div className="mb-1 flex items-center gap-2">
-                            <Spinner className="h-3 w-3 text-[#7C3AED]" />
-                            <span className="text-[11px] text-muted-foreground">Thinking...</span>
-                          </div>
-                          <TypingDots />
-                        </div>
-                      </div>
-                    )}
                     <div ref={chatEndRef} />
                   </div>
                 )}
@@ -683,11 +677,12 @@ export default function AIChatPage() {
                     style={{ minHeight: "24px", maxHeight: "120px" }}
                   />
                   <button
-                    onClick={sendMessage}
-                    disabled={!input.trim() || isLoading}
+                    onClick={isLoading ? stopGeneration : sendMessage}
+                    disabled={!isLoading && !input.trim()}
+                    title={isLoading ? "Stop generating" : "Send"}
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-white hover:shadow-[0_0_12px_rgba(124,58,237,0.4)] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                   >
-                    {isLoading ? <Spinner className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
+                    {isLoading ? <Square className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
                   </button>
                 </div>
                 <div className="mt-1 text-center text-[8px] text-[#6B7280]">Enter to send · Shift+Enter for newline</div>
