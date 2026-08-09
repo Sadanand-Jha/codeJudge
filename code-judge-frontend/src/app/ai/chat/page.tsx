@@ -392,6 +392,14 @@ export default function AIChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Abort any in-flight AI stream when the user leaves the page so the SSE
+  // connection is torn down instead of streaming (and buffering) indefinitely.
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   useEffect(() => {
     const now = Date.now();
     const makeConvs = (count: number, offsetMinutes: number): Conversation[] =>

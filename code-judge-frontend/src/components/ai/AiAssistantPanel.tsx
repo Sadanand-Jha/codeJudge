@@ -123,6 +123,15 @@ export default function AiAssistantPanel({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const streamAbortRef = useRef<AbortController | null>(null);
+
+  // Abort any in-flight AI stream when the panel unmounts so the SSE
+  // connection does not keep streaming in the background.
+  useEffect(() => {
+    return () => {
+      streamAbortRef.current?.abort();
+    };
+  }, []);
 
   // "You just upgraded your workflow" onboarding: welcome banner + counter
   // cycle, first few seconds only (this component only mounts while `open`).
@@ -229,6 +238,9 @@ export default function AiAssistantPanel({
     };
     setMessages((prev) => [...prev, aiMsg]);
 
+    const controller = new AbortController();
+    streamAbortRef.current = controller;
+
     try {
       await streamChat(userMsg.content, {
         onReasoning: (chunk) => {
@@ -255,7 +267,7 @@ export default function AiAssistantPanel({
           );
         },
         onDone: () => finalizeMessage(aiId),
-      });
+      }, controller.signal);
     } catch (error) {
       finalizeMessage(aiId);
       const err = error as Error;
@@ -265,6 +277,9 @@ export default function AiAssistantPanel({
         });
       }
     } finally {
+      if (streamAbortRef.current === controller) {
+        streamAbortRef.current = null;
+      }
       setSending(false);
     }
   };
