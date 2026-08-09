@@ -70,13 +70,74 @@ const toLiveUsage = (raw?: RawUsage): LiveUsage | undefined => {
  * AbortSignal to cancel the request mid-stream. Resolves when the stream
  * completes; rejects on transport errors or an `error` event.
  */
+export interface RawAIGeneratedQuestion {
+  question: string;
+  type?: string;
+  difficulty?: string;
+  options?: string[];
+  answer?: string;
+  explanation?: string;
+  hint?: string;
+  tags?: string[];
+}
+
+export interface GenerateFromFilesOptions {
+  numberOfQuestions: number;
+  questionTypes: string[];
+  difficulty: string[];
+  bloomsLevel: string;
+  includeExplanations: boolean;
+  includeHints: boolean;
+  includeReferenceNotes: boolean;
+  includeTags: boolean;
+}
+
+interface GenerateFromFilesResponse {
+  success: boolean;
+  message?: string;
+  data?: { questions: RawAIGeneratedQuestion[] };
+}
+
+/**
+ * Upload study material files to the backend and return AI-generated questions.
+ * The backend returns `{ questions: [ { question, options, answer, ... } ] }`.
+ */
+export const generateQuestionsFromFiles = async (
+  files: File[],
+  options: GenerateFromFilesOptions
+): Promise<RawAIGeneratedQuestion[]> => {
+  const formData = new FormData();
+  files.forEach((file) => formData.append("files", file));
+
+  formData.append("numberOfQuestions", String(options.numberOfQuestions));
+  formData.append("questionTypes", JSON.stringify(options.questionTypes));
+  formData.append("difficulty", JSON.stringify(options.difficulty));
+  formData.append("bloomsLevel", options.bloomsLevel);
+  formData.append("includeExplanations", String(options.includeExplanations));
+  formData.append("includeHints", String(options.includeHints));
+  formData.append("includeReferenceNotes", String(options.includeReferenceNotes));
+  formData.append("includeTags", String(options.includeTags));
+
+  const response = await fetch(`${API_BASE}/v1/user/ai/generate-questions`, {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as GenerateFromFilesResponse;
+
+  if (!response.ok || !payload.success) {
+    throw new Error(payload.message || `Request failed with status ${response.status}`);
+  }
+
+  return payload.data?.questions ?? [];
+};
+
 export const streamChat = async (
   message: string,
   callbacks: StreamCallbacks,
   signal?: AbortSignal
 ): Promise<void> => {
-  const { onReasoning, onContent, onDone, onUsage, onError } = callbacks;
-
   const response = await fetch(`${API_BASE}/v1/user/ai/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -84,6 +145,41 @@ export const streamChat = async (
     credentials: "include",
     signal,
   });
+
+  return consumeSSEResponse(response, callbacks);
+};
+
+/**
+ * Stream a chat request with attached files to the backend `/ai/chat-files`
+ * endpoint over SSE. Sends the prompt plus raw files as multipart/form-data —
+ * the backend extracts their text (Docling for PDF/PPTX/…) and streams the
+ * model reply using the same SSE protocol as `streamChat`.
+ */
+export const streamChatWithFiles = async (
+  prompt: string,
+  files: File[],
+  callbacks: StreamCallbacks,
+  signal?: AbortSignal
+): Promise<void> => {
+  const formData = new FormData();
+  formData.append("prompt", prompt);
+  files.forEach((file) => formData.append("files", file));
+
+  const response = await fetch(`${API_BASE}/v1/user/ai/chat-files`, {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+    signal,
+  });
+
+  return consumeSSEResponse(response, callbacks);
+};
+
+const consumeSSEResponse = async (
+  response: Response,
+  callbacks: StreamCallbacks
+): Promise<void> => {
+  const { onReasoning, onContent, onDone, onUsage, onError } = callbacks;
 
   if (!response.ok) {
     let detail = "";

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
-import { streamChat } from "@/services/ai";
+import { streamChat, streamChatWithFiles } from "@/services/ai";
 import type { LiveUsage } from "@/services/ai";
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
@@ -33,12 +33,14 @@ interface UploadedFile {
   size: number;
   type: string;
   status: "uploading" | "ready" | "error";
+  file: File;
 }
 
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  attachments?: string[];
   reasoningContent?: string;
   isReasoning?: boolean;
   isStreaming?: boolean;
@@ -177,6 +179,7 @@ export default function AiAssistantPanel({
         size: file.size,
         type: file.type || ext,
         status: "uploading",
+        file: file
       };
       setFiles((prev) => [...prev, newFile]);
       setTimeout(() => {
@@ -218,12 +221,26 @@ export default function AiAssistantPanel({
       toast.error("Please wait for uploads to finish");
       return;
     }
+
+    const formdata = new FormData();
+
+    formdata.append("prompt", prompt.trim())
+
+    files.forEach((file) => {
+      if (file.status === "ready") {
+        formdata.append("files", file.file, file.name);
+      }
+    });
+
+    const readyFiles = files.filter((f) => f.status === "ready");
     const userMsg: ChatMessage = {
       id: `m-${Date.now()}`,
       role: "user",
       content: prompt.trim(),
+      attachments: readyFiles.map((f) => f.name),
     };
     setMessages((prev) => [...prev, userMsg]);
+    const userPrompt = prompt.trim();
     setPrompt("");
     setSending(true);
 
@@ -241,33 +258,41 @@ export default function AiAssistantPanel({
     const controller = new AbortController();
     streamAbortRef.current = controller;
 
+    console.log("Streaming AI request:", userMsg);
+
+    const callbacks = {
+      onReasoning: (chunk: string) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiId
+              ? { ...m, reasoningContent: (m.reasoningContent || "") + chunk }
+              : m
+          )
+        );
+      },
+      onContent: (chunk: string) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiId ? { ...m, content: m.content + chunk } : m
+          )
+        );
+      },
+      onUsage: (meta: { usage?: LiveUsage; timeMs?: number }) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === aiId ? { ...m, usage: meta.usage, timeMs: meta.timeMs } : m
+          )
+        );
+      },
+      onDone: () => finalizeMessage(aiId),
+    };
+
     try {
-      await streamChat(userMsg.content, {
-        onReasoning: (chunk) => {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === aiId
-                ? { ...m, reasoningContent: (m.reasoningContent || "") + chunk }
-                : m
-            )
-          );
-        },
-        onContent: (chunk) => {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === aiId ? { ...m, content: m.content + chunk } : m
-            )
-          );
-        },
-        onUsage: (meta) => {
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === aiId ? { ...m, usage: meta.usage, timeMs: meta.timeMs } : m
-            )
-          );
-        },
-        onDone: () => finalizeMessage(aiId),
-      }, controller.signal);
+      if (readyFiles.length > 0) {
+        await streamChatWithFiles(userPrompt, readyFiles.map((f) => f.file), callbacks, controller.signal);
+      } else {
+        await streamChat(userPrompt, callbacks, controller.signal);
+      }
     } catch (error) {
       finalizeMessage(aiId);
       const err = error as Error;
@@ -464,7 +489,24 @@ export default function AiAssistantPanel({
                         )}
                       >
                         {m.role === "user" ? (
-                          m.content
+                          <div className="space-y-1.5">
+                            {m.attachments && m.attachments.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {m.attachments.map((name, i) => (
+                                  <span
+                                    key={i}
+                                    className="inline-flex items-center gap-1 rounded-md border border-pink-500/30 bg-pink-500/10 px-1.5 py-0.5 text-[9px] font-medium text-pink-500"
+                                  >
+                                    <FileText className="h-2.5 w-2.5" />
+                                    {name}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <span className="whitespace-pre-wrap text-xs leading-relaxed text-text-primary">
+                              {m.content}
+                            </span>
+                          </div>
                         ) : (
                           <>
                             {/* Thinking phase: logo lives in the growable box header.
