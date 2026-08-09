@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, use, useEffect } from "react";
+import { useState, useMemo, use, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock,
@@ -60,21 +60,37 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
 
   const currentQuestion = questions[currentQuestionIndex];
 
-  // Initialize quiz and load saved progress
+  // Refs mirror state that the countdown/init effects read without re-arming.
+  // Notably the effects must NOT depend on `quizProgress`, otherwise every
+  // progress write (countdown tick, auto-save) re-runs initialization — which
+  // used to create a brand-new quiz attempt and fresh progress object on each
+  // run, i.e. an unbounded cycle of network calls and re-renders.
+  const quizProgressRef = useRef<QuizProgress | null>(null);
+  const timeLeftRef = useRef(quiz.timeLimit ? quiz.timeLimit * 60 : 600);
+  const attemptStartedRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoSubmittedRef = useRef(false);
+
+  // Initialize quiz and load saved progress (once per quiz)
   useEffect(() => {
     const initQuiz = async () => {
       // Try to load saved progress
       const savedProgress = loadQuizProgress(quizId);
-      
+
       if (savedProgress && hasUnsavedProgress(quizId)) {
         // Resume from saved progress
         setQuizProgress(savedProgress);
         setAnswers(savedProgress.responses);
         setCurrentQuestionIndex(savedProgress.currentQuestion || 0);
         if (savedProgress.attemptId) setAttemptId(savedProgress.attemptId);
-        if (savedProgress.remainingTime) setTimeLeft(savedProgress.remainingTime);
-      } else {
-        // Start new quiz
+        if (savedProgress.remainingTime) {
+          setTimeLeft(savedProgress.remainingTime);
+          timeLeftRef.current = savedProgress.remainingTime;
+        }
+      } else if (!attemptStartedRef.current) {
+        // Start new quiz. The ref guard also makes the effect safe under React
+        // Strict Mode's double-invoked effects (one attempt, never duplicates).
+        attemptStartedRef.current = true;
         try {
           const response = await startQuizAttempt(quizId);
           const newProgress = initializeQuizProgress(quizId, response.attempt.id);
@@ -88,11 +104,11 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     };
 
     initQuiz();
-    
+
     // Enable anti-copy protection
     disableTextSelection();
     injectWatermarkStyles();
-    
+
     // Add event listeners
     document.addEventListener('copy', disableCopy);
     document.addEventListener('contextmenu', disableContextMenu);
@@ -100,15 +116,15 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     document.addEventListener('selectstart', disableSelectStart);
     document.addEventListener('keydown', disableKeyboardShortcuts);
     document.addEventListener('keydown', disablePrint);
-    
+
     // Handle tab visibility
     const cleanupVisibility = handleVisibilityChange((isVisible) => {
-      if (!isVisible && quizProgress) {
+      if (!isVisible && quizProgressRef.current) {
         // Tab became inactive - quiz is paused
         console.log('Tab became inactive');
       }
     });
-    
+
     // Cleanup on unmount
     return () => {
       enableTextSelection();
@@ -121,7 +137,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       document.removeEventListener('keydown', disablePrint);
       cleanupVisibility();
     };
-  }, [quizId, quizProgress]);
+  }, [quizId]);
 
   // Debounced auto-save
   const debouncedSave = useMemo(() => createDebouncedSave(500), []);
@@ -166,30 +182,60 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     }
   };
 
-  // Auto-submit on timer expiry
+  // Countdown timer. Reads/writes via refs so it is armed once and never
+  // re-created on every tick or every progress write. `showResults`/`attemptId`
+  // only change at meaningful boundaries, so the interval stays alive until the
+  // quiz ends or the component unmounts.
   useEffect(() => {
-    if (timeLeft <= 0 && !showResults && attemptId) {
-      handleSubmit();
-      return;
-    }
+    if (showResults) return;
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        const newTime = prev - 1;
-        
-        // Update remaining time in progress
-        if (quizProgress) {
-          const updatedProgress = updateRemainingTime(quizProgress, newTime);
-          setQuizProgress(updatedProgress);
-          saveQuizProgress(updatedProgress);
-        }
-        
-        return newTime;
-      });
+      const newTime = timeLeftRef.current - 1;
+      timeLeftRef.current = newTime;
+
+      // Update remaining time in progress
+      const progress = quizProgressRef.current;
+      if (progress) {
+        const updatedProgress = updateRemainingTime(progress, newTime);
+        setQuizProgress(updatedProgress);
+        saveQuizProgress(updatedProgress);
+      }
+
+      setTimeLeft(newTime);
+
+      // Stop the countdown at zero (auto-submit is handled below)
+      if (newTime <= 0 && timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [timeLeft, showResults, attemptId, quizProgress]);
+    timerRef.current = timer;
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [showResults, attemptId]);
+
+  // Auto-submit once when the countdown hits zero
+  useEffect(() => {
+    if (timeLeft <= 0 && !showResults && attemptId && !autoSubmittedRef.current) {
+      autoSubmittedRef.current = true;
+      handleSubmit();
+    }
+  }, [timeLeft, showResults, attemptId, handleSubmit]);
+
+  // Keep refs in sync with the latest render values
+  useEffect(() => {
+    quizProgressRef.current = quizProgress;
+  }, [quizProgress]);
+
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
 
   const questionProgress = useMemo(() => {
     return ((currentQuestionIndex + 1) / questions.length) * 100;

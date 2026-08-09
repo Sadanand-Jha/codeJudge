@@ -15,7 +15,6 @@ import {
   Bookmark,
   Menu,
   Search,
-  Bell,
   Flame,
   Route,
   Users,
@@ -38,6 +37,7 @@ import { isNestedQuizPath, isQuizProblemsPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import AuthModal from "@/components/modals/AuthModal";
+import NotificationBell from "./NotificationBell";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
 import LowCreditNotification from "@/components/ai/LowCreditNotification";
@@ -417,10 +417,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             {/* Right icons */}
             <div className="flex items-center gap-2">
                <ThemeToggle />
-             <button className="p-2 rounded-lg hover:bg-accent/5 text-text-secondary hover:text-text-primary transition-colors relative">
-               <Bell className="w-4 h-4" />
-               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" />
-             </button>
+               <NotificationBell />
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
                 <Link

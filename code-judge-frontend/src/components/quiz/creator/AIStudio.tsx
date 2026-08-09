@@ -15,6 +15,11 @@ import {
 } from "lucide-react";
 import { useAICreditConsumption } from "@/hooks/useAICreditConsumption";
 import { toast } from "@/lib/toast";
+import { generateQuestionsFromFiles } from "@/services/ai";
+import type { RawAIGeneratedQuestion } from "@/services/ai";
+import AIQuestionReviewOverlay, {
+  type PreviewQuestion,
+} from "@/components/quiz/creator/AIQuestionReviewOverlay";
 
 /* ============================================
    Types
@@ -56,6 +61,7 @@ interface UploadedFile {
   type: string;
   status: "uploading" | "processing" | "ready" | "error";
   progress: number;
+  file?: File;
 }
 
 const DEFAULT_OPTIONS: GenerationOptions = {
@@ -119,30 +125,6 @@ const FILE_TYPE_SUGGESTIONS: Record<string, { questionTypes: QuestionType[]; lab
   jpeg: { questionTypes: ["mcq", "short", "fill"], label: "Image" },
 };
 
-const MOCK_EXTRACTED_CONTENT = `Chapter 4: Binary Trees
-
-Binary trees are hierarchical data structures consisting of nodes.
-
-Key Concepts:
-- Traversal: DFS (Pre-order, In-order, Post-order), BFS
-- Tree Height: Maximum depth from root to leaf
-- Balanced Tree: Height difference ≤ 1 between subtrees
-- Binary Search Tree: Left < Root < Right
-- AVL Tree: Self-balancing BST
-- Red-Black Tree: Self-balancing with color properties
-
-Operations:
-- Insertion: O(log n) average
-- Deletion: O(log n) average
-- Search: O(log n) average
-- Traversal: O(n)
-
-Applications:
-- Expression parsing
-- Decision trees
-- Database indexing
-- File systems`;
-
 /* ============================================
    Helper Components
    ============================================ */
@@ -177,11 +159,11 @@ export default function AIStudio({
   const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<"upload" | "generate" | "review">("upload");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [extractedText, setExtractedText] = useState<string>("");
   const [options, setOptions] = useState<GenerationOptions>(DEFAULT_OPTIONS);
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [showReviewOverlay, setShowReviewOverlay] = useState(false);
   const [estimatedCredits, setEstimatedCredits] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showSmartSuggestions, setShowSmartSuggestions] = useState(true);
@@ -214,42 +196,13 @@ export default function AIStudio({
         name: file.name,
         size: file.size,
         type: file.type || ext,
-        status: "uploading",
-        progress: 0,
+        status: "ready",
+        progress: 100,
+        file,
       };
 
       setUploadedFiles((prev) => [...prev, newFile]);
-
-      // Simulate upload progress
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 15 + 5;
-        if (progress > 100) progress = 100;
-
-        setUploadedFiles((prev) =>
-          prev.map((f) => (f.id === newFile.id ? { ...f, progress } : f))
-        );
-
-        if (progress >= 100) {
-          clearInterval(interval);
-          setUploadedFiles((prev) =>
-            prev.map((f) =>
-              f.id === newFile.id ? { ...f, status: "processing", progress: 100 } : f
-            )
-          );
-
-          // Simulate processing
-          setTimeout(() => {
-            setUploadedFiles((prev) =>
-              prev.map((f) =>
-                f.id === newFile.id ? { ...f, status: "ready" } : f
-              )
-            );
-            setExtractedText(MOCK_EXTRACTED_CONTENT);
-            toast.success(`Processed ${file.name}`);
-          }, 2000);
-        }
-      }, 200);
+      toast.success(`Added ${file.name}`);
     });
   }, []);
 
@@ -267,55 +220,102 @@ export default function AIStudio({
      Generation Handlers
       ============================================ */
   const handleGenerate = async () => {
-    if (uploadedFiles.length === 0 && !extractedText.trim()) {
+    const files = uploadedFiles.filter((f) => f.file).map((f) => f.file as File);
+    if (files.length === 0) {
       toast.error("Please upload learning material first");
       return;
     }
 
     setIsGenerating(true);
-    setGenerationProgress(0);
+    setGenerationProgress(5);
 
-    // Simulate progressive generation
-    const totalSteps = options.numberOfQuestions;
-    for (let i = 0; i < totalSteps; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setGenerationProgress(((i + 1) / totalSteps) * 100);
+    try {
+      let rawQuestions: RawAIGeneratedQuestion[] = [];
+      try {
+        rawQuestions = await generateQuestionsFromFiles(files, {
+          ...options,
+          bloomsLevel: options.bloomsLevel[0] || "understand",
+        });
+      } catch (error) {
+        console.error("Backend generation failed:", error);
+        toast.error("AI generation failed", {
+          description: (error as Error).message || "Could not reach the generation service",
+        });
+        setIsGenerating(false);
+        setGenerationProgress(0);
+        return;
+      }
+      setGenerationProgress(70);
+
+      const questions: GeneratedQuestion[] = rawQuestions.map((raw, i) => {
+        const type = (["mcq", "coding", "true_false", "fill", "integer", "short", "long"] as const).includes(
+          raw.type as GeneratedQuestion["type"]
+        )
+          ? (raw.type as GeneratedQuestion["type"])
+          : raw.options && raw.options.length > 0
+            ? "mcq"
+            : "short";
+        const difficulty = (
+          ["easy", "medium", "hard", "expert"] as const
+        ).includes(raw.difficulty as GeneratedQuestion["difficulty"])
+          ? (raw.difficulty as GeneratedQuestion["difficulty"])
+          : "medium";
+
+        const options = raw.options?.length
+          ? raw.options.map((content, oi) => ({
+              id: String.fromCharCode(65 + oi),
+              content,
+              isCorrect: content.trim() === (raw.answer ?? "").trim(),
+            }))
+          : undefined;
+
+        return {
+          id: `gen-${Date.now()}-${i}`,
+          type,
+          title: raw.question || `Generated Question ${i + 1}`,
+          content: raw.question || "",
+          options,
+          correctAnswer: options?.find((o) => o.isCorrect)?.id ?? raw.answer,
+          explanation: raw.explanation,
+          hint: raw.hint,
+          difficulty,
+          tags: raw.tags ?? [],
+          credits: Math.round(8 / Math.max(rawQuestions.length, 1)),
+        };
+      });
+
+      setGenerationProgress(100);
+      setGeneratedQuestions(questions);
+      setIsGenerating(false);
+      setActiveTab("review");
+      setShowReviewOverlay(true);
+      toast.success(`Generated ${questions.length} questions!`);
+    } catch (error) {
+      console.error("Generation error:", error);
+      toast.error("Something went wrong while generating questions");
+      setIsGenerating(false);
+      setGenerationProgress(0);
     }
-
-    // Generate mock questions
-    const questions: GeneratedQuestion[] = Array.from({ length: options.numberOfQuestions }, (_, i) => ({
-      id: `gen-${Date.now()}-${i}`,
-      type: options.questionTypes[0],
-      title: `Generated Question ${i + 1}`,
-      content: `This is a generated question based on the uploaded material about binary trees.`,
-      options: options.questionTypes.includes("mcq")
-        ? [
-            { id: "a", content: "Option A", isCorrect: true },
-            { id: "b", content: "Option B", isCorrect: false },
-            { id: "c", content: "Option C", isCorrect: false },
-            { id: "d", content: "Option D", isCorrect: false },
-          ]
-        : undefined,
-      correctAnswer: options.questionTypes.includes("mcq") ? "a" : "Sample answer",
-      explanation: options.includeExplanations ? "This is the explanation for the question." : undefined,
-      hint: options.includeHints ? "Think about the key concepts." : undefined,
-      difficulty: options.difficulty[0],
-      tags: options.includeTags ? ["generated", "ai"] : [],
-      credits: Math.round(8 / options.numberOfQuestions),
-    }));
-
-    setGeneratedQuestions(questions);
-    setIsGenerating(false);
-    setActiveTab("review");
-    toast.success(`Generated ${questions.length} questions!`);
   };
 
   const handleAcceptAll = () => {
+    if (generatedQuestions.length === 0) return;
     onQuestionsGenerated?.(generatedQuestions);
-    toast.success("All questions added to quiz");
+    setShowReviewOverlay(false);
+    setGeneratedQuestions([]);
+    setActiveTab("upload");
+    toast.success(`${generatedQuestions.length} questions added to quiz`);
+  };
+
+  const handleRejectAll = () => {
+    setShowReviewOverlay(false);
+    setGeneratedQuestions([]);
+    setActiveTab("upload");
+    toast.info("AI-generated questions discarded");
   };
 
   const handleAccept = (question: GeneratedQuestion) => {
+    setShowReviewOverlay(false);
     setGeneratedQuestions((prev) => prev.filter((q) => q.id !== question.id));
     onQuestionsGenerated?.([question]);
     toast.success("Question added");
@@ -580,24 +580,6 @@ export default function AIStudio({
                       </div>
                     </motion.div>
                   ))}
-                </div>
-              )}
-
-              {/* Extracted Text Preview */}
-              {extractedText && (
-                <div className="rounded-xl border border-border bg-card p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-medium text-text-primary flex items-center gap-1.5">
-                      <FileTxt className="h-3.5 w-3.5 text-accent" />
-                      Extracted Content
-                    </span>
-                    <span className="text-[10px] text-text-muted">
-                      {extractedText.split(/\s+/).length} words
-                    </span>
-                  </div>
-                  <div className="max-h-32 overflow-y-auto rounded-lg bg-card-hover p-2 text-[10px] text-text-secondary leading-relaxed">
-                    {extractedText}
-                  </div>
                 </div>
               )}
 
@@ -968,11 +950,11 @@ export default function AIStudio({
 
                   {/* Accept All Button */}
                   <button
-                    onClick={handleAcceptAll}
+                    onClick={() => setShowReviewOverlay(true)}
                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2.5 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)]"
                   >
                     <Check className="h-4 w-4" />
-                    Accept All Questions ({generatedQuestions.length})
+                    Review All Questions ({generatedQuestions.length})
                   </button>
                 </>
               )}
@@ -980,6 +962,17 @@ export default function AIStudio({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Full-screen AI review overlay */}
+      {showReviewOverlay && (
+        <AIQuestionReviewOverlay
+          open={showReviewOverlay}
+          questions={generatedQuestions as PreviewQuestion[]}
+          onClose={() => setShowReviewOverlay(false)}
+          onAccept={handleAcceptAll}
+          onReject={handleRejectAll}
+        />
+      )}
     </motion.div>
   );
 }

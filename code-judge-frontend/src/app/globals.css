@@ -3070,253 +3070,157 @@ svg {
   }
 }
 
-/* ═══ Premium shine — shared visual language ═══
-   One set of design tokens behind both the PRO/ULTIMATE navbar pill and the
-   AI assistant composer, so the two read as the same premium product.
-
-   Palette: #EC4899 (pink) → #8B5CF6 (violet) → #6366F1 (indigo).
-   Pure CSS transform/opacity/gradient-position animation — no JS loops.
-   Everything below is intentionally subtle; movement slows instead of flashes. */
-
-@keyframes premium-gradient-pan {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+/* ═══ AI Markdown — code syntax token colors ═══
+   Used by rehype-highlight (highlight.js). Token colors adapt to the
+   active theme via the CSS variables below. */
+:root {
+  --md-code-keyword: #c586c0;
+  --md-code-string: #ce9178;
+  --md-code-number: #b5cea8;
+  --md-code-title: #dcdcaa;
+  --md-code-function: #dcdcaa;
+  --md-code-comment: #6a9955;
+  --md-code-builtin: #4ec9b0;
+  --md-code-type: #4ec9b0;
+  --md-code-meta: #9cdcfe;
+  --md-code-variable: #9cdcfe;
 }
 
-@keyframes premium-shine-sweep {
-  0%,
-  14% {
-    transform: translateX(0) skewX(-14deg);
-    opacity: 0;
-  }
-  22% {
-    opacity: 1;
-  }
-  46% {
-    opacity: 1;
-  }
-  54%,
-  100% {
-    transform: translateX(620%) skewX(-14deg);
-    opacity: 0;
-  }
+[data-theme="light"] {
+  --md-code-keyword: #0000ff;
+  --md-code-string: #a31515;
+  --md-code-number: #098658;
+  --md-code-title: #795e26;
+  --md-code-function: #795e26;
+  --md-code-comment: #008000;
+  --md-code-builtin: #267f99;
+  --md-code-type: #267f99;
+  --md-code-meta: #267f99;
+  --md-code-variable: #267f99;
 }
 
-@keyframes premium-glow-breathe {
-  0%,
-  100% {
-    opacity: 0.45;
-  }
-  50% {
-    opacity: 0.75;
-  }
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link,
+.hljs-name {
+  color: var(--md-code-keyword);
 }
 
-/* Surface that carries a slow, luminous gradient drift underneath its content */
-.premium-surface {
-  position: relative;
-  overflow: hidden;
+.hljs-string,
+.hljs-doctag,
+.hljs-regexp,
+.hljs-addition {
+  color: var(--md-code-string);
 }
 
-.premium-surface::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    115deg,
-    rgba(236, 72, 153, 0.18),
-    rgba(139, 92, 246, 0.14),
-    rgba(99, 102, 241, 0.18),
-    rgba(236, 72, 153, 0.18)
-  );
-  background-size: 300% 300%;
-  animation: premium-gradient-pan 10s ease-in-out infinite;
-  opacity: 0.6;
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--md-code-number);
 }
 
-/* Traveling "light passes through" band. Positioned above the surface,
-   below the content. */
-.premium-shine {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  border-radius: inherit;
+.hljs-title,
+.hljs-title.function_,
+.hljs-title.class_ {
+  color: var(--md-code-title);
 }
 
-.premium-shine::after {
-  content: "";
-  position: absolute;
-  top: -15%;
-  bottom: -15%;
-  left: -40%;
-  width: 30%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
-  animation: premium-shine-sweep 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-params {
+  color: var(--md-code-variable);
 }
 
-[data-theme="light"] .premium-shine::after {
-  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.14), transparent);
+.hljs-built_in,
+.hljs-type,
+.hljs-class .hljs-title {
+  color: var(--md-code-builtin);
 }
 
-/* Soft breathing outer glow */
-.premium-glow {
-  animation: premium-glow-breathe 5.5s ease-in-out infinite;
+.hljs-meta,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: var(--md-code-meta);
 }
 
-/* ── AI assistant composer — premium input ── */
-.ai-composer {
-  position: relative;
-  border-radius: 16px;
-  padding: 1px;
-  background: linear-gradient(
-    120deg,
-    rgba(236, 72, 153, 0.55),
-    rgba(139, 92, 246, 0.5),
-    rgba(99, 102, 241, 0.5),
-    rgba(236, 72, 153, 0.55)
-  );
-  background-size: 300% 300%;
-  animation: premium-gradient-pan 9s ease-in-out infinite;
-  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.1), 0 10px 30px -14px rgba(124, 58, 237, 0.35);
-  transition: box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+.hljs-comment,
+.hljs-quote {
+  color: var(--md-code-comment);
+  font-style: italic;
 }
 
-/* Gentle focus glow — border brightens, surface becomes more luminous */
-.ai-composer:focus-within {
-  box-shadow:
-    0 0 0 1.5px rgba(236, 72, 153, 0.55),
-    0 0 26px rgba(168, 85, 247, 0.28),
-    0 14px 36px -12px rgba(124, 58, 237, 0.45);
+.hljs-emphasis {
+  font-style: italic;
 }
 
-.ai-composer-inner {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
-  border-radius: 15px;
-  background: linear-gradient(
-    180deg,
-    var(--card),
-    color-mix(in srgb, var(--card) 90%, #7c3aed 10%)
-  );
-  transition: background-color 0.4s ease;
+.hljs-strong {
+  font-weight: 600;
 }
 
-.ai-composer:focus-within .ai-composer-inner {
-  background: linear-gradient(
-    180deg,
-    var(--card),
-    color-mix(in srgb, var(--card) 84%, #7c3aed 16%)
-  );
+.hljs-deletion {
+  color: var(--md-code-string);
+  text-decoration: line-through;
 }
 
-.ai-composer-input {
-  flex: 1;
-  resize: none;
+/* Inline code uses accent token color; keep the highlighted
+   tokens inside the block code element readable. */
+.markdown-body code.hljs {
   background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text-primary);
-  min-height: 24px;
+  padding: 0;
 }
 
-/* The AI panel strips transitions on its internals to snap its palette during
-   AI mode; re-enable the composer's own smooth focus transitions there. */
-[data-ai-panel] .ai-composer,
-[data-ai-panel] .ai-composer *,
-[data-ai-panel] .ai-composer-inner {
-  transition: box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease,
-    border-color 0.4s ease, color 0.4s ease, opacity 0.4s ease !important;
+/* ═══ AI Thinking — subtle secondary styling ═══
+   Reasoning is secondary/internal info: smaller, muted, lower contrast.
+   The container is fixed-height and scrolls internally, but the scrollbar
+   itself is hidden so it stays unobtrusive. */
+.ai-thinking-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ai-thinking-scroll::-webkit-scrollbar {
+  display: none;
 }
 
-/* Reduced motion: keep the premium look, drop the movement */
-@media (prefers-reduced-motion: reduce) {
-  .premium-surface::before,
-  .premium-shine::after,
-  .premium-glow,
-  .ai-composer {
-    animation: none;
-  }
-  .ai-composer {
-    background: linear-gradient(120deg, rgba(236, 72, 153, 0.5), rgba(99, 102, 241, 0.5));
-  }
+.ai-thinking-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+.ai-thinking-body .markdown-body {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.ai-thinking-body .markdown-body p,
+.ai-thinking-body .markdown-body li,
+.ai-thinking-body .markdown-body td,
+.ai-thinking-body .markdown-body blockquote,
+.ai-thinking-body .markdown-body a {
+  color: var(--text-secondary);
+}
+.ai-thinking-body .markdown-body h1,
+.ai-thinking-body .markdown-body h2,
+.ai-thinking-body .markdown-body h3,
+.ai-thinking-body .markdown-body h4,
+.ai-thinking-body .markdown-body h5,
+.ai-thinking-body .markdown-body strong {
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.ai-thinking-body .markdown-body code:not(.hljs) {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.ai-thinking-body .markdown-body ul,
+.ai-thinking-body .markdown-body ol {
+  padding-left: 1.1rem;
 }
 
-/* ═══ My Activity — ambient header atmosphere ═══
-   Slow, near-subconscious drift for the My Activity header: a breathing
-   gradient glow plus tiny floating particles. Scoped via .activity-ambient
-   so nothing outside the section is affected. Reduced-motion friendly. */
 
-.activity-ambient {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.activity-ambient-glow {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(56px);
-  opacity: 0.5;
-  animation: activity-glow-drift 12s ease-in-out infinite alternate;
-}
-
-.activity-particle {
-  position: absolute;
-  bottom: 0;
-  border-radius: 9999px;
-  opacity: 0;
-  animation: activity-particle-rise linear infinite;
-}
-
-@keyframes activity-glow-drift {
-  0% {
-    transform: translate3d(-2%, -4%, 0) scale(1);
-    opacity: 0.4;
-  }
-  50% {
-    transform: translate3d(3%, 4%, 0) scale(1.08);
-    opacity: 0.6;
-  }
-  100% {
-    transform: translate3d(-2%, 2%, 0) scale(1);
-    opacity: 0.42;
-  }
-}
-
-@keyframes activity-particle-rise {
-  0% {
-    transform: translateY(0) translateX(0);
-    opacity: 0;
-  }
-  12% {
-    opacity: 0.55;
-  }
-  85% {
-    opacity: 0.35;
-  }
-  100% {
-    transform: translateY(-120px) translateX(var(--particle-drift, 12px));
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .activity-ambient-glow,
-  .activity-particle {
-    animation: none;
-    opacity: 0.35;
-  }
-}
 
 

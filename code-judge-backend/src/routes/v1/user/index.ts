@@ -14,6 +14,7 @@ import {
   getCollegesByState,
   updateUserLocation,
 } from "../../../controllers/profile.controller.ts";
+import aiRoutes from "./ai.routes.ts";
 
 
 const router = Router();
@@ -24,7 +25,7 @@ const router = Router();
 router.use("/editor", editorRoutes);
 router.use("/contest", contestRoutes);
 router.use("/quiz", quizRoutes);
-
+router.use("/ai", aiRoutes);
 
 
 
@@ -54,5 +55,7 @@ router.get("/timezones", authenticate, getTimezones);
 
 // ===================== USER LOOKUP (for collaborators) ==========
 router.get("/users/:userId", authenticate, lookupUser);
+
+
 
 export default router;

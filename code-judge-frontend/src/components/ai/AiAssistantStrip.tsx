@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
 import AiAssistantPanel from "@/components/ai/AiAssistantPanel";
+import AILogo from "@/components/ai/AILogo";
 
 const AI_SCOPE_SELECTOR = "[data-ai-scope]";
 
@@ -28,20 +28,20 @@ export default function AiAssistantStrip() {
 
   const label = "✨ AI ASSISTANT";
 
-  // Toggle page-wide AI mode with the panel lifecycle. The page keeps the
-  // AI palette for slightly longer than the panel exit so the close feels
-  // seamless (no sudden color snap while the panel fades out).
+  // AI-mode palette toggle is disconnected — the assistant now follows the
+  // user's normal theme (white in light mode, dark in dark mode) instead of
+  // the pink/purple AI palette. Code is kept intact, just not applied.
   useEffect(() => {
     const scope = document.querySelector<HTMLElement>(AI_SCOPE_SELECTOR);
     if (!scope) return;
-    if (open) {
-      scope.setAttribute("data-ai-mode", "");
-    } else {
-      const t = window.setTimeout(() => {
-        scope.removeAttribute("data-ai-mode");
-      }, 380);
-      return () => clearTimeout(t);
-    }
+    // if (open) {
+    //   scope.setAttribute("data-ai-mode", "");
+    // } else {
+    //   const t = window.setTimeout(() => {
+    //     scope.removeAttribute("data-ai-mode");
+    //   }, 380);
+    //   return () => clearTimeout(t);
+    // }
   }, [open]);
 
   return (
@@ -91,12 +91,16 @@ export default function AiAssistantStrip() {
               />
             </span>
 
-            {/* Drifting sparkles */}
-            <Sparkles
+            {/* Drifting AI mark sparkles */}
+            <AILogo
+              variant="mono"
+              size="xs"
               className="absolute top-4 left-1/2 h-3 w-3 -translate-x-1/2 text-white/70"
               style={{ animation: "ai-sparkle 5s ease-in-out infinite" }}
             />
-            <Sparkles
+            <AILogo
+              variant="mono"
+              size="xs"
               className="absolute bottom-5 left-1/3 h-2.5 w-2.5 -translate-x-1/2 text-white/60"
               style={{ animation: "ai-sparkle 6s 0.8s ease-in-out infinite" }}
             />
@@ -113,8 +117,8 @@ export default function AiAssistantStrip() {
           className="pointer-events-auto flex items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-3.5 py-2 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-105 active:scale-[0.95]"
           style={{ animation: "ai-glow 5s ease-in-out infinite" }}
           aria-label="Open AI Assistant"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
+          >
+          <AILogo variant="mono" size="xs" className="h-3.5 w-3.5 text-white" />
           AI Assistant
         </motion.button>
       </div>

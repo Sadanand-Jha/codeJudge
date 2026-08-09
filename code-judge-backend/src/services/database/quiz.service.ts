@@ -229,8 +229,8 @@ export class QuizService {
     return this.repository.getQuizCollaborators(quizId);
   }
 
-  async getAcceptedCollaborations(userId: number): Promise<any[]> {
-    return this.repository.getAcceptedCollaborations(userId);
+  async getCollaborationProjects(userId: number): Promise<any[]> {
+    return this.repository.getCollaborationProjects(userId);
   }
 
   async getQuizResponses(quizId: number): Promise<any> {

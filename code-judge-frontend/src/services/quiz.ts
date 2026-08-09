@@ -2,6 +2,10 @@ import apiClient from "@/lib/axios";
 import { isValidQuizCode } from "@/utils/quizCode";
 import { QuizLeaderboardSettings } from "@/types/quiz";
 
+type Pagination = { page: number; limit: number; total: number; totalPages: number };
+
+type PaginatedResponse<T> = import("axios").AxiosResponse<T> & { pagination?: Pagination };
+
 export interface Quiz {
   id: number;
   name: string;
@@ -204,11 +208,11 @@ export async function getMyCreatedQuizzes(params: {
   sortBy?: string;
   sortOrder?: string;
 }): Promise<{ quizzes: Quiz[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
-  const response = await apiClient.get("/v1/user/quiz/my-quizzes", { params });
+  const response = await apiClient.get("/v1/user/quiz/my-quizzes", { params }) as PaginatedResponse<unknown>;
   // After interceptor, response.data is the quizzes array
   const quizzes = (response.data || []) as Quiz[];
   // Pagination info is preserved by the interceptor as response.pagination
-  const pagination = (response as any).pagination;
+  const pagination = response.pagination;
   const limitVal = params.limit || 10;
   const pageVal = params.page || 1;
   const total = pagination?.total || quizzes.length;
@@ -565,9 +569,9 @@ export async function getPreviousQuizzes(params: {
   sortBy?: string;
   sortOrder?: string;
 }): Promise<{ quizzes: PreviousQuiz[]; total: number }> {
-  const response = await apiClient.get("/v1/user/quiz/previous", { params });
+  const response = await apiClient.get("/v1/user/quiz/previous", { params }) as PaginatedResponse<unknown>;
   const quizzes = (response.data || []) as PreviousQuiz[];
-  const pagination = (response as any).pagination;
+  const pagination = response.pagination;
   return { quizzes, total: pagination?.total ?? quizzes.length };
 }
 
@@ -795,6 +799,52 @@ export async function getQuizCollaborators(quizId: string): Promise<QuizCollabor
  */
 export async function removeQuizCollaborator(quizId: string, targetUserId: string | number): Promise<void> {
   await apiClient.delete(`/v1/user/quiz/${quizId}/collaborators/${targetUserId}`);
+}
+
+/** A single user that appears as a collaborator on a quiz. */
+export interface CollaborationUser {
+  user_id: string | number;
+  username: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+}
+
+/**
+ * A quiz/project the authenticated user is an accepted collaborator on.
+ * `my_role` is always "collaborator" — the endpoint only returns quizzes where
+ * the current user has an accepted collaboration invitation (pending/rejected
+ * invitations are excluded at the database level).
+ */
+export interface CollaborationProject {
+  id: number;
+  name: string;
+  code: string;
+  createdby: number;
+  status: string | null;
+  starttime: string | null;
+  endtime: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  creator_username: string | null;
+  creator_first_name: string | null;
+  creator_last_name: string | null;
+  creator_avatar_url: string | null;
+  my_role: "collaborator";
+  invited_by: string | number | null;
+  accepted_at: string | null;
+  collaborators: CollaborationUser[];
+  total_questions: number;
+  participants: number;
+}
+
+/**
+ * Get the quizzes/projects the authenticated user collaborates on.
+ * GET /api/v1/user/quiz/collaborations
+ */
+export async function getMyCollaborations(): Promise<CollaborationProject[]> {
+  const response = await apiClient.get<CollaborationProject[]>("/v1/user/quiz/collaborations");
+  return response.data;
 }
 
 /**
