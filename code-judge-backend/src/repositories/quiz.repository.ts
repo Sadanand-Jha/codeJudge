@@ -1138,6 +1138,8 @@ export class QuizRepository {
    *
    * Each row includes the accepted collaborator list (with avatar) so the UI can render
    * a stacked avatar group, plus the quiz creator's profile.
+   * Returns only quizzes where the current user is an ACCEPTED collaborator
+   * (invitations in any other state are excluded at the DB level).
    */
   async getCollaborationProjects(userId: number): Promise<any[]> {
     const query = `
@@ -1161,45 +1163,7 @@ export class QuizRepository {
         LEFT JOIN avatar a ON a.id = u.avatar_id
         WHERE qcr.status = 'accepted'
         GROUP BY qcr.quiz_id
-      ),
-      my_created AS (
-        SELECT DISTINCT q.id
-        FROM quiz q
-        WHERE q.createdby = $1
-          AND EXISTS (
-            SELECT 1 FROM quiz_collaborator_request qcr
-            WHERE qcr.quiz_id = q.id AND qcr.status = 'accepted'
-          )
       )
-      SELECT
-        q.id,
-        q.name,
-        q.code,
-        q.createdby,
-        q.status,
-        q.starttime,
-        q.endtime,
-        q.created_at,
-        q.updated_at,
-        u.username AS creator_username,
-        u.first_name AS creator_first_name,
-        u.last_name AS creator_last_name,
-        a.url AS creator_avatar_url,
-        'creator' AS my_role,
-        NULL::integer AS invited_by,
-        NULL::timestamp AS accepted_at,
-        cl.collaborators,
-        COUNT(DISTINCT qp.id)::int AS total_questions
-      FROM my_created mc
-      JOIN quiz q ON q.id = mc.id
-      JOIN users u ON u.id = q.createdby
-      LEFT JOIN avatar a ON a.id = u.avatar_id
-      LEFT JOIN collaborator_lists cl ON cl.quiz_id = q.id
-      LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
-      GROUP BY q.id, u.username, u.first_name, u.last_name, a.url, cl.collaborators
-
-      UNION ALL
-
       SELECT
         q.id,
         q.name,
@@ -1218,23 +1182,25 @@ export class QuizRepository {
         qcr.invited_by,
         qcr.updated_at AS accepted_at,
         cl.collaborators,
-        COUNT(DISTINCT qp.id)::int AS total_questions
+        COUNT(DISTINCT qp.id)::int AS total_questions,
+        COUNT(DISTINCT qr.id)::int AS participants
       FROM quiz_collaborator_request qcr
       JOIN quiz q ON q.id = qcr.quiz_id
       JOIN users u ON u.id = q.createdby
       LEFT JOIN avatar a ON a.id = u.avatar_id
       LEFT JOIN collaborator_lists cl ON cl.quiz_id = q.id
       LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
+      LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
       WHERE qcr.user_id = $1 AND qcr.status = 'accepted'
       GROUP BY q.id, u.username, u.first_name, u.last_name, a.url, qcr.invited_by, qcr.updated_at, cl.collaborators
-
-      ORDER BY updated_at DESC NULLS LAST, id DESC
+      ORDER BY qcr.updated_at DESC NULLS LAST, q.id DESC
     `;
     const result = await pool.query(query, [userId]);
     return result.rows.map((row) => ({
       ...row,
       collaborators: Array.isArray(row.collaborators) ? row.collaborators : [],
       total_questions: row.total_questions ? Number(row.total_questions) : 0,
+      participants: row.participants ? Number(row.participants) : 0,
     }));
   }
 

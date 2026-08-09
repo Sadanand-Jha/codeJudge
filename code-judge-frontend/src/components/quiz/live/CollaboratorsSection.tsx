@@ -9,7 +9,6 @@ import {
   FileText,
   HelpCircle,
   RefreshCw,
-  Shield,
   Sparkles,
   UserPlus,
   Users,
@@ -21,14 +20,6 @@ import { getMyCollaborations, type CollaborationProject, type CollaborationUser 
 import { formatQuizCode } from "@/utils/quizCode";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
-
-type CollabFilter = "all" | "creator" | "collaborator";
-
-const COLLAB_FILTERS: { key: CollabFilter; label: string; icon: React.ElementType }[] = [
-  { key: "all", label: "All", icon: Users },
-  { key: "creator", label: "Created by me", icon: Shield },
-  { key: "collaborator", label: "Collaborating", icon: UserPlus },
-];
 
 /* ─── Helpers ─── */
 
@@ -89,36 +80,8 @@ function lastUpdated(p: CollaborationProject): string {
   return timeAgo(p.updated_at || p.accepted_at || p.created_at);
 }
 
-/* ─── Filter bar ─── */
-
-function CollaboratorsFilterBar({ active, onChange }: { active: CollabFilter; onChange: (v: CollabFilter) => void }) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {COLLAB_FILTERS.map((f) => {
-        const isActive = active === f.key;
-        const Icon = f.icon;
-        return (
-          <button
-            key={f.key}
-            type="button"
-            onClick={() => onChange(f.key)}
-            className={cn(
-              "relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-medium transition-all duration-200",
-              isActive
-                ? "border border-accent/40 bg-gradient-to-r from-accent/20 to-fuchsia-500/10 text-accent"
-                : "border border-border text-text-secondary hover:border-accent/20 hover:bg-card-hover hover:text-text-primary"
-            )}
-          >
-            {isActive && (
-              <span className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_12px_rgba(124,58,237,0.20)] dark:shadow-[0_0_12px_rgba(236,72,153,0.15)]" />
-            )}
-            <Icon className="h-3.5 w-3.5" />
-            {f.label}
-          </button>
-        );
-      })}
-    </div>
-  );
+function safeNum(v: number | null | undefined, suffix = ""): string {
+  return typeof v === "number" && Number.isFinite(v) ? `${v}${suffix}` : "—";
 }
 
 /* ─── Avatar stack (+N) ─── */
@@ -136,7 +99,7 @@ function CollaboratorAvatars({ collaborators, currentUserId, limit = 4 }: { coll
           <div
             key={String(c.user_id)}
             title={displayName(c)}
-            className="relative h-6 w-6 overflow-hidden rounded-full border border-border bg-card ring-2 ring-card transition-transform duration-200 hover:z-10 hover:-translate-y-0.5"
+            className="relative h-7 w-7 overflow-hidden rounded-full border border-border bg-card ring-2 ring-card transition-transform duration-200 hover:z-10 hover:-translate-y-0.5"
             style={{ zIndex: i }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -158,9 +121,13 @@ function CollaboratorAvatars({ collaborators, currentUserId, limit = 4 }: { coll
 function CollaboratorCard({ project, index, currentUserId }: { project: CollaborationProject; index: number; currentUserId?: string }) {
   const status = projectStatus(project);
   const code = formatQuizCode(project.code);
-  const creatorName = displayName(project.creator);
+  const creator: Pick<CollaborationUser, "first_name" | "last_name" | "username"> = {
+    first_name: project.creator_first_name,
+    last_name: project.creator_last_name,
+    username: project.creator_username,
+  };
+  const creatorName = displayName(creator);
   const updated = lastUpdated(project);
-  const isCreator = project.my_role === "creator";
   const isLive = status.pulse;
 
   return (
@@ -168,19 +135,20 @@ function CollaboratorCard({ project, index, currentUserId }: { project: Collabor
       layout
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.05, 0.35), duration: 0.4, ease: EASE }}
+      transition={{ delay: Math.min(index * 0.06, 0.35), duration: 0.4, ease: EASE }}
       className="group relative h-full"
     >
       <Link
         href={`/quiz/${project.code}/settings/info`}
+        aria-label={`Open settings for ${project.name}`}
         className={cn(
           "relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-200",
           isLive && "border-l-2 border-l-success/60",
-          "group-hover:-translate-y-0.5 group-hover:border-accent/30 group-hover:bg-card-hover",
+          "group-hover:-translate-y-1 group-hover:border-accent/30 group-hover:bg-card-hover",
           "group-hover:shadow-[0_16px_40px_-16px_rgba(124,58,237,0.35)] dark:group-hover:shadow-[0_16px_40px_-16px_rgba(236,72,153,0.3)]"
         )}
       >
-        {/* surface gradient + top hairline */}
+        {/* layered surface gradient + hairline */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.08),transparent_55%)]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-100" />
         {isLive && (
@@ -188,7 +156,7 @@ function CollaboratorCard({ project, index, currentUserId }: { project: Collabor
         )}
 
         <div className="relative flex flex-1 flex-col p-5">
-          {/* top: icon tile + name + code */}
+          {/* top: icon tile + name + status */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent/15 to-fuchsia-500/10 ring-1 ring-inset ring-accent/20">
@@ -219,28 +187,19 @@ function CollaboratorCard({ project, index, currentUserId }: { project: Collabor
             </span>
           </div>
 
-          {/* creator + role */}
-          <div className="mt-4 flex items-center gap-2.5">
-            <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full border border-border bg-card ring-2 ring-card">
+          {/* admin / creator — prominently identified */}
+          <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-border/70 bg-card-hover/40 px-3 py-2.5">
+            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-border bg-card ring-2 ring-card">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={resolveAvatar(project.creator_avatar_url)} alt={creatorName} className="h-full w-full object-cover" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs text-text-secondary">
-                <span className="text-text-muted">By</span>{" "}
-                <span className="font-semibold text-text-primary">{creatorName}</span>
-              </p>
+              <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-text-muted">Admin</p>
+              <p className="truncate text-xs font-semibold text-text-primary">{creatorName}</p>
             </div>
-            <span
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
-                isCreator
-                  ? "border-accent/30 bg-accent/10 text-accent"
-                  : "border-accent-secondary/30 bg-accent-secondary/10 text-accent-secondary"
-              )}
-            >
-              {isCreator ? <Shield className="h-3 w-3" /> : <Users className="h-3 w-3" />}
-              {isCreator ? "Creator" : "Collaborator"}
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
+              <UserPlus className="h-3 w-3" />
+              Collaborating
             </span>
           </div>
 
@@ -248,7 +207,11 @@ function CollaboratorCard({ project, index, currentUserId }: { project: Collabor
           <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-text-secondary">
             <span className="inline-flex items-center gap-1.5">
               <HelpCircle className="h-3.5 w-3.5 text-text-muted" />
-              {project.total_questions || 0} Question{project.total_questions !== 1 ? "s" : ""}
+              {safeNum(project.total_questions)} Question{project.total_questions === 1 ? "" : "s"}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5 text-text-muted" />
+              {safeNum(project.participants)} Participant{project.participants === 1 ? "" : "s"}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-text-muted" />
@@ -256,23 +219,14 @@ function CollaboratorCard({ project, index, currentUserId }: { project: Collabor
             </span>
           </div>
 
-          {/* footer: collaborators + action */}
+          {/* footer: team + primary action */}
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/60 pt-4">
             <div className="flex min-w-0 flex-col">
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted">
-                {isCreator ? "Collaborators" : "Team"}
-              </span>
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted">Team</span>
               <CollaboratorAvatars collaborators={project.collaborators} currentUserId={currentUserId} />
             </div>
-            <span
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
-                isCreator
-                  ? "border-accent/25 bg-accent/10 text-accent group-hover:bg-accent/15 group-hover:shadow-[0_4px_16px_rgba(124,58,237,0.25)]"
-                  : "border-accent-secondary/25 bg-accent-secondary/10 text-accent-secondary group-hover:bg-accent-secondary/15"
-              )}
-            >
-              {isCreator ? "Manage" : "Open"}
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-accent/25 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition-all duration-200 group-hover:bg-accent/15 group-hover:shadow-[0_4px_16px_rgba(124,58,237,0.25)]">
+              Open Quiz Settings
               <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
             </span>
           </div>
@@ -291,26 +245,28 @@ function CollaboratorsSkeleton() {
         <div key={i} className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-xl bg-white/5" />
+              <div className="h-11 w-11 rounded-xl bg-border/60" />
               <div className="space-y-2">
-                <div className="h-4 w-40 rounded bg-white/5 sm:w-48" />
-                <div className="h-3 w-24 rounded bg-white/5" />
+                <div className="h-4 w-40 rounded bg-border/60 sm:w-48" />
+                <div className="h-3 w-24 rounded bg-border/60" />
               </div>
             </div>
-            <div className="h-5 w-16 rounded-full bg-white/5" />
+            <div className="h-5 w-16 rounded-full bg-border/60" />
           </div>
-          <div className="mt-4 flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-full bg-white/5" />
-            <div className="h-3 w-28 rounded bg-white/5" />
-            <div className="ml-auto h-5 w-20 rounded-full bg-white/5" />
+          <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-border/70 bg-card-hover/40 px-3 py-2.5">
+            <div className="h-8 w-8 rounded-full bg-border/60" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-2.5 w-12 rounded bg-border/60" />
+              <div className="h-3 w-28 rounded bg-border/60" />
+            </div>
           </div>
           <div className="mt-4 flex gap-x-4">
-            <div className="h-3 w-20 rounded bg-white/5" />
-            <div className="h-3 w-24 rounded bg-white/5" />
+            <div className="h-3 w-20 rounded bg-border/60" />
+            <div className="h-3 w-24 rounded bg-border/60" />
           </div>
           <div className="mt-5 flex items-center justify-between border-t border-border/60 pt-4">
-            <div className="h-6 w-16 rounded-full bg-white/5" />
-            <div className="h-8 w-20 rounded-lg bg-white/5" />
+            <div className="h-6 w-16 rounded-full bg-border/60" />
+            <div className="h-8 w-28 rounded-lg bg-border/60" />
           </div>
         </div>
       ))}
@@ -335,17 +291,13 @@ function CollaboratorsEmpty() {
         <div className="relative mb-6">
           <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-accent to-fuchsia-500 opacity-30 blur-xl transition-opacity duration-300 group-hover:opacity-50" />
           <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl border border-accent/25 bg-card shadow-lg">
-            <Users className="h-9 w-9 text-accent" strokeWidth={1.6} />
+            <Sparkles className="h-9 w-9 text-accent" strokeWidth={1.6} />
           </div>
-          <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card">
-            <Sparkles className="h-3 w-3 text-fuchsia-500" />
-          </span>
         </div>
 
         <h3 className="text-xl font-bold tracking-tight text-text-primary">No collaborations yet</h3>
         <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-          Quizzes you collaborate on will appear here once you accept an invitation, or after you add collaborators to a
-          quiz you created.
+          Quizzes you collaborate on will appear here after you accept an invitation.
         </p>
 
         <Link
@@ -401,7 +353,6 @@ export default function CollaboratorsSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const [filter, setFilter] = useState<CollabFilter>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -423,43 +374,34 @@ export default function CollaboratorsSection() {
     };
   }, [attempt]);
 
-  const filtered = useMemo(() => {
-    const list = projects || [];
-    if (filter === "all") return list;
-    return list.filter((p) => p.my_role === filter);
-  }, [projects, filter]);
-
-  const counts = useMemo(() => {
-    const list = projects || [];
-    return {
-      all: list.length,
-      creator: list.filter((p) => p.my_role === "creator").length,
-      collaborator: list.filter((p) => p.my_role === "collaborator").length,
-    };
-  }, [projects]);
+  const list = useMemo(() => projects || [], [projects]);
 
   if (loading) return <CollaboratorsSkeleton />;
   if (error) return <CollaboratorsError onRetry={() => setAttempt((a) => a + 1)} />;
 
   return (
-    <div className="space-y-4">
-      {/* count + filter bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-text-secondary">
-          <span className="font-bold text-text-primary">{counts.all}</span>{" "}
-          {counts.all === 1 ? "project" : "projects"} ·{" "}
-          <span className="font-semibold text-accent">{counts.creator}</span> created ·{" "}
-          <span className="font-semibold text-accent-secondary">{counts.collaborator}</span> collaborating
+    <div className="space-y-5">
+      {/* summary line */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-text-secondary">
+          <span className="font-bold text-text-primary">{list.length}</span>{" "}
+          {list.length === 1 ? "accepted collaboration" : "accepted collaborations"}
         </p>
-        <CollaboratorsFilterBar active={filter} onChange={setFilter} />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card-hover px-3 py-1 text-[11px] font-medium text-text-secondary">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/60 opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
+          </span>
+          Live only
+        </span>
       </div>
 
-      {filtered.length === 0 ? (
+      {list.length === 0 ? (
         <CollaboratorsEmpty />
       ) : (
         <motion.div layout className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
           <AnimatePresence initial={false}>
-            {filtered.map((project, i) => (
+            {list.map((project, i) => (
               <CollaboratorCard key={project.id} project={project} index={i} currentUserId={currentUserId} />
             ))}
           </AnimatePresence>
