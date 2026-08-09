@@ -440,9 +440,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                  </Link>
                  {isPremium && (
                    <span
-                     className="inline-flex items-center rounded-md bg-gradient-to-r from-[#EC4899]/20 to-[#8B5CF6]/20 px-1.5 py-0.25 text-[10px] font-semibold tracking-wider text-[#EC4899] ring-1 ring-[#8B5CF6]/40"
+                     className="relative inline-flex items-center overflow-hidden rounded-md bg-gradient-to-r from-[#EC4899]/20 to-[#8B5CF6]/20 px-1.5 py-0.25 text-[10px] font-semibold tracking-wider text-[#EC4899] ring-1 ring-[#8B5CF6]/40 premium-surface"
                      aria-label="PRO subscriber"
                    >
+                     <span className="premium-shine" aria-hidden="true" />
                      PRO
                    </span>
                  )}

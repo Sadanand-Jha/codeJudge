@@ -1129,6 +1129,48 @@ export class QuizRepository {
     return result.rows;
   }
 
+  /**
+   * Get the quizzes on which the current user is an ACCEPTED collaborator.
+   * Only `accepted` invitations are returned — pending / rejected / expired
+   * are excluded. Includes the quiz admin/creator name and useful secondary
+   * info (questions, participants, status, last updated, accepted at).
+   */
+  async getAcceptedCollaborations(userId: number): Promise<any[]> {
+    const query = `
+      SELECT
+        q.id,
+        q.name,
+        q.code,
+        q.createdby,
+        q.status,
+        q.starttime,
+        q.endtime,
+        q.created_at,
+        q.updated_at,
+        qcr.invited_by,
+        qcr.updated_at AS accepted_at,
+        u.username AS creator_name,
+        u.first_name AS creator_first_name,
+        u.last_name AS creator_last_name,
+        COUNT(DISTINCT qr.id) AS participants,
+        COUNT(DISTINCT qp.id) AS total_questions
+      FROM quiz_collaborator_request qcr
+      JOIN quiz q ON q.id = qcr.quiz_id
+      JOIN users u ON u.id = q.createdby
+      LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
+      LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
+      WHERE qcr.user_id = $1 AND qcr.status = 'accepted'
+      GROUP BY q.id, u.username, u.first_name, u.last_name, qcr.invited_by, qcr.updated_at
+      ORDER BY qcr.updated_at DESC
+    `;
+    const result = await pool.query(query, [userId]);
+    return result.rows.map((row) => ({
+      ...row,
+      participants: row.participants ? Number(row.participants) : 0,
+      total_questions: row.total_questions ? Number(row.total_questions) : 0,
+    }));
+  }
+
   // ==================== RESPONSES / RESULTS (admin view) ====================
 
   /**

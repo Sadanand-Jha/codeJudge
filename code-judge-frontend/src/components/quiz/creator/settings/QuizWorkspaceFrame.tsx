@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { ClipboardEvent, DragEvent, MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,6 +25,41 @@ import { type CreatorQuestion } from "@/components/quiz/creator/types";
 import ProblemDeleteModal from "./ProblemDeleteModal";
 
 const SLIDE = { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const };
+
+/**
+ * Behavior-only protection for the quiz sidebar & navigation. Prevents
+ * native dragging, dropping, text selection (see also .quiz-sidebar-lock
+ * CSS), copying, cutting, and right-click on every sidebar item without
+ * touching clicks or navigation logic.
+ *
+ * NOTE: `onDragStart` is intentionally NOT included in `sidebarProtect` —
+ * framer-motion's motion.* elements reserve `onDragStart` for their own
+ * drag-gesture system, so it cannot be used on the <motion.aside> shells.
+ * Native dragging on the shell is still impossible because the container
+ * and all descendants are non-draggable (`draggable={false}` +
+ * `user-drag: none`), and every interactive child applies the full
+ * `itemProtect` set which does block `dragstart`.
+ */
+const itemProtect = {
+  draggable: false as const,
+  onDragStart: (e: DragEvent) => e.preventDefault(),
+  onDragOver: (e: DragEvent) => e.preventDefault(),
+  onDragEnter: (e: DragEvent) => e.preventDefault(),
+  onDrop: (e: DragEvent) => e.preventDefault(),
+  onCopy: (e: ClipboardEvent) => e.preventDefault(),
+  onCut: (e: ClipboardEvent) => e.preventDefault(),
+  onContextMenu: (e: MouseEvent) => e.preventDefault(),
+};
+
+const sidebarProtect = {
+  draggable: false as const,
+  onDragOver: (e: DragEvent) => e.preventDefault(),
+  onDragEnter: (e: DragEvent) => e.preventDefault(),
+  onDrop: (e: DragEvent) => e.preventDefault(),
+  onCopy: (e: ClipboardEvent) => e.preventDefault(),
+  onCut: (e: ClipboardEvent) => e.preventDefault(),
+  onContextMenu: (e: MouseEvent) => e.preventDefault(),
+};
 
 /**
  * Nested quiz creator workspace.
@@ -89,11 +125,13 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
         animate={{ x: 0 }}
         exit={{ x: "-100%" }}
         transition={SLIDE}
-        className="fixed left-0 top-14 bottom-0 z-40 hidden w-60 flex-col border-r border-border bg-card lg:flex"
+        {...sidebarProtect}
+        className="quiz-sidebar-lock fixed left-0 top-14 bottom-0 z-40 hidden w-60 flex-col border-r border-border bg-card lg:flex"
       >
         <nav className="settings-scroll flex-1 overflow-y-auto p-4">
           <div className="mb-3 flex items-center gap-2">
             <Link
+              {...itemProtect}
               href="/quiz"
               className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-text-muted transition-colors hover:bg-pink-500/5 hover:text-text-primary"
             >
@@ -107,6 +145,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
           </p>
           <div className="space-y-1">
             <Link
+              {...itemProtect}
               href={`/quiz/${code}/problems`}
               className={cn(
                 "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200",
@@ -141,6 +180,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
               const isPink = section.tone === "pink";
               return (
                 <Link
+                  {...itemProtect}
                   key={section.id}
                   href={settingsPath(section.href)}
                   className={cn(
@@ -189,6 +229,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                   </span>
                 ) : (
                   <button
+                    {...itemProtect}
                     onClick={handleStartInstantly}
                     disabled={starting}
                     className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-4 py-3 text-xs font-bold text-white shadow-[0_4px_16px_rgba(16,185,129,0.25)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(16,185,129,0.4)] hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
@@ -251,7 +292,8 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={SLIDE}
-            className="fixed left-60 top-14 bottom-0 z-30 hidden w-56 flex-col border-r border-border bg-card-hover/50 lg:flex"
+            {...sidebarProtect}
+            className="quiz-sidebar-lock fixed left-60 top-14 bottom-0 z-30 hidden w-56 flex-col border-r border-border bg-card-hover/50 lg:flex"
           >
             <div className="border-b border-border p-4">
               <div className="flex items-center justify-between">
@@ -259,6 +301,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                   Problems
                 </p>
                 <button
+                  {...itemProtect}
                   onClick={handleAddProblem}
                   className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500/10 text-pink-500 transition-colors hover:bg-pink-500/20"
                   title="Add problem"
@@ -275,6 +318,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                 const status = getQuestionStatus(p);
                 return (
                   <Link
+                    {...itemProtect}
                     key={p.id}
                     href={`/quiz/${code}/problems/${p.id}`}
                     onClick={() => setActiveProblem(p.id)}
@@ -324,6 +368,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                     </span>
                     <span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
+                        {...itemProtect}
                         onClick={(e) => {
                           e.preventDefault();
                           const id = duplicateProblem(p.id);
@@ -335,6 +380,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                         <Copy className="h-3 w-3" />
                       </button>
                       <button
+                        {...itemProtect}
                         onClick={(e) => {
                           e.preventDefault();
                           deleteProblem(p.id);
@@ -352,6 +398,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                 <div className="px-3 py-8 text-center">
                   <p className="text-xs text-text-muted">No problems yet.</p>
                   <button
+                    {...itemProtect}
                     onClick={handleAddProblem}
                     className="mt-2 text-[11px] font-semibold text-pink-500 hover:text-pink-400"
                   >

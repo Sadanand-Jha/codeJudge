@@ -2540,6 +2540,42 @@ button.cf-btn:hover {
 }
 
 /* ============================================
+   Quiz Creator Sidebar — Selection & Drag Prevention
+   Scoped exclusively to the Quiz sidebar / navigation
+   via the .quiz-sidebar-lock hook class. Disables text
+   selection, double-click selection, drag-to-select,
+   native dragging, image/SVG dragging, and copy on the
+   sidebar and every nested element (icons, labels,
+   buttons, links). Sidebar items behave strictly as
+   navigation/action controls. Does NOT affect anything
+   outside the quiz sidebar.
+   ============================================ */
+
+/* Disable selection & native drag on the sidebar and all descendants */
+.quiz-sidebar-lock,
+.quiz-sidebar-lock * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+/* Belt-and-braces: images & SVG icons must never start a native drag */
+.quiz-sidebar-lock img,
+.quiz-sidebar-lock svg {
+  -webkit-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: auto;
+}
+
+/* ============================================
    Global — Selection & Drag Prevention
    Scoped to non-editable UI elements only.
    Defaults all elements to user-select: none,
@@ -3034,5 +3070,253 @@ svg {
   }
 }
 
+/* ═══ Premium shine — shared visual language ═══
+   One set of design tokens behind both the PRO/ULTIMATE navbar pill and the
+   AI assistant composer, so the two read as the same premium product.
+
+   Palette: #EC4899 (pink) → #8B5CF6 (violet) → #6366F1 (indigo).
+   Pure CSS transform/opacity/gradient-position animation — no JS loops.
+   Everything below is intentionally subtle; movement slows instead of flashes. */
+
+@keyframes premium-gradient-pan {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes premium-shine-sweep {
+  0%,
+  14% {
+    transform: translateX(0) skewX(-14deg);
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  46% {
+    opacity: 1;
+  }
+  54%,
+  100% {
+    transform: translateX(620%) skewX(-14deg);
+    opacity: 0;
+  }
+}
+
+@keyframes premium-glow-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+/* Surface that carries a slow, luminous gradient drift underneath its content */
+.premium-surface {
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(236, 72, 153, 0.18),
+    rgba(139, 92, 246, 0.14),
+    rgba(99, 102, 241, 0.18),
+    rgba(236, 72, 153, 0.18)
+  );
+  background-size: 300% 300%;
+  animation: premium-gradient-pan 10s ease-in-out infinite;
+  opacity: 0.6;
+}
+
+/* Traveling "light passes through" band. Positioned above the surface,
+   below the content. */
+.premium-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.premium-shine::after {
+  content: "";
+  position: absolute;
+  top: -15%;
+  bottom: -15%;
+  left: -40%;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  animation: premium-shine-sweep 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+[data-theme="light"] .premium-shine::after {
+  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.14), transparent);
+}
+
+/* Soft breathing outer glow */
+.premium-glow {
+  animation: premium-glow-breathe 5.5s ease-in-out infinite;
+}
+
+/* ── AI assistant composer — premium input ── */
+.ai-composer {
+  position: relative;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(
+    120deg,
+    rgba(236, 72, 153, 0.55),
+    rgba(139, 92, 246, 0.5),
+    rgba(99, 102, 241, 0.5),
+    rgba(236, 72, 153, 0.55)
+  );
+  background-size: 300% 300%;
+  animation: premium-gradient-pan 9s ease-in-out infinite;
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.1), 0 10px 30px -14px rgba(124, 58, 237, 0.35);
+  transition: box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Gentle focus glow — border brightens, surface becomes more luminous */
+.ai-composer:focus-within {
+  box-shadow:
+    0 0 0 1.5px rgba(236, 72, 153, 0.55),
+    0 0 26px rgba(168, 85, 247, 0.28),
+    0 14px 36px -12px rgba(124, 58, 237, 0.45);
+}
+
+.ai-composer-inner {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  border-radius: 15px;
+  background: linear-gradient(
+    180deg,
+    var(--card),
+    color-mix(in srgb, var(--card) 90%, #7c3aed 10%)
+  );
+  transition: background-color 0.4s ease;
+}
+
+.ai-composer:focus-within .ai-composer-inner {
+  background: linear-gradient(
+    180deg,
+    var(--card),
+    color-mix(in srgb, var(--card) 84%, #7c3aed 16%)
+  );
+}
+
+.ai-composer-input {
+  flex: 1;
+  resize: none;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  min-height: 24px;
+}
+
+/* The AI panel strips transitions on its internals to snap its palette during
+   AI mode; re-enable the composer's own smooth focus transitions there. */
+[data-ai-panel] .ai-composer,
+[data-ai-panel] .ai-composer *,
+[data-ai-panel] .ai-composer-inner {
+  transition: box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease,
+    border-color 0.4s ease, color 0.4s ease, opacity 0.4s ease !important;
+}
+
+/* Reduced motion: keep the premium look, drop the movement */
+@media (prefers-reduced-motion: reduce) {
+  .premium-surface::before,
+  .premium-shine::after,
+  .premium-glow,
+  .ai-composer {
+    animation: none;
+  }
+  .ai-composer {
+    background: linear-gradient(120deg, rgba(236, 72, 153, 0.5), rgba(99, 102, 241, 0.5));
+  }
+}
+
+/* ═══ My Activity — ambient header atmosphere ═══
+   Slow, near-subconscious drift for the My Activity header: a breathing
+   gradient glow plus tiny floating particles. Scoped via .activity-ambient
+   so nothing outside the section is affected. Reduced-motion friendly. */
+
+.activity-ambient {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.activity-ambient-glow {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(56px);
+  opacity: 0.5;
+  animation: activity-glow-drift 12s ease-in-out infinite alternate;
+}
+
+.activity-particle {
+  position: absolute;
+  bottom: 0;
+  border-radius: 9999px;
+  opacity: 0;
+  animation: activity-particle-rise linear infinite;
+}
+
+@keyframes activity-glow-drift {
+  0% {
+    transform: translate3d(-2%, -4%, 0) scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate3d(3%, 4%, 0) scale(1.08);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate3d(-2%, 2%, 0) scale(1);
+    opacity: 0.42;
+  }
+}
+
+@keyframes activity-particle-rise {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.55;
+  }
+  85% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateY(-120px) translateX(var(--particle-drift, 12px));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-ambient-glow,
+  .activity-particle {
+    animation: none;
+    opacity: 0.35;
+  }
+}
 
 

@@ -36,6 +36,7 @@ import {
   sendCollaboratorRequest,
   getQuizCollaborators,
   getIncomingCollaboratorRequests,
+  getMyCollaborations,
   respondToCollaboratorRequest,
   removeQuizCollaborator,
   getQuizResponses,
@@ -133,6 +134,9 @@ router.get("/collaborator-requests/incoming", getIncomingCollaboratorRequests);
 
 // PATCH /api/v1/user/quiz/collaborator-requests/:quizId — accept/reject an incoming request (recipient only)
 router.patch("/collaborator-requests/:quizId", respondToCollaboratorRequest);
+
+// GET /api/v1/user/quiz/collaborations — quizzes where the user is an ACCEPTED collaborator
+router.get("/collaborations", getMyCollaborations);
 
 // GET /api/v1/user/quiz/:quizId — get a single quiz
 router.get("/:quizId", getQuizById);

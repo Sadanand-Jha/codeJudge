@@ -740,6 +740,30 @@ export interface IncomingCollaboratorRequest {
   inviter_username: string | null;
 }
 
+/**
+ * A quiz the current user is collaborating on (their invitation was ACCEPTED).
+ * Only accepted invitations are returned by the backend — pending / rejected /
+ * expired invitations never appear here.
+ */
+export interface CollaborationQuiz {
+  id: number;
+  name: string;
+  code: string;
+  createdby: number;
+  status: string | null;
+  starttime: string | null;
+  endtime: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  accepted_at: string | null;
+  invited_by: number;
+  creator_name: string | null;
+  creator_first_name: string | null;
+  creator_last_name: string | null;
+  participants: number;
+  total_questions: number;
+}
+
 export interface QuizCollaboratorsResponse {
   requests: CollaboratorRequest[];
   collaborators: CollaboratorRequest[];
@@ -779,6 +803,16 @@ export async function removeQuizCollaborator(quizId: string, targetUserId: strin
  */
 export async function getIncomingCollaboratorRequests(): Promise<IncomingCollaboratorRequest[]> {
   const response = await apiClient.get<IncomingCollaboratorRequest[]>("/v1/user/quiz/collaborator-requests/incoming");
+  return response.data;
+}
+
+/**
+ * Get the quizzes on which the current user is an ACCEPTED collaborator.
+ * Only accepted invitations are returned by the backend.
+ * GET /api/v1/user/quiz/collaborations
+ */
+export async function getMyCollaborations(): Promise<CollaborationQuiz[]> {
+  const response = await apiClient.get<CollaborationQuiz[]>("/v1/user/quiz/collaborations");
   return response.data;
 }
 
