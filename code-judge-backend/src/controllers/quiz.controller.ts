@@ -1747,30 +1747,6 @@ export const getIncomingCollaboratorRequests = async (req: Request, res: Respons
 };
 
 /**
- * GET /api/v1/user/quiz/collaborations
- * Get the quizzes on which the authenticated user is an ACCEPTED collaborator.
- * Only accepted invitations are returned — pending / rejected / expired are excluded.
- */
-export const getMyCollaborations = async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.userId;
-    if (!userId) {
-      res.status(401).json({ success: false, message: "Unauthorized access" });
-      return;
-    }
-
-    const collaborations = await quizService.getAcceptedCollaborations(Number(userId));
-    res.status(200).json({ success: true, data: collaborations });
-  } catch (error) {
-    console.error("Error fetching collaborations:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error while fetching collaborations",
-    });
-  }
-};
-
-/**
  * PATCH /api/v1/user/quiz/collaborator-requests/:quizId
  * Accept or reject a collaborator request (recipient only).
  * Body: { status: "accepted" | "rejected" }

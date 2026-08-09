@@ -16,7 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { getMyCollaborations, type CollaborationQuiz } from "@/services/quiz";
+import { getMyCollaborations, type CollaborationProject } from "@/services/quiz";
 import { formatQuizCode } from "@/utils/quizCode";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -24,7 +24,7 @@ const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 /* ─── Status helpers ─── */
 type StatusInfo = { text: string; dot: string; tone: string; pulse: boolean };
 
-function isCollabLive(quiz: CollaborationQuiz): boolean {
+function isCollabLive(quiz: CollaborationProject): boolean {
   if (quiz.status !== "published") return false;
   const now = new Date();
   const start = quiz.starttime ? new Date(quiz.starttime) : null;
@@ -34,7 +34,7 @@ function isCollabLive(quiz: CollaborationQuiz): boolean {
   return true;
 }
 
-function collabStatus(quiz: CollaborationQuiz): StatusInfo {
+function collabStatus(quiz: CollaborationProject): StatusInfo {
   if (isCollabLive(quiz)) return { text: "Live", dot: "bg-success", tone: "text-success", pulse: true };
   if (quiz.status === "draft") return { text: "Draft", dot: "bg-warning", tone: "text-warning", pulse: false };
   if (quiz.status === "archived") return { text: "Completed", dot: "bg-text-muted", tone: "text-text-muted", pulse: false };
@@ -54,10 +54,13 @@ function formatDate(dateStr: string | null): string {
   return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-function adminName(quiz: CollaborationQuiz): string {
-  if (quiz.creator_name) return quiz.creator_name;
-  const parts = [quiz.creator_first_name, quiz.creator_last_name].filter(Boolean);
-  return parts.length ? parts.join(" ") : "Quiz Admin";
+function adminName(quiz: CollaborationProject): string {
+  if (quiz.creator_first_name || quiz.creator_last_name) {
+    const parts = [quiz.creator_first_name, quiz.creator_last_name].filter(Boolean);
+    return parts.join(" ");
+  }
+  if (quiz.creator_username) return `@${quiz.creator_username}`;
+  return "Quiz Admin";
 }
 
 function subjectInitial(name: string): string {
@@ -123,7 +126,7 @@ function CollaborationEmpty() {
 }
 
 /* ─── Collaboration card ─── */
-function CollaborationCard({ quiz, index }: { quiz: CollaborationQuiz; index: number }) {
+function CollaborationCard({ quiz, index }: { quiz: CollaborationProject; index: number }) {
   const status = collabStatus(quiz);
   const code = formatQuizCode(quiz.code);
   const admin = adminName(quiz);
@@ -249,7 +252,7 @@ function CollaborationError({ onRetry }: { onRetry: () => void }) {
    MAIN — Collaboration section
    ═══════════════════════════════════════════════════════════════ */
 export default function CollaborationSection() {
-  const [collabs, setCollabs] = useState<CollaborationQuiz[]>([]);
+  const [collabs, setCollabs] = useState<CollaborationProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
