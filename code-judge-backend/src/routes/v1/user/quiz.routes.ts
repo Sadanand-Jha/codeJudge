@@ -35,6 +35,7 @@ import {
   getQuizVisibilityOptions,
   sendCollaboratorRequest,
   getQuizCollaborators,
+  getMyCollaborations,
   getIncomingCollaboratorRequests,
   respondToCollaboratorRequest,
   removeQuizCollaborator,
@@ -130,6 +131,9 @@ router.get("/visibility-options", getQuizVisibilityOptions);
 
 // GET /api/v1/user/quiz/collaborator-requests/incoming — get the user's incoming collaborator requests
 router.get("/collaborator-requests/incoming", getIncomingCollaboratorRequests);
+
+// GET /api/v1/user/quiz/collaborations — get quizzes/projects the user collaborates on (creator + collaborator)
+router.get("/collaborations", getMyCollaborations);
 
 // PATCH /api/v1/user/quiz/collaborator-requests/:quizId — accept/reject an incoming request (recipient only)
 router.patch("/collaborator-requests/:quizId", respondToCollaboratorRequest);

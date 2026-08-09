@@ -1129,6 +1129,115 @@ export class QuizRepository {
     return result.rows;
   }
 
+  /**
+   * Get the quizzes/projects where the user is involved as a collaborator.
+   *
+   * Returns BOTH:
+   *  - quizzes the user created that have at least one accepted collaborator (`my_role: "creator"`)
+   *  - quizzes where the user is an accepted collaborator            (`my_role: "collaborator"`)
+   *
+   * Each row includes the accepted collaborator list (with avatar) so the UI can render
+   * a stacked avatar group, plus the quiz creator's profile.
+   */
+  async getCollaborationProjects(userId: number): Promise<any[]> {
+    const query = `
+      WITH collaborator_lists AS (
+        SELECT
+          qcr.quiz_id,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'user_id', u.id,
+                'username', u.username,
+                'first_name', u.first_name,
+                'last_name', u.last_name,
+                'avatar_url', a.url
+              ) ORDER BY u.username
+            ) FILTER (WHERE qcr.status = 'accepted'),
+            '[]'::json
+          ) AS collaborators
+        FROM quiz_collaborator_request qcr
+        JOIN users u ON u.id = qcr.user_id
+        LEFT JOIN avatar a ON a.id = u.avatar_id
+        WHERE qcr.status = 'accepted'
+        GROUP BY qcr.quiz_id
+      ),
+      my_created AS (
+        SELECT DISTINCT q.id
+        FROM quiz q
+        WHERE q.createdby = $1
+          AND EXISTS (
+            SELECT 1 FROM quiz_collaborator_request qcr
+            WHERE qcr.quiz_id = q.id AND qcr.status = 'accepted'
+          )
+      )
+      SELECT
+        q.id,
+        q.name,
+        q.code,
+        q.createdby,
+        q.status,
+        q.starttime,
+        q.endtime,
+        q.created_at,
+        q.updated_at,
+        u.username AS creator_username,
+        u.first_name AS creator_first_name,
+        u.last_name AS creator_last_name,
+        a.url AS creator_avatar_url,
+        'creator' AS my_role,
+        NULL::integer AS invited_by,
+        NULL::timestamp AS accepted_at,
+        cl.collaborators,
+        COUNT(DISTINCT qp.id)::int AS total_questions
+      FROM my_created mc
+      JOIN quiz q ON q.id = mc.id
+      JOIN users u ON u.id = q.createdby
+      LEFT JOIN avatar a ON a.id = u.avatar_id
+      LEFT JOIN collaborator_lists cl ON cl.quiz_id = q.id
+      LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
+      GROUP BY q.id, u.username, u.first_name, u.last_name, a.url, cl.collaborators
+
+      UNION ALL
+
+      SELECT
+        q.id,
+        q.name,
+        q.code,
+        q.createdby,
+        q.status,
+        q.starttime,
+        q.endtime,
+        q.created_at,
+        q.updated_at,
+        u.username AS creator_username,
+        u.first_name AS creator_first_name,
+        u.last_name AS creator_last_name,
+        a.url AS creator_avatar_url,
+        'collaborator' AS my_role,
+        qcr.invited_by,
+        qcr.updated_at AS accepted_at,
+        cl.collaborators,
+        COUNT(DISTINCT qp.id)::int AS total_questions
+      FROM quiz_collaborator_request qcr
+      JOIN quiz q ON q.id = qcr.quiz_id
+      JOIN users u ON u.id = q.createdby
+      LEFT JOIN avatar a ON a.id = u.avatar_id
+      LEFT JOIN collaborator_lists cl ON cl.quiz_id = q.id
+      LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
+      WHERE qcr.user_id = $1 AND qcr.status = 'accepted'
+      GROUP BY q.id, u.username, u.first_name, u.last_name, a.url, qcr.invited_by, qcr.updated_at, cl.collaborators
+
+      ORDER BY updated_at DESC NULLS LAST, id DESC
+    `;
+    const result = await pool.query(query, [userId]);
+    return result.rows.map((row) => ({
+      ...row,
+      collaborators: Array.isArray(row.collaborators) ? row.collaborators : [],
+      total_questions: row.total_questions ? Number(row.total_questions) : 0,
+    }));
+  }
+
   // ==================== RESPONSES / RESULTS (admin view) ====================
 
   /**

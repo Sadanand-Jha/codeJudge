@@ -773,6 +773,50 @@ export async function removeQuizCollaborator(quizId: string, targetUserId: strin
   await apiClient.delete(`/v1/user/quiz/${quizId}/collaborators/${targetUserId}`);
 }
 
+/** A single user that appears as a collaborator on a quiz. */
+export interface CollaborationUser {
+  user_id: string | number;
+  username: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+}
+
+/**
+ * A quiz/project the authenticated user is part of as a collaborator.
+ * `my_role` distinguishes quizzes the user created (and invited collaborators)
+ * from quizzes where they are an accepted collaborator on someone else's quiz.
+ */
+export interface CollaborationProject {
+  id: number;
+  name: string;
+  code: string;
+  createdby: number;
+  status: string | null;
+  starttime: string | null;
+  endtime: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  creator_username: string | null;
+  creator_first_name: string | null;
+  creator_last_name: string | null;
+  creator_avatar_url: string | null;
+  my_role: "creator" | "collaborator";
+  invited_by: string | number | null;
+  accepted_at: string | null;
+  collaborators: CollaborationUser[];
+  total_questions: number;
+}
+
+/**
+ * Get the quizzes/projects the authenticated user collaborates on.
+ * GET /api/v1/user/quiz/collaborations
+ */
+export async function getMyCollaborations(): Promise<CollaborationProject[]> {
+  const response = await apiClient.get<CollaborationProject[]>("/v1/user/quiz/collaborations");
+  return response.data;
+}
+
 /**
  * Get the authenticated user's incoming collaborator requests.
  * GET /api/v1/user/quiz/collaborator-requests/incoming

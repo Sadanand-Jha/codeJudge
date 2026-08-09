@@ -1699,6 +1699,31 @@ export const getQuizCollaborators = async (req: Request, res: Response) => {
 };
 
 /**
+ * GET /api/v1/user/quiz/collaborations
+ * Get the quizzes/projects the authenticated user is a collaborator on.
+ * Distinguishes "creator" (user created it and has accepted collaborators)
+ * from "collaborator" (user is an accepted collaborator on someone else's quiz).
+ */
+export const getMyCollaborations = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const projects = await quizService.getCollaborationProjects(Number(userId));
+    res.status(200).json({ success: true, data: projects });
+  } catch (error) {
+    console.error("Error fetching collaboration projects:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching collaboration projects",
+    });
+  }
+};
+
+/**
  * GET /api/v1/user/quiz/collaborator-requests/incoming
  * Get incoming collaborator requests for the authenticated user (recipient).
  */

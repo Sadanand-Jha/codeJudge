@@ -15,11 +15,12 @@ import {
 import { cn } from "@/lib/helpers";
 import { getOldQuizzes, getMyCreatedQuizzes } from "@/services/quiz";
 import { formatQuizCode } from "@/utils/quizCode";
+import CollaboratorsSection from "./CollaboratorsSection";
 
 /* ═══════════════════════════════════════════════════════════════
    TYPES
    ═══════════════════════════════════════════════════════════════ */
-type TabType = "recent" | "my-quizzes";
+type TabType = "recent" | "my-quizzes" | "collaborators";
 
 type RecentQuiz = {
   attempt_id: number;
@@ -64,6 +65,7 @@ const SORT_OPTIONS = ["Newest", "Oldest", "Highest Score", "Lowest Score"] as co
 const TAB_LIST: { key: TabType; label: string; icon: React.ElementType }[] = [
   { key: "recent", label: "Recent Quizzes", icon: History },
   { key: "my-quizzes", label: "My Quizzes", icon: GraduationCap },
+  { key: "collaborators", label: "Collaborators", icon: Users },
 ];
 
 /* ─── Subject → icon + color mapping ─── */
@@ -952,7 +954,7 @@ export default function YourActivitySection() {
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- restore last active tab from localStorage on mount
-    if (stored === "recent" || stored === "my-quizzes") setActiveTab(stored);
+    if (stored === "recent" || stored === "my-quizzes" || stored === "collaborators") setActiveTab(stored);
     setIsHydrated(true);
   }, []);
 
@@ -1040,6 +1042,15 @@ export default function YourActivitySection() {
                   </h2>
                   <p className="mt-1.5 max-w-2xl text-sm text-text-secondary">
                     Create, manage and monitor your quizzes.
+                  </p>
+                </>
+              ) : activeTab === "collaborators" ? (
+                <>
+                  <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-text-primary sm:text-3xl">
+                    Collaborators
+                  </h2>
+                  <p className="mt-1.5 max-w-2xl text-sm text-text-secondary">
+                    Quizzes you created or collaborate on with a team.
                   </p>
                 </>
               ) : (
@@ -1144,6 +1155,19 @@ export default function YourActivitySection() {
                         <MyQuizCompactRow key={quiz.id} quiz={quiz} index={i} />
                       ))}
                 </div>
+              </motion.div>
+            )}
+
+            {activeTab === "collaborators" && (
+              <motion.div
+                key="collaborators"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-4"
+              >
+                <CollaboratorsSection />
               </motion.div>
             )}
           </AnimatePresence>
