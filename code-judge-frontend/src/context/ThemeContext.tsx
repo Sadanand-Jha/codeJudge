@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from "rea
 import { useAuthStore } from "@/store/authStore";
 import { updatePreferences } from "@/services/auth";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
-import { getInitialTheme, applyThemeToDOM, Theme } from "@/utils/theme";
+import { getInitialTheme, applyThemeToDOM, Theme, DEFAULT_THEME } from "@/utils/theme";
 
 interface ThemeContextValue {
   theme: Theme;
@@ -15,7 +15,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(() => getInitialTheme());
+  const [theme, setThemeState] = useState<Theme>(() => DEFAULT_THEME);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   // Keep the DOM attribute in sync with the React state.
@@ -25,6 +25,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     applyThemeToDOM(theme);
   }, [theme]);
+
+  // After mount, read the actual theme from localStorage or system preference
+  // and sync with state. This avoids SSR/client hydration mismatch by deferring
+  // the localStorage read to the client side only.
+  useEffect(() => {
+    setThemeState(getInitialTheme());
+  }, []);
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);

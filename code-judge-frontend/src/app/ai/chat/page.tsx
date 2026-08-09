@@ -58,9 +58,12 @@ import AppLayout from "@/components/layout/AppLayout";
 import ResizableSplitPane from "@/components/layout/ResizableSplitPane";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
 import { streamChat } from "@/services/ai";
+import type { LiveUsage } from "@/services/ai";
 import { toast } from "@/lib/toast";
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
+import AIUsageMeta from "@/components/ai/AIUsageMeta";
+import AILogo from "@/components/ai/AILogo";
 
 /* ─────────────────────────────────────────
    Design Tokens
@@ -147,6 +150,8 @@ interface Message {
   reasoningContent?: string;
   isReasoning?: boolean;
   isStreaming?: boolean;
+  usage?: LiveUsage;
+  timeMs?: number;
 }
 
 interface CodeBlock {
@@ -247,8 +252,12 @@ function MessageBubble({ message, onRegenerate }: { message: Message; onRegenera
 
   return (
     <div className={`group flex w-full gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] text-white">
-        {isUser ? <span className="text-[10px] font-bold">U</span> : <Sparkles className="h-3.5 w-3.5" />}
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6]">
+        {isUser ? (
+          <span className="text-[10px] font-bold text-white">U</span>
+        ) : (
+          <AILogo variant="mono" size="xs" className="text-white" />
+        )}
       </div>
 
       <div className={`flex max-w-[85%] flex-col gap-1 ${isUser ? "items-end" : ""}`}>
@@ -263,15 +272,32 @@ function MessageBubble({ message, onRegenerate }: { message: Message; onRegenera
           </div>
         ) : (
           <div className="rounded-lg rounded-tl-sm border border-[#23252F] bg-card px-3 py-2 shadow-sm">
-            {(message.reasoningContent || message.isReasoning) && (
+            {/* Thinking phase: the logo lives in the growable box header and is
+                shown only before the answer content begins. */}
+            {!message.content && (message.reasoningContent || message.isReasoning) && (
               <AIThinkingBlock
                 reasoning={message.reasoningContent || ""}
                 isReasoning={!!message.isReasoning}
+                usage={message.usage}
               />
             )}
             <MarkdownRenderer content={message.content} />
             {message.codeBlocks?.map((block) => <CodeBlock key={block.id} block={block} />)}
             {message.executionResult && <ExecutionCard result={message.executionResult} />}
+            {/* The AI mark trails the latest line of the streaming answer. */}
+            {message.content && (
+              <AILogo
+                variant="accent"
+                size="sm"
+                animate={!!message.isStreaming}
+                className="block mt-1"
+              />
+            )}
+            <AIUsageMeta
+              isStreaming={!!message.isStreaming}
+              usage={message.usage}
+              timeMs={message.timeMs}
+            />
 
             <div className="mt-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
               <button className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Copy"><Copy className="h-3 w-3" /></button>
@@ -450,6 +476,13 @@ export default function AIChatPage() {
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === aiId ? { ...m, content: m.content + chunk } : m
+              )
+            );
+          },
+          onUsage: (meta) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === aiId ? { ...m, usage: meta.usage, timeMs: meta.timeMs } : m
               )
             );
           },

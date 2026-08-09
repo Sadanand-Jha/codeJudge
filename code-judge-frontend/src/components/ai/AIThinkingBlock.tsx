@@ -1,57 +1,70 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Loader2, Sparkles } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
+import AILogo from "@/components/ai/AILogo";
+import { isAtBottom as userIsAtBottom } from "@/components/ai/tokenUsage";
+import type { LiveUsage } from "@/services/ai";
+import { fmt } from "@/components/ai/tokenUsage";
 
-// If the user's viewport is more than this many px below the newest reasoning,
-// they are "paused" (reading older content) and auto-follow is disabled.
+// When the user's viewport is more than this many px below the newest reasoning,
+// they are "paused" (reading older content) and auto-follow pauses.
 const FOLLOW_THRESHOLD_PX = 40;
+// Box grows from a header-only height up to this, then scrolls internally.
+const MAX_BOX_HEIGHT = 150;
+const HEADER_HEIGHT = 40;
+const CONTENT_MAX = MAX_BOX_HEIGHT - HEADER_HEIGHT;
 
 /**
- * Compact, fixed-height "thinking" panel for AI reasoning_content.
+ * Compact, growable "Thinking" panel for AI reasoning_content.
  *
- * The box never grows, owns its own scrolling, and has no visible scrollbar.
- * While reasoning streams it auto-follows the newest text; if the user scrolls
- * up to read old reasoning, auto-follow pauses and a subtle "↓ New reasoning"
- * pill lets them jump back to the latest. Reasoning stays fully in message
- * state — only the visual box is height-constrained.
+ * Layout:
+ *   ┌──────────────────────────┐
+ *   │ ◊ Thinking · N tokens  ˅ │   <- header (always visible; holds the AI mark)
+ *   ├──────────────────────────┤
+ *   │ reasoning...             │   <- grows then scrolls internally (no visible scrollbar)
+ *   └──────────────────────────┘
+ *
+ * The header always carries the assistant's AI mark while reasoning streams, so
+ * the logo "stays with Thinking." Once reasoning is done the panel auto-collapses
+ * (its caller unmounts it / shows the completed label), and the mark is instead
+ * rendered trailing the live answer content.
+ *
+ * Token numbers shown here are only ever the real values the backend has
+ * reported so far — they start at 0 (no usage received yet) and never estimate
+ * character length.
  */
 export default function AIThinkingBlock({
   reasoning,
   isReasoning,
+  usage,
 }: {
   reasoning: string;
   isReasoning: boolean;
+  usage?: LiveUsage;
 }) {
-  // `null` = auto mode: open while reasoning streams, collapse when done.
-  // A manual toggle overrides the auto behavior.
   const [manualOpen, setManualOpen] = useState<boolean | null>(null);
   const [followLatest, setFollowLatest] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const open = manualOpen ?? isReasoning;
+  // Real-so-far token total: 0 until the backend reports usage.
+  const headerTokenTotal = usage?.totalTokens;
 
-  // Follow newest reasoning as chunks arrive — but never fight the user's scroll.
-  // Only active while a generation is running; closing/reopening a finished
-  // box remounts it at the top so it can be read start-to-end.
   useEffect(() => {
     const el = scrollRef.current;
     if (el && isReasoning && followLatest) el.scrollTop = el.scrollHeight;
-  }, [reasoning, isReasoning, followLatest, open]);
+  }, [reasoning, followLatest, open, isReasoning]);
 
-  // Detect manual scroll: pausing follow once the user moves away from the
-  // bottom, and (rightly) resuming when they come back near it.
   const handleScroll = () => {
     if (!isReasoning) return;
     const el = scrollRef.current;
     if (!el) return;
-
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    if (distanceFromBottom > FOLLOW_THRESHOLD_PX) {
-      if (followLatest) setFollowLatest(false);
-    } else if (!followLatest) {
-      setFollowLatest(true);
+    if (userIsAtBottom(el.scrollHeight, el.scrollTop, el.clientHeight, FOLLOW_THRESHOLD_PX)) {
+      if (!followLatest) setFollowLatest(true);
+    } else if (followLatest) {
+      setFollowLatest(false);
     }
   };
 
@@ -66,37 +79,59 @@ export default function AIThinkingBlock({
   const toggle = () => setManualOpen(!open);
 
   return (
-    <div className="mb-1.5 overflow-hidden rounded-lg border border-border/70 bg-card-hover/30">
+    <div
+      className="ai-thinking-scroll overflow-hidden rounded-lg border border-border/70 bg-card-hover/30"
+      style={{ minHeight: HEADER_HEIGHT, maxHeight: MAX_BOX_HEIGHT }}
+    >
       <button
         onClick={toggle}
         className="flex h-10 w-full items-center justify-between gap-2 px-3 text-left"
         aria-expanded={open}
       >
-        <span className="flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
-          {isReasoning ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <Sparkles className="h-3 w-3 text-text-muted" />
-          )}
-          <span>{isReasoning ? "Thinking..." : "Thinking · completed"}</span>
-        </span>
-        <ChevronDown className={`h-3 w-3 shrink-0 text-text-muted transition-transform ${open ? "rotate-180" : ""}`} />
+          <span className="flex items-center gap-2 text-[13px] font-medium text-text-primary">
+            {/* While reasoning streams, NO logo is anchored to the header — the
+                active "Thinking…" mark trails the latest reasoning line in the
+                body below. A spacer reserves the logo slot so the header doesn't
+                jump when reasoning completes (completed header keeps its logo). */}
+            {isReasoning ? (
+              <span className="h-7 w-7 shrink-0" aria-hidden="true" />
+            ) : (
+              <AILogo variant="accent" size="lg" animate={false} />
+            )}
+            <span>{isReasoning ? "Thinking" : "Thinking · completed"}</span>
+          </span>
+
+          <span className="text-[11px] font-medium text-text-muted">
+            · {headerTokenTotal != null ? `${fmt(headerTokenTotal)} tokens` : "0 tokens"}
+          </span>
+
+        <ChevronDown
+          className={`h-3 w-3 shrink-0 text-text-muted transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
-        <div className="relative">
-          <div
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className="ai-thinking-body ai-thinking-scroll h-[120px] max-h-[120px] min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain border-t border-border/60 px-3 py-2"
-          >
-            <MarkdownRenderer content={reasoning} />
-          </div>
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="ai-thinking-body ai-thinking-scroll border-t border-border/60 px-3 py-2"
+          style={{ maxHeight: CONTENT_MAX }}
+        >
+          <MarkdownRenderer content={reasoning} />
+
+          {/* Active "Thinking…" indicator is appended *after* the latest reasoning
+              line so it always trails the bottom-most content while streaming. */}
+          {isReasoning && (
+            <div className="mt-1.5 flex items-center gap-2 text-[13px] font-medium text-text-primary">
+              <AILogo variant="accent" size="lg" animate={true} />
+              <span>Thinking…</span>
+            </div>
+          )}
 
           {isReasoning && !followLatest && reasoning && (
             <button
               onClick={jumpToLatest}
-              className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-border/70 bg-card/90 px-2.5 py-1 text-[10px] font-medium text-text-secondary shadow-sm backdrop-blur"
+              className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-border/70 bg-card/90 px-2 py-1 text-[10px] font-medium text-text-secondary shadow-sm backdrop-blur"
             >
               ↓ New reasoning
             </button>

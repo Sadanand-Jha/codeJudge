@@ -3150,6 +3150,7 @@ svg {
 
 .ai-thinking-body {
   min-height: 0;
+  overflow-y: auto;
 }
 .ai-thinking-body .markdown-body {
   font-size: 12px;

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { streamChatWithAI, chatWithAI } from "../services/ai.service.js";
-import type { AIUsage } from "../services/ai.service.js";
+import type { LiveUsage } from "../services/ai.service.js";
 
 /**
  * POST /api/v1/user/ai/chat
@@ -8,8 +8,18 @@ import type { AIUsage } from "../services/ai.service.js";
  * Streams the LLM response as Server-Sent Events so the client can render
  * `reasoning_content` and `content` incrementally.
  *
- * Each SSE data payload is JSON: `{ "type": "reasoning"|"content", "chunk": "..." }`,
- * followed by a final `{ "type": "done" }` (or `{ "type": "error", "message" }`).
+ * Each SSE data payload is JSON:
+ *   `{ "type": "reasoning", "chunk": "..." }`
+ *   `{ "type": "content",   "chunk": "..." }`
+ *   `{ "type": "usage",     "usage": {...}, "time_ms": 1234 }`  (final, real)
+ *   `{ "type": "done" }`
+ *   `{ "type": "error",     "message": "..." }`
+ *
+ * `usage` is only present when the model/server reports token counts (e.g. when
+ * `stream_options: { include_usage: true }` is honored). It is never guessed —
+ * if the provider never sends it, the `usage` event simply carries no token
+ * numbers. `time_ms` is the backend-measured generation latency and is always
+ * real.
  */
 export const chat = async (req: Request, res: Response) => {
   const { message } = req.body;
@@ -26,7 +36,7 @@ export const chat = async (req: Request, res: Response) => {
 
   const controller = new AbortController();
   let wroteAny = false;
-  let lastUsage: AIUsage | undefined;
+  let lastUsage: LiveUsage | undefined;
   const startedAt = Date.now();
 
   const onClientClose = () => controller.abort();
@@ -62,10 +72,11 @@ export const chat = async (req: Request, res: Response) => {
     }
   } finally {
     if (!res.writableEnded) {
-      send("done", {
+      send("usage", {
         usage: lastUsage,
         time_ms: Date.now() - startedAt,
       });
+      send("done", {});
       res.end();
     }
     res.off("close", onClientClose);

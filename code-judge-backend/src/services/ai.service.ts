@@ -8,22 +8,24 @@ const client = new OpenAI({
 export interface AIStreamChunk {
   reasoning?: string;
   content?: string;
-  usage?: AIUsage;
+  usage?: LiveUsage;
 }
 
 export interface AIResponse {
   content: string;
   reasoning?: string;
-  usage?: AIUsage;
+  usage?: LiveUsage;
 }
 
 /**
- * Normalized token usage. `reasoningTokens` is only populated when the
- * provider exposes it (e.g. DeepSeek's `completion_tokens_details`).
+ * Provider-agnostic token usage normalized before it crosses the wire.
+ * Fields are intentionally optional — a provider that doesn't surface a
+ * given count (e.g. reasoning_tokens) simply leaves it undefined rather
+ * than inventing a value.
  */
-export interface AIUsage {
-  promptTokens?: number;
-  completionTokens?: number;
+export interface LiveUsage {
+  inputTokens?: number;
+  outputTokens?: number;
   totalTokens?: number;
   reasoningTokens?: number;
 }
@@ -42,11 +44,11 @@ type Message = OpenAI.ChatCompletionMessage & ReasoningDelta;
  * provider-specific `completion_tokens_details.reasoning_tokens` slot when
  * it exposes how many tokens went into chain-of-thought.
  */
-const normalizeUsage = (usage?: OpenAI.CompletionUsage | null): AIUsage | undefined => {
+const normalizeUsage = (usage?: OpenAI.CompletionUsage | null): LiveUsage | undefined => {
   if (!usage) return undefined;
   return {
-    promptTokens: usage.prompt_tokens,
-    completionTokens: usage.completion_tokens,
+    inputTokens: usage.prompt_tokens,
+    outputTokens: usage.completion_tokens,
     totalTokens: usage.total_tokens,
     reasoningTokens: (usage as OpenAI.CompletionUsage & {
       completion_tokens_details?: { reasoning_tokens?: number };
@@ -88,7 +90,7 @@ export const streamChatWithAI = async function* (
     { signal }
   );
 
-  let usage: AIUsage | undefined;
+  let usage: LiveUsage | undefined;
   for await (const chunk of stream) {
     // The provider sends usage on a dedicated final chunk before the stream ends.
     const normalized = normalizeUsage(chunk.usage);
