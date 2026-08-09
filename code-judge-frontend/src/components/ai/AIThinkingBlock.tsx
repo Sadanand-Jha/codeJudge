@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import AILogo from "@/components/ai/AILogo";
@@ -47,14 +47,26 @@ export default function AIThinkingBlock({
   const [manualOpen, setManualOpen] = useState<boolean | null>(null);
   const [followLatest, setFollowLatest] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The active "latest entry" — the trailing Thinking… indicator that gets
+  // pinned to the newest thinking line while reasoning streams.
+  const latestLineRef = useRef<HTMLDivElement>(null);
 
   const open = manualOpen ?? isReasoning;
   // Real-so-far token total: 0 until the backend reports usage.
   const headerTokenTotal = usage?.totalTokens;
 
-  useEffect(() => {
+  // Follow the newest reasoning line. Instead of guessing with a raw
+  // `scrollHeight` assignment (which can leave the active line off-screen or
+  // at an older position), pin the trailing indicator to the visible bottom.
+  // Runs layout-synchronously so the follow happens in the same frame as the
+  // content update — the latest line never sits at a stale position.
+  useLayoutEffect(() => {
+    if (!isReasoning || !followLatest) return;
     const el = scrollRef.current;
-    if (el && isReasoning && followLatest) el.scrollTop = el.scrollHeight;
+    const latest = latestLineRef.current;
+    if (!el || !latest) return;
+    const delta = latest.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom;
+    if (delta > 0) el.scrollTop += delta;
   }, [reasoning, followLatest, open, isReasoning]);
 
   const handleScroll = () => {
@@ -114,15 +126,16 @@ export default function AIThinkingBlock({
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="ai-thinking-body ai-thinking-scroll border-t border-border/60 px-3 py-2"
+          className="ai-thinking-body ai-thinking-scroll relative border-t border-border/60 px-3 py-2"
           style={{ maxHeight: CONTENT_MAX }}
         >
           <MarkdownRenderer content={reasoning} />
 
           {/* Active "Thinking…" indicator is appended *after* the latest reasoning
-              line so it always trails the bottom-most content while streaming. */}
+              line so it always trails the bottom-most content while streaming.
+              `latestLineRef` keeps it pinned to the visible bottom. */}
           {isReasoning && (
-            <div className="mt-1.5 flex items-center gap-2 text-[13px] font-medium text-text-primary">
+            <div ref={latestLineRef} className="mt-1.5 flex items-center gap-2 text-[13px] font-medium text-text-primary">
               <AILogo variant="accent" size="lg" animate={true} />
               <span>Thinking…</span>
             </div>
