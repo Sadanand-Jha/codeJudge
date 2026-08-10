@@ -44,6 +44,13 @@
   --danger: #EF4444;
   --gold: #FBBF24;
 
+  /* == Chat (subtle rose — pink used as accent, not as background) == */
+  --chat-rose: #FB7185;
+  --chat-user-bg: rgba(251, 113, 133, 0.07);
+  --chat-user-border: rgba(251, 113, 133, 0.16);
+  --chat-chip-bg: rgba(251, 113, 133, 0.06);
+  --chat-chip-border: rgba(251, 113, 133, 0.15);
+
   /* == Lines / controls == */
   --border: rgba(255, 255, 255, 0.06);
   --border-hover: rgba(255, 255, 255, 0.12);
@@ -96,6 +103,13 @@
   --danger: #EF4444;
   --gold: #FBBF24;
 
+  /* == Chat (subtle rose — pink used as accent, not as background) == */
+  --chat-rose: #C2506E;
+  --chat-user-bg: #FDF2F7;
+  --chat-user-border: #F4D9E6;
+  --chat-chip-bg: #FBF0F5;
+  --chat-chip-border: #F0D3E1;
+
   /* == Lines / controls == */
   --border: #E2E8F0;
   --border-hover: #CBD5E1;
@@ -143,6 +157,13 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-gold: var(--gold);
+
+  /* Chat — subtle rose accent */
+  --color-chat-rose: var(--chat-rose);
+  --color-chat-user-bg: var(--chat-user-bg);
+  --color-chat-user-border: var(--chat-user-border);
+  --color-chat-chip-bg: var(--chat-chip-bg);
+  --color-chat-chip-border: var(--chat-chip-border);
 
   /* Lines / controls */
   --color-border: var(--border);

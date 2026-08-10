@@ -513,7 +513,7 @@ export default function AiAssistantPanel({
                         className={cn(
                           "max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed text-text-primary",
                           m.role === "user"
-                            ? "whitespace-pre-wrap rounded-tr-sm border border-pink-500/30 bg-pink-500/15"
+                            ? "whitespace-pre-wrap rounded-tr-sm border border-chat-user-border bg-chat-user-bg"
                             : "rounded-tl-sm border border-border bg-card-hover/40"
                         )}
                       >
@@ -524,9 +524,9 @@ export default function AiAssistantPanel({
                                 {m.attachments.map((name, i) => (
                                   <span
                                     key={i}
-                                    className="inline-flex items-center gap-1 rounded-md border border-pink-500/30 bg-pink-500/10 px-1.5 py-0.5 text-[9px] font-medium text-pink-500"
+                                    className="inline-flex items-center gap-1 rounded-md border border-chat-chip-border bg-chat-chip-bg px-1.5 py-0.5 text-[9px] font-medium text-text-secondary"
                                   >
-                                    <FileText className="h-2.5 w-2.5" />
+                                    <FileText className="h-2.5 w-2.5 text-chat-rose" />
                                     {name}
                                   </span>
                                 ))}
@@ -617,7 +617,7 @@ export default function AiAssistantPanel({
                   the backend streams back. */}
               {sending && (
                 <div className="flex items-center gap-1.5 px-5 pb-1 text-[11px] text-text-muted">
-                  <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-pink-400" />
+                  <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-chat-rose" />
                   <span>
                     {messages.some((m) => m.role === "assistant" && m.isReasoning)
                       ? "Thinking"
@@ -645,8 +645,8 @@ export default function AiAssistantPanel({
                   className={cn(
                     "flex items-center gap-1.5 rounded-xl border bg-input-bg px-2.5 py-2 text-xs text-text-primary",
                     dragOver
-                      ? "border-pink-500/50 ring-1 ring-pink-500/10"
-                      : "border-input-border focus-within:border-pink-500/40 focus-within:ring-2 focus-within:ring-pink-500/10"
+                      ? "border-chat-rose/45 ring-1 ring-chat-rose/10"
+                      : "border-input-border focus-within:border-chat-rose/40 focus-within:ring-2 focus-within:ring-chat-rose/10"
                   )}
                 >
                   <label

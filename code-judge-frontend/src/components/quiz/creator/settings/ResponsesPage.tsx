@@ -475,7 +475,7 @@ function formatPercent(p?: number | null): string {
 
 export default function ResponsesPage() {
   const toast = useToast();
-  const { quizId, code, details, updateDetails } = useQuizSettings();
+  const { quizId, details, updateDetails } = useQuizSettings();
 
   const [data, setData] = useState<QuizResponsesData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -493,7 +493,6 @@ export default function ResponsesPage() {
   const [settingsBusy, setSettingsBusy] = useState(false);
 
   const persistSettings = async (patch: Partial<{ leaderboard: boolean; showResultsImmediately: boolean }>) => {
-    if (!quizId) return;
     setSettingsBusy(true);
     try {
       // await updateQuiz(String(quizId), { ...patch, code });
@@ -508,7 +507,6 @@ export default function ResponsesPage() {
   };
 
   const load = useCallback(async () => {
-    if (!quizId) return;
     setLoading(true);
     try {
       // MOCK: Using static data instead of API call
@@ -522,7 +520,7 @@ export default function ResponsesPage() {
     } finally {
       setLoading(false);
     }
-  }, [quizId, toast]);
+  }, [toast]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load
@@ -530,7 +528,6 @@ export default function ResponsesPage() {
   }, [load]);
 
   const handleSelectStudent = async (s: QuizResponseStudent) => {
-    if (!quizId) return;
     setSelectedStudent(s);
     setDetail(null);
     setDetailLoading(true);
@@ -542,7 +539,7 @@ export default function ResponsesPage() {
         attempt: {
           attempt_id: s.attempt_id || 0,
           user_id: s.user_id,
-          quiz_id: Number(quizId),
+          quiz_id: Number(quizId ?? 0),
           score: s.score || 0,
           percentage: s.percentage || 0,
           rank: s.rank || null,
@@ -568,7 +565,6 @@ export default function ResponsesPage() {
   };
 
   const handleSendEmail = async () => {
-    if (!quizId) return;
     setEmailBusy(true);
     try {
       // MOCK: Simulate email sending
@@ -578,11 +574,58 @@ export default function ResponsesPage() {
         title: "Results emailed (MOCK)",
         description: "The complete result report was sent to the quiz admin. [Backend disconnected]",
       });
-    } catch (err) {
+    } catch {
       toast.error({ title: "Could not send results", description: "Something went wrong. Please try again." });
     } finally {
       setEmailBusy(false);
     }
+  };
+
+  const downloadResultsCsv = () => {
+    if (!data) return;
+    const esc = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header = [
+      "Rank",
+      "Roll No.",
+      "Student",
+      "User ID",
+      "Status",
+      "Marks",
+      "Total",
+      "Percentage",
+      "Time Taken",
+      "Submitted At",
+    ];
+    const rows = data.students.map((s) => {
+      const status = studentStatus(s);
+      return [
+        s.rank ?? "",
+        s.rollno ?? "",
+        [s.first_name, s.last_name].filter(Boolean).join(" "),
+        s.user_id,
+        status.label,
+        s.score ?? "",
+        data.quiz.total_marks ?? "",
+        s.percentage != null ? Number(s.percentage).toFixed(1) : "",
+        s.time_taken != null ? formatTimeTaken(s.time_taken) : "",
+        s.completed_at ? new Date(s.completed_at).toLocaleString() : "",
+      ];
+    });
+    const csv = [header, ...rows].map((r) => r.map(esc).join(",")).join("\n");
+    const safeName = (data.quiz.name || "quiz").replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase() || "quiz";
+    const code = data.quiz.code ? `-${data.quiz.code}` : "";
+    const filename = `byteclash-${safeName}${code}-results.csv`;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success({ title: "Results downloaded", description: `${filename} exported.` });
   };
 
   const students = useMemo(() => {
@@ -730,14 +773,24 @@ export default function ResponsesPage() {
           <p className="mt-0.5 text-sm text-text-secondary">{quizName || "Quiz Responses"}</p>
         </div>
 
-        <button
-          onClick={handleSendEmail}
-          disabled={emailBusy}
-          className="flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)] hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {emailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-          Send Results to Admin
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={downloadResultsCsv}
+            disabled={!data}
+            className="flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-5 text-xs font-bold text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Download className="h-4 w-4 text-pink-500" />
+            Download Results
+          </button>
+          <button
+            onClick={handleSendEmail}
+            disabled={emailBusy}
+            className="flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)] hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {emailBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+            Send results on email
+          </button>
+        </div>
       </div>
 
       {/* ===== Summary Cards ===== */}
@@ -973,8 +1026,9 @@ export default function ResponsesPage() {
           <div className="flex items-start gap-2.5 rounded-xl border border-pink-500/15 bg-pink-500/[0.05] p-3.5">
             <Download className="mt-0.5 h-4 w-4 shrink-0 text-pink-500" />
             <p className="text-xs leading-relaxed text-text-secondary">
-              Use <span className="font-semibold text-pink-500">Send Results to Admin</span> above to email the complete
-              result report to the quiz admin. Students never receive performance emails.
+              Use <span className="font-semibold text-pink-500">Download Results</span> to export the result report as a
+              CSV, or <span className="font-semibold text-pink-500">Send results on email</span> to email the complete
+              report to the quiz admin. Students never receive performance emails.
             </p>
           </div>
         </div>
