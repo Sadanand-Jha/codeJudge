@@ -137,6 +137,18 @@ export const mapRawQuestionsToPreview = (
         }))
       : undefined;
 
+    // Safety net: ensure exactly one option is marked correct. Prefer the model
+    // answer (by exact text, then by letter e.g. "A"); if none resolves, mark
+    // "A" so the review overlay always has a highlighted correct answer.
+    if (options && options.length > 0 && !options.some((o) => o.isCorrect)) {
+      const answer = typeof raw.answer === "string" ? raw.answer.trim() : "";
+      const byLetter = answer
+        ? options.find((o) => o.id === answer.toUpperCase().replace(/[^A-Z:.]/g, "")[0])
+        : undefined;
+      if (byLetter) byLetter.isCorrect = true;
+      else options[0].isCorrect = true;
+    }
+
     return {
       id: `gen-${Date.now()}-${i}`,
       type,

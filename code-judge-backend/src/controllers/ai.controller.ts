@@ -3,6 +3,7 @@ import { streamChatWithAI, chatWithAI } from "../services/ai.service.js";
 import type { LiveUsage } from "../services/ai.service.js";
 import { generateQuestionsFromFiles } from "../services/question-generation.service.js";
 import { parseQuestionsJSON } from "../services/question-generation.service.js";
+import { QUIZ_EXTRACTION_GUIDE } from "../services/question-generation.service.js";
 import type { GeneratedQuestionPayload } from "../services/question-generation.service.js";
 import { extractFileText } from "../services/question-generation.service.js";
 import { isDoclingAvailable } from "../services/docling-extract.service.js";
@@ -133,6 +134,13 @@ export const chatWithFiles = async (req: Request, res: Response) => {
     );
   }
   if (prompt) contextParts.push(prompt);
+
+  // Auto-detect quiz documents in one pass: the guide tells the model to reply
+  // with the questions JSON when the document already contains quiz problems,
+  // and to answer normally otherwise.
+  if (extracted.length > 0) {
+    contextParts.unshift(QUIZ_EXTRACTION_GUIDE);
+  }
 
   console.log(contextParts.length > 0 ? `Streaming AI request with context: "${prompt}"` : "Streaming AI request without context");
 

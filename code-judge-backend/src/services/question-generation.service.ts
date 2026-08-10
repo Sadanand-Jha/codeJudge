@@ -41,6 +41,39 @@ export interface QuestionGenerationRequest {
 }
 
 /**
+ * Adaptive guide injected into file-chat prompts. If the attached document
+ * contains quiz/ MCQ / test questions with options and answers, the model must
+ * reply with ONLY the questions JSON so the review overlay opens. Otherwise it
+ * simply answers the user's prompt normally as a chat assistant.
+ */
+export const QUIZ_EXTRACTION_GUIDE = `IMPORTANT INSTRUCTION:
+The user may have attached one or more documents.
+- If the document(s) contain quiz / multiple-choice / test questions that already have options and answers, you MUST respond with ONLY valid JSON (no markdown fences, no commentary) matching exactly this shape:
+{
+  "questions": [
+    {
+      "question": "the question text",
+      "type": "mcq" | "true_false" | "short",
+      "difficulty": "easy" | "medium" | "hard" | "expert",
+      "options": ["option 1", "option 2", "option 3", "option 4"],
+      "answer": "exact correct option text (must match one of the options)",
+      "explanation": "optional",
+      "hint": "optional",
+      "tags": []
+    }
+  ]
+}
+Rules when extracting:
+- Preserve the exact wording, options and correct answers. Do not invent or reorder questions.
+- Clean up option text: strip any leading option labels/prefixes such as "(A)", "A)", "A.", "A:" from an option. For example an option written as "(A) wow" must be output as "wow" only.
+- When the document marks the correct answer with a letter (e.g. answer key says "A)"), resolve that letter to the actual cleaned option text and put that text in "answer". Never output the raw letter as the answer.
+- If the document does NOT give the answer for a question, mark the correct answer yourself using your knowledge if you are confident. If you are not confident, mark the FIRST option (the "A" option) as correct and set "answer" to that first option's text.
+- For MCQs always provide the original options and ensure "answer" exactly matches one of them.
+- For true/false use options ["True","False"].
+- For non-choice questions omit "options" and set "answer" to the exact expected answer.
+- If the document contains NO quiz problems, ignore this instruction and answer the user's question normally as a helpful assistant.`;
+
+/**
  * Formats we can read ourselves (fast path, no external service needed).
  */
 const TEXT_EXTENSIONS = new Set([
