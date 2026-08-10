@@ -14,6 +14,7 @@ interface QuizProblemsState {
   addProblems: (questions: CreatorQuestion[]) => void;
   updateProblem: (id: string, updates: Partial<CreatorQuestion>) => void;
   deleteProblem: (id: string) => void;
+  deleteAllProblems: () => void;
   duplicateProblem: (id: string) => string;
   reorderProblem: (fromIndex: number, toIndex: number) => void;
   setActiveProblem: (id: string) => void;
@@ -78,6 +79,11 @@ export const useQuizProblemsStore = create<QuizProblemsState>((set, get) => ({
     const next = problems.filter((p) => p.id !== id);
     const active = activeProblemId === id ? (next[0]?.id ?? null) : activeProblemId;
     set({ problems: next, activeProblemId: active });
+    get().save();
+  },
+
+  deleteAllProblems: () => {
+    set({ problems: [], activeProblemId: null });
     get().save();
   },
 
