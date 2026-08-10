@@ -27,6 +27,20 @@ import ProblemDeleteModal from "./ProblemDeleteModal";
 const SLIDE = { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const };
 
 /**
+ * True when a keydown target is an editable control (native inputs, rich
+ * editors…). Ctrl/Cmd+Z must be left for those to keep their own undo.
+ */
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  return Boolean(
+    target.closest("input, textarea, select, [contenteditable='true'], .monaco-editor, .cm-editor")
+  );
+}
+
+/**
  * Behavior-only protection for the quiz sidebar & navigation. Prevents
  * native dragging, dropping, text selection (see also .quiz-sidebar-lock
  * CSS), copying, cutting, and right-click on every sidebar item without
@@ -99,10 +113,28 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
     if (inProblems) hydrate();
   }, [inProblems, hydrate]);
 
+  // Ctrl/Cmd+Z undoes the last problem-list mutation (delete, delete-all, add,
+  // duplicate, reorder). Editable targets are skipped so inputs and code
+  // editors keep their native undo.
+  useEffect(() => {
+    if (!inProblems) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const isUndo =
+        (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z";
+      if (!isUndo || isEditableTarget(e.target)) return;
+      if (useQuizProblemsStore.getState().undo()) e.preventDefault();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [inProblems]);
+
   const activeSection =
     SETTINGS_SECTIONS.find((s) => pathname.endsWith(`/${s.href}`))?.id ?? "info";
   const settingsPath = (href: string) => `/quiz/${code}/settings/${href}`;
   const statusMeta = STATUS_META[derivedStatus] || STATUS_META.draft;
+
+  const completedProblems = problems.filter((p) => getQuestionStatus(p) === "complete").length;
+  const progress = problems.length > 0 ? Math.round((completedProblems / problems.length) * 100) : 0;
 
   const handleAddProblem = () => {
     const id = addProblem();
@@ -304,27 +336,37 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
             {...sidebarProtect}
             className="quiz-sidebar-lock fixed left-60 top-14 bottom-0 z-30 hidden w-56 flex-col border-r border-border bg-card-hover/50 lg:flex"
           >
-            <div className="border-b border-border p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-                  Problems
-                </p>
+            <div className="relative border-b border-border px-3 pb-3.5 pt-3">
+              <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-pink-500/40 to-transparent" />
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-pink-500/10 text-pink-500 ring-1 ring-inset ring-pink-500/20">
+                  <ListChecks className="h-3.5 w-3.5" strokeWidth={2.2} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-[11px] font-bold uppercase tracking-[0.08em] text-text-primary">
+                    Problems
+                  </h3>
+                  <p className="text-[9px] font-medium text-text-muted">{problems.length} total</p>
+                </div>
                 <button
                   {...itemProtect}
                   onClick={handleAddProblem}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500/10 text-pink-500 transition-colors hover:bg-pink-500/20"
+                  className="flex h-7 shrink-0 items-center gap-1 rounded-lg bg-gradient-to-br from-pink-500 to-accent px-2 text-[10px] font-bold text-white shadow-[0_4px_14px_-2px_rgba(236,72,153,0.55)] transition-all duration-150 hover:brightness-110 hover:shadow-[0_4px_18px_-2px_rgba(236,72,153,0.7)] active:scale-95"
                   title="Add problem"
                 >
-                  <Plus className="h-3.5 w-3.5" />
+                  <Plus className="h-3 w-3" strokeWidth={2.5} />
+                  Add
                 </button>
               </div>
-              <div className="mt-1 flex items-center justify-between">
-                <p className="text-[10px] text-text-muted">{problems.length} total</p>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <p className="min-w-0 truncate text-[9px] font-semibold text-text-muted">
+                  {completedProblems} of {problems.length} done
+                </p>
                 {problems.length > 0 && !isLive && !isEnded && (
                   <button
                     {...itemProtect}
                     onClick={() => setConfirmDeleteAll(true)}
-                    className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold text-danger/80 transition-colors hover:bg-danger/10 hover:text-danger"
+                    className="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-[9px] font-bold text-danger/80 transition-colors duration-150 hover:bg-danger/10 hover:text-danger"
                     title="Delete all problems"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -332,9 +374,15 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                   </button>
                 )}
               </div>
+              <div className="mt-2 h-[2px] overflow-hidden rounded-full bg-border">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#EC4899] to-accent transition-[width] duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
 
-            <div className="settings-scroll flex-1 space-y-1 overflow-y-auto p-2">
+            <div className="quiz-problems-scroll flex-1 space-y-1 overflow-y-auto p-2 pt-2.5">
               {problems.map((p, i) => {
                 const isActive = p.id === activeProblemId;
                 const status = getQuestionStatus(p);
@@ -345,18 +393,24 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                     href={`/quiz/${code}/problems/${p.id}`}
                     onClick={() => setActiveProblem(p.id)}
                     className={cn(
-                      "group relative flex items-start gap-2.5 rounded-xl border px-3 py-2.5 transition-all duration-200",
+                      "group relative flex items-center gap-2.5 rounded-lg border px-2.5 py-2 transition-all duration-150 ease-out",
                       isActive
-                        ? "border-pink-500/30 bg-pink-500/10 shadow-[inset_0_0_0_1px_rgba(236,72,153,0.15)]"
-                        : "border-transparent hover:border-border hover:bg-card"
+                        ? "border-pink-500/30 bg-gradient-to-br from-pink-500/[0.16] via-pink-500/[0.05] to-accent/[0.12] shadow-[0_0_0_1px_rgba(236,72,153,0.15),0_10px_26px_-16px_rgba(236,72,153,0.55)]"
+                        : "border-transparent bg-card hover:-translate-x-0.5 hover:border-border hover:bg-card-hover"
                     )}
                   >
                     <span
                       className={cn(
-                        "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold",
+                        "absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r-full bg-gradient-to-b from-pink-500 to-accent opacity-0 transition-opacity duration-150 group-hover:opacity-25",
+                        isActive && "opacity-100 group-hover:opacity-100"
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "relative flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold tabular-nums transition-all duration-150",
                         isActive
-                          ? "bg-gradient-to-br from-[#EC4899] to-[#7C3AED] text-white"
-                          : "bg-card text-text-muted"
+                          ? "bg-gradient-to-br from-pink-500 to-accent text-white shadow-[0_2px_10px_-1px_rgba(236,72,153,0.6)] ring-1 ring-inset ring-white/15"
+                          : "bg-gradient-to-b from-card-hover to-card text-text-secondary ring-1 ring-inset ring-border"
                       )}
                     >
                       {i + 1}
@@ -364,31 +418,44 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                     <span className="min-w-0 flex-1">
                       <span
                         className={cn(
-                          "block truncate text-xs font-medium",
-                          isActive ? "text-text-primary" : "text-text-secondary"
+                          "block truncate text-[11px] leading-snug transition-colors duration-150",
+                          isActive
+                            ? "font-semibold text-text-primary"
+                            : "font-medium text-text-secondary group-hover:text-text-primary"
                         )}
                       >
                         {p.title.trim() || `Problem ${i + 1}`}
                       </span>
-                      <span className="mt-0.5 flex items-center gap-1.5 text-[9px] text-text-muted">
+                      <span className="mt-1 flex items-center gap-1.5">
                         <span
                           className={cn(
-                            "h-1.5 w-1.5 rounded-full",
+                            "inline-flex items-center gap-1 rounded-full px-1.5 py-px text-[8.5px] font-semibold",
                             status === "complete"
-                              ? "bg-success"
+                              ? "bg-success/10 text-success"
                               : status === "missing_answer"
-                              ? "bg-warning"
-                              : "bg-text-muted"
+                              ? "bg-warning/10 text-warning"
+                              : "bg-muted/70 text-text-muted"
                           )}
-                        />
-                        {status === "complete"
-                          ? "Complete"
-                          : status === "missing_answer"
-                          ? "Needs answer"
-                          : "Draft"}
+                        >
+                          <span
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full",
+                              status === "complete"
+                                ? "bg-success shadow-[0_0_6px_rgba(34,197,94,0.7)]"
+                                : status === "missing_answer"
+                                ? "bg-warning"
+                                : "bg-text-muted"
+                            )}
+                          />
+                          {status === "complete"
+                            ? "Complete"
+                            : status === "missing_answer"
+                            ? "Needs answer"
+                            : "Draft"}
+                        </span>
                       </span>
                     </span>
-                    <span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                       <button
                         {...itemProtect}
                         onClick={(e) => {
@@ -417,14 +484,15 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                 );
               })}
               {problems.length === 0 && (
-                <div className="px-3 py-8 text-center">
-                  <p className="text-xs text-text-muted">No problems yet.</p>
+                <div className="rounded-lg border border-dashed border-border bg-card/60 px-3 py-8 text-center">
+                  <p className="text-xs font-medium text-text-muted">No problems yet.</p>
                   <button
                     {...itemProtect}
                     onClick={handleAddProblem}
-                    className="mt-2 text-[11px] font-semibold text-pink-500 hover:text-pink-400"
+                    className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-pink-500 transition-colors hover:text-pink-400"
                   >
-                    + Add Problem
+                    <Plus className="h-3 w-3" />
+                    Add Problem
                   </button>
                 </div>
               )}

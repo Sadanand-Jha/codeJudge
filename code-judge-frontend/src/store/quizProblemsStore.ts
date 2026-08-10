@@ -4,11 +4,18 @@ import { create } from "zustand";
 import { CreatorQuestion, createDefaultQuestion, getQuestionStatus } from "@/components/quiz/creator/types";
 import { loadQuizState, saveQuizQuestions } from "@/utils/quizStorage";
 
+interface HistoryEntry {
+  problems: CreatorQuestion[];
+  activeProblemId: string | null;
+}
+
 interface QuizProblemsState {
   /** Problems for the current quiz, hydrated from the shared quiz storage. */
   problems: CreatorQuestion[];
   activeProblemId: string | null;
   hydrated: boolean;
+  /** Snapshots of prior list states for Ctrl/Cmd+Z undo of structural actions. */
+  history: HistoryEntry[];
   hydrate: () => void;
   addProblem: () => string;
   addProblems: (questions: CreatorQuestion[]) => void;
@@ -18,7 +25,31 @@ interface QuizProblemsState {
   duplicateProblem: (id: string) => string;
   reorderProblem: (fromIndex: number, toIndex: number) => void;
   setActiveProblem: (id: string) => void;
+  /** Restore the last structural change. Returns true when something was undone. */
+  undo: () => boolean;
   save: () => void;
+}
+
+const MAX_HISTORY = 30;
+
+/**
+ * Snapshot the current problems list before a structural mutation, then apply
+ * the mutation. Snapshots are shallow copies of the problems array and each
+ * question, so later immutable edits never leak into history entries.
+ */
+function pushHistory(
+  get: () => QuizProblemsState,
+  set: (partial: Partial<QuizProblemsState>) => void,
+  replace: { problems: CreatorQuestion[]; activeProblemId: string | null }
+) {
+  const { problems, activeProblemId, history } = get();
+  set({
+    history: [
+      ...history,
+      { problems: problems.map((p) => ({ ...p })), activeProblemId },
+    ].slice(-MAX_HISTORY),
+    ...replace,
+  });
 }
 
 /**
@@ -29,6 +60,7 @@ export const useQuizProblemsStore = create<QuizProblemsState>((set, get) => ({
   problems: [],
   activeProblemId: null,
   hydrated: false,
+  history: [],
 
   hydrate: () => {
     if (get().hydrated) return;
@@ -38,13 +70,14 @@ export const useQuizProblemsStore = create<QuizProblemsState>((set, get) => ({
       problems,
       activeProblemId: problems[0]?.id ?? null,
       hydrated: true,
+      history: [],
     });
   },
 
   addProblem: () => {
     const problem = createDefaultQuestion(`q_${Date.now()}`);
     const problems = [...get().problems, problem];
-    set({ problems, activeProblemId: problem.id });
+    pushHistory(get, set, { problems, activeProblemId: problem.id });
     get().save();
     return problem.id;
   },
@@ -62,7 +95,7 @@ export const useQuizProblemsStore = create<QuizProblemsState>((set, get) => ({
     }
     const problems = [...existing, ...fresh];
     const last = fresh[fresh.length - 1];
-    set({ problems, activeProblemId: last?.id ?? get().activeProblemId });
+    pushHistory(get, set, { problems, activeProblemId: last?.id ?? get().activeProblemId });
     get().save();
   },
 
@@ -78,12 +111,12 @@ export const useQuizProblemsStore = create<QuizProblemsState>((set, get) => ({
     const { problems, activeProblemId } = get();
     const next = problems.filter((p) => p.id !== id);
     const active = activeProblemId === id ? (next[0]?.id ?? null) : activeProblemId;
-    set({ problems: next, activeProblemId: active });
+    pushHistory(get, set, { problems: next, activeProblemId: active });
     get().save();
   },
 
   deleteAllProblems: () => {
-    set({ problems: [], activeProblemId: null });
+    pushHistory(get, set, { problems: [], activeProblemId: null });
     get().save();
   },
 
@@ -100,7 +133,7 @@ export const useQuizProblemsStore = create<QuizProblemsState>((set, get) => ({
     };
     const next = [...problems];
     next.splice(index + 1, 0, copy);
-    set({ problems: next, activeProblemId: copy.id });
+    pushHistory(get, set, { problems: next, activeProblemId: copy.id });
     get().save();
     return copy.id;
   },
@@ -110,11 +143,24 @@ export const useQuizProblemsStore = create<QuizProblemsState>((set, get) => ({
     if (toIndex < 0 || toIndex >= problems.length) return;
     const [moved] = problems.splice(fromIndex, 1);
     problems.splice(toIndex, 0, moved);
-    set({ problems });
+    pushHistory(get, set, { problems, activeProblemId: get().activeProblemId });
     get().save();
   },
 
   setActiveProblem: (id) => set({ activeProblemId: id }),
+
+  undo: () => {
+    const { history } = get();
+    if (history.length === 0) return false;
+    const last = history[history.length - 1];
+    set({
+      problems: last.problems,
+      activeProblemId: last.activeProblemId,
+      history: history.slice(0, -1),
+    });
+    get().save();
+    return true;
+  },
 
   save: () => {
     const { problems, activeProblemId } = get();
