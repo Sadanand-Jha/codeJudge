@@ -21,11 +21,15 @@ import {
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
 import { streamChat, streamChatWithFiles } from "@/services/ai";
-import type { LiveUsage } from "@/services/ai";
+import { mapRawQuestionsToPreview } from "@/services/ai";
+import type { LiveUsage, AIQuestionPreview, RawAIGeneratedQuestion } from "@/services/ai";
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
 import AIUsageMeta from "@/components/ai/AIUsageMeta";
 import AILogo from "@/components/ai/AILogo";
+import AIQuestionReviewOverlay from "@/components/quiz/creator/AIQuestionReviewOverlay";
+import { useQuizProblemsStore } from "@/store/quizProblemsStore";
+import { mapToCreatorQuestions } from "@/utils/aiToCreatorQuestion";
 
 interface UploadedFile {
   id: string;
@@ -126,6 +130,22 @@ export default function AiAssistantPanel({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
+  const [reviewQuestions, setReviewQuestions] = useState<AIQuestionPreview[]>([]);
+  const [showReviewOverlay, setShowReviewOverlay] = useState(false);
+
+  const closeReviewOverlay = () => setShowReviewOverlay(false);
+
+  const handleAcceptAll = () => {
+    if (reviewQuestions.length === 0) {
+      setShowReviewOverlay(false);
+      return;
+    }
+    const questions = mapToCreatorQuestions(reviewQuestions);
+    useQuizProblemsStore.getState().addProblems(questions);
+    setReviewQuestions([]);
+    setShowReviewOverlay(false);
+    toast.success(`${questions.length} questions added to the quiz`);
+  };
 
   // Abort any in-flight AI stream when the panel unmounts so the SSE
   // connection does not keep streaming in the background.
@@ -284,11 +304,20 @@ export default function AiAssistantPanel({
           )
         );
       },
+      onQuestions: (rawQuestions: RawAIGeneratedQuestion[]) => {
+        const preview = mapRawQuestionsToPreview(rawQuestions);
+        if (preview.length === 0) return;
+        setReviewQuestions(preview);
+        setShowReviewOverlay(true);
+      },
       onDone: () => finalizeMessage(aiId),
     };
 
+    console.log(readyFiles.length > 0 ? "Streaming AI request with files" : "Streaming AI request without files");
+
     try {
       if (readyFiles.length > 0) {
+        console.log(userPrompt, readyFiles.map((f) => f.file));
         await streamChatWithFiles(userPrompt, readyFiles.map((f) => f.file), callbacks, controller.signal);
       } else {
         await streamChat(userPrompt, callbacks, controller.signal);
@@ -680,6 +709,15 @@ export default function AiAssistantPanel({
               </div>
             </div>
           </motion.aside>
+
+          {/* Full-screen AI review overlay for generated questions */}
+          <AIQuestionReviewOverlay
+            open={showReviewOverlay}
+            questions={reviewQuestions}
+            onClose={closeReviewOverlay}
+            onAccept={handleAcceptAll}
+            onReject={closeReviewOverlay}
+          />
         </>
       )}
     </AnimatePresence>

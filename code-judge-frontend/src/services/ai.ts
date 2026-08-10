@@ -23,6 +23,7 @@ export interface StreamCallbacks {
   onDone?: () => void;
   onUsage?: (meta: GenerationMeta) => void;
   onError?: (message: string) => void;
+  onQuestions?: (questions: RawAIGeneratedQuestion[]) => void;
 }
 
 interface RawUsage {
@@ -42,6 +43,7 @@ interface SSEPayload {
   message?: string;
   usage?: RawUsage;
   time_ms?: number;
+  questions?: RawAIGeneratedQuestion[];
 }
 
 const toLiveUsage = (raw?: RawUsage): LiveUsage | undefined => {
@@ -80,6 +82,74 @@ export interface RawAIGeneratedQuestion {
   hint?: string;
   tags?: string[];
 }
+
+export type AIQuestionType = "mcq" | "coding" | "true_false" | "fill" | "short" | "integer" | "long";
+export type AIDifficulty = "easy" | "medium" | "hard" | "expert";
+
+export interface AIQuestionPreview {
+  id: string;
+  type: AIQuestionType;
+  title: string;
+  content: string;
+  options?: { id: string; content: string; isCorrect: boolean }[];
+  correctAnswer?: string | number;
+  explanation?: string;
+  hint?: string;
+  difficulty: AIDifficulty;
+  tags: string[];
+}
+
+const QUESTION_TYPES: readonly AIQuestionType[] = [
+  "mcq",
+  "coding",
+  "true_false",
+  "fill",
+  "short",
+  "integer",
+  "long",
+] as const;
+
+const DIFFICULTIES: readonly AIDifficulty[] = ["easy", "medium", "hard", "expert"] as const;
+
+/**
+ * Map the backend's raw generated-question shape into the review-overlay
+ * PreviewQuestion shape. Shared by AIStudio and the AI Assistant chat panel so
+ * both flows render identically in AIQuestionReviewOverlay.
+ */
+export const mapRawQuestionsToPreview = (
+  rawQuestions: RawAIGeneratedQuestion[]
+): AIQuestionPreview[] =>
+  rawQuestions.map((raw, i) => {
+    const type = QUESTION_TYPES.includes(raw.type as AIQuestionType)
+      ? (raw.type as AIQuestionType)
+      : raw.options && raw.options.length > 0
+        ? "mcq"
+        : "short";
+    const difficulty = DIFFICULTIES.includes(raw.difficulty as AIDifficulty)
+      ? (raw.difficulty as AIDifficulty)
+      : "medium";
+
+    const options = raw.options?.length
+      ? raw.options.map((content, oi) => ({
+          id: String.fromCharCode(65 + oi),
+          content,
+          isCorrect: content.trim() === (raw.answer ?? "").trim(),
+        }))
+      : undefined;
+
+    return {
+      id: `gen-${Date.now()}-${i}`,
+      type,
+      title: raw.question || `Generated Question ${i + 1}`,
+      content: raw.question || "",
+      options,
+      correctAnswer: options?.find((o) => o.isCorrect)?.id ?? raw.answer,
+      explanation: raw.explanation,
+      hint: raw.hint,
+      difficulty,
+      tags: raw.tags ?? [],
+    };
+  });
 
 export interface GenerateFromFilesOptions {
   numberOfQuestions: number;
@@ -179,7 +249,7 @@ const consumeSSEResponse = async (
   response: Response,
   callbacks: StreamCallbacks
 ): Promise<void> => {
-  const { onReasoning, onContent, onDone, onUsage, onError } = callbacks;
+  const { onReasoning, onContent, onDone, onUsage, onError, onQuestions } = callbacks;
 
   if (!response.ok) {
     let detail = "";
@@ -226,6 +296,9 @@ const consumeSSEResponse = async (
         break;
       case "content":
         if (data.chunk) onContent?.(data.chunk);
+        break;
+      case "questions":
+        if (Array.isArray(data.questions)) onQuestions?.(data.questions);
         break;
       case "usage":
         emitUsage();

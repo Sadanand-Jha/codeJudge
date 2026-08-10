@@ -11,6 +11,7 @@ interface QuizProblemsState {
   hydrated: boolean;
   hydrate: () => void;
   addProblem: () => string;
+  addProblems: (questions: CreatorQuestion[]) => void;
   updateProblem: (id: string, updates: Partial<CreatorQuestion>) => void;
   deleteProblem: (id: string) => void;
   duplicateProblem: (id: string) => string;
@@ -45,6 +46,23 @@ export const useQuizProblemsStore = create<QuizProblemsState>((set, get) => ({
     set({ problems, activeProblemId: problem.id });
     get().save();
     return problem.id;
+  },
+
+  addProblems: (questions) => {
+    if (!questions || questions.length === 0) return;
+    const existing = [...get().problems];
+    const ids = new Set(existing.map((p) => p.id));
+    const fresh: CreatorQuestion[] = [];
+    for (const q of questions) {
+      let id = q.id;
+      if (!id || ids.has(id)) id = `q_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      ids.add(id);
+      fresh.push({ ...q, id });
+    }
+    const problems = [...existing, ...fresh];
+    const last = fresh[fresh.length - 1];
+    set({ problems, activeProblemId: last?.id ?? get().activeProblemId });
+    get().save();
   },
 
   updateProblem: (id, updates) => {

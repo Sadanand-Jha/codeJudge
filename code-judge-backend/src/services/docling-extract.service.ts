@@ -20,6 +20,7 @@ const HEALTH_CHECK_TTL_MS = 30_000;
 
 const getClient = (): DoclingAPIClient => {
   if (!cachedClient) {
+    console.log(DOCLING_URL, DOCLING_TIMEOUT_MS);
     cachedClient = new Docling({
       api: {
         baseUrl: DOCLING_URL,
@@ -37,20 +38,30 @@ const getClient = (): DoclingAPIClient => {
  */
 export const isDoclingAvailable = async (): Promise<boolean> => {
   const now = Date.now();
+  // Return cached status if within TTL
   if (now - lastHealthCheck < HEALTH_CHECK_TTL_MS) return healthy;
 
-  lastHealthCheck = now;
+  // Update timestamp immediately to prevent concurrent redundant checks
+  lastHealthCheck = now; 
+  let timeoutId: NodeJS.Timeout;
+
   try {
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Docling health check timed out")), 2000)
-    );
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error("Docling health check timed out")), 2000);
+    });
+    
     const client = getClient();
+    console.log("Checking Docling Serve health...", client);
     await Promise.race([client.health(), timeout]);
     healthy = true;
   } catch (error) {
     console.warn("Docling Serve unavailable:", (error as Error).message);
     healthy = false;
+  } finally {
+    // Always clean up the timer to prevent memory leaks
+    if (timeoutId!) clearTimeout(timeoutId);
   }
+  
   return healthy;
 };
 

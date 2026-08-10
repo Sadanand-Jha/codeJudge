@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import { useAICreditConsumption } from "@/hooks/useAICreditConsumption";
 import { toast } from "@/lib/toast";
-import { generateQuestionsFromFiles } from "@/services/ai";
-import type { RawAIGeneratedQuestion } from "@/services/ai";
+import { generateQuestionsFromFiles, mapRawQuestionsToPreview } from "@/services/ai";
+import type { RawAIGeneratedQuestion, AIQuestionPreview } from "@/services/ai";
 import AIQuestionReviewOverlay, {
   type PreviewQuestion,
 } from "@/components/quiz/creator/AIQuestionReviewOverlay";
@@ -247,42 +247,12 @@ export default function AIStudio({
       }
       setGenerationProgress(70);
 
-      const questions: GeneratedQuestion[] = rawQuestions.map((raw, i) => {
-        const type = (["mcq", "coding", "true_false", "fill", "integer", "short", "long"] as const).includes(
-          raw.type as GeneratedQuestion["type"]
-        )
-          ? (raw.type as GeneratedQuestion["type"])
-          : raw.options && raw.options.length > 0
-            ? "mcq"
-            : "short";
-        const difficulty = (
-          ["easy", "medium", "hard", "expert"] as const
-        ).includes(raw.difficulty as GeneratedQuestion["difficulty"])
-          ? (raw.difficulty as GeneratedQuestion["difficulty"])
-          : "medium";
-
-        const options = raw.options?.length
-          ? raw.options.map((content, oi) => ({
-              id: String.fromCharCode(65 + oi),
-              content,
-              isCorrect: content.trim() === (raw.answer ?? "").trim(),
-            }))
-          : undefined;
-
-        return {
-          id: `gen-${Date.now()}-${i}`,
-          type,
-          title: raw.question || `Generated Question ${i + 1}`,
-          content: raw.question || "",
-          options,
-          correctAnswer: options?.find((o) => o.isCorrect)?.id ?? raw.answer,
-          explanation: raw.explanation,
-          hint: raw.hint,
-          difficulty,
-          tags: raw.tags ?? [],
+      const questions: GeneratedQuestion[] = mapRawQuestionsToPreview(rawQuestions).map(
+        (q: AIQuestionPreview, i) => ({
+          ...q,
           credits: Math.round(8 / Math.max(rawQuestions.length, 1)),
-        };
-      });
+        })
+      );
 
       setGenerationProgress(100);
       setGeneratedQuestions(questions);

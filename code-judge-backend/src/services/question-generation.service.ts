@@ -187,7 +187,7 @@ const stripJsonFences = (content: string): string => {
   return withoutFences.slice(start, end + 1);
 };
 
-const parseQuestionsJSON = (
+export const parseQuestionsJSON = (
   content: string
 ): GeneratedQuestionPayload[] => {
   const slice = stripJsonFences(content);

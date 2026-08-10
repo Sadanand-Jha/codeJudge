@@ -2,6 +2,8 @@ import type { Request, Response } from "express";
 import { streamChatWithAI, chatWithAI } from "../services/ai.service.js";
 import type { LiveUsage } from "../services/ai.service.js";
 import { generateQuestionsFromFiles } from "../services/question-generation.service.js";
+import { parseQuestionsJSON } from "../services/question-generation.service.js";
+import type { GeneratedQuestionPayload } from "../services/question-generation.service.js";
 import { extractFileText } from "../services/question-generation.service.js";
 import { isDoclingAvailable } from "../services/docling-extract.service.js";
 
@@ -19,6 +21,7 @@ const streamSseReply = async (
 
   let wroteAny = false;
   let lastUsage: LiveUsage | undefined;
+  let fullContent = "";
   const startedAt = Date.now();
 
   const onClientClose = () => controller.abort();
@@ -30,10 +33,28 @@ const streamSseReply = async (
     wroteAny = true;
   };
 
+  let questions: GeneratedQuestionPayload[] | null = null;
+
+  const parseAndSendQuestions = (content: string) => {
+    if (questions) return;
+    try {
+      const parsed = parseQuestionsJSON(content);
+      if (parsed.length > 0) {
+        questions = parsed;
+        send("questions", { questions: parsed });
+      }
+    } catch {
+      // Not a structured question response — skip gracefully.
+    }
+  };
+
   try {
     for await (const chunk of streamChatWithAI(message, controller.signal)) {
       if (chunk.reasoning) send("reasoning", { chunk: chunk.reasoning });
-      if (chunk.content) send("content", { chunk: chunk.content });
+      if (chunk.content) {
+        fullContent += chunk.content;
+        send("content", { chunk: chunk.content });
+      }
       if (chunk.usage) lastUsage = chunk.usage;
     }
   } catch (error) {
@@ -42,7 +63,10 @@ const streamSseReply = async (
       try {
         const { content, reasoning, usage } = await chatWithAI(message, controller.signal);
         if (reasoning) send("reasoning", { chunk: reasoning });
-        if (content) send("content", { chunk: content });
+        if (content) {
+          fullContent += content;
+          send("content", { chunk: content });
+        }
         lastUsage = usage;
       } catch (fallbackError) {
         console.error("AI error:", fallbackError);
@@ -54,6 +78,7 @@ const streamSseReply = async (
     }
   } finally {
     if (!res.writableEnded) {
+      parseAndSendQuestions(fullContent);
       send("usage", {
         usage: lastUsage,
         time_ms: Date.now() - startedAt,
@@ -77,11 +102,15 @@ export const chatWithFiles = async (req: Request, res: Response) => {
   const prompt = String(req.body.prompt ?? "").trim();
   const files = (req.files as Express.Multer.File[] | undefined) ?? [];
 
+  console.log(`Received chat request with prompt: "${prompt}" and ${files.length} file(s)`);
+
   if (!prompt && files.length === 0) {
     return res.status(400).json({ message: "A prompt or at least one file is required" });
   }
 
   const doclingAvailable = await isDoclingAvailable();
+
+  console.log(doclingAvailable ? "Docling Serve is available for text extraction" : "Docling Serve is not available; falling back to simpler extraction");
 
   const extracted: string[] = [];
   for (const file of files) {
@@ -90,6 +119,7 @@ export const chatWithFiles = async (req: Request, res: Response) => {
         { name: file.originalname, buffer: file.buffer },
         doclingAvailable
       );
+      console.log(text, "this is the extracted text");
       if (text.trim()) extracted.push(`--- ${file.originalname} ---\n${text.trim()}`);
     } catch (error) {
       console.warn(`Skipping ${file.originalname}:`, error);
@@ -103,6 +133,8 @@ export const chatWithFiles = async (req: Request, res: Response) => {
     );
   }
   if (prompt) contextParts.push(prompt);
+
+  console.log(contextParts.length > 0 ? `Streaming AI request with context: "${prompt}"` : "Streaming AI request without context");
 
   const message = contextParts.join("\n\n");
   return streamSseReply(res, message, new AbortController());
