@@ -1,6 +1,7 @@
 "use client";
 
 import { use } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   BookOpen,
@@ -18,16 +19,31 @@ import {
   ExternalLink,
   CheckCircle,
   User,
+  Check,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { mockQuizzes, mockQuizCreator } from "@/mocks/quizData";
 import { getQuizCode, quizCodePath } from "@/services/quiz";
+import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
+import { AnimatePresence } from "framer-motion";
 
 export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = use(params);
   const quizCode = getQuizCode(quizId);
   const quiz = mockQuizzes.find((q) => q.id === quizCode) || mockQuizzes[1];
   const settings = quiz.assessmentSettings || { attemptsAllowed: 3, passingScore: 40, timeLimit: 30, negativeMarking: false, practiceMode: false, enableCertificate: true, enableLeaderboard: true, enableDiscussion: true, enableBookmarks: true, lifelines: [] };
+  
+  const { isRegistered, getRegistration, unregister } = useQuizRegistrationStore();
+  const [showUnregisterModal, setShowUnregisterModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const registration = mounted ? getRegistration(quizCode) : null;
+  const registered = mounted && isRegistered(quizCode);
 
   const difficultyColor =
     quiz.difficulty === "Easy"
@@ -35,6 +51,20 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
       : quiz.difficulty === "Medium"
       ? "bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20"
       : "bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20";
+
+  const handleRegisterClick = () => {
+    if (registered) {
+      setShowUnregisterModal(true);
+    } else {
+      // Navigate to register page
+      window.location.href = quizCodePath(quizCode, "register");
+    }
+  };
+
+  const confirmUnregister = () => {
+    unregister(quizCode);
+    setShowUnregisterModal(false);
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -87,12 +117,26 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
                   <span>{quiz.registeredCount} registered</span>
                 </div>
               </div>
-              <Link
-                href={quizCodePath(quizCode, "register")}
-                className="px-5 h-9 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors flex items-center gap-1.5"
-              >
-                Register
-              </Link>
+              {mounted && (
+                <>
+                  {registered ? (
+                    <button
+                      onClick={handleRegisterClick}
+                      className="flex items-center gap-2 px-5 h-9 rounded-lg bg-[#22C55E]/10 border border-[#22C55E]/30 text-sm font-bold text-[#22C55E] hover:bg-[#22C55E]/20 transition-colors"
+                    >
+                      <Check className="w-4 h-4" />
+                      Registered
+                    </button>
+                  ) : (
+                    <Link
+                      href={quizCodePath(quizCode, "register")}
+                      className="px-5 h-9 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors flex items-center gap-1.5"
+                    >
+                      Register
+                    </Link>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </motion.div>
@@ -232,13 +276,77 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
           transition={{ delay: 0.4 }}
           className="text-center pt-4"
         >
-          <Link
-            href={quizCodePath(quizCode, "register")}
-            className="inline-flex items-center justify-center gap-2 px-8 h-12 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-all hover:shadow-[0_0_24px_rgba(124,58,237,0.2)]"
-          >
-            Register Now
-          </Link>
+          {mounted && registered ? (
+            <div className="space-y-3">
+              <button
+                onClick={handleRegisterClick}
+                className="inline-flex items-center justify-center gap-2 px-8 h-12 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/30 text-sm font-bold text-[#22C55E] hover:bg-[#22C55E]/20 transition-all hover:shadow-[0_0_24px_rgba(34,197,94,0.2)]"
+              >
+                <Check className="w-4 h-4" />
+                Registered
+              </button>
+              <p className="text-xs text-muted-foreground">
+                {registration?.studentName ? `${registration.studentName} • ${registration.rollNumber}` : "Ready to participate"}
+              </p>
+            </div>
+          ) : (
+            <Link
+              href={quizCodePath(quizCode, "register")}
+              className="inline-flex items-center justify-center gap-2 px-8 h-12 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-all hover:shadow-[0_0_24px_rgba(124,58,237,0.2)]"
+            >
+              Register Now
+            </Link>
+          )}
         </motion.div>
+
+        {/* Unregister Confirmation Modal */}
+        <AnimatePresence>
+          {showUnregisterModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              onClick={() => setShowUnregisterModal(false)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md mx-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="rounded-3xl border border-border-hover bg-card p-6 sm:p-8 shadow-2xl">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center">
+                    <X className="w-8 h-8 text-[#F59E0B]" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white text-center mb-2">Unregister from Quiz?</h3>
+                  <p className="text-sm text-muted-foreground text-center mb-6">
+                    This will remove you from the registered participants list for "{quiz.title}".
+                    You can register again later if the quiz is still open.
+                  </p>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setShowUnregisterModal(false)}
+                      className="flex-1 h-12 rounded-xl border border-border-hover bg-white/[0.03] text-sm font-semibold text-white hover:border-white/[0.16] hover:bg-white/[0.06] transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={confirmUnregister}
+                      className="flex-1 h-12 rounded-xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(239,68,68,0.3)] transition-all flex items-center justify-center gap-2"
+                    >
+                      <X className="w-4 h-4" />
+                      Unregister
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

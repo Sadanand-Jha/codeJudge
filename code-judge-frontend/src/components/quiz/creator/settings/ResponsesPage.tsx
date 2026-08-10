@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  AlertTriangle,
   Award,
   BarChart3,
   CheckCircle2,
@@ -26,16 +27,411 @@ import { useToast } from "@/hooks/useToast";
 import { useQuizSettings } from "./QuizSettingsContext";
 import { cn } from "@/lib/helpers";
 import { saveQuizDetails } from "@/utils/quizStorage";
-import {
-  getQuizResponses,
-  getStudentResponseDetail,
-  generateQuizResults,
-  retryQuizResultsEmail,
-  updateQuiz,
-  type QuizResponsesData,
-  type QuizResponseStudent,
-  type StudentResponseDetail,
-} from "@/services/quiz";
+// import {
+//   getQuizResponses,
+//   getStudentResponseDetail,
+//   generateQuizResults,
+//   retryQuizResultsEmail,
+//   updateQuiz,
+//   type QuizResponsesData,
+//   type QuizResponseStudent,
+//   type StudentResponseDetail,
+// } from "@/services/quiz";
+
+// ===== MOCK TYPES (matching backend types) =====
+type QuizResponseStudent = {
+  user_id: number;
+  rollno: string | null;
+  is_registered: boolean;
+  registered_at: string | null;
+  username: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  attempt_id: number | null;
+  score: number | null;
+  percentage: number | null;
+  rank: number | null;
+  attempt_status: string | null;
+  completed_at: string | null;
+  time_taken: number | null;
+  total_questions: number | null;
+  correct_answers: number | null;
+  wrong_answers: number | null;
+  skipped_questions: number | null;
+};
+
+type QuizResponsesSummary = {
+  total: number;
+  submitted: number;
+  not_submitted: number;
+  average_score: number;
+  highest_score: number | null;
+  lowest_score: number | null;
+  total_marks: number;
+};
+
+type QuizResponsesData = {
+  quiz: {
+    id: number;
+    name: string;
+    code: string;
+    total_marks: number;
+    passing_marks: number;
+    status: string | null;
+    starttime: string | null;
+    endtime: string | null;
+  };
+  students: QuizResponseStudent[];
+  summary: QuizResponsesSummary;
+};
+
+type StudentResponseDetail = {
+  attempt: {
+    attempt_id: number;
+    user_id: number;
+    quiz_id: number;
+    score: number;
+    percentage: number;
+    rank: number | null;
+    attempt_status: string;
+    completed_at: string | null;
+    time_taken: number | null;
+    total_questions: number | null;
+    correct_answers: number | null;
+    wrong_answers: number | null;
+    skipped_questions: number | null;
+    username: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+  };
+  review: Array<{
+    problem_id: number;
+    question_number: number;
+    problem_statement: string;
+    problem_description: string | null;
+    explaination: string | null;
+    problem_type: string | null;
+    correct_answer: string | null;
+    selected_option: string | null;
+    selected_statement: string | null;
+    answered_at: string | null;
+    status: "correct" | "wrong" | "unanswered";
+  }>;
+};
+
+// ===== MOCK DATA: Children Participants Example =====
+const MOCK_RESPONSES_DATA: QuizResponsesData = {
+  quiz: {
+    id: 1,
+    name: "Fun Math Quiz for Kids",
+    code: "KIDS123MATH",
+    total_marks: 50,
+    passing_marks: 25,
+    status: "published",
+    starttime: "2026-01-15T10:00:00Z",
+    endtime: "2026-01-15T11:30:00Z",
+  },
+  students: [
+    {
+      user_id: 101,
+      rollno: "KIDS-001",
+      is_registered: true,
+      registered_at: "2026-01-10T09:00:00Z",
+      username: "alice_smith",
+      first_name: "Alice",
+      last_name: "Smith",
+      email: "alice@example.com",
+      attempt_id: 201,
+      score: 48,
+      percentage: 96.0,
+      rank: 1,
+      attempt_status: "completed",
+      completed_at: "2026-01-15T10:30:15Z",
+      time_taken: 1815,
+      total_questions: 50,
+      correct_answers: 48,
+      wrong_answers: 2,
+      skipped_questions: 0,
+    },
+    {
+      user_id: 102,
+      rollno: "KIDS-002",
+      is_registered: true,
+      registered_at: "2026-01-10T09:05:00Z",
+      username: "bob_jones",
+      first_name: "Bob",
+      last_name: "Jones",
+      email: "bob@example.com",
+      attempt_id: 202,
+      score: 42,
+      percentage: 84.0,
+      rank: 2,
+      attempt_status: "completed",
+      completed_at: "2026-01-15T10:35:42Z",
+      time_taken: 2142,
+      total_questions: 50,
+      correct_answers: 42,
+      wrong_answers: 8,
+      skipped_questions: 0,
+    },
+    {
+      user_id: 103,
+      rollno: "KIDS-003",
+      is_registered: true,
+      registered_at: "2026-01-10T09:10:00Z",
+      username: "charlie_brown",
+      first_name: "Charlie",
+      last_name: "Brown",
+      email: "charlie@example.com",
+      attempt_id: 203,
+      score: 38,
+      percentage: 76.0,
+      rank: 3,
+      attempt_status: "completed",
+      completed_at: "2026-01-15T10:40:10Z",
+      time_taken: 2410,
+      total_questions: 50,
+      correct_answers: 38,
+      wrong_answers: 10,
+      skipped_questions: 2,
+    },
+    {
+      user_id: 104,
+      rollno: "KIDS-004",
+      is_registered: true,
+      registered_at: "2026-01-10T09:15:00Z",
+      username: "diana_prince",
+      first_name: "Diana",
+      last_name: "Prince",
+      email: "diana@example.com",
+      attempt_id: 204,
+      score: 35,
+      percentage: 70.0,
+      rank: 4,
+      attempt_status: "completed",
+      completed_at: "2026-01-15T10:42:55Z",
+      time_taken: 2575,
+      total_questions: 50,
+      correct_answers: 35,
+      wrong_answers: 12,
+      skipped_questions: 3,
+    },
+    {
+      user_id: 105,
+      rollno: "KIDS-005",
+      is_registered: true,
+      registered_at: "2026-01-10T09:20:00Z",
+      username: "ethan_hunt",
+      first_name: "Ethan",
+      last_name: "Hunt",
+      email: "ethan@example.com",
+      attempt_id: 205,
+      score: 28,
+      percentage: 56.0,
+      rank: 5,
+      attempt_status: "completed",
+      completed_at: "2026-01-15T10:45:30Z",
+      time_taken: 2730,
+      total_questions: 50,
+      correct_answers: 28,
+      wrong_answers: 15,
+      skipped_questions: 7,
+    },
+    {
+      user_id: 106,
+      rollno: "KIDS-006",
+      is_registered: true,
+      registered_at: "2026-01-10T09:25:00Z",
+      username: "fiona_glen",
+      first_name: "Fiona",
+      last_name: "Glen",
+      email: "fiona@example.com",
+      attempt_id: 206,
+      score: 22,
+      percentage: 44.0,
+      rank: 6,
+      attempt_status: "timed_out",
+      completed_at: "2026-01-15T11:30:00Z",
+      time_taken: 5400,
+      total_questions: 50,
+      correct_answers: 22,
+      wrong_answers: 8,
+      skipped_questions: 20,
+    },
+    {
+      user_id: 107,
+      rollno: "KIDS-007",
+      is_registered: true,
+      registered_at: "2026-01-10T09:30:00Z",
+      username: "george_king",
+      first_name: "George",
+      last_name: "King",
+      email: "george@example.com",
+      attempt_id: 207,
+      score: 15,
+      percentage: 30.0,
+      rank: 7,
+      attempt_status: "left_early",
+      completed_at: "2026-01-15T10:20:00Z",
+      time_taken: 1200,
+      total_questions: 50,
+      correct_answers: 15,
+      wrong_answers: 5,
+      skipped_questions: 30,
+    },
+    {
+      user_id: 108,
+      rollno: "KIDS-008",
+      is_registered: true,
+      registered_at: "2026-01-10T09:35:00Z",
+      username: "hannah_lee",
+      first_name: "Hannah",
+      last_name: "Lee",
+      email: "hannah@example.com",
+      attempt_id: null,
+      score: null,
+      percentage: null,
+      rank: null,
+      attempt_status: null,
+      completed_at: null,
+      time_taken: null,
+      total_questions: null,
+      correct_answers: null,
+      wrong_answers: null,
+      skipped_questions: null,
+    },
+    {
+      user_id: 109,
+      rollno: "KIDS-009",
+      is_registered: true,
+      registered_at: "2026-01-10T09:40:00Z",
+      username: "ivan_moore",
+      first_name: "Ivan",
+      last_name: "Moore",
+      email: "ivan@example.com",
+      attempt_id: null,
+      score: null,
+      percentage: null,
+      rank: null,
+      attempt_status: null,
+      completed_at: null,
+      time_taken: null,
+      total_questions: null,
+      correct_answers: null,
+      wrong_answers: null,
+      skipped_questions: null,
+    },
+    {
+      user_id: 110,
+      rollno: "KIDS-010",
+      is_registered: true,
+      registered_at: "2026-01-10T09:45:00Z",
+      username: "julia_nash",
+      first_name: "Julia",
+      last_name: "Nash",
+      email: "julia@example.com",
+      attempt_id: null,
+      score: null,
+      percentage: null,
+      rank: null,
+      attempt_status: null,
+      completed_at: null,
+      time_taken: null,
+      total_questions: null,
+      correct_answers: null,
+      wrong_answers: null,
+      skipped_questions: null,
+    },
+  ],
+  summary: {
+    total: 10,
+    submitted: 5,
+    not_submitted: 3,
+    average_score: 32.6,
+    highest_score: 48,
+    lowest_score: 15,
+    total_marks: 50,
+  },
+};
+
+// Mock detail data for Alice (first student)
+const MOCK_STUDENT_DETAILS: Record<number, StudentResponseDetail> = {
+  101: {
+    attempt: {
+      attempt_id: 201,
+      user_id: 101,
+      quiz_id: 1,
+      score: 48,
+      percentage: 96.0,
+      rank: 1,
+      attempt_status: "completed",
+      completed_at: "2026-01-15T10:30:15Z",
+      time_taken: 1815,
+      total_questions: 50,
+      correct_answers: 48,
+      wrong_answers: 2,
+      skipped_questions: 0,
+      username: "alice_smith",
+      first_name: "Alice",
+      last_name: "Smith",
+      email: "alice@example.com",
+    },
+    review: [
+      { problem_id: 1, question_number: 1, problem_statement: "What is 2 + 2?", problem_description: null, explaination: "Basic addition", problem_type: "mcq", correct_answer: "4", selected_option: "4", selected_statement: "4", answered_at: "2026-01-15T10:01:00Z", status: "correct" },
+      { problem_id: 2, question_number: 2, problem_statement: "What is 5 × 3?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "15", selected_option: "15", selected_statement: "15", answered_at: "2026-01-15T10:02:30Z", status: "correct" },
+      { problem_id: 3, question_number: 3, problem_statement: "What is 10 - 4?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "6", selected_option: "6", selected_statement: "6", answered_at: "2026-01-15T10:03:15Z", status: "correct" },
+      { problem_id: 4, question_number: 4, problem_statement: "What is 12 ÷ 3?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "4", selected_option: "4", selected_statement: "4", answered_at: "2026-01-15T10:04:00Z", status: "correct" },
+      { problem_id: 5, question_number: 5, problem_statement: "What is 7 + 8?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "15", selected_option: "15", selected_statement: "15", answered_at: "2026-01-15T10:05:00Z", status: "correct" },
+      { problem_id: 6, question_number: 6, problem_statement: "What is 9 × 2?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "18", selected_option: "18", selected_statement: "18", answered_at: "2026-01-15T10:06:00Z", status: "correct" },
+      { problem_id: 7, question_number: 7, problem_statement: "What is 20 - 7?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "13", selected_option: "13", selected_statement: "13", answered_at: "2026-01-15T10:07:00Z", status: "correct" },
+      { problem_id: 8, question_number: 8, problem_statement: "What is 16 ÷ 4?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "4", selected_option: "4", selected_statement: "4", answered_at: "2026-01-15T10:08:00Z", status: "correct" },
+      { problem_id: 9, question_number: 9, problem_statement: "What is 6 + 9?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "15", selected_option: "15", selected_statement: "15", answered_at: "2026-01-15T10:09:00Z", status: "correct" },
+      { problem_id: 10, question_number: 10, problem_statement: "What is 8 × 3?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "24", selected_option: "24", selected_statement: "24", answered_at: "2026-01-15T10:10:00Z", status: "correct" },
+      { problem_id: 11, question_number: 11, problem_statement: "What is 25 - 9?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "16", selected_option: "16", selected_statement: "16", answered_at: "2026-01-15T10:11:00Z", status: "correct" },
+      { problem_id: 12, question_number: 12, problem_statement: "What is 21 ÷ 7?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "3", selected_option: "3", selected_statement: "3", answered_at: "2026-01-15T10:12:00Z", status: "correct" },
+      { problem_id: 13, question_number: 13, problem_statement: "What is 11 + 12?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "23", selected_option: "23", selected_statement: "23", answered_at: "2026-01-15T10:13:00Z", status: "correct" },
+      { problem_id: 14, question_number: 14, problem_statement: "What is 7 × 6?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "42", selected_option: "42", selected_statement: "42", answered_at: "2026-01-15T10:14:00Z", status: "correct" },
+      { problem_id: 15, question_number: 15, problem_statement: "What is 30 - 11?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "19", selected_option: "19", selected_statement: "19", answered_at: "2026-01-15T10:15:00Z", status: "correct" },
+      { problem_id: 16, question_number: 16, problem_statement: "What is 36 ÷ 6?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "6", selected_option: "6", selected_statement: "6", answered_at: "2026-01-15T10:16:00Z", status: "correct" },
+      { problem_id: 17, question_number: 17, problem_statement: "What is 14 + 15?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "29", selected_option: "29", selected_statement: "29", answered_at: "2026-01-15T10:17:00Z", status: "correct" },
+      { problem_id: 18, question_number: 18, problem_statement: "What is 9 × 5?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "45", selected_option: "45", selected_statement: "45", answered_at: "2026-01-15T10:18:00Z", status: "correct" },
+      { problem_id: 19, question_number: 19, problem_statement: "What is 50 - 23?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "27", selected_option: "27", selected_statement: "27", answered_at: "2026-01-15T10:19:00Z", status: "correct" },
+      { problem_id: 20, question_number: 20, problem_statement: "What is 48 ÷ 8?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "6", selected_option: "6", selected_statement: "6", answered_at: "2026-01-15T10:20:00Z", status: "correct" },
+      { problem_id: 21, question_number: 21, problem_statement: "What is 22 + 18?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "40", selected_option: "40", selected_statement: "40", answered_at: "2026-01-15T10:21:00Z", status: "correct" },
+      { problem_id: 22, question_number: 22, problem_statement: "What is 11 × 4?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "44", selected_option: "44", selected_statement: "44", answered_at: "2026-01-15T10:22:00Z", status: "correct" },
+      { problem_id: 23, question_number: 23, problem_statement: "What is 45 - 19?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "26", selected_option: "26", selected_statement: "26", answered_at: "2026-01-15T10:23:00Z", status: "correct" },
+      { problem_id: 24, question_number: 24, problem_statement: "What is 56 ÷ 7?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "8", selected_option: "8", selected_statement: "8", answered_at: "2026-01-15T10:24:00Z", status: "correct" },
+      { problem_id: 25, question_number: 25, problem_statement: "What is 19 + 21?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "40", selected_option: "40", selected_statement: "40", answered_at: "2026-01-15T10:25:00Z", status: "correct" },
+      { problem_id: 26, question_number: 26, problem_statement: "What is 12 × 3?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "36", selected_option: "36", selected_statement: "36", answered_at: "2026-01-15T10:26:00Z", status: "correct" },
+      { problem_id: 27, question_number: 27, problem_statement: "What is 60 - 28?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "32", selected_option: "32", selected_statement: "32", answered_at: "2026-01-15T10:27:00Z", status: "correct" },
+      { problem_id: 28, question_number: 28, problem_statement: "What is 63 ÷ 9?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "7", selected_option: "7", selected_statement: "7", answered_at: "2026-01-15T10:28:00Z", status: "correct" },
+      { problem_id: 29, question_number: 29, problem_statement: "What is 27 + 16?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "43", selected_option: "43", selected_statement: "43", answered_at: "2026-01-15T10:29:00Z", status: "correct" },
+      { problem_id: 30, question_number: 30, problem_statement: "What is 8 × 7?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "56", selected_option: "56", selected_statement: "56", answered_at: "2026-01-15T10:30:00Z", status: "correct" },
+      { problem_id: 31, question_number: 31, problem_statement: "What is 72 - 35?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "37", selected_option: "37", selected_statement: "37", answered_at: "2026-01-15T10:31:00Z", status: "correct" },
+      { problem_id: 32, question_number: 32, problem_statement: "What is 54 ÷ 6?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "9", selected_option: "9", selected_statement: "9", answered_at: "2026-01-15T10:32:00Z", status: "correct" },
+      { problem_id: 33, question_number: 33, problem_statement: "What is 34 + 25?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "59", selected_option: "59", selected_statement: "59", answered_at: "2026-01-15T10:33:00Z", status: "correct" },
+      { problem_id: 34, question_number: 34, problem_statement: "What is 13 × 4?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "52", selected_option: "52", selected_statement: "52", answered_at: "2026-01-15T10:34:00Z", status: "correct" },
+      { problem_id: 35, question_number: 35, problem_statement: "What is 81 - 42?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "39", selected_option: "39", selected_statement: "39", answered_at: "2026-01-15T10:35:00Z", status: "correct" },
+      { problem_id: 36, question_number: 36, problem_statement: "What is 72 ÷ 8?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "9", selected_option: "9", selected_statement: "9", answered_at: "2026-01-15T10:36:00Z", status: "correct" },
+      { problem_id: 37, question_number: 37, problem_statement: "What is 41 + 32?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "73", selected_option: "73", selected_statement: "73", answered_at: "2026-01-15T10:37:00Z", status: "correct" },
+      { problem_id: 38, question_number: 38, problem_statement: "What is 14 × 5?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "70", selected_option: "70", selected_statement: "70", answered_at: "2026-01-15T10:38:00Z", status: "correct" },
+      { problem_id: 39, question_number: 39, problem_statement: "What is 95 - 48?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "47", selected_option: "47", selected_statement: "47", answered_at: "2026-01-15T10:39:00Z", status: "correct" },
+      { problem_id: 40, question_number: 40, problem_statement: "What is 81 ÷ 9?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "9", selected_option: "9", selected_statement: "9", answered_at: "2026-01-15T10:40:00Z", status: "correct" },
+      { problem_id: 41, question_number: 41, problem_statement: "What is 53 + 27?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "80", selected_option: "80", selected_statement: "80", answered_at: "2026-01-15T10:41:00Z", status: "correct" },
+      { problem_id: 42, question_number: 42, problem_statement: "What is 15 × 4?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "60", selected_option: "60", selected_statement: "60", answered_at: "2026-01-15T10:42:00Z", status: "correct" },
+      { problem_id: 43, question_number: 43, problem_statement: "What is 100 - 55?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "45", selected_option: "45", selected_statement: "45", answered_at: "2026-01-15T10:43:00Z", status: "correct" },
+      { problem_id: 44, question_number: 44, problem_statement: "What is 96 ÷ 8?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "12", selected_option: "12", selected_statement: "12", answered_at: "2026-01-15T10:44:00Z", status: "correct" },
+      { problem_id: 45, question_number: 45, problem_statement: "What is 67 + 28?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "95", selected_option: "95", selected_statement: "95", answered_at: "2026-01-15T10:45:00Z", status: "correct" },
+      { problem_id: 46, question_number: 46, problem_statement: "What is 16 × 3?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "48", selected_option: "48", selected_statement: "48", answered_at: "2026-01-15T10:46:00Z", status: "correct" },
+      { problem_id: 47, question_number: 47, problem_statement: "What is 120 - 68?", problem_description: null, explaination: "Subtraction", problem_type: "mcq", correct_answer: "52", selected_option: "52", selected_statement: "52", answered_at: "2026-01-15T10:47:00Z", status: "correct" },
+      { problem_id: 48, question_number: 48, problem_statement: "What is 108 ÷ 9?", problem_description: null, explaination: "Division", problem_type: "mcq", correct_answer: "12", selected_option: "12", selected_statement: "12", answered_at: "2026-01-15T10:48:00Z", status: "correct" },
+      { problem_id: 49, question_number: 49, problem_statement: "What is 75 + 35?", problem_description: null, explaination: "Addition", problem_type: "mcq", correct_answer: "110", selected_option: "105", selected_statement: "105", answered_at: "2026-01-15T10:49:00Z", status: "wrong" },
+      { problem_id: 50, question_number: 50, problem_statement: "What is 17 × 4?", problem_description: null, explaination: "Multiplication", problem_type: "mcq", correct_answer: "68", selected_option: "72", selected_statement: "72", answered_at: "2026-01-15T10:50:00Z", status: "wrong" },
+    ],
+  },
+};
 
 type FilterKey = "all" | "submitted" | "not_submitted" | "timed_out" | "left_early";
 
@@ -100,7 +496,9 @@ export default function ResponsesPage() {
     if (!quizId) return;
     setSettingsBusy(true);
     try {
-      await updateQuiz(String(quizId), { ...patch, code });
+      // await updateQuiz(String(quizId), { ...patch, code });
+      // MOCK: Settings saved locally
+      console.log("MOCK: Settings saved", patch);
     } catch (err) {
       console.error("Failed to save response settings:", err);
       toast.error({ title: "Could not save settings", description: "Something went wrong. Please try again." });
@@ -113,8 +511,11 @@ export default function ResponsesPage() {
     if (!quizId) return;
     setLoading(true);
     try {
-      const res = await getQuizResponses(String(quizId));
-      setData(res);
+      // MOCK: Using static data instead of API call
+      // const res = await getQuizResponses(String(quizId));
+      // Simulate network delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setData(MOCK_RESPONSES_DATA);
     } catch (err) {
       console.error("Failed to load responses:", err);
       toast.error({ title: "Could not load responses", description: "Something went wrong. Please try again." });
@@ -134,8 +535,31 @@ export default function ResponsesPage() {
     setDetail(null);
     setDetailLoading(true);
     try {
-      const res = await getStudentResponseDetail(String(quizId), s.user_id);
-      setDetail(res);
+      // MOCK: Using static detail data instead of API call
+      // const res = await getStudentResponseDetail(String(quizId), s.user_id);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      setDetail(MOCK_STUDENT_DETAILS[s.user_id] || {
+        attempt: {
+          attempt_id: s.attempt_id || 0,
+          user_id: s.user_id,
+          quiz_id: Number(quizId),
+          score: s.score || 0,
+          percentage: s.percentage || 0,
+          rank: s.rank || null,
+          attempt_status: s.attempt_status || "completed",
+          completed_at: s.completed_at,
+          time_taken: s.time_taken,
+          total_questions: s.total_questions,
+          correct_answers: s.correct_answers,
+          wrong_answers: s.wrong_answers,
+          skipped_questions: s.skipped_questions,
+          username: s.username,
+          first_name: s.first_name,
+          last_name: s.last_name,
+          email: s.email,
+        },
+        review: [],
+      });
     } catch {
       toast.error({ title: "Could not load student result", description: "Something went wrong." });
     } finally {
@@ -147,34 +571,15 @@ export default function ResponsesPage() {
     if (!quizId) return;
     setEmailBusy(true);
     try {
-      const res = await generateQuizResults(String(quizId), { force: true, sendEmail: true });
-      if (res.emailSent) {
-        toast.success({
-          title: "Results emailed",
-          description: "The complete result report was sent to the quiz admin.",
-        });
-      } else {
-        toast.warning({
-          title: "Results generated, email failed",
-          description: res.emailError || "The report email could not be delivered.",
-        });
-      }
+      // MOCK: Simulate email sending
+      // const res = await generateQuizResults(String(quizId), { force: true, sendEmail: true });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      toast.success({
+        title: "Results emailed (MOCK)",
+        description: "The complete result report was sent to the quiz admin. [Backend disconnected]",
+      });
     } catch (err) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 409) {
-        try {
-          const retry = await retryQuizResultsEmail(String(quizId));
-          if (retry.emailSent) {
-            toast.success({ title: "Results emailed", description: "The report was sent to the quiz admin." });
-          } else {
-            toast.error({ title: "Email failed", description: retry.emailError || "Could not deliver the email." });
-          }
-        } catch {
-          toast.error({ title: "Email failed", description: "Could not deliver the results email." });
-        }
-      } else {
-        toast.error({ title: "Could not send results", description: "Something went wrong. Please try again." });
-      }
+      toast.error({ title: "Could not send results", description: "Something went wrong. Please try again." });
     } finally {
       setEmailBusy(false);
     }
@@ -301,6 +706,23 @@ export default function ResponsesPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-6 py-8 lg:px-8">
+      {/* ===== MOCK INDICATOR BANNER ===== */}
+      <div className="flex items-center gap-3 rounded-xl border-2 border-amber-500/30 bg-amber-500/10 p-4">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/20">
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+        </span>
+        <div className="flex-1">
+          <p className="font-semibold text-amber-600 text-sm">Backend Disconnected — Mock Data Active</p>
+          <p className="mt-0.5 text-xs text-amber-500">
+            This page is using static mock data with children participants (10 kids aged 7-9).
+            Backend API calls have been commented out. Data includes: Alice, Bob, Charlie, Diana, Ethan, Fiona, George, Hannah, Ivan, Julia.
+          </p>
+        </div>
+        <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-500">
+          DEMO MODE
+        </span>
+      </div>
+
       {/* ===== Header ===== */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

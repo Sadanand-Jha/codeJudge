@@ -15,6 +15,7 @@ import {
   Sparkles,
   ArrowLeft,
   AlertTriangle,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -30,8 +31,9 @@ import { useTheme } from "@/context/ThemeContext";
 import { mockLiveAssessmentRoom, mockEmptyLiveAssessmentRoom } from "@/mocks/liveAssessment";
 import { useToast } from "@/hooks/useToast";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
-import { getQuizCode } from "@/services/quiz";
+import { getQuizCode, quizCodePath } from "@/services/quiz";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
+import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 
 function useRealtimeStartFlag(code: string, startedRef: { current: boolean }) {
   const [started, setStarted] = useState(false);
@@ -62,12 +64,16 @@ export default function WaitingRoomPage() {
   const toast = useToast();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+  const { isRegistered, getRegistration } = useQuizRegistrationStore();
 
   if (!quizCode) notFound();
 
   const room = quizCode === getQuizCode(mockEmptyLiveAssessmentRoom.quizId)
     ? mockEmptyLiveAssessmentRoom
     : mockLiveAssessmentRoom;
+
+  const registration = getRegistration(quizCode);
+  const registered = isRegistered(quizCode);
 
   const startedRef = useMemo(() => ({ current: false as boolean }), []);
   const started = useRealtimeStartFlag(quizCode, startedRef);
@@ -98,6 +104,8 @@ export default function WaitingRoomPage() {
         router={router}
         toast={toast}
         isDark={isDark}
+        registered={registered}
+        registration={registration}
       />
     </WaitingRoomThemeProvider>
   );
@@ -121,6 +129,8 @@ function WaitingRoomPageInner({
   router,
   toast,
   isDark,
+  registered,
+  registration,
 }: {
   quizCode: string;
   room: typeof mockLiveAssessmentRoom;
@@ -139,6 +149,8 @@ function WaitingRoomPageInner({
   router: ReturnType<typeof useRouter>;
   toast: ReturnType<typeof useToast>;
   isDark: boolean;
+  registered: boolean;
+  registration: { studentName?: string; rollNumber?: string } | null;
 }) {
   const { activeConfig } = useWaitingRoomTheme();
   const textPrimary = activeConfig.textPrimary;
@@ -314,7 +326,7 @@ function WaitingRoomPageInner({
             isDark ? 'text-[#FBBF24]' : 'text-[#F59E0B]'
           }`}
         >
-          Waiting for the teacher to start the quiz...
+          {registered ? `Registered as ${registration?.studentName} (${registration?.rollNumber})` : "Waiting for the teacher to start the quiz..."}
         </motion.p>
       </div>
 
@@ -458,7 +470,7 @@ function WaitingRoomPageInner({
         </motion.div>
       </div>
 
-      {/* Bottom Center: Announcement + Register + Countdown */}
+      {/* Bottom Center: Announcement + Register/Registered + Countdown */}
       <div className="relative z-[200] flex flex-col items-center gap-3 px-4 pb-4">
         {/* Announcement Card */}
         <motion.div
@@ -475,14 +487,23 @@ function WaitingRoomPageInner({
           </div>
         </motion.div>
 
-        {/* Register Button */}
-        <Link
-          href={`/quiz/${quizCode}/register`}
-          className="inline-flex items-center gap-2 px-6 h-10 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(236,72,153,0.3)] transition-all"
-        >
-          <UserPlus className="w-4 h-4" />
-          Register for Quiz
-        </Link>
+        {registered ? (
+          <button
+            className="inline-flex items-center gap-2 px-6 h-10 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/30 text-sm font-bold text-[#22C55E] hover:bg-[#22C55E]/20 transition-all"
+            disabled
+          >
+            <Check className="w-4 h-4" />
+            Registered
+          </button>
+        ) : (
+          <Link
+            href={quizCodePath(quizCode, "register")}
+            className="inline-flex items-center gap-2 px-6 h-10 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(236,72,153,0.3)] transition-all"
+          >
+            <UserPlus className="w-4 h-4" />
+            Register for Quiz
+          </Link>
+        )}
 
         {/* Countdown */}
         <CountdownCard targetAt={room.scheduledStartAt} onStarted={handleStarted} />

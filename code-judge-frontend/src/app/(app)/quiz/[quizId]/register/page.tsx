@@ -47,15 +47,17 @@ import { getQuizById, registerForQuiz, type Quiz, getQuizCode, quizCodePath } fr
 import { DEFAULT_ASSESSMENT_SETTINGS, LifelineConfig } from "@/types/quiz";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
+import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 
 export default function QuizRegisterPage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = use(params);
   const router = useRouter();
   const { user } = useAuthStore();
+  const { isRegistered, getRegistration, register, unregister } = useQuizRegistrationStore();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
-  const [registering, setRegistering] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showUnregisterModal, setShowUnregisterModal] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [readRules, setReadRules] = useState(false);
   const [studentName, setStudentName] = useState("");
@@ -63,6 +65,9 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
 
   const quizCode = getQuizCode(quizId);
   const settings = DEFAULT_ASSESSMENT_SETTINGS;
+
+  const registration = getRegistration(quizCode);
+  const registered = isRegistered(quizCode);
 
   const canRegister = agreed && readRules && studentName.trim() && rollNo.trim();
 
@@ -84,7 +89,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
     if (quizCode) fetchQuiz();
   }, [quizCode]);
 
-  const handleRegisterClick = async () => {
+  const handleRegisterClick = () => {
     if (!studentName.trim()) {
       toast.error("Please enter your full name");
       return;
@@ -102,36 +107,32 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
       return;
     }
 
-    setShowConfirmModal(true);
+    // mock registration
+    register(quizCode, quizCode, quiz?.name || "Quiz", studentName.trim(), rollNo.trim());
+    toast.success({
+      title: "Registered Successfully!",
+      description: "You have successfully registered for the quiz.",
+    });
+    router.push(quizCodePath(quizCode, "waiting"));
   };
 
-  const confirmRegistration = async () => {
-    if (!quizCode) return;
+  const handleUnregisterClick = () => {
+    setShowUnregisterModal(true);
+  };
 
-    setRegistering(true);
-    setShowConfirmModal(false);
-    try {
-      await registerForQuiz(quizCode, rollNo.trim());
-      toast.success({
-        title: "Registered Successfully!",
-        description: "You have successfully registered for the quiz.",
-      });
-      router.push(quizCodePath(quizCode, "lobby"));
-    } catch (err: any) {
-      toast.error({
-        title: "Registration Failed",
-        description: err?.response?.data?.message || "Please try again.",
-      });
-    } finally {
-      setRegistering(false);
-    }
+  const confirmUnregister = () => {
+    unregister(quizCode);
+    setShowUnregisterModal(false);
+    toast.success({
+      title: "Unregistered",
+      description: "You have been removed from the quiz.",
+    });
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0B0D14]">
         <div className="flex">
-          {/* Sidebar placeholder */}
           <div className="hidden lg:block w-64 border-r border-border bg-[#0F1117] p-4">
             <div className="h-8 w-32 bg-white/[0.06] animate-pulse rounded-lg mb-4" />
             <div className="space-y-2">
@@ -236,8 +237,14 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     <ArrowLeft className="w-3.5 h-3.5" />
                     Back to Quiz
                   </Link>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Register for Quiz</h1>
-                  <p className="text-sm text-muted-foreground mt-1">Review the quiz details before starting your attempt.</p>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                    {registered ? "Registration Confirmed" : "Register for Quiz"}
+                  </h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {registered
+                      ? `You are registered as ${registration?.studentName} (${registration?.rollNumber})`
+                      : "Review the quiz details before starting your attempt."}
+                  </p>
                 </div>
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${statusBadge.color}`}>
                   <StatusIcon className="w-3.5 h-3.5" />
@@ -383,19 +390,26 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                         Student Information
                       </h3>
                       <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-white font-bold text-lg">
-                          {user?.username?.charAt(0) || "S"}
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-white font-bold text-lg">
+                            {user?.username?.charAt(0) || "S"}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">{user?.username || "Student"}</p>
+                            <p className="text-xs text-muted-foreground">@{user?.email || "student"}</p>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white truncate">{user?.username || "Student"}</p>
-                          <p className="text-xs text-muted-foreground">@{user?.email || "student"}</p>
-                        </div>
-                      </div>
-                        <div className="space-y-2">
-                          <InputField label="Full Name" value={studentName} onChange={setStudentName} placeholder="Enter your name" />
-                          <InputField label="Roll Number" value={rollNo} onChange={setRollNo} placeholder="Enter roll number" />
-                        </div>
+                        {registered ? (
+                          <div className="space-y-2 text-sm">
+                            <p className="font-semibold text-white">{registration?.studentName}</p>
+                            <p className="text-muted-foreground">{registration?.rollNumber}</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <InputField label="Full Name" value={studentName} onChange={setStudentName} placeholder="Enter your name" />
+                            <InputField label="Roll Number" value={rollNo} onChange={setRollNo} placeholder="Enter roll number" />
+                          </div>
+                        )}
                       </div>
                     </motion.div>
 
@@ -430,7 +444,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       </h3>
                       <div className="space-y-2">
                         <EligibilityItem status="eligible" text="Eligible to participate" />
-                        <EligibilityItem status="info" text="Not previously registered" />
+                        <EligibilityItem status="info" text={registered ? "Already registered" : "Not previously registered"} />
                         <EligibilityItem status="success" text="Quiz is currently active" />
                       </div>
                     </motion.div>
@@ -442,14 +456,24 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       transition={{ delay: 0.4 }}
                       className="space-y-3"
                     >
-                      <button
-                        onClick={handleRegisterClick}
-                        disabled={!canRegister}
-                        className="w-full h-14 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(124,58,237,0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                      >
-                        <Play className="w-4 h-4" />
-                        Register & Continue
-                      </button>
+                      {registered ? (
+                        <button
+                          onClick={handleUnregisterClick}
+                          className="w-full h-14 rounded-xl bg-gradient-to-r from-[#22C55E] to-[#16A34A] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(34,197,94,0.3)] transition-all flex items-center justify-center gap-2"
+                        >
+                          <Check className="w-4 h-4" />
+                          Registered
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleRegisterClick}
+                          disabled={!canRegister}
+                          className="w-full h-14 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(124,58,237,0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          <Play className="w-4 h-4" />
+                          Register & Continue
+                        </button>
+                      )}
                       <Link
                         href={quizCodePath(quizCode)}
                         className="block w-full h-12 rounded-xl border border-border-hover bg-white/[0.03] text-sm font-semibold text-white hover:border-white/[0.16] hover:bg-white/[0.06] transition-all text-center"
@@ -465,15 +489,15 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
         </div>
       </div>
 
-      {/* Confirmation Modal */}
+      {/* Unregister Confirmation Modal */}
       <AnimatePresence>
-        {showConfirmModal && (
+        {showUnregisterModal && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowConfirmModal(false)}
+              onClick={() => setShowUnregisterModal(false)}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
             />
             <motion.div
@@ -482,56 +506,31 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
               className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md mx-4"
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="rounded-3xl border border-border-hover bg-card p-6 sm:p-8 shadow-2xl">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
-                  <Play className="w-8 h-8 text-white" />
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center">
+                  <X className="w-8 h-8 text-[#F59E0B]" />
                 </div>
-                <h3 className="text-xl font-bold text-white text-center mb-2">Ready to Begin?</h3>
-                <p className="text-sm text-muted-foreground text-center mb-6">Review your quiz details before starting</p>
-
-                <div className="space-y-2 mb-6">
-                  <div className="flex items-center justify-between rounded-xl border border-border-hover bg-[#0F1117] p-3">
-                    <span className="text-xs text-muted-foreground">Duration</span>
-                    <span className="text-sm font-semibold text-white">{quizDuration}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-xl border border-border-hover bg-[#0F1117] p-3">
-                    <span className="text-xs text-muted-foreground">Questions</span>
-                    <span className="text-sm font-semibold text-white">{totalQuestions}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-xl border border-border-hover bg-[#0F1117] p-3">
-                    <span className="text-xs text-muted-foreground">Total Marks</span>
-                    <span className="text-sm font-semibold text-white">{totalMarks}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-xl border border-[#F59E0B]/20 bg-[#F59E0B]/5 p-3">
-                    <span className="text-xs text-[#FBBF24]">Important</span>
-                    <span className="text-xs text-[#FBBF24]">Timer starts immediately</span>
-                  </div>
-                </div>
+                <h3 className="text-xl font-bold text-white text-center mb-2">Unregister from Quiz?</h3>
+                <p className="text-sm text-muted-foreground text-center mb-6">
+                  This will remove you from the registered participants list for "{quiz.title}".
+                  You can register again later if the quiz is still open.
+                </p>
 
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => setShowConfirmModal(false)}
+                    onClick={() => setShowUnregisterModal(false)}
                     className="flex-1 h-12 rounded-xl border border-border-hover bg-white/[0.03] text-sm font-semibold text-white hover:border-white/[0.16] hover:bg-white/[0.06] transition-all"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={confirmRegistration}
-                    disabled={registering}
-                    className="flex-1 h-12 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(124,58,237,0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    onClick={confirmUnregister}
+                    className="flex-1 h-12 rounded-xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(239,68,68,0.3)] transition-all flex items-center justify-center gap-2"
                   >
-                    {registering ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Registering...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4" />
-                        Start Quiz
-                      </>
-                    )}
+                    <X className="w-4 h-4" />
+                    Unregister
                   </button>
                 </div>
               </div>

@@ -181,28 +181,82 @@ export const createQuiz = async (req: Request, res: Response) => {
         ? Math.ceil((calculatedTotal * body.passingPercentage) / 100)
         : 0);
 
-    const quiz = await quizService.createQuiz({
-      name: body.name,
-      code,
+    // DISCONNECTED FROM BACKEND - Example mock response for a quiz with children participants
+    // const quiz = await quizService.createQuiz({
+    //   name: body.name,
+    //   code,
+    //   createdby: Number(userId),
+    //   starttime: body.starttime ? new Date(body.starttime) : undefined,
+    //   endtime: body.endtime ? new Date(body.endtime) : undefined,
+    //   visibility: visibilityId ?? undefined,
+    //   difficulty: difficultyId ?? undefined,
+    //   totalMarks: calculatedTotal,
+    //   passingMarks: calculatedPassing,
+    //   shuffleQuestions: body.randomizeQuestions,
+    //   shuffleOptions: body.randomizeOptions,
+    //   showResultsImmediately: body.showResultImmediately,
+    //   negativeMarking: body.negativeMarking,
+    //   leaderboard: true,
+    //   status: "draft",
+    // });
+
+    // MOCK RESPONSE EXAMPLE - How it would look with children participants
+    const mockQuiz = {
+      id: 1,
+      name: body.name || "Sample Quiz for Kids",
+      code: code,
       createdby: Number(userId),
-      starttime: body.starttime ? new Date(body.starttime) : undefined,
-      endtime: body.endtime ? new Date(body.endtime) : undefined,
-      visibility: visibilityId ?? undefined,
-      difficulty: difficultyId ?? undefined,
-      totalMarks: calculatedTotal,
-      passingMarks: calculatedPassing,
-      shuffleQuestions: body.randomizeQuestions,
-      shuffleOptions: body.randomizeOptions,
-      showResultsImmediately: body.showResultImmediately,
-      negativeMarking: body.negativeMarking,
+      starttime: body.starttime ? new Date(body.starttime) : new Date(Date.now() + 3600000),
+      endtime: body.endtime ? new Date(body.endtime) : new Date(Date.now() + 7200000),
+      visibility: visibilityId ?? 1,
+      difficulty: difficultyId ?? 1,
+      totalMarks: calculatedTotal || 50,
+      passingMarks: calculatedPassing || 25,
+      shuffleQuestions: body.randomizeQuestions || false,
+      shuffleOptions: body.randomizeOptions || false,
+      showResultsImmediately: body.showResultImmediately || false,
+      negativeMarking: body.negativeMarking || false,
       leaderboard: true,
-      status: "draft",
-    });
+      status: "published",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      // Example: Children who participated
+      participants: [
+        { id: 101, username: "alice_smith", fullName: "Alice Smith", age: 8, rollno: "KIDS-001" },
+        { id: 102, username: "bob_jones", fullName: "Bob Jones", age: 9, rollno: "KIDS-002" },
+        { id: 103, username: "charlie_brown", fullName: "Charlie Brown", age: 7, rollno: "KIDS-003" },
+        { id: 104, username: "diana_prince", fullName: "Diana Prince", age: 8, rollno: "KIDS-004" },
+        { id: 105, username: "ethan_hunt", fullName: "Ethan Hunt", age: 9, rollno: "KIDS-005" }
+      ],
+      // Example: Results after participation
+      results: [
+        { userId: 101, score: 48, percentage: 96, correctAnswers: 48, wrongAnswers: 2, skippedQuestions: 0, rank: 1, completedAt: "2026-01-15T10:30:00Z" },
+        { userId: 102, score: 42, percentage: 84, correctAnswers: 42, wrongAnswers: 8, skippedQuestions: 0, rank: 2, completedAt: "2026-01-15T10:35:00Z" },
+        { userId: 103, score: 38, percentage: 76, correctAnswers: 38, wrongAnswers: 10, skippedQuestions: 2, rank: 3, completedAt: "2026-01-15T10:40:00Z" },
+        { userId: 104, score: 35, percentage: 70, correctAnswers: 35, wrongAnswers: 12, skippedQuestions: 3, rank: 4, completedAt: "2026-01-15T10:42:00Z" },
+        { userId: 105, score: 28, percentage: 56, correctAnswers: 28, wrongAnswers: 15, skippedQuestions: 7, rank: 5, completedAt: "2026-01-15T10:45:00Z" }
+      ],
+      // Example: Question-wise analytics
+      analytics: {
+        totalParticipants: 5,
+        averageScore: 38.2,
+        highestScore: 48,
+        lowestScore: 28,
+        passRate: 80,
+        questionStats: [
+          { questionId: 1, correctCount: 5, wrongCount: 0, skipCount: 0, difficulty: "easy" },
+          { questionId: 2, correctCount: 4, wrongCount: 1, skipCount: 0, difficulty: "easy" },
+          { questionId: 3, correctCount: 3, wrongCount: 2, skipCount: 0, difficulty: "medium" },
+          { questionId: 4, correctCount: 2, wrongCount: 2, skipCount: 1, difficulty: "medium" },
+          { questionId: 5, correctCount: 1, wrongCount: 3, skipCount: 1, difficulty: "hard" }
+        ]
+      }
+    };
 
     res.status(201).json({
       success: true,
-      message: "Quiz created successfully",
-      data: quiz,
+      message: "Quiz created successfully (MOCK - Backend disconnected)",
+      data: mockQuiz,
     });
   } catch (error) {
     console.error("Error creating quiz:", error);

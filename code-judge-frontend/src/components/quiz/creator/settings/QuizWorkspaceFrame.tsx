@@ -17,6 +17,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { toast } from "@/lib/toast";
 import { isQuizProblemsPath } from "@/lib/quizWorkspace";
 import { useQuizSettings } from "./QuizSettingsContext";
 import { SETTINGS_SECTIONS, STATUS_META } from "./QuizSettingsShell";
@@ -113,16 +114,30 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
     if (inProblems) hydrate();
   }, [inProblems, hydrate]);
 
-  // Ctrl/Cmd+Z undoes the last problem-list mutation (delete, delete-all, add,
-  // duplicate, reorder). Editable targets are skipped so inputs and code
-  // editors keep their native undo.
+  // Ctrl/Cmd+Z undoes / Ctrl+Y / Ctrl+Shift+Z redoes the last problem-list
+  // mutation (delete, delete-all, add, duplicate, reorder). Editable targets
+  // are skipped so inputs and code editors keep their native undo/redo.
   useEffect(() => {
     if (!inProblems) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      const isUndo =
-        (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z";
-      if (!isUndo || isEditableTarget(e.target)) return;
-      if (useQuizProblemsStore.getState().undo()) e.preventDefault();
+      if (!(e.ctrlKey || e.metaKey) || isEditableTarget(e.target)) return;
+      const key = e.key.toLowerCase();
+      const store = useQuizProblemsStore.getState();
+      const isUndo = key === "z" && !e.shiftKey;
+      const isRedo = key === "y" || (key === "z" && e.shiftKey);
+      if (isUndo) {
+        const label = store.undo();
+        if (label) {
+          e.preventDefault();
+          toast.success({ title: "Undo successful", description: label, duration: 2500, timestamp: "Just now" });
+        }
+      } else if (isRedo) {
+        const label = store.redo();
+        if (label) {
+          e.preventDefault();
+          toast.success({ title: "Redo successful", description: label, duration: 2500, timestamp: "Just now" });
+        }
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -141,11 +156,36 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
     router.push(`/quiz/${code}/problems/${id}`);
   };
 
+  const handleUndoOnToast = (toastId: string) => {
+    toast.dismiss(toastId);
+    const label = useQuizProblemsStore.getState().undo();
+    if (label) toast.success({ title: "Undo successful", description: label, duration: 2500, timestamp: "Just now" });
+  };
+
+  const handleDeleteProblem = (q: CreatorQuestion) => {
+    const displayName = q.title.trim() || `Problem ${problems.findIndex((p) => p.id === q.id) + 1}`;
+    deleteProblem(q.id);
+    const toastId = toast.success({
+      title: "Problem deleted",
+      description: `"${displayName}" was removed. Use Ctrl+Z (Cmd+Z) or Undo to restore it.`,
+      duration: 6000,
+      timestamp: "Just now",
+      action: { label: "Undo", onClick: () => handleUndoOnToast(toastId) },
+    });
+  };
+
   const handleDeleteAll = () => {
     if (problems.length === 0) return;
     deleteAllProblems();
     setConfirmDeleteAll(false);
     router.push(`/quiz/${code}/problems`);
+    const toastId = toast.success({
+      title: "All problems deleted",
+      description: `${problems.length} problem${problems.length !== 1 ? "s" : ""} removed. Use Ctrl+Z (Cmd+Z) or Undo to restore them.`,
+      duration: 6000,
+      timestamp: "Just now",
+      action: { label: "Undo", onClick: () => handleUndoOnToast(toastId) },
+    });
   };
 
   const handleStartInstantly = async () => {
@@ -472,7 +512,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                         {...itemProtect}
                         onClick={(e) => {
                           e.preventDefault();
-                          deleteProblem(p.id);
+                          handleDeleteProblem(p);
                         }}
                         className="rounded-md p-1 text-text-muted hover:bg-danger/10 hover:text-danger"
                         title="Delete problem"

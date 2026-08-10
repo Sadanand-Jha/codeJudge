@@ -19,11 +19,13 @@ import {
   Target,
   Trash2,
   X,
+  Download,
 } from "lucide-react";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import {
   QUESTION_TYPE_LABELS,
   QUESTION_TYPE_ORDER,
+  VISIBILITY_OPTIONS,
   getQuestionStatus,
   type CreatorOption,
   type CreatorQuestion,
@@ -31,14 +33,17 @@ import {
 } from "@/components/quiz/creator/types";
 import { useQuizSettings } from "@/components/quiz/creator/settings/QuizSettingsContext";
 import { syncQuizQuestions } from "@/utils/quizQuestionSync";
+import { downloadQuizPaperPdf } from "@/utils/quizPdf";
+import { type PdfConfig, type PdfStudent } from "@/utils/pdfConfig";
+import { toast } from "@/lib/toast";
+import { cn } from "@/lib/helpers";
+import PdfConfigModal from "@/components/quiz/creator/settings/PdfConfigModal";
 import ProblemDeleteModal from "@/components/quiz/creator/settings/ProblemDeleteModal";
 import {
   computeQuestionsSignature,
   getSyncedSignature,
   setSyncedSignature,
 } from "@/utils/quizStorage";
-import { toast } from "@/lib/toast";
-import { cn } from "@/lib/helpers";
 
 const DIFFICULTY_BADGE: Record<CreatorQuestion["difficulty"], string> = {
   Easy: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
@@ -579,7 +584,7 @@ function QuestionCard({
 export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { quizId, code, isLive, isEnded } = useQuizSettings();
+  const { quizId, code, isLive, isEnded, details, quiz } = useQuizSettings();
   const problems = useQuizProblemsStore((s) => s.problems);
   const activeProblemId = useQuizProblemsStore((s) => s.activeProblemId);
   const hydrate = useQuizProblemsStore((s) => s.hydrate);
@@ -587,6 +592,8 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
   const deleteAllProblems = useQuizProblemsStore((s) => s.deleteAllProblems);
   const [syncing, setSyncing] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   useEffect(() => {
     hydrate();
@@ -638,12 +645,74 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
     }
   };
 
+  const handleDownloadPdf = (config: PdfConfig, students: PdfStudent[]) => {
+    setPdfModalOpen(false);
+    if (total === 0) return;
+    setGeneratingPdf(true);
+    downloadQuizPaperPdf(
+      {
+        config,
+        meta: {
+          quizName: details.name || quiz?.name || "Quiz",
+          subject: details.subject,
+          description: details.description,
+          difficulty: details.difficulty,
+          timeLimit: details.timeLimit ? `${details.timeLimit} min` : undefined,
+          topic: details.topic,
+          visibility:
+            VISIBILITY_OPTIONS.find((v) => v.id === details.visibility)?.label ??
+            details.visibility,
+          quizId: quiz?.code ?? code,
+          creatorName: quiz?.creator_name ?? undefined,
+          totalQuestions: problems.length,
+          totalMarks: problems.reduce((sum, q) => sum + (q.marks || 0), 0),
+        },
+        questions: problems,
+        student: null,
+      },
+      students
+    )
+      .then(() => {
+        toast.success({
+          title: "Question paper downloaded",
+          description:
+            config.generation.mode !== "single"
+              ? `Generated ${students.length} student paper${students.length !== 1 ? "s" : ""}.`
+              : config.content.includeAnswers
+                ? "Printable PDF with questions, answers and explanations."
+                : "Student copy with questions only — no answers included.",
+          timestamp: "Just now",
+        });
+      })
+      .catch(() => {
+        toast.error({
+          title: "Could not generate PDF",
+          description: "Something went wrong while building the question paper.",
+          timestamp: "Just now",
+        });
+      })
+      .finally(() => setGeneratingPdf(false));
+  };
+
   const handleDeleteAll = () => {
     if (total === 0) return;
     deleteAllProblems();
     setConfirmDeleteAll(false);
     setSyncedSignature(code, "");
-    toast.success("All questions deleted");
+    const toastId = toast.success({
+      title: "All questions deleted",
+      description: `${total} question${total !== 1 ? "s" : ""} removed. Use Ctrl+Z (Cmd+Z) or Undo to restore them.`,
+      duration: 6000,
+      timestamp: "Just now",
+      action: {
+        label: "Undo",
+        onClick: () => {
+          toast.dismiss(toastId);
+          const label = useQuizProblemsStore.getState().undo();
+          if (label) toast.success({ title: "Undo successful", description: label, duration: 2500, timestamp: "Just now" });
+        },
+      },
+    });
   };
 
   if (total === 0) {
@@ -713,6 +782,15 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
           >
             <Trash2 className="h-3.5 w-3.5" />
             Delete All
+          </button>
+          <button
+            onClick={() => setPdfModalOpen(true)}
+            disabled={total === 0}
+            title="Download a printable PDF of the full question paper with answers"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-pink-500/30 bg-pink-500/10 px-3.5 py-1.5 text-[11px] font-bold text-pink-500 transition-all hover:bg-pink-500/20 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Download PDF
           </button>
           <button
             onClick={handleSyncQuestions}
@@ -786,6 +864,15 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
           autoEdit={Boolean(focusId) && getQuestionStatus(current) === "draft"}
         />
       )}
+
+      <PdfConfigModal
+        key={pdfModalOpen ? "open" : "closed"}
+        open={pdfModalOpen}
+        onClose={() => setPdfModalOpen(false)}
+        questions={problems}
+        generating={generatingPdf}
+        onGenerate={handleDownloadPdf}
+      />
     </div>
   );
 }
