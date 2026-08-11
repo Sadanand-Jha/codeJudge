@@ -514,7 +514,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                 </div>
                 <h3 className="text-xl font-bold text-white text-center mb-2">Unregister from Quiz?</h3>
                 <p className="text-sm text-muted-foreground text-center mb-6">
-                  This will remove you from the registered participants list for "{quiz.title}".
+                  This will remove you from the registered participants list for "{quiz.name}".
                   You can register again later if the quiz is still open.
                 </p>
 

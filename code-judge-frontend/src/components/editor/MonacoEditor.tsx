@@ -5,10 +5,33 @@ import { useCallback, useEffect, useRef } from "react";
 import type { editor } from "monaco-editor";
 import { SUBLIME_BG, BORDER_COLOR } from "@/config/editor";
 
-const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
-  ssr: false,
-  loading: () => <div className="h-full w-full bg-[#272822]" />,
-});
+/**
+ * Monaco is served from a same-origin static build (`public/monaco/vs`)
+ * instead of the default remote CDN (https://cdn.jsdelivr.net/...).
+ *
+ * The default CDN load races against client-side navigation: on a cold cache
+ * or a slow/blocked CDN, Monaco never finishes initializing and the editor
+ * stays a black/blank screen until a full page reload (F5) warms the cache.
+ *
+ * Configuring the loader to use the locally-copied `min/vs` build makes
+ * initialization deterministic on the first visit and during client-side
+ * navigation, and loads Monaco's web workers from the same origin.
+ *
+ * This factory only runs on the client (ssr: false), and the loader is
+ * configured BEFORE the Editor component mounts, so there is no race between
+ * the Editor's internal `loader.init()` and our config.
+ */
+const MonacoEditor = dynamic(
+  async () => {
+    const { default: Editor, loader } = await import("@monaco-editor/react");
+    loader.config({ paths: { vs: "/monaco/vs" } });
+    return Editor;
+  },
+  {
+    ssr: false,
+    loading: () => <div className="h-full w-full bg-[#272822]" />,
+  },
+);
 
 interface MonacoEditorWrapperProps {
   language: string;
