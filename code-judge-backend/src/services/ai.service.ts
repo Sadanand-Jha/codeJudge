@@ -39,6 +39,34 @@ interface ReasoningDelta {
 type StreamDelta = OpenAI.ChatCompletionChunk.Choice.Delta & ReasoningDelta;
 type Message = OpenAI.ChatCompletionMessage & ReasoningDelta;
 
+/** A single conversation turn as accepted by `/ai/chat`. */
+export interface ChatMessageInput {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+const DEFAULT_SYSTEM_MESSAGE =
+  "You are the AI assistant for a competitive programming and quiz platform.";
+
+/**
+ * Normalize the incoming conversation into the message list sent to the model.
+ * A plain string (legacy `{ message }` payloads) becomes a single user turn;
+ * a messages array is used as-is. A system message is always present — the
+ * client may send its own, otherwise the default is prepended.
+ */
+const toModelMessages = (
+  input: ChatMessageInput[] | string
+): ChatMessageInput[] => {
+  const messages =
+    typeof input === "string"
+      ? [{ role: "user" as const, content: input }]
+      : input;
+  const hasSystem = messages.some((m) => m.role === "system");
+  return hasSystem
+    ? messages
+    : [{ role: "system" as const, content: DEFAULT_SYSTEM_MESSAGE }, ...messages];
+};
+
 /**
  * Extract the handful of token counts we care about, falling back to the
  * provider-specific `completion_tokens_details.reasoning_tokens` slot when
@@ -66,23 +94,13 @@ const normalizeUsage = (usage?: OpenAI.CompletionUsage | null): LiveUsage | unde
  * (e.g. when the client disconnects).
  */
 export const streamChatWithAI = async function* (
-  message: string,
+  messages: ChatMessageInput[] | string,
   signal?: AbortSignal
 ): AsyncGenerator<AIStreamChunk> {
   const stream = await client.chat.completions.create(
     {
       model: process.env.LM_STUDIO_MODEL!,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are the AI assistant for a competitive programming and quiz platform.",
-        },
-        {
-          role: "user",
-          content: message,
-        },
-      ],
+      messages: toModelMessages(messages),
       temperature: 0.7,
       stream: true,
       stream_options: { include_usage: true },
@@ -115,23 +133,13 @@ export const streamChatWithAI = async function* (
  * support streaming, and returns the complete reasoning + content together.
  */
 export const chatWithAI = async (
-  message: string,
+  messages: ChatMessageInput[] | string,
   signal?: AbortSignal
 ): Promise<AIResponse> => {
   const response = await client.chat.completions.create(
     {
       model: process.env.LM_STUDIO_MODEL!,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are the AI assistant for a competitive programming and quiz platform.",
-        },
-        {
-          role: "user",
-          content: message,
-        },
-      ],
+      messages: toModelMessages(messages),
       temperature: 0.7,
     },
     { signal }

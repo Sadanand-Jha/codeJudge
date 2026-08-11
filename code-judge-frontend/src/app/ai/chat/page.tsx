@@ -58,12 +58,13 @@ import AppLayout from "@/components/layout/AppLayout";
 import ResizableSplitPane from "@/components/layout/ResizableSplitPane";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
 import { streamChat } from "@/services/ai";
-import type { LiveUsage } from "@/services/ai";
+import type { LiveUsage, ChatMessageInput } from "@/services/ai";
 import { toast } from "@/lib/toast";
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
 import AIUsageMeta from "@/components/ai/AIUsageMeta";
 import AILogo from "@/components/ai/AILogo";
+import { extractRenderedText } from "@/utils/clipboard";
 
 /* ─────────────────────────────────────────
    Design Tokens
@@ -250,9 +251,11 @@ function CodeBlock({ block }: { block: CodeBlock }) {
 function MessageBubble({ message, onRegenerate }: { message: Message; onRegenerate?: () => void }) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const copyMessage = () => {
-    navigator.clipboard.writeText(message.content);
+    const rendered = extractRenderedText(contentRef.current);
+    navigator.clipboard.writeText(rendered || message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -295,7 +298,7 @@ function MessageBubble({ message, onRegenerate }: { message: Message; onRegenera
                 usage={message.usage}
               />
             )}
-            <MarkdownRenderer content={message.content} />
+            <MarkdownRenderer ref={contentRef} content={message.content} />
             {message.codeBlocks?.map((block) => <CodeBlock key={block.id} block={block} />)}
             {message.executionResult && <ExecutionCard result={message.executionResult} />}
             {/* The AI mark trails the latest line of the streaming answer. */}
@@ -407,6 +410,12 @@ export default function AIChatPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Always-current conversation so `sendMessage` can build the full history for
+  // the model without stale closures over `messages`.
+  const messagesRef = useRef<Message[]>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Abort any in-flight AI stream when the user leaves the page so the SSE
   // connection is torn down instead of streaming (and buffering) indefinitely.
@@ -484,8 +493,12 @@ export default function AIChatPage() {
     abortControllerRef.current = controller;
 
     try {
+      const historyForModel: ChatMessageInput[] = [
+        ...messagesRef.current.map((m) => ({ role: m.role, content: m.content })),
+        { role: "user", content: userMsg.content },
+      ];
       await streamChat(
-        userMsg.content,
+        historyForModel,
         {
           onReasoning: (chunk) => {
             setMessages((prev) =>

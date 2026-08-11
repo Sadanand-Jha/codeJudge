@@ -36,6 +36,7 @@ import { toast } from "@/lib/toast";
 import { isNestedQuizPath, isQuizProblemsPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
+import { ChatProvider } from "@/context/ChatContext";
 import AuthModal from "@/components/modals/AuthModal";
 import NotificationBell from "./NotificationBell";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -555,8 +556,10 @@ function NavItem({ item, pathname, isGuest, onClick }: {
 // Main AppLayout with providers
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <GuestModeProvider>
-      <AppLayoutContent>{children}</AppLayoutContent>
-    </GuestModeProvider>
+    <ChatProvider>
+      <GuestModeProvider>
+        <AppLayoutContent>{children}</AppLayoutContent>
+      </GuestModeProvider>
+    </ChatProvider>
   );
 }

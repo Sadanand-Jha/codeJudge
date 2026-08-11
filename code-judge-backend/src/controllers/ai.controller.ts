@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { streamChatWithAI, chatWithAI } from "../services/ai.service.js";
-import type { LiveUsage } from "../services/ai.service.js";
+import type { LiveUsage, ChatMessageInput } from "../services/ai.service.js";
 import { generateQuestionsFromFiles } from "../services/question-generation.service.js";
 import { parseQuestionsJSON } from "../services/question-generation.service.js";
 import { QUIZ_EXTRACTION_GUIDE } from "../services/question-generation.service.js";
@@ -11,7 +11,7 @@ import { isDoclingAvailable } from "../services/docling-extract.service.js";
 /** Stream an SSE reply to the client, mirroring the `/chat` wire protocol. */
 const streamSseReply = async (
   res: Response,
-  message: string,
+  messages: ChatMessageInput[] | string,
   controller: AbortController
 ) => {
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
@@ -50,7 +50,7 @@ const streamSseReply = async (
   };
 
   try {
-    for await (const chunk of streamChatWithAI(message, controller.signal)) {
+    for await (const chunk of streamChatWithAI(messages, controller.signal)) {
       if (chunk.reasoning) send("reasoning", { chunk: chunk.reasoning });
       if (chunk.content) {
         fullContent += chunk.content;
@@ -62,7 +62,7 @@ const streamSseReply = async (
     if (!res.writableEnded && !wroteAny) {
       // Model likely does not support streaming — fall back to a one-shot reply.
       try {
-        const { content, reasoning, usage } = await chatWithAI(message, controller.signal);
+        const { content, reasoning, usage } = await chatWithAI(messages, controller.signal);
         if (reasoning) send("reasoning", { chunk: reasoning });
         if (content) {
           fullContent += content;
@@ -229,10 +229,25 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
  * real.
  */
 export const chat = async (req: Request, res: Response) => {
-  const { message } = req.body;
+  const { message, messages } = req.body;
 
-  if (!message || typeof message !== "string") {
-    return res.status(400).json({ message: "Message is required" });
+  // Accept either the legacy `{ message }` string or the full conversation as
+  // `{ messages: [{ role, content }, ...] }`.
+  let payload: ChatMessageInput[] | string | null = null;
+  if (Array.isArray(messages)) {
+    const clean = messages.filter(
+      (m): m is ChatMessageInput =>
+        !!m &&
+        typeof m.content === "string" &&
+        (m.role === "system" || m.role === "user" || m.role === "assistant")
+    );
+    if (clean.length > 0) payload = clean;
+  } else if (typeof message === "string" && message.trim()) {
+    payload = message;
+  }
+
+  if (!payload) {
+    return res.status(400).json({ message: "A message or messages array is required" });
   }
 
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
@@ -256,7 +271,7 @@ export const chat = async (req: Request, res: Response) => {
   };
 
   try {
-    for await (const chunk of streamChatWithAI(message, controller.signal)) {
+    for await (const chunk of streamChatWithAI(payload, controller.signal)) {
       if (chunk.reasoning) send("reasoning", { chunk: chunk.reasoning });
       if (chunk.content) send("content", { chunk: chunk.content });
       if (chunk.usage) lastUsage = chunk.usage;
@@ -265,7 +280,7 @@ export const chat = async (req: Request, res: Response) => {
     if (!res.writableEnded && !wroteAny) {
       // Model likely does not support streaming — fall back to a one-shot reply.
       try {
-        const { content, reasoning, usage } = await chatWithAI(message, controller.signal);
+        const { content, reasoning, usage } = await chatWithAI(payload, controller.signal);
         if (reasoning) send("reasoning", { chunk: reasoning });
         if (content) send("content", { chunk: content });
         lastUsage = usage;

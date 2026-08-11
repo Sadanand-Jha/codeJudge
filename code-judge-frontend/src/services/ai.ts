@@ -215,15 +215,28 @@ export const generateQuestionsFromFiles = async (
   return payload.data?.questions ?? [];
 };
 
+export interface ChatMessageInput {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+/**
+ * Stream a chat request to the backend `/ai/chat` endpoint over SSE.
+ *
+ * Sends the full conversation history (system + prior turns + the new user
+ * message) so the model has context for follow-up turns. Each chunk is
+ * forwarded to the matching callback as it arrives. Pass an AbortSignal to
+ * cancel the request mid-stream.
+ */
 export const streamChat = async (
-  message: string,
+  messages: ChatMessageInput[],
   callbacks: StreamCallbacks,
   signal?: AbortSignal
 ): Promise<void> => {
   const response = await fetch(`${API_BASE}/v1/user/ai/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ messages }),
     credentials: "include",
     signal,
   });

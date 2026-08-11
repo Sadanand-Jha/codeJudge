@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
@@ -19,12 +19,14 @@ import {
   AlertCircle,
   Copy,
   Check,
+  Square,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
 import { streamChat, streamChatWithFiles } from "@/services/ai";
 import { mapRawQuestionsToPreview } from "@/services/ai";
-import type { LiveUsage, AIQuestionPreview, RawAIGeneratedQuestion } from "@/services/ai";
+import type { LiveUsage, AIQuestionPreview, RawAIGeneratedQuestion, ChatMessageInput } from "@/services/ai";
+import { useChat, type ChatMessage } from "@/context/ChatContext";
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
 import AIUsageMeta from "@/components/ai/AIUsageMeta";
@@ -32,6 +34,9 @@ import AILogo from "@/components/ai/AILogo";
 import AIQuestionReviewOverlay from "@/components/quiz/creator/AIQuestionReviewOverlay";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import { mapToCreatorQuestions } from "@/utils/aiToCreatorQuestion";
+import { extractRenderedText } from "@/utils/clipboard";
+
+export type { ChatMessage };
 
 interface UploadedFile {
   id: string;
@@ -40,18 +45,6 @@ interface UploadedFile {
   type: string;
   status: "uploading" | "ready" | "error";
   file: File;
-}
-
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  attachments?: string[];
-  reasoningContent?: string;
-  isReasoning?: boolean;
-  isStreaming?: boolean;
-  usage?: LiveUsage;
-  timeMs?: number;
 }
 
 const SUPPORTED_FILE_TYPES = [
@@ -128,21 +121,31 @@ export default function AiAssistantPanel({
   const [sending, setSending] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [timeStage, setTimeStage] = useState(0);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { chatHistory, setChatHistory, addMessage } = useChat();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
   const [reviewQuestions, setReviewQuestions] = useState<AIQuestionPreview[]>([]);
   const [showReviewOverlay, setShowReviewOverlay] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const contentRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const closeReviewOverlay = () => setShowReviewOverlay(false);
 
-  const copyMessage = (id: string, content: string) => {
-    navigator.clipboard.writeText(content);
-    setCopiedId(id);
+  // The conversation shown in the panel — the context also holds the system
+  // message, which is for the model and never rendered.
+  const conversation = useMemo(
+    () => chatHistory.filter((m) => m.role !== "system"),
+    [chatHistory]
+  );
+
+  const copyMessage = (m: ChatMessage) => {
+    const el = contentRefs.current[m.id];
+    const rendered = el ? extractRenderedText(el) : "";
+    navigator.clipboard.writeText(rendered || m.content);
+    setCopiedId(m.id);
     setTimeout(() => {
-      setCopiedId((cur) => (cur === id ? null : cur));
+      setCopiedId((cur) => (cur === m.id ? null : cur));
     }, 2000);
   };
 
@@ -194,7 +197,7 @@ export default function AiAssistantPanel({
   // Keep the latest AI reply in view
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [chatHistory]);
 
   const addFiles = (incoming: FileList | null) => {
     if (!incoming) return;
@@ -239,11 +242,15 @@ export default function AiAssistantPanel({
   };
 
   const finalizeMessage = (id: string) => {
-    setMessages((prev) =>
+    setChatHistory((prev) =>
       prev.map((m) =>
         m.id === id ? { ...m, isReasoning: false, isStreaming: false } : m
       )
     );
+  };
+
+  const stopGeneration = () => {
+    streamAbortRef.current?.abort();
   };
 
   const handleSend = async () => {
@@ -253,47 +260,31 @@ export default function AiAssistantPanel({
       return;
     }
 
-    const formdata = new FormData();
-
-    formdata.append("prompt", prompt.trim())
-
-    files.forEach((file) => {
-      if (file.status === "ready") {
-        formdata.append("files", file.file, file.name);
-      }
-    });
-
     const readyFiles = files.filter((f) => f.status === "ready");
-    const userMsg: ChatMessage = {
-      id: `m-${Date.now()}`,
-      role: "user",
-      content: prompt.trim(),
-      attachments: readyFiles.map((f) => f.name),
-    };
-    setMessages((prev) => [...prev, userMsg]);
     const userPrompt = prompt.trim();
+    addMessage({
+      role: "user",
+      content: userPrompt,
+      attachments: readyFiles.map((f) => f.name),
+    });
     setPrompt("");
     setSending(true);
 
-    const aiId = `m-${Date.now()}-ai`;
-    const aiMsg: ChatMessage = {
-      id: aiId,
+    const aiMsg = addMessage({
       role: "assistant",
       content: "",
       reasoningContent: "",
       isReasoning: true,
       isStreaming: true,
-    };
-    setMessages((prev) => [...prev, aiMsg]);
+    });
+    const aiId = aiMsg.id;
 
     const controller = new AbortController();
     streamAbortRef.current = controller;
 
-    console.log("Streaming AI request:", userMsg);
-
     const callbacks = {
       onReasoning: (chunk: string) => {
-        setMessages((prev) =>
+        setChatHistory((prev) =>
           prev.map((m) =>
             m.id === aiId
               ? { ...m, reasoningContent: (m.reasoningContent || "") + chunk }
@@ -302,14 +293,14 @@ export default function AiAssistantPanel({
         );
       },
       onContent: (chunk: string) => {
-        setMessages((prev) =>
+        setChatHistory((prev) =>
           prev.map((m) =>
             m.id === aiId ? { ...m, content: m.content + chunk } : m
           )
         );
       },
       onUsage: (meta: { usage?: LiveUsage; timeMs?: number }) => {
-        setMessages((prev) =>
+        setChatHistory((prev) =>
           prev.map((m) =>
             m.id === aiId ? { ...m, usage: meta.usage, timeMs: meta.timeMs } : m
           )
@@ -324,14 +315,18 @@ export default function AiAssistantPanel({
       onDone: () => finalizeMessage(aiId),
     };
 
-    console.log(readyFiles.length > 0 ? "Streaming AI request with files" : "Streaming AI request without files");
+    // Send the complete conversation (system + prior turns + this user
+    // message) so the model has context for the next response.
+    const historyForModel: ChatMessageInput[] = [
+      ...chatHistory.map((m) => ({ role: m.role, content: m.content })),
+      { role: "user", content: userPrompt },
+    ];
 
     try {
       if (readyFiles.length > 0) {
-        console.log(userPrompt, readyFiles.map((f) => f.file));
         await streamChatWithFiles(userPrompt, readyFiles.map((f) => f.file), callbacks, controller.signal);
       } else {
-        await streamChat(userPrompt, callbacks, controller.signal);
+        await streamChat(historyForModel, callbacks, controller.signal);
       }
     } catch (error) {
       finalizeMessage(aiId);
@@ -513,12 +508,12 @@ export default function AiAssistantPanel({
               </AnimatePresence>
 
               {/* Conversation thread */}
-              {messages.length > 0 && (
+              {conversation.length > 0 && (
                 <div className="space-y-3 border-b border-border px-5 py-4">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                     Conversation
                   </p>
-                  {messages.map((m) => (
+                  {conversation.map((m) => (
                     <div key={m.id} className={`group flex w-full flex-col gap-1 ${m.role === "user" ? "items-end" : "items-start"}`}>
                       <div
                         className={cn(
@@ -559,7 +554,14 @@ export default function AiAssistantPanel({
                                 usage={m.usage}
                               />
                             )}
-                            {m.content && <MarkdownRenderer content={m.content} />}
+                            {m.content && (
+                              <MarkdownRenderer
+                                ref={(node) => {
+                                  if (node) contentRefs.current[m.id] = node;
+                                }}
+                                content={m.content}
+                              />
+                            )}
                             {/* The AI mark trails the latest line of the answer while it
                                 streams, then settles with the completed response. */}
                             {m.content && (
@@ -579,7 +581,7 @@ export default function AiAssistantPanel({
                         )}
                       </div>
                       <button
-                        onClick={() => copyMessage(m.id, m.content)}
+                        onClick={() => copyMessage(m)}
                         disabled={!m.content}
                         className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-text-muted opacity-0 transition-opacity hover:bg-card-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-0 group-hover:opacity-100"
                         title="Copy message"
@@ -643,14 +645,14 @@ export default function AiAssistantPanel({
                 <div className="flex items-center gap-1.5 px-5 pb-1 text-[11px] text-text-muted">
                   <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-chat-rose" />
                   <span>
-                    {messages.some((m) => m.role === "assistant" && m.isReasoning)
+                    {chatHistory.some((m) => m.role === "assistant" && m.isReasoning)
                       ? "Thinking"
                       : "Generating"}
                   </span>
                   <span className="font-medium text-text-secondary">
                     ·{" "}
                     {(() => {
-                      const live = messages.find(
+                      const live = chatHistory.find(
                         (m) => m.role === "assistant" && m.isStreaming
                       )?.usage?.totalTokens;
                       const n = typeof live === "number" ? live : 0;
@@ -714,22 +716,28 @@ export default function AiAssistantPanel({
                 </p>
               </div>
 
-              {/* Footer / Ask AI */}
+              {/* Footer / Ask AI — toggles to Stop while streaming */}
               <div className="border-t border-border px-4 py-3">
-                <button
-                  onClick={handleSend}
-                  disabled={!prompt.trim() || sending || files.some((f) => f.status === "uploading")}
-                  className={cn(
-                    "inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2.5 text-xs font-bold text-white shadow-[0_2px_10px_rgba(236,72,153,0.25)] transition-all hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-                  )}
-                >
-                  {sending ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
+                {sending ? (
+                  <button
+                    onClick={stopGeneration}
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-danger/40 bg-danger/10 px-4 py-2.5 text-xs font-bold text-danger transition-all hover:bg-danger/20 active:scale-[0.98]"
+                  >
+                    <Square className="h-3.5 w-3.5" />
+                    Stop generating
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSend}
+                    disabled={!prompt.trim() || files.some((f) => f.status === "uploading")}
+                    className={cn(
+                      "inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2.5 text-xs font-bold text-white shadow-[0_2px_10px_rgba(236,72,153,0.25)] transition-all hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                    )}
+                  >
                     <Send className="h-3.5 w-3.5" />
-                  )}
-                  {sending ? "Asking…" : "Ask AI"}
-                </button>
+                    Ask AI
+                  </button>
+                )}
               </div>
             </div>
           </motion.aside>

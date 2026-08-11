@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, type Ref } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -39,7 +39,7 @@ function CodeBlock({
 
   return (
     <div className="my-3 overflow-hidden rounded-lg border border-border bg-card">
-      <div className="flex items-center justify-between border-b border-border bg-card-hover px-3 py-1.5">
+      <div data-copy-skip className="flex items-center justify-between border-b border-border bg-card-hover px-3 py-1.5">
         <span className="flex items-center gap-1.5">
           <Terminal className="h-3 w-3 text-text-muted" />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
@@ -65,9 +65,15 @@ function CodeBlock({
   );
 }
 
-export default function MarkdownRenderer({ content }: { content: string }) {
+export default function MarkdownRenderer({
+  content,
+  ref,
+}: {
+  content: string;
+  ref?: Ref<HTMLDivElement>;
+}) {
   return (
-    <div className="markdown-body text-[13px] leading-relaxed">
+    <div ref={ref} className="markdown-body text-[13px] leading-relaxed">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
