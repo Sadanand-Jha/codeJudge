@@ -249,6 +249,13 @@ function CodeBlock({ block }: { block: CodeBlock }) {
 /* ─── MESSAGE BUBBLE ─── */
 function MessageBubble({ message, onRegenerate }: { message: Message; onRegenerate?: () => void }) {
   const isUser = message.role === "user";
+  const [copied, setCopied] = useState(false);
+
+  const copyMessage = () => {
+    navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className={`group flex w-full gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
@@ -267,8 +274,15 @@ function MessageBubble({ message, onRegenerate }: { message: Message; onRegenera
         </div>
 
         {isUser ? (
-          <div className="rounded-lg rounded-tr-sm bg-[#7C3AED]/20 px-3 py-2 text-[13px] text-white border border-[#7C3AED]/30">
-            <p className="leading-relaxed">{message.content}</p>
+          <div>
+            <div className="rounded-lg rounded-tr-sm bg-[#7C3AED]/20 px-3 py-2 text-[13px] text-white border border-[#7C3AED]/30">
+              <p className="leading-relaxed">{message.content}</p>
+            </div>
+            <div className="mt-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={copyMessage} className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title={copied ? "Copied" : "Copy"}>
+                {copied ? <CheckCircle className="h-3 w-3 text-[#22C55E]" /> : <Copy className="h-3 w-3" />}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="rounded-lg rounded-tl-sm border border-[#23252F] bg-card px-3 py-2 shadow-sm">
@@ -300,7 +314,9 @@ function MessageBubble({ message, onRegenerate }: { message: Message; onRegenera
             />
 
             <div className="mt-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Copy"><Copy className="h-3 w-3" /></button>
+              <button onClick={copyMessage} className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title={copied ? "Copied" : "Copy"}>
+                {copied ? <CheckCircle className="h-3 w-3 text-[#22C55E]" /> : <Copy className="h-3 w-3" />}
+              </button>
               <button onClick={onRegenerate} className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Regenerate"><RefreshCw className="h-3 w-3" /></button>
               <button className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Bookmark"><Bookmark className="h-3 w-3" /></button>
               <button className="rounded p-1 text-muted-foreground hover:bg-[#1F2937] hover:text-white transition-colors" title="Save"><Save className="h-3 w-3" /></button>

@@ -17,6 +17,8 @@ import {
   Loader2,
   Send,
   AlertCircle,
+  Copy,
+  Check,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
@@ -132,8 +134,17 @@ export default function AiAssistantPanel({
   const streamAbortRef = useRef<AbortController | null>(null);
   const [reviewQuestions, setReviewQuestions] = useState<AIQuestionPreview[]>([]);
   const [showReviewOverlay, setShowReviewOverlay] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const closeReviewOverlay = () => setShowReviewOverlay(false);
+
+  const copyMessage = (id: string, content: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedId(id);
+    setTimeout(() => {
+      setCopiedId((cur) => (cur === id ? null : cur));
+    }, 2000);
+  };
 
   const handleAcceptAll = () => {
     if (reviewQuestions.length === 0) {
@@ -508,7 +519,7 @@ export default function AiAssistantPanel({
                     Conversation
                   </p>
                   {messages.map((m) => (
-                    <div key={m.id} className={`flex w-full gap-2 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
+                    <div key={m.id} className={`group flex w-full flex-col gap-1 ${m.role === "user" ? "items-end" : "items-start"}`}>
                       <div
                         className={cn(
                           "max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed text-text-primary",
@@ -567,6 +578,19 @@ export default function AiAssistantPanel({
                           </>
                         )}
                       </div>
+                      <button
+                        onClick={() => copyMessage(m.id, m.content)}
+                        disabled={!m.content}
+                        className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-text-muted opacity-0 transition-opacity hover:bg-card-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-0 group-hover:opacity-100"
+                        title="Copy message"
+                      >
+                        {copiedId === m.id ? (
+                          <Check className="h-3 w-3 text-success" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                        {copiedId === m.id ? "Copied" : "Copy"}
+                      </button>
                     </div>
                   ))}
                   <div ref={messagesEndRef} />
