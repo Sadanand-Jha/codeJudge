@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { mainEditorOptions } from "@/config/editor";
 import { useEditor } from "@/hooks/useEditor";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
@@ -145,12 +146,40 @@ export default function CodeEditor() {
               onChange={handleCodeChangeCallback}
               onMount={handleEditorMount}
             />
-            {showScanOverlay && (
-              <CodeScanOverlay onComplete={handleScanComplete} />
-            )}
-            {preparing && !showScanOverlay && (
-              <CodeScanOverlay loop />
-            )}
+            <AnimatePresence>
+              {showScanOverlay && (
+                <motion.div
+                  key="ai-scan"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  className="pointer-events-none absolute inset-0 z-20"
+                >
+                  <CodeScanOverlay
+                    onComplete={handleScanComplete}
+                    editorRef={mainEditorRef}
+                    monacoRef={monacoRef}
+                  />
+                </motion.div>
+              )}
+              {preparing && !showScanOverlay && (
+                <motion.div
+                  key="ai-prepare"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  className="pointer-events-none absolute inset-0 z-20"
+                >
+                  <CodeScanOverlay
+                    loop
+                    editorRef={mainEditorRef}
+                    monacoRef={monacoRef}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 

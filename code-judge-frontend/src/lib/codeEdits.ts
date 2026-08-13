@@ -529,6 +529,11 @@ export function clearEditDecorations(editor: any): void {
 
 /* ═══════════════ Inline (Copilot-style) suggestion in Monaco ═══════════════ */
 
+/** Cap ghost-text lines per edit so Monaco never renders an unbounded block. */
+const MAX_GHOST_LINES = 60;
+/** Cap rows rendered inside the inline suggestion widget. */
+const MAX_WIDGET_LINES = 80;
+
 /** Split a newText into visible added lines (drops trailing empty line). */
 function splitAddedLines(newText: string): string[] {
   const lines = (newText || "").split("\n");
@@ -655,7 +660,14 @@ export function attachInlineSuggestion(
     // just after the removed block (or at the insertion point).
     if (added.length > 0) {
       const anchor = removedCount > 0 ? anchorLine : fromLine;
-      const ghost = added.join("\n") + "\n";
+      const shownAdded =
+        added.length > MAX_GHOST_LINES ? added.slice(0, MAX_GHOST_LINES) : added;
+      const ghost =
+        shownAdded.join("\n") +
+        (added.length > MAX_GHOST_LINES
+          ? `\n… (+${added.length - MAX_GHOST_LINES} more)`
+          : "") +
+        "\n";
       const ghostRange =
         removedCount > 0
           ? new monaco.Range(anchor, 1, anchor, 1)
@@ -709,31 +721,42 @@ export function attachInlineSuggestion(
 
     const body = document.createElement("div");
     body.className = "bcl-ai-widget-diff";
+    // Reuse the snapshot captured when the suggestion was attached instead of
+    // re-reading the whole model for every edit.
     const { removed, added } = edits.reduce<{
       removed: string[];
       added: string[];
     }>(
       (acc, e) => {
-        const r = resolveEditLines(model.getValue(), e);
+        const r = resolveEditLines(fileText, e);
         acc.removed.push(...r.removed);
         acc.added.push(...r.added);
         return acc;
       },
       { removed: [], added: [] }
     );
-    removed.forEach((t) => {
+    const allRows: { kind: "remove" | "add"; text: string }[] = [
+      ...removed.map((t) => ({ kind: "remove" as const, text: t })),
+      ...added.map((t) => ({ kind: "add" as const, text: t })),
+    ];
+    const overflow = allRows.length - MAX_WIDGET_LINES;
+    const rows = overflow > 0 ? allRows.slice(0, MAX_WIDGET_LINES) : allRows;
+
+    rows.forEach(({ kind, text }) => {
       const row = document.createElement("div");
-      row.className = "bcl-ai-widget-row bcl-ai-widget-remove";
-      row.innerHTML = `<span class="bcl-ai-widget-sign">−</span><code>${escapeHtml(t)}</code>`;
+      row.className = `bcl-ai-widget-row bcl-ai-widget-${kind}`;
+      row.innerHTML = `<span class="bcl-ai-widget-sign">${
+        kind === "remove" ? "−" : "+"
+      }</span><code>${escapeHtml(text)}</code>`;
       body.appendChild(row);
     });
-    added.forEach((t) => {
+    if (overflow > 0) {
       const row = document.createElement("div");
-      row.className = "bcl-ai-widget-row bcl-ai-widget-add";
-      row.innerHTML = `<span class="bcl-ai-widget-sign">+</span><code>${escapeHtml(t)}</code>`;
+      row.className = "bcl-ai-widget-row bcl-ai-widget-more";
+      row.textContent = `… ${overflow} more line${overflow === 1 ? "" : "s"}`;
       body.appendChild(row);
-    });
-    if (removed.length === 0 && added.length === 0) {
+    }
+    if (rows.length === 0 && overflow <= 0) {
       const row = document.createElement("div");
       row.className = "bcl-ai-widget-row";
       row.textContent = callbacks.label || "Suggested change";

@@ -378,24 +378,49 @@ export default function CodeAssistantPanel({
       { role: "user", content: userPrompt },
     ];
 
-    const callbacks = {
-      onReasoning: (chunk: string) => {
-        streamed.reasoning += chunk;
+    // Coalesce streaming UI updates: rebuilding the whole message list (and
+    // re-highlighting the growing markdown/diff via react-markdown +
+    // rehype-highlight) on every SSE chunk is a major cause of the 100% CPU /
+    // freeze when the AI emits a large diff. We still accumulate the raw text
+    // immediately, but only commit it to React at most ~15x/sec.
+    let uiTimer: ReturnType<typeof setTimeout> | null = null;
+    let uiDirty = false;
+    const scheduleUiFlush = () => {
+      uiDirty = true;
+      if (uiTimer) return;
+      uiTimer = setTimeout(() => {
+        uiTimer = null;
+        if (!uiDirty) return;
+        uiDirty = false;
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiId
-              ? { ...m, reasoningContent: streamed.reasoning }
+              ? {
+                  ...m,
+                  content: streamed.content,
+                  reasoningContent: streamed.reasoning,
+                }
               : m
           )
         );
+      }, 66);
+    };
+    const cancelUiFlush = () => {
+      if (uiTimer) {
+        clearTimeout(uiTimer);
+        uiTimer = null;
+      }
+      uiDirty = false;
+    };
+
+    const callbacks = {
+      onReasoning: (chunk: string) => {
+        streamed.reasoning += chunk;
+        scheduleUiFlush();
       },
       onContent: (chunk: string) => {
         streamed.content += chunk;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === aiId ? { ...m, content: streamed.content } : m
-          )
-        );
+        scheduleUiFlush();
       },
       onUsage: (meta: { usage?: LiveUsage; timeMs?: number }) => {
         updateMessage(aiId, { usage: meta.usage, timeMs: meta.timeMs });
@@ -405,6 +430,10 @@ export default function CodeAssistantPanel({
 
     try {
       await streamChat(historyForModel, callbacks, controller.signal);
+
+      // Stop the throttled UI flusher so a pending timer can't overwrite the
+      // finalised (diff-block-stripped) content we write below.
+      cancelUiFlush();
 
       // Finalize the message (clear streaming flags).
       updateMessage(aiId, { isReasoning: false, isStreaming: false });
@@ -438,6 +467,7 @@ export default function CodeAssistantPanel({
         ]);
       }
     } catch (error) {
+      cancelUiFlush();
       updateMessage(aiId, { isReasoning: false, isStreaming: false });
       const err = error as Error;
       if (err.name !== "AbortError") {
@@ -446,6 +476,7 @@ export default function CodeAssistantPanel({
         });
       }
     } finally {
+      cancelUiFlush();
       if (streamAbortRef.current === controller) {
         streamAbortRef.current = null;
       }

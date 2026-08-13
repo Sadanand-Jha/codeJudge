@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  Plus,
   X,
   Lightbulb,
   Tag,
@@ -33,6 +34,7 @@ interface AIQuestionReviewOverlayProps {
   onClose: () => void;
   onAccept: () => void;
   onReject: () => void;
+  onAcceptOne?: (question: PreviewQuestion) => void;
 }
 
 const TYPE_LABELS: Record<PreviewQuestion["type"], string> = {
@@ -63,6 +65,7 @@ export default function AIQuestionReviewOverlay({
   onClose,
   onAccept,
   onReject,
+  onAcceptOne,
 }: AIQuestionReviewOverlayProps) {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -125,6 +128,14 @@ export default function AIQuestionReviewOverlay({
       return { ...opt, label };
     });
   }, [current]);
+
+  const handleAcceptOne = () => {
+    if (!current || !onAcceptOne) return;
+    onAcceptOne(current);
+    if (total <= 1) {
+      onClose();
+    }
+  };
 
   if (!open) return null;
 
@@ -348,6 +359,15 @@ export default function AIQuestionReviewOverlay({
 
           {/* Accept / Reject */}
           <div className="flex items-center gap-2">
+            {onAcceptOne && current && (
+              <button
+                onClick={handleAcceptOne}
+                className="flex h-9 items-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 px-4 text-xs font-bold text-accent transition-colors hover:bg-accent/20"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add to Problem List
+              </button>
+            )}
             <button
               onClick={onReject}
               className="flex h-9 items-center gap-1.5 rounded-xl border border-danger/30 bg-danger/10 px-4 text-xs font-bold text-danger transition-colors hover:bg-danger/20"

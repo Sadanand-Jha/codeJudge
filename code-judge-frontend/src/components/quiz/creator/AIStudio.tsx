@@ -291,6 +291,13 @@ export default function AIStudio({
     toast.success("Question added");
   };
 
+  const handleAcceptOne = (question: PreviewQuestion) => {
+    const q = question as GeneratedQuestion;
+    setGeneratedQuestions((prev) => prev.filter((x) => x.id !== q.id));
+    onQuestionsGenerated?.([q]);
+    toast.success("Question added to the problem list");
+  };
+
   const handleRegenerate = async (questionId: string) => {
     toast.info("Regenerating question...");
     await new Promise((resolve) => setTimeout(resolve, 1000));

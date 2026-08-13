@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Check, X, AlertTriangle, Loader2, RefreshCw, Code2 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -26,7 +26,7 @@ interface SuggestedChangesCardProps {
  * the AI wants to modify the editor. Renders a compact before/after diff and
  * Apply / Reject actions. The full file stays in Monaco, never in the chat.
  */
-export default function SuggestedChangesCard({
+function SuggestedChangesCard({
   filename,
   explanation,
   edits,
@@ -39,15 +39,28 @@ export default function SuggestedChangesCard({
 }: SuggestedChangesCardProps) {
   const [revealed, setRevealed] = useState(true);
 
-  // Merge diffs across edits for a single grouped preview.
-  const diffLines: DiffLine[] = edits.flatMap((e, i) => {
-    const group = buildEditDiff(modelValue, e);
-    if (i < edits.length - 1 && group.length > 0) {
-      // Thin separator between independent edit hunks.
-      group.push({ type: "context", text: "" });
-    }
-    return group;
-  });
+  // Merge diffs across edits for a single grouped preview. Memoised on the
+  // inputs that actually change the diff — recomputing it on every parent
+  // re-render (each streaming chunk re-renders the whole chat) is a major cause
+  // of 100% CPU / freezes when the AI streams a large diff.
+  const diffLines: DiffLine[] = useMemo(() => {
+    return edits.flatMap((e, i) => {
+      const group = buildEditDiff(modelValue, e);
+      if (i < edits.length - 1 && group.length > 0) {
+        // Thin separator between independent edit hunks.
+        group.push({ type: "context", text: "" });
+      }
+      return group;
+    });
+  }, [edits, modelValue]);
+
+  // Keep the preview responsive even for very large diffs.
+  const MAX_PREVIEW_LINES = 120;
+  const previewLines =
+    diffLines.length > MAX_PREVIEW_LINES
+      ? diffLines.slice(0, MAX_PREVIEW_LINES)
+      : diffLines;
+  const previewOverflow = diffLines.length - previewLines.length;
 
   return (
     <motion.div
@@ -103,7 +116,7 @@ export default function SuggestedChangesCard({
             className="overflow-hidden"
           >
             <div className="m-3 max-h-56 overflow-auto rounded-lg border border-border bg-[#0d0e14] font-mono text-[11px] leading-[18px]">
-              {diffLines.map((d, i) => (
+              {previewLines.map((d, i) => (
                 <div
                   key={i}
                   className={cn(
@@ -120,6 +133,14 @@ export default function SuggestedChangesCard({
                   <span className="overflow-x-auto">{d.text || " "}</span>
                 </div>
               ))}
+              {previewOverflow > 0 && (
+                <div className="flex gap-2 px-2.5 py-1 text-[11px] text-text-muted/70">
+                  <span className="w-4 shrink-0" />
+                  <span>
+                    … {previewOverflow} more line{previewOverflow === 1 ? "" : "s"} in this diff
+                  </span>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -173,3 +194,21 @@ export default function SuggestedChangesCard({
     </motion.div>
   );
 }
+
+// onApply/onReject/onRefresh are recreated on each parent render but close over a
+// stable suggestion id, so we only re-render the card when the data it shows changes.
+function areEqual(
+  prev: SuggestedChangesCardProps,
+  next: SuggestedChangesCardProps
+) {
+  return (
+    prev.filename === next.filename &&
+    prev.explanation === next.explanation &&
+    prev.edits === next.edits &&
+    prev.modelValue === next.modelValue &&
+    prev.stale === next.stale &&
+    prev.applying === next.applying
+  );
+}
+
+export default memo(SuggestedChangesCard, areEqual);

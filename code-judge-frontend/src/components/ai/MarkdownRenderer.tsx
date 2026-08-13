@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode, type Ref } from "react";
+import { memo, useState, type ReactNode, type Ref } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -65,7 +65,7 @@ function CodeBlock({
   );
 }
 
-export default function MarkdownRenderer({
+function MarkdownRenderer({
   content,
   ref,
 }: {
@@ -165,3 +165,9 @@ export default function MarkdownRenderer({
     </div>
   );
 }
+
+// Memoised so unaffected messages aren't re-tokenised/re-highlighted whenever a
+// new chunk lands on a different (still-streaming) message. Compared on content
+// only: the inline `ref` callback it receives is recreated every render and
+// would otherwise defeat a default shallow-compare memo.
+export default memo(MarkdownRenderer, (prev, next) => prev.content === next.content);
