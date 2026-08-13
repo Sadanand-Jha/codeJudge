@@ -122,6 +122,10 @@ function isQuizPath(pathname: string): boolean {
   return pathname.startsWith("/quiz");
 }
 
+function isEditorPath(pathname: string): boolean {
+  return pathname === "/editor";
+}
+
 // Routes that should be fullscreen (no sidebar/navbar)
 function isFullscreenRoute(pathname: string): boolean {
   return pathname.includes("/waiting");
@@ -374,6 +378,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         )}
       >
         {/* ===== TOP HEADER ===== */}
+        {!isEditorPath(pathname) && (
         <header
           onDragStart={(e) => e.preventDefault()}
           onContextMenu={(e) => e.preventDefault()}
@@ -464,6 +469,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </header>
+        )}
 
         {/* ===== PAGE CONTENT ===== */}
         <main className="flex-1">{children}</main>
