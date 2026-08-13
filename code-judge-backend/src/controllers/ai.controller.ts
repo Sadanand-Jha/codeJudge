@@ -1,3 +1,20 @@
+/**
+ * AI controller — HTTP layer for the three AI endpoints.
+ *
+ * Responsibilities:
+ *   - `chat`                    : stream a plain conversation as SSE.
+ *   - `chatWithFiles`           : stream a conversation that also ingests
+ *                                 uploaded documents as context (SSE).
+ *   - `generateQuestionsFromUpload` : one-shot, non-streaming generation of
+ *                                 quiz questions from study-material files.
+ *
+ * The controller only validates/coerces request input and serializes the
+ * result back to the client. All heavy lifting (text extraction, prompt
+ * construction, LLM calls, JSON parsing) lives in the services:
+ *   - `../services/ai.service.ts`                 → LLM client (stream + one-shot)
+ *   - `../services/question-generation.service.ts` → extraction + prompt + parse
+ *   - `../services/docling-extract.service.ts`    → Docling Serve wrapper
+ */
 import type { Request, Response } from "express";
 import { streamChatWithAI, chatWithAI } from "../services/ai.service.js";
 import type { LiveUsage, ChatMessageInput } from "../services/ai.service.js";

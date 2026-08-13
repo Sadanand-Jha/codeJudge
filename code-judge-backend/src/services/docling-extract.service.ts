@@ -18,6 +18,10 @@ let lastHealthCheck = 0;
 let healthy = false;
 const HEALTH_CHECK_TTL_MS = 30_000;
 
+/**
+ * Lazily build and cache the Docling API client. Built once and reused for the
+ * lifetime of the process; the health check / convert calls then share it.
+ */
 const getClient = (): DoclingAPIClient => {
   if (!cachedClient) {
     console.log(DOCLING_URL, DOCLING_TIMEOUT_MS);
@@ -84,4 +88,5 @@ export const extractTextWithDocling = async (
   return content.trim();
 };
 
+/** Read-only accessor for the configured Docling URL (used for logging/debug). */
 export const getDoclingUrl = (): string => DOCLING_URL;

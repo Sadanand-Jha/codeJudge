@@ -1,3 +1,21 @@
+/**
+ * AI LLM client — the single choke-point for talking to the model.
+ *
+ * Everything that touches the actual language model goes through this module:
+ *   - `streamChatWithAI` : streaming completion (used by `/ai/chat` and
+ *                          `/ai/chat-files`, which forward deltas over SSE).
+ *   - `chatWithAI`       : one-shot completion (used by question generation).
+ *
+ * The client is OpenAI-compatible and points at a local/remote LLM endpoint
+ * configured through env vars:
+ *   - `LM_STUDIO_URL`   → base URL of the OpenAI-compatible server
+ *     (e.g. LM Studio / llama.cpp / DeepSeek-compatible endpoint).
+ *   - `LM_STUDIO_MODEL` → the model id to serve completions from.
+ *
+ * Token usage is normalized into a provider-agnostic `LiveUsage` shape before
+ * it ever crosses the wire, and reasoning (chain-of-thought) text is read from
+ * the `reasoning_content` field some providers (e.g. DeepSeek reasoner) expose.
+ */
 import OpenAI from "openai";
 
 const client = new OpenAI({

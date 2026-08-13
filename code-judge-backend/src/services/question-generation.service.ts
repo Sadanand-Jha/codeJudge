@@ -1,3 +1,24 @@
+/**
+ * Question-generation service — the "brains" behind the AI quiz flow.
+ *
+ * Turns uploaded study-material files into a strictly-parsed list of quiz
+ * questions. This module owns the whole pipeline:
+ *
+ *   1. `extractFileText()`      — decide how each file's bytes become text
+ *                                 (Excel / plain-text fast paths, or Docling).
+ *   2. `generateQuestionsFromFiles()` — build the prompt from the extracted
+ *                                 text + generation options, call the model
+ *                                 once (`chatWithAI`), and parse the reply.
+ *   3. `parseQuestionsJSON()`   — turn the model's raw JSON into a normalized
+ *                                 `GeneratedQuestionPayload[]` array.
+ *   4. `QUIZ_EXTRACTION_GUIDE`  — an adaptive instruction injected into the
+ *                                 `/chat-files` flow so the model can auto-detect
+ *                                 quizzes inside documents.
+ *
+ * All data flows are text-only: nothing about the quiz is stored in the DB
+ * here — the controller returns the parsed questions and the frontend decides
+ * what to persist.
+ */
 import ExcelJS from "exceljs";
 import { chatWithAI } from "./ai.service.js";
 import type { LiveUsage } from "./ai.service.js";
@@ -136,6 +157,15 @@ const DOCLING_EXTENSIONS = new Set([
  *  - everything else (PDF, PowerPoint, Word, archives, images) is sent to
  *    Docling Serve when it's available, falling back to a raw decode otherwise.
  */
+/**
+ * Decode a buffer as UTF-8 text, rejecting binary content.
+ *
+ * Counts control characters in the decoded string: NUL bytes are weighted
+ * heavily (they are a strong binary signature) and other C0 control chars are
+ * counted individually. If more than 2% of the characters are control
+ * characters the buffer is treated as binary and `""` is returned so callers
+ * fall through to Docling or a last-resort path.
+ */
 const decodeText = (buffer: Buffer): string => {
   const raw = buffer.toString("utf-8");
   let controlChars = 0;
@@ -148,6 +178,14 @@ const decodeText = (buffer: Buffer): string => {
   return raw;
 };
 
+/**
+ * Read an Excel workbook cell-by-cell into plain text.
+ *
+ * Each sheet becomes a header line `SheetName (N rows):` followed by every
+ * non-empty row with its cells joined by ` | `. Cell values that are rich-text
+ * objects (ExcelJS exposes text objects) are flattened to their plain text.
+ * Output is hard-capped at 3000 lines to keep the prompt small.
+ */
 const extractExcel = async (buffer: Buffer): Promise<string> => {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as never);
@@ -212,6 +250,14 @@ export const extractFileText = async (
   return decodeText(file.buffer);
 };
 
+/**
+ * Strip markdown code fences around a JSON block and return only the JSON.
+ *
+ * Removes any ` ```json ` / ` ``` ` fence markers, then slices between the
+ * first `{` and the last `}` in the remaining text so stray prose before or
+ * after the JSON is dropped. If no braces exist the (fence-stripped) text is
+ * returned as-is and will fail a later `JSON.parse`.
+ */
 const stripJsonFences = (content: string): string => {
   const withoutFences = content.replace(/```(?:json)?/gi, "").trim();
   const start = withoutFences.indexOf("{");
@@ -220,6 +266,16 @@ const stripJsonFences = (content: string): string => {
   return withoutFences.slice(start, end + 1);
 };
 
+/**
+ * Parse the model's raw JSON output into a normalized question list.
+ *
+ * Accepts either `{ "questions": [...] }` or a bare `[...]` array. Every item
+ * is normalized to `GeneratedQuestionPayload` — `question`/`answer`/`options`
+ * are trimmed and emptied strings dropped; `explanation`, `hint`, `type`,
+ * `difficulty`, `tags` are kept only when present. Items with an empty
+ * `question` are filtered out. Throws `"AI response did not contain any
+ * questions"` if nothing valid remains.
+ */
 export const parseQuestionsJSON = (
   content: string
 ): GeneratedQuestionPayload[] => {
@@ -261,12 +317,25 @@ export const parseQuestionsJSON = (
   return questions;
 };
 
+/** Clamp a number into the inclusive `[min, max]` range. */
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
 /**
- * Extract readable text from the uploaded files, send everything to the model,
- * and return strictly-parsed `{ questions: [...] }`.
+ * Main entry point — generate quiz questions from uploaded files.
+ *
+ * Pipeline:
+ *   1. Check whether Docling Serve is reachable (memoized health check).
+ *   2. `extractFileText()` per file → wrap each as `--- filename ---\n<text>`.
+ *   3. Join, truncate to 200k chars, and build the generation prompt from the
+ *      options (`numberOfQuestions`, `questionTypes`, `difficulty`,
+ *      `bloomsLevel`, and the optional `include*` extras).
+ *   4. Make a single non-streaming `chatWithAI(prompt)` call.
+ *   5. `parseQuestionsJSON()` on the reply and return
+ *      `{ questions, extractedText, usage }`.
+ *
+ * Throws if there are no files, no extractable text, or the model reply
+ * contains no valid questions.
  */
 export const generateQuestionsFromFiles = async (
   request: QuestionGenerationRequest
