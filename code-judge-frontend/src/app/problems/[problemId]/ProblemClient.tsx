@@ -7,8 +7,6 @@ import {
   Check,
   Clock,
   Database,
-  Maximize2,
-  Type,
   Sparkles,
   FileText,
   Code2,
@@ -28,8 +26,8 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { useProblemData } from "@/mocks/useProblemData";
 import { TabSkeleton, SubmissionRowSkeleton, DiscussionCardSkeleton } from "@/components/problem/ProblemSkeleton";
 import { useAuthStore } from "@/store/authStore";
-import AIStudio from "@/components/quiz/creator/AIStudio";
-import { toast } from "@/lib/toast";
+import CodeAssistantPanel from "@/components/editor/CodeAssistantPanel";
+import { useAIEditorStore } from "@/store/aiEditorStore";
 
 type TabType =
   | "description"
@@ -52,15 +50,14 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
   const [bookmarked, setBookmarked] = useState(false);
   const [liked, setLiked] = useState(false);
   const [language, setLanguage] = useState("javascript");
-  const [theme, setTheme] = useState("vs-dark");
-  const [fontSize, setFontSize] = useState(14);
   const [code, setCode] = useState(`#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n\n    return 0;\n}`);
 
   const { data, loading } = useProblemData(problem.problem_id);
   const currentUser = useAuthStore((s) => s.user);
 
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  const monacoEditorRef = useRef<any>(null);
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
   const leftGroupId = useId();
   const bottomGroupId = useId();
 
@@ -96,15 +93,23 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
   };
 
   const layoutEditor = useCallback(() => {
-    if (monacoEditorRef.current && typeof monacoEditorRef.current.layout === "function") {
-      monacoEditorRef.current.layout();
+    if (editorRef.current && typeof editorRef.current.layout === "function") {
+      editorRef.current.layout();
     }
   }, []);
 
   const handleCodeChange = useCallback((value: string) => {
     setCode(value);
   }, []);
-  const [showAIStudio, setShowAIStudio] = useState(false);
+
+  const handleEditorMount = useCallback(
+    (editor: any, monaco: any) => {
+      editorRef.current = editor;
+      monacoRef.current = monaco;
+      layoutEditor();
+    },
+    [layoutEditor]
+  );
 
   const loadLayout = useCallback(
     (key: string, fallback: number) => {
@@ -142,29 +147,6 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
-      {/* AI Studio Button */}
-      <button
-        onClick={() => setShowAIStudio(!showAIStudio)}
-        className="fixed right-4 top-1/2 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2 text-sm font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)]"
-      >
-        <Sparkles className="h-4 w-4" />
-        AI Studio
-      </button>
-
-      {/* AI Studio Panel */}
-      {showAIStudio && (
-        <AIStudio
-          onQuestionsGenerated={(generatedQuestions) => {
-            if (generatedQuestions.length > 0 && generatedQuestions[0].content) {
-              setCode(generatedQuestions[0].content);
-              toast.success("AI code applied to editor");
-            }
-            setShowAIStudio(false);
-          }}
-          onClose={() => setShowAIStudio(false)}
-        />
-      )}
-
       {/* Problem Header — clean, spacious, Codeforces + LeetCode inspired */}
       <div className="problem-solve-header shrink-0 border-b border-border bg-card">
         <div className="px-6 py-5">
@@ -183,7 +165,6 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                 Run Code
               </button>
               <button className="flex h-[42px] items-center justify-center gap-2 rounded-xl border border-success/30 bg-success/10 px-6 text-sm font-bold text-success transition-all hover:bg-success/20 hover:shadow-[0_0_20px_rgba(34,197,94,0.15)] focus-visible:ring-2 focus-visible:ring-success/40">
-                <Check className="h-4 w-4" />
                 Submit
               </button>
             </div>
@@ -568,37 +549,24 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                           <option value="java">Java</option>
                           <option value="cpp">C++</option>
                         </select>
-                        <select
-                          value={theme}
-                          onChange={(e) => setTheme(e.target.value)}
-                          className="h-7 pl-2 pr-6 text-[11px] bg-[#161B22] border border-border rounded text-white focus:outline-none focus:border-accent"
-                        >
-                          <option value="vs-dark">VS Dark</option>
-                          <option value="monokai">Monokai</option>
-                          <option value="github-dark">GitHub Dark</option>
-                        </select>
-                        <div className="flex items-center gap-1">
-                          <Type className="w-3.5 h-3.5 text-text-secondary" />
-                          <select
-                            value={fontSize}
-                            onChange={(e) => setFontSize(Number(e.target.value))}
-                            className="h-7 pl-1 pr-5 text-[11px] bg-[#161B22] border border-border rounded text-white focus:outline-none focus:border-accent"
-                          >
-                            <option value="12">12</option>
-                            <option value="14">14</option>
-                            <option value="16">16</option>
-                            <option value="18">18</option>
-                          </select>
-                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <button className="h-7 px-2.5 rounded-md border border-border bg-[#161B22] text-white text-[11px] font-medium hover:border-border-hover transition-colors">
-                          Reset
-                        </button>
-                        <button className="h-7 px-2.5 rounded-md border border-border bg-[#161B22] text-white text-[11px] font-medium hover:border-border-hover transition-colors flex items-center gap-1">
-                          <Maximize2 className="w-3 h-3" />
-                          Fullscreen
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          onClick={() => {
+                            useAIEditorStore.getState().requestAsk({
+                              context: {
+                                type: "current_file",
+                                language,
+                                filename: "solution.cpp",
+                                content: code,
+                              },
+                            });
+                          }}
+                          className="flex h-7 w-[86px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-gradient-to-r from-violet-600 to-blue-600 px-2.5 text-[11px] font-bold text-white will-change-transform transition-[filter] hover:brightness-110 active:scale-[0.98]"
+                        >
+                          <Sparkles className="h-3 w-3 shrink-0" />
+                          Ask AI
                         </button>
                       </div>
                     </div>
@@ -610,6 +578,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                       language="cpp"
                       value={code}
                       onChange={handleCodeChange}
+                      onMount={handleEditorMount}
                       options={{
                         automaticLayout: false,
                         fontFamily: '"Consolas", "Courier New", monospace',
@@ -652,6 +621,8 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
           </Panel>
         </Group>
       </div>
+
+      <CodeAssistantPanel editorRef={editorRef} monacoRef={monacoRef} />
     </div>
   );
 }

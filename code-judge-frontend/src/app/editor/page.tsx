@@ -2,6 +2,7 @@
 
 import { Code2 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import { CodeEditor } from "@/components/editor";
 
 export default function EditorPage() {
@@ -16,6 +17,9 @@ export default function EditorPage() {
               <h1 className="text-lg font-bold text-white">Code Editor</h1>
             </div>
             <span className="text-xs text-muted-foreground">Standalone Mode</span>
+            <div className="ml-auto flex items-center">
+              <ThemeToggle />
+            </div>
           </div>
         </div>
 
