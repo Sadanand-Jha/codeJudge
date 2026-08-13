@@ -43,7 +43,7 @@ const STATUS_META: Record<RequestStatus, { label: string; icon: typeof Clock3; b
 export default function CollaboratorsSection() {
   const toast = useToast();
   const { quizId } = useQuizSettings();
-  const currentUserId = useAuthStore((s) => s.user?.id);
+  const currentUserId = useAuthStore((s) => (s.user?.id != null ? String(s.user.id) : undefined));
 
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);

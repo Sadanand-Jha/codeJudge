@@ -13,6 +13,7 @@ import {
 import AppLayout from "@/components/layout/AppLayout";
 import AvatarSettings from "@/components/settings/AvatarSettings";
 import { useCurrentAvatar } from "@/store/avatarStore";
+import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/hooks/useToast";
 import {
   Toggle, SettingsCard, SettingsInput, SettingsSelect,
@@ -459,6 +460,8 @@ export default function SettingsPage() {
   const handleAvatarUpdated = (avatarUrl: string) => {
     setSettings((prev) => ({ ...prev, avatar: avatarUrl }));
     setOriginalSettings((prev) => ({ ...prev, avatar: avatarUrl }));
+    // Keep the global auth store (used by navbar/sidebar) in sync.
+    useAuthStore.getState().setUser({ avatarUrl });
   };
 
   const displayName = settings.displayName || `${settings.firstName} ${settings.lastName}`.trim() || "Your Name";

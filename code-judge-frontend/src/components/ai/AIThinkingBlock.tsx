@@ -6,7 +6,7 @@ import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import AILogo from "@/components/ai/AILogo";
 import { isAtBottom as userIsAtBottom } from "@/components/ai/tokenUsage";
 import type { LiveUsage } from "@/services/ai";
-import { fmt } from "@/components/ai/tokenUsage";
+import { estimateTokens, fmt } from "@/components/ai/tokenUsage";
 
 // When the user's viewport is more than this many px below the newest reasoning,
 // they are "paused" (reading older content) and auto-follow pauses.
@@ -31,9 +31,9 @@ const CONTENT_MAX = MAX_BOX_HEIGHT - HEADER_HEIGHT;
  * (its caller unmounts it / shows the completed label), and the mark is instead
  * rendered trailing the live answer content.
  *
- * Token numbers shown here are only ever the real values the backend has
- * reported so far — they start at 0 (no usage received yet) and never estimate
- * character length.
+ * Token numbers shown here are the real values the backend has reported so
+ * far, falling back to a live character-based estimate while reasoning streams
+ * so the count is always moving; the real usage replaces it when it arrives.
  */
 export default function AIThinkingBlock({
   reasoning,
@@ -52,8 +52,10 @@ export default function AIThinkingBlock({
   const latestLineRef = useRef<HTMLDivElement>(null);
 
   const open = manualOpen ?? isReasoning;
-  // Real-so-far token total: 0 until the backend reports usage.
-  const headerTokenTotal = usage?.totalTokens;
+  // Real-so-far token total when the backend reports it, otherwise a live
+  // estimate from the reasoning text so the count is never stuck at 0 while
+  // the model is still thinking.
+  const headerTokenTotal = usage?.totalTokens ?? estimateTokens(reasoning);
 
   // Follow the newest reasoning line. Instead of guessing with a raw
   // `scrollHeight` assignment (which can leave the active line off-screen or
@@ -114,7 +116,7 @@ export default function AIThinkingBlock({
           </span>
 
           <span className="text-[11px] font-medium text-text-muted">
-            · {headerTokenTotal != null ? `${fmt(headerTokenTotal)} tokens` : "0 tokens"}
+            · {fmt(headerTokenTotal)} tokens
           </span>
 
         <ChevronDown

@@ -7,22 +7,25 @@ import type { LiveUsage } from "@/services/ai";
 /**
  * Subtle, fixed-shape metadata line shown below an AI message.
  *
- * - while streaming: reflects any real usage received so far (else "Generating…")
+ * - while streaming: reflects any real usage received so far, else a live
+ *   `↓ N tokens` estimate (via `liveEstimate`) instead of a static "Generating…"
  * - when done: the final real usage + generation time + tokens/sec
  *
- * No tokens are ever invented; the row is hidden when nothing real is available
- * (e.g. a provider that never reports usage and no timing captured).
+ * Real backend usage is always preferred; the estimate only fills the gap while
+ * the answer is still streaming. The row is hidden when nothing is available.
  */
 export default function AIUsageMeta({
   isStreaming,
   usage,
   timeMs,
+  liveEstimate,
 }: {
   isStreaming: boolean;
   usage?: LiveUsage;
   timeMs?: number;
+  liveEstimate?: number;
 }) {
-  const text = formatUsage(usage, timeMs, isStreaming);
+  const text = formatUsage(usage, timeMs, isStreaming, liveEstimate);
   if (!text) return null;
 
   return (

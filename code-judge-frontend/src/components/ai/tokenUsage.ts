@@ -5,6 +5,15 @@ export type { LiveUsage } from "@/services/ai";
 export const fmt = (n: number) => Math.round(n).toLocaleString();
 
 /**
+ * Rough live token estimate for streaming text before the provider reports
+ * real usage (~4 chars/token, the standard rule of thumb). Used by thinking
+ * panels and the answer meta row so a live count is always visible; the real
+ * backend usage replaces it the moment it arrives.
+ */
+export const estimateTokens = (text: string): number =>
+  Math.max(0, Math.round((text || "").length / 4));
+
+/**
  * Build the compact usage string for an AI message.
  *
  * Rules (honors "do not fabricate"):
@@ -12,13 +21,16 @@ export const fmt = (n: number) => Math.round(n).toLocaleString();
  *  - input/output breakdown when both are present (and no reasoning split)
  *  - total only otherwise
  *  - duration + tokens/sec only appended from real values; tok/s needs total + positive duration
- *  - returns "Generating…" while streaming and nothing real is known yet
+ *  - while streaming with no real usage yet, `liveEstimate` (an estimated token
+ *    count for the answer so far) shows a live `↓ N tokens` row instead of a
+ *    static "Generating…"
  *  - returns null when there is nothing real to show (no usage & no time)
  */
 export const formatUsage = (
   usage: LiveUsage | undefined,
   timeMs?: number,
-  isStreaming?: boolean
+  isStreaming?: boolean,
+  liveEstimate?: number
 ): string | null => {
   const { inputTokens, outputTokens, reasoningTokens, totalTokens } = usage ?? {};
   const hasInput = inputTokens != null;
@@ -50,7 +62,10 @@ export const formatUsage = (
   }
 
   if (parts.length === 0) {
-    return isStreaming ? "Generating…" : null;
+    if (isStreaming) {
+      return liveEstimate != null ? `↓ ${fmt(liveEstimate)} tokens` : "Generating…";
+    }
+    return null;
   }
   return parts.join(" · ");
 };

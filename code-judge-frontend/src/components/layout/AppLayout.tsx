@@ -23,15 +23,14 @@ import {
   BookOpen,
   Briefcase,
   Sparkles,
-  UserPlus,
   ClipboardList,
   Plus,
   ChevronDown,
   Crown,
 } from "lucide-react";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore, type UserProfile } from "@/store/authStore";
+import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
-import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { me, logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
 import { isNestedQuizPath, isQuizProblemsPath } from "@/lib/quizWorkspace";
@@ -39,8 +38,7 @@ import { cn } from "@/lib/helpers";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import { ChatProvider } from "@/context/ChatContext";
 import AuthModal from "@/components/modals/AuthModal";
-import NotificationBell from "./NotificationBell";
-import ThemeToggle from "@/components/ui/ThemeToggle";
+import NavbarRightActions from "./NavbarRightActions";
 import { useTheme } from "@/context/ThemeContext";
 import LowCreditNotification from "@/components/ai/LowCreditNotification";
 import AiAssistantStrip from "@/components/ai/AiAssistantStrip";
@@ -143,23 +141,17 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authModalRedirect, setAuthModalRedirect] = useState<string | undefined>();
+  const authModalOpen = useUIStore((s) => s.authModalOpen);
+  const authModalRedirect = useUIStore((s) => s.authModalRedirect);
+  const closeAuthModal = useUIStore((s) => s.closeAuthModal);
+  const logoutConfirmOpen = useUIStore((s) => s.logoutConfirmOpen);
+  const cancelLogout = useUIStore((s) => s.cancelLogout);
+  const openAuthModal = useUIStore((s) => s.openAuthModal);
   const [assessmentExpanded, setAssessmentExpanded] = useState(() => isQuizPath(pathname));
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const setAuth = useAuthStore((s) => s.setAuth);
   const savedAvatar = useSavedAvatar();
-  const creditBalance = useAICreditsStore((s) => s.balance);
-  // A user is "premium" (PRO / ULTIMATE) when they have an active paid
-  // subscription. Derived solely from existing subscription/credit state —
-  // never faked in the frontend.
-  const isPremium = !!(
-    creditBalance?.hasActiveSubscription &&
-    creditBalance?.planId &&
-    !["free", "student"].includes((creditBalance.planId as string).toLowerCase())
-  );
   const { isGuest } = useGuestMode();
   const { theme } = useTheme();
 
@@ -191,8 +183,16 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       try {
         const res = await me();
         if (!cancelled && res.success && res.data?.user) {
-          const u = res.data.user as { id: string; email: string; username?: string };
-          setAuth("session", u);
+          // Store the full profile (name, avatar, role, preferences…) globally.
+          const u = res.data.user as UserProfile;
+          const { token, setUser, setAuth } = useAuthStore.getState();
+          if (token && token !== "session") {
+            // Real login token already present — refresh the profile only.
+            setUser(u);
+          } else {
+            // Session-cookie auth without a stored token — authenticate normally.
+            setAuth("session", u);
+          }
         }
       } catch {
         // Not authenticated — keep default state
@@ -218,8 +218,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     "ByteClash";
 
   const handleAuthRequired = (redirectUrl?: string) => {
-    setAuthModalRedirect(redirectUrl);
-    setAuthModalOpen(true);
+    openAuthModal(redirectUrl);
   };
 
   // Fullscreen routes (waiting room, etc.) - no sidebar/navbar
@@ -229,10 +228,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         {children}
         <AuthModal
           isOpen={authModalOpen}
-          onClose={() => {
-            setAuthModalOpen(false);
-            setAuthModalRedirect(undefined);
-          }}
+          onClose={closeAuthModal}
           redirectUrl={authModalRedirect}
         />
       </div>
@@ -486,9 +482,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
            {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
            <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="ByteClash home">
-<div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
-                <Code2 className="w-4 h-4 text-accent-foreground" />
-              </div>
              <span className="hidden sm:block text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
            </Link>
 
@@ -510,55 +503,9 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
              </div>
            </div>
 
-            {/* Right icons */}
-            <div className="flex items-center gap-2">
-               <ThemeToggle />
-               <NotificationBell />
-            {isAuthenticated ? (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/profile"
-                  className="w-8 h-8 rounded-full overflow-hidden border border-border bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-accent-foreground"
-                  title={user?.username || "Profile"}
-                >
-                   {savedAvatar ? (
-                     <img
-                       src={savedAvatar.url}
-                       alt={savedAvatar.label}
-                       className="h-full w-full object-cover"
-                     />
-                   ) : (
-                     (user?.username || "U").charAt(0).toUpperCase()
-                   )}
-                 </Link>
-                 {isPremium && (
-                   <span
-                     className="relative inline-flex items-center overflow-hidden rounded-md bg-gradient-to-r from-[#EC4899]/20 to-[#8B5CF6]/20 px-1.5 py-0.25 text-[10px] font-semibold tracking-wider text-[#EC4899] ring-1 ring-[#8B5CF6]/40 premium-surface"
-                     aria-label="PRO subscriber"
-                   >
-                     <span className="premium-shine" aria-hidden="true" />
-                     PRO
-                   </span>
-                 )}
-                <button
-                  onClick={() => setLogoutConfirmOpen(true)}
-                  className="hidden sm:flex p-2 rounded-lg hover:bg-accent/5 text-text-secondary hover:text-danger transition-colors"
-                  aria-label="Log out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => handleAuthRequired(pathname + window.location.search)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-accent hover:shadow-[0_0_12px_rgba(37,99,235,0.3)] transition-all"
-              >
-                <UserPlus className="w-3 h-3" />
-                Sign in
-              </button>
-            )}
-          </div>
-        </header>
+            {/* Right actions */}
+            <NavbarRightActions />
+          </header>
         )}
 
         {/* ===== PAGE CONTENT ===== */}
@@ -568,18 +515,15 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       <LogoutConfirmModal
         open={logoutConfirmOpen}
         onConfirm={() => {
-          setLogoutConfirmOpen(false);
+          cancelLogout();
           handleLogout();
         }}
-        onCancel={() => setLogoutConfirmOpen(false)}
+        onCancel={cancelLogout}
       />
 
       <AuthModal
         isOpen={authModalOpen}
-        onClose={() => {
-          setAuthModalOpen(false);
-          setAuthModalRedirect(undefined);
-        }}
+        onClose={closeAuthModal}
         redirectUrl={authModalRedirect}
       />
       <LowCreditNotification />

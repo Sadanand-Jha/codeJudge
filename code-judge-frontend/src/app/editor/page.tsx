@@ -2,7 +2,7 @@
 
 import { Code2 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
-import ThemeToggle from "@/components/ui/ThemeToggle";
+import NavbarRightActions from "@/components/layout/NavbarRightActions";
 import { CodeEditor } from "@/components/editor";
 
 export default function EditorPage() {
@@ -18,7 +18,7 @@ export default function EditorPage() {
             </div>
             <span className="text-xs text-muted-foreground">Standalone Mode</span>
             <div className="ml-auto flex items-center">
-              <ThemeToggle />
+              <NavbarRightActions />
             </div>
           </div>
         </div>

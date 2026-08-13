@@ -6,8 +6,6 @@ import {
   X,
   Send,
   Square,
-  Copy,
-  Check,
   Code2,
   FileCode2,
   CheckCheck,
@@ -23,11 +21,8 @@ import { useAIEditorStore } from "@/store/aiEditorStore";
 import type { CodeContext } from "@/store/aiEditorStore";
 import { useCodeAssistantStore } from "@/store/codeAssistantStore";
 import type { CodeAssistantMessage } from "@/store/codeAssistantStore";
-import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
-import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
-import AIUsageMeta from "@/components/ai/AIUsageMeta";
+import AIMessageRow from "@/components/ai/AIMessageRow";
 import AILogo from "@/components/ai/AILogo";
-import { extractRenderedText } from "@/utils/clipboard";
 import {
   EDITS_OPEN,
   parseEditsFromResponse,
@@ -98,7 +93,6 @@ export default function CodeAssistantPanel({
   const [suggestions, setSuggestions] = useState<PendingSuggestion[]>([]);
   const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [inlineActiveId, setInlineActiveId] = useState<string | null>(null);
 
   // Persistent conversation (module-scope store, like ChatContext for the quiz
@@ -112,7 +106,6 @@ export default function CodeAssistantPanel({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const contentRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const streamAbortRef = useRef<AbortController | null>(null);
 
   // Consume a pending "ask" request when the panel opens (external store sync).
@@ -369,14 +362,6 @@ export default function CodeAssistantPanel({
 
   const close = () => useAIEditorStore.getState().setOpen(false);
 
-  const copyMessage = (m: PanelMessage) => {
-    const el = contentRefs.current[m.id];
-    const rendered = el ? extractRenderedText(el) : "";
-    navigator.clipboard.writeText(rendered || m.content);
-    setCopiedId(m.id);
-    setTimeout(() => setCopiedId((cur) => (cur === m.id ? null : cur)), 2000);
-  };
-
   const stopGeneration = () => streamAbortRef.current?.abort();
 
   /**
@@ -599,7 +584,7 @@ export default function CodeAssistantPanel({
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
           transition={{ type: "spring", stiffness: 400, damping: 36 }}
-          className="fixed inset-y-0 right-0 z-[56] flex w-[88vw] max-w-[420px] flex-col border-l border-border bg-card text-text-primary shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
+          className="fixed inset-y-0 right-0 z-[56] flex w-[88vw] max-w-[560px] flex-col border-l border-border bg-card text-text-primary shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
         >
           {/* ===== Header ===== */}
           <div className="relative flex items-center justify-between border-b border-border bg-card-hover/40 px-5 py-3.5">
@@ -638,6 +623,9 @@ export default function CodeAssistantPanel({
               {messages.filter((m) => m.role !== "system").length > 0 && (
                 <button
                   onClick={() => {
+                    // Abort any in-flight stream so the LLM stops generating,
+                    // then wipe the conversation and reset the composer.
+                    streamAbortRef.current?.abort();
                     clearConversation();
                     detachInlineSuggestion(editorRef.current);
                     setSuggestions([]);
@@ -721,75 +709,20 @@ export default function CodeAssistantPanel({
                 </p>
               </div>
             ) : (
-              visibleMessages.map((m) => {
-                return (
-                  <div
-                    key={m.id}
-                    className={`group flex w-full flex-col gap-1 ${
-                      m.role === "user" ? "items-end" : "items-start"
-                    }`}
-                  >
-                    <div
-                      className={cn(
-                        "max-w-[88%] rounded-xl px-3 py-2 text-xs leading-relaxed text-text-primary",
-                        m.role === "user"
-                          ? "whitespace-pre-wrap rounded-tr-sm border border-chat-user-border bg-chat-user-bg"
-                          : "rounded-tl-sm border border-border bg-card-hover/40"
-                      )}
-                    >
-                      {m.role === "assistant" ? (
-                        <>
-                          {!m.content && (m.reasoningContent || m.isReasoning) && (
-                            <AIThinkingBlock
-                              reasoning={m.reasoningContent || ""}
-                              isReasoning={!!m.isReasoning}
-                              usage={m.usage}
-                            />
-                          )}
-                          {m.content && (
-                            <MarkdownRenderer
-                              ref={(node) => {
-                                if (node) contentRefs.current[m.id] = node;
-                              }}
-                              content={m.content}
-                            />
-                          )}
-                          {m.content && (
-                            <AILogo
-                              variant="accent"
-                              size="sm"
-                              animate={!!m.isStreaming}
-                              className="mt-1"
-                            />
-                          )}
-                          <AIUsageMeta
-                            isStreaming={!!m.isStreaming}
-                            usage={m.usage}
-                            timeMs={m.timeMs}
-                          />
-                        </>
-                      ) : (
-                        <span className="whitespace-pre-wrap text-xs leading-relaxed text-text-primary">
-                          {m.content}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => copyMessage(m)}
-                      disabled={!m.content}
-                      className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-text-muted opacity-0 transition-opacity hover:bg-card-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-0 group-hover:opacity-100"
-                      title="Copy message"
-                    >
-                      {copiedId === m.id ? (
-                        <Check className="h-3 w-3 text-success" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                      {copiedId === m.id ? "Copied" : "Copy"}
-                    </button>
-                  </div>
-                );
-              })
+              visibleMessages.map((m) => (
+                <AIMessageRow
+                  key={m.id}
+                  message={{
+                    role: m.role === "user" ? "user" : "assistant",
+                    content: m.content,
+                    reasoningContent: m.reasoningContent,
+                    isReasoning: m.isReasoning,
+                    isStreaming: m.isStreaming,
+                    usage: m.usage,
+                    timeMs: m.timeMs,
+                  }}
+                />
+              ))
             );
             })()}
             <div ref={messagesEndRef} />

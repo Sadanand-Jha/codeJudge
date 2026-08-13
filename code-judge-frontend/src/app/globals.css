@@ -229,6 +229,47 @@
   --color-ai-user-bubble: var(--ai-user-bubble);
 }
 
+/* ============================================
+   AI Chat composer — explicit text / placeholder /
+   selection colors for the input textarea.
+   The global @layer base form rules force
+   `color: #fff` (dark) / `#0f172a` (light) and a
+   faint placeholder on every textarea, and inherited
+   text-fill can make the input intermittently
+   unreadable. These scoped rules pin the composer's
+   colors to the ai tokens for BOTH themes so the
+   text is always readable: idle, focused, typing,
+   selected, and during generation. The composer's
+   own border + purple focus ring (on its wrapper)
+   are untouched.
+   ============================================ */
+.ai-composer-input {
+  color: var(--ai-text) !important;
+  caret-color: var(--ai-accent);
+  -webkit-text-fill-color: var(--ai-text);
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.ai-composer-input::placeholder {
+  color: var(--ai-text-sec) !important;
+  -webkit-text-fill-color: var(--ai-text-sec) !important;
+  opacity: 1 !important;
+}
+
+.ai-composer-input:focus,
+.ai-composer-input:focus-visible {
+  outline: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.ai-composer-input::selection {
+  background-color: var(--ai-accent-soft);
+  color: var(--ai-text);
+  -webkit-text-fill-color: var(--ai-text);
+}
+
 /* Base styles */
 body {
   background: var(--background);
