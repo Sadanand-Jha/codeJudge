@@ -5,6 +5,7 @@ import type { LanguageOption } from "@/types/editor";
 import LanguageSelector from "./LanguageSelector";
 import RunButton from "./RunButton";
 import SubmitButton from "./SubmitButton";
+import AskAIButton from "./AskAIButton";
 
 interface EditorHeaderProps {
   languageId: number;
@@ -14,6 +15,8 @@ interface EditorHeaderProps {
   isCompiling: boolean;
   onSubmit?: () => void;
   isSubmitting?: boolean;
+  onAskAI?: () => void;
+  isAskingAI?: boolean;
 }
 
 function EditorHeader({
@@ -24,6 +27,8 @@ function EditorHeader({
   isCompiling,
   onSubmit,
   isSubmitting = false,
+  onAskAI,
+  isAskingAI = false,
 }: EditorHeaderProps) {
   return (
     <header className="flex h-10 shrink-0 items-center justify-between px-3 text-[13px] border-b border-[#222] bg-[#1a1a1a]">
@@ -36,6 +41,9 @@ function EditorHeader({
       </div>
       <div className="flex items-center gap-2">
         {onSubmit && <SubmitButton onClick={onSubmit} isSubmitting={isSubmitting} />}
+        {onAskAI && (
+          <AskAIButton onClick={onAskAI} disabled={isAskingAI || isCompiling} />
+        )}
         <RunButton onClick={onRun} isCompiling={isCompiling} />
       </div>
     </header>

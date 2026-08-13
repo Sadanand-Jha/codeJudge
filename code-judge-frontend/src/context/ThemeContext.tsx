@@ -1,10 +1,16 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useSyncExternalStore,
+  useCallback,
+} from "react";
 import { useAuthStore } from "@/store/authStore";
 import { updatePreferences } from "@/services/auth";
-
-type Theme = "dark" | "light";
+import { STORAGE_KEYS } from "@/utils/storageKeys";
+import { getInitialTheme, applyThemeToDOM, Theme, DEFAULT_THEME } from "@/utils/theme";
 
 interface ThemeContextValue {
   theme: Theme;
@@ -14,70 +20,89 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "byteclash_theme";
+// External store for theme preference, used with useSyncExternalStore to
+// avoid SSR/client hydration mismatch. getServerSnapshot always returns the
+// default theme so server and client initial renders match. After mount,
+// the mount effect notifies subscribers so getSnapshot re-reads from
+// localStorage and the UI updates to the user's actual preference.
+const themeStore = {
+  _listeners: new Set<() => void>(),
 
-function getSystemTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
-}
+  getSnapshot(): Theme {
+    return getInitialTheme();
+  },
 
-function getStoredTheme(): Theme | null {
-  if (typeof window === "undefined") return null;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark") return stored;
-  return null;
-}
+  getServerSnapshot(): Theme {
+    return DEFAULT_THEME;
+  },
+
+  subscribe(listener: () => void): () => void {
+    this._listeners.add(listener);
+    return () => {
+      this._listeners.delete(listener);
+    };
+  },
+
+  _emit() {
+    this._listeners.forEach((l) => l());
+  },
+
+  set(theme: Theme) {
+    localStorage.setItem(STORAGE_KEYS.THEME, theme);
+    applyThemeToDOM(theme);
+    this._emit();
+  },
+
+  toggle(current: Theme): Theme {
+    const next = current === "dark" ? "light" : "dark";
+    this.set(next);
+    return next;
+  },
+};
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
-  const [isHydrated, setIsHydrated] = useState(false);
+  const theme = useSyncExternalStore(
+    themeStore.subscribe.bind(themeStore),
+    themeStore.getSnapshot.bind(themeStore),
+    themeStore.getServerSnapshot.bind(themeStore)
+  );
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  // Load theme on mount
+  // After mount, notify subscribers so getSnapshot re-reads the theme from
+  // localStorage (or system preference) and the UI reflects the user's choice.
+  // The critical inline script in layout.tsx already set the correct DOM
+  // attribute before first paint.
   useEffect(() => {
-    const stored = getStoredTheme();
-    if (stored) {
-      setThemeState(stored);
-    } else {
-      setThemeState(getSystemTheme());
-    }
-    setIsHydrated(true);
+    themeStore._emit();
   }, []);
 
-  // Apply theme to document
+  // Safety net: keep the DOM attribute in sync with React state whenever it
+  // changes (e.g. when the user toggles the theme).
   useEffect(() => {
-    if (!isHydrated) return;
-    const root = document.documentElement;
-    root.setAttribute("data-theme", theme);
-  }, [theme, isHydrated]);
+    applyThemeToDOM(theme);
+  }, [theme]);
 
-  const setTheme = useCallback((newTheme: Theme) => {
-    setThemeState(newTheme);
-    localStorage.setItem(STORAGE_KEY, newTheme);
-
-    // Sync to backend if authenticated
-    if (isAuthenticated) {
-      updatePreferences({ theme: newTheme }).catch(() => {
-        // Silent fail for theme sync
-      });
-    }
-  }, [isAuthenticated]);
-
-  const toggleTheme = useCallback(() => {
-    setThemeState((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      localStorage.setItem(STORAGE_KEY, next);
-
-      // Sync to backend if authenticated
+  const setTheme = useCallback(
+    (newTheme: Theme) => {
+      themeStore.set(newTheme);
       if (isAuthenticated) {
-        updatePreferences({ theme: next }).catch(() => {
+        updatePreferences({ theme: newTheme }).catch(() => {
           // Silent fail for theme sync
         });
       }
+    },
+    [isAuthenticated]
+  );
 
-      return next;
-    });
-  }, [isAuthenticated]);
+  const toggleTheme = useCallback(() => {
+    themeStore.toggle(theme);
+    if (isAuthenticated) {
+      const next = theme === "dark" ? "light" : "dark";
+      updatePreferences({ theme: next }).catch(() => {
+        // Silent fail for theme sync
+      });
+    }
+  }, [theme, isAuthenticated]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>

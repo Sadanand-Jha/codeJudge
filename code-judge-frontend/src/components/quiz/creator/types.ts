@@ -54,6 +54,12 @@ export interface CreatorQuestion {
   updatedAt: string;
 }
 
+export interface QuizCollaborator {
+  userId: string;
+  username?: string;
+  addedAt: string;
+}
+
 export interface QuizDetails {
   name: string;
   description: string;
@@ -62,6 +68,7 @@ export interface QuizDetails {
   topic: string;
   difficulty: "Easy" | "Medium" | "Hard" | "Expert";
   visibility: QuizVisibility;
+  visibilityId: number | null;
   timeLimit: number; // minutes
   startDate: string;
   endDate: string;
@@ -74,12 +81,21 @@ export interface QuizDetails {
   showCorrectAnswersAfterSubmission: boolean;
   negativeMarking: boolean;
   negativeMarkValue: number;
-  maxParticipants: number;
   tags: string[];
   totalQuestions: number;
   totalMarks: number;
   marksPerQuestion: number;
   passingMarks: number;
+  registrationEnabled: boolean;
+  registrationStart: string;
+  registrationEnd: string;
+  emailResults: boolean;
+  leaderboard: boolean;
+  leaderboardShowRank: boolean;
+  leaderboardShowScore: boolean;
+  leaderboardShowTime: boolean;
+  resultVisibility: "immediate" | "after_end" | "manual";
+  collaborators: QuizCollaborator[];
 }
 
 export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
@@ -90,6 +106,7 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   topic: "",
   difficulty: "Medium",
   visibility: "public",
+  visibilityId: null,
   timeLimit: 30,
   startDate: "",
   endDate: "",
@@ -102,12 +119,21 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   showCorrectAnswersAfterSubmission: true,
   negativeMarking: false,
   negativeMarkValue: 0,
-  maxParticipants: 0,
   tags: [],
   totalQuestions: 0,
   totalMarks: 0,
   marksPerQuestion: 10,
   passingMarks: 0,
+  registrationEnabled: false,
+  registrationStart: "",
+  registrationEnd: "",
+  emailResults: false,
+  leaderboard: false,
+  leaderboardShowRank: true,
+  leaderboardShowScore: true,
+  leaderboardShowTime: true,
+  resultVisibility: "immediate",
+  collaborators: [],
 };
 
 export const QUESTION_TYPE_LABELS: Record<CreatorQuestionType, string> = {

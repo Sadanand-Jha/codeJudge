@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { JoinQuizModal } from "./JoinQuizModal";
 import { QuizWarpExperience } from "./QuizWarpExperience";
-import PreviousQuizzesSection from "./PreviousQuizzesSection";
+import YourActivitySection from "./YourActivitySection";
 import { getQuizByCode } from "@/services/quiz";
 
 /** Maximum loading screen duration in ms. */
@@ -130,7 +130,7 @@ export function QuizLandingCards() {
         </Link>
       </section>
 
-      <PreviousQuizzesSection />
+      <YourActivitySection />
 
       <JoinQuizModal
         open={joinOpen}

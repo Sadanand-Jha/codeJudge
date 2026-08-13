@@ -2,13 +2,38 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef } from "react";
+import type { CSSProperties } from "react";
 import type { editor } from "monaco-editor";
 import { SUBLIME_BG, BORDER_COLOR } from "@/config/editor";
+import { useTheme } from "@/context/ThemeContext";
 
-const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
-  ssr: false,
-  loading: () => <div className="h-full w-full bg-[#272822]" />,
-});
+/**
+ * Monaco is served from a same-origin static build (`public/monaco/vs`)
+ * instead of the default remote CDN (https://cdn.jsdelivr.net/...).
+ *
+ * The default CDN load races against client-side navigation: on a cold cache
+ * or a slow/blocked CDN, Monaco never finishes initializing and the editor
+ * stays a black/blank screen until a full page reload (F5) warms the cache.
+ *
+ * Configuring the loader to use the locally-copied `min/vs` build makes
+ * initialization deterministic on the first visit and during client-side
+ * navigation, and loads Monaco's web workers from the same origin.
+ *
+ * This factory only runs on the client (ssr: false), and the loader is
+ * configured BEFORE the Editor component mounts, so there is no race between
+ * the Editor's internal `loader.init()` and our config.
+ */
+const MonacoEditor = dynamic(
+  async () => {
+    const { default: Editor, loader } = await import("@monaco-editor/react");
+    loader.config({ paths: { vs: "/monaco/vs" } });
+    return Editor;
+  },
+  {
+    ssr: false,
+    loading: () => <div className="h-full w-full bg-white dark:bg-[#272822]" />,
+  },
+);
 
 interface MonacoEditorWrapperProps {
   language: string;
@@ -29,7 +54,14 @@ export default function MonacoEditorWrapper({
   onChange,
   onMount,
   options,
+  theme,
 }: MonacoEditorWrapperProps) {
+  const { theme: appTheme } = useTheme();
+  const isLight = appTheme === "light";
+  const editorTheme = theme ?? (isLight ? "vs" : "sublime-monokai");
+  const lineHeight =
+    options?.lineHeight ?? Math.round((options?.fontSize ?? 14) * 1.5);
+
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -74,8 +106,6 @@ export default function MonacoEditorWrapper({
         "scrollbarSlider.activeBackground": "#75715Ecc",
       },
     });
-
-    monaco.editor.setTheme("sublime-monokai");
   }, []);
 
   const handleMount = useCallback(
@@ -164,10 +194,16 @@ export default function MonacoEditorWrapper({
   }, []);
 
   return (
-    <div ref={containerRef} className="h-full w-full">
+    <div
+      ref={containerRef}
+      className="h-full w-full"
+      data-monaco-theme={isLight ? "light" : "dark"}
+      style={{ "--monaco-line-height": `${lineHeight}px` } as CSSProperties}
+    >
       <MonacoEditor
         language={language}
         value={value}
+        theme={editorTheme}
         options={{
           ...options,
           // Explicitly disable automaticLayout since we use ResizeObserver

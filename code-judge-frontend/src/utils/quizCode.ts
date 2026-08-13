@@ -23,3 +23,13 @@ export function isValidQuizCode(code: string): boolean {
 export function normalizeQuizCode(code: string): string {
   return code.toUpperCase().trim();
 }
+
+/**
+ * Format a quiz code with a hyphen after every 4 characters, e.g.
+ * "VQBAMIDJE777EF6T" → "VQBA-MIDJ-E777-EF6T"
+ */
+export function formatQuizCode(code: string): string {
+  const raw = (code || "").replace(/[^a-z0-9]/gi, "").toUpperCase();
+  const groups = raw.match(/.{1,4}/g) ?? [];
+  return groups.join("-");
+}

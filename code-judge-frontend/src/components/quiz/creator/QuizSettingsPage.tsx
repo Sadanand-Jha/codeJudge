@@ -2,151 +2,314 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  BarChart3,
   BookOpen,
   Calendar,
   Clock,
   Globe,
   GraduationCap,
-  Hash,
   Lock,
+  Loader2,
+  Mail,
+  Save,
   School,
-  Tag,
-  Timer,
+  Square,
   Users,
   Check,
   X,
-  Sparkles,
-  ChevronDown,
-  FileText,
-  ListChecks,
-  ToggleRight,
-  Type,
-  AlignLeft,
-  Code2,
-  Award,
-  Target,
-  BarChart3,
-  Settings2,
-  RotateCcw,
-  Percent,
-  Zap,
-  Info,
   CheckCircle2,
   AlertTriangle,
+  Zap,
 } from "lucide-react";
-import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, DIFFICULTY_OPTIONS, CreatorQuestionType } from "./types";
-import { saveQuizDetails } from "@/utils/quizStorage";
-import { getAllSubjects } from "@/services/quiz";
+import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, QuizVisibility } from "./types";
+import { saveQuizDetails, clearQuizState } from "@/utils/quizStorage";
+import { getAllSubjects, getQuizVisibilityOptions, createQuiz, updateQuizStatus, getTimezones } from "@/services/quiz";
+import { generateQuizCode } from "@/utils/quizCode";
 import { SearchableDropdown } from "@/components/ui";
+import { SettingsCard, SettingsInput, Toggle, SettingsRow, SettingsSelect } from "@/components/ui/settings";
+import { useToast } from "@/hooks/useToast";
+import { cn } from "@/lib/helpers";
 
 interface QuizSettingsPageProps {
   initialDetails?: QuizDetails;
   onContinue: (details: QuizDetails) => void;
+  quizId?: string | number;
+  quizStatus?: string | null;
+  quizStartTime?: string | null;
+  quizEndTime?: string | null;
 }
 
-const TIMEZONES = [
-  "Asia/Kolkata",
-  "Asia/Dubai",
-  "Asia/Singapore",
-  "Asia/Tokyo",
-  "Europe/London",
-  "Europe/Berlin",
-  "America/New_York",
-  "America/Los_Angeles",
-  "UTC",
-];
+/* =============================================
+   Navigation Sections + Accent tones
+   ============================================= */
+const SECTIONS = [
+  { id: "info", label: "Quiz Info", icon: BookOpen, tone: "pink" },
+  { id: "registration", label: "Registration", icon: Users, tone: "violet" },
+  { id: "responses", label: "Responses", icon: BarChart3, tone: "blue" },
+] as const;
 
-const DIFFICULTY_COLORS: Record<string, string> = {
-  Easy: "#22C55E",
-  Medium: "#F59E0B",
-  Hard: "#EF4444",
-  Expert: "#EC4899",
+type SectionId = (typeof SECTIONS)[number]["id"];
+
+const SECTION_ICON_TONES: Record<SectionId, string> = {
+  info: "bg-pink-500/10 text-pink-500",
+  registration: "bg-violet-500/10 text-violet-500",
+  responses: "bg-blue-500/10 text-blue-500",
 };
 
+const RESULT_VISIBILITY_OPTIONS = [
+  { id: "immediate", label: "Immediately after submission", description: "Students see their results the moment they submit" },
+  { id: "after_end", label: "After quiz ends", description: "Results unlock when the quiz closes" },
+  { id: "manual", label: "When creator publishes results", description: "You control when results are released" },
+] as const;
 
-function Toggle({ checked, onChange, label, description }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) {
-  return (
-    <div className="flex items-center justify-between py-3">
-      <div>
-        <p className="text-sm font-medium text-white">{label}</p>
-        {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
-      </div>
-      <button
-        onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 shrink-0 ${
-          checked ? "bg-[#C7DDEC]" : "bg-white/10"
-        }`}
-      >
-        <span
-          className={`inline-block h-4 w-4 rounded-full bg-white shadow-lg transition-transform duration-200 ${
-            checked ? "translate-x-6" : "translate-x-1"
-          }`}
-        />
-      </button>
-    </div>
-  );
+/* Fallback timezone list (used while the timezone API loads or on failure). */
+const FALLBACK_TIMEZONES = [
+  "Asia/Kolkata",
+  "UTC",
+  "America/New_York",
+  "Europe/London",
+  "Asia/Tokyo",
+];
+
+/**
+ * Build a readable select label for a timezone, e.g. "Asia/Kolkata (IST)".
+ * The stored value stays the raw IANA name.
+ */
+function formatTimezoneLabel(name: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: name,
+      timeZoneName: "short",
+    }).formatToParts(new Date());
+    const abbr = parts.find((p) => p.type === "timeZoneName")?.value;
+    if (abbr && abbr !== name && !abbr.includes("GMT+0") && !abbr.includes("GMT0")) {
+      return `${name} (${abbr})`;
+    }
+  } catch {
+    // fall through — use the raw IANA name
+  }
+  return name;
 }
 
-function SectionCard({ icon: Icon, title, subtitle, children }: { icon: React.ComponentType<{ className?: string }>; title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl border border-border-hover bg-card overflow-hidden hover:border-border-hover transition-colors"
-    >
-      <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-border">
-        <div className="w-9 h-9 rounded-xl bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 flex items-center justify-center">
-          <Icon className="w-4 h-4 text-foreground" />
-        </div>
-        <div>
-          <h2 className="text-sm font-bold text-white">{title}</h2>
-          {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
-        </div>
-      </div>
-      <div className="p-6">{children}</div>
-    </motion.div>
-  );
-}
+const toTimezoneOptions = (zones: string[]) =>
+  zones.map((tz) => ({ label: formatTimezoneLabel(tz), value: tz }));
 
-function FieldLabel({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
-  return (
-    <label className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-      {icon}
-      {children}
-    </label>
-  );
+/* =============================================
+   Quiz status (derived from backend state)
+   ============================================= */
+type QuizStatus = "draft" | "scheduled" | "registration_open" | "live" | "ended" | "completed";
+
+const STATUS_META: Record<QuizStatus, { label: string; badge: string; dot: string }> = {
+  draft: {
+    label: "DRAFT",
+    badge: "border-amber-500/30 bg-amber-500/10 text-amber-500",
+    dot: "bg-amber-500",
+  },
+  scheduled: {
+    label: "SCHEDULED",
+    badge: "border-blue-500/30 bg-blue-500/10 text-blue-500",
+    dot: "bg-blue-500",
+  },
+  registration_open: {
+    label: "REGISTRATION OPEN",
+    badge: "border-cyan-500/30 bg-cyan-500/10 text-cyan-500",
+    dot: "bg-cyan-500",
+  },
+  live: {
+    label: "LIVE",
+    badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
+    dot: "bg-emerald-500",
+  },
+  ended: {
+    label: "ENDED",
+    badge: "border-red-500/30 bg-red-500/10 text-red-500",
+    dot: "bg-red-500",
+  },
+  completed: {
+    label: "COMPLETED",
+    badge: "border-violet-500/30 bg-violet-500/10 text-violet-500",
+    dot: "bg-violet-500",
+  },
+};
+
+function deriveQuizStatus(opts: {
+  hasQuizId: boolean;
+  status?: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  registrationEnabled?: boolean;
+  registrationStart?: string;
+  registrationEnd?: string;
+}): QuizStatus {
+  if (!opts.hasQuizId) return "draft";
+
+  const status = opts.status;
+  const now = new Date();
+
+  if (status === "archived") return "completed";
+  if (status === "draft") return "draft";
+
+  const start = opts.startTime ? new Date(opts.startTime) : null;
+  const end = opts.endTime ? new Date(opts.endTime) : null;
+
+  if (end && now >= end) return "ended";
+  if (start && now < start) {
+    if (
+      opts.registrationEnabled &&
+      opts.registrationStart &&
+      opts.registrationEnd &&
+      now >= new Date(opts.registrationStart) &&
+      now < new Date(opts.registrationEnd)
+    ) {
+      return "registration_open";
+    }
+    return "scheduled";
+  }
+  return "live";
 }
 
 const inputClass =
-  "w-full h-11 rounded-xl border border-border-hover bg-[#0F1522] px-4 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all";
+  "w-full h-11 rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/10 transition-all";
 
-export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSettingsPageProps) {
+export default function QuizSettingsPage({
+  initialDetails,
+  onContinue,
+  quizId,
+  quizStatus,
+  quizStartTime,
+  quizEndTime,
+}: QuizSettingsPageProps) {
+  const toast = useToast();
+  const router = useRouter();
+
   const [details, setDetails] = useState<QuizDetails>(initialDetails || DEFAULT_QUIZ_DETAILS);
   const [tagInput, setTagInput] = useState("");
-  const [showTimezoneDropdown, setShowTimezoneDropdown] = useState(false);
+  const [activeSection, setActiveSection] = useState<SectionId>("info");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [savingToServer, setSavingToServer] = useState(false);
+  const [attempted, setAttempted] = useState(false);
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [visibilityOptions, setVisibilityOptions] = useState<Array<{ id: number; heading: string; description: string }>>([]);
+
+  /* Live backend state for the existing quiz (edit flow). */
+  const [liveStatus, setLiveStatus] = useState<string | undefined>(quizStatus ?? undefined);
+  const [liveStartTime, setLiveStartTime] = useState<string | null>(quizStartTime ?? null);
+  const [liveEndTime, setLiveEndTime] = useState<string | null>(quizEndTime ?? null);
+  const [confirmingStart, setConfirmingStart] = useState(false);
+  const [confirmingEnd, setConfirmingEnd] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+
+  /* Timezones — sourced from the existing timezone API with a local fallback */
+  const [timezoneOptions, setTimezoneOptions] = useState<Array<{ label: string; value: string }>>(() =>
+    toTimezoneOptions(FALLBACK_TIMEZONES)
+  );
 
   const update = useCallback((patch: Partial<QuizDetails>) => {
     setDetails((d) => ({ ...d, ...patch }));
   }, []);
 
-  // Autosave to localStorage (debounced)
+  /* ---- Fetch visibility options from the `quiz_visibility` DB table ---- */
+  useEffect(() => {
+    let cancelled = false;
+    getQuizVisibilityOptions()
+      .then((opts) => {
+        if (!cancelled && Array.isArray(opts) && opts.length > 0) {
+          setVisibilityOptions(
+            opts.map((o) => ({ id: o.id, heading: o.heading, description: o.description || "" }))
+          );
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* ---- Fetch the timezone list from the existing timezone API ---- */
+  useEffect(() => {
+    let cancelled = false;
+    getTimezones()
+      .then((zones) => {
+        if (!cancelled && Array.isArray(zones) && zones.length > 0) {
+          setTimezoneOptions(toTimezoneOptions(zones));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* ---- Autosave to localStorage (debounced) ---- */
   useEffect(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       saveQuizDetails(details);
       setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
+      setTimeout(() => setSaveStatus("idle"), 2500);
     }, 600);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [details]);
 
+  /* ---- Scroll spy for active section ---- */
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id as SectionId);
+          }
+        });
+      },
+      { rootMargin: "-20% 0px -60% 0px" }
+    );
+
+    SECTIONS.forEach((s) => {
+      const el = document.getElementById(s.id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  /* ---- Derived quiz status from the real backend state ---- */
+  const derivedStatus = useMemo<QuizStatus>(
+    () =>
+      deriveQuizStatus({
+        hasQuizId: Boolean(quizId),
+        status: liveStatus,
+        startTime: liveStartTime,
+        endTime: liveEndTime,
+        registrationEnabled: details.registrationEnabled,
+        registrationStart: details.registrationStart,
+        registrationEnd: details.registrationEnd,
+      }),
+    [quizId, liveStatus, liveStartTime, liveEndTime, details.registrationEnabled, details.registrationStart, details.registrationEnd]
+  );
+
+  const isLive = derivedStatus === "live";
+  const isEnded = derivedStatus === "ended" || derivedStatus === "completed";
+
+  /* ---- Visibility options sourced from the `quiz_visibility` table (fallback to static) ---- */
+  const visibilitySource: Array<{ id: string | number; label: string; description: string; isDb: boolean }> =
+    visibilityOptions.length > 0
+      ? visibilityOptions.map((o) => ({ id: o.id, label: o.heading, description: o.description, isDb: true }))
+      : VISIBILITY_OPTIONS.filter((o) => o.id !== "college").map((o) => ({ id: o.id, label: o.label, description: o.description, isDb: false }));
+
+  /* ---- Tags (Topics) ---- */
   const addTag = () => {
     const val = tagInput.trim();
     if (val && !details.tags.includes(val)) {
@@ -155,34 +318,6 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
     setTagInput("");
   };
 
-  const handleContinue = () => {
-    if (!details.name.trim()) return;
-    saveQuizDetails(details);
-    onContinue(details);
-  };
-
-  // ===== Marks =====
-  const calculatedTotalMarks = useMemo(() => {
-    if (details.marksPerQuestion > 0 && details.totalQuestions > 0) {
-      return details.marksPerQuestion * details.totalQuestions;
-    }
-    return details.totalMarks;
-  }, [details.marksPerQuestion, details.totalQuestions, details.totalMarks]);
-
-  const calculatedPassingMarks = useMemo(() => {
-    if (calculatedTotalMarks > 0 && details.passingPercentage > 0) {
-      return Math.ceil((calculatedTotalMarks * details.passingPercentage) / 100);
-    }
-    return details.passingMarks;
-  }, [calculatedTotalMarks, details.passingPercentage, details.passingMarks]);
-
-  const estimatedTime = useMemo(() => {
-    if (details.totalQuestions > 0) {
-      return Math.max(details.timeLimit, Math.ceil(details.totalQuestions * 1.5));
-    }
-    return details.timeLimit;
-  }, [details.totalQuestions, details.timeLimit]);
-
   const addTagInput = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -190,71 +325,429 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
     }
   };
 
+  /* ---- Validation ---- */
+  const registrationEndInvalid = Boolean(
+    details.registrationEnabled &&
+    details.registrationStart &&
+    details.registrationEnd &&
+    details.registrationEnd < details.registrationStart
+  );
+
+  const errors = useMemo(() => {
+    const e: Partial<Record<string, string>> = {};
+    if (!details.name.trim()) e.name = "Quiz name is required.";
+    if (!details.subject.trim()) e.subject = "Subject is required.";
+    if (details.registrationEnabled) {
+      if (!details.registrationStart) e.registrationStart = "Registration start time is required.";
+      if (!details.registrationEnd) e.registrationEnd = "Registration end time is required.";
+      if (registrationEndInvalid) e.registrationEnd = "Registration end cannot be before start.";
+    }
+    if (details.timeLimit <= 0) e.timeLimit = "Duration must be greater than 0.";
+    return e;
+  }, [details, registrationEndInvalid]);
+
+  /* ---- Progress for sidebar status ---- */
+  const progress = useMemo(() => {
+    let score = 0;
+    if (details.name.trim()) score += 20;
+    if (details.subject.trim()) score += 20;
+    if (details.visibility) score += 10;
+    if (details.tags.length > 0) score += 5;
+    if (details.timeLimit > 0) score += 10;
+    if (details.registrationEnabled) {
+      if (details.registrationStart) score += 8;
+      if (details.registrationEnd) score += 7;
+    } else {
+      score += 15;
+    }
+    if (details.resultVisibility) score += 5;
+    return Math.min(100, score);
+  }, [details]);
+
+  /* ---- Save & Continue ---- */
+  const capitalizeWords = (str: string) =>
+    str
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+
+  const handleSaveDraft = () => {
+    saveQuizDetails(details);
+    toast.success({
+      title: "Draft saved",
+      description: "Your quiz settings have been saved as a draft.",
+    });
+  };
+
+  const handleCancel = () => {
+    router.push("/quiz");
+  };
+
+  const handleContinue = async () => {
+    setAttempted(true);
+    if (Object.keys(errors).length > 0) {
+      const firstSection = details.registrationEnabled ? "registration" : "info";
+      scrollToSection(firstSection);
+      toast.error({
+        title: "Missing information",
+        description: "Please fix the highlighted fields before continuing.",
+      });
+      return;
+    }
+
+    const name = capitalizeWords(details.name);
+    const description = capitalizeWords(details.description);
+    const topic = capitalizeWords(details.topic);
+    const subject = capitalizeWords(details.subject);
+
+    setSavingToServer(true);
+    try {
+      const payload = {
+        name,
+        description,
+        subject,
+        topic,
+        code: generateQuizCode(),
+        difficulty: details.difficulty,
+        visibility: details.visibilityId ?? undefined,
+        timeLimit: details.timeLimit,
+        starttime: details.startDate || undefined,
+        endtime: details.endDate || undefined,
+        timeZone: details.timeZone,
+        randomizeQuestions: details.randomizeQuestions,
+        randomizeOptions: details.randomizeOptions,
+        showResultImmediately: details.resultVisibility === "immediate",
+        showCorrectAnswersAfterSubmission: details.showCorrectAnswersAfterSubmission,
+        negativeMarking: details.negativeMarking,
+        negativeMarkValue: details.negativeMarkValue,
+        marksPerQuestion: details.marksPerQuestion,
+        totalQuestions: details.totalQuestions,
+        totalMarks: details.totalMarks,
+        passingPercentage: details.passingPercentage,
+        passingMarks: details.passingMarks,
+        tags: details.tags,
+        registrationEnabled: details.registrationEnabled,
+        registrationStart: details.registrationStart || undefined,
+        registrationEnd: details.registrationEnd || undefined,
+        emailResults: details.emailResults,
+        leaderboard: details.leaderboard,
+        leaderboardShowRank: details.leaderboardShowRank,
+        leaderboardShowScore: details.leaderboardShowScore,
+        leaderboardShowTime: details.leaderboardShowTime,
+        resultVisibility: details.resultVisibility,
+      };
+
+      await createQuiz(payload);
+
+      clearQuizState();
+      onContinue({ ...details, name, description, topic, subject });
+    } catch (err) {
+      console.error("Failed to create quiz:", err);
+      toast.error({
+        title: "Could not save quiz",
+        description: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setSavingToServer(false);
+    }
+  };
+
+  /* ---- Quick Start / End ---- */
+  const handleStartQuiz = async () => {
+    if (!quizId) return;
+    setActionBusy(true);
+    try {
+      const updated = await updateQuizStatus(String(quizId), "published");
+      setLiveStatus(updated?.status ?? "published");
+      if (updated) {
+        if (updated.starttime) setLiveStartTime(updated.starttime);
+        if (updated.endtime) setLiveEndTime(updated.endtime);
+      }
+      setConfirmingStart(false);
+      toast.success({
+        title: "Quiz started",
+        description: "Your quiz is now active for registered students.",
+      });
+    } catch (err) {
+      console.error("Failed to start quiz:", err);
+      toast.error({
+        title: "Could not start quiz",
+        description: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const handleEndQuiz = async () => {
+    if (!quizId) return;
+    setActionBusy(true);
+    try {
+      const updated = await updateQuizStatus(String(quizId), "archived");
+      setLiveStatus(updated?.status ?? "archived");
+      setConfirmingEnd(false);
+      toast.success({
+        title: "Quiz ended",
+        description: "Further participation is stopped. All submitted responses and results are preserved.",
+      });
+    } catch (err) {
+      console.error("Failed to end quiz:", err);
+      toast.error({
+        title: "Could not end quiz",
+        description: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const visibilityIcon = (label: string) => {
+    const key = label.toLowerCase();
+    if (key.includes("public")) return Globe;
+    if (key.includes("private")) return Lock;
+    if (key.includes("class")) return GraduationCap;
+    if (key.includes("college")) return School;
+    return Globe;
+  };
+
+  const statusMeta = STATUS_META[derivedStatus];
+
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-background text-white p-3 sm:p-4 md:p-6 lg:p-8">
-      <div className="max-w-[1400px] mx-auto">
-        {/* ===== Header ===== */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center shadow-lg shadow-[#7C3AED]/20">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-xs font-semibold text-muted-foreground tracking-widest uppercase">Quiz Studio</span>
-            </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Create New Quiz</h1>
-            <p className="text-sm text-muted-foreground mt-1">Configure your assessment settings. You will add questions in the next step.</p>
+    <div className="flex min-h-screen bg-background">
+      {/* ===== Settings Sidebar ===== */}
+      <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
+        <nav className="settings-scroll h-full overflow-y-auto p-4">
+          <p className="px-3 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+            Quiz Settings
+          </p>
+          <div className="space-y-1">
+            {SECTIONS.map((section) => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
+              const isPink = section.tone === "pink";
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => scrollToSection(section.id)}
+                  className={cn(
+                    "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? isPink
+                        ? "bg-pink-500/10 text-pink-500 shadow-[inset_0_0_0_1px_rgba(236,72,153,0.2)]"
+                        : "bg-accent/10 text-accent"
+                      : "text-text-secondary hover:bg-pink-500/5 hover:text-text-primary"
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "h-5 w-5 shrink-0 transition-colors",
+                      isActive ? (isPink ? "text-pink-500" : "text-accent") : "text-text-muted group-hover:text-text-primary"
+                    )}
+                    strokeWidth={isActive ? 2.2 : 2}
+                  />
+                  <span className={cn("font-medium", isActive && "font-semibold")}>{section.label}</span>
+                  {isActive && (
+                    <motion.span
+                      layoutId="activeQuizSettingsIndicator"
+                      className={cn("ml-auto h-1.5 w-1.5 rounded-full", isPink ? "bg-pink-500" : "bg-accent")}
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <div className="flex items-center gap-2">
-            {saveStatus === "saving" && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full border-2 border-[#C7DDEC] border-t-transparent animate-spin" />
-                Saving...
+
+          {/* ===== Quiz Status ===== */}
+          <div className="mt-8 rounded-xl border border-border bg-background p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Quiz Status</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold", statusMeta.badge)}>
+                <span className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)} />
+                {statusMeta.label}
               </span>
+            </div>
+            {!quizId && (
+              <p className="mt-2 text-[10px] font-medium text-text-secondary">
+                Saved locally as a draft
+              </p>
             )}
-            {saveStatus === "saved" && (
-              <span className="text-xs text-[#22C55E] flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Saved
-              </span>
-            )}
+            <div className="mt-4">
+              <div className="mb-1.5 flex items-center justify-between text-[10px] font-medium text-text-secondary">
+                <span>Quiz Setup</span>
+                <span className="tabular-nums text-pink-500">{progress}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-card-hover">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-[#EC4899] to-[#7C3AED]"
+                  initial={false}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                />
+              </div>
+            </div>
+          </div>
+        </nav>
+      </aside>
+
+      {/* ===== Main Content ===== */}
+      <div className="flex-1 overflow-y-auto">
+        {/* ===== Page Header ===== */}
+        <div className="sticky top-14 z-20 border-b border-border bg-background/80 px-6 py-5 backdrop-blur-xl lg:px-8">
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-xl font-bold tracking-tight text-text-primary">
+                  {details.name.trim() ? details.name : "Quiz Settings"}
+                </h1>
+                <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold", statusMeta.badge)}>
+                  <span className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)} />
+                  {statusMeta.label}
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-text-secondary">
+                Configure your quiz before adding questions and inviting students.
+              </p>
+              <div className="mt-1.5 flex items-center gap-2">
+                {saveStatus === "saving" && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center gap-1.5 rounded-full bg-pink-500/10 px-3 py-1.5 text-[10px] font-semibold text-pink-500"
+                  >
+                    <Loader2 className="h-3 w-3 animate-spin" /> Saving...
+                  </motion.span>
+                )}
+                {saveStatus === "saved" && (
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-[10px] font-semibold text-success"
+                  >
+                    <CheckCircle2 className="h-3 w-3" /> Auto saved
+                  </motion.span>
+                )}
+              </div>
+            </div>
+
+            {/* ===== Quick Action Area ===== */}
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              {quizId && !isEnded && (
+                isLive ? (
+                  <button
+                    onClick={() => setConfirmingEnd(true)}
+                    disabled={actionBusy}
+                    className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(239,68,68,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(239,68,68,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
+                  >
+                    {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Square className="h-4 w-4" />}
+                    End Quiz
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setConfirmingStart(true)}
+                    disabled={actionBusy}
+                    className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
+                  >
+                    {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                    Start Quiz
+                  </button>
+                )
+              )}
+
+              <button
+                onClick={handleSaveDraft}
+                className="flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover"
+              >
+                <Save className="h-4 w-4" /> Save Draft
+              </button>
+
+              <button
+                onClick={handleContinue}
+                disabled={savingToServer}
+                className="group flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(124,58,237,0.3)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(236,72,153,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {savingToServer ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Saving Quiz...
+                  </>
+                ) : (
+                  <>
+                    Save &amp; Continue
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* ===== Mobile/Tablet Tab Nav ===== */}
+          <div className="mt-4 flex gap-1 overflow-x-auto pb-1 lg:hidden">
+            {SECTIONS.map((section) => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
+              const isPink = section.tone === "pink";
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => scrollToSection(section.id)}
+                  className={cn(
+                    "flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200",
+                    isActive
+                      ? isPink
+                        ? "bg-pink-500/10 text-pink-500"
+                        : "bg-accent/10 text-accent"
+                      : "text-text-secondary hover:bg-pink-500/5"
+                  )}
+                >
+                  <Icon className="h-4 w-4" strokeWidth={2.2} />
+                  {section.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="flex gap-6">
-          {/* ===== Main Content ===== */}
-          <div className="flex-1 min-w-0 space-y-6">
-            {/* ===== Basic Information ===== */}
-            <SectionCard icon={BookOpen} title="Basic Information" subtitle="Core details about your quiz">
-              <div className="space-y-5">
+        {/* ===== Sections ===== */}
+        <div className="mx-auto max-w-4xl space-y-8 px-6 py-8 lg:px-8">
+          {/* ===== QUIZ INFO ===== */}
+          <div id="info" ref={(el) => { sectionRefs.current["info"] = el; }} className="scroll-mt-32">
+            <SettingsCard
+              title="Quiz Info"
+              description="Core details about your quiz"
+              icon={<BookOpen className="h-5 w-5" />}
+              iconClassName={SECTION_ICON_TONES.info}
+            >
+              <div className="space-y-6">
                 <div>
-                  <FieldLabel>Quiz Name</FieldLabel>
-                  <input
-                    type="text"
+                  <SettingsInput
+                    label="Quiz Name"
                     value={details.name}
-                    onChange={(e) => update({ name: e.target.value })}
-                    placeholder="e.g. Data Structures & Algorithms — Midterm"
-                    className={`${inputClass} text-base font-medium`}
-                    autoFocus
+                    onChange={(v) => update({ name: v })}
+                    placeholder="e.g. Data Structures Midterm"
+                    required
                   />
+                  {attempted && errors.name && <FieldError message={errors.name} />}
                 </div>
 
                 <div>
-                  <FieldLabel>Description</FieldLabel>
+                  <label className="mb-2 block text-sm font-medium text-text-primary">Description</label>
                   <textarea
                     value={details.description}
                     onChange={(e) => update({ description: e.target.value })}
-                    placeholder="Describe what this quiz covers, who it's for, and any important instructions..."
+                    placeholder="Briefly describe what this quiz covers..."
                     rows={3}
-                    className="w-full rounded-xl border border-border-hover bg-[#0F1522] px-4 py-3 text-sm text-white placeholder-[#6B7280] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all resize-none leading-relaxed"
+                    className="w-full rounded-xl border border-input-border bg-input-bg px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:border-pink-500 focus:shadow-[0_0_0_3px_var(--input-focus-ring)] resize-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid gap-6 sm:grid-cols-2">
                   <div>
-                    <FieldLabel icon={<GraduationCap className="w-3 h-3" />}>Subject</FieldLabel>
                     <SearchableDropdown
+                      label="Subject"
                       placeholder="Search subjects..."
+                      required
                       value={details.subject}
                       selectedId={details.subjectId}
                       onSelect={(option) => update({ subject: option.label, subjectId: option.id })}
@@ -266,398 +759,518 @@ export default function QuizSettingsPage({ initialDetails, onContinue }: QuizSet
                       minChars={1}
                       debounceMs={300}
                       maxVisible={8}
-                      icon={<GraduationCap className="w-3 h-3" />}
-                      optional
                     />
+                    {attempted && errors.subject && <FieldError message={errors.subject} />}
                   </div>
                   <div>
-                    <FieldLabel icon={<Hash className="w-3 h-3" />}>Topic</FieldLabel>
-                    <input
-                      type="text"
-                      value={details.topic}
-                      onChange={(e) => update({ topic: e.target.value })}
-                      placeholder="e.g. Binary Trees"
-                      className={inputClass}
-                    />
+                    <label className="mb-2 block text-sm font-medium text-text-primary">Topics</label>
+                    <div className="rounded-xl border border-input-border bg-input-bg px-4 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        {details.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20 px-2.5 py-1 text-xs font-medium text-pink-500"
+                          >
+                            {tag}
+                            <button onClick={() => update({ tags: details.tags.filter((t) => t !== tag) })} className="hover:text-text-primary transition-colors">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                        <input
+                          type="text"
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={addTagInput}
+                          onBlur={addTag}
+                          placeholder={details.tags.length === 0 ? "Add topics, press Enter..." : "Add more..."}
+                          className="min-w-[140px] flex-1 bg-transparent text-sm text-text-primary placeholder-text-muted focus:outline-none"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
+                {/* Visibility */}
                 <div>
-                  <FieldLabel>Difficulty</FieldLabel>
-                  <div className="flex items-center gap-2">
-                    {DIFFICULTY_OPTIONS.map((level) => {
-                      const active = details.difficulty === level;
-                      const color = DIFFICULTY_COLORS[level];
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="text-sm font-medium text-text-primary">Visibility</label>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    {visibilitySource.map((opt) => {
+                      const Icon = visibilityIcon(opt.label);
+                      const active = opt.isDb ? details.visibilityId === opt.id : details.visibility === opt.id;
                       return (
                         <button
-                          key={level}
-                          onClick={() => update({ difficulty: level })}
-                          className={`flex-1 h-11 rounded-xl border text-sm font-semibold transition-all ${
+                          key={String(opt.id)}
+                          onClick={() =>
+                            opt.isDb
+                              ? update({ visibility: opt.label as QuizVisibility, visibilityId: opt.id as number })
+                              : update({ visibility: opt.id as QuizVisibility, visibilityId: null })
+                          }
+                          className={cn(
+                            "relative rounded-xl border p-4 text-left transition-all duration-200",
                             active
-                              ? "border-transparent text-white shadow-lg"
-                              : "border-border-hover bg-[#0F1522] text-muted-foreground hover:text-white hover:border-white/[0.15]"
-                          }`}
-                          style={active ? { backgroundColor: `${color}20`, boxShadow: `0 0 20px ${color}20` } : undefined}
+                              ? "border-pink-500 bg-pink-500/10 shadow-[0_0_0_3px_var(--input-focus-ring)]"
+                              : "border-input-border bg-input-bg hover:border-border-hover"
+                          )}
                         >
-                          <span style={active ? { color } : undefined}>{level}</span>
+                          <div className="flex items-start justify-between">
+                            <Icon className={cn("h-5 w-5", active ? "text-pink-500" : "text-text-muted")} />
+                            {active && (
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-[#EC4899] to-[#7C3AED]">
+                                <Check className="h-3 w-3 text-white" />
+                              </span>
+                            )}
+                          </div>
+                          <p className={cn("mt-2 text-sm font-semibold", active ? "text-pink-500" : "text-text-primary")}>
+                            {opt.label}
+                          </p>
+                          <p className="mt-0.5 text-xs text-text-muted">{opt.description}</p>
                         </button>
                       );
                     })}
                   </div>
                 </div>
-
-                <div>
-                  <FieldLabel icon={<Tag className="w-3 h-3" />}>Tags</FieldLabel>
-                  <div className="rounded-xl border border-border-hover bg-[#0F1522] p-4">
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {details.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 text-xs font-medium text-foreground"
-                        >
-                          {tag}
-                          <button onClick={() => update({ tags: details.tags.filter((t) => t !== tag) })} className="hover:text-white transition-colors">
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        onKeyDown={addTagInput}
-                        placeholder="Type a tag and press Enter..."
-                        className="flex-1 bg-transparent text-sm text-white placeholder-[#6B7280] focus:outline-none"
-                      />
-                      <button
-                        onClick={addTag}
-                        className="px-3 py-1.5 rounded-lg border border-border-hover bg-white/[0.03] text-xs font-medium text-muted-foreground hover:text-white hover:border-white/[0.15] transition-colors"
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
-            </SectionCard>
-
-            {/* ===== Question Configuration ===== */}
-            <SectionCard icon={BarChart3} title="Question Configuration" subtitle="Define the structure of your quiz">
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <FieldLabel icon={<Hash className="w-3 h-3" />}>Total Questions</FieldLabel>
-                    <input
-                      type="number"
-                      value={details.totalQuestions || ""}
-                      onChange={(e) => update({ totalQuestions: Number(e.target.value) })}
-                      min={0}
-                      placeholder="e.g. 25"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel icon={<Clock className="w-3 h-3" />}>Quiz Duration (min)</FieldLabel>
-                    <input
-                      type="number"
-                      value={details.timeLimit}
-                      onChange={(e) => update({ timeLimit: Number(e.target.value) })}
-                      min={1}
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-
-              </div>
-            </SectionCard>
-
-            {/* ===== Marks ===== */}
-            <SectionCard icon={Award} title="Marks" subtitle="Scoring configuration">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <FieldLabel icon={<Award className="w-3 h-3" />}>Total Marks</FieldLabel>
-                  <input
-                    type="number"
-                    value={calculatedTotalMarks || ""}
-                    onChange={(e) => update({ totalMarks: Number(e.target.value) })}
-                    min={0}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <FieldLabel icon={<Zap className="w-3 h-3" />}>Marks Per Question</FieldLabel>
-                  <input
-                    type="number"
-                    value={details.marksPerQuestion || ""}
-                    onChange={(e) => update({ marksPerQuestion: Number(e.target.value) })}
-                    min={0}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <FieldLabel icon={<Percent className="w-3 h-3" />}>Passing %</FieldLabel>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={details.passingPercentage}
-                      onChange={(e) => update({ passingPercentage: Number(e.target.value) })}
-                      min={0}
-                      max={100}
-                      className={inputClass}
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#6B7280]">%</span>
-                  </div>
-                </div>
-                <div>
-                  <FieldLabel icon={<Target className="w-3 h-3" />}>Passing Marks</FieldLabel>
-                  <input
-                    type="number"
-                    value={calculatedPassingMarks || ""}
-                    onChange={(e) => update({ passingMarks: Number(e.target.value) })}
-                    min={0}
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center gap-2 px-4 py-3 rounded-xl border border-[#C7DDEC]/20 bg-[#C7DDEC]/5 text-xs text-foreground">
-                <Info className="w-3.5 h-3.5 shrink-0" />
-                <span>
-                  {details.marksPerQuestion > 0 && details.totalQuestions > 0
-                    ? `Auto-calculated: ${details.marksPerQuestion} × ${details.totalQuestions} = ${calculatedTotalMarks} total marks. Passing at ${details.passingPercentage}% = ${calculatedPassingMarks} marks.`
-                    : "Set marks per question or total marks to see automatic calculations."}
-                </span>
-              </div>
-            </SectionCard>
-
-            {/* ===== Schedule ===== */}
-            <SectionCard icon={Calendar} title="Schedule" subtitle="When should this quiz be available?">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <FieldLabel icon={<Calendar className="w-3 h-3" />}>Start Date</FieldLabel>
-                  <input
-                    type="datetime-local"
-                    value={details.startDate}
-                    onChange={(e) => update({ startDate: e.target.value })}
-                    className={`${inputClass} [color-scheme:dark]`}
-                  />
-                </div>
-                <div>
-                  <FieldLabel icon={<Calendar className="w-3 h-3" />}>End Date</FieldLabel>
-                  <input
-                    type="datetime-local"
-                    value={details.endDate}
-                    onChange={(e) => update({ endDate: e.target.value })}
-                    className={`${inputClass} [color-scheme:dark]`}
-                  />
-                </div>
-                <div className="relative">
-                  <FieldLabel icon={<Globe className="w-3 h-3" />}>Time Zone</FieldLabel>
-                  <button
-                    onClick={() => setShowTimezoneDropdown(!showTimezoneDropdown)}
-                    className={`${inputClass} flex items-center justify-between text-left`}
-                  >
-                    <span className="text-white">{details.timeZone}</span>
-                    <ChevronDown className={`w-4 h-4 text-[#6B7280] transition-transform ${showTimezoneDropdown ? "rotate-180" : ""}`} />
-                  </button>
-                  <AnimatePresence>
-                    {showTimezoneDropdown && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        className="absolute z-20 mt-2 w-full rounded-xl border border-border-hover bg-[#171923] shadow-2xl shadow-black/50 overflow-hidden"
-                      >
-                        <div className="max-h-48 overflow-y-auto p-1.5">
-                          {TIMEZONES.map((tz) => (
-                            <button
-                              key={tz}
-                              onClick={() => { update({ timeZone: tz }); setShowTimezoneDropdown(false); }}
-                              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                                details.timeZone === tz ? "bg-[#C7DDEC]/10 text-foreground" : "text-muted-foreground hover:text-white hover:bg-white/[0.04]"
-                              }`}
-                            >
-                              {tz}
-                            </button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </SectionCard>
-
-            {/* ===== Visibility ===== */}
-            <SectionCard icon={Globe} title="Visibility" subtitle="Who can see and attempt this quiz?">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {VISIBILITY_OPTIONS.map((opt) => {
-                  const active = details.visibility === opt.id;
-                  const Icon = opt.id === "public" ? Globe : opt.id === "private" ? Lock : opt.id === "college" ? School : Users;
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => update({ visibility: opt.id })}
-                      className={`relative p-4 rounded-xl border text-left transition-all ${
-                        active
-                          ? "border-[#C7DDEC]/40 bg-[#C7DDEC]/5 shadow-[0_0_20px_rgba(199,221,236,0.1)]"
-                          : "border-border-hover bg-[#0F1522] hover:border-white/[0.15]"
-                      }`}
-                    >
-                      {active && (
-                        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#C7DDEC] flex items-center justify-center">
-                          <Check className="w-3 h-3 text-[#09090B]" />
-                        </div>
-                      )}
-                      <Icon className={`w-5 h-5 mb-2 ${active ? "text-foreground" : "text-[#6B7280]"}`} />
-                      <p className={`text-sm font-semibold ${active ? "text-white" : "text-muted-foreground"}`}>{opt.label}</p>
-                      <p className="text-xs text-[#6B7280] mt-0.5">{opt.description}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </SectionCard>
-
-            {/* ===== Quiz Behaviour ===== */}
-            <SectionCard icon={Settings2} title="Quiz Behaviour" subtitle="How the quiz behaves during attempts">
-              <div className="rounded-xl border border-border-hover bg-[#0F1522] px-5 divide-y divide-white/[0.06]">
-                <Toggle
-                  checked={details.randomizeQuestions}
-                  onChange={(v) => update({ randomizeQuestions: v })}
-                  label="Shuffle Questions"
-                  description="Shuffle question order for each participant"
-                />
-                <Toggle
-                  checked={details.randomizeOptions}
-                  onChange={(v) => update({ randomizeOptions: v })}
-                  label="Shuffle Options"
-                  description="Shuffle answer options for each participant"
-                />
-                <Toggle
-                  checked={details.showResultImmediately}
-                  onChange={(v) => update({ showResultImmediately: v })}
-                  label="Show Results Immediately"
-                  description="Display score right after submission"
-                />
-                <Toggle
-                  checked={details.showCorrectAnswersAfterSubmission}
-                  onChange={(v) => update({ showCorrectAnswersAfterSubmission: v })}
-                  label="Show Correct Answers"
-                  description="Reveal correct answers after the quiz ends"
-                />
-                <Toggle
-                  checked={details.allowReattempt}
-                  onChange={(v) => update({ allowReattempt: v })}
-                  label="Allow Reattempt"
-                  description="Let participants retake the quiz"
-                />
-                <Toggle
-                  checked={details.negativeMarking}
-                  onChange={(v) => update({ negativeMarking: v })}
-                  label="Negative Marking"
-                  description="Deduct marks for incorrect answers"
-                />
-              </div>
-
-              {details.negativeMarking && (
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <FieldLabel icon={<RotateCcw className="w-3 h-3" />}>Negative Marks Value</FieldLabel>
-                    <input
-                      type="number"
-                      value={details.negativeMarkValue}
-                      onChange={(e) => update({ negativeMarkValue: Number(e.target.value) })}
-                      min={0}
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel icon={<Users className="w-3 h-3" />}>Maximum Participants</FieldLabel>
-                    <input
-                      type="number"
-                      value={details.maxParticipants || ""}
-                      onChange={(e) => update({ maxParticipants: Number(e.target.value) })}
-                      placeholder="Unlimited"
-                      min={0}
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-              )}
-            </SectionCard>
+            </SettingsCard>
           </div>
 
-          {/* ===== Right Summary Card ===== */}
-          <div className="hidden xl:block w-80 shrink-0">
-            <div className="sticky top-20 space-y-4">
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                className="rounded-2xl border border-border-hover bg-card overflow-hidden"
-              >
-                <div className="px-5 py-4 border-b border-border flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-foreground" />
-                  <h3 className="text-sm font-bold text-white">Quiz Summary</h3>
-                </div>
-                <div className="p-5 space-y-4">
-                  <SummaryRow label="Duration" value={`${details.timeLimit} min`} icon={Clock} />
-                  <SummaryRow label="Questions" value={`${details.totalQuestions}`} icon={Hash} />
-                  <SummaryRow label="Est. Completion" value={`${estimatedTime} min`} icon={Timer} />
-                  <SummaryRow label="Total Marks" value={`${calculatedTotalMarks}`} icon={Award} />
-                  <SummaryRow label="Passing Marks" value={`${calculatedPassingMarks}`} icon={Target} />
-                  <SummaryRow label="Visibility" value={details.visibility} icon={Globe} />
-                  <SummaryRow label="Difficulty" value={details.difficulty} icon={BarChart3} />
+          {/* ===== REGISTRATION ===== */}
+          <div id="registration" ref={(el) => { sectionRefs.current["registration"] = el; }} className="scroll-mt-32">
+            <SettingsCard
+              title="Registration"
+              description="Configure registration and availability"
+              icon={<Users className="h-5 w-5" />}
+              iconClassName={SECTION_ICON_TONES.registration}
+            >
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <SettingsRow
+                  label="Registration"
+                  description={details.registrationEnabled ? "Students must register before the quiz" : "Anyone can take the quiz without registering"}
+                >
+                  <Toggle
+                    checked={details.registrationEnabled}
+                    onChange={(v) => update({ registrationEnabled: v })}
+                  />
+                </SettingsRow>
+              </div>
 
-                </div>
-              </motion.div>
-
-              {/* Continue button */}
-              <motion.button
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-                onClick={handleContinue}
-                disabled={!details.name.trim()}
-                className="group w-full h-12 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-sm font-bold text-white shadow-lg shadow-[#7C3AED]/20 hover:shadow-[#7C3AED]/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
-              >
-                Continue to Question Builder
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-              </motion.button>
-
-              {!details.name.trim() && (
-                <p className="text-xs text-[#6B7280] text-center">Enter a quiz name to continue</p>
+              {details.registrationEnabled && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.25 }}
+                  className="mt-6 grid gap-6 sm:grid-cols-2"
+                >
+                  <DateTimeField
+                    label="Registration Start"
+                    value={details.registrationStart}
+                    onChange={(v) => update({ registrationStart: v })}
+                    required
+                    error={(attempted && errors.registrationStart) || undefined}
+                  />
+                  <DateTimeField
+                    label="Registration End"
+                    value={details.registrationEnd}
+                    onChange={(v) => update({ registrationEnd: v })}
+                    required
+                    error={(attempted && errors.registrationEnd) || undefined}
+                  />
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-text-primary">
+                      Duration <span className="ml-0.5 text-danger">*</span>
+                    </label>
+                    <div className="relative">
+                      <Clock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                      <input
+                        type="number"
+                        min={1}
+                        value={details.timeLimit}
+                        onChange={(e) => update({ timeLimit: Number(e.target.value) })}
+                        className={cn(inputClass, "pl-10")}
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-text-muted">
+                        minutes
+                      </span>
+                    </div>
+                    {attempted && errors.timeLimit && <FieldError message={errors.timeLimit} />}
+                  </div>
+                </motion.div>
               )}
+
+              {/* Timezone — sourced from the existing timezone API */}
+              <div className="mt-6">
+                <SettingsSelect
+                  label="Timezone"
+                  value={details.timeZone}
+                  onChange={(v) => update({ timeZone: v })}
+                  options={timezoneOptions}
+                  searchable
+                />
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-text-secondary">
+                  <Globe className="h-3.5 w-3.5 shrink-0 text-violet-500" />
+                  All quiz times are displayed in your selected timezone.
+                  <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-500">
+                    {details.timeZone || "Select a timezone"}
+                  </span>
+                </div>
+              </div>
+            </SettingsCard>
+          </div>
+
+          {/* ===== RESPONSES ===== */}
+          <div id="responses" ref={(el) => { sectionRefs.current["responses"] = el; }} className="scroll-mt-32">
+            <SettingsCard
+              title="Responses"
+              description="How results and the leaderboard behave"
+              icon={<BarChart3 className="h-5 w-5" />}
+              iconClassName={SECTION_ICON_TONES.responses}
+            >
+              <div className="space-y-6">
+                {/* Email results — admin only */}
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <SettingsRow
+                    label="Email Quiz Results"
+                    description="Send the complete quiz result report to the quiz admin."
+                  >
+                    <Toggle
+                      checked={details.emailResults}
+                      onChange={(v) => update({ emailResults: v })}
+                    />
+                  </SettingsRow>
+                  {details.emailResults && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      transition={{ duration: 0.25 }}
+                      className="mt-3 flex items-start gap-2.5 rounded-xl border border-pink-500/15 bg-pink-500/[0.05] p-3.5"
+                    >
+                      <Mail className="mt-0.5 h-4 w-4 shrink-0 text-pink-500" />
+                      <p className="text-xs leading-relaxed text-text-secondary">
+                        The report is emailed to you (the quiz admin) and includes each student&rsquo;s name,
+                        roll number, score, total marks, percentage, time taken, submission status and rank.
+                        Students never receive performance emails.
+                      </p>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Leaderboard */}
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <SettingsRow
+                    label="Leaderboard"
+                    description="Show a ranked leaderboard for this quiz"
+                  >
+                    <Toggle
+                      checked={details.leaderboard}
+                      onChange={(v) => update({ leaderboard: v })}
+                    />
+                  </SettingsRow>
+                  {details.leaderboard && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      transition={{ duration: 0.25 }}
+                      className="mt-2 space-y-1"
+                    >
+                      <Toggle
+                        checked={details.leaderboardShowRank}
+                        onChange={(v) => update({ leaderboardShowRank: v })}
+                        label="Show Rank"
+                      />
+                      <Toggle
+                        checked={details.leaderboardShowScore}
+                        onChange={(v) => update({ leaderboardShowScore: v })}
+                        label="Show Score"
+                      />
+                      <Toggle
+                        checked={details.leaderboardShowTime}
+                        onChange={(v) => update({ leaderboardShowTime: v })}
+                        label="Show Time Taken"
+                      />
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Result visibility */}
+                <div>
+                  <div className="mb-2 flex items-center gap-1.5">
+                    <label className="text-sm font-medium text-text-primary">Result Visibility</label>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {RESULT_VISIBILITY_OPTIONS.map((opt) => {
+                      const active = details.resultVisibility === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => update({ resultVisibility: opt.id })}
+                          className={cn(
+                            "flex items-start justify-between gap-4 rounded-xl border p-4 text-left transition-all duration-200",
+                            active
+                              ? "border-pink-500 bg-pink-500/10 shadow-[0_0_0_3px_var(--input-focus-ring)]"
+                              : "border-input-border bg-input-bg hover:border-border-hover"
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <span
+                              className={cn(
+                                "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                                active ? "border-pink-500 bg-gradient-to-r from-[#EC4899] to-[#7C3AED]" : "border-text-muted"
+                              )}
+                            >
+                              {active && <Check className="h-3 w-3 text-white" />}
+                            </span>
+                            <div>
+                              <p className={cn("text-sm font-semibold", active ? "text-pink-500" : "text-text-primary")}>
+                                {opt.label}
+                              </p>
+                              <p className="mt-0.5 text-xs text-text-muted">{opt.description}</p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </SettingsCard>
+          </div>
+        </div>
+
+        {/* ===== Sticky Bottom Action Bar ===== */}
+        <div className="sticky bottom-0 z-20 border-t border-border bg-background/90 px-6 py-4 backdrop-blur-xl lg:px-8">
+          <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
+            <button
+              onClick={handleSaveDraft}
+              className="flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-xs font-medium text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover"
+            >
+              <Save className="h-4 w-4" /> Save Draft
+            </button>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleCancel}
+                className="h-11 rounded-xl border border-border bg-card px-4 text-xs font-medium text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleContinue}
+                disabled={savingToServer}
+                className="group flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(124,58,237,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {savingToServer ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Saving Quiz...
+                  </>
+                ) : (
+                  <>
+                    Save &amp; Continue
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
-
-        {/* ===== Mobile/Tablet Continue Button ===== */}
-        <div className="xl:hidden mt-6">
-          <button
-            onClick={handleContinue}
-            disabled={!details.name.trim()}
-            className="group w-full h-12 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-sm font-bold text-white shadow-lg shadow-[#7C3AED]/20 hover:shadow-[#7C3AED]/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
-          >
-            Continue to Question Builder
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-          </button>
-        </div>
       </div>
+
+      {/* ===== Start Quiz Confirmation (warning) ===== */}
+      <ConfirmActionModal
+        open={confirmingStart}
+        variant="warning"
+        icon={Zap}
+        title="Start Quiz?"
+        description="Starting this quiz will make it active for registered students."
+        consequences={[
+          "Make sure all questions and settings are ready before continuing.",
+          "Students will be able to see and attempt the quiz once it starts.",
+        ]}
+        confirmLabel="Start Quiz"
+        busy={actionBusy}
+        onConfirm={handleStartQuiz}
+        onCancel={() => setConfirmingStart(false)}
+      />
+
+      {/* ===== End Quiz Confirmation (danger) ===== */}
+      <ConfirmActionModal
+        open={confirmingEnd}
+        variant="danger"
+        icon={Square}
+        title="End Quiz?"
+        description="Ending the quiz will stop further participation and finalize the quiz state."
+        consequences={[
+          "Students will no longer be able to attempt the quiz.",
+          "All submitted responses and results will be preserved.",
+          "This action may not be reversible.",
+        ]}
+        confirmLabel="End Quiz"
+        busy={actionBusy}
+        onConfirm={handleEndQuiz}
+        onCancel={() => setConfirmingEnd(false)}
+      />
     </div>
   );
 }
 
-function SummaryRow({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string }> }) {
+/* =============================================
+   Helpers
+   ============================================= */
+function FieldError({ message }: { message: string }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-muted-foreground flex items-center gap-2">
-        <Icon className="w-3.5 h-3.5 text-foreground" />
+    <p className="mt-1.5 flex items-center gap-1 text-xs text-danger">
+      <AlertTriangle className="h-3 w-3" /> {message}
+    </p>
+  );
+}
+
+function DateTimeField({
+  label,
+  value,
+  onChange,
+  required,
+  error,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  required?: boolean;
+  error?: string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-text-primary">
         {label}
-      </span>
-      <span className="text-xs font-semibold text-white capitalize">{value}</span>
+        {required && <span className="ml-0.5 text-danger">*</span>}
+      </label>
+      <div className="relative">
+        <Calendar className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        <input
+          type="datetime-local"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn(
+            inputClass,
+            "pl-10 [color-scheme:light] dark:[color-scheme:dark]",
+            error && "!border-danger focus:!border-danger focus:ring-danger/10"
+          )}
+        />
+      </div>
+      {error && <FieldError message={error} />}
     </div>
+  );
+}
+
+/* =============================================
+   Start / End confirmation modal
+   Distinct warning (start) and danger (end) styling.
+   ============================================= */
+function ConfirmActionModal({
+  open,
+  variant,
+  icon: Icon,
+  title,
+  description,
+  consequences,
+  confirmLabel,
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  variant: "warning" | "danger";
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  consequences: string[];
+  confirmLabel: string;
+  busy?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const isDanger = variant === "danger";
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={onCancel}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 12 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 12 }}
+            transition={{ duration: 0.2 }}
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "relative w-full max-w-md overflow-hidden rounded-2xl border bg-card p-6 shadow-2xl",
+              isDanger ? "border-danger/30" : "border-amber-500/30"
+            )}
+          >
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-1">
+              <div className={cn("h-full w-full", isDanger ? "bg-gradient-to-r from-red-500 to-rose-600" : "bg-gradient-to-r from-amber-500 to-orange-500")} />
+            </div>
+
+            <div className="mb-4 flex items-start gap-3.5">
+              <div
+                className={cn(
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+                  isDanger
+                    ? "bg-danger/10 text-danger shadow-[0_0_20px_rgba(239,68,68,0.25)]"
+                    : "bg-amber-500/10 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.25)]"
+                )}
+              >
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-text-primary">{title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-text-secondary">{description}</p>
+              </div>
+            </div>
+
+            <div
+              className={cn(
+                "space-y-2 rounded-xl border p-3.5",
+                isDanger ? "border-danger/15 bg-danger/[0.04]" : "border-amber-500/15 bg-amber-500/[0.04]"
+              )}
+            >
+              {consequences.map((line) => (
+                <p key={line} className="flex items-start gap-2 text-xs leading-relaxed text-text-secondary">
+                  <AlertTriangle className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", isDanger ? "text-danger" : "text-amber-500")} />
+                  {line}
+                </p>
+              ))}
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={onCancel}
+                disabled={busy}
+                className="h-10 rounded-xl border border-border bg-card px-4 text-sm font-medium text-text-primary transition-all hover:border-border-hover hover:bg-card-hover disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onConfirm}
+                disabled={busy}
+                className={cn(
+                  "flex h-10 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white transition-all disabled:opacity-50",
+                  isDanger
+                    ? "bg-gradient-to-r from-red-500 to-rose-600 shadow-[0_4px_16px_rgba(239,68,68,0.4)] hover:shadow-[0_6px_24px_rgba(239,68,68,0.55)] hover:brightness-105"
+                    : "bg-gradient-to-r from-amber-500 to-orange-600 shadow-[0_4px_16px_rgba(245,158,11,0.4)] hover:shadow-[0_6px_24px_rgba(245,158,11,0.55)] hover:brightness-105"
+                )}
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+                {confirmLabel}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

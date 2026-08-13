@@ -860,7 +860,7 @@ export class QuizRepository {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const conditions: string[] = ["qa.user_id = $1", "qa.status = 'completed'"];
+    const conditions: string[] = ["qa.user_id = $1"];
     const queryParams: any[] = [userId];
     let paramCount = 1;
 
@@ -958,6 +958,405 @@ export class QuizRepository {
     }
     const query = `SELECT * FROM subjects ORDER BY name`;
     const result = await pool.query(query);
+    return result.rows;
+  }
+
+  // ==================== COLLABORATORS & REQUESTS ====================
+
+  /**
+   * Check if a user is an accepted collaborator on a quiz.
+   */
+  async isAcceptedCollaborator(userId: number, quizId: number): Promise<boolean> {
+    const query = `
+      SELECT 1 FROM quiz_collaborator_request
+      WHERE quiz_id = $1 AND user_id = $2 AND status = 'accepted'
+      LIMIT 1
+    `;
+    const result = await pool.query(query, [quizId, userId]);
+    return result.rows.length > 0;
+  }
+
+  /**
+   * Resolve the persisted user id for a given user id/username input.
+   */
+  async resolveUserId(identifier: string): Promise<number | null> {
+    const result = await pool.query(
+      "SELECT id FROM users WHERE id::text = $1 OR LOWER(username) = LOWER($1) LIMIT 1",
+      [identifier]
+    );
+    return result.rows.length ? Number(result.rows[0].id) : null;
+  }
+
+  /**
+   * Get a user's email + username by id (for sending collaborator invite emails).
+   */
+  async getUserContactById(userId: number): Promise<{ id: number; email: string; username: string } | null> {
+    const result = await pool.query(
+      "SELECT id, email, username FROM users WHERE id = $1 LIMIT 1",
+      [userId]
+    );
+    return result.rows.length ? result.rows[0] : null;
+  }
+
+  /**
+   * Send a collaborator request (owner → recipient).
+   * Idempotent: re-sending upgrades a rejected/pending request back to pending.
+   */
+  async sendCollaboratorRequest(data: {
+    quizId: number;
+    userId: number;
+    invitedBy: number;
+  }): Promise<any | null> {
+    const query = `
+      INSERT INTO quiz_collaborator_request (quiz_id, user_id, invited_by, status, created_at, updated_at)
+      VALUES ($1, $2, $3, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT (quiz_id, user_id) DO UPDATE
+      SET status = 'pending', invited_by = $3, updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `;
+    const result = await pool.query(query, [data.quizId, data.userId, data.invitedBy]);
+    return result.rows[0];
+  }
+
+  /**
+   * Get all collaborator requests for a quiz (with user info) — for the owner.
+   */
+  async getCollaboratorRequests(quizId: number): Promise<any[]> {
+    const query = `
+      SELECT
+        qcr.id,
+        qcr.quiz_id,
+        qcr.user_id,
+        qcr.invited_by,
+        qcr.status,
+        qcr.created_at,
+        qcr.updated_at,
+        u.username,
+        u.first_name,
+        u.last_name
+      FROM quiz_collaborator_request qcr
+      JOIN users u ON u.id = qcr.user_id
+      WHERE qcr.quiz_id = $1
+      ORDER BY qcr.created_at DESC
+    `;
+    const result = await pool.query(query, [quizId]);
+    return result.rows;
+  }
+
+  /**
+   * Get a single collaborator request for a quiz + user.
+   */
+  async getCollaboratorRequest(quizId: number, userId: number): Promise<any | null> {
+    const query = `
+      SELECT qcr.*, u.username
+      FROM quiz_collaborator_request qcr
+      JOIN users u ON u.id = qcr.user_id
+      WHERE qcr.quiz_id = $1 AND qcr.user_id = $2
+      LIMIT 1
+    `;
+    const result = await pool.query(query, [quizId, userId]);
+    return result.rows.length ? result.rows[0] : null;
+  }
+
+  /**
+   * Update a collaborator request status (accept / reject / pending).
+   * Only the recipient should call this with accepted/rejected.
+   */
+  async updateCollaboratorRequest(quizId: number, userId: number, status: "pending" | "accepted" | "rejected"): Promise<any | null> {
+    const query = `
+      UPDATE quiz_collaborator_request
+      SET status = $3, updated_at = CURRENT_TIMESTAMP
+      WHERE quiz_id = $1 AND user_id = $2
+      RETURNING *
+    `;
+    const result = await pool.query(query, [quizId, userId, status]);
+    return result.rows.length ? result.rows[0] : null;
+  }
+
+  /**
+   * Delete a collaborator request/relationship (owner removes collaborator or cancels a request).
+   */
+  async removeCollaborator(quizId: number, userId: number): Promise<boolean> {
+    const query = `DELETE FROM quiz_collaborator_request WHERE quiz_id = $1 AND user_id = $2`;
+    const result = await pool.query(query, [quizId, userId]);
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  /**
+   * Get incoming collaborator requests for a user (the recipient).
+   */
+  async getIncomingCollaboratorRequests(userId: number): Promise<any[]> {
+    const query = `
+      SELECT
+        qcr.id,
+        qcr.quiz_id,
+        qcr.user_id,
+        qcr.invited_by,
+        qcr.status,
+        qcr.created_at,
+        qcr.updated_at,
+        q.name AS quiz_name,
+        q.code AS quiz_code,
+        inviter.username AS inviter_username
+      FROM quiz_collaborator_request qcr
+      JOIN quiz q ON q.id = qcr.quiz_id
+      JOIN users inviter ON inviter.id = qcr.invited_by
+      WHERE qcr.user_id = $1
+      ORDER BY qcr.created_at DESC
+    `;
+    const result = await pool.query(query, [userId]);
+    return result.rows;
+  }
+
+  /**
+   * Get the accepted collaborators for a quiz.
+   */
+  async getQuizCollaborators(quizId: number): Promise<any[]> {
+    const query = `
+      SELECT
+        qcr.user_id,
+        qcr.invited_by,
+        qcr.updated_at AS accepted_at,
+        u.username,
+        u.first_name,
+        u.last_name
+      FROM quiz_collaborator_request qcr
+      JOIN users u ON u.id = qcr.user_id
+      WHERE qcr.quiz_id = $1 AND qcr.status = 'accepted'
+      ORDER BY qcr.updated_at ASC
+    `;
+    const result = await pool.query(query, [quizId]);
+    return result.rows;
+  }
+
+  /**
+   * Get the quizzes/projects where the user is involved as a collaborator.
+   *
+   * Returns BOTH:
+   *  - quizzes the user created that have at least one accepted collaborator (`my_role: "creator"`)
+   *  - quizzes where the user is an accepted collaborator            (`my_role: "collaborator"`)
+   *
+   * Each row includes the accepted collaborator list (with avatar) so the UI can render
+   * a stacked avatar group, plus the quiz creator's profile.
+   * Returns only quizzes where the current user is an ACCEPTED collaborator
+   * (invitations in any other state are excluded at the DB level).
+   */
+  async getCollaborationProjects(userId: number): Promise<any[]> {
+    const query = `
+      WITH collaborator_lists AS (
+        SELECT
+          qcr.quiz_id,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'user_id', u.id,
+                'username', u.username,
+                'first_name', u.first_name,
+                'last_name', u.last_name,
+                'avatar_url', a.url
+              ) ORDER BY u.username
+            ) FILTER (WHERE qcr.status = 'accepted'),
+            '[]'::json
+          ) AS collaborators
+        FROM quiz_collaborator_request qcr
+        JOIN users u ON u.id = qcr.user_id
+        LEFT JOIN avatar a ON a.id = u.avatar_id
+        WHERE qcr.status = 'accepted'
+        GROUP BY qcr.quiz_id
+      )
+      SELECT
+        q.id,
+        q.name,
+        q.code,
+        q.createdby,
+        q.status,
+        q.starttime,
+        q.endtime,
+        q.created_at,
+        q.updated_at,
+        u.username AS creator_username,
+        u.first_name AS creator_first_name,
+        u.last_name AS creator_last_name,
+        a.url AS creator_avatar_url,
+        'collaborator' AS my_role,
+        qcr.invited_by,
+        qcr.updated_at AS accepted_at,
+        cl.collaborators,
+        COUNT(DISTINCT qp.id)::int AS total_questions,
+        COUNT(DISTINCT qr.id)::int AS participants
+      FROM quiz_collaborator_request qcr
+      JOIN quiz q ON q.id = qcr.quiz_id
+      JOIN users u ON u.id = q.createdby
+      LEFT JOIN avatar a ON a.id = u.avatar_id
+      LEFT JOIN collaborator_lists cl ON cl.quiz_id = q.id
+      LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
+      LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
+      WHERE qcr.user_id = $1 AND qcr.status = 'accepted'
+      GROUP BY q.id, u.username, u.first_name, u.last_name, a.url, qcr.invited_by, qcr.updated_at, cl.collaborators
+      ORDER BY qcr.updated_at DESC NULLS LAST, q.id DESC
+    `;
+    const result = await pool.query(query, [userId]);
+    return result.rows.map((row) => ({
+      ...row,
+      collaborators: Array.isArray(row.collaborators) ? row.collaborators : [],
+      total_questions: row.total_questions ? Number(row.total_questions) : 0,
+      participants: row.participants ? Number(row.participants) : 0,
+    }));
+  }
+
+  // ==================== RESPONSES / RESULTS (admin view) ====================
+
+  /**
+   * Complete student response summary for a quiz — the Responses dashboard table.
+   * Includes registered students (with/without an attempt) and their scores.
+   */
+  async getQuizResponses(quizId: number): Promise<{
+    quiz: any;
+    students: any[];
+    summary: any;
+  }> {
+    const quizQuery = `
+      SELECT
+        q.id,
+        q.name,
+        q.code,
+        q.total_marks,
+        q.passing_marks,
+        q.status,
+        q.starttime,
+        q.endtime
+      FROM quiz q
+      WHERE q.id = $1
+    `;
+    const quizResult = await pool.query(quizQuery, [quizId]);
+    const quiz = quizResult.rows[0] || null;
+    if (!quiz) throw new Error("Quiz not found");
+
+    const studentsQuery = `
+      SELECT
+        qr.user_id,
+        qr.rollno,
+        qr.is_registered,
+        qr.created_at AS registered_at,
+        u.username,
+        u.first_name,
+        u.last_name,
+        u.email,
+        qa.id AS attempt_id,
+        qa.score,
+        qa.percentage,
+        qa.rank,
+        qa.status AS attempt_status,
+        qa.completed_at,
+        qa.time_taken,
+        qa.total_questions,
+        qa.correct_answers,
+        qa.wrong_answers,
+        qa.skipped_questions
+      FROM quiz_registration qr
+      JOIN users u ON u.id = qr.user_id
+      LEFT JOIN quiz_attempts qa ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
+      WHERE qr.quiz_id = $1 AND qr.is_registered = true
+      ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC NULLS LAST, u.first_name ASC
+    `;
+    const studentsResult = await pool.query(studentsQuery, [quizId]);
+    const students = studentsResult.rows;
+
+    const counts = await pool.query(
+      `SELECT
+         COUNT(*) AS total,
+         COUNT(qa.id) FILTER (WHERE qa.status = 'completed') AS submitted,
+         COUNT(*) FILTER (WHERE qa.id IS NULL OR qa.status <> 'completed') AS not_submitted,
+         AVG(qa.score) AS average_score,
+         MAX(qa.score) AS highest_score,
+         MIN(qa.score) AS lowest_score
+       FROM quiz_registration qr
+       LEFT JOIN quiz_attempts qa ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
+       WHERE qr.quiz_id = $1 AND qr.is_registered = true`,
+      [quizId]
+    );
+
+    const summary = counts.rows[0] || {};
+    return {
+      quiz,
+      students,
+      summary: {
+        total: parseInt(summary.total) || 0,
+        submitted: parseInt(summary.submitted) || 0,
+        not_submitted: parseInt(summary.not_submitted) || 0,
+        average_score: parseFloat(summary.average_score) || 0,
+        highest_score: parseFloat(summary.highest_score) || 0,
+        lowest_score: summary.lowest_score === null ? null : parseFloat(summary.lowest_score),
+        total_marks: quiz.total_marks || 0,
+      },
+    };
+  }
+
+  /**
+   * Question-wise detail for a single student's attempt (admin/collaborator view).
+   */
+  async getStudentAttemptDetails(quizId: number, userId: number): Promise<any | null> {
+    const query = `
+      SELECT
+        qa.id AS attempt_id,
+        qa.user_id,
+        qa.quiz_id,
+        qa.score,
+        qa.percentage,
+        qa.rank,
+        qa.status AS attempt_status,
+        qa.completed_at,
+        qa.time_taken,
+        qa.total_questions,
+        qa.correct_answers,
+        qa.wrong_answers,
+        qa.skipped_questions,
+        u.username,
+        u.first_name,
+        u.last_name,
+        u.email
+      FROM quiz_attempts qa
+      JOIN users u ON u.id = qa.user_id
+      WHERE qa.quiz_id = $1 AND qa.user_id = $2
+      ORDER BY qa.created_at DESC
+      LIMIT 1
+    `;
+    const result = await pool.query(query, [quizId, userId]);
+    return result.rows.length ? result.rows[0] : null;
+  }
+
+  /**
+   * Question-wise review of a student attempt for the admin/collaborator.
+   * Uses a public `option_statement` for the correct answer and the student's selection.
+   */
+  async getStudentQuestionReview(attemptId: number): Promise<any[]> {
+    const query = `
+      SELECT
+        qp.id AS problem_id,
+        qp.question_number,
+        qp.problem_statement,
+        qp.problem_description,
+        qp.explaination,
+        qpt.name AS problem_type,
+        correct.option_statement AS correct_answer,
+        qsr.option AS selected_option,
+        selected.option_statement AS selected_statement,
+        qsr.created_at AS answered_at,
+        CASE
+          WHEN qsr.option IS NULL THEN 'unanswered'
+          WHEN selected.id IS NULL THEN 'unanswered'
+          WHEN selected.iscorrect THEN 'correct'
+          ELSE 'wrong'
+        END AS status
+      FROM quiz_problems qp
+      LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
+      LEFT JOIN quiz_student_response qsr ON qsr.problem_id = qp.id
+      LEFT JOIN quiz_problem_options correct ON correct.problem_id = qp.id AND correct.iscorrect = true
+      LEFT JOIN quiz_problem_options selected ON selected.id = qsr.option::int
+      WHERE qp.quiz_id = (SELECT quiz_id FROM quiz_attempts WHERE id = $1)
+      ORDER BY qp.question_number ASC
+    `;
+    const result = await pool.query(query, [attemptId]);
     return result.rows;
   }
 }

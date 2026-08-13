@@ -2,6 +2,10 @@ import apiClient from "@/lib/axios";
 import { isValidQuizCode } from "@/utils/quizCode";
 import { QuizLeaderboardSettings } from "@/types/quiz";
 
+type Pagination = { page: number; limit: number; total: number; totalPages: number };
+
+type PaginatedResponse<T> = import("axios").AxiosResponse<T> & { pagination?: Pagination };
+
 export interface Quiz {
   id: number;
   name: string;
@@ -9,9 +13,69 @@ export interface Quiz {
   createdby: number;
   starttime: string | null;
   endtime: string | null;
+  status: string | null;
   created_at: string | null;
   updated_at: string | null;
   creator_name: string | null;
+}
+
+export interface QuizVisibilityOption {
+  id: number;
+  heading: string;
+  description: string | null;
+}
+
+/**
+ * Get visibility options from the `quiz_visibility` DB table
+ * GET /api/v1/user/quiz/visibility-options
+ */
+export async function getQuizVisibilityOptions(): Promise<QuizVisibilityOption[]> {
+  const response = await apiClient.get<QuizVisibilityOption[]>("/v1/user/quiz/visibility-options");
+  return response.data;
+}
+
+/**
+ * Get the list of IANA timezone names
+ * GET /api/v1/user/timezones
+ */
+export async function getTimezones(): Promise<string[]> {
+  const response = await apiClient.get<string[]>("/v1/user/timezones");
+  return response.data;
+}
+
+export interface CreateQuizPayload {
+  name: string;
+  description?: string;
+  subject?: string;
+  topic?: string;
+  code: string;
+  difficulty?: string;
+  visibility?: number;
+  timeLimit?: number;
+  starttime?: string;
+  endtime?: string;
+  timeZone?: string;
+  randomizeQuestions?: boolean;
+  randomizeOptions?: boolean;
+  showResultImmediately?: boolean;
+  showCorrectAnswersAfterSubmission?: boolean;
+  negativeMarking?: boolean;
+  negativeMarkValue?: number;
+  marksPerQuestion?: number;
+  totalQuestions?: number;
+  totalMarks?: number;
+  passingPercentage?: number;
+  passingMarks?: number;
+  tags?: string[];
+  registrationEnabled?: boolean;
+  registrationStart?: string;
+  registrationEnd?: string;
+  emailResults?: boolean;
+  leaderboard?: boolean;
+  leaderboardShowRank?: boolean;
+  leaderboardShowScore?: boolean;
+  leaderboardShowTime?: boolean;
+  resultVisibility?: "immediate" | "after_end" | "manual";
 }
 
 /**
@@ -132,24 +196,60 @@ export async function getMyQuizzes(): Promise<Quiz[]> {
 }
 
 /**
- * Create a new quiz
+ * Get quizzes created by the current user
+ * GET /api/v1/user/quiz/my-quizzes
+ */
+export async function getMyCreatedQuizzes(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  visibility?: number;
+  sortBy?: string;
+  sortOrder?: string;
+}): Promise<{ quizzes: Quiz[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+  const response = await apiClient.get("/v1/user/quiz/my-quizzes", { params }) as PaginatedResponse<unknown>;
+  // After interceptor, response.data is the quizzes array
+  const quizzes = (response.data || []) as Quiz[];
+  // Pagination info is preserved by the interceptor as response.pagination
+  const pagination = response.pagination;
+  const limitVal = params.limit || 10;
+  const pageVal = params.page || 1;
+  const total = pagination?.total || quizzes.length;
+  const totalPages = pagination?.totalPages || Math.ceil(total / limitVal);
+  return {
+    quizzes,
+    pagination: {
+      page: pageVal,
+      limit: limitVal,
+      total,
+      totalPages,
+    },
+  };
+}
+
+/**
+ * Get old quizzes (quizzes participated by current user)
+ * GET /api/v1/user/quiz/old-quizzes
+ */
+export async function getOldQuizzes(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: string;
+}): Promise<{ quizzes: PreviousQuiz[]; total: number }> {
+  const response = await apiClient.get("/v1/user/quiz/old-quizzes", { params });
+  // After interceptor, response.data is the quizzes array
+  const quizzes = (response.data || []) as PreviousQuiz[];
+  return { quizzes, total: quizzes.length };
+}
+
+/**
+ * Create a new quiz from the creator settings form
  * POST /api/v1/user/quiz
  */
-export async function createQuiz(data: {
-  name: string;
-  code: string;
-  starttime?: string;
-  endtime?: string;
-  visibility?: number;
-  difficulty?: number;
-  totalMarks?: number;
-  passingMarks?: number;
-  shuffleQuestions?: boolean;
-  shuffleOptions?: boolean;
-  showResultsImmediately?: boolean;
-  negativeMarking?: boolean;
-  leaderboard?: boolean;
-}): Promise<Quiz> {
+export async function createQuiz(data: CreateQuizPayload): Promise<Quiz> {
   const response = await apiClient.post<Quiz>("/v1/user/quiz", data);
   return response.data;
 }
@@ -469,8 +569,10 @@ export async function getPreviousQuizzes(params: {
   sortBy?: string;
   sortOrder?: string;
 }): Promise<{ quizzes: PreviousQuiz[]; total: number }> {
-  const response = await apiClient.get("/v1/user/quiz/previous", { params });
-  return response.data;
+  const response = await apiClient.get("/v1/user/quiz/previous", { params }) as PaginatedResponse<unknown>;
+  const quizzes = (response.data || []) as PreviousQuiz[];
+  const pagination = response.pagination;
+  return { quizzes, total: pagination?.total ?? quizzes.length };
 }
 
 // ─────────────────────────────────────────
@@ -607,5 +709,241 @@ export async function generateQuizResults(quizId: string, options?: { force?: bo
  */
 export async function retryQuizResultsEmail(quizId: string): Promise<{ emailSent: boolean; emailError?: string }> {
   const response = await apiClient.post<{ emailSent: boolean; emailError?: string }>(`/v1/user/quiz/${quizId}/retry-email`);
+  return response.data;
+}
+
+// ─────────────────────────────────────────
+// Collaborator Requests API
+// ─────────────────────────────────────────
+
+export type CollaboratorRequestStatus = "pending" | "accepted" | "rejected";
+
+export interface CollaboratorRequest {
+  id: number;
+  quiz_id: number;
+  user_id: string | number;
+  invited_by: string | number;
+  status: CollaboratorRequestStatus;
+  created_at: string | null;
+  updated_at: string | null;
+  username: string | null;
+  first_name: string | null;
+  last_name: string | null;
+}
+
+export interface IncomingCollaboratorRequest {
+  id: number;
+  quiz_id: number;
+  user_id: string | number;
+  invited_by: string | number;
+  status: CollaboratorRequestStatus;
+  created_at: string | null;
+  updated_at: string | null;
+  quiz_name: string;
+  quiz_code: string;
+  inviter_username: string | null;
+}
+
+export interface QuizCollaboratorsResponse {
+  requests: CollaboratorRequest[];
+  collaborators: CollaboratorRequest[];
+  pending: CollaboratorRequest[];
+  rejected: CollaboratorRequest[];
+}
+
+/**
+ * Send a collaborator request for a quiz (owner only). The user is NOT added until they accept.
+ * POST /api/v1/user/quiz/:quizId/collaborators/request
+ */
+export async function sendCollaboratorRequest(quizId: string, userId: string | number): Promise<CollaboratorRequest> {
+  const response = await apiClient.post<CollaboratorRequest>(`/v1/user/quiz/${quizId}/collaborators/request`, { userId });
+  return response.data;
+}
+
+/**
+ * Get all collaborator requests for a quiz (owner/collaborator view).
+ * GET /api/v1/user/quiz/:quizId/collaborators
+ */
+export async function getQuizCollaborators(quizId: string): Promise<QuizCollaboratorsResponse> {
+  const response = await apiClient.get<QuizCollaboratorsResponse>(`/v1/user/quiz/${quizId}/collaborators`);
+  return response.data;
+}
+
+/**
+ * Remove a collaborator or cancel a request (owner only).
+ * DELETE /api/v1/user/quiz/:quizId/collaborators/:targetUserId
+ */
+export async function removeQuizCollaborator(quizId: string, targetUserId: string | number): Promise<void> {
+  await apiClient.delete(`/v1/user/quiz/${quizId}/collaborators/${targetUserId}`);
+}
+
+/** A single user that appears as a collaborator on a quiz. */
+export interface CollaborationUser {
+  user_id: string | number;
+  username: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+}
+
+/**
+ * A quiz/project the authenticated user is an accepted collaborator on.
+ * `my_role` is always "collaborator" — the endpoint only returns quizzes where
+ * the current user has an accepted collaboration invitation (pending/rejected
+ * invitations are excluded at the database level).
+ */
+export interface CollaborationProject {
+  id: number;
+  name: string;
+  code: string;
+  createdby: number;
+  status: string | null;
+  starttime: string | null;
+  endtime: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  creator_username: string | null;
+  creator_first_name: string | null;
+  creator_last_name: string | null;
+  creator_avatar_url: string | null;
+  my_role: "collaborator";
+  invited_by: string | number | null;
+  accepted_at: string | null;
+  collaborators: CollaborationUser[];
+  total_questions: number;
+  participants: number;
+}
+
+/**
+ * Get the quizzes/projects the authenticated user collaborates on.
+ * GET /api/v1/user/quiz/collaborations
+ */
+export async function getMyCollaborations(): Promise<CollaborationProject[]> {
+  const response = await apiClient.get<CollaborationProject[]>("/v1/user/quiz/collaborations");
+  return response.data;
+}
+
+/**
+ * Get the authenticated user's incoming collaborator requests.
+ * GET /api/v1/user/quiz/collaborator-requests/incoming
+ */
+export async function getIncomingCollaboratorRequests(): Promise<IncomingCollaboratorRequest[]> {
+  const response = await apiClient.get<IncomingCollaboratorRequest[]>("/v1/user/quiz/collaborator-requests/incoming");
+  return response.data;
+}
+
+/**
+ * Accept or reject an incoming collaborator request (recipient only).
+ * PATCH /api/v1/user/quiz/collaborator-requests/:quizId
+ */
+export async function respondToCollaboratorRequest(
+  quizId: string,
+  status: "accepted" | "rejected"
+): Promise<CollaboratorRequest> {
+  const response = await apiClient.patch<CollaboratorRequest>(`/v1/user/quiz/collaborator-requests/${quizId}`, { status });
+  return response.data;
+}
+
+// ─────────────────────────────────────────
+// Quiz Responses API (admin / collaborator view)
+// ─────────────────────────────────────────
+
+export interface QuizResponseStudent {
+  user_id: number;
+  rollno: string | null;
+  is_registered: boolean;
+  registered_at: string | null;
+  username: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  attempt_id: number | null;
+  score: number | null;
+  percentage: number | null;
+  rank: number | null;
+  attempt_status: string | null;
+  completed_at: string | null;
+  time_taken: number | null;
+  total_questions: number | null;
+  correct_answers: number | null;
+  wrong_answers: number | null;
+  skipped_questions: number | null;
+}
+
+export interface QuizResponsesSummary {
+  total: number;
+  submitted: number;
+  not_submitted: number;
+  average_score: number;
+  highest_score: number | null;
+  lowest_score: number | null;
+  total_marks: number;
+}
+
+export interface QuizResponsesData {
+  quiz: {
+    id: number;
+    name: string;
+    code: string;
+    total_marks: number;
+    passing_marks: number;
+    status: string | null;
+    starttime: string | null;
+    endtime: string | null;
+  };
+  students: QuizResponseStudent[];
+  summary: QuizResponsesSummary;
+}
+
+/**
+ * Get the complete student response dashboard for a quiz (owner/collaborator only).
+ * GET /api/v1/user/quiz/:quizId/responses
+ */
+export async function getQuizResponses(quizId: string): Promise<QuizResponsesData> {
+  const response = await apiClient.get<QuizResponsesData>(`/v1/user/quiz/${quizId}/responses`);
+  return response.data;
+}
+
+export interface StudentResponseDetail {
+  attempt: {
+    attempt_id: number;
+    user_id: number;
+    quiz_id: number;
+    score: number;
+    percentage: number;
+    rank: number | null;
+    attempt_status: string;
+    completed_at: string | null;
+    time_taken: number | null;
+    total_questions: number | null;
+    correct_answers: number | null;
+    wrong_answers: number | null;
+    skipped_questions: number | null;
+    username: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+  };
+  review: Array<{
+    problem_id: number;
+    question_number: number;
+    problem_statement: string;
+    problem_description: string | null;
+    explaination: string | null;
+    problem_type: string | null;
+    correct_answer: string | null;
+    selected_option: string | null;
+    selected_statement: string | null;
+    answered_at: string | null;
+    status: "correct" | "wrong" | "unanswered";
+  }>;
+}
+
+/**
+ * Get a single student's response detail with question-wise review (owner/collaborator only).
+ * GET /api/v1/user/quiz/:quizId/responses/:userId
+ */
+export async function getStudentResponseDetail(quizId: string, userId: string | number): Promise<StudentResponseDetail> {
+  const response = await apiClient.get<StudentResponseDetail>(`/v1/user/quiz/${quizId}/responses/${userId}`);
   return response.data;
 }

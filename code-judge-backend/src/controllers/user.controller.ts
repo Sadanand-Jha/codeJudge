@@ -164,4 +164,54 @@ const profile = async (req: Request, res: Response) => {
   }
 };
 
-export { userRegister, forgetPassword, profile };
+/**
+ * GET /api/v1/user/users/:userId
+ * Minimal public user lookup (id + username only).
+ *
+ * Used to validate quiz collaborators before they are added.
+ * Deliberately does NOT expose email, phone, password hashes or any
+ * other private profile information.
+ */
+const lookupUser = async (req: Request, res: Response) => {
+  try {
+    const userId = String(req.params.userId ?? "").trim();
+
+    if (!userId) {
+      res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      "SELECT id, username FROM users WHERE id::text = $1 OR LOWER(username) = LOWER($1) LIMIT 1",
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+      return;
+    }
+
+    const user = result.rows[0];
+    res.status(200).json({
+      success: true,
+      data: {
+        id: String(user.id),
+        username: user.username,
+      },
+    });
+  } catch (error) {
+    console.error("Error looking up user:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while looking up user",
+    });
+  }
+};
+
+export { userRegister, forgetPassword, profile, lookupUser };

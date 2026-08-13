@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Request, Response } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
 import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, cloneQuizSchema, joinQuizSchema } from "../../../middleware/validate.ts";
 import {
@@ -30,8 +31,20 @@ import {
   getPreviousQuizzes,
   generateQuizResults,
   retryQuizResultsEmail,
-  getAllSubjects
+  getAllSubjects,
+  getQuizVisibilityOptions,
+  sendCollaboratorRequest,
+  getQuizCollaborators,
+  getMyCollaborations,
+  getIncomingCollaboratorRequests,
+  respondToCollaboratorRequest,
+  removeQuizCollaborator,
+  getQuizResponses,
+  getStudentResponseDetail
 } from "../../../controllers/quiz.controller.ts";
+import { QuizService } from "../../../services/database/quiz.service.ts";
+
+const quizService = new QuizService();
 
 const router = Router();
 
@@ -49,8 +62,81 @@ router.get("/my", getMyQuizzes);
 // GET /api/v1/user/quiz/previous — get previous quizzes (attempted by student)
 router.get("/previous", getPreviousQuizzes);
 
+// GET /api/v1/user/quiz/old-quizzes — get quizzes participated by current user
+router.get("/old-quizzes", getPreviousQuizzes);
+
+// ==================== MY CREATED QUIZZES ====================
+
+/**
+ * GET /api/v1/user/quiz/my-quizzes
+ * Get quizzes created by the authenticated user
+ */
+router.get("/my-quizzes", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+      return;
+    }
+
+    const {
+      page = "1",
+      limit = "10",
+      search = "",
+      status,
+      visibility,
+      sortBy = "created_at",
+      sortOrder = "DESC",
+    } = req.query;
+
+    const result = await quizService.getAllQuizzes({
+      page: Number(page),
+      limit: Number(limit),
+      search: search as string,
+      status: status as string,
+      visibility: visibility ? Number(visibility) : undefined,
+      sortBy: sortBy as string,
+      sortOrder: sortOrder as string,
+      userId: Number(userId),
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result.quizzes,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total: result.total,
+        totalPages: Math.ceil(result.total / Number(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching my quizzes:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching my quizzes",
+    });
+  }
+});
+
 // GET /api/v1/user/quiz/code/:code — get a quiz by its code
 router.get("/code/:code", getQuizByCode);
+
+// GET /api/v1/user/quiz/visibility-options — get visibility options from quiz_visibility table
+router.get("/visibility-options", getQuizVisibilityOptions);
+
+// GET /api/v1/user/quiz/collaborator-requests/incoming — get the user's incoming collaborator requests
+router.get("/collaborator-requests/incoming", getIncomingCollaboratorRequests);
+
+// GET /api/v1/user/quiz/collaborations — get quizzes/projects the user collaborates on (creator + collaborator)
+router.get("/collaborations", getMyCollaborations);
+
+// PATCH /api/v1/user/quiz/collaborator-requests/:quizId — accept/reject an incoming request (recipient only)
+router.patch("/collaborator-requests/:quizId", respondToCollaboratorRequest);
 
 // GET /api/v1/user/quiz/:quizId — get a single quiz
 router.get("/:quizId", getQuizById);
@@ -129,6 +215,25 @@ router.get("/:quizId/leaderboard", getQuizLeaderboard);
 
 // GET /api/v1/user/quiz/:quizId/analytics — get quiz analytics
 router.get("/:quizId/analytics", getQuizAnalytics);
+
+// ==================== COLLABORATORS ====================
+
+// POST /api/v1/user/quiz/:quizId/collaborators/request — send a collaborator request (owner only)
+router.post("/:quizId/collaborators/request", sendCollaboratorRequest);
+
+// GET /api/v1/user/quiz/:quizId/collaborators — get requests + accepted collaborators (owner/collaborator)
+router.get("/:quizId/collaborators", getQuizCollaborators);
+
+// DELETE /api/v1/user/quiz/:quizId/collaborators/:targetUserId — owner removes collaborator / cancels request
+router.delete("/:quizId/collaborators/:targetUserId", removeQuizCollaborator);
+
+// ==================== RESPONSES (admin view) ====================
+
+// GET /api/v1/user/quiz/:quizId/responses — complete response dashboard (owner/collaborator)
+router.get("/:quizId/responses", getQuizResponses);
+
+// GET /api/v1/user/quiz/:quizId/responses/:userId — single student detail (owner/collaborator)
+router.get("/:quizId/responses/:userId", getStudentResponseDetail);
 
 // ==================== JOIN QUIZ ====================
 

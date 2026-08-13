@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { STORAGE_KEYS } from "@/utils/storageKeys";
 
 interface AuthState {
   token: string | null;
@@ -19,24 +20,24 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setAuth: (token, user) => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
     }
     set({ token, user, isAuthenticated: true });
   },
 
   logout: () => {
     if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
     }
     set({ token: null, user: null, isAuthenticated: false });
   },
 
   hydrate: () => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token");
-      const userStr = localStorage.getItem("user");
+      const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      const userStr = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
       if (token && userStr) {
         try {
           const user = JSON.parse(userStr);
@@ -44,8 +45,8 @@ export const useAuthStore = create<AuthState>((set) => ({
           return;
         } catch {
           // Invalid user JSON, clear it
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
+          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
         }
       }
       set({ hasHydrated: true });

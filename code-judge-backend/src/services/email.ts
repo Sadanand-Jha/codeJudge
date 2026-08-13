@@ -59,3 +59,33 @@ export async function sendOtpEmail(email: string, otp: string): Promise<void> {
 
   await sendEmail({ to: email, subject, text, html });
 }
+
+/**
+ * Sends a collaborator invitation email to the invitee.
+ * The link opens their profile page where the collaborator requests inbox lives.
+ */
+export async function sendCollaboratorInviteEmail(payload: {
+  to: string;
+  quizName: string;
+  inviterUsername: string;
+  inviteUrl: string;
+}): Promise<void> {
+  const { to, quizName, inviterUsername, inviteUrl } = payload;
+  const subject = `Collaboration Invitation: ${quizName}`;
+  const text = `Hi ${to},\n\n${inviterUsername} has invited you to collaborate on the quiz "${quizName}".\n\nOpen the link below to view the invitation and accept or decline it:\n${inviteUrl}\n\nIf you did not expect this, you can ignore this email.\n\nbyteclash Team`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+      <h2 style="color: #333;">Collaboration Invitation</h2>
+      <p style="font-size: 16px; color: #555;">${inviterUsername} has invited you to collaborate on the quiz <strong>"${quizName}"</strong>.</p>
+      <p style="font-size: 16px; color: #555;">Click the button below to view the invitation and accept or decline it:</p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${inviteUrl}" style="background: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-size: 16px; display: inline-block;">View Invitation</a>
+      </div>
+      <p style="font-size: 14px; color: #888;">If you did not expect this invitation, you can safely ignore this email.</p>
+      <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #aaa;">byteclash Team</p>
+    </div>
+  `;
+
+  await sendEmail({ to, subject, text, html });
+}

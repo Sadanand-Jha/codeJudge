@@ -8,7 +8,9 @@
  * - Batch submission preparation
  */
 
-const STORAGE_KEY_PREFIX = "quiz_progress_";
+import { STORAGE_KEYS } from "@/utils/storageKeys";
+
+const STORAGE_KEY_PREFIX = STORAGE_KEYS.QUIZ_PROGRESS_PREFIX;
 
 export interface QuizProgress {
   quizId: string;

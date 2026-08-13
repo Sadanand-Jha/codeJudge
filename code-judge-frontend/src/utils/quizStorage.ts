@@ -1,8 +1,9 @@
 "use client";
 
 import { QuizDetails, CreatorQuestion, DEFAULT_QUIZ_DETAILS } from "@/components/quiz/creator/types";
+import { STORAGE_KEYS } from "@/utils/storageKeys";
 
-const STORAGE_KEY = "byteclash_quiz_creation";
+const STORAGE_KEY = STORAGE_KEYS.QUIZ_CREATION;
 
 export interface QuizCreationState {
   details: QuizDetails;
@@ -91,4 +92,35 @@ export function saveActiveQuestionId(activeQuestionId: string): void {
 export function hasSavedQuiz(): boolean {
   if (!isClient()) return false;
   return loadQuizState() !== null;
+}
+
+/**
+ * Fingerprint of the question set used to detect when local questions have
+ * changed since they were last synced to the server. Any edit bumps
+ * `updatedAt`, so a different signature means the questions need re-saving.
+ */
+export function computeQuestionsSignature(questions: CreatorQuestion[]): string {
+  if (!questions || questions.length === 0) return "";
+  return questions.map((q) => `${q.id}:${q.updatedAt}`).join("|");
+}
+
+export function getSyncedSignature(code: string): string | null {
+  if (!isClient()) return null;
+  try {
+    return localStorage.getItem(`${STORAGE_KEYS.QUIZ_SYNC_SIGNATURE_PREFIX}${code}`);
+  } catch (err) {
+    console.error("Failed to read synced signature:", err);
+    return null;
+  }
+}
+
+export function setSyncedSignature(code: string, signature: string): void {
+  if (!isClient()) return;
+  try {
+    const key = `${STORAGE_KEYS.QUIZ_SYNC_SIGNATURE_PREFIX}${code}`;
+    if (signature) localStorage.setItem(key, signature);
+    else localStorage.removeItem(key);
+  } catch (err) {
+    console.error("Failed to store synced signature:", err);
+  }
 }

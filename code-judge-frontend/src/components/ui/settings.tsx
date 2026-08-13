@@ -67,9 +67,10 @@ interface SettingsCardProps {
   children: ReactNode;
   variant?: "default" | "danger";
   className?: string;
+  iconClassName?: string;
 }
 
-export function SettingsCard({ title, description, icon, children, variant = "default", className = "" }: SettingsCardProps) {
+export function SettingsCard({ title, description, icon, children, variant = "default", className = "", iconClassName }: SettingsCardProps) {
   const isDanger = variant === "danger";
   return (
     <section
@@ -86,7 +87,8 @@ export function SettingsCard({ title, description, icon, children, variant = "de
           {icon && (
             <div className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-              isDanger ? "bg-danger/10 text-danger" : "bg-accent/10 text-accent"
+              isDanger ? "bg-danger/10 text-danger" : "bg-accent/10 text-accent",
+              iconClassName
             )}>
               {icon}
             </div>
@@ -119,6 +121,7 @@ interface SettingsInputProps {
   action?: ReactNode;
   required?: boolean;
   optional?: boolean;
+  onBlur?: () => void;
 }
 
 export function SettingsInput({
@@ -134,6 +137,7 @@ export function SettingsInput({
   action,
   required,
   optional,
+  onBlur,
 }: SettingsInputProps) {
   const pct = maxLength ? value.length / maxLength : 0;
   const counterColor =
@@ -165,6 +169,7 @@ export function SettingsInput({
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
           placeholder={placeholder}
           readOnly={readOnly}
           maxLength={maxLength}

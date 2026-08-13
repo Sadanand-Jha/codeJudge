@@ -188,4 +188,60 @@ export class QuizService {
   async getAllSubjects(search?: string): Promise<any[]> {
     return this.repository.getAllSubjects(search);
   }
+
+  async isAcceptedCollaborator(userId: number, quizId: number): Promise<boolean> {
+    return this.repository.isAcceptedCollaborator(userId, quizId);
+  }
+
+  async resolveUserId(identifier: string): Promise<number | null> {
+    return this.repository.resolveUserId(identifier);
+  }
+
+  async getUserContactById(userId: number): Promise<any | null> {
+    return this.repository.getUserContactById(userId);
+  }
+
+  async sendCollaboratorRequest(data: { quizId: number; userId: number; invitedBy: number }): Promise<any | null> {
+    return this.repository.sendCollaboratorRequest(data);
+  }
+
+  async getCollaboratorRequests(quizId: number): Promise<any[]> {
+    return this.repository.getCollaboratorRequests(quizId);
+  }
+
+  async getCollaboratorRequest(quizId: number, userId: number): Promise<any | null> {
+    return this.repository.getCollaboratorRequest(quizId, userId);
+  }
+
+  async updateCollaboratorRequest(quizId: number, userId: number, status: "pending" | "accepted" | "rejected"): Promise<any | null> {
+    return this.repository.updateCollaboratorRequest(quizId, userId, status);
+  }
+
+  async removeCollaborator(quizId: number, userId: number): Promise<boolean> {
+    return this.repository.removeCollaborator(quizId, userId);
+  }
+
+  async getIncomingCollaboratorRequests(userId: number): Promise<any[]> {
+    return this.repository.getIncomingCollaboratorRequests(userId);
+  }
+
+  async getQuizCollaborators(quizId: number): Promise<any[]> {
+    return this.repository.getQuizCollaborators(quizId);
+  }
+
+  async getCollaborationProjects(userId: number): Promise<any[]> {
+    return this.repository.getCollaborationProjects(userId);
+  }
+
+  async getQuizResponses(quizId: number): Promise<any> {
+    return this.repository.getQuizResponses(quizId);
+  }
+
+  async getStudentAttemptDetails(quizId: number, userId: number): Promise<any | null> {
+    return this.repository.getStudentAttemptDetails(quizId, userId);
+  }
+
+  async getStudentQuestionReview(attemptId: number): Promise<any[]> {
+    return this.repository.getStudentQuestionReview(attemptId);
+  }
 }

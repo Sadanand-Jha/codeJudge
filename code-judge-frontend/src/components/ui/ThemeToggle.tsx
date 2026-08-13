@@ -19,7 +19,7 @@ export default function ThemeToggle({ className }: { className?: string }) {
       aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
       title={`Switch to ${isDark ? "light" : "dark"} theme`}
       role="switch"
-      aria-checked={!isDark}
+      aria-checked={isDark ? "false" : "true"}
     >
       {/* Moon icon — left side, active in dark mode */}
       <Moon

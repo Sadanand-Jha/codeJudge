@@ -15,7 +15,11 @@ apiClient.interceptors.response.use(
   (response) => {
     if (response.data && typeof response.data === "object" && "success" in response.data) {
       if (response.data.success === true && "data" in response.data) {
-        response.data = response.data.data;
+        const { data, pagination, ...rest } = response.data;
+        response.data = data;
+        if (pagination) {
+          (response as any).pagination = pagination;
+        }
       }
     }
     return response;

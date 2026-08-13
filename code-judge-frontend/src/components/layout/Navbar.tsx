@@ -3,7 +3,9 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Globe, User, LogOut, Search, LogIn, Code2 } from "lucide-react";
+import { Globe, User, LogOut, Search, LogIn, Code2 } from "lucide-react";
+import NavbarPromoWidget from "./NavbarPromoWidget";
+import NotificationBell from "./NotificationBell";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
 import { me, logout } from "@/services/auth";
@@ -71,11 +73,13 @@ export default function Navbar() {
           <span className="text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
         </Link>
 
+        {/* Pro/Ultimate Promo Widget — always visible, auto-rotates between plans */}
+        {/* <NavbarPromoWidget className="mr-6" /> */}
+        
+
         {/* User Utility Menu */}
         <div className="flex items-center gap-3 text-xs text-text-secondary">
-          <button className="flex items-center gap-1 hover:text-text-primary transition-colors">
-            <Bell className="h-3.5 w-3.5" />
-          </button>
+          <NotificationBell />
           <button className="flex items-center gap-1 hover:text-text-primary transition-colors">
             <Globe className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">EN</span>

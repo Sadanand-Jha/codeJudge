@@ -44,6 +44,13 @@
   --danger: #EF4444;
   --gold: #FBBF24;
 
+  /* == Chat (subtle rose — pink used as accent, not as background) == */
+  --chat-rose: #FB7185;
+  --chat-user-bg: rgba(251, 113, 133, 0.07);
+  --chat-user-border: rgba(251, 113, 133, 0.16);
+  --chat-chip-bg: rgba(251, 113, 133, 0.06);
+  --chat-chip-border: rgba(251, 113, 133, 0.15);
+
   /* == Lines / controls == */
   --border: rgba(255, 255, 255, 0.06);
   --border-hover: rgba(255, 255, 255, 0.12);
@@ -96,6 +103,13 @@
   --danger: #EF4444;
   --gold: #FBBF24;
 
+  /* == Chat (subtle rose — pink used as accent, not as background) == */
+  --chat-rose: #C2506E;
+  --chat-user-bg: #FDF2F7;
+  --chat-user-border: #F4D9E6;
+  --chat-chip-bg: #FBF0F5;
+  --chat-chip-border: #F0D3E1;
+
   /* == Lines / controls == */
   --border: #E2E8F0;
   --border-hover: #CBD5E1;
@@ -143,6 +157,13 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-gold: var(--gold);
+
+  /* Chat — subtle rose accent */
+  --color-chat-rose: var(--chat-rose);
+  --color-chat-user-bg: var(--chat-user-bg);
+  --color-chat-user-border: var(--chat-user-border);
+  --color-chat-chip-bg: var(--chat-chip-bg);
+  --color-chat-chip-border: var(--chat-chip-border);
 
   /* Lines / controls */
   --color-border: var(--border);
@@ -607,6 +628,13 @@ button.cf-btn:hover {
 [data-theme="light"] .bg-\[\#2D3B52\] { background-color: #E5E7EB !important; }
 [data-theme="light"] .bg-\[\#3A4963\] { background-color: #E5E7EB !important; }
 
+/* ===== Code editor chrome → light surfaces ===== */
+[data-theme="light"] .bg-\[\#1a1a1a\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#1e1e1e\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#272822\] { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-\[\#0D1117\] { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-\[\#161B22\] { background-color: #F3F4F6 !important; }
+
 /* ===== White text → dark text (on light surfaces) ===== */
 [data-theme="light"] .text-white { color: #111827 !important; }
 [data-theme="light"] .text-\[\#F8FAFC\] { color: #111827 !important; }
@@ -617,6 +645,12 @@ button.cf-btn:hover {
 [data-theme="light"] .text-\[\#9CA3AF\] { color: #6B7280 !important; }
 [data-theme="light"] .text-\[\#6B7280\] { color: #9CA3AF !important; }
 [data-theme="light"] .text-\[\#9CA3Af\] { color: #6B7280 !important; }
+
+/* ===== Code editor text → dark text ===== */
+[data-theme="light"] .text-\[\#F8F8F2\] { color: #111827 !important; }
+[data-theme="light"] .text-\[\#e0e0e0\] { color: #111827 !important; }
+[data-theme="light"] .text-\[\#b0b0b0\] { color: #4B5563 !important; }
+[data-theme="light"] .text-\[\#90908A\] { color: #6B7280 !important; }
 
 /* ===== Restore white text on colored/dark backgrounds ===== */
 [data-theme="light"] .bg-\[\#7C3AED\].text-white,
@@ -2480,6 +2514,30 @@ button.cf-btn:hover {
   background: rgba(0, 0, 0, 0.15);
 }
 
+/* Quiz problems column scroll — thinner & quieter than settings-scroll */
+.quiz-problems-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 145, 158, 0.25) transparent;
+}
+
+.quiz-problems-scroll::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+.quiz-problems-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.quiz-problems-scroll::-webkit-scrollbar-thumb {
+  background: rgba(139, 145, 158, 0.22);
+  border-radius: 999px;
+}
+
+.quiz-problems-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(236, 72, 153, 0.45);
+}
+
 /* ============================================
    Quiz Landing Page — Selection & Drag Prevention
    Scoped exclusively to the Assessment & Quiz
@@ -2537,6 +2595,42 @@ button.cf-btn:hover {
   -moz-user-drag: none;
   -o-user-drag: none;
   user-drag: none;
+}
+
+/* ============================================
+   Quiz Creator Sidebar — Selection & Drag Prevention
+   Scoped exclusively to the Quiz sidebar / navigation
+   via the .quiz-sidebar-lock hook class. Disables text
+   selection, double-click selection, drag-to-select,
+   native dragging, image/SVG dragging, and copy on the
+   sidebar and every nested element (icons, labels,
+   buttons, links). Sidebar items behave strictly as
+   navigation/action controls. Does NOT affect anything
+   outside the quiz sidebar.
+   ============================================ */
+
+/* Disable selection & native drag on the sidebar and all descendants */
+.quiz-sidebar-lock,
+.quiz-sidebar-lock * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+/* Belt-and-braces: images & SVG icons must never start a native drag */
+.quiz-sidebar-lock img,
+.quiz-sidebar-lock svg {
+  -webkit-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: auto;
 }
 
 /* ============================================
@@ -2923,4 +3017,487 @@ svg {
   background-size: 200% 200%;
   animation: story-holographic 6s ease infinite;
 }
+
+
+/* ═══ Your Activity — animated progress bar shimmer ═══ */
+@keyframes bar-shimmer-sweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+}
+
+.bar-shimmer {
+  width: 45%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: bar-shimmer-sweep 2.4s ease-in-out infinite;
+}
+
+/* ═══ Code Assistant — Monaco AI suggestion decorations ═══ */
+.byteclash-ai-edit-line {
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.14),
+    rgba(236, 72, 153, 0.08)
+  );
+  box-shadow: inset 2px 0 0 rgba(167, 139, 250, 0.75);
+}
+.monaco-editor .byteclash-ai-edit-line {
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.14),
+    rgba(236, 72, 153, 0.08)
+  );
+  box-shadow: inset 2px 0 0 rgba(167, 139, 250, 0.75);
+}
+.byteclash-ai-edit-gutter {
+  background: rgba(167, 139, 250, 0.55);
+  transform: scaleY(0.55);
+  border-radius: 1px;
+}
+
+/* ═══ Code Assistant — Inline (Copilot-style) suggestion in Monaco ═══ */
+.monaco-editor .bcl-ai-inline-remove {
+  background: rgba(244, 63, 94, 0.14);
+  box-shadow: inset 2px 0 0 rgba(251, 113, 133, 0.8);
+  text-decoration: line-through;
+  text-decoration-color: rgba(251, 113, 133, 0.5);
+  opacity: 0.85;
+}
+.monaco-editor .bcl-ai-inline-remove-gutter {
+  background: rgba(244, 63, 94, 0.7);
+  transform: scaleY(0.6);
+  border-radius: 1px;
+}
+.monaco-editor .bcl-ai-inline-add {
+  background: linear-gradient(
+    90deg,
+    rgba(52, 211, 153, 0.16),
+    rgba(139, 92, 246, 0.12)
+  );
+  border-radius: 2px;
+  box-shadow: inset 2px 0 0 rgba(52, 211, 153, 0.8);
+  font-style: italic;
+  white-space: pre;
+}
+
+/* Inline suggestion widget — floats near the changed lines inside Monaco */
+.bcl-ai-widget {
+  background: linear-gradient(180deg, #171a2b, #12141f);
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  border-radius: 12px;
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.45),
+    0 0 18px rgba(139, 92, 246, 0.25);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  width: 300px;
+  overflow: hidden;
+  user-select: none;
+}
+.bcl-ai-widget-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(139, 92, 246, 0.1);
+}
+.bcl-ai-widget-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ec4899, #7c3aed);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.45);
+}
+.bcl-ai-widget-label {
+  color: #e2e8f0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.bcl-ai-widget-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.bcl-ai-widget-navbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.bcl-ai-widget-navbtn:hover {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(139, 92, 246, 0.6);
+  color: #fff;
+}
+.bcl-ai-widget-pos {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0 2px;
+}
+.bcl-ai-widget-diff {
+  max-height: 160px;
+  overflow: auto;
+  padding: 4px 0;
+}
+.bcl-ai-widget-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px;
+  font-family: "Consolas", "Courier New", monospace;
+}
+.bcl-ai-widget-row code {
+  white-space: pre;
+  overflow-x: auto;
+  font-size: 11px;
+  line-height: 16px;
+}
+.bcl-ai-widget-sign {
+  width: 10px;
+  flex-shrink: 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 12px;
+}
+.bcl-ai-widget-remove {
+  background: rgba(244, 63, 94, 0.1);
+  color: rgba(253, 164, 175, 0.9);
+  text-decoration: line-through;
+  text-decoration-color: rgba(251, 113, 133, 0.4);
+}
+.bcl-ai-widget-remove .bcl-ai-widget-sign {
+  color: #fb7185;
+}
+.bcl-ai-widget-add {
+  background: rgba(52, 211, 153, 0.08);
+  color: #a7f3d0;
+}
+.bcl-ai-widget-add .bcl-ai-widget-sign {
+  color: #34d399;
+}
+.bcl-ai-widget-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
+  background: rgba(139, 92, 246, 0.06);
+}
+.bcl-ai-widget-btn {
+  border: none;
+  cursor: pointer;
+  padding: 5px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  transition:
+    filter 0.15s ease,
+    transform 0.1s ease;
+}
+.bcl-ai-widget-btn:active {
+  transform: scale(0.96);
+}
+.bcl-ai-widget-reject {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  color: #94a3b8;
+}
+.bcl-ai-widget-reject:hover {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.5);
+  color: #fda4af;
+}
+.bcl-ai-widget-apply {
+  background: linear-gradient(135deg, #ec4899, #7c3aed);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.4);
+}
+.bcl-ai-widget-apply:hover {
+  filter: brightness(1.1);
+}
+
+/* ═══ AI Assistant strip — idle animations ═══ */
+@keyframes ai-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0px 2px rgba(236, 72, 153, 0.4), 0 0 8px rgba(236, 72, 153, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 12px 4px rgba(236, 72, 153, 0.55), 0 0 26px 10px rgba(124, 58, 237, 0.4);
+  }
+}
+
+@keyframes ai-shimmer {
+  0% {
+    transform: translateY(-120%);
+  }
+  100% {
+    transform: translateY(240px);
+  }
+}
+
+@keyframes ai-sparkle {
+  0%,
+  100% {
+    transform: translateY(0) scale(0.85);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateY(6px) scale(1);
+    opacity: 0.8;
+  }
+}
+
+/* ═══ AI Assistant — page-wide "AI mode" transition ═══
+     Toggled on [data-ai-scope] by the AI strip when the panel opens.
+     Shifts the whole palette toward an energetic pink → purple → blue AI
+     gradient. Does NOT alter the user's data-theme (dark/light) selection.
+     Existing cards/components smoothly adopt the new palette. */
+[data-ai-scope][data-ai-mode] {
+  --background: #0a0c17;
+  --foreground: #f8fafc;
+  --card: #0f1326;
+  --card-hover: #131830;
+  --border: rgba(236, 72, 153, 0.22);
+  --border-hover: rgba(124, 58, 237, 0.32);
+  --accent: #a855f7;
+  --accent-secondary: #60a5fa;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --link: #a855f7;
+  --input-bg: #0b0f1e;
+  --input-border: rgba(236, 72, 153, 0.22);
+  --input-focus-ring: rgba(168, 85, 247, 0.12);
+}
+
+[data-theme="light"][data-ai-scope][data-ai-mode] {
+  --background: #ffffff;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-hover: #f8fafc;
+  --border: #d1d5e0;
+  --border-hover: #b3c0d3;
+  --accent: #a855f7;
+  --accent-secondary: #60a5fa;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --link: #a855f7;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --input-focus-ring: rgba(168, 85, 247, 0.2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Let the page background breathe into AI mode */
+  [data-ai-scope][data-ai-mode],
+  [data-ai-scope][data-ai-mode] [class*="bg-"]:not([class*="transition-"]):not([data-ai-panel]):not([data-ai-ignore]),
+  [data-ai-scope][data-ai-mode] [class*="border-"]:not([class*="transition-"]):not([data-ai-panel]):not([data-ai-ignore]),
+  [data-ai-scope][data-ai-mode] [class*="text-"]:not([class*="transition-"]):not([data-ai-panel]):not([data-ai-ignore]) {
+    transition-property: background-color, border-color, color;
+    transition-duration: 600ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Keep the AI panel + its strip own elements crisp (no page color fade inside them) */
+  [data-ai-panel],
+  [data-ai-panel] *,
+  [data-ai-ignore],
+  [data-ai-ignore] * {
+    transition: none !important;
+  }
+}
+
+/* ═══ AI Markdown — code syntax token colors ═══
+   Used by rehype-highlight (highlight.js). Token colors adapt to the
+   active theme via the CSS variables below. */
+:root {
+  --md-code-keyword: #c586c0;
+  --md-code-string: #ce9178;
+  --md-code-number: #b5cea8;
+  --md-code-title: #dcdcaa;
+  --md-code-function: #dcdcaa;
+  --md-code-comment: #6a9955;
+  --md-code-builtin: #4ec9b0;
+  --md-code-type: #4ec9b0;
+  --md-code-meta: #9cdcfe;
+  --md-code-variable: #9cdcfe;
+}
+
+[data-theme="light"] {
+  --md-code-keyword: #0000ff;
+  --md-code-string: #a31515;
+  --md-code-number: #098658;
+  --md-code-title: #795e26;
+  --md-code-function: #795e26;
+  --md-code-comment: #008000;
+  --md-code-builtin: #267f99;
+  --md-code-type: #267f99;
+  --md-code-meta: #267f99;
+  --md-code-variable: #267f99;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link,
+.hljs-name {
+  color: var(--md-code-keyword);
+}
+
+.hljs-string,
+.hljs-doctag,
+.hljs-regexp,
+.hljs-addition {
+  color: var(--md-code-string);
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--md-code-number);
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-title.class_ {
+  color: var(--md-code-title);
+}
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-params {
+  color: var(--md-code-variable);
+}
+
+.hljs-built_in,
+.hljs-type,
+.hljs-class .hljs-title {
+  color: var(--md-code-builtin);
+}
+
+.hljs-meta,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: var(--md-code-meta);
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--md-code-comment);
+  font-style: italic;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 600;
+}
+
+.hljs-deletion {
+  color: var(--md-code-string);
+  text-decoration: line-through;
+}
+
+/* Inline code uses accent token color; keep the highlighted
+   tokens inside the block code element readable. */
+.markdown-body code.hljs {
+  background: transparent;
+  padding: 0;
+}
+
+/* ═══ AI Thinking — subtle secondary styling ═══
+   Reasoning is secondary/internal info: smaller, muted, lower contrast.
+   The container is fixed-height and scrolls internally, but the scrollbar
+   itself is hidden so it stays unobtrusive. */
+.ai-thinking-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ai-thinking-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.ai-thinking-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+.ai-thinking-body .markdown-body {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.ai-thinking-body .markdown-body p,
+.ai-thinking-body .markdown-body li,
+.ai-thinking-body .markdown-body td,
+.ai-thinking-body .markdown-body blockquote,
+.ai-thinking-body .markdown-body a {
+  color: var(--text-secondary);
+}
+.ai-thinking-body .markdown-body h1,
+.ai-thinking-body .markdown-body h2,
+.ai-thinking-body .markdown-body h3,
+.ai-thinking-body .markdown-body h4,
+.ai-thinking-body .markdown-body h5,
+.ai-thinking-body .markdown-body strong {
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.ai-thinking-body .markdown-body code:not(.hljs) {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.ai-thinking-body .markdown-body ul,
+.ai-thinking-body .markdown-body ol {
+  padding-left: 1.1rem;
+}
+
+/* Monaco editor — light mode: draw a separator line under every code line.
+   The `--monaco-line-height` custom property is set inline by
+   MonacoEditorWrapper to match the editor's computed line height. */
+[data-monaco-theme="light"] .monaco-editor .view-lines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent var(--monaco-line-height, 21px),
+    rgba(15, 23, 42, 0.07) var(--monaco-line-height, 21px),
+    rgba(15, 23, 42, 0.07) calc(var(--monaco-line-height, 21px) + 1px)
+  );
+}
+
+
+
 

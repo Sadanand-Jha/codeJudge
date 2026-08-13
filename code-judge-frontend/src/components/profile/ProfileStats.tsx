@@ -18,7 +18,7 @@ const cardVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
 };
 
-export default function ProfileStats({ username, email, solved, rank, contributions, rating = 0, maxRating = 0 }: ProfileStatsProps) {
+export default function ProfileStats({ username, email, solved, contributions, rating = 0, maxRating = 0 }: ProfileStatsProps) {
   const stats = [
     { label: "Problems Solved", value: solved, icon: CheckCircle2 },
     { label: "Current Rating", value: rating || "—", icon: TrendingUp },

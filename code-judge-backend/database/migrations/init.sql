@@ -610,3 +610,53 @@ CREATE INDEX IF NOT EXISTS idx_quiz_difficulty_id ON quiz(difficulty);
 CREATE INDEX IF NOT EXISTS idx_quiz_problems_difficulty_id ON quiz_problems(difficulty);
 CREATE INDEX IF NOT EXISTS idx_qsr_user_id ON quiz_student_response(user_id);
 CREATE INDEX IF NOT EXISTS idx_qsr_problem_id ON quiz_student_response(problem_id);
+
+
+alter table users
+add column display_name varchar
+
+-- ==========================================
+-- Collaborator Requests (send / accept / reject)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS quiz_collaborator_request (
+    id SERIAL PRIMARY KEY,
+    quiz_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    invited_by INTEGER NOT NULL,
+    status VARCHAR NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (quiz_id, user_id)
+);
+
+ALTER TABLE quiz_collaborator_request DROP CONSTRAINT IF EXISTS fk_qcr_quiz;
+ALTER TABLE quiz_collaborator_request ADD CONSTRAINT fk_qcr_quiz FOREIGN KEY (quiz_id) REFERENCES quiz(id);
+
+ALTER TABLE quiz_collaborator_request DROP CONSTRAINT IF EXISTS fk_qcr_user;
+ALTER TABLE quiz_collaborator_request ADD CONSTRAINT fk_qcr_user FOREIGN KEY (user_id) REFERENCES users(id);
+
+ALTER TABLE quiz_collaborator_request DROP CONSTRAINT IF EXISTS fk_qcr_invited_by;
+ALTER TABLE quiz_collaborator_request ADD CONSTRAINT fk_qcr_invited_by FOREIGN KEY (invited_by) REFERENCES users(id);
+
+CREATE INDEX IF NOT EXISTS idx_qcr_user_status ON quiz_collaborator_request(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_qcr_quiz ON quiz_collaborator_request(quiz_id);
+
+-- Create the timezone table
+CREATE TABLE timezones (
+    id INT PRIMARY KEY,
+    timezone_code VARCHAR(10) NOT NULL,
+    timezone_name VARCHAR(100) NOT NULL,
+    utc_offset VARCHAR(10) NOT NULL,
+    offset_hours DECIMAL(4,2) NOT NULL
+);
+
+-- Insert the CSV data into the table
+INSERT INTO timezones (id, timezone_code, timezone_name, utc_offset, offset_hours) 
+VALUES
+    (1, 'UTC', 'Coordinated Universal Time', '+00:00', 0.00),
+    (2, 'EST', 'Eastern Standard Time', '-05:00', -5.00),
+    (3, 'PST', 'Pacific Standard Time', '-08:00', -8.00),
+    (4, 'CET', 'Central European Time', '+01:00', 1.00),
+    (5, 'IST', 'Indian Standard Time', '+05:30', 5.50),
+    (6, 'JST', 'Japan Standard Time', '+09:00', 9.00),
+    (7, 'AEST', 'Australian Eastern Standard Time', '+10:00', 10.00);

@@ -20,7 +20,7 @@ function generateMockData(): ActivityDay[] {
 }
 
 function getIntensity(count: number): string {
-  if (count === 0) return "bg-white/[0.04]";
+  if (count === 0) return "bg-card-hover";
   if (count <= 3) return "bg-[#22C55E]/30";
   if (count <= 6) return "bg-[#22C55E]/55";
   if (count <= 9) return "bg-[#22C55E]/75";
@@ -54,8 +54,8 @@ export default function ActivityHeatmap() {
       className="rounded-2xl border border-border bg-card p-6"
     >
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-sm font-semibold text-white">Activity Heatmap</h3>
-        <span className="text-xs text-muted-foreground">{totalSubmissions} submissions in the last year</span>
+        <h3 className="text-sm font-semibold text-text-primary">Activity Heatmap</h3>
+        <span className="text-xs text-text-secondary">{totalSubmissions} submissions in the last year</span>
       </div>
 
       <div className="overflow-x-auto">
@@ -75,13 +75,13 @@ export default function ActivityHeatmap() {
       </div>
 
       <div className="flex items-center gap-1.5 mt-4 justify-end">
-        <span className="text-[10px] text-[#6B7280] mr-1">Less</span>
-        <div className="w-3 h-3 rounded-sm bg-white/[0.04]" />
+        <span className="text-[10px] text-text-muted mr-1">Less</span>
+        <div className="w-3 h-3 rounded-sm bg-card-hover" />
         <div className="w-3 h-3 rounded-sm bg-[#22C55E]/30" />
         <div className="w-3 h-3 rounded-sm bg-[#22C55E]/55" />
         <div className="w-3 h-3 rounded-sm bg-[#22C55E]/75" />
         <div className="w-3 h-3 rounded-sm bg-[#22C55E]" />
-        <span className="text-[10px] text-[#6B7280] ml-1">More</span>
+        <span className="text-[10px] text-text-muted ml-1">More</span>
       </div>
     </motion.div>
   );
