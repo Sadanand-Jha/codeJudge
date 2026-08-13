@@ -25,7 +25,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
 import { streamChat, streamChatWithFiles } from "@/services/ai";
 import { mapRawQuestionsToPreview } from "@/services/ai";
-import type { LiveUsage, AIQuestionPreview, RawAIGeneratedQuestion, ChatMessageInput } from "@/services/ai";
+import type { LiveUsage, AIQuestionPreview, RawAIGeneratedQuestion } from "@/services/ai";
 import { useChat, type ChatMessage } from "@/context/ChatContext";
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
@@ -121,7 +121,7 @@ export default function AiAssistantPanel({
   const [sending, setSending] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [timeStage, setTimeStage] = useState(0);
-  const { chatHistory, setChatHistory, addMessage } = useChat();
+  const { chatHistory, setChatHistory, addMessage, conversationId } = useChat();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
@@ -326,18 +326,19 @@ export default function AiAssistantPanel({
       onDone: () => finalizeMessage(aiId),
     };
 
-    // Send the complete conversation (system + prior turns + this user
-    // message) so the model has context for the next response.
-    const historyForModel: ChatMessageInput[] = [
-      ...chatHistory.map((m) => ({ role: m.role, content: m.content })),
-      { role: "user", content: userPrompt },
-    ];
+    // Send only the user message + a conversation id. The backend builds the
+    // full conversation (system prompt + context + history) server-side.
+    const requestInput = {
+      message: userPrompt,
+      mode: "general",
+      conversationId,
+    };
 
     try {
       if (readyFiles.length > 0) {
         await streamChatWithFiles(userPrompt, readyFiles.map((f) => f.file), callbacks, controller.signal);
       } else {
-        await streamChat(historyForModel, callbacks, controller.signal);
+        await streamChat(requestInput, callbacks, controller.signal);
       }
     } catch (error) {
       finalizeMessage(aiId);

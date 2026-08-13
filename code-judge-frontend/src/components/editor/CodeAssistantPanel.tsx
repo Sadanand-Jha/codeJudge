@@ -18,14 +18,11 @@ import {
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
 import { streamChat } from "@/services/ai";
-import type { ChatMessageInput, LiveUsage } from "@/services/ai";
+import type { LiveUsage } from "@/services/ai";
 import { useAIEditorStore } from "@/store/aiEditorStore";
 import type { CodeContext } from "@/store/aiEditorStore";
-import {
-  useCodeAssistantStore,
-  CODE_ASSISTANT_SYSTEM_ID,
-  type CodeAssistantMessage,
-} from "@/store/codeAssistantStore";
+import { useCodeAssistantStore } from "@/store/codeAssistantStore";
+import type { CodeAssistantMessage } from "@/store/codeAssistantStore";
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
 import AIUsageMeta from "@/components/ai/AIUsageMeta";
@@ -85,69 +82,6 @@ function sanitizeStreamingContent(raw: string): string {
   return cut !== -1 ? raw.slice(0, cut).trim() : raw;
 }
 
-/**
- * System instruction that teaches the model how to propose edits without
- * dumping the whole file. The AI presents changes as a standard **unified diff**
- * inside a fenced ```diff block, which the frontend parses into concrete
- * Monaco edits and offers for accept/reject.
- */
-const EDIT_SYSTEM_GUIDE = `
-You are embedded in a code editor. The user's current file is provided below as hidden context ("Current file"). You can propose changes to that file.
-
-When you want to modify the code:
-1. Write a SHORT human explanation (a sentence or two) as normal prose.
-2. Then output ONLY the changed lines as a standard unified diff inside a fenced code block tagged \`\`\`diff.
-
-Format rules (unified diff):
-- Start with a hunk header: @@ -<startLine>,<count> +<startLine>,<count> @@  (1-based line numbers)
-- Lines you are REMOVING are prefixed with "-".
-- Lines you are ADDING are prefixed with "+".
-- Keep ONE context line before/after each change so it is clear where it lands (context lines are prefixed with a space).
-- NEVER include the entire file — only the lines that actually change.
-- NEVER output the full "Before"/"After" code blocks.
-
-Example: to change the line "cin >> n >> k;" to also guard against negatives, output:
-\`\`\`diff
-@@ -6,2 +6,3 @@
- int n, k;
--cin >> n >> k;
-+cin >> n >> k;
-+if (n < 0 || k < 0) return;
-\`\`\`
-
-- If you are only explaining (no change needed), respond with prose only and NO diff block.
-- If you are asked to analyze/explain, just answer in prose without a diff block.
-`.trim();
-
-const buildSystemMessage = (context: CodeContext | null): string => {
-  const base = `You are a coding assistant embedded in a competitive-programming code editor. You help the user understand, debug, refactor and improve their code. Be concise and direct. Use Markdown for readability and short code snippets where helpful.`;
-
-  if (!context) return `${base}\n\n` + EDIT_SYSTEM_GUIDE;
-
-  const parts = [base];
-
-  parts.push(`\n--- Current file ---`);
-  parts.push(`Filename: ${context.filename}`);
-  parts.push(`Language: ${context.language}`);
-  parts.push(``);
-  parts.push("```" + context.language);
-  parts.push(context.content);
-  parts.push("```");
-
-  if (context.selection && context.selectionRange) {
-    const s = context.selectionRange;
-    parts.push(
-      `\nThe user has selected code from line ${s.startLine} col ${s.startColumn} to line ${s.endLine} col ${s.endColumn}. Prefer to modify this selected region when the request applies to it.`
-    );
-    parts.push("");
-    parts.push("```" + context.language);
-    parts.push(context.selection);
-    parts.push("```");
-  }
-
-  return `${parts.join("\n")}\n\n` + EDIT_SYSTEM_GUIDE;
-};
-
 interface CodeAssistantPanelProps {
   editorRef: React.RefObject<any>;
   monacoRef: React.RefObject<any>;
@@ -174,6 +108,7 @@ export default function CodeAssistantPanel({
   const addConversationMessage = useCodeAssistantStore((s) => s.addMessage);
   const patchConversationMessage = useCodeAssistantStore((s) => s.patchMessage);
   const clearConversation = useCodeAssistantStore((s) => s.clearConversation);
+  const conversationId = useCodeAssistantStore((s) => s.conversationId);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -506,19 +441,23 @@ export default function CodeAssistantPanel({
     streamAbortRef.current = controller;
 
     // Always send the latest editor content (the context captured at open time
-    // is stale once the user keeps typing in the editor). The stored system
-    // message is refreshed with this live content, so the persisting
-    // conversation always carries the current file + the prior turns.
+    // is stale once the user keeps typing in the editor). The backend rebuilds
+    // the system prompt + problem context server-side, so only the live file
+    // content and a few identifiers cross the wire. The conversation history
+    // is persisted on the backend under `conversationId`.
     const liveContext = buildLiveContext();
     if (liveContext) setCurrentContext(liveContext);
-    const system = buildSystemMessage(liveContext);
-    patchConversationMessage(CODE_ASSISTANT_SYSTEM_ID, { content: system });
-    const historyForModel: ChatMessageInput[] = [
-      ...useCodeAssistantStore
-        .getState()
-        .messages.map((m) => ({ role: m.role, content: m.content })),
-      { role: "user", content: userPrompt },
-    ];
+
+    const requestInput = {
+      message: userPrompt,
+      mode: "coding_coach",
+      code: liveContext?.content || undefined,
+      language: liveContext?.language || undefined,
+      filename: liveContext?.filename || undefined,
+      selection: liveContext?.selection,
+      selectionRange: liveContext?.selectionRange,
+      conversationId,
+    };
 
     // Coalesce streaming UI updates: rebuilding the whole message list (and
     // re-highlighting the growing markdown/diff via react-markdown +
@@ -564,7 +503,7 @@ export default function CodeAssistantPanel({
     };
 
     try {
-      await streamChat(historyForModel, callbacks, controller.signal);
+      await streamChat(requestInput, callbacks, controller.signal);
 
       // Stop the throttled UI flusher so a pending timer can't overwrite the
       // finalised (diff-block-stripped) content we write below.

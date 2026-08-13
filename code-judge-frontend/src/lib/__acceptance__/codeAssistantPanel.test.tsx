@@ -35,6 +35,13 @@ g.cancelAnimationFrame = (id: number) => clearTimeout(id);
 if (typeof window.Element !== "undefined" && !window.Element.prototype.scrollIntoView) {
   window.Element.prototype.scrollIntoView = () => {};
 }
+// jsdom lacks the legacy attachEvent/detachEvent APIs that React 19's
+// change-event polyfill calls on focusin/focusout — stub them to silence it.
+if (typeof window.Element !== "undefined") {
+  const proto = window.Element.prototype as unknown as Record<string, unknown>;
+  if (typeof proto.attachEvent !== "function") proto.attachEvent = () => {};
+  if (typeof proto.detachEvent !== "function") proto.detachEvent = () => {};
+}
 g.IS_REACT_ACT_ENVIRONMENT = true;
 
 // ── dependencies factotem ───────────────────────────────────────────────
@@ -44,10 +51,20 @@ import { act } from "react";
 
 // ── mock the AI service by stubbing fetch with a fake SSE body ──────────
 import { useAIEditorStore } from "@/store/aiEditorStore";
-import {
-  useCodeAssistantStore,
-  CODE_ASSISTANT_SYSTEM_ID,
-} from "@/store/codeAssistantStore";
+import { useCodeAssistantStore } from "@/store/codeAssistantStore";
+
+/** The minimal request payload the panel now sends to `/ai/chat`. */
+interface ChatRequest {
+  message?: string;
+  mode?: string;
+  problemId?: string;
+  code?: string;
+  language?: string;
+  filename?: string;
+  selection?: string;
+  selectionRange?: unknown;
+  conversationId?: string;
+}
 
 const RAW_DIFF =
   "Add a variable.\n\n```diff\n@@ -1,1 +1,2 @@\n let x = 1;\n+let y = 2;\n```";
@@ -55,8 +72,7 @@ const RAW_DIFF =
 /** Emit SSE payloads as a fake `fetch` Response for `streamChat`. */
 function stubAiWithContent(
   content: string,
-  onSystem?: (sys: string) => void,
-  onMessages?: (msgs: { role: string; content: string }[]) => void
+  onRequest?: (req: ChatRequest) => void
 ) {
   const sse = [
     `data: ${JSON.stringify({ type: "content", chunk: content })}\n`,
@@ -74,15 +90,13 @@ function stubAiWithContent(
     const body = typeof init === "object" && init && "body" in init
       ? (init as { body: unknown }).body
       : "";
-    let parsed: { messages?: { role: string; content: string }[] } = {};
+    let parsed: ChatRequest = {};
     try {
       parsed = JSON.parse(typeof body === "string" ? body : "{}");
     } catch {
       parsed = {};
     }
-    const msgs = parsed.messages ?? [];
-    onSystem?.(msgs.find((m) => m.role === "system")?.content ?? "");
-    onMessages?.(msgs);
+    onRequest?.(parsed);
     return {
       ok: true,
       status: 200,
@@ -186,9 +200,8 @@ const monacoMock = {
   KeyCode: { BracketLeft: 2, BracketRight: 3 },
 };
 
-// counters for distinct ids between tests
+// counter for distinct ids between tests
 let idSeq = 0;
-const makeId = () => `id-${++idSeq}`;
 
 function resetStore() {
   useAIEditorStore.setState({
@@ -197,9 +210,8 @@ function resetStore() {
     preparing: false,
   });
   useCodeAssistantStore.setState({
-    messages: [
-      { id: CODE_ASSISTANT_SYSTEM_ID, role: "system", content: "" },
-    ],
+    conversationId: `conv-test-${++idSeq}`,
+    messages: [],
   });
 }
 
@@ -383,9 +395,9 @@ test("rejecting a suggestion removes the inline widget without editing the file"
 
 test("code sent to the AI is the live editor content, not a stale snapshot", async () => {
   resetStore();
-  // instrument the fetch stub to record what context reached the model
-  let seenSystem = "";
-  const restore = stubAiWithContent(RAW_DIFF, (sys) => (seenSystem = sys));
+  // instrument the fetch stub to record what reached the backend
+  let seenCode = "";
+  const restore = stubAiWithContent(RAW_DIFF, (req) => (seenCode = req.code ?? ""));
   try {
     const model = makeMockModel("let x = 1;\n");
     const editor = makeEditor(model);
@@ -398,13 +410,13 @@ test("code sent to the AI is the live editor content, not a stale snapshot", asy
 
     await sendMessage(editor);
 
-    if (!seenSystem.includes("let userEdit = 1;")) {
+    if (!seenCode.includes("let userEdit = 1;")) {
       throw new Error(
-        "AI did not receive latest editor content: " + seenSystem.slice(0, 200)
+        "AI did not receive latest editor content: " + seenCode.slice(0, 200)
       );
     }
-    if (seenSystem.includes("let x = 1;") === false) {
-      throw new Error("system message lost the file content");
+    if (seenCode.includes("let x = 1;") === false) {
+      throw new Error("request lost the file content");
     }
   } finally {
     restore();
@@ -415,63 +427,59 @@ test("code sent to the AI is the live editor content, not a stale snapshot", asy
 function typePrompt(text: string) {
   const ta = document.querySelector("textarea") as HTMLTextAreaElement | null;
   if (!ta) throw new Error("textarea not found");
-  const setter = Object.getOwnPropertyDescriptor(
-    window.HTMLTextAreaElement.prototype,
-    "value"
-  )?.set;
-  setter?.call(ta, text);
-  ta.dispatchEvent(new window.Event("input", { bubbles: true }));
+  // jsdom reports the native `input` event as unsupported, so React 19 wires
+  // textarea onChange through the legacy polyfill: focusin activates the
+  // element, then keyup re-checks the value. Define an OWN `value` property
+  // (shadowing React's patched prototype setter) so the value change is seen.
+  ta.dispatchEvent(new window.FocusEvent("focusin", { bubbles: true }));
+  Object.defineProperty(ta, "value", { value: text, configurable: true, writable: true });
+  ta.dispatchEvent(new window.KeyboardEvent("keyup", { bubbles: true }));
 }
 
-test("conversation context persists across turns (full history is resent)", async () => {
+test("conversation context persists across turns (stable conversationId, fresh code)", async () => {
   resetStore();
-  const historyByTurn: string[][] = [];
-  const restore = stubAiWithContent(RAW_DIFF, undefined, (msgs) => {
-    historyByTurn.push(msgs.map((m) => `${m.role}: ${m.content.slice(0, 30)}`));
-  });
+  const bodies: ChatRequest[] = [];
+  const restore = stubAiWithContent(RAW_DIFF, (req) => bodies.push(req));
   try {
     const model = makeMockModel("let x = 1;\n");
     const editor = makeEditor(model);
     const { root } = await mountPanel(editor, monacoMock);
 
     await sendMessage(editor); // turn 1
-    typePrompt("and now optimize it");
-    const send2 = Array.from(document.querySelectorAll("button")).find(
-      (b) => b.textContent && b.textContent.includes("Ask AI")
-    );
-    const ta = document.querySelector("textarea") as HTMLTextAreaElement | null;
-    console.log(
-      "DEBUG send2.disabled:",
-      send2?.disabled,
-      "ta.value:",
-      JSON.stringify(ta?.value)
-    );
+    // Type the follow-up prompt; React must process the polyfilled input
+    // events inside act() so the prompt state commits before the next click.
+    await act(async () => {
+      typePrompt("and now optimize it");
+      await new Promise((r) => setTimeout(r, 0));
+    });
     await sendMessage(editor); // turn 2
 
-    if (historyByTurn.length !== 2) {
-      throw new Error(`expected 2 AI calls, got ${historyByTurn.length}`);
+    if (bodies.length !== 2) {
+      throw new Error(`expected 2 AI calls, got ${bodies.length}`);
     }
-    const turn2 = historyByTurn[1];
-    const userCount = turn2.filter((m) => m.startsWith("user:")).length;
-    const assistantCount = turn2.filter((m) => m.startsWith("assistant:")).length;
-    const systemCount = turn2.filter((m) => m.startsWith("system:")).length;
-    if (userCount !== 2) {
+    const [turn1, turn2] = bodies;
+
+    if (!turn1.conversationId) {
+      throw new Error("turn 1 is missing a conversationId");
+    }
+    if (turn1.conversationId !== turn2.conversationId) {
       throw new Error(
-        `turn 2 has ${userCount} user messages, expected 2 (prior + current)`
+        `conversationId changed across turns: ${turn1.conversationId} -> ${turn2.conversationId}`
       );
     }
-    if (assistantCount !== 1) {
-      throw new Error(
-        `turn 2 has ${assistantCount} assistant messages, expected 1`
-      );
+    if (turn1.mode !== "coding_coach") {
+      throw new Error(`expected coding_coach mode, got ${turn1.mode}`);
     }
-    if (systemCount !== 1) {
-      throw new Error(
-        `turn 2 has ${systemCount} system messages, expected 1`
-      );
+    if (turn2.message?.includes("optimize") === false) {
+      throw new Error("turn 2 user prompt missing from request");
     }
-    if (!turn2.some((m) => m.includes("optimize"))) {
-      throw new Error("turn 2 user prompt missing from history");
+    // The full file is resent (freshly) on every turn so the backend always
+    // has the latest code — the frontend never sends a system prompt.
+    if (turn1.code?.includes("let x = 1;") === false) {
+      throw new Error("turn 1 request missing the file content");
+    }
+    if (turn2.code?.includes("let x = 1;") === false) {
+      throw new Error("turn 2 request missing the file content");
     }
   } finally {
     restore();

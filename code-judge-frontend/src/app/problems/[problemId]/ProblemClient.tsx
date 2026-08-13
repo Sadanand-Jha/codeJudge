@@ -164,8 +164,8 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
     }
   }, []);
 
-  const initialLeftWidth = loadLayout(STORAGE_KEY_LEFT, 48);
-  const initialConsoleHeight = loadLayout(STORAGE_KEY_CONSOLE, 22);
+  const initialLeftWidth = loadLayout(STORAGE_KEY_LEFT, 40);
+  const initialConsoleHeight = loadLayout(STORAGE_KEY_CONSOLE, 20);
 
   const toggleEditorFullscreen = useCallback(() => {
     const panel = leftPanelRef.current;
@@ -190,71 +190,71 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
     <div className="problem-solve-page h-screen flex flex-col bg-background overflow-hidden">
       {/* Problem Header */}
       <div className="problem-solve-header shrink-0 border-b border-border bg-card relative z-20">
-        <div className="px-5 py-4 md:px-6 md:py-5">
+        <div className="px-5 py-3 md:px-6 md:py-3">
           {/* Row 1: Title + Primary Actions */}
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 items-start gap-2.5">
               <button
                 onClick={() => setBookmarked((b) => !b)}
                 aria-label={bookmarked ? "Remove bookmark" : "Bookmark problem"}
                 aria-pressed={bookmarked}
-                className={`problem-solve-bookmark mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-all ${
+                className={`problem-solve-bookmark mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all ${
                   bookmarked ? "text-accent" : "text-text-muted"
                 }`}
               >
                 {bookmarked ? (
-                  <BookmarkCheck className="h-[18px] w-[18px]" />
+                  <BookmarkCheck className="h-4 w-4" />
                 ) : (
-                  <Bookmark className="h-[18px] w-[18px]" />
+                  <Bookmark className="h-4 w-4" />
                 )}
               </button>
               <div className="min-w-0">
-                <h1 className="text-2xl lg:text-[28px] font-bold text-text-primary tracking-tight leading-tight break-words">
+                <h1 className="text-xl lg:text-[22px] font-bold text-text-primary tracking-tight leading-tight break-words">
                   {displayTitle}
                 </h1>
               </div>
             </div>
 
             {/* Right: Run Code + Submit */}
-            <div className="flex shrink-0 items-center gap-3">
-              <button className="problem-solve-btn flex h-[42px] items-center justify-center gap-2 rounded-xl border border-border bg-card px-5 text-sm font-semibold text-text-primary transition-all hover:border-border-hover hover:bg-card-hover focus-visible:ring-2 focus-visible:ring-accent/40">
-                <Play className="h-4 w-4" />
+            <div className="flex shrink-0 items-center gap-2.5">
+              <button className="problem-solve-btn flex h-9 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-[13px] font-semibold text-text-primary transition-all hover:border-border-hover hover:bg-card-hover focus-visible:ring-2 focus-visible:ring-accent/40">
+                <Play className="h-3.5 w-3.5" />
                 Run Code
               </button>
-              <button className="problem-solve-submit-btn flex h-[42px] items-center justify-center gap-2 rounded-xl border border-success/30 bg-success/10 px-6 text-sm font-bold text-white transition-all focus-visible:ring-2 focus-visible:ring-success/40">
+              <button className="problem-solve-submit-btn flex h-9 items-center justify-center gap-2 rounded-xl border border-success/30 bg-success/10 px-5 text-[13px] font-bold text-white transition-all focus-visible:ring-2 focus-visible:ring-success/40">
                 Submit
               </button>
             </div>
           </div>
 
           {/* Row 2: Metadata pills */}
-          <div className="mt-4 flex flex-wrap items-center gap-2.5">
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
             <span
-              className="inline-flex items-center rounded-full border px-3 py-1.5 text-[13px] font-semibold"
+              className="inline-flex items-center rounded-full border px-2.5 py-1 text-[12px] font-semibold"
               style={difficultyPillStyle}
             >
               {problem.rating ? `Rating ${problem.rating}` : "Unrated"}
             </span>
-            <span className="problem-solve-meta-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-text-secondary">
+            <span className="problem-solve-meta-pill inline-flex items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium text-text-secondary">
               <Hash className="h-3.5 w-3.5" />
               {problem.contest_id || "Practice"}
             </span>
-            <span className="problem-solve-meta-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-text-secondary">
+            <span className="problem-solve-meta-pill inline-flex items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium text-text-secondary">
               <Clock className="h-3.5 w-3.5" />
               {timeLimitStr}
             </span>
-            <span className="problem-solve-meta-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-text-secondary">
+            <span className="problem-solve-meta-pill inline-flex items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium text-text-secondary">
               <Database className="h-3.5 w-3.5" />
               {memoryLimitStr}
             </span>
             {(problem as any).acceptance !== undefined && (
-              <span className="problem-solve-meta-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-text-secondary">
+              <span className="problem-solve-meta-pill inline-flex items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium text-text-secondary">
                 <Check className="h-3.5 w-3.5 text-success" />
                 {((problem as any).acceptance)}%
               </span>
             )}
             {(problem as any).solved_count !== undefined && (
-              <span className="problem-solve-meta-pill inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-text-secondary">
+              <span className="problem-solve-meta-pill inline-flex items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium text-text-secondary">
                 <Cpu className="h-3.5 w-3.5" />
                 Solved {((problem as any).solved_count)}
               </span>
@@ -264,8 +264,8 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
       </div>
 
       {/* Sticky Tabs */}
-      <div className="problem-solve-tabs shrink-0 sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-xl">
-        <div className="flex items-center gap-2 px-6 md:px-8 overflow-x-auto scrollbar-hide">
+      <div className="problem-solve-tabs shrink-0 sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-xl flex items-center pr-2 md:pr-3">
+        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto scrollbar-hide px-3 md:px-4">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -276,7 +276,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 aria-pressed={isActive}
-                className={`problem-solve-tab group relative flex items-center gap-2 rounded-xl px-4 md:px-5 py-3 text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                className={`problem-solve-tab group relative flex items-center gap-1.5 rounded-xl px-3 md:px-3.5 py-2 text-[13px] font-medium transition-all duration-200 whitespace-nowrap ${
                   isActive
                     ? "bg-accent/15 text-text-primary shadow-[0_0_20px_rgba(37,99,235,0.15)]"
                     : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
@@ -342,6 +342,24 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
             );
           })}
         </div>
+        <div className="flex shrink-0 items-center pl-2">
+          <button
+            onClick={() => {
+              useAIEditorStore.getState().requestAsk({
+                context: {
+                  type: "current_file",
+                  language,
+                  filename: "solution.cpp",
+                  content: code,
+                },
+              });
+            }}
+            className="problem-ask-ai-btn flex h-7 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-3 text-[11px] font-bold text-white transition-all active:scale-[0.98]"
+          >
+            <Sparkles className="h-3 w-3 shrink-0" />
+            Ask AI
+          </button>
+        </div>
       </div>
 
       {/* Workspace */}
@@ -350,15 +368,15 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
           <Panel
             id="problem"
             defaultSize={initialLeftWidth}
-            minSize={30}
+            minSize={28}
             collapsible
             collapsedSize={0}
             panelRef={leftPanelRef}
           >
-            <div className="problem-solve-desc h-full overflow-y-auto overflow-x-hidden border-r border-border bg-background">
-              <div className="px-4 py-4 md:px-5 md:py-5">
+            <div className="problem-solve-desc h-full overflow-y-auto overflow-x-hidden bg-background">
+              <div className="px-4 py-3 md:px-5 md:py-3">
                 <div className="mx-auto max-w-[820px]">
-                  <div className="problem-solve-card rounded-2xl border border-border bg-card p-5 md:p-7">
+                  <div className="problem-solve-card rounded-2xl border border-border bg-card p-4 md:p-5">
                     {activeTab === "description" && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
@@ -599,16 +617,14 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
             </div>
           </Panel>
 
-          <Separator className="problem-solve-divider w-[6px] cursor-col-resize bg-transparent hover:bg-accent transition-colors relative group">
-            <div className="absolute inset-0 group-hover:shadow-[0_0_12px_rgba(37,99,235,0.6)] transition-shadow" />
-          </Separator>
+          <Separator className="problem-solve-divider problem-solve-divider-x w-[14px] cursor-col-resize bg-transparent hover:bg-accent transition-colors relative group" />
 
           {/* Editor Panel */}
-          <Panel id="editor" defaultSize={52} minSize={35}>
+          <Panel id="editor" defaultSize={60} minSize={32}>
             <div className="problem-editor-shell h-full">
               <div className="problem-editor-card flex h-full min-h-0 flex-col overflow-hidden">
                 <Group id={bottomGroupId} orientation="vertical" onLayoutChanged={(layout) => saveLayout(STORAGE_KEY_CONSOLE, layout.console)}>
-                  <Panel id="editor" defaultSize={100 - initialConsoleHeight} minSize={50}>
+                  <Panel id="editor" defaultSize={100 - initialConsoleHeight} minSize={55}>
                     <div className="h-full flex flex-col bg-[#0D1117]">
                       {/* Editor Toolbar */}
                       <div className="problem-editor-toolbar shrink-0 border-b border-border bg-[#0D1117] px-3 py-2">
@@ -641,22 +657,6 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                             >
                               {editorFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
                             </button>
-                            <button
-                              onClick={() => {
-                                useAIEditorStore.getState().requestAsk({
-                                  context: {
-                                    type: "current_file",
-                                    language,
-                                    filename: "solution.cpp",
-                                    content: code,
-                                  },
-                                });
-                              }}
-                              className="problem-ask-ai-btn flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-3 text-[11px] font-bold text-white transition-all active:scale-[0.98]"
-                            >
-                              <Sparkles className="h-3 w-3 shrink-0" />
-                              Ask AI
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -688,9 +688,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                     </div>
                   </Panel>
 
-                  <Separator className="problem-solve-divider h-[6px] cursor-row-resize bg-transparent hover:bg-accent transition-colors relative group">
-                    <div className="absolute inset-0 group-hover:shadow-[0_0_12px_rgba(37,99,235,0.6)] transition-shadow" />
-                  </Separator>
+                  <Separator className="problem-solve-divider problem-solve-divider-y h-[8px] cursor-row-resize bg-transparent hover:bg-accent transition-colors relative group" />
 
                   {/* Bottom Console */}
                   <Panel id="console" defaultSize={initialConsoleHeight} minSize={12}>

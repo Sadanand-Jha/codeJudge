@@ -30,7 +30,7 @@ The AI subsystem powers two UX flows:
 | Variable            | Used by                          | Purpose                                              |
 |---------------------|----------------------------------|------------------------------------------------------|
 | `LM_STUDIO_URL`     | `ai.service.ts`                  | Base URL of the OpenAI-compatible LLM server (e.g. LM Studio). |
-| `LM_STUDIO_MODEL`   | `ai.service.ts`                  | Model id served by that endpoint.                    |
+| `LM_STUDIO_MODEL_CODER`   | `ai.service.ts`                  | Model id served by that endpoint.                    |
 | `DOCLING_URL`       | `docling-extract.service.ts`     | Docling Serve base URL (default `http://localhost:5001`). |
 | `DOCLING_TIMEOUT_MS`| `docling-extract.service.ts`     | Timeout for Docling convert/health calls (default 60s). |
 

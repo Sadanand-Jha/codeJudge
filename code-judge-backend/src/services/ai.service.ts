@@ -117,7 +117,7 @@ export const streamChatWithAI = async function* (
 ): AsyncGenerator<AIStreamChunk> {
   const stream = await client.chat.completions.create(
     {
-      model: process.env.LM_STUDIO_MODEL!,
+      model: process.env.LM_STUDIO_MODEL_CODER!,
       messages: toModelMessages(messages),
       temperature: 0.7,
       stream: true,
@@ -156,7 +156,7 @@ export const chatWithAI = async (
 ): Promise<AIResponse> => {
   const response = await client.chat.completions.create(
     {
-      model: process.env.LM_STUDIO_MODEL!,
+      model: process.env.LM_STUDIO_MODEL_CODER!,
       messages: toModelMessages(messages),
       temperature: 0.7,
     },
