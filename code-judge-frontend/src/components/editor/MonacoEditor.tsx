@@ -2,8 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef } from "react";
+import type { CSSProperties } from "react";
 import type { editor } from "monaco-editor";
 import { SUBLIME_BG, BORDER_COLOR } from "@/config/editor";
+import { useTheme } from "@/context/ThemeContext";
 
 /**
  * Monaco is served from a same-origin static build (`public/monaco/vs`)
@@ -29,7 +31,7 @@ const MonacoEditor = dynamic(
   },
   {
     ssr: false,
-    loading: () => <div className="h-full w-full bg-[#272822]" />,
+    loading: () => <div className="h-full w-full bg-white dark:bg-[#272822]" />,
   },
 );
 
@@ -52,7 +54,14 @@ export default function MonacoEditorWrapper({
   onChange,
   onMount,
   options,
+  theme,
 }: MonacoEditorWrapperProps) {
+  const { theme: appTheme } = useTheme();
+  const isLight = appTheme === "light";
+  const editorTheme = theme ?? (isLight ? "vs" : "sublime-monokai");
+  const lineHeight =
+    options?.lineHeight ?? Math.round((options?.fontSize ?? 14) * 1.5);
+
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -97,8 +106,6 @@ export default function MonacoEditorWrapper({
         "scrollbarSlider.activeBackground": "#75715Ecc",
       },
     });
-
-    monaco.editor.setTheme("sublime-monokai");
   }, []);
 
   const handleMount = useCallback(
@@ -187,10 +194,16 @@ export default function MonacoEditorWrapper({
   }, []);
 
   return (
-    <div ref={containerRef} className="h-full w-full">
+    <div
+      ref={containerRef}
+      className="h-full w-full"
+      data-monaco-theme={isLight ? "light" : "dark"}
+      style={{ "--monaco-line-height": `${lineHeight}px` } as CSSProperties}
+    >
       <MonacoEditor
         language={language}
         value={value}
+        theme={editorTheme}
         options={{
           ...options,
           // Explicitly disable automaticLayout since we use ResizeObserver

@@ -5,6 +5,8 @@ import type { RefObject } from "react";
 import type { editor } from "monaco-editor";
 import { motion, useAnimationControls } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/helpers";
 
 type MonacoEditor = editor.IStandaloneCodeEditor;
 type MonacoModel = editor.ITextModel;
@@ -146,6 +148,7 @@ export default function CodeScanOverlay({
   });
   const [fading, setFading] = useState(false);
   const [phase, setPhase] = useState(0);
+  const { theme } = useTheme();
 
   const deadRef = useRef(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -434,6 +437,7 @@ export default function CodeScanOverlay({
 
   return (
     <div
+      data-scan-theme={theme}
       className="pointer-events-none relative h-full w-full overflow-hidden"
       style={{ opacity: fading ? 0 : 1, transition: "opacity 320ms ease" }}
     >
@@ -464,7 +468,14 @@ export default function CodeScanOverlay({
 
       {/* Status pill. */}
       <div className="pointer-events-none absolute inset-x-0 flex justify-center" style={{ top: 24 }}>
-        <div className="flex items-center gap-2 rounded-full border border-[#EC4899]/30 bg-[#1e1e1e]/90 px-4 py-2 text-xs font-medium text-[#F8F8F2] shadow-[0_0_24px_rgba(124,58,237,0.3)]">
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-[0_0_24px_rgba(124,58,237,0.3)]",
+            theme === "dark"
+              ? "border-[#EC4899]/30 bg-[#1e1e1e]/90 text-[#F8F8F2]"
+              : "border-[#7C3AED]/25 bg-white/95 text-[#1e1e2e]"
+          )}
+        >
           <Loader2 className="h-3.5 w-3.5 animate-spin text-[#EC4899]" />
           {loop ? PREPARING_STATUS : STATUSES[phase]}
         </div>
@@ -596,5 +607,36 @@ const SCAN_CSS = `
       0 0 26px rgba(168, 85, 247, 0.34),
       0 0 56px rgba(236, 72, 153, 0.24);
   }
+}
+[data-scan-theme="light"] .cv-ai-scan-screen {
+  mix-blend-mode: normal;
+  opacity: 0.5;
+}
+[data-scan-theme="light"] .cv-ai-scan-window {
+  background: linear-gradient(
+    90deg,
+    rgba(168, 85, 247, 0.14) 0%,
+    rgba(168, 85, 247, 0.04) 16%,
+    rgba(236, 72, 153, 0.04) 84%,
+    rgba(236, 72, 153, 0.14) 100%
+  );
+}
+[data-scan-theme="light"] .cv-ai-scan-glow {
+  opacity: 0.35;
+}
+[data-scan-theme="light"] .cv-ai-scan-shimmer::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(236, 72, 153, 0.16),
+    rgba(168, 85, 247, 0.2),
+    transparent
+  );
+}
+[data-scan-theme="light"] .cv-ai-scan-window--paused .cv-ai-scan-screen {
+  opacity: 0.7;
+}
+[data-scan-theme="light"] .cv-ai-scan-window--paused .cv-ai-scan-glow {
+  opacity: 0.55;
 }
 `;

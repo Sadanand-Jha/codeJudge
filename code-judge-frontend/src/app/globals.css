@@ -628,6 +628,13 @@ button.cf-btn:hover {
 [data-theme="light"] .bg-\[\#2D3B52\] { background-color: #E5E7EB !important; }
 [data-theme="light"] .bg-\[\#3A4963\] { background-color: #E5E7EB !important; }
 
+/* ===== Code editor chrome → light surfaces ===== */
+[data-theme="light"] .bg-\[\#1a1a1a\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#1e1e1e\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#272822\] { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-\[\#0D1117\] { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-\[\#161B22\] { background-color: #F3F4F6 !important; }
+
 /* ===== White text → dark text (on light surfaces) ===== */
 [data-theme="light"] .text-white { color: #111827 !important; }
 [data-theme="light"] .text-\[\#F8FAFC\] { color: #111827 !important; }
@@ -638,6 +645,12 @@ button.cf-btn:hover {
 [data-theme="light"] .text-\[\#9CA3AF\] { color: #6B7280 !important; }
 [data-theme="light"] .text-\[\#6B7280\] { color: #9CA3AF !important; }
 [data-theme="light"] .text-\[\#9CA3Af\] { color: #6B7280 !important; }
+
+/* ===== Code editor text → dark text ===== */
+[data-theme="light"] .text-\[\#F8F8F2\] { color: #111827 !important; }
+[data-theme="light"] .text-\[\#e0e0e0\] { color: #111827 !important; }
+[data-theme="light"] .text-\[\#b0b0b0\] { color: #4B5563 !important; }
+[data-theme="light"] .text-\[\#90908A\] { color: #6B7280 !important; }
 
 /* ===== Restore white text on colored/dark backgrounds ===== */
 [data-theme="light"] .bg-\[\#7C3AED\].text-white,
@@ -3063,6 +3076,7 @@ svg {
   border-radius: 2px;
   box-shadow: inset 2px 0 0 rgba(52, 211, 153, 0.8);
   font-style: italic;
+  white-space: pre;
 }
 
 /* Inline suggestion widget — floats near the changed lines inside Monaco */
@@ -3104,6 +3118,42 @@ svg {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+.bcl-ai-widget-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+.bcl-ai-widget-navbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.bcl-ai-widget-navbtn:hover {
+  background: rgba(139, 92, 246, 0.18);
+  border-color: rgba(139, 92, 246, 0.6);
+  color: #fff;
+}
+.bcl-ai-widget-pos {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0 2px;
 }
 .bcl-ai-widget-diff {
   max-height: 160px;
@@ -3433,6 +3483,19 @@ svg {
 .ai-thinking-body .markdown-body ul,
 .ai-thinking-body .markdown-body ol {
   padding-left: 1.1rem;
+}
+
+/* Monaco editor — light mode: draw a separator line under every code line.
+   The `--monaco-line-height` custom property is set inline by
+   MonacoEditorWrapper to match the editor's computed line height. */
+[data-monaco-theme="light"] .monaco-editor .view-lines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent var(--monaco-line-height, 21px),
+    rgba(15, 23, 42, 0.07) var(--monaco-line-height, 21px),
+    rgba(15, 23, 42, 0.07) calc(var(--monaco-line-height, 21px) + 1px)
+  );
 }
 
 

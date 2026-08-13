@@ -125,7 +125,8 @@ export function parseUnifiedDiff(diffBody: string): SuggestedEdits[] {
 
     let oldLine = Number(hunk[1]);
 
-    // Collect the runs within this hunk.
+    // Collect the runs within this hunk. `run.startLine` is the first removed
+    // line; for pure insertions it is the line the insertion lands on.
     let run: { removed: string[]; added: string[]; startLine: number } | null = null;
 
     const flushRun = () => {
@@ -165,9 +166,14 @@ export function parseUnifiedDiff(diffBody: string): SuggestedEdits[] {
       run = null;
     };
 
-    for (; i < lines.length; i++) {
+    // Walk the hunk body, starting AFTER the @@ header line. When the next @@
+    // header is reached, step back so the outer loop processes it next.
+    for (i = i + 1; i < lines.length; i++) {
       const l = lines[i];
-      if (/^@@/.test(l)) { i--; break; }
+      if (/^@@/.test(l)) {
+        i--;
+        break;
+      }
       if (l.startsWith("-") && !l.startsWith("---")) {
         if (!run) run = { removed: [], added: [], startLine: oldLine };
         run.removed.push(l.slice(1));
@@ -176,7 +182,7 @@ export function parseUnifiedDiff(diffBody: string): SuggestedEdits[] {
         if (!run) run = { removed: [], added: [], startLine: oldLine };
         run.added.push(l.slice(1));
       } else {
-        // Context line — flush the current run so changes stay independent.
+        // Context line (or empty) — flush the current run so changes stay independent.
         flushRun();
         oldLine++;
       }
@@ -577,11 +583,476 @@ export function resolveEditLines(
   return { removed, added: splitAddedLines(edit.newText) };
 }
 
+/* ═══════════════════ Structural analysis (blocks & delimiters) ═══════════════════ */
+
+interface IndentStyle {
+  unit: "\t" | " ";
+  /** Character width of one indentation level (used for tab conversion). */
+  levelWidth: number;
+}
+
+/** The position (1-based line/col) of a closing delimiter in the source. */
+export interface StructuralCloser {
+  offset: number;
+  line: number;
+  col: number;
+  type: "}" | ")" | "]";
+}
+
+export interface FileStructure {
+  /** Base indent for code inserted at the START of each line (1-indexed). */
+  indents: string[];
+  /** Positions of closing delimiters that popped a matching opener. */
+  closes: StructuralCloser[];
+}
+
+/** Opening delimiter for each closing delimiter. */
+const OPENER_OF: Record<string, "{" | "(" | "["> = {
+  "}": "{",
+  ")": "(",
+  "]": "[",
+};
+
+/** Closing delimiter for each opening delimiter. */
+const CLOSER_OF: Record<string, "}" | ")" | "]"> = {
+  "{": "}",
+  "(": ")",
+  "[": "]",
+};
+
+/**
+ * Detect the file's dominant indentation style (tabs vs spaces + level width)
+ * from its existing lines, so AI-proposed text matches the surrounding code.
+ */
+export function inferIndentStyle(fileText: string): IndentStyle {
+  const lines = fileText.split("\n");
+  let tabLines = 0;
+  const spaceWidths: number[] = [];
+  for (const l of lines) {
+    if (/^\t/.test(l)) {
+      tabLines++;
+      continue;
+    }
+    const sp = /^( +)/.exec(l);
+    if (sp && sp[1].length > 0) spaceWidths.push(sp[1].length);
+  }
+  if (tabLines > spaceWidths.length) {
+    return { unit: "\t", levelWidth: 4 };
+  }
+  if (spaceWidths.length === 0) return { unit: " ", levelWidth: 4 };
+
+  // The indent unit is the greatest common divisor of all observed line
+  // indents (nested blocks indent by a fixed multiple), not the most common
+  // absolute width — e.g. in a 2-level nested file the body indent is 8 but
+  // the actual unit is 4.
+  const gcd2 = (a: number, b: number): number => (b === 0 ? a : gcd2(b, a % b));
+  const gcd = spaceWidths.reduce((acc, w) => gcd2(acc, w), spaceWidths[0]);
+  let level = gcd;
+  if (!level || level < 1) level = Math.min(...spaceWidths);
+  return { unit: " ", levelWidth: Math.max(1, level) };
+}
+
+/** Leading whitespace (indentation) of a line, as-is. */
+function leadingWhitespace(line: string): string {
+  const m = /^[\t ]*/.exec(line);
+  return m ? m[0] : "";
+}
+
+/**
+ * Lexer-aware single pass over a source file:
+ *  - tracks `{ }`, `( )`, `[ ]` while ignoring string/char/comment literals, so
+ *    we can tell which block any insertion point sits inside;
+ *  - records per line the indentation code inserted at that point should use
+ *    (the enclosing `{` block's content indent);
+ *  - records every closing delimiter that actually pops an opener.
+ */
+export function analyzeStructure(
+  fileText: string,
+  style: IndentStyle
+): FileStructure {
+  const unit = style.unit === "\t" ? "\t" : " ".repeat(style.levelWidth);
+  const lines = fileText.split("\n");
+  const indents: string[] = [];
+  const closes: StructuralCloser[] = [];
+  interface Entry {
+    type: "{" | "(" | "[";
+    indent: string;
+  }
+  const stack: Entry[] = [];
+
+  let inStr = false;
+  let inChr = false;
+  let inBlockComment = false;
+  let offset = 0;
+
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    indents.push(stack.length ? stack[stack.length - 1].indent : "");
+    let inLineComment = false;
+
+    for (let ci = 0; ci < line.length; ci++) {
+      const c = line[ci];
+      const next = ci + 1 < line.length ? line[ci + 1] : undefined;
+
+      if (inStr) {
+        if (c === "\\" && next !== undefined) {
+          ci++;
+          offset++;
+        } else if (c === '"') {
+          inStr = false;
+        }
+        offset++;
+        continue;
+      }
+      if (inChr) {
+        if (c === "\\" && next !== undefined) {
+          ci++;
+          offset++;
+        } else if (c === "'") {
+          inChr = false;
+        }
+        offset++;
+        continue;
+      }
+      if (inBlockComment) {
+        if (c === "*" && next === "/") {
+          inBlockComment = false;
+          ci++;
+          offset++;
+        }
+        offset++;
+        continue;
+      }
+      if (inLineComment) {
+        offset++;
+        continue;
+      }
+
+      if (c === '"') {
+        inStr = true;
+        offset++;
+        continue;
+      }
+      if (c === "'") {
+        inChr = true;
+        offset++;
+        continue;
+      }
+      if (c === "/" && next === "/") {
+        inLineComment = true;
+        ci++;
+        offset += 2;
+        continue;
+      }
+      if (c === "/" && next === "*") {
+        inBlockComment = true;
+        ci++;
+        offset += 2;
+        continue;
+      }
+      if (c === "{" || c === "(" || c === "[") {
+        stack.push({
+          type: c,
+          indent: leadingWhitespace(line) + (c === "{" ? unit : ""),
+        });
+        offset++;
+        continue;
+      }
+      if (c === "}" || c === ")" || c === "]") {
+        if (stack.length) {
+          const need = OPENER_OF[c];
+          const top = stack[stack.length - 1];
+          if (top.type === need) {
+            stack.pop();
+          } else {
+            for (let si = stack.length - 1; si >= 0; si--) {
+              if (stack[si].type === need) {
+                stack.splice(si, 1);
+                break;
+              }
+            }
+          }
+          closes.push({ offset, line: li + 1, col: ci + 1, type: c });
+        }
+        offset++;
+        continue;
+      }
+      offset++;
+    }
+    offset++; // the newline between lines
+  }
+
+  return { indents, closes };
+}
+
+/**
+ * Re-indent AI-proposed text so it lines up with the code around it:
+ *  - strips the LLM's own base indentation, then re-applies the target block's
+ *    content indent plus the same relative depth per line;
+ *  - blank lines stay blank (no trailing whitespace);
+ *  - a trailing newline on `newText` is preserved.
+ */
+function reindentNewText(
+  newText: string,
+  baseIndent: string,
+  style: IndentStyle
+): string {
+  const parts = newText.split("\n");
+  if (parts.length === 0) return newText;
+  const trailingNewline = parts[parts.length - 1] === "";
+  if (trailingNewline) parts.pop();
+
+  const nonBlank = parts.filter((l) => l.trim() !== "");
+  if (nonBlank.length === 0) return trailingNewline ? newText : parts.join("\n");
+
+  const width = (l: string) => leadingWhitespace(l).length;
+  const minWidth = Math.min(...parts.filter((l) => l.trim() !== "").map(width));
+
+  const out = parts.map((l) => {
+    if (l.trim() === "") return "";
+    const rel = Math.max(0, width(l) - minWidth);
+    const indent =
+      style.unit === "\t"
+        ? baseIndent + "\t".repeat(Math.round(rel / style.levelWidth))
+        : baseIndent + " ".repeat(rel);
+    return indent + l.slice(leadingWhitespace(l).length);
+  });
+
+  if (trailingNewline) out.push("");
+  return out.join("\n");
+}
+
+/**
+ * Normalize every proposed edit's `newText` so inserted/modified lines keep the
+ * exact indentation style (tabs vs spaces + nesting depth) of the surrounding
+ * code. The model text is never modified — only the proposed replacement text.
+ * Call AFTER `sanitizeStructuralEdits` so ranges already point at the right
+ * block.
+ */
+export function normalizeEditIndentation(
+  fileText: string,
+  edits: AIEdit[]
+): AIEdit[] {
+  const style = inferIndentStyle(fileText);
+  const structure = analyzeStructure(fileText, style);
+  return edits.map((e) => {
+    const anchorLine = clamp(
+      Math.round(e.startLine),
+      1,
+      Math.max(1, structure.indents.length)
+    );
+    const baseIndent = structure.indents[anchorLine - 1] ?? "";
+    return { ...e, newText: reindentNewText(e.newText, baseIndent, style) };
+  });
+}
+
+/* ═══════════════════ Range math (Monaco-compatible, pure) ═══════════════════ */
+
+/** 0-based char offset of a (1-based line, col) Monaco position. */
+function offsetFor(fileText: string, line: number, col: number): number {
+  if (line <= 1) return Math.max(0, col - 1);
+  const lines = fileText.split("\n");
+  const li = clamp(line - 1, 0, lines.length);
+  let off = 0;
+  for (let i = 0; i < li && i < lines.length; i++) off += lines[i].length + 1;
+  if (li >= lines.length) return off;
+  const maxCol = lines[li].length + 1;
+  return off + clamp(col, 1, maxCol) - 1;
+}
+
+/** (1-based line, col) Monaco position for a 0-based char offset. */
+function lineColAt(
+  fileText: string,
+  offset: number
+): { line: number; col: number } {
+  const lines = fileText.split("\n");
+  let acc = 0;
+  for (let li = 0; li < lines.length; li++) {
+    const end = acc + lines[li].length;
+    if (offset <= end) return { line: li + 1, col: offset - acc + 1 };
+    acc = end + 1;
+  }
+  const last = lines.length ? lines.length - 1 : 0;
+  return { line: lines.length || 1, col: (lines[last]?.length ?? 0) + 1 };
+}
+
+/** The exact substring Monaco would replace for this edit's range. */
+function textInRange(fileText: string, edit: AIEdit): string {
+  const s = offsetFor(fileText, edit.startLine, edit.startColumn);
+  const e = offsetFor(fileText, edit.endLine, edit.endColumn);
+  return fileText.slice(s, e);
+}
+
+/** Count opening/closing delimiters in a fragment (edit-local text). */
+function delimCounts(text: string): {
+  open: Record<string, number>;
+  close: Record<string, number>;
+} {
+  const open: Record<string, number> = { "{": 0, "(": 0, "[": 0 };
+  const close: Record<string, number> = { "}": 0, ")": 0, "]": 0 };
+  for (const c of text) {
+    if (c === "{" || c === "(" || c === "[") open[c]++;
+    else if (c === "}" || c === ")" || c === "]") close[c]++;
+  }
+  return { open, close };
+}
+
+/**
+ * Repair an edit that would delete a structural closing delimiter without the
+ * model re-inserting it (e.g. a diff that replaced the function's trailing `}`
+ * with the new statement). The deleted delimiters are kept, and the edit is
+ * truncated to an insertion that lands immediately before them — so "end of
+ * block" means "before the closing brace", never after it.
+ */
+export function repairDeletedDelimiters(
+  fileText: string,
+  edit: AIEdit
+): AIEdit {
+  const removed = textInRange(fileText, edit);
+  const added = edit.newText;
+
+  // Collect the trailing run of structural closers in the removed text
+  // (`}`, `)`, `]`; a trailing `;` is ignored), skipping trailing whitespace.
+  let scan = removed.length;
+  while (scan > 0 && /\s/.test(removed[scan - 1])) scan--;
+  const closers: ("}" | ")" | "]")[] = [];
+  while (scan > 0 && /[})\];]/.test(removed[scan - 1])) {
+    const c = removed[scan - 1];
+    if (c === "}" || c === ")" || c === "]") closers.unshift(c);
+    scan--;
+  }
+  if (closers.length === 0) return edit;
+
+  const runStart = Math.max(0, scan);
+  const removedCounts = delimCounts(removed);
+  const addedCounts = delimCounts(added);
+
+  // Only repair closer(s) the region truly "owns" (more closes than opens) and
+  // that the added text does not bring back — never touch balanced deletion.
+  const needsRepair = closers.some((c) => {
+    const removedNet = removedCounts.close[c] - removedCounts.open[OPENER_OF[c]];
+    const addedNet = addedCounts.close[c] - addedCounts.open[OPENER_OF[c]];
+    return removedNet > 0 && addedNet < removedNet;
+  });
+  if (!needsRepair) return edit;
+
+  // Keep the closer run (with the indentation right before it) in the document
+  // and replace only the code ahead of it.
+  const head = removed.slice(0, runStart);
+  const keepPos = head.replace(/[\t ]+$/, "").length;
+
+  const startOffset = offsetFor(fileText, edit.startLine, edit.startColumn);
+  const endOffset = startOffset + keepPos;
+
+  if (endOffset <= startOffset) {
+    // The whole removed region was the closer — become a pure insertion that
+    // lands immediately before it.
+    return {
+      ...edit,
+      startColumn: edit.startColumn,
+      endLine: edit.startLine,
+      endColumn: edit.startColumn,
+    };
+  }
+  const pos = lineColAt(fileText, endOffset);
+  return { ...edit, endLine: pos.line, endColumn: pos.col };
+}
+
+/**
+ * Relocate a PURE insertion that the model placed at (or beyond) the file's
+ * final structural closer — i.e. an "append to end of file" that semantically
+ * means "end of the enclosing block". The insertion is moved to just before
+ * that closing delimiter so the brace always survives.
+ */
+export function snapInsertionBeforeLastCloser(
+  fileText: string,
+  edit: AIEdit,
+  closes: StructuralCloser[]
+): AIEdit {
+  if (edit.startLine !== edit.endLine || edit.startColumn !== edit.endColumn) {
+    return edit;
+  }
+  const last = closes[closes.length - 1];
+  if (!last) return edit;
+  const insOffset = offsetFor(fileText, edit.startLine, edit.startColumn);
+  if (insOffset >= last.offset) {
+    return {
+      ...edit,
+      startLine: last.line,
+      startColumn: last.col,
+      endLine: last.line,
+      endColumn: last.col,
+    };
+  }
+  return edit;
+}
+
+/**
+ * Make proposed edits structurally safe BEFORE they are displayed/applied:
+ *  1. never delete a lone closing delimiter the model didn't re-insert;
+ *  2. snap end-of-file insertions to land before the block's closing delimiter.
+ */
+export function sanitizeStructuralEdits(
+  fileText: string,
+  edits: AIEdit[]
+): AIEdit[] {
+  const style = inferIndentStyle(fileText);
+  const structure = analyzeStructure(fileText, style);
+  return edits.map((edit) => {
+    const repaired = repairDeletedDelimiters(fileText, edit);
+    return snapInsertionBeforeLastCloser(fileText, repaired, structure.closes);
+  });
+}
+
+/**
+ * Apply edits to a source string with Monaco-equivalent range semantics, as a
+ * single pure operation (used for validation and tests; the live editor uses
+ * `applyEditsToEditor`).
+ */
+export function applyEditsToText(fileText: string, edits: AIEdit[]): string {
+  const pairs = edits
+    .map((e) => ({
+      e,
+      s: offsetFor(fileText, e.startLine, e.startColumn),
+      t: offsetFor(fileText, e.endLine, e.endColumn),
+    }))
+    .sort((a, b) => b.s - a.s);
+  let result = fileText;
+  for (const { e, s, t } of pairs) {
+    result = result.slice(0, s) + e.newText + result.slice(t);
+  }
+  return result;
+}
+
+/**
+ * Validate that every structural delimiter (`{}`, `()`, `[]`) stays balanced
+ * after the edits would be applied. The closing braces of the original document
+ * may never silently disappear.
+ */
+export function validateStructuralBalance(
+  fileText: string,
+  edits: AIEdit[]
+): { valid: boolean; unbalanced: ("{" | "(" | "[")[] } {
+  const result = applyEditsToText(fileText, edits);
+  const counts = delimCounts(result);
+  const unbalanced: ("{" | "(" | "[")[] = [];
+  for (const o of ["{", "(", "["] as const) {
+    if (counts.open[o] !== counts.close[CLOSER_OF[o]]) unbalanced.push(o);
+  }
+  return { valid: unbalanced.length === 0, unbalanced };
+}
+
 interface InlineSuggestionCallbacks {
   onApply: () => void;
   onReject: () => void;
   /** Optional extra label, e.g. the change explanation. */
   label?: string;
+  /** When provided, renders a "previous suggestion" control in the widget. */
+  onPrev?: () => void;
+  /** When provided, renders a "next suggestion" control in the widget. */
+  onNext?: () => void;
+  /** e.g. "1 / 3" — shown next to the nav controls when navigating. */
+  positionLabel?: string;
 }
 
 export interface InlineSuggestionHandle {
@@ -715,8 +1186,49 @@ export function attachInlineSuggestion(
 
     const head = document.createElement("div");
     head.className = "bcl-ai-widget-head";
-    head.innerHTML =
-      '<span class="bcl-ai-widget-badge">✦</span><span class="bcl-ai-widget-label">AI suggested change</span>';
+    const badge = document.createElement("span");
+    badge.className = "bcl-ai-widget-badge";
+    badge.textContent = "✦";
+    head.appendChild(badge);
+    const label = document.createElement("span");
+    label.className = "bcl-ai-widget-label";
+    label.textContent = "AI suggested change";
+    head.appendChild(label);
+    if (callbacks.onPrev || callbacks.onNext) {
+      const nav = document.createElement("div");
+      nav.className = "bcl-ai-widget-nav";
+      if (callbacks.onPrev) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "bcl-ai-widget-navbtn";
+        b.innerHTML = "‹";
+        b.title = "Previous suggestion (Alt+[)";
+        b.onclick = (ev) => {
+          ev.stopPropagation();
+          callbacks.onPrev?.();
+        };
+        nav.appendChild(b);
+      }
+      if (callbacks.positionLabel) {
+        const pos = document.createElement("span");
+        pos.className = "bcl-ai-widget-pos";
+        pos.textContent = callbacks.positionLabel;
+        nav.appendChild(pos);
+      }
+      if (callbacks.onNext) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "bcl-ai-widget-navbtn";
+        b.innerHTML = "›";
+        b.title = "Next suggestion (Alt+])";
+        b.onclick = (ev) => {
+          ev.stopPropagation();
+          callbacks.onNext?.();
+        };
+        nav.appendChild(b);
+      }
+      head.appendChild(nav);
+    }
     root.appendChild(head);
 
     const body = document.createElement("div");

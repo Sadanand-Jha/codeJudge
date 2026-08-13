@@ -11,6 +11,9 @@ import {
   Code2,
   FileCode2,
   CheckCheck,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
@@ -18,13 +21,18 @@ import { streamChat } from "@/services/ai";
 import type { ChatMessageInput, LiveUsage } from "@/services/ai";
 import { useAIEditorStore } from "@/store/aiEditorStore";
 import type { CodeContext } from "@/store/aiEditorStore";
+import {
+  useCodeAssistantStore,
+  CODE_ASSISTANT_SYSTEM_ID,
+  type CodeAssistantMessage,
+} from "@/store/codeAssistantStore";
 import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
 import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
 import AIUsageMeta from "@/components/ai/AIUsageMeta";
 import AILogo from "@/components/ai/AILogo";
-import SuggestedChangesCard from "./SuggestedChangesCard";
 import { extractRenderedText } from "@/utils/clipboard";
 import {
+  EDITS_OPEN,
   parseEditsFromResponse,
   validateEditsAgainstModel,
   applyEditsToEditor,
@@ -33,21 +41,16 @@ import {
   attachInlineSuggestion,
   captureEditorSnapshot,
   isEditorUnchanged,
+  normalizeEditIndentation,
+  sanitizeStructuralEdits,
+  validateStructuralBalance,
   type AIEdit,
   type EditorSnapshot,
   type SuggestedEdits,
 } from "@/lib/codeEdits";
 
-interface PanelMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  reasoningContent?: string;
-  isReasoning?: boolean;
-  isStreaming?: boolean;
-  usage?: LiveUsage;
-  timeMs?: number;
-}
+/** A message rendered in the panel (the stored system message is filtered out). */
+type PanelMessage = CodeAssistantMessage;
 
 /** A concrete, reviewable suggestion attached to an assistant message. */
 interface PendingSuggestion {
@@ -65,6 +68,22 @@ interface PendingSuggestion {
 
 const makeId = () =>
   `code-msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+/**
+ * Hide any raw edit payload (```diff / JSON fences or the delimiter block)
+ * from the chat bubble WHILE it is still streaming, so the actual code change
+ * never appears as a normal chat message. The explanation precedes the diff, so
+ * we cut everything from the first edit fence onwards.
+ */
+function sanitizeStreamingContent(raw: string): string {
+  const diffIdx = raw.search(/```\s*(?:diff|udiff|json)/i);
+  const openIdx = raw.indexOf(EDITS_OPEN);
+  const cut =
+    diffIdx !== -1 && (openIdx === -1 || diffIdx < openIdx)
+      ? diffIdx
+      : openIdx;
+  return cut !== -1 ? raw.slice(0, cut).trim() : raw;
+}
 
 /**
  * System instruction that teaches the model how to propose edits without
@@ -142,28 +161,34 @@ export default function CodeAssistantPanel({
   const setPreparing = useAIEditorStore((s) => s.setPreparing);
 
   const [currentContext, setCurrentContext] = useState<CodeContext | null>(null);
-  const [messages, setMessages] = useState<PanelMessage[]>([]);
   const [suggestions, setSuggestions] = useState<PendingSuggestion[]>([]);
   const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [liveModelValue, setLiveModelValue] = useState("");
+  const [inlineActiveId, setInlineActiveId] = useState<string | null>(null);
+
+  // Persistent conversation (module-scope store, like ChatContext for the quiz
+  // assistant): survives closing/reopening the panel and page navigation so
+  // follow-up questions retain full context.
+  const messages = useCodeAssistantStore((s) => s.messages);
+  const addConversationMessage = useCodeAssistantStore((s) => s.addMessage);
+  const patchConversationMessage = useCodeAssistantStore((s) => s.patchMessage);
+  const clearConversation = useCodeAssistantStore((s) => s.clearConversation);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const contentRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const streamAbortRef = useRef<AbortController | null>(null);
 
-  // When the panel opens and a request is pending, consume it and generate a
-  // preliminary analysis of the current file.
   // Consume a pending "ask" request when the panel opens (external store sync).
+  // The conversation is intentionally NOT cleared here so it persists across
+  // panel sessions and keeps context for follow-up questions.
   useEffect(() => {
     if (!open) return;
     const request = useAIEditorStore.getState().consumeRequest();
     if (request) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentContext(request.context);
-      setMessages([]);
       setSuggestions([]);
       setPrompt(
         "Analyze this file and, if you find anything to improve or fix, propose the changes."
@@ -244,6 +269,26 @@ export default function CodeAssistantPanel({
         return;
       }
 
+      // Structural safety net: applying must never unbalance the document's
+      // `{}`, `()`, `[]` — i.e. never delete a closing delimiter.
+      const balance = validateStructuralBalance(
+        editor?.getModel?.()?.getValue?.() ?? "",
+        target.edits
+      );
+      if (!balance.valid) {
+        setSuggestions((prev) =>
+          prev.map((s) =>
+            s.id === suggestionId
+              ? { ...s, applying: false, stale: true }
+              : s
+          )
+        );
+        toast.error("Could not apply changes", {
+          description: "The change would break the document's braces or brackets.",
+        });
+        return;
+      }
+
       const ok = applyEditsToEditor(editor, monaco, target.edits);
       if (ok) {
         clearEditDecorations(editor);
@@ -281,21 +326,53 @@ export default function CodeAssistantPanel({
     [editorRef]
   );
 
-  // Keep Monaco in sync with the most recent pending (non-applied, non-rejected,
-  // non-stale) suggestion: render an inline Copilot-style diff + Accept/Reject
-  // widget on the changed lines.
+  // Active (reviewable) suggestions ordered by where they land in the file, so
+  // inline navigation walks top → bottom like a review.
+  const pendingSuggestions = useMemo(
+    () =>
+      [...suggestions]
+        .filter((s) => !s.applied && !s.rejected && !s.stale)
+        .sort(
+          (a, b) =>
+            (a.edits[0]?.startLine ?? Number.MAX_SAFE_INTEGER) -
+            (b.edits[0]?.startLine ?? Number.MAX_SAFE_INTEGER)
+        ),
+    [suggestions]
+  );
+
+  // Keep the active inline suggestion valid as the pending set changes.
+  useEffect(() => {
+    // Reset to the first pending suggestion whenever the pending set changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInlineActiveId((cur) =>
+      pendingSuggestions.some((s) => s.id === cur)
+        ? cur
+        : (pendingSuggestions[0]?.id ?? null)
+    );
+  }, [pendingSuggestions]);
+
+  const activeIndex = pendingSuggestions.findIndex((s) => s.id === inlineActiveId);
+  const activeSuggestion = activeIndex >= 0 ? pendingSuggestions[activeIndex] : null;
+
+  const goPrev = useCallback(() => {
+    if (pendingSuggestions.length === 0) return;
+    const next =
+      (activeIndex - 1 + pendingSuggestions.length) % pendingSuggestions.length;
+    setInlineActiveId(pendingSuggestions[next].id);
+  }, [pendingSuggestions, activeIndex]);
+
+  const goNext = useCallback(() => {
+    if (pendingSuggestions.length === 0) return;
+    const next = (activeIndex + 1) % pendingSuggestions.length;
+    setInlineActiveId(pendingSuggestions[next].id);
+  }, [pendingSuggestions, activeIndex]);
+
+  // Keep Monaco in sync with the active pending suggestion: render an inline
+  // Copilot-style diff + Accept/Reject widget on the changed lines. Multiple
+  // suggestions are navigable via the widget, the panel strip, or Alt+[ / Alt+].
   useEffect(() => {
     const editor = editorRef.current;
-    if (!editor || !open) {
-      detachInlineSuggestion(editor);
-      return;
-    }
-
-    const active = [...suggestions]
-      .reverse()
-      .find((s) => !s.applied && !s.rejected && !s.stale);
-
-    if (!active) {
+    if (!editor || !open || !activeSuggestion) {
       detachInlineSuggestion(editor);
       return;
     }
@@ -303,23 +380,57 @@ export default function CodeAssistantPanel({
     const handle = attachInlineSuggestion(
       editor,
       monacoRef.current,
-      active.edits,
+      activeSuggestion.edits,
       {
-        label: active.explanation,
-        onApply: () => applySuggestion(active.id),
-        onReject: () => rejectSuggestion(active.id),
+        label: activeSuggestion.explanation,
+        onApply: () => applySuggestion(activeSuggestion.id),
+        onReject: () => rejectSuggestion(activeSuggestion.id),
+        onPrev: pendingSuggestions.length > 1 ? goPrev : undefined,
+        onNext: pendingSuggestions.length > 1 ? goNext : undefined,
+        positionLabel:
+          pendingSuggestions.length > 1
+            ? `${activeIndex + 1} / ${pendingSuggestions.length}`
+            : undefined,
       }
     );
     return () => handle.detach();
-  }, [suggestions, open, editorRef, monacoRef, applySuggestion, rejectSuggestion]);
+  }, [
+    suggestions,
+    open,
+    editorRef,
+    monacoRef,
+    applySuggestion,
+    rejectSuggestion,
+    activeSuggestion,
+    pendingSuggestions,
+    activeIndex,
+    goPrev,
+    goNext,
+  ]);
 
-  // Keep the live Monaco content for stale diff previews.
+  // Keyboard navigation between inline suggestions (Alt+[ / Alt+]).
   useEffect(() => {
-    const model = editorRef.current?.getModel?.();
-    if (model?.getValue) {
-      setLiveModelValue(model.getValue());
-    }
-  }, [suggestions, open, editorRef]);
+    if (!open) return;
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editor?.addCommand || !monaco?.KeyMod || !monaco?.KeyCode) return;
+    const prevId = editor.addCommand(
+      monaco.KeyMod.Alt | monaco.KeyCode.BracketLeft,
+      () => goPrev()
+    );
+    const nextId = editor.addCommand(
+      monaco.KeyMod.Alt | monaco.KeyCode.BracketRight,
+      () => goNext()
+    );
+    return () => {
+      if (typeof prevId === "number" || typeof prevId === "string") {
+        editor.removeCommand?.(prevId);
+      }
+      if (typeof nextId === "number" || typeof nextId === "string") {
+        editor.removeCommand?.(nextId);
+      }
+    };
+  }, [open, editorRef, monacoRef, goPrev, goNext]);
 
   const close = () => useAIEditorStore.getState().setOpen(false);
 
@@ -333,10 +444,43 @@ export default function CodeAssistantPanel({
 
   const stopGeneration = () => streamAbortRef.current?.abort();
 
+  /**
+   * Re-read the editor's CURRENT content and selection at send time so the AI
+   * always receives the latest version of the file, not the snapshot captured
+   * when the panel was opened. Falls back to the panel context when the editor
+   * isn't mounted yet.
+   */
+  const buildLiveContext = useCallback((): CodeContext | null => {
+    const editor = editorRef.current;
+    const model = editor?.getModel?.();
+    const content = model?.getValue?.() ?? currentContext?.content ?? "";
+    if (!content && !currentContext) return null;
+
+    let selection: string | undefined;
+    let selectionRange: CodeContext["selectionRange"];
+    const sel = editor?.getSelection?.();
+    if (model && sel && !sel.isEmpty()) {
+      selection = model.getValueInRange(sel) || undefined;
+      selectionRange = {
+        startLine: sel.startLineNumber,
+        startColumn: sel.startColumn,
+        endLine: sel.endLineNumber,
+        endColumn: sel.endColumn,
+      };
+    }
+
+    return {
+      type: "current_file",
+      language: currentContext?.language ?? "",
+      filename: currentContext?.filename ?? "",
+      content,
+      selection,
+      selectionRange,
+    };
+  }, [editorRef, currentContext]);
+
   const updateMessage = (id: string, patch: Partial<PanelMessage>) => {
-    setMessages((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, ...patch } : m))
-    );
+    patchConversationMessage(id, patch);
   };
 
   const handleSend = async (override?: string) => {
@@ -346,35 +490,33 @@ export default function CodeAssistantPanel({
     setSending(true);
     setPreparing(true);
 
-    setMessages((prev) => [
-      ...prev,
-      { id: makeId(), role: "user", content: userPrompt },
-    ]);
+    addConversationMessage({ role: "user", content: userPrompt });
 
-    const aiId = makeId();
+    const aiMsg = addConversationMessage({
+      role: "assistant",
+      content: "",
+      reasoningContent: "",
+      isReasoning: true,
+      isStreaming: true,
+    });
+    const aiId = aiMsg.id;
     const streamed = { content: "", reasoning: "" };
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: aiId,
-        role: "assistant",
-        content: "",
-        reasoningContent: "",
-        isReasoning: true,
-        isStreaming: true,
-      },
-    ]);
 
     const controller = new AbortController();
     streamAbortRef.current = controller;
 
-    const system = buildSystemMessage(currentContext);
+    // Always send the latest editor content (the context captured at open time
+    // is stale once the user keeps typing in the editor). The stored system
+    // message is refreshed with this live content, so the persisting
+    // conversation always carries the current file + the prior turns.
+    const liveContext = buildLiveContext();
+    if (liveContext) setCurrentContext(liveContext);
+    const system = buildSystemMessage(liveContext);
+    patchConversationMessage(CODE_ASSISTANT_SYSTEM_ID, { content: system });
     const historyForModel: ChatMessageInput[] = [
-      { role: "system", content: system },
-      ...messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      ...useCodeAssistantStore
+        .getState()
+        .messages.map((m) => ({ role: m.role, content: m.content })),
       { role: "user", content: userPrompt },
     ];
 
@@ -392,17 +534,10 @@ export default function CodeAssistantPanel({
         uiTimer = null;
         if (!uiDirty) return;
         uiDirty = false;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === aiId
-              ? {
-                  ...m,
-                  content: streamed.content,
-                  reasoningContent: streamed.reasoning,
-                }
-              : m
-          )
-        );
+        patchConversationMessage(aiId, {
+          content: sanitizeStreamingContent(streamed.content),
+          reasoningContent: streamed.reasoning,
+        });
       }, 66);
     };
     const cancelUiFlush = () => {
@@ -441,18 +576,34 @@ export default function CodeAssistantPanel({
       const { content: cleanContent, edits: editGroups } =
         parseEditsFromResponse(streamed.content);
 
-      // Persist the cleaned content (without raw JSON block).
+      // Persist the cleaned content (without raw JSON block). Never fall back
+      // to the raw stream text, which may still contain the edit payload.
       const finalShown =
-        cleanContent || streamed.content || "Here's what I found.";
+        cleanContent ||
+        sanitizeStreamingContent(streamed.content) ||
+        "Here's what I found.";
       updateMessage(aiId, { content: finalShown });
 
       if (editGroups.length > 0) {
         const snapshot = captureEditorSnapshot(editorRef.current);
+        // 1) Make ranges structurally safe: never delete a closing delimiter,
+        //    snap "end of block" insertions to land before the closing brace.
+        // 2) Normalize indentation against the CURRENT file so inserted lines
+        //    match the surrounding code's tabs/spaces and nesting depth.
+        const normalizedGroups = editGroups.map((group) => ({
+          ...group,
+          edits: snapshot
+            ? normalizeEditIndentation(
+                snapshot.content,
+                sanitizeStructuralEdits(snapshot.content, group.edits)
+              )
+            : group.edits,
+        }));
         // One independently-acceptable suggestion per edit group/hunk, so the
         // user can accept some hunks and reject others (Copilot-style).
         setSuggestions((prev) => [
           ...prev,
-          ...editGroups.map((group) => ({
+          ...normalizedGroups.map((group) => ({
             id: makeId(),
             messageId: aiId,
             explanation: group.explanation || "I've prepared some changes.",
@@ -490,17 +641,9 @@ export default function CodeAssistantPanel({
     pending.forEach((s) => applySuggestion(s.id));
   };
 
-  const recalculateSuggestion = (suggestionId: string) => {
-    const target = suggestions.find((s) => s.id === suggestionId);
-    if (!target) return;
-    // Mark the old one rejected, then re-run generation with the same ut.
-    setSuggestions((prev) =>
-      prev.map((s) =>
-        s.id === suggestionId ? { ...s, rejected: true } : s
-      )
-    );
-    // Use the message's explanation as the prompt.
-    handleSend(target.explanation || "Please fix or optimize the current file.");
+  const rejectAll = () => {
+    const pending = suggestions.filter((s) => !s.applied && !s.rejected);
+    pending.forEach((s) => rejectSuggestion(s.id));
   };
 
   const pendingCount = useMemo(
@@ -534,13 +677,38 @@ export default function CodeAssistantPanel({
             </div>
             <div className="flex items-center gap-1">
               {pendingCount > 0 && (
+                <>
+                  <button
+                    onClick={applyAll}
+                    className="flex items-center gap-1 rounded-lg border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-2 py-1 text-[10px] font-bold text-[#A78BFA] transition-colors hover:bg-[#7C3AED]/20"
+                    title="Apply all pending suggestions"
+                  >
+                    <CheckCheck className="h-3 w-3" />
+                    Apply all ({pendingCount})
+                  </button>
+                  <button
+                    onClick={rejectAll}
+                    className="flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-bold text-red-400 transition-colors hover:bg-red-500/20"
+                    title="Reject all pending suggestions"
+                  >
+                    <X className="h-3 w-3" />
+                    Reject all ({pendingCount})
+                  </button>
+                </>
+              )}
+              {messages.filter((m) => m.role !== "system").length > 0 && (
                 <button
-                  onClick={applyAll}
-                  className="flex items-center gap-1 rounded-lg border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-2 py-1 text-[10px] font-bold text-[#A78BFA] transition-colors hover:bg-[#7C3AED]/20"
-                  title="Apply all pending suggestions"
+                  onClick={() => {
+                    clearConversation();
+                    detachInlineSuggestion(editorRef.current);
+                    setSuggestions([]);
+                    setPrompt("");
+                  }}
+                  className="flex h-7 items-center gap-1 rounded-lg px-2 text-[10px] font-semibold text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
+                  title="Start a new conversation (context is cleared)"
                 >
-                  <CheckCheck className="h-3 w-3" />
-                  Apply all ({pendingCount})
+                  <RotateCcw className="h-3 w-3" />
+                  New chat
                 </button>
               )}
               <button
@@ -568,9 +736,41 @@ export default function CodeAssistantPanel({
             </div>
           )}
 
+          {/* ===== Inline suggestion navigation ===== */}
+          {pendingSuggestions.length > 1 && activeSuggestion && (
+            <div className="flex items-center justify-between border-b border-border bg-card px-5 py-1.5">
+              <span className="text-[10px] text-text-muted">
+                Inline suggestion{" "}
+                <span className="font-semibold tabular-nums text-text-primary">
+                  {activeIndex + 1} / {pendingSuggestions.length}
+                </span>
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={goPrev}
+                  className="flex h-6 w-6 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary"
+                  title="Previous suggestion (Alt+[)"
+                  aria-label="Previous suggestion"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={goNext}
+                  className="flex h-6 w-6 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary"
+                  title="Next suggestion (Alt+])"
+                  aria-label="Next suggestion"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ===== Body ===== */}
           <div className="flex-1 space-y-3 overflow-y-auto border-b border-border px-5 py-4">
-            {messages.length === 0 ? (
+            {(() => {
+              const visibleMessages = messages.filter((m) => m.role !== "system");
+              return visibleMessages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
                 <AILogo variant="accent" size="lg" />
                 <p className="text-sm font-semibold text-text-primary">
@@ -582,10 +782,7 @@ export default function CodeAssistantPanel({
                 </p>
               </div>
             ) : (
-              messages.map((m) => {
-                const msgSuggestions = suggestions.filter(
-                  (s) => s.messageId === m.id && !s.rejected
-                );
+              visibleMessages.map((m) => {
                 return (
                   <div
                     key={m.id}
@@ -631,26 +828,6 @@ export default function CodeAssistantPanel({
                             usage={m.usage}
                             timeMs={m.timeMs}
                           />
-
-                          {/* Suggested changes cards */}
-                          {msgSuggestions.map((s) => {
-                            const snapshot = s.snapshot;
-                            const modelValue = snapshot?.content ?? "";
-                            return (
-                              <SuggestedChangesCard
-                                key={s.id}
-                                filename={currentContext?.filename ?? "code"}
-                                explanation={s.explanation}
-                                edits={s.edits}
-                                modelValue={s.stale ? liveModelValue : modelValue}
-                                stale={s.stale}
-                                applying={s.applying}
-                                onApply={() => applySuggestion(s.id)}
-                                onReject={() => rejectSuggestion(s.id)}
-                                onRefresh={() => recalculateSuggestion(s.id)}
-                              />
-                            );
-                          })}
                         </>
                       ) : (
                         <span className="whitespace-pre-wrap text-xs leading-relaxed text-text-primary">
@@ -674,7 +851,8 @@ export default function CodeAssistantPanel({
                   </div>
                 );
               })
-            )}
+            );
+            })()}
             <div ref={messagesEndRef} />
           </div>
 
