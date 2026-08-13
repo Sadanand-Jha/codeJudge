@@ -161,6 +161,17 @@ export default function AiAssistantPanel({
     toast.success(`${questions.length} questions added to the quiz`);
   };
 
+  const handleAcceptOne = (question: AIQuestionPreview) => {
+    const questions = mapToCreatorQuestions([question]);
+    useQuizProblemsStore.getState().addProblems(questions);
+    setReviewQuestions((prev) => prev.filter((q) => q.id !== question.id));
+    toast.success("Question added to the problem list");
+  };
+
+  const handleEditOne = (question: AIQuestionPreview) => {
+    setReviewQuestions((prev) => prev.map((q) => (q.id === question.id ? { ...q, ...question } : q)));
+  };
+
   // Abort any in-flight AI stream when the panel unmounts so the SSE
   // connection does not keep streaming in the background.
   useEffect(() => {
@@ -749,6 +760,8 @@ export default function AiAssistantPanel({
             onClose={closeReviewOverlay}
             onAccept={handleAcceptAll}
             onReject={closeReviewOverlay}
+            onAcceptOne={handleAcceptOne}
+            onEditOne={handleEditOne}
           />
         </>
       )}

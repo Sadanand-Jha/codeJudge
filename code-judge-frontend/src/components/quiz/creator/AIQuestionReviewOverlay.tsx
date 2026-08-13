@@ -8,6 +8,9 @@ import {
   ChevronRight,
   Check,
   Plus,
+  Minus,
+  Pencil,
+  Save,
   X,
   Lightbulb,
   Tag,
@@ -35,7 +38,20 @@ interface AIQuestionReviewOverlayProps {
   onAccept: () => void;
   onReject: () => void;
   onAcceptOne?: (question: PreviewQuestion) => void;
+  onEditOne?: (question: PreviewQuestion) => void;
 }
+
+const QUESTION_TYPE_IDS = [
+  "mcq",
+  "coding",
+  "true_false",
+  "fill",
+  "short",
+  "integer",
+  "long",
+] as const;
+
+const DIFFICULTY_IDS = ["easy", "medium", "hard", "expert"] as const;
 
 const TYPE_LABELS: Record<PreviewQuestion["type"], string> = {
   mcq: "MCQ",
@@ -66,9 +82,12 @@ export default function AIQuestionReviewOverlay({
   onAccept,
   onReject,
   onAcceptOne,
+  onEditOne,
 }: AIQuestionReviewOverlayProps) {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState<PreviewQuestion | null>(null);
 
   const total = questions.length;
   const current = questions[Math.min(Math.max(index, 0), Math.max(total - 1, 0))];
@@ -92,6 +111,14 @@ export default function AIQuestionReviewOverlay({
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!open) return;
+      if (isEditing) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setIsEditing(false);
+          setEditDraft(null);
+        }
+        return;
+      }
       switch (e.key) {
         case "ArrowUp":
         case "ArrowLeft":
@@ -111,7 +138,7 @@ export default function AIQuestionReviewOverlay({
           break;
       }
     },
-    [open, goPrev, goNext, onClose]
+    [open, goPrev, goNext, onClose, isEditing]
   );
 
   useEffect(() => {
@@ -137,6 +164,32 @@ export default function AIQuestionReviewOverlay({
     }
   };
 
+  const startEditing = () => {
+    if (!current || !onEditOne) return;
+    setEditDraft({
+      ...current,
+      options: current.options?.map((o) => ({ ...o })),
+      tags: [...current.tags],
+    });
+    setIsEditing(true);
+  };
+
+  const updateDraft = (patch: Partial<PreviewQuestion>) => {
+    setEditDraft((d) => (d ? { ...d, ...patch } : d));
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setEditDraft(null);
+  };
+
+  const saveEdit = () => {
+    if (!editDraft) return;
+    onEditOne?.(editDraft);
+    setIsEditing(false);
+    setEditDraft(null);
+  };
+
   if (!open) return null;
 
   return (
@@ -146,14 +199,14 @@ export default function AIQuestionReviewOverlay({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
-      onClick={onClose}
+      onClick={isEditing ? undefined : onClose}
     >
       <motion.div
         initial={{ scale: 0.96, y: 16, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 340, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
+        className="relative flex h-[80vh] max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-border bg-card/60 px-6 py-4">
@@ -162,9 +215,13 @@ export default function AIQuestionReviewOverlay({
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-text-primary">AI Question Review</h3>
+              <h3 className="text-sm font-bold text-text-primary">
+                {isEditing ? "Edit Question" : "AI Question Review"}
+              </h3>
               <p className="text-[10px] text-text-muted">
-                Review each question before adding it to your quiz · ↑/↓ to navigate
+                {isEditing
+                  ? `Editing question ${index + 1} of ${total} · Enter to navigate away, Esc to cancel`
+                  : "Review each question before adding it to your quiz · ↑/↓ to navigate"}
               </p>
             </div>
           </div>
@@ -173,6 +230,15 @@ export default function AIQuestionReviewOverlay({
               <CheckCircle2 className="h-3 w-3" />
               {total} generated
             </span>
+            {onEditOne && current && !isEditing && (
+              <button
+                onClick={startEditing}
+                className="flex h-8 items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 text-[11px] font-bold text-accent transition-colors hover:bg-accent/20"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </button>
+            )}
             <button
               onClick={onClose}
               className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
@@ -204,7 +270,9 @@ export default function AIQuestionReviewOverlay({
               transition={{ duration: 0.22, ease: "easeOut" }}
               className="max-h-full overflow-y-auto pb-1"
             >
-              {!current ? (
+              {isEditing && editDraft ? (
+                <QuestionEditForm draft={editDraft} onChange={updateDraft} />
+              ) : !current ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Sparkles className="mb-3 h-12 w-12 text-text-muted opacity-50" />
                   <p className="text-sm text-text-muted">No questions to review.</p>
@@ -338,7 +406,7 @@ export default function AIQuestionReviewOverlay({
           <div className="flex items-center gap-2">
             <button
               onClick={goPrev}
-              disabled={index <= 0}
+              disabled={isEditing || index <= 0}
               className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -349,7 +417,7 @@ export default function AIQuestionReviewOverlay({
             </span>
             <button
               onClick={goNext}
-              disabled={index >= total - 1}
+              disabled={isEditing || index >= total - 1}
               className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
@@ -359,32 +427,277 @@ export default function AIQuestionReviewOverlay({
 
           {/* Accept / Reject */}
           <div className="flex items-center gap-2">
-            {onAcceptOne && current && (
-              <button
-                onClick={handleAcceptOne}
-                className="flex h-9 items-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 px-4 text-xs font-bold text-accent transition-colors hover:bg-accent/20"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add to Problem List
-              </button>
+            {isEditing ? (
+              <>
+                <button
+                  onClick={cancelEdit}
+                  className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-bold text-text-primary transition-colors hover:border-danger/40 hover:text-danger"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Cancel
+                </button>
+                <button
+                  onClick={saveEdit}
+                  className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.4)] transition-all hover:brightness-105 active:scale-[0.98]"
+                >
+                  <Save className="h-4 w-4" />
+                  Save Changes
+                </button>
+              </>
+            ) : (
+              <>
+                {onAcceptOne && current && (
+                  <button
+                    onClick={handleAcceptOne}
+                    className="flex h-9 items-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 px-4 text-xs font-bold text-accent transition-colors hover:bg-accent/20"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add to Problem List
+                  </button>
+                )}
+                <button
+                  onClick={onReject}
+                  className="flex h-9 items-center gap-1.5 rounded-xl border border-danger/30 bg-danger/10 px-4 text-xs font-bold text-danger transition-colors hover:bg-danger/20"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Reject All
+                </button>
+                <button
+                  onClick={onAccept}
+                  className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.4)] transition-all hover:brightness-105 active:scale-[0.98]"
+                >
+                  <Check className="h-4 w-4" />
+                  Accept All ({total})
+                </button>
+              </>
             )}
-            <button
-              onClick={onReject}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-danger/30 bg-danger/10 px-4 text-xs font-bold text-danger transition-colors hover:bg-danger/20"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Reject All
-            </button>
-            <button
-              onClick={onAccept}
-              className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.4)] transition-all hover:brightness-105 active:scale-[0.98]"
-            >
-              <Check className="h-4 w-4" />
-              Accept All ({total})
-            </button>
           </div>
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+/* ─────────────────────────────────────────
+   Inline edit form for a single question
+   ───────────────────────────────────────── */
+function QuestionEditForm({
+  draft,
+  onChange,
+}: {
+  draft: PreviewQuestion;
+  onChange: (patch: Partial<PreviewQuestion>) => void;
+}) {
+  const [tagsText, setTagsText] = useState(draft.tags.join(", "));
+
+  const syncTags = (value: string) => {
+    setTagsText(value);
+    onChange({
+      tags: value
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+    });
+  };
+
+  const hasOptions = (draft.options?.length ?? 0) > 0;
+  const showOptionsEditor = hasOptions || draft.type === "mcq" || draft.type === "true_false";
+
+  const updateOption = (id: string, patch: Partial<{ content: string; isCorrect: boolean }>) => {
+    onChange({
+      options: draft.options?.map((o) => (o.id === id ? { ...o, ...patch } : o)),
+    });
+  };
+
+  const markCorrect = (id: string) => {
+    onChange({
+      options: draft.options?.map((o) => ({ ...o, isCorrect: o.id === id })),
+    });
+  };
+
+  const addOption = () => {
+    const options = draft.options ?? [];
+    onChange({
+      options: [
+        ...options,
+        {
+          id: `opt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          content: "",
+          isCorrect: options.length === 0,
+        },
+      ],
+    });
+  };
+
+  const removeOption = (id: string) => {
+    onChange({
+      options: (draft.options ?? []).filter((o) => o.id !== id),
+    });
+  };
+
+  const inputCls =
+    "w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors";
+  const labelCls = "text-[10px] font-semibold uppercase tracking-wider text-text-muted";
+
+  return (
+    <div className="space-y-5">
+      {/* Meta */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label className={labelCls}>Question Type</label>
+          <select
+            value={draft.type}
+            onChange={(e) => onChange({ type: e.target.value as PreviewQuestion["type"] })}
+            className={inputCls}
+          >
+            {QUESTION_TYPE_IDS.map((t) => (
+              <option key={t} value={t}>
+                {TYPE_LABELS[t]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelCls}>Difficulty</label>
+          <select
+            value={draft.difficulty}
+            onChange={(e) => onChange({ difficulty: e.target.value as PreviewQuestion["difficulty"] })}
+            className={inputCls}
+          >
+            {DIFFICULTY_IDS.map((d) => (
+              <option key={d} value={d} className="capitalize">
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Title */}
+      <div className="space-y-1.5">
+        <label className={labelCls}>Title</label>
+        <input
+          value={draft.title}
+          onChange={(e) => onChange({ title: e.target.value })}
+          placeholder="Question title"
+          className={inputCls}
+        />
+      </div>
+
+      {/* Content */}
+      <div className="space-y-1.5">
+        <label className={labelCls}>Question</label>
+        <textarea
+          value={draft.content}
+          onChange={(e) => onChange({ content: e.target.value })}
+          placeholder="Question statement"
+          rows={4}
+          className={`${inputCls} resize-y`}
+        />
+      </div>
+
+      {/* Options */}
+      {showOptionsEditor && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className={labelCls}>Options</label>
+            <button
+              type="button"
+              onClick={addOption}
+              className="flex items-center gap-1 rounded-lg border border-accent/30 bg-accent/10 px-2.5 py-1 text-[10px] font-bold text-accent transition-colors hover:bg-accent/20"
+            >
+              <Plus className="h-3 w-3" />
+              Add Option
+            </button>
+          </div>
+          {(draft.options?.length ?? 0) === 0 ? (
+            <p className="text-[11px] text-text-muted">
+              No options yet — click “Add Option” to create one.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {draft.options?.map((opt, i) => (
+                <div key={opt.id} className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => markCorrect(opt.id)}
+                    title="Mark as correct answer"
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                      opt.isCorrect
+                        ? "border-success bg-success text-white"
+                        : "border-border bg-card text-text-muted hover:border-accent"
+                    }`}
+                  >
+                    {opt.isCorrect ? <Check className="h-3 w-3" /> : String.fromCharCode(65 + i)}
+                  </button>
+                  <input
+                    value={opt.content}
+                    onChange={(e) => updateOption(opt.id, { content: e.target.value })}
+                    placeholder={`Option ${String.fromCharCode(65 + i)}`}
+                    className={inputCls}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeOption(opt.id)}
+                    disabled={(draft.options?.length ?? 0) <= 1}
+                    className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-30"
+                    title="Remove option"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Non-choice correct answer */}
+      {!showOptionsEditor && (
+        <div className="space-y-1.5">
+          <label className={labelCls}>Correct Answer</label>
+          <input
+            value={String(draft.correctAnswer ?? "")}
+            onChange={(e) => onChange({ correctAnswer: e.target.value })}
+            placeholder="Correct answer"
+            className={inputCls}
+          />
+        </div>
+      )}
+
+      {/* Explanation */}
+      <div className="space-y-1.5">
+        <label className={labelCls}>Explanation</label>
+        <textarea
+          value={draft.explanation ?? ""}
+          onChange={(e) => onChange({ explanation: e.target.value })}
+          placeholder="Explain why this answer is correct"
+          rows={3}
+          className={`${inputCls} resize-y`}
+        />
+      </div>
+
+      {/* Hint */}
+      <div className="space-y-1.5">
+        <label className={labelCls}>Hint</label>
+        <input
+          value={draft.hint ?? ""}
+          onChange={(e) => onChange({ hint: e.target.value })}
+          placeholder="Optional hint"
+          className={inputCls}
+        />
+      </div>
+
+      {/* Tags */}
+      <div className="space-y-1.5">
+        <label className={labelCls}>Tags</label>
+        <input
+          value={tagsText}
+          onChange={(e) => syncTags(e.target.value)}
+          placeholder="comma, separated, tags"
+          className={inputCls}
+        />
+      </div>
+    </div>
   );
 }

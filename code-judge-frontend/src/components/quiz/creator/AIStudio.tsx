@@ -298,6 +298,10 @@ export default function AIStudio({
     toast.success("Question added to the problem list");
   };
 
+  const handleEditOne = (question: PreviewQuestion) => {
+    setGeneratedQuestions((prev) => prev.map((q) => (q.id === question.id ? { ...q, ...question } : q)));
+  };
+
   const handleRegenerate = async (questionId: string) => {
     toast.info("Regenerating question...");
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -948,6 +952,8 @@ export default function AIStudio({
           onClose={() => setShowReviewOverlay(false)}
           onAccept={handleAcceptAll}
           onReject={handleRejectAll}
+          onAcceptOne={handleAcceptOne}
+          onEditOne={handleEditOne}
         />
       )}
     </motion.div>
