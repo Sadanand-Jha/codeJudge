@@ -287,6 +287,7 @@ export const chat = async (req: Request, res: Response) => {
     wroteAny = true;
   };
 
+  console.log("this is the payload", payload);
   try {
     for await (const chunk of streamChatWithAI(payload, controller.signal)) {
       if (chunk.reasoning) send("reasoning", { chunk: chunk.reasoning });
