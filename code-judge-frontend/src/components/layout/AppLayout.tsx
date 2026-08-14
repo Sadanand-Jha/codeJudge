@@ -27,11 +27,12 @@ import {
   Plus,
   ChevronDown,
   Crown,
+  Loader2,
 } from "lucide-react";
-import { useAuthStore, type UserProfile } from "@/store/authStore";
+import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
-import { me, logout } from "@/services/auth";
+import { logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
 import { isNestedQuizPath, isQuizProblemsPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
@@ -150,7 +151,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const [assessmentExpanded, setAssessmentExpanded] = useState(() => isQuizPath(pathname));
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
-  const setAuth = useAuthStore((s) => s.setAuth);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const hydrate = useAuthStore((s) => s.hydrate);
   const savedAvatar = useSavedAvatar();
   const { isGuest } = useGuestMode();
   const { theme } = useTheme();
@@ -176,32 +178,11 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   // building section (/quiz/{code}/problems and /quiz/{code}/problems/{id}).
   const showAiAssistant = isQuizProblemsPath(pathname);
 
-  // Sync auth state with session cookie on app load
+  // Rehydrate token + user from zustand's persisted storage. No /auth/me call —
+  // the profile saved at login time is rendered on every page from the store.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await me();
-        if (!cancelled && res.success && res.data?.user) {
-          // Store the full profile (name, avatar, role, preferences…) globally.
-          const u = res.data.user as UserProfile;
-          const { token, setUser, setAuth } = useAuthStore.getState();
-          if (token && token !== "session") {
-            // Real login token already present — refresh the profile only.
-            setUser(u);
-          } else {
-            // Session-cookie auth without a stored token — authenticate normally.
-            setAuth("session", u);
-          }
-        }
-      } catch {
-        // Not authenticated — keep default state
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [setAuth]);
+    hydrate();
+  }, [hydrate]);
 
   const handleLogout = async () => {
     try {
@@ -220,6 +201,16 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const handleAuthRequired = (redirectUrl?: string) => {
     openAuthModal(redirectUrl);
   };
+
+  // Wait for persisted auth to rehydrate so user details render on first paint
+  // without a flash of the guest UI.
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-accent animate-spin" />
+      </div>
+    );
+  }
 
   // Fullscreen routes (waiting room, etc.) - no sidebar/navbar
   if (isFullscreenRoute(pathname)) {

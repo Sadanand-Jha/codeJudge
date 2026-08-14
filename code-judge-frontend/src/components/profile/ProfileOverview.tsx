@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { getUserInfo } from "@/services/user";
 import type { UserInfo } from "@/types/user";
-import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
+import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
 import { cn } from "@/lib/helpers";
 
 /* =============================================
@@ -85,7 +85,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
 };
 
 function resolveAvatar(avatarUrl: string | null | undefined): string {
-  return avatarUrl && getPredefinedAvatarByUrl(avatarUrl)?.url ? avatarUrl : DEFAULT_AVATAR_URL;
+  return avatarUrl || DEFAULT_AVATAR_URL;
 }
 
 function friendlyLanguage(lang: unknown): string {

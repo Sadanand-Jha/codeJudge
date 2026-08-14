@@ -3,6 +3,7 @@ import "./globals.css";
 import "katex/dist/katex.min.css";
 import { Toaster } from "@/components/ui/toast";
 import { ThemeProvider } from "@/context/ThemeContext";
+import AuthHydrator from "@/components/providers/AuthHydrator";
 import { STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "@/utils/storageKeys";
 
 export const metadata: Metadata = {
@@ -120,6 +121,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-[var(--background)]" suppressHydrationWarning>
         <ThemeProvider>
+          <AuthHydrator />
           {children}
         </ThemeProvider>
         <Toaster />

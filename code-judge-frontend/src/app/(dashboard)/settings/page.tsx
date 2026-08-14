@@ -622,7 +622,7 @@ export default function SettingsPage() {
 
                   {/* ===== Right: Live Profile Preview ===== */}
                   <ProfilePreviewCard
-                    avatarUrl={currentAvatar?.url || settings.avatar || undefined}
+                    avatarUrl={settings.avatar || currentAvatar?.url || undefined}
                     displayName={displayName}
                     username={settings.username}
                     role={roleLabel}

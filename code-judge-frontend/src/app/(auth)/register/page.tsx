@@ -48,7 +48,9 @@ export default function RegisterPage() {
       const res = await register({ username, email, password });
       if (res.success && res.data) {
         const { token, user } = res.data as any;
-        setAuth(token, user);
+        if (user) {
+          setAuth(token || "session", user);
+        }
         toast.success("Account created successfully");
         router.push("/");
       } else {

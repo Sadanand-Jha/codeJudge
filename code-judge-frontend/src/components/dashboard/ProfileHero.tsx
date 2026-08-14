@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Trophy, Calendar, MapPin, AtSign } from "lucide-react";
-import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
+import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
 import { cn } from "@/lib/helpers";
 
 interface ProfileHeroProps {
@@ -39,9 +39,7 @@ export default function ProfileHero({
   country,
   location,
 }: ProfileHeroProps) {
-  const displayAvatarUrl = avatarUrl && getPredefinedAvatarByUrl(avatarUrl)?.url
-    ? avatarUrl
-    : DEFAULT_AVATAR_URL;
+  const displayAvatarUrl = avatarUrl || DEFAULT_AVATAR_URL;
 
   const title = ratingTitle(rating);
 
