@@ -133,7 +133,7 @@ export default function CodeEditor() {
       />
 
       {/* Main Workspace */}
-      <div ref={workspaceRef} className="flex min-h-0 flex-1 relative bg-[#1e1e1e]">
+      <div ref={workspaceRef} className="flex min-h-0 min-w-0 w-full flex-1 relative overflow-hidden bg-[#1e1e1e]">
         {/* Left Pane (Code) */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-[#111]">
           <EditorToolbar fileName={activeFileName} />

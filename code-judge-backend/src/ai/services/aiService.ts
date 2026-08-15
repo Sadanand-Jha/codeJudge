@@ -51,7 +51,7 @@ const isAbortError = (error: unknown): boolean =>
  * Falls back to a one-shot completion if the model does not support streaming
  * and nothing has been yielded yet.
  */
-export async function* streamAiChat(
+export async function* streamAiChat( // * Isme function ek saath pura result return nahi karta. Ye chunks one-by-one stream karta hai.
   request: AiChatRequest,
   signal?: AbortSignal
 ): AsyncGenerator<AiChatStreamChunk> {

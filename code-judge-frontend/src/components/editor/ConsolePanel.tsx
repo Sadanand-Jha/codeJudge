@@ -23,7 +23,10 @@ function ConsolePanel({
   dragStateRef,
 }: ConsolePanelProps) {
   return (
-    <div className="flex min-h-0 flex-col bg-[#1e1e1e]" style={{ width: rightPanelWidth }}>
+    <div
+      className="flex min-h-0 shrink-0 flex-col bg-[#1e1e1e]"
+      style={{ width: rightPanelWidth, minWidth: rightPanelWidth }}
+    >
       {/* Top Right: Input */}
       <div className="flex flex-col" style={{ height: inputHeight }}>
         <TestcasePanel input={input} onChange={onInputChange} />

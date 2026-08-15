@@ -36,7 +36,7 @@ export default function NavbarRightActions() {
       <ThemeToggle />
       <NotificationBell />
       {isAuthenticated ? (
-        <div className="flex items-center gap-2">
+<div className="flex shrink-0 items-center gap-2">
           <Link
             href="/profile"
             className="w-8 h-8 rounded-full overflow-hidden border border-border bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-accent-foreground"

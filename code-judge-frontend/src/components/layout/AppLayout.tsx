@@ -227,7 +227,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-ai-bg flex" data-ai-scope>
+    <div className="min-h-screen w-full min-w-0 bg-ai-bg flex" data-ai-scope>
       {/* Mobile overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -450,7 +450,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       {/* ===== MAIN CONTENT ===== */}
       <div
         className={cn(
-          "flex-1 flex flex-col min-h-screen transition-[margin] duration-200 ease-out",
+          "flex-1 w-0 min-w-0 flex flex-col min-h-screen transition-[margin] duration-200 ease-out",
           nestedWorkspace ? "lg:ml-0" : sidebarExpanded ? "lg:ml-64" : "lg:ml-[60px]"
         )}
       >
@@ -461,26 +461,29 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           onContextMenu={(e) => e.preventDefault()}
           onCopy={(e) => e.preventDefault()}
           onCut={(e) => e.preventDefault()}
-          className="h-14 border-b border-ai-border bg-ai-bg/80 backdrop-blur-xl flex items-center px-4 gap-4 sticky top-0 z-30 select-none"
+          className="h-14 min-w-0 w-full border-b border-ai-border bg-ai-bg/80 backdrop-blur-xl flex items-center px-4 gap-4 sticky top-0 z-30 select-none"
         >
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-accent/5 text-text-secondary"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          {/* Left: menu + brand + page title */}
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden shrink-0 p-2 rounded-lg hover:bg-accent/5 text-text-secondary"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
 
-           {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
-           <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="ByteClash home">
-             <span className="hidden sm:block text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
-           </Link>
+            {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
+            <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="ByteClash home">
+              <span className="hidden sm:block text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
+            </Link>
 
-           {/* Page title */}
-           <h1 className="text-sm font-semibold text-text-primary hidden md:block whitespace-nowrap">{pageTitle}</h1>
+            {/* Page title */}
+            <h1 className="text-sm font-semibold text-text-primary hidden md:block whitespace-nowrap truncate min-w-0">{pageTitle}</h1>
+          </div>
 
-           {/* Global search */}
-           <div className="flex-1 max-w-md mx-auto">
+          {/* Center spacer */}
+          <div className="flex-1 max-w-md mx-auto min-w-0">
              <div className="relative flex items-center">
                {/* <Search className="absolute left-3 w-4 h-4 text-text-muted" />
                <input
