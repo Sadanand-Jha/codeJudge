@@ -17,24 +17,19 @@ import {
   Loader2,
   Send,
   AlertCircle,
-  Copy,
-  Check,
   Square,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
 import { streamChat, streamChatWithFiles } from "@/services/ai";
 import { mapRawQuestionsToPreview } from "@/services/ai";
-import type { LiveUsage, AIQuestionPreview, RawAIGeneratedQuestion, ChatMessageInput } from "@/services/ai";
+import type { LiveUsage, AIQuestionPreview, RawAIGeneratedQuestion } from "@/services/ai";
 import { useChat, type ChatMessage } from "@/context/ChatContext";
-import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
-import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
-import AIUsageMeta from "@/components/ai/AIUsageMeta";
+import AIMessageRow from "@/components/ai/AIMessageRow";
 import AILogo from "@/components/ai/AILogo";
 import AIQuestionReviewOverlay from "@/components/quiz/creator/AIQuestionReviewOverlay";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import { mapToCreatorQuestions } from "@/utils/aiToCreatorQuestion";
-import { extractRenderedText } from "@/utils/clipboard";
 
 export type { ChatMessage };
 
@@ -121,14 +116,12 @@ export default function AiAssistantPanel({
   const [sending, setSending] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [timeStage, setTimeStage] = useState(0);
-  const { chatHistory, setChatHistory, addMessage } = useChat();
+  const { chatHistory, setChatHistory, addMessage, conversationId } = useChat();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
   const [reviewQuestions, setReviewQuestions] = useState<AIQuestionPreview[]>([]);
   const [showReviewOverlay, setShowReviewOverlay] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const contentRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const closeReviewOverlay = () => setShowReviewOverlay(false);
 
@@ -138,16 +131,6 @@ export default function AiAssistantPanel({
     () => chatHistory.filter((m) => m.role !== "system"),
     [chatHistory]
   );
-
-  const copyMessage = (m: ChatMessage) => {
-    const el = contentRefs.current[m.id];
-    const rendered = el ? extractRenderedText(el) : "";
-    navigator.clipboard.writeText(rendered || m.content);
-    setCopiedId(m.id);
-    setTimeout(() => {
-      setCopiedId((cur) => (cur === m.id ? null : cur));
-    }, 2000);
-  };
 
   const handleAcceptAll = () => {
     if (reviewQuestions.length === 0) {
@@ -326,18 +309,19 @@ export default function AiAssistantPanel({
       onDone: () => finalizeMessage(aiId),
     };
 
-    // Send the complete conversation (system + prior turns + this user
-    // message) so the model has context for the next response.
-    const historyForModel: ChatMessageInput[] = [
-      ...chatHistory.map((m) => ({ role: m.role, content: m.content })),
-      { role: "user", content: userPrompt },
-    ];
+    // Send only the user message + a conversation id. The backend builds the
+    // full conversation (system prompt + context + history) server-side.
+    const requestInput = {
+      message: userPrompt,
+      mode: "general",
+      conversationId,
+    };
 
     try {
       if (readyFiles.length > 0) {
         await streamChatWithFiles(userPrompt, readyFiles.map((f) => f.file), callbacks, controller.signal);
       } else {
-        await streamChat(historyForModel, callbacks, controller.signal);
+        await streamChat(requestInput, callbacks, controller.signal);
       }
     } catch (error) {
       finalizeMessage(aiId);
@@ -377,7 +361,7 @@ export default function AiAssistantPanel({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 400, damping: 36 }}
-            className="fixed inset-y-0 right-0 z-[55] flex w-full flex-col border-l border-border bg-card text-text-primary shadow-[0_10px_30px_rgba(0,0,0,0.18)] lg:min-w-[340px] lg:w-[33vw] lg:max-w-[480px]"
+            className="fixed inset-y-0 right-0 z-[55] flex w-full flex-col border-l border-border bg-card text-text-primary shadow-[0_10px_30px_rgba(0,0,0,0.18)] lg:min-w-[360px] lg:w-[38vw] lg:max-w-[620px]"
           >
             {/* ===== Header (with "first few seconds" sparkles) ===== */}
             <div className="relative flex items-center justify-between border-b border-border bg-card-hover/40 px-5 py-3.5">
@@ -525,86 +509,19 @@ export default function AiAssistantPanel({
                     Conversation
                   </p>
                   {conversation.map((m) => (
-                    <div key={m.id} className={`group flex w-full flex-col gap-1 ${m.role === "user" ? "items-end" : "items-start"}`}>
-                      <div
-                        className={cn(
-                          "max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed text-text-primary",
-                          m.role === "user"
-                            ? "whitespace-pre-wrap rounded-tr-sm border border-chat-user-border bg-chat-user-bg"
-                            : "rounded-tl-sm border border-border bg-card-hover/40"
-                        )}
-                      >
-                        {m.role === "user" ? (
-                          <div className="space-y-1.5">
-                            {m.attachments && m.attachments.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {m.attachments.map((name, i) => (
-                                  <span
-                                    key={i}
-                                    className="inline-flex items-center gap-1 rounded-md border border-chat-chip-border bg-chat-chip-bg px-1.5 py-0.5 text-[9px] font-medium text-text-secondary"
-                                  >
-                                    <FileText className="h-2.5 w-2.5 text-chat-rose" />
-                                    {name}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            <span className="whitespace-pre-wrap text-xs leading-relaxed text-text-primary">
-                              {m.content}
-                            </span>
-                          </div>
-                        ) : (
-                          <>
-                            {/* Thinking phase: logo lives in the growable box header.
-                                Hidden once answer content begins (the mark then
-                                trails the live answer instead). */}
-                            {!m.content && (m.reasoningContent || m.isReasoning) && (
-                              <AIThinkingBlock
-                                reasoning={m.reasoningContent || ""}
-                                isReasoning={!!m.isReasoning}
-                                usage={m.usage}
-                              />
-                            )}
-                            {m.content && (
-                              <MarkdownRenderer
-                                ref={(node) => {
-                                  if (node) contentRefs.current[m.id] = node;
-                                }}
-                                content={m.content}
-                              />
-                            )}
-                            {/* The AI mark trails the latest line of the answer while it
-                                streams, then settles with the completed response. */}
-                            {m.content && (
-                              <AILogo
-                                variant="accent"
-                                size="sm"
-                                animate={!!m.isStreaming}
-                                className="mt-1"
-                              />
-                            )}
-                            <AIUsageMeta
-                              isStreaming={!!m.isStreaming}
-                              usage={m.usage}
-                              timeMs={m.timeMs}
-                            />
-                          </>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => copyMessage(m)}
-                        disabled={!m.content}
-                        className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-text-muted opacity-0 transition-opacity hover:bg-card-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-0 group-hover:opacity-100"
-                        title="Copy message"
-                      >
-                        {copiedId === m.id ? (
-                          <Check className="h-3 w-3 text-success" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                        {copiedId === m.id ? "Copied" : "Copy"}
-                      </button>
-                    </div>
+                    <AIMessageRow
+                      key={m.id}
+                      message={{
+                        role: m.role === "user" ? "user" : "assistant",
+                        content: m.content,
+                        reasoningContent: m.reasoningContent,
+                        isReasoning: m.isReasoning,
+                        isStreaming: m.isStreaming,
+                        usage: m.usage,
+                        timeMs: m.timeMs,
+                        attachments: m.attachments,
+                      }}
+                    />
                   ))}
                   <div ref={messagesEndRef} />
                 </div>

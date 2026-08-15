@@ -215,28 +215,54 @@ export const generateQuestionsFromFiles = async (
   return payload.data?.questions ?? [];
 };
 
-export interface ChatMessageInput {
-  role: "system" | "user" | "assistant";
-  content: string;
+export interface SelectionRange {
+  startLine: number;
+  startColumn: number;
+  endLine: number;
+  endColumn: number;
+}
+
+/**
+ * Minimal request payload for `/ai/chat`. All prompt material (system prompt,
+ * problem context, conversation history, coding-coach instructions) is
+ * constructed server-side — the client only sends the user's message plus a
+ * few identifiers that let the backend assemble the full LLM conversation.
+ */
+export interface ChatRequestInput {
+  /** The user's message (always required). */
+  message: string;
+  /** Assistant mode, e.g. "coding_coach" | "general". Optional. */
+  mode?: string;
+  /** Problem id — the backend loads the full problem from the DB. Optional. */
+  problemId?: string;
+  /** The user's code (treated as untrusted user content by the backend). */
+  code?: string;
+  language?: string;
+  filename?: string;
+  /** Currently selected text inside the editor. */
+  selection?: string;
+  selectionRange?: SelectionRange;
+  /** Client-generated conversation id; backend persists history under it. */
+  conversationId?: string;
 }
 
 /**
  * Stream a chat request to the backend `/ai/chat` endpoint over SSE.
  *
- * Sends the full conversation history (system + prior turns + the new user
- * message) so the model has context for follow-up turns. Each chunk is
- * forwarded to the matching callback as it arrives. Pass an AbortSignal to
- * cancel the request mid-stream.
+ * Sends only the user message + identifiers; the backend builds the complete
+ * conversation (private system prompt + problem context + history) and streams
+ * the reply. Each chunk is forwarded to the matching callback as it arrives.
+ * Pass an AbortSignal to cancel the request mid-stream.
  */
 export const streamChat = async (
-  messages: ChatMessageInput[],
+  input: ChatRequestInput,
   callbacks: StreamCallbacks,
   signal?: AbortSignal
 ): Promise<void> => {
   const response = await fetch(`${API_BASE}/v1/user/ai/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify(input),
     credentials: "include",
     signal,
   });

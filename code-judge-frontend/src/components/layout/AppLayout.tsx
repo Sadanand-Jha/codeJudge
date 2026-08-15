@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,7 @@ import {
   Settings,
   Bookmark,
   Menu,
+  PanelLeftClose,
   Search,
   Flame,
   Route,
@@ -22,24 +23,23 @@ import {
   BookOpen,
   Briefcase,
   Sparkles,
-  UserPlus,
   ClipboardList,
   Plus,
   ChevronDown,
   Crown,
+  Loader2,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
-import { useAICreditsStore } from "@/store/aiCreditsStore";
-import { me, logout } from "@/services/auth";
+import { logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
 import { isNestedQuizPath, isQuizProblemsPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import { ChatProvider } from "@/context/ChatContext";
 import AuthModal from "@/components/modals/AuthModal";
-import NotificationBell from "./NotificationBell";
-import ThemeToggle from "@/components/ui/ThemeToggle";
+import NavbarRightActions from "./NavbarRightActions";
 import { useTheme } from "@/context/ThemeContext";
 import LowCreditNotification from "@/components/ai/LowCreditNotification";
 import AiAssistantStrip from "@/components/ai/AiAssistantStrip";
@@ -118,6 +118,13 @@ const navItems = [
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
+// Subtle staircase rhythm for expanded nav items. Offsets start near 0, climb
+// gently toward the middle of the list, then descend back — a small symmetric
+// hump (0, 2, 4, 6, ... capped), not a diagonal. Applied as margin so the step
+// settle animates smoothly when the rail expands/collapses.
+const navStepOffset = (index: number, count: number) =>
+  Math.min(Math.min(index, count - 1 - index) * 2, 10);
+
 function isQuizPath(pathname: string): boolean {
   return pathname.startsWith("/quiz");
 }
@@ -134,25 +141,35 @@ function isFullscreenRoute(pathname: string): boolean {
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authModalRedirect, setAuthModalRedirect] = useState<string | undefined>();
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const authModalOpen = useUIStore((s) => s.authModalOpen);
+  const authModalRedirect = useUIStore((s) => s.authModalRedirect);
+  const closeAuthModal = useUIStore((s) => s.closeAuthModal);
+  const logoutConfirmOpen = useUIStore((s) => s.logoutConfirmOpen);
+  const cancelLogout = useUIStore((s) => s.cancelLogout);
+  const openAuthModal = useUIStore((s) => s.openAuthModal);
   const [assessmentExpanded, setAssessmentExpanded] = useState(() => isQuizPath(pathname));
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
-  const setAuth = useAuthStore((s) => s.setAuth);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const hydrate = useAuthStore((s) => s.hydrate);
   const savedAvatar = useSavedAvatar();
-  const creditBalance = useAICreditsStore((s) => s.balance);
-  // A user is "premium" (PRO / ULTIMATE) when they have an active paid
-  // subscription. Derived solely from existing subscription/credit state —
-  // never faked in the frontend.
-  const isPremium = !!(
-    creditBalance?.hasActiveSubscription &&
-    creditBalance?.planId &&
-    !["free", "student"].includes((creditBalance.planId as string).toLowerCase())
-  );
   const { isGuest } = useGuestMode();
   const { theme } = useTheme();
+
+  // The desktop nav is an icon rail by default. Hovering the rail expands it
+  // and moving the cursor away collapses it back. Labels appear only while
+  // expanded (or when the mobile drawer is open).
+  const showLabels = sidebarExpanded || mobileMenuOpen;
+  // After an explicit collapse (active-click / Collapse button) the rail
+  // stays collapsed even while the cursor remains over it, until the cursor
+  // leaves and re-enters the sidebar.
+  const suppressHoverRef = useRef(false);
+
+  const collapseSidebar = useCallback(() => {
+    suppressHoverRef.current = true;
+    setSidebarExpanded(false);
+  }, []);
 
   // Nested quiz creator workspace — the project sidebar slides out of the
   // viewport and the Quiz Settings / Problem workspace takes its place.
@@ -161,24 +178,11 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   // building section (/quiz/{code}/problems and /quiz/{code}/problems/{id}).
   const showAiAssistant = isQuizProblemsPath(pathname);
 
-  // Sync auth state with session cookie on app load
+  // Rehydrate token + user from zustand's persisted storage. No /auth/me call —
+  // the profile saved at login time is rendered on every page from the store.
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await me();
-        if (!cancelled && res.success && res.data?.user) {
-          const u = res.data.user as { id: string; email: string; username?: string };
-          setAuth("session", u);
-        }
-      } catch {
-        // Not authenticated — keep default state
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [setAuth]);
+    hydrate();
+  }, [hydrate]);
 
   const handleLogout = async () => {
     try {
@@ -195,9 +199,18 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     "ByteClash";
 
   const handleAuthRequired = (redirectUrl?: string) => {
-    setAuthModalRedirect(redirectUrl);
-    setAuthModalOpen(true);
+    openAuthModal(redirectUrl);
   };
+
+  // Wait for persisted auth to rehydrate so user details render on first paint
+  // without a flash of the guest UI.
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-accent animate-spin" />
+      </div>
+    );
+  }
 
   // Fullscreen routes (waiting room, etc.) - no sidebar/navbar
   if (isFullscreenRoute(pathname)) {
@@ -206,10 +219,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         {children}
         <AuthModal
           isOpen={authModalOpen}
-          onClose={() => {
-            setAuthModalOpen(false);
-            setAuthModalRedirect(undefined);
-          }}
+          onClose={closeAuthModal}
           redirectUrl={authModalRedirect}
         />
       </div>
@@ -217,7 +227,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background flex" data-ai-scope>
+    <div className="min-h-screen w-full min-w-0 bg-ai-bg flex" data-ai-scope>
       {/* Mobile overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -233,106 +243,126 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* ===== SIDEBAR ===== */}
       <aside
+        onMouseEnter={() => {
+          suppressHoverRef.current = false;
+          setSidebarExpanded(true);
+        }}
+        onMouseLeave={() => setSidebarExpanded(false)}
         onDragStart={(e) => e.preventDefault()}
         onContextMenu={(e) => e.preventDefault()}
         onCopy={(e) => e.preventDefault()}
         onCut={(e) => e.preventDefault()}
         className={cn(
-          "fixed left-0 top-0 h-screen w-64 bg-card border-r border-border flex flex-col z-50 select-none",
-          "transition-transform duration-300 ease-out",
+          "fixed left-0 top-0 h-screen bg-ai-sidebar border-r border-ai-border flex flex-col z-50 select-none overflow-hidden",
+          "transition-[width,transform] duration-200 ease-out",
+          sidebarExpanded || mobileMenuOpen ? "w-64" : "w-[60px]",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           nestedWorkspace && "lg:-translate-x-full lg:pointer-events-none"
         )}
       >
         {/* Logo */}
-        <div className="px-6 py-6">
+        <div className={cn("py-6 flex items-center", showLabels ? "px-6 justify-start" : "px-0 justify-center")}>
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
-              <Code2 className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center shrink-0">
+              <Code2 className="w-4 h-4 text-accent-foreground" />
             </div>
-            <span className="text-base font-bold text-text-primary tracking-tight">ByteClash</span>
+            {showLabels && (
+              <span className="text-base font-bold text-ai-text tracking-tight whitespace-nowrap">ByteClash</span>
+            )}
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
+        <nav className={cn("flex-1 py-2 space-y-1 overflow-y-auto", showLabels ? "px-3" : "px-0")}>
+          {navItems.map((item, index) => {
+            const step = navStepOffset(index, navItems.length);
             if ("children" in item) {
               const isQuizActive = isQuizPath(pathname);
               return (
                 <div key={item.label}>
                   <button
-                    onClick={() => setAssessmentExpanded(!assessmentExpanded)}
-                    className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group cursor-pointer"
+                    onClick={() => {
+                      if (!sidebarExpanded) {
+                        setSidebarExpanded(true);
+                        setAssessmentExpanded(true);
+                      } else if (isQuizActive) {
+                        collapseSidebar();
+                      } else {
+                        setAssessmentExpanded(!assessmentExpanded);
+                      }
+                    }}
+                    title={sidebarExpanded ? undefined : "Assessment"}
+                    aria-label={sidebarExpanded ? undefined : "Assessment"}
+                    style={{ marginLeft: `${showLabels ? step + (isQuizActive ? 2 : 0) : 0}px` }}
+                    className={cn(
+                      "relative w-full flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 group cursor-pointer whitespace-nowrap origin-left",
+                      showLabels ? "justify-start px-3 py-2.5" : "justify-center px-0 py-2.5",
+                      showLabels && "hover:translate-x-[3px] hover:scale-[1.03]",
+                      isQuizActive && "shadow-[0_1px_3px_rgba(124,58,237,0.18)]"
+                    )}
                   >
                     <div
-                      className={`absolute inset-0 rounded-xl transition-all pointer-events-none ${
-                        isQuizActive
-                          ? "bg-[#EC4899]/15 shadow-[0_0_20px_rgba(236,72,153,0.15)]"
-                          : "group-hover:bg-accent/5"
+                      className={`absolute inset-0 rounded-xl transition-colors pointer-events-none ${
+                        isQuizActive ? "bg-ai-accent-soft" : "group-hover:bg-ai-accent/10"
                       }`}
                     />
                     <item.icon
-                      className={`w-4 h-4 relative z-10 transition-colors ${
-                        isQuizActive ? "text-[#EC4899]" : "text-text-secondary group-hover:text-text-primary"
+                      className={`w-4 h-4 relative z-10 shrink-0 transition-colors ${
+                        isQuizActive ? "text-ai-accent" : "text-ai-text-sec group-hover:text-ai-text"
                       }`}
                     />
-                    <span
-                      className={`relative z-10 transition-colors ${
-                        isQuizActive ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                    <ChevronDown
-                      className={`w-4 h-4 relative z-10 ml-auto text-text-muted transition-transform ${
-                        assessmentExpanded ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {assessmentExpanded && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        {item.children!.map((child) => {
-                          const isChildActive = pathname === child.href || (child.href !== "/" && pathname.startsWith(child.href.split("#")[0]));
-                          return (
-                            <Link
-                              key={child.label}
-                              href={child.href}
-                              onClick={() => setMobileMenuOpen(false)}
-                              className="relative flex items-center gap-3 px-3 py-2 pl-10 text-sm font-medium rounded-xl transition-all duration-200 group ml-2 cursor-pointer"
-                            >
-                              {isChildActive && (
-                                <motion.div
-                                  layoutId="activeNavChild"
-                                  className="absolute inset-0 rounded-xl bg-[#EC4899]/15 shadow-[0_0_16px_rgba(236,72,153,0.15)] pointer-events-none"
-                                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                                />
-                              )}
-                              <child.icon
-                                className={`w-3.5 h-3.5 relative z-10 transition-colors ${
-                                  isChildActive ? "text-[#EC4899]" : "text-text-muted group-hover:text-[#EC4899]"
-                                }`}
-                              />
-                              <span
-                                className={`relative z-10 transition-colors ${
-                                  isChildActive ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"
-                                }`}
-                              >
-                                {child.label}
-                              </span>
-                            </Link>
-                          );
-                        })}
-                      </motion.div>
+                    {showLabels && (
+                      <>
+                        <span className={`relative z-10 transition-colors ${isQuizActive ? "text-ai-text" : "text-ai-text-sec group-hover:text-ai-text"}`}>
+                          {item.label}
+                        </span>
+                        <ChevronDown
+                          className={`w-4 h-4 relative z-10 ml-auto text-ai-text-mut transition-transform ${assessmentExpanded ? "rotate-180" : ""}`}
+                        />
+                      </>
                     )}
-                  </AnimatePresence>
+                  </button>
+                  {showLabels && (
+                    <AnimatePresence initial={false}>
+                      {assessmentExpanded && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          {item.children!.map((child) => {
+                            const isChildActive = pathname === child.href || (child.href !== "/" && pathname.startsWith(child.href.split("#")[0]));
+                            return (
+                              <Link
+                                key={child.label}
+                                href={child.href}
+                                onClick={() => { setAssessmentExpanded(true); setMobileMenuOpen(false); }}
+                                className="relative flex items-center gap-3 px-3 py-2 pl-10 text-sm font-medium rounded-xl transition-all duration-200 group ml-2 cursor-pointer"
+                              >
+                                {isChildActive && (
+                                  <div className="absolute inset-0 rounded-xl bg-ai-accent-soft pointer-events-none" />
+                                )}
+                                <child.icon
+                                  className={`w-3.5 h-3.5 relative z-10 transition-colors ${
+                                    isChildActive ? "text-ai-accent" : "text-ai-text-mut group-hover:text-ai-accent"
+                                  }`}
+                                />
+                                <span
+                                  className={`relative z-10 transition-colors ${
+                                    isChildActive ? "text-ai-text" : "text-ai-text-sec group-hover:text-ai-text"
+                                  }`}
+                                >
+                                  {child.label}
+                                </span>
+                              </Link>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  )}
                 </div>
               );
             }
@@ -342,39 +372,86 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                 item={item}
                 pathname={pathname}
                 isGuest={isGuest}
+                sidebarExpanded={sidebarExpanded}
+                showLabels={showLabels}
+                setSidebarExpanded={setSidebarExpanded}
+                collapseSidebar={collapseSidebar}
+                stepOffset={step}
                 onClick={() => setMobileMenuOpen(false)}
               />
             );
           })}
         </nav>
 
-        {/* Bottom: Streak + Version */}
-        <div className="p-3 border-t border-border space-y-2">
+        {/* Bottom: Account + Collapse */}
+        <div className="border-t border-ai-border p-2 space-y-1">
           {isAuthenticated ? (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-accent/5">
-              <Flame className="w-4 h-4 text-warning" />
-              <span className="text-xs font-medium text-text-primary">12 Day Streak</span>
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-xl transition-colors",
+                showLabels ? "px-3 py-2 justify-start bg-ai-accent-soft" : "px-0 py-1 justify-center"
+              )}
+            >
+              <Flame className="w-4 h-4 text-warning shrink-0" />
+              {showLabels && <span className="text-xs font-medium text-ai-text whitespace-nowrap">12 Day Streak</span>}
             </div>
           ) : (
-            <div className="px-3 py-2 rounded-xl bg-accent/10 border border-accent/20">
-              <div className="text-[10px] text-text-secondary mb-1">{"You're browsing as a guest"}</div>
-              <button
-                onClick={() => handleAuthRequired(pathname + window.location.search)}
-                className="text-[10px] font-semibold text-accent hover:text-accent-secondary transition-colors"
-              >
-                Sign in to unlock all features →
-              </button>
-            </div>
+            showLabels && (
+              <div className="px-3 py-2 rounded-xl bg-ai-accent-soft border border-ai-accent/20">
+                <div className="text-[10px] text-ai-text-sec mb-1">{"You're browsing as a guest"}</div>
+                <button
+                  onClick={() => handleAuthRequired(pathname + window.location.search)}
+                  className="text-[10px] font-semibold text-ai-accent hover:text-ai-accent-hover transition-colors"
+                >
+                  Sign in to unlock all features →
+                </button>
+              </div>
+            )
           )}
-          <div className="px-3 text-[9px] text-text-muted">ByteClash v1.0.0</div>
+
+          <Link
+            href="/profile"
+            className={cn(
+              "flex items-center gap-2 rounded-xl hover:bg-ai-hover transition-colors",
+              showLabels ? "px-3 py-2 justify-start" : "px-0 py-1 justify-center"
+            )}
+            title={showLabels ? undefined : "Account"}
+            aria-label={showLabels ? undefined : "Account"}
+          >
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-accent-foreground shrink-0">
+              {savedAvatar ? (
+                <img src={savedAvatar.url} alt={savedAvatar.label} className="h-full w-full object-cover rounded-full" />
+              ) : (
+                (user?.username || "U").charAt(0).toUpperCase()
+              )}
+            </div>
+            {showLabels && (
+              <span className="text-xs font-medium text-ai-text truncate">{user?.username || "Guest"}</span>
+            )}
+          </Link>
+
+          {sidebarExpanded && (
+            <button
+              onClick={collapseSidebar}
+              className="hidden lg:flex w-full items-center gap-2 px-3 py-2 rounded-xl text-ai-text-sec hover:bg-ai-hover hover:text-ai-text transition-colors"
+              title="Collapse sidebar"
+            >
+              <PanelLeftClose className="w-4 h-4 shrink-0" />
+              <span className="text-xs font-medium whitespace-nowrap">Collapse</span>
+            </button>
+          )}
+
+          {showLabels && (
+            <div className="px-3 text-[9px] text-ai-text-mut">ByteClash v1.0.0</div>
+          )}
         </div>
       </aside>
 
       {/* ===== MAIN CONTENT ===== */}
       <div
         className={cn(
-          "flex-1 flex flex-col min-h-screen transition-[margin] duration-300 ease-out",
-          nestedWorkspace ? "lg:ml-0" : "lg:ml-64"
+          "flex-1 w-0 min-w-0 flex flex-col min-h-screen transition-[margin] duration-200 ease-out",
+          nestedWorkspace ? "lg:ml-0" : sidebarExpanded ? "lg:ml-64" : "lg:ml-[60px]"
         )}
       >
         {/* ===== TOP HEADER ===== */}
@@ -384,29 +461,29 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           onContextMenu={(e) => e.preventDefault()}
           onCopy={(e) => e.preventDefault()}
           onCut={(e) => e.preventDefault()}
-          className="h-14 border-b border-border bg-background/80 backdrop-blur-xl flex items-center px-4 gap-4 sticky top-0 z-30 select-none"
+          className="h-14 min-w-0 w-full border-b border-ai-border bg-ai-bg/80 backdrop-blur-xl flex items-center px-4 gap-4 sticky top-0 z-30 select-none"
         >
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-accent/5 text-text-secondary"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+          {/* Left: menu + brand + page title */}
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden shrink-0 p-2 rounded-lg hover:bg-accent/5 text-text-secondary"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
 
-           {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
-           <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="ByteClash home">
-             <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
-               <Code2 className="w-4 h-4 text-white" />
-             </div>
-             <span className="hidden sm:block text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
-           </Link>
+            {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
+            <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="ByteClash home">
+              <span className="hidden sm:block text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
+            </Link>
 
-           {/* Page title */}
-           <h1 className="text-sm font-semibold text-text-primary hidden md:block whitespace-nowrap">{pageTitle}</h1>
+            {/* Page title */}
+            <h1 className="text-sm font-semibold text-text-primary hidden md:block whitespace-nowrap truncate min-w-0">{pageTitle}</h1>
+          </div>
 
-           {/* Global search */}
-           <div className="flex-1 max-w-md mx-auto">
+          {/* Center spacer */}
+          <div className="flex-1 max-w-md mx-auto min-w-0">
              <div className="relative flex items-center">
                {/* <Search className="absolute left-3 w-4 h-4 text-text-muted" />
                <input
@@ -420,55 +497,9 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
              </div>
            </div>
 
-            {/* Right icons */}
-            <div className="flex items-center gap-2">
-               <ThemeToggle />
-               <NotificationBell />
-            {isAuthenticated ? (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/profile"
-                  className="w-8 h-8 rounded-full overflow-hidden border border-border bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-white"
-                  title={user?.username || "Profile"}
-                >
-                   {savedAvatar ? (
-                     <img
-                       src={savedAvatar.url}
-                       alt={savedAvatar.label}
-                       className="h-full w-full object-cover"
-                     />
-                   ) : (
-                     (user?.username || "U").charAt(0).toUpperCase()
-                   )}
-                 </Link>
-                 {isPremium && (
-                   <span
-                     className="relative inline-flex items-center overflow-hidden rounded-md bg-gradient-to-r from-[#EC4899]/20 to-[#8B5CF6]/20 px-1.5 py-0.25 text-[10px] font-semibold tracking-wider text-[#EC4899] ring-1 ring-[#8B5CF6]/40 premium-surface"
-                     aria-label="PRO subscriber"
-                   >
-                     <span className="premium-shine" aria-hidden="true" />
-                     PRO
-                   </span>
-                 )}
-                <button
-                  onClick={() => setLogoutConfirmOpen(true)}
-                  className="hidden sm:flex p-2 rounded-lg hover:bg-accent/5 text-text-secondary hover:text-danger transition-colors"
-                  aria-label="Log out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => handleAuthRequired(pathname + window.location.search)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-accent hover:shadow-[0_0_12px_rgba(37,99,235,0.3)] transition-all"
-              >
-                <UserPlus className="w-3 h-3" />
-                Sign in
-              </button>
-            )}
-          </div>
-        </header>
+            {/* Right actions */}
+            <NavbarRightActions />
+          </header>
         )}
 
         {/* ===== PAGE CONTENT ===== */}
@@ -478,18 +509,15 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       <LogoutConfirmModal
         open={logoutConfirmOpen}
         onConfirm={() => {
-          setLogoutConfirmOpen(false);
+          cancelLogout();
           handleLogout();
         }}
-        onCancel={() => setLogoutConfirmOpen(false)}
+        onCancel={cancelLogout}
       />
 
       <AuthModal
         isOpen={authModalOpen}
-        onClose={() => {
-          setAuthModalOpen(false);
-          setAuthModalRedirect(undefined);
-        }}
+        onClose={closeAuthModal}
         redirectUrl={authModalRedirect}
       />
       <LowCreditNotification />
@@ -499,11 +527,16 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 }
 
 // Guest badge for navigation items
-function NavItem({ item, pathname, isGuest, onClick }: {
+function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels, setSidebarExpanded, collapseSidebar, stepOffset }: {
   item: typeof navItems[number];
   pathname: string;
   isGuest: boolean;
   onClick?: () => void;
+  sidebarExpanded: boolean;
+  showLabels: boolean;
+  setSidebarExpanded: (v: boolean) => void;
+  collapseSidebar: () => void;
+  stepOffset: number;
 }) {
   const Icon = item.icon;
   const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
@@ -512,41 +545,55 @@ function NavItem({ item, pathname, isGuest, onClick }: {
   const protectedForGuests = ["/ai/chat", "/editor", "/analytics", "/settings", "/collections"];
   const isProtected = isGuest && protectedForGuests.includes(item.href);
 
+  // Staircase margin only while labels are shown; the active item steps one
+  // notch further forward. Collapsed rail keeps icons on a straight line.
+  const stepMargin = showLabels ? stepOffset + (isActive ? 2 : 0) : 0;
+
   return (
     <Link
       key={item.label}
       href={item.href}
+      title={showLabels ? undefined : item.label}
+      aria-label={showLabels ? undefined : item.label}
+      style={{ marginLeft: `${stepMargin}px` }}
       onClick={(e) => {
         if (isProtected) {
           e.preventDefault();
           window.dispatchEvent(new CustomEvent('guest-nav-click', {
             detail: { href: item.href }
           }));
-        } else {
-          onClick?.();
+          return;
         }
+        // Rail mode: clicking any icon expands the sidebar. Expanded mode:
+        // clicking the active item again collapses back to the icon rail.
+        if (!sidebarExpanded) {
+          setSidebarExpanded(true);
+        } else if (isActive) {
+          collapseSidebar();
+        }
+        onClick?.();
       }}
-      className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-[250ms] group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+      className={cn(
+        "relative flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent/40 whitespace-nowrap origin-left",
+        showLabels ? "justify-start px-3 py-2.5" : "justify-center px-0 py-2.5",
+        showLabels && "hover:translate-x-[3px] hover:scale-[1.03]",
+        "hover:bg-ai-accent/10",
+        isActive && "shadow-[0_1px_3px_rgba(124,58,237,0.18)]"
+      )}
     >
       {isActive && (
-        <motion.div
-          layoutId="activeNav"
-          className="absolute inset-0 rounded-xl bg-accent/15 shadow-[0_0_20px_rgba(124,58,237,0.15)] pointer-events-none"
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        />
+        <div className="absolute inset-0 rounded-xl bg-ai-accent-soft pointer-events-none" />
       )}
       <Icon
-        className={`w-4 h-4 relative z-10 transition-colors duration-[250ms] ${
-          isActive ? "text-accent" : "text-text-secondary group-hover:text-accent group-hover:scale-110"
+        className={`w-4 h-4 relative z-10 shrink-0 transition-colors duration-200 ${
+          isActive ? "text-ai-accent" : "text-ai-text-sec group-hover:text-ai-text"
         }`}
       />
-      <span
-        className={`relative z-10 transition-colors duration-[250ms] ${
-          isActive ? "text-text-primary font-semibold" : "text-text-secondary group-hover:text-text-primary"
-        }`}
-      >
-        {item.label}
-      </span>
+      {showLabels && (
+        <span className={`relative z-10 transition-colors duration-200 ${isActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text"}`}>
+          {item.label}
+        </span>
+      )}
       {isProtected && (
         <span className="ml-auto">
           <span className="flex h-2 w-2">

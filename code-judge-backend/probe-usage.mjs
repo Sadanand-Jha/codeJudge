@@ -3,7 +3,7 @@ import { config } from "dotenv";
 config();
 const client = new OpenAI({ baseURL: process.env.LM_STUDIO_URL, apiKey: "lm-studio" });
 const stream = await client.chat.completions.create({
-  model: process.env.LM_STUDIO_MODEL,
+  model: process.env.LM_STUDIO_MODEL_CODER,
   messages: [{ role: "system", content: "You are a helpful assistant." }, { role: "user", content: "briefly say hello" }],
   temperature: 0.7,
   stream: true,

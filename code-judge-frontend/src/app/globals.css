@@ -72,6 +72,21 @@
   --link: #7C3AED;
   --link-visited: #A78BFA;
   --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+
+  /* == AI workspace (LM Studio-style app chrome) == */
+  --ai-bg: #0B0D10;
+  --ai-sidebar: #11141A;
+  --ai-composer: #15181E;
+  --ai-surface: #15181E;
+  --ai-hover: #171B22;
+  --ai-border: #252932;
+  --ai-text: #F4F4F5;
+  --ai-text-sec: #9CA3AF;
+  --ai-text-mut: #6B7280;
+  --ai-accent: #8B5CF6;
+  --ai-accent-hover: #A78BFA;
+  --ai-accent-soft: rgba(139, 92, 246, 0.12);
+  --ai-user-bubble: #19142A;
 }
 
 /* ============================================
@@ -131,6 +146,21 @@
   --link: #7C3AED;
   --link-visited: #6D28D9;
   --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+
+  /* == AI workspace (LM Studio-style app chrome) == */
+  --ai-bg: #FAFAFA;
+  --ai-sidebar: #F4F5F7;
+  --ai-composer: #FFFFFF;
+  --ai-surface: #FFFFFF;
+  --ai-hover: #EEF0F3;
+  --ai-border: #E5E7EB;
+  --ai-text: #18181B;
+  --ai-text-sec: #71717A;
+  --ai-text-mut: #9CA3AF;
+  --ai-accent: #6D4AFF;
+  --ai-accent-hover: #5B3DE8;
+  --ai-accent-soft: #F1EDFF;
+  --ai-user-bubble: #F3EEFF;
 }
 
 @theme inline {
@@ -182,6 +212,62 @@
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
+
+  /* AI workspace (LM Studio-style app chrome) */
+  --color-ai-bg: var(--ai-bg);
+  --color-ai-sidebar: var(--ai-sidebar);
+  --color-ai-composer: var(--ai-composer);
+  --color-ai-hover: var(--ai-hover);
+  --color-ai-border: var(--ai-border);
+  --color-ai-text: var(--ai-text);
+  --color-ai-text-sec: var(--ai-text-sec);
+  --color-ai-text-mut: var(--ai-text-mut);
+  --color-ai-accent: var(--ai-accent);
+  --color-ai-accent-hover: var(--ai-accent-hover);
+  --color-ai-accent-soft: var(--ai-accent-soft);
+  --color-ai-surface: var(--ai-surface);
+  --color-ai-user-bubble: var(--ai-user-bubble);
+}
+
+/* ============================================
+   AI Chat composer — explicit text / placeholder /
+   selection colors for the input textarea.
+   The global @layer base form rules force
+   `color: #fff` (dark) / `#0f172a` (light) and a
+   faint placeholder on every textarea, and inherited
+   text-fill can make the input intermittently
+   unreadable. These scoped rules pin the composer's
+   colors to the ai tokens for BOTH themes so the
+   text is always readable: idle, focused, typing,
+   selected, and during generation. The composer's
+   own border + purple focus ring (on its wrapper)
+   are untouched.
+   ============================================ */
+.ai-composer-input {
+  color: var(--ai-text) !important;
+  caret-color: var(--ai-accent);
+  -webkit-text-fill-color: var(--ai-text);
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.ai-composer-input::placeholder {
+  color: var(--ai-text-sec) !important;
+  -webkit-text-fill-color: var(--ai-text-sec) !important;
+  opacity: 1 !important;
+}
+
+.ai-composer-input:focus,
+.ai-composer-input:focus-visible {
+  outline: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.ai-composer-input::selection {
+  background-color: var(--ai-accent-soft);
+  color: var(--ai-text);
+  -webkit-text-fill-color: var(--ai-text);
 }
 
 /* Base styles */
@@ -262,7 +348,7 @@ body {
 }
 
 [data-theme="light"] ::selection {
-  background: rgba(37, 99, 235, 0.2);
+  background: rgba(124, 58, 237, 0.22);
   color: #fff;
 }
 
@@ -309,9 +395,15 @@ body {
 }
 
 [data-theme="light"] .problem-html code {
-  background: rgba(37, 99, 235, 0.08);
-  color: #2563EB;
-  border-color: rgba(37, 99, 235, 0.25);
+  background: rgba(124, 58, 237, 0.08);
+  color: #6D28D9;
+  border-color: rgba(124, 58, 237, 0.2);
+}
+
+[data-theme="light"] .problem-html pre {
+  background: #FAF9FF;
+  border-color: #ECE7FF;
+  box-shadow: 0 1px 2px rgba(139, 92, 246, 0.05);
 }
 
 .problem-html pre {
@@ -2299,89 +2391,173 @@ button.cf-btn:hover {
 }
 
 /* ============================================
-   Problem Solve Page — Light Theme Polish
-   Scoped exclusively to the Problem Solve page.
-   The code editor / console stay intentionally
-   dark and untouched.
+   Problem Solve Page — Premium Light Mode
+   Scoped exclusively to [data-theme="light"].
+   Dark theme is untouched — these rules only
+   fire when Light Theme is active.
    ============================================ */
 
-/* Header — cleaner badge appearance, softer divider */
+/* ---- Page shell: lavender mesh + dot grid ambient ---- */
+[data-theme="light"] .problem-solve-page {
+  position: relative;
+  background:
+    radial-gradient(circle at 14% 4%, rgba(139, 92, 246, 0.07) 0%, transparent 42%),
+    radial-gradient(circle at 88% 8%, rgba(236, 72, 153, 0.055) 0%, transparent 38%),
+    radial-gradient(circle at 5% 92%, rgba(192, 132, 252, 0.05) 0%, transparent 42%),
+    radial-gradient(circle at 95% 70%, rgba(139, 92, 246, 0.05) 0%, transparent 42%),
+    linear-gradient(180deg, #FCFBFF 0%, #F8F6FF 100%) !important;
+}
+
+[data-theme="light"] .problem-solve-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(124, 58, 237, 0.055) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.55;
+}
+
+/* ---- Header ---- */
 [data-theme="light"] .problem-solve-header {
-  background-color: #FFFFFF !important;
-  border-bottom-color: #E2E8F0 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-bottom-color: #ECE7FF !important;
+  box-shadow: 0 1px 3px rgba(139, 92, 246, 0.05) !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 [data-theme="light"] .problem-solve-header h1 {
-  color: #0F172A !important;
+  color: #172033 !important;
 }
 
-/* Metadata chips — better border, contrast, soft background */
-[data-theme="light"] .problem-solve-meta-chip {
-  background-color: #F8FAFC !important;
-  border-color: #E2E8F0 !important;
+/* Bookmark toggle */
+[data-theme="light"] .problem-solve-bookmark {
+  background-color: #FFFFFF !important;
+  border-color: #E5E0F5 !important;
+  box-shadow: 0 1px 2px rgba(139, 92, 246, 0.05) !important;
+}
+
+[data-theme="light"] .problem-solve-bookmark:hover {
+  background-color: #F5F3FF !important;
+  border-color: #D8CDFB !important;
+  color: #7C3AED !important;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15) !important;
+}
+
+[data-theme="light"] .problem-solve-bookmark.text-accent {
+  color: #7C3AED !important;
+  background-color: #F5F3FF !important;
+  border-color: #D8CDFB !important;
+}
+
+/* Metadata pills — elegant compact lavender chips */
+[data-theme="light"] .problem-solve-meta-pill {
+  background: #F5F3FF !important;
+  border: 1px solid #E5E0F5 !important;
   color: #475569 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 1px 2px rgba(139, 92, 246, 0.06) !important;
 }
 
-[data-theme="light"] .problem-solve-meta-chip svg {
-  color: #64748B !important;
+[data-theme="light"] .problem-solve-meta-pill svg {
+  color: #7C3AED !important;
 }
 
-/* Header action buttons — same size, improved hover/elevation */
+/* Header action buttons — Run Code outlined */
 [data-theme="light"] .problem-solve-btn {
   background-color: #FFFFFF !important;
-  border-color: #E2E8F0 !important;
+  border-color: #E5E0F5 !important;
   color: #1E293B !important;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
 }
 
 [data-theme="light"] .problem-solve-btn:hover {
-  background-color: #F8FAFC !important;
-  border-color: #CBD5E1 !important;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
+  background-color: #FAF8FF !important;
+  border-color: #C9BDF8 !important;
+  color: #6D28D9 !important;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.16) !important;
+  transform: translateY(-1px);
 }
 
-/* Sticky tabs — cleaner active/hover state */
+/* Submit — primary pink/purple gradient */
+[data-theme="light"] .problem-solve-submit-btn {
+  background: linear-gradient(135deg, #EC4899, #8B5CF6) !important;
+  color: #FFFFFF !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.28) !important;
+}
+
+[data-theme="light"] .problem-solve-submit-btn:hover {
+  box-shadow: 0 6px 24px rgba(236, 72, 153, 0.38), 0 0 22px rgba(139, 92, 246, 0.22) !important;
+  transform: translateY(-1px);
+}
+
+/* ---- Sticky tabs ---- */
 [data-theme="light"] .problem-solve-tabs {
   background: rgba(255, 255, 255, 0.85) !important;
-  border-bottom-color: #E2E8F0 !important;
+  border-bottom-color: #ECE7FF !important;
 }
 
 [data-theme="light"] .problem-solve-tab {
-  color: #475569 !important;
+  color: #64748B !important;
 }
 
 [data-theme="light"] .problem-solve-tab:hover {
-  background-color: #F8FAFC !important;
-  color: #0F172A !important;
+  background-color: #F5F3FF !important;
+  color: #334155 !important;
 }
 
 [data-theme="light"] .problem-solve-tab.bg-accent\/15 {
-  background-color: #EFF6FF !important;
-  color: #1E40AF !important;
-  box-shadow: 0 0 20px rgba(37, 99, 235, 0.1) !important;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(236, 72, 153, 0.06)) !important;
+  color: #6D28D9 !important;
+  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.12), 0 0 24px rgba(236, 72, 153, 0.1) !important;
 }
 
-/* Description panel — premium white surface */
+/* Active tab underline + icon + badge — pink/purple accents */
+[data-theme="light"] .problem-solve-tab .bg-gradient-to-r {
+  background-image: linear-gradient(to right, #EC4899, #7C3AED) !important;
+}
+
+[data-theme="light"] .problem-solve-tab .text-accent-secondary {
+  color: #7C3AED !important;
+}
+
+[data-theme="light"] .problem-solve-tab .bg-accent-secondary\/20 {
+  background-color: rgba(124, 58, 237, 0.12) !important;
+}
+
+/* ---- Description panel: ambient shows through, card floats above ---- */
 [data-theme="light"] .problem-solve-desc {
-  background-color: #FFFFFF !important;
-  border-right-color: #E2E8F0 !important;
+  background-color: transparent !important;
+  border-right-color: #ECE7FF !important;
 }
 
-/* Problem sections — better typography + paragraph spacing */
+/* Main description card */
+[data-theme="light"] .problem-solve-card {
+  background: #FFFFFF !important;
+  border: 1px solid #ECE7FF !important;
+  border-radius: 18px !important;
+  box-shadow:
+    0 1px 2px rgba(139, 92, 246, 0.04),
+    0 10px 32px rgba(139, 92, 246, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Problem sections — typography + accent bars */
 [data-theme="light"] .problem-solve-section h2 {
-  color: #0F172A !important;
+  color: #172033 !important;
 }
 
 [data-theme="light"] .problem-solve-section-content {
-  color: #334155 !important;
+  color: #3F4657 !important;
   line-height: 1.8;
 }
 
 [data-theme="light"] .problem-solve-section + .problem-solve-section {
-  border-top: 1px solid #F1F5F9;
-  padding-top: 1.5rem;
+  border-top: 1px solid #F1EFFA;
+  padding-top: 1.75rem;
 }
 
 [data-theme="light"] .problem-solve-section .problem-html p {
@@ -2392,51 +2568,194 @@ button.cf-btn:hover {
   margin-top: 0;
 }
 
-/* Examples — cleaner cards */
+/* Inner panel cards (hints, solutions, discussion, AI analysis, etc.) */
+[data-theme="light"] .problem-solve-panel-card {
+  background-color: #FAF9FF !important;
+  border-color: #ECE7FF !important;
+  box-shadow: 0 1px 2px rgba(139, 92, 246, 0.04) !important;
+}
+
+[data-theme="light"] .problem-solve-panel-card:hover {
+  border-color: #D8CDFB !important;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.08) !important;
+}
+
+/* Examples */
 [data-theme="light"] .problem-solve-examples h2 {
-  color: #0F172A !important;
+  color: #172033 !important;
 }
 
 [data-theme="light"] .problem-solve-sample-tab {
   background-color: #FFFFFF !important;
-  border-color: #E2E8F0 !important;
-  color: #475569 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+  border-color: #E5E0F5 !important;
+  color: #64748B !important;
+  box-shadow: 0 1px 2px rgba(139, 92, 246, 0.04) !important;
 }
 
 [data-theme="light"] .problem-solve-sample-tab:hover {
-  border-color: #CBD5E1 !important;
-  color: #0F172A !important;
+  border-color: #C9BDF8 !important;
+  color: #6D28D9 !important;
+}
+
+[data-theme="light"] .problem-solve-sample-tab.border-accent,
+[data-theme="light"] .problem-solve-sample-tab.border-\[\#7C3AED\] {
+  background-color: #F5F3FF !important;
+  border-color: #C9BDF8 !important;
+  color: #6D28D9 !important;
+  box-shadow: 0 0 14px rgba(124, 58, 237, 0.12) !important;
 }
 
 [data-theme="light"] .problem-solve-example {
   background-color: #FFFFFF !important;
-  border-color: #E2E8F0 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+  border-color: #ECE7FF !important;
+  box-shadow: 0 1px 2px rgba(139, 92, 246, 0.04) !important;
 }
 
 [data-theme="light"] .problem-solve-example:hover {
-  border-color: #CBD5E1 !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+  border-color: #D8CDFB !important;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.09) !important;
 }
 
 [data-theme="light"] .problem-solve-example-head {
-  background-color: #F8FAFC !important;
-  border-bottom-color: #E2E8F0 !important;
+  background: linear-gradient(180deg, #F8F6FF 0%, #F4F1FC 100%) !important;
+  border-bottom-color: #ECE7FF !important;
 }
 
 [data-theme="light"] .problem-solve-example-head span {
-  color: #334155 !important;
+  color: #475569 !important;
 }
 
-/* Divider between description & editor — thin, soft, premium */
+/* Divider between description & editor */
 [data-theme="light"] .problem-solve-divider {
-  background: #E2E8F0 !important;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05) !important;
+  box-shadow: 0 1px 4px rgba(139, 92, 246, 0.05) !important;
 }
 
-[data-theme="light"] .problem-solve-divider:hover {
-  background: #2563EB !important;
+[data-theme="light"] .problem-solve-divider-x {
+  background: linear-gradient(
+    90deg,
+    transparent 0,
+    transparent calc(50% - 1.5px),
+    #ECE7FF calc(50% - 1.5px),
+    #ECE7FF calc(50% + 1.5px),
+    transparent calc(50% + 1.5px),
+    transparent 100%
+  ) !important;
+}
+
+[data-theme="light"] .problem-solve-divider-x:hover {
+  background: linear-gradient(
+    90deg,
+    transparent 0,
+    transparent calc(50% - 1.5px),
+    #A78BFA calc(50% - 1.5px),
+    #A78BFA calc(50% + 1.5px),
+    transparent calc(50% + 1.5px),
+    transparent 100%
+  ) !important;
+}
+
+[data-theme="light"] .problem-solve-divider-y {
+  background: linear-gradient(
+    180deg,
+    transparent 0,
+    transparent calc(50% - 1.5px),
+    #ECE7FF calc(50% - 1.5px),
+    #ECE7FF calc(50% + 1.5px),
+    transparent calc(50% + 1.5px),
+    transparent 100%
+  ) !important;
+}
+
+[data-theme="light"] .problem-solve-divider-y:hover {
+  background: linear-gradient(
+    180deg,
+    transparent 0,
+    transparent calc(50% - 1.5px),
+    #A78BFA calc(50% - 1.5px),
+    #A78BFA calc(50% + 1.5px),
+    transparent calc(50% + 1.5px),
+    transparent 100%
+  ) !important;
+}
+
+/* ---- Editor + console premium card shell ---- */
+
+/* Padding shell that lets the ambient background breathe around the editor */
+[data-theme="light"] .problem-editor-shell {
+  padding: 12px !important;
+}
+
+/* Unified editor + console card */
+[data-theme="light"] .problem-editor-card {
+  background: #FFFFFF !important;
+  border: 1px solid #E5E0F5 !important;
+  border-radius: 16px !important;
+  box-shadow:
+    0 1px 2px rgba(139, 92, 246, 0.04),
+    0 10px 32px rgba(139, 92, 246, 0.08) !important;
+}
+
+/* Editor toolbar — softly tinted lavender */
+[data-theme="light"] .problem-editor-toolbar {
+  background: #FBF9FF !important;
+  border-bottom-color: #ECE7FF !important;
+}
+
+/* Language selector */
+[data-theme="light"] .problem-solve-lang-select {
+  background-color: #FFFFFF !important;
+  border-color: #E5E0F5 !important;
+  color: #334155 !important;
+  box-shadow: 0 1px 2px rgba(139, 92, 246, 0.05) !important;
+}
+
+[data-theme="light"] .problem-solve-lang-select:focus {
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14) !important;
+}
+
+/* Toolbar icon buttons */
+[data-theme="light"] .problem-editor-icon-btn {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .problem-editor-icon-btn:hover {
+  background-color: #F3EEFF !important;
+  color: #6D28D9 !important;
+}
+
+/* Ask AI button — premium pink/purple gradient */
+[data-theme="light"] .problem-ask-ai-btn {
+  background: linear-gradient(135deg, #EC4899, #8B5CF6) !important;
+  color: #FFFFFF !important;
+  border-color: transparent !important;
+  box-shadow: 0 2px 10px rgba(236, 72, 153, 0.25) !important;
+}
+
+[data-theme="light"] .problem-ask-ai-btn:hover {
+  box-shadow: 0 4px 18px rgba(236, 72, 153, 0.4), 0 0 16px rgba(139, 92, 246, 0.3) !important;
+  filter: brightness(1.05);
+}
+
+/* Console */
+[data-theme="light"] .problem-solve-console {
+  background-color: #FFFFFF !important;
+  border-top-color: #ECE7FF !important;
+}
+
+[data-theme="light"] .problem-solve-console-tabs {
+  background: #FBF9FF !important;
+  border-bottom-color: #ECE7FF !important;
+}
+
+[data-theme="light"] .problem-solve-console-empty {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(139, 92, 246, 0.06) 0%, transparent 58%),
+    linear-gradient(180deg, #FBF9FF 0%, #FFFFFF 100%) !important;
+}
+
+[data-theme="light"] .problem-solve-console-empty .text-accent {
+  color: #7C3AED !important;
 }
 
 /* ============================================
@@ -3496,6 +3815,43 @@ svg {
     rgba(15, 23, 42, 0.07) var(--monaco-line-height, 21px),
     rgba(15, 23, 42, 0.07) calc(var(--monaco-line-height, 21px) + 1px)
   );
+}
+
+/* ═══ AI Review Overlay — diff line decorations ═══
+   Added lines get a very light green wash, modified lines a very light
+   lavender wash, with a thin indicator bar on the left edge (drawn in the
+   Monaco line-decorations margin). Used only by SuggestionReviewOverlay. */
+.monaco-editor .review-line-added {
+  background-color: rgba(34, 197, 94, 0.09);
+}
+.monaco-editor .review-line-modified {
+  background-color: rgba(139, 92, 246, 0.09);
+}
+.monaco-editor .review-gutter-added {
+  width: 3px;
+  background-color: #22C55E;
+  border-radius: 1px;
+  transform: scaleY(0.6);
+}
+.monaco-editor .review-gutter-modified {
+  width: 3px;
+  background-color: #8B5CF6;
+  border-radius: 1px;
+  transform: scaleY(0.6);
+}
+
+/* Light theme: crisp, subtle washes that read as an IDE diff (not neon). */
+[data-theme="light"] .monaco-editor .review-line-added {
+  background-color: #F0FDF4;
+}
+[data-theme="light"] .monaco-editor .review-line-modified {
+  background-color: #F5F3FF;
+}
+[data-theme="light"] .monaco-editor .review-gutter-added {
+  background-color: #16A34A;
+}
+[data-theme="light"] .monaco-editor .review-gutter-modified {
+  background-color: #7C3AED;
 }
 
 

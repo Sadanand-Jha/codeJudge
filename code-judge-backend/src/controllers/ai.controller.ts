@@ -1,29 +1,54 @@
 /**
- * AI controller — HTTP layer for the three AI endpoints.
+ * AI controller — HTTP layer for the AI endpoints.
  *
  * Responsibilities:
- *   - `chat`                    : stream a plain conversation as SSE.
- *   - `chatWithFiles`           : stream a conversation that also ingests
- *                                 uploaded documents as context (SSE).
+ *   - `chat`                   : stream a conversation as SSE. The client sends
+ *                                ONLY the user message + a few identifiers; the
+ *                                backend builds the complete LLM conversation
+ *                                (private system prompt + problem context +
+ *                                conversation history) via `streamAiChat`.
+ *   - `chatWithFiles`          : stream a conversation that also ingests
+ *                                uploaded documents as context (SSE).
  *   - `generateQuestionsFromUpload` : one-shot, non-streaming generation of
- *                                 quiz questions from study-material files.
+ *                                quiz questions from study-material files.
  *
- * The controller only validates/coerces request input and serializes the
- * result back to the client. All heavy lifting (text extraction, prompt
- * construction, LLM calls, JSON parsing) lives in the services:
- *   - `../services/ai.service.ts`                 → LLM client (stream + one-shot)
- *   - `../services/question-generation.service.ts` → extraction + prompt + parse
- *   - `../services/docling-extract.service.ts`    → Docling Serve wrapper
+ * Prompt construction, problem context and conversation history live entirely
+ * server-side (see `src/ai/`). The controller never logs prompt content, and
+ * internal LLM errors are never surfaced verbatim to the client.
  */
 import type { Request, Response } from "express";
+import jwt from "jsonwebtoken";
+import { randomUUID } from "node:crypto";
 import { streamChatWithAI, chatWithAI } from "../services/ai.service.js";
 import type { LiveUsage, ChatMessageInput } from "../services/ai.service.js";
+import { streamAiChat } from "../ai/services/aiService.js";
 import { generateQuestionsFromFiles } from "../services/question-generation.service.js";
 import { parseQuestionsJSON } from "../services/question-generation.service.js";
 import { QUIZ_EXTRACTION_GUIDE } from "../services/question-generation.service.js";
 import type { GeneratedQuestionPayload } from "../services/question-generation.service.js";
 import { extractFileText } from "../services/question-generation.service.js";
 import { isDoclingAvailable } from "../services/docling-extract.service.js";
+
+/**
+ * Best-effort user id for operational logging. The AI endpoints are not
+ * hard-gated behind `authenticate` (the assistant also works logged-out), so a
+ * missing/invalid token simply yields `undefined` — never a failed request.
+ */
+const getUserId = (req: Request): string | undefined => {
+  const token =
+    req.cookies?.session_token ||
+    req.headers.authorization?.replace(/^Bearer\s+/i, "");
+  if (!token) return undefined;
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production"
+    ) as { userId?: string };
+    return decoded.userId;
+  } catch {
+    return undefined;
+  }
+};
 
 /** Stream an SSE reply to the client, mirroring the `/chat` wire protocol. */
 const streamSseReply = async (
@@ -128,8 +153,6 @@ export const chatWithFiles = async (req: Request, res: Response) => {
 
   const doclingAvailable = await isDoclingAvailable();
 
-  console.log(doclingAvailable ? "Docling Serve is available for text extraction" : "Docling Serve is not available; falling back to simpler extraction");
-
   const extracted: string[] = [];
   for (const file of files) {
     try {
@@ -137,7 +160,6 @@ export const chatWithFiles = async (req: Request, res: Response) => {
         { name: file.originalname, buffer: file.buffer },
         doclingAvailable
       );
-      console.log(text, "this is the extracted text");
       if (text.trim()) extracted.push(`--- ${file.originalname} ---\n${text.trim()}`);
     } catch (error) {
       console.warn(`Skipping ${file.originalname}:`, error);
@@ -158,8 +180,6 @@ export const chatWithFiles = async (req: Request, res: Response) => {
   if (extracted.length > 0) {
     contextParts.unshift(QUIZ_EXTRACTION_GUIDE);
   }
-
-  console.log(contextParts.length > 0 ? `Streaming AI request with context: "${prompt}"` : "Streaming AI request without context");
 
   const message = contextParts.join("\n\n");
   return streamSseReply(res, message, new AbortController());
@@ -229,42 +249,56 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
 /**
  * POST /api/v1/user/ai/chat
  *
- * Streams the LLM response as Server-Sent Events so the client can render
- * `reasoning_content` and `content` incrementally.
+ * Streams the LLM response as Server-Sent Events.
+ *
+ * Request body (all prompt material is constructed server-side):
+ *   {
+ *     "message": "Why is my code failing?",
+ *     "mode": "coding_coach",            // optional
+ *     "problemId": "2227A",              // optional — problem fetched from DB
+ *     "code": "#include <bits/stdc++.h>…", // optional — untrusted user code
+ *     "language": "cpp",
+ *     "filename": "solution.cpp",
+ *     "selection": "…",                  // optional
+ *     "selectionRange": { "startLine":1,… }, // optional
+ *     "conversationId": "…"              // optional — backend persists history
+ *   }
  *
  * Each SSE data payload is JSON:
  *   `{ "type": "reasoning", "chunk": "..." }`
  *   `{ "type": "content",   "chunk": "..." }`
  *   `{ "type": "usage",     "usage": {...}, "time_ms": 1234 }`  (final, real)
- *   `{ "type": "done" }`
+ *   `{ "type": "done",      "conversationId": "…" }`
  *   `{ "type": "error",     "message": "..." }`
  *
- * `usage` is only present when the model/server reports token counts (e.g. when
- * `stream_options: { include_usage: true }` is honored). It is never guessed —
- * if the provider never sends it, the `usage` event simply carries no token
- * numbers. `time_ms` is the backend-measured generation latency and is always
- * real.
+ * The system prompt, problem context and conversation history are NEVER sent
+ * to the client.
  */
 export const chat = async (req: Request, res: Response) => {
-  const { message, messages } = req.body;
+  const {
+    message,
+    mode,
+    problemId,
+    code,
+    language,
+    filename,
+    selection,
+    selectionRange,
+    conversationId,
+  } = (req.body ?? {}) as {
+    message?: unknown;
+    mode?: unknown;
+    problemId?: unknown;
+    code?: unknown;
+    language?: unknown;
+    filename?: unknown;
+    selection?: unknown;
+    selectionRange?: unknown;
+    conversationId?: unknown;
+  };
 
-  // Accept either the legacy `{ message }` string or the full conversation as
-  // `{ messages: [{ role, content }, ...] }`.
-  let payload: ChatMessageInput[] | string | null = null;
-  if (Array.isArray(messages)) {
-    const clean = messages.filter(
-      (m): m is ChatMessageInput =>
-        !!m &&
-        typeof m.content === "string" &&
-        (m.role === "system" || m.role === "user" || m.role === "assistant")
-    );
-    if (clean.length > 0) payload = clean;
-  } else if (typeof message === "string" && message.trim()) {
-    payload = message;
-  }
-
-  if (!payload) {
-    return res.status(400).json({ message: "A message or messages array is required" });
+  if (typeof message !== "string" || !message.trim()) {
+    return res.status(400).json({ message: "A message is required" });
   }
 
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
@@ -274,9 +308,15 @@ export const chat = async (req: Request, res: Response) => {
   res.flushHeaders();
 
   const controller = new AbortController();
+  const requestId = randomUUID();
+  const userId = getUserId(req);
   let wroteAny = false;
   let lastUsage: LiveUsage | undefined;
+  let responseConversationId: string | undefined;
   const startedAt = Date.now();
+
+  console.log(conversationId, "conversationId");
+  console.log(requestId, "requestId");
 
   const onClientClose = () => controller.abort();
   res.on("close", onClientClose);
@@ -287,26 +327,41 @@ export const chat = async (req: Request, res: Response) => {
     wroteAny = true;
   };
 
+  console.log(
+    `[ai] chat requestId=${requestId} userId=${userId ?? "anon"} problemId=${problemId ?? "-"} mode=${mode ?? "general"}`
+  );
+
   try {
-    for await (const chunk of streamChatWithAI(payload, controller.signal)) {
+    for await (const chunk of streamAiChat(
+      {
+        message: String(message).trim(),
+        mode: typeof mode === "string" ? mode : undefined,
+        problemId: typeof problemId === "string" ? problemId : undefined,
+        code: typeof code === "string" ? code : undefined,
+        language: typeof language === "string" ? language : undefined,
+        filename: typeof filename === "string" ? filename : undefined,
+        selection: typeof selection === "string" ? selection : undefined,
+        selectionRange:
+          selectionRange && typeof selectionRange === "object"
+            ? (selectionRange as {
+                startLine: number;
+                startColumn: number;
+                endLine: number;
+                endColumn: number;
+              })
+            : undefined,
+        conversationId: typeof conversationId === "string" ? conversationId : undefined,
+      },
+      controller.signal
+    )) {
       if (chunk.reasoning) send("reasoning", { chunk: chunk.reasoning });
       if (chunk.content) send("content", { chunk: chunk.content });
       if (chunk.usage) lastUsage = chunk.usage;
+      if (chunk.conversationId) responseConversationId = chunk.conversationId;
     }
   } catch (error) {
-    if (!res.writableEnded && !wroteAny) {
-      // Model likely does not support streaming — fall back to a one-shot reply.
-      try {
-        const { content, reasoning, usage } = await chatWithAI(payload, controller.signal);
-        if (reasoning) send("reasoning", { chunk: reasoning });
-        if (content) send("content", { chunk: content });
-        lastUsage = usage;
-      } catch (fallbackError) {
-        console.error("AI error:", fallbackError);
-        send("error", { message: "Failed to get AI response" });
-      }
-    } else {
-      console.error("AI streaming error:", error);
+    console.error("[ai] streaming error", error);
+    if (!res.writableEnded) {
       send("error", { message: "Failed to get AI response" });
     }
   } finally {
@@ -315,7 +370,7 @@ export const chat = async (req: Request, res: Response) => {
         usage: lastUsage,
         time_ms: Date.now() - startedAt,
       });
-      send("done", {});
+      send("done", { conversationId: responseConversationId });
       res.end();
     }
     res.off("close", onClientClose);

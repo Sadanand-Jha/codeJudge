@@ -117,7 +117,7 @@ export const streamChatWithAI = async function* (
 ): AsyncGenerator<AIStreamChunk> {
   const stream = await client.chat.completions.create(
     {
-      model: process.env.LM_STUDIO_MODEL!,
+      model: process.env.LM_STUDIO_MODEL_CODER!,
       messages: toModelMessages(messages),
       temperature: 0.7,
       stream: true,
@@ -156,7 +156,7 @@ export const chatWithAI = async (
 ): Promise<AIResponse> => {
   const response = await client.chat.completions.create(
     {
-      model: process.env.LM_STUDIO_MODEL!,
+      model: process.env.LM_STUDIO_MODEL_CODER!,
       messages: toModelMessages(messages),
       temperature: 0.7,
     },
@@ -171,3 +171,27 @@ export const chatWithAI = async (
     usage: normalizeUsage(response.usage),
   };
 };
+
+export const chatWithAI_testor = async (
+  messages: ChatMessageInput[] | string,
+  signal?: AbortSignal
+): Promise<AIResponse> => {
+  console.log(process.env.LM_STUDIO_MODEL_TESTOR);
+  const response = await client.chat.completions.create(
+    {
+      model: process.env.LM_STUDIO_MODEL_TESTOR!,
+      messages: toModelMessages(messages),
+      temperature: 0.7,
+    },
+    { signal }
+  );
+
+  const msg = response.choices?.[0]?.message as Message | undefined;
+
+  return {
+    content: msg?.content ?? "",
+    reasoning: msg?.reasoning_content,
+    usage: normalizeUsage(response.usage),
+  };
+};
+

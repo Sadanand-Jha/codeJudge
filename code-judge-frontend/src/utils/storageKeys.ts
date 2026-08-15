@@ -7,6 +7,8 @@
 export const STORAGE_KEYS = {
   AUTH_TOKEN: "byteclash_token",
   AUTH_USER: "byteclash_user",
+  /** Combined auth state (token + user) persisted by zustand persist. */
+  AUTH: "byteclash_auth",
   THEME: "byteclash_theme",
   QUIZ_CREATION: "byteclash_quiz_creation",
   QUIZ_PROGRESS_PREFIX: "byteclash_quiz_progress_",

@@ -6,60 +6,43 @@ import {
   X,
   Send,
   Square,
-  Copy,
-  Check,
   Code2,
   FileCode2,
   CheckCheck,
-  ChevronLeft,
-  ChevronRight,
   RotateCcw,
+  ListTree,
+  Wrench,
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
 import { streamChat } from "@/services/ai";
-import type { ChatMessageInput, LiveUsage } from "@/services/ai";
+import type { LiveUsage } from "@/services/ai";
 import { useAIEditorStore } from "@/store/aiEditorStore";
 import type { CodeContext } from "@/store/aiEditorStore";
-import {
-  useCodeAssistantStore,
-  CODE_ASSISTANT_SYSTEM_ID,
-  type CodeAssistantMessage,
-} from "@/store/codeAssistantStore";
-import MarkdownRenderer from "@/components/ai/MarkdownRenderer";
-import AIThinkingBlock from "@/components/ai/AIThinkingBlock";
-import AIUsageMeta from "@/components/ai/AIUsageMeta";
+import { useCodeAssistantStore } from "@/store/codeAssistantStore";
+import type { CodeAssistantMessage } from "@/store/codeAssistantStore";
+import AIMessageRow from "@/components/ai/AIMessageRow";
 import AILogo from "@/components/ai/AILogo";
-import { extractRenderedText } from "@/utils/clipboard";
+import SuggestionReviewOverlay from "./SuggestionReviewOverlay";
 import {
   EDITS_OPEN,
   parseEditsFromResponse,
-  validateEditsAgainstModel,
-  applyEditsToEditor,
-  clearEditDecorations,
-  detachInlineSuggestion,
-  attachInlineSuggestion,
-  captureEditorSnapshot,
-  isEditorUnchanged,
-  normalizeEditIndentation,
-  sanitizeStructuralEdits,
-  validateStructuralBalance,
-  type AIEdit,
-  type EditorSnapshot,
-  type SuggestedEdits,
 } from "@/lib/codeEdits";
 
 /** A message rendered in the panel (the stored system message is filtered out). */
 type PanelMessage = CodeAssistantMessage;
 
-/** A concrete, reviewable suggestion attached to an assistant message. */
+/** A concrete, reviewable build-mode suggestion attached to an assistant message. */
 interface PendingSuggestion {
   id: string;
   messageId: string;
   explanation: string;
-  edits: AIEdit[];
-  editsGroup: SuggestedEdits[];
-  snapshot: EditorSnapshot | null;
+  /** The COMPLETE file with the proposed changes already applied. */
+  proposedCode: string;
+  /** The file the AI was asked to change — used to highlight the diff. */
+  originalCode: string;
+  /** Model version at generation time, so we can detect the file changed. */
+  baseVersionId: number;
   applied: boolean;
   rejected: boolean;
   stale: boolean;
@@ -70,83 +53,40 @@ const makeId = () =>
   `code-msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 /**
- * Hide any raw edit payload (```diff / JSON fences or the delimiter block)
- * from the chat bubble WHILE it is still streaming, so the actual code change
- * never appears as a normal chat message. The explanation precedes the diff, so
- * we cut everything from the first edit fence onwards.
+ * Hide the raw build-mode payload (the complete-file code block) from the chat
+ * bubble WHILE it is still streaming, so the whole file never renders inside a
+ * normal chat message. The explanation precedes the block, so we cut everything
+ * from the first fenced block onwards in build mode.
  */
-function sanitizeStreamingContent(raw: string): string {
-  const diffIdx = raw.search(/```\s*(?:diff|udiff|json)/i);
+function sanitizeStreamingContent(raw: string, buildMode = false): string {
+  const fenceIdx = buildMode ? raw.search(/```/) : raw.search(/```\s*(?:diff|udiff|json)/i);
   const openIdx = raw.indexOf(EDITS_OPEN);
   const cut =
-    diffIdx !== -1 && (openIdx === -1 || diffIdx < openIdx)
-      ? diffIdx
+    fenceIdx !== -1 && (openIdx === -1 || fenceIdx < openIdx)
+      ? fenceIdx
       : openIdx;
   return cut !== -1 ? raw.slice(0, cut).trim() : raw;
 }
 
 /**
- * System instruction that teaches the model how to propose edits without
- * dumping the whole file. The AI presents changes as a standard **unified diff**
- * inside a fenced ```diff block, which the frontend parses into concrete
- * Monaco edits and offers for accept/reject.
+ * Split a build-mode reply into (chat explanation, complete-file code).
+ * The model is instructed to output the COMPLETE updated file as the LAST
+ * fenced code block; everything before it is the explanation shown in chat.
  */
-const EDIT_SYSTEM_GUIDE = `
-You are embedded in a code editor. The user's current file is provided below as hidden context ("Current file"). You can propose changes to that file.
-
-When you want to modify the code:
-1. Write a SHORT human explanation (a sentence or two) as normal prose.
-2. Then output ONLY the changed lines as a standard unified diff inside a fenced code block tagged \`\`\`diff.
-
-Format rules (unified diff):
-- Start with a hunk header: @@ -<startLine>,<count> +<startLine>,<count> @@  (1-based line numbers)
-- Lines you are REMOVING are prefixed with "-".
-- Lines you are ADDING are prefixed with "+".
-- Keep ONE context line before/after each change so it is clear where it lands (context lines are prefixed with a space).
-- NEVER include the entire file — only the lines that actually change.
-- NEVER output the full "Before"/"After" code blocks.
-
-Example: to change the line "cin >> n >> k;" to also guard against negatives, output:
-\`\`\`diff
-@@ -6,2 +6,3 @@
- int n, k;
--cin >> n >> k;
-+cin >> n >> k;
-+if (n < 0 || k < 0) return;
-\`\`\`
-
-- If you are only explaining (no change needed), respond with prose only and NO diff block.
-- If you are asked to analyze/explain, just answer in prose without a diff block.
-`.trim();
-
-const buildSystemMessage = (context: CodeContext | null): string => {
-  const base = `You are a coding assistant embedded in a competitive-programming code editor. You help the user understand, debug, refactor and improve their code. Be concise and direct. Use Markdown for readability and short code snippets where helpful.`;
-
-  if (!context) return `${base}\n\n` + EDIT_SYSTEM_GUIDE;
-
-  const parts = [base];
-
-  parts.push(`\n--- Current file ---`);
-  parts.push(`Filename: ${context.filename}`);
-  parts.push(`Language: ${context.language}`);
-  parts.push(``);
-  parts.push("```" + context.language);
-  parts.push(context.content);
-  parts.push("```");
-
-  if (context.selection && context.selectionRange) {
-    const s = context.selectionRange;
-    parts.push(
-      `\nThe user has selected code from line ${s.startLine} col ${s.startColumn} to line ${s.endLine} col ${s.endColumn}. Prefer to modify this selected region when the request applies to it.`
-    );
-    parts.push("");
-    parts.push("```" + context.language);
-    parts.push(context.selection);
-    parts.push("```");
-  }
-
-  return `${parts.join("\n")}\n\n` + EDIT_SYSTEM_GUIDE;
-};
+function splitCompleteFile(
+  raw: string
+): { content: string; proposedCode: string | null } {
+  const fences = [
+    ...raw.matchAll(/```[a-zA-Z0-9_+.#-]*\s*\n([\s\S]*?)\n?```/g),
+  ];
+  if (fences.length === 0) return { content: raw.trim(), proposedCode: null };
+  const last = fences[fences.length - 1];
+  const proposedCode = last[1].replace(/\n$/, "");
+  const content = (
+    raw.slice(0, last.index) + raw.slice(last.index + last[0].length)
+  ).trim();
+  return { content, proposedCode };
+}
 
 interface CodeAssistantPanelProps {
   editorRef: React.RefObject<any>;
@@ -155,7 +95,6 @@ interface CodeAssistantPanelProps {
 
 export default function CodeAssistantPanel({
   editorRef,
-  monacoRef,
 }: CodeAssistantPanelProps) {
   const open = useAIEditorStore((s) => s.open);
   const setPreparing = useAIEditorStore((s) => s.setPreparing);
@@ -164,8 +103,33 @@ export default function CodeAssistantPanel({
   const [suggestions, setSuggestions] = useState<PendingSuggestion[]>([]);
   const [prompt, setPrompt] = useState("");
   const [sending, setSending] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [inlineActiveId, setInlineActiveId] = useState<string | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+
+  /** Plan = explains the approach, never edits. Build = proposes reviewable edits. */
+  const [mode, setMode] = useState<"plan" | "build">("build");
+
+  // Resizable panel width — drag the left-edge handle to change it. Uses the
+  // same RAF + throttled-state pattern as the editor's workspace resizer so the
+  // drag stays smooth even while the message thread (react-markdown) re-renders.
+  const MIN_ASSISTANT_WIDTH = 320;
+  const MAX_ASSISTANT_WIDTH = 760;
+  const [panelWidth, setPanelWidth] = useState<number>(() =>
+    typeof window !== "undefined"
+      ? Math.round(
+          Math.min(560, Math.max(MIN_ASSISTANT_WIDTH, window.innerWidth * 0.88))
+        )
+      : 560
+  );
+  const panelWidthRef = useRef(panelWidth);
+  const assistantResizeRef = useRef<{
+    startX: number;
+    startWidth: number;
+  } | null>(null);
+
+  // Keep the ref in sync so a drag always starts from the rendered width.
+  useEffect(() => {
+    panelWidthRef.current = panelWidth;
+  }, [panelWidth]);
 
   // Persistent conversation (module-scope store, like ChatContext for the quiz
   // assistant): survives closing/reopening the panel and page navigation so
@@ -174,10 +138,10 @@ export default function CodeAssistantPanel({
   const addConversationMessage = useCodeAssistantStore((s) => s.addMessage);
   const patchConversationMessage = useCodeAssistantStore((s) => s.patchMessage);
   const clearConversation = useCodeAssistantStore((s) => s.clearConversation);
+  const conversationId = useCodeAssistantStore((s) => s.conversationId);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const contentRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const streamAbortRef = useRef<AbortController | null>(null);
 
   // Consume a pending "ask" request when the panel opens (external store sync).
@@ -196,23 +160,12 @@ export default function CodeAssistantPanel({
     }
   }, [open]);
 
-  // Clear decorations whenever the panel closes / unmounts or a request resets.
-  useEffect(() => {
-    if (!open) {
-      clearEditDecorations(editorRef.current);
-      detachInlineSuggestion(editorRef.current);
-    }
-  }, [open, editorRef]);
-
   // Abort any in-flight stream when the panel unmounts/fully closes.
   useEffect(() => {
-    const editor = editorRef.current;
     return () => {
       streamAbortRef.current?.abort();
-      clearEditDecorations(editor);
-      detachInlineSuggestion(editor);
     };
-  }, [editorRef]);
+  }, []);
 
   // Auto-grow textarea.
   useEffect(() => {
@@ -227,220 +180,165 @@ export default function CodeAssistantPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, suggestions]);
 
-  // Apply a pending suggestion's edits into Monaco as a single undoable op.
-  const applySuggestion = useCallback(
-    (suggestionId: string) => {
-      const target = suggestions.find((s) => s.id === suggestionId);
-      if (!target) return;
+  // Drag-to-resize the panel width. Global pointer listeners act only while a
+  // drag is in progress; width updates are throttled to 60 FPS to avoid
+  // re-rendering the whole message thread on every raw pointer event.
+  useEffect(() => {
+    let rafId: number | null = null;
+    let lastUpdate = 0;
+    const UPDATE_INTERVAL = 1000 / 60;
 
-      setSuggestions((prev) =>
-        prev.map((s) =>
-          s.id === suggestionId ? { ...s, applying: true } : s
-        )
-      );
-
-      const editor = editorRef.current;
-      const monaco = monacoRef.current;
-
-      if (!isEditorUnchanged(editor, target.snapshot)) {
-        setSuggestions((prev) =>
-          prev.map((s) =>
-            s.id === suggestionId
-              ? { ...s, applying: false, stale: true }
-              : s
-          )
+    const handleMove = (event: PointerEvent) => {
+      const drag = assistantResizeRef.current;
+      if (!drag) return;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const current = assistantResizeRef.current;
+        if (!current) return;
+        const maxWidth = Math.min(
+          Math.round(window.innerWidth * 0.92),
+          MAX_ASSISTANT_WIDTH
         );
-        toast.info("The file changed while this suggestion was being generated.");
-        return;
+        // Right-anchored panel: dragging left grows it, dragging right shrinks.
+        const next = current.startWidth - (event.clientX - current.startX);
+        const clamped = Math.round(
+          Math.max(MIN_ASSISTANT_WIDTH, Math.min(maxWidth, next))
+        );
+        panelWidthRef.current = clamped;
+        const now = performance.now();
+        if (now - lastUpdate >= UPDATE_INTERVAL) {
+          lastUpdate = now;
+          setPanelWidth(clamped);
+        }
+      });
+    };
+
+    const handleUp = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
       }
-
-      const validation = validateEditsAgainstModel(editor, target.edits);
-      if (!validation.valid) {
-        setSuggestions((prev) =>
-          prev.map((s) =>
-            s.id === suggestionId
-              ? { ...s, applying: false, stale: true }
-              : s
-          )
-        );
-        toast.error("Could not apply changes", {
-          description: validation.reason,
-        });
-        return;
+      if (assistantResizeRef.current) {
+        setPanelWidth(panelWidthRef.current);
+        assistantResizeRef.current = null;
       }
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
 
-      // Structural safety net: applying must never unbalance the document's
-      // `{}`, `()`, `[]` — i.e. never delete a closing delimiter.
-      const balance = validateStructuralBalance(
-        editor?.getModel?.()?.getValue?.() ?? "",
-        target.edits
-      );
-      if (!balance.valid) {
-        setSuggestions((prev) =>
-          prev.map((s) =>
-            s.id === suggestionId
-              ? { ...s, applying: false, stale: true }
-              : s
-          )
-        );
-        toast.error("Could not apply changes", {
-          description: "The change would break the document's braces or brackets.",
-        });
-        return;
-      }
+    window.addEventListener("pointermove", handleMove, { passive: true });
+    window.addEventListener("pointerup", handleUp);
 
-      const ok = applyEditsToEditor(editor, monaco, target.edits);
-      if (ok) {
-        clearEditDecorations(editor);
-        detachInlineSuggestion(editor);
-        setSuggestions((prev) =>
-          prev.map((s) =>
-            s.id === suggestionId
-              ? { ...s, applying: false, applied: true }
-              : s
-          )
-        );
-        toast.success("Changes applied to the editor");
-      } else {
-        setSuggestions((prev) =>
-          prev.map((s) =>
-            s.id === suggestionId ? { ...s, applying: false } : s
-          )
-        );
-        toast.error("Could not apply changes");
-      }
-    },
-    [suggestions, editorRef, monacoRef]
+    return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+  }, []);
+
+  const startAssistantResize = (event: React.PointerEvent) => {
+    event.preventDefault();
+    assistantResizeRef.current = {
+      startX: event.clientX,
+      startWidth: panelWidthRef.current,
+    };
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+  };
+
+  // The complete file the AI proposed, shown in the review overlay.
+  const proposedCode = useMemo(() => {
+    const pending = suggestions.find(
+      (s) => !s.applied && !s.rejected && !s.stale
+    );
+    return pending?.proposedCode ?? "";
+  }, [suggestions]);
+
+  const firstPending = useMemo(
+    () => suggestions.find((s) => !s.applied && !s.rejected && !s.stale) ?? null,
+    [suggestions]
   );
 
   // Reject a suggestion: leave Monaco untouched, just hide it.
   const rejectSuggestion = useCallback(
     (suggestionId: string) => {
-      detachInlineSuggestion(editorRef.current);
       setSuggestions((prev) =>
         prev.map((s) =>
           s.id === suggestionId ? { ...s, rejected: true } : s
         )
       );
     },
-    [editorRef]
+    []
   );
 
-  // Active (reviewable) suggestions ordered by where they land in the file, so
-  // inline navigation walks top → bottom like a review.
-  const pendingSuggestions = useMemo(
-    () =>
-      [...suggestions]
-        .filter((s) => !s.applied && !s.rejected && !s.stale)
-        .sort(
-          (a, b) =>
-            (a.edits[0]?.startLine ?? Number.MAX_SAFE_INTEGER) -
-            (b.edits[0]?.startLine ?? Number.MAX_SAFE_INTEGER)
-        ),
-    [suggestions]
-  );
-
-  // Keep the active inline suggestion valid as the pending set changes.
-  useEffect(() => {
-    // Reset to the first pending suggestion whenever the pending set changes.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setInlineActiveId((cur) =>
-      pendingSuggestions.some((s) => s.id === cur)
-        ? cur
-        : (pendingSuggestions[0]?.id ?? null)
+  // Accept from the overlay: replace the ENTIRE file with the proposed code
+  // as a single undoable operation, then close. Build mode works on whole files
+  // — the AI wrote the complete file, so there is nothing to merge hunk-by-hunk.
+  const acceptAll = useCallback(() => {
+    const pending = suggestions.filter(
+      (s) => !s.applied && !s.rejected && !s.stale
     );
-  }, [pendingSuggestions]);
-
-  const activeIndex = pendingSuggestions.findIndex((s) => s.id === inlineActiveId);
-  const activeSuggestion = activeIndex >= 0 ? pendingSuggestions[activeIndex] : null;
-
-  const goPrev = useCallback(() => {
-    if (pendingSuggestions.length === 0) return;
-    const next =
-      (activeIndex - 1 + pendingSuggestions.length) % pendingSuggestions.length;
-    setInlineActiveId(pendingSuggestions[next].id);
-  }, [pendingSuggestions, activeIndex]);
-
-  const goNext = useCallback(() => {
-    if (pendingSuggestions.length === 0) return;
-    const next = (activeIndex + 1) % pendingSuggestions.length;
-    setInlineActiveId(pendingSuggestions[next].id);
-  }, [pendingSuggestions, activeIndex]);
-
-  // Keep Monaco in sync with the active pending suggestion: render an inline
-  // Copilot-style diff + Accept/Reject widget on the changed lines. Multiple
-  // suggestions are navigable via the widget, the panel strip, or Alt+[ / Alt+].
-  useEffect(() => {
-    const editor = editorRef.current;
-    if (!editor || !open || !activeSuggestion) {
-      detachInlineSuggestion(editor);
+    if (pending.length === 0) {
+      setReviewOpen(false);
       return;
     }
 
-    const handle = attachInlineSuggestion(
-      editor,
-      monacoRef.current,
-      activeSuggestion.edits,
-      {
-        label: activeSuggestion.explanation,
-        onApply: () => applySuggestion(activeSuggestion.id),
-        onReject: () => rejectSuggestion(activeSuggestion.id),
-        onPrev: pendingSuggestions.length > 1 ? goPrev : undefined,
-        onNext: pendingSuggestions.length > 1 ? goNext : undefined,
-        positionLabel:
-          pendingSuggestions.length > 1
-            ? `${activeIndex + 1} / ${pendingSuggestions.length}`
-            : undefined,
-      }
-    );
-    return () => handle.detach();
-  }, [
-    suggestions,
-    open,
-    editorRef,
-    monacoRef,
-    applySuggestion,
-    rejectSuggestion,
-    activeSuggestion,
-    pendingSuggestions,
-    activeIndex,
-    goPrev,
-    goNext,
-  ]);
-
-  // Keyboard navigation between inline suggestions (Alt+[ / Alt+]).
-  useEffect(() => {
-    if (!open) return;
+    const target = pending[0];
     const editor = editorRef.current;
-    const monaco = monacoRef.current;
-    if (!editor?.addCommand || !monaco?.KeyMod || !monaco?.KeyCode) return;
-    const prevId = editor.addCommand(
-      monaco.KeyMod.Alt | monaco.KeyCode.BracketLeft,
-      () => goPrev()
+    const model = editor?.getModel?.();
+
+    if (!model || !target.proposedCode) {
+      setReviewOpen(false);
+      return;
+    }
+
+    // The file was edited while the AI was generating — refuse to clobber it.
+    if (target.baseVersionId && model.getVersionId() !== target.baseVersionId) {
+      setSuggestions((prev) =>
+        prev.map((s) =>
+          pending.some((p) => p.id === s.id) ? { ...s, stale: true } : s
+        )
+      );
+      setReviewOpen(false);
+      toast.info("The file changed while these changes were being generated.");
+      return;
+    }
+
+    // Replace the full document (line 1 col 1 → just past the last line).
+    const lineCount = model.getLineCount();
+    const fullRange = { startLineNumber: 1, startColumn: 1, endLineNumber: lineCount + 1, endColumn: 1 };
+    model.pushStackElement();
+    const edits = [{ range: fullRange, text: target.proposedCode, forceMoveMarkers: true }];
+    editor.executeEdits("byteclash-ai", edits);
+    model.pushStackElement();
+
+    setSuggestions((prev) =>
+      prev.map((s) =>
+        pending.some((p) => p.id === s.id)
+          ? { ...s, applying: false, applied: true }
+          : s
+      )
     );
-    const nextId = editor.addCommand(
-      monaco.KeyMod.Alt | monaco.KeyCode.BracketRight,
-      () => goNext()
+    setReviewOpen(false);
+    toast.success("Changes applied to the editor");
+  }, [suggestions, editorRef]);
+
+  // Reject from the overlay: dismiss every pending suggestion, then close.
+  const rejectAll = useCallback(() => {
+    const pending = suggestions.filter(
+      (s) => !s.applied && !s.rejected && !s.stale
     );
-    return () => {
-      if (typeof prevId === "number" || typeof prevId === "string") {
-        editor.removeCommand?.(prevId);
-      }
-      if (typeof nextId === "number" || typeof nextId === "string") {
-        editor.removeCommand?.(nextId);
-      }
-    };
-  }, [open, editorRef, monacoRef, goPrev, goNext]);
+    pending.forEach((s) => rejectSuggestion(s.id));
+    setReviewOpen(false);
+  }, [suggestions, rejectSuggestion]);
+
+  const pendingCount = useMemo(
+    () => suggestions.filter((s) => !s.applied && !s.rejected).length,
+    [suggestions]
+  );
 
   const close = () => useAIEditorStore.getState().setOpen(false);
-
-  const copyMessage = (m: PanelMessage) => {
-    const el = contentRefs.current[m.id];
-    const rendered = el ? extractRenderedText(el) : "";
-    navigator.clipboard.writeText(rendered || m.content);
-    setCopiedId(m.id);
-    setTimeout(() => setCopiedId((cur) => (cur === m.id ? null : cur)), 2000);
-  };
 
   const stopGeneration = () => streamAbortRef.current?.abort();
 
@@ -506,19 +404,23 @@ export default function CodeAssistantPanel({
     streamAbortRef.current = controller;
 
     // Always send the latest editor content (the context captured at open time
-    // is stale once the user keeps typing in the editor). The stored system
-    // message is refreshed with this live content, so the persisting
-    // conversation always carries the current file + the prior turns.
+    // is stale once the user keeps typing in the editor). The backend rebuilds
+    // the system prompt + problem context server-side, so only the live file
+    // content and a few identifiers cross the wire. The conversation history
+    // is persisted on the backend under `conversationId`.
     const liveContext = buildLiveContext();
     if (liveContext) setCurrentContext(liveContext);
-    const system = buildSystemMessage(liveContext);
-    patchConversationMessage(CODE_ASSISTANT_SYSTEM_ID, { content: system });
-    const historyForModel: ChatMessageInput[] = [
-      ...useCodeAssistantStore
-        .getState()
-        .messages.map((m) => ({ role: m.role, content: m.content })),
-      { role: "user", content: userPrompt },
-    ];
+
+    const requestInput = {
+      message: userPrompt,
+      mode: mode === "build" ? "coding_coach" : "plan",
+      code: liveContext?.content || undefined,
+      language: liveContext?.language || undefined,
+      filename: liveContext?.filename || undefined,
+      selection: liveContext?.selection,
+      selectionRange: liveContext?.selectionRange,
+      conversationId,
+    };
 
     // Coalesce streaming UI updates: rebuilding the whole message list (and
     // re-highlighting the growing markdown/diff via react-markdown +
@@ -535,7 +437,7 @@ export default function CodeAssistantPanel({
         if (!uiDirty) return;
         uiDirty = false;
         patchConversationMessage(aiId, {
-          content: sanitizeStreamingContent(streamed.content),
+          content: sanitizeStreamingContent(streamed.content, mode === "build"),
           reasoningContent: streamed.reasoning,
         });
       }, 66);
@@ -564,7 +466,7 @@ export default function CodeAssistantPanel({
     };
 
     try {
-      await streamChat(historyForModel, callbacks, controller.signal);
+      await streamChat(requestInput, callbacks, controller.signal);
 
       // Stop the throttled UI flusher so a pending timer can't overwrite the
       // finalised (diff-block-stripped) content we write below.
@@ -573,49 +475,46 @@ export default function CodeAssistantPanel({
       // Finalize the message (clear streaming flags).
       updateMessage(aiId, { isReasoning: false, isStreaming: false });
 
-      const { content: cleanContent, edits: editGroups } =
-        parseEditsFromResponse(streamed.content);
+      let finalShown: string;
+      let proposedCode: string | null = null;
 
-      // Persist the cleaned content (without raw JSON block). Never fall back
-      // to the raw stream text, which may still contain the edit payload.
-      const finalShown =
-        cleanContent ||
-        sanitizeStreamingContent(streamed.content) ||
-        "Here's what I found.";
+      if (mode === "build") {
+        // Build mode: the AI wrote the COMPLETE updated file as the last
+        // fenced block. Chat shows only the explanation; the full file goes to
+        // the review overlay.
+        const split = splitCompleteFile(streamed.content);
+        proposedCode = split.proposedCode;
+        finalShown =
+          split.content ||
+          sanitizeStreamingContent(streamed.content, true) ||
+          "Here's what I found.";
+      } else {
+        // Plan mode: just prose. Strip any stray diff/json payload defensively.
+        const { content: cleanContent } = parseEditsFromResponse(streamed.content);
+        finalShown =
+          cleanContent ||
+          sanitizeStreamingContent(streamed.content, false) ||
+          "Here's what I found.";
+      }
       updateMessage(aiId, { content: finalShown });
 
-      if (editGroups.length > 0) {
-        const snapshot = captureEditorSnapshot(editorRef.current);
-        // 1) Make ranges structurally safe: never delete a closing delimiter,
-        //    snap "end of block" insertions to land before the closing brace.
-        // 2) Normalize indentation against the CURRENT file so inserted lines
-        //    match the surrounding code's tabs/spaces and nesting depth.
-        const normalizedGroups = editGroups.map((group) => ({
-          ...group,
-          edits: snapshot
-            ? normalizeEditIndentation(
-                snapshot.content,
-                sanitizeStructuralEdits(snapshot.content, group.edits)
-              )
-            : group.edits,
-        }));
-        // One independently-acceptable suggestion per edit group/hunk, so the
-        // user can accept some hunks and reject others (Copilot-style).
-        setSuggestions((prev) => [
-          ...prev,
-          ...normalizedGroups.map((group) => ({
-            id: makeId(),
-            messageId: aiId,
-            explanation: group.explanation || "I've prepared some changes.",
-            edits: group.edits,
-            editsGroup: [group],
-            snapshot,
-            applied: false,
-            rejected: false,
-            stale: false,
-            applying: false,
-          })),
-        ]);
+      if (mode === "build" && proposedCode) {
+        const baseVersionId =
+          editorRef.current?.getModel?.()?.getVersionId?.() ?? 0;
+        const suggestion: PendingSuggestion = {
+          id: makeId(),
+          messageId: aiId,
+          explanation: finalShown || "I've prepared some changes.",
+          proposedCode,
+          originalCode: liveContext?.content ?? "",
+          baseVersionId,
+          applied: false,
+          rejected: false,
+          stale: false,
+          applying: false,
+        };
+        setSuggestions([suggestion]);
+        setReviewOpen(true);
       }
     } catch (error) {
       cancelUiFlush();
@@ -636,279 +535,250 @@ export default function CodeAssistantPanel({
     }
   };
 
-  const applyAll = () => {
-    const pending = suggestions.filter((s) => !s.applied && !s.rejected);
-    pending.forEach((s) => applySuggestion(s.id));
-  };
-
-  const rejectAll = () => {
+  const rejectAllFromHeader = () => {
     const pending = suggestions.filter((s) => !s.applied && !s.rejected);
     pending.forEach((s) => rejectSuggestion(s.id));
   };
 
-  const pendingCount = useMemo(
-    () => suggestions.filter((s) => !s.applied && !s.rejected).length,
-    [suggestions]
-  );
-
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.aside
-          data-ai-ignore
-          initial={{ x: "100%" }}
-          animate={{ x: 0 }}
-          exit={{ x: "100%" }}
-          transition={{ type: "spring", stiffness: 400, damping: 36 }}
-          className="fixed inset-y-0 right-0 z-[56] flex w-[88vw] max-w-[420px] flex-col border-l border-border bg-card text-text-primary shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
-        >
-          {/* ===== Header ===== */}
-          <div className="relative flex items-center justify-between border-b border-border bg-card-hover/40 px-5 py-3.5">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6]">
-                <Code2 className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-text-primary">Code Assistant</h2>
-                <p className="text-[10px] text-text-secondary">
-                  Ask, review and apply changes
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              {pendingCount > 0 && (
-                <>
-                  <button
-                    onClick={applyAll}
-                    className="flex items-center gap-1 rounded-lg border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-2 py-1 text-[10px] font-bold text-[#A78BFA] transition-colors hover:bg-[#7C3AED]/20"
-                    title="Apply all pending suggestions"
-                  >
-                    <CheckCheck className="h-3 w-3" />
-                    Apply all ({pendingCount})
-                  </button>
-                  <button
-                    onClick={rejectAll}
-                    className="flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-bold text-red-400 transition-colors hover:bg-red-500/20"
-                    title="Reject all pending suggestions"
-                  >
-                    <X className="h-3 w-3" />
-                    Reject all ({pendingCount})
-                  </button>
-                </>
-              )}
-              {messages.filter((m) => m.role !== "system").length > 0 && (
-                <button
-                  onClick={() => {
-                    clearConversation();
-                    detachInlineSuggestion(editorRef.current);
-                    setSuggestions([]);
-                    setPrompt("");
-                  }}
-                  className="flex h-7 items-center gap-1 rounded-lg px-2 text-[10px] font-semibold text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
-                  title="Start a new conversation (context is cleared)"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  New chat
-                </button>
-              )}
-              <button
-                onClick={close}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-card-hover hover:text-text-primary"
-                aria-label="Close Code Assistant"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* ===== Current file chip ===== */}
-          {currentContext && (
-            <div className="flex items-center gap-1.5 border-b border-border bg-card px-5 py-2">
-              <FileCode2 className="h-3 w-3 text-accent" />
-              <span className="truncate font-mono text-[11px] text-text-secondary">
-                {currentContext.filename}
-              </span>
-              {currentContext.selection && (
-                <span className="ml-auto shrink-0 rounded-full border border-accent/30 bg-accent/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-accent">
-                  selection
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* ===== Inline suggestion navigation ===== */}
-          {pendingSuggestions.length > 1 && activeSuggestion && (
-            <div className="flex items-center justify-between border-b border-border bg-card px-5 py-1.5">
-              <span className="text-[10px] text-text-muted">
-                Inline suggestion{" "}
-                <span className="font-semibold tabular-nums text-text-primary">
-                  {activeIndex + 1} / {pendingSuggestions.length}
-                </span>
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={goPrev}
-                  className="flex h-6 w-6 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary"
-                  title="Previous suggestion (Alt+[)"
-                  aria-label="Previous suggestion"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={goNext}
-                  className="flex h-6 w-6 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary"
-                  title="Next suggestion (Alt+])"
-                  aria-label="Next suggestion"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ===== Body ===== */}
-          <div className="flex-1 space-y-3 overflow-y-auto border-b border-border px-5 py-4">
-            {(() => {
-              const visibleMessages = messages.filter((m) => m.role !== "system");
-              return visibleMessages.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
-                <AILogo variant="accent" size="lg" />
-                <p className="text-sm font-semibold text-text-primary">
-                  Ask to improve your code
-                </p>
-                <p className="max-w-[260px] text-xs leading-relaxed text-text-secondary">
-                  Try “Fix this code”, “Optimize this solution”, or “Convert
-                  this to DP”. The AI proposes changes you can review and apply.
-                </p>
-              </div>
-            ) : (
-              visibleMessages.map((m) => {
-                return (
-                  <div
-                    key={m.id}
-                    className={`group flex w-full flex-col gap-1 ${
-                      m.role === "user" ? "items-end" : "items-start"
-                    }`}
-                  >
-                    <div
-                      className={cn(
-                        "max-w-[88%] rounded-xl px-3 py-2 text-xs leading-relaxed text-text-primary",
-                        m.role === "user"
-                          ? "whitespace-pre-wrap rounded-tr-sm border border-chat-user-border bg-chat-user-bg"
-                          : "rounded-tl-sm border border-border bg-card-hover/40"
-                      )}
-                    >
-                      {m.role === "assistant" ? (
-                        <>
-                          {!m.content && (m.reasoningContent || m.isReasoning) && (
-                            <AIThinkingBlock
-                              reasoning={m.reasoningContent || ""}
-                              isReasoning={!!m.isReasoning}
-                              usage={m.usage}
-                            />
-                          )}
-                          {m.content && (
-                            <MarkdownRenderer
-                              ref={(node) => {
-                                if (node) contentRefs.current[m.id] = node;
-                              }}
-                              content={m.content}
-                            />
-                          )}
-                          {m.content && (
-                            <AILogo
-                              variant="accent"
-                              size="sm"
-                              animate={!!m.isStreaming}
-                              className="mt-1"
-                            />
-                          )}
-                          <AIUsageMeta
-                            isStreaming={!!m.isStreaming}
-                            usage={m.usage}
-                            timeMs={m.timeMs}
-                          />
-                        </>
-                      ) : (
-                        <span className="whitespace-pre-wrap text-xs leading-relaxed text-text-primary">
-                          {m.content}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => copyMessage(m)}
-                      disabled={!m.content}
-                      className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-text-muted opacity-0 transition-opacity hover:bg-card-hover hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-0 group-hover:opacity-100"
-                      title="Copy message"
-                    >
-                      {copiedId === m.id ? (
-                        <Check className="h-3 w-3 text-success" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                      {copiedId === m.id ? "Copied" : "Copy"}
-                    </button>
-                  </div>
-                );
-              })
-            );
-            })()}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* ===== Composer ===== */}
-          <div className="shrink-0 px-5 pb-2.5 pt-3">
+    <>
+      <AnimatePresence>
+        {open && (
+          <motion.aside
+            data-ai-ignore
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", stiffness: 400, damping: 36 }}
+            style={{ width: panelWidth }}
+            className="fixed inset-y-0 right-0 z-[56] flex flex-col border-l border-border bg-card text-text-primary shadow-[0_10px_30px_rgba(0,0,0,0.2)]"
+          >
+            {/* Drag handle to resize the panel width */}
             <div
-              className={cn(
-                "flex items-center gap-1.5 rounded-xl border bg-input-bg px-2.5 py-2 text-xs text-text-primary",
-                "border-input-border focus-within:border-chat-rose/40 focus-within:ring-2 focus-within:ring-chat-rose/10"
-              )}
+              onPointerDown={startAssistantResize}
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize panel"
+              title="Drag to resize"
+              className="group absolute inset-y-0 -left-1 z-30 w-2 cursor-ew-resize touch-none"
             >
-              <textarea
-                ref={textareaRef}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Ask to fix, optimize or refactor the code…"
-                rows={1}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                className="min-w-0 flex-1 resize-none border-0 bg-transparent text-xs text-text-primary placeholder:text-text-muted/60 focus:outline-none"
-              />
+              <div className="absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 rounded-full bg-accent/50 opacity-0 transition-opacity group-hover:opacity-100 group-active:opacity-100" />
             </div>
-            <p className="mt-1 text-[10px] text-text-muted">
-              Enter to send · Shift + Enter for a new line
-            </p>
-          </div>
 
-          {/* ===== Footer ===== */}
-          <div className="border-t border-border px-4 py-3">
-            {sending ? (
-              <button
-                onClick={stopGeneration}
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-danger/40 bg-danger/10 px-4 py-2.5 text-xs font-bold text-danger transition-all hover:bg-danger/20 active:scale-[0.98]"
-              >
-                <Square className="h-3.5 w-3.5" />
-                Stop generating
-              </button>
-            ) : (
-              <button
-                onClick={() => handleSend()}
-                disabled={!prompt.trim()}
+            {/* ===== Header ===== */}
+            <div className="relative flex items-center justify-between border-b border-border bg-card-hover/40 px-5 py-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#3B82F6]">
+                  <Code2 className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-text-primary">Code Assistant</h2>
+                  <p className="text-[10px] text-text-secondary">
+                    Ask, review and apply changes
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {pendingCount > 0 && (
+                  <>
+                    <button
+                      onClick={() => setReviewOpen(true)}
+                      className="flex items-center gap-1 rounded-lg border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-2 py-1 text-[10px] font-bold text-[#A78BFA] transition-colors hover:bg-[#7C3AED]/20"
+                      title="Review all pending suggestions"
+                    >
+                      <CheckCheck className="h-3 w-3" />
+                      Review ({pendingCount})
+                    </button>
+                    <button
+                      onClick={rejectAllFromHeader}
+                      className="flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-bold text-red-400 transition-colors hover:bg-red-500/20"
+                      title="Reject all pending suggestions"
+                    >
+                      <X className="h-3 w-3" />
+                      Reject all ({pendingCount})
+                    </button>
+                  </>
+                )}
+                {messages.filter((m) => m.role !== "system").length > 0 && (
+                  <button
+                    onClick={() => {
+                      // Abort any in-flight stream so the LLM stops generating,
+                      // then wipe the conversation and reset the composer.
+                      streamAbortRef.current?.abort();
+                      clearConversation();
+                      setSuggestions([]);
+                      setPrompt("");
+                    }}
+                    className="flex h-7 items-center gap-1 rounded-lg px-2 text-[10px] font-semibold text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
+                    title="Start a new conversation (context is cleared)"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    New chat
+                  </button>
+                )}
+                <button
+                  onClick={close}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-card-hover hover:text-text-primary"
+                  aria-label="Close Code Assistant"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* ===== Current file chip ===== */}
+            {currentContext && (
+              <div className="flex items-center gap-1.5 border-b border-border bg-card px-5 py-2">
+                <FileCode2 className="h-3 w-3 text-accent" />
+                <span className="truncate font-mono text-[11px] text-text-secondary">
+                  {currentContext.filename}
+                </span>
+                {currentContext.selection && (
+                  <span className="ml-auto shrink-0 rounded-full border border-accent/30 bg-accent/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-accent">
+                    selection
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* ===== Body ===== */}
+            <div className="flex-1 space-y-3 overflow-y-auto border-b border-border px-5 py-4">
+              {(() => {
+                const visibleMessages = messages.filter((m) => m.role !== "system");
+                return visibleMessages.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                  <AILogo variant="accent" size="lg" />
+                  <p className="text-sm font-semibold text-text-primary">
+                    Ask to improve your code
+                  </p>
+                  <p className="max-w-[260px] text-xs leading-relaxed text-text-secondary">
+                    Try “Fix this code”, “Optimize this solution”, or “Convert
+                    this to DP”. The AI proposes changes you can review and apply.
+                  </p>
+                </div>
+              ) : (
+                visibleMessages.map((m) => (
+                  <AIMessageRow
+                    key={m.id}
+                    message={{
+                      role: m.role === "user" ? "user" : "assistant",
+                      content: m.content,
+                      reasoningContent: m.reasoningContent,
+                      isReasoning: m.isReasoning,
+                      isStreaming: m.isStreaming,
+                      usage: m.usage,
+                      timeMs: m.timeMs,
+                    }}
+                  />
+                ))
+              );
+              })()}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* ===== Composer ===== */}
+            <div className="shrink-0 px-5 pb-2.5 pt-3">
+              {/* ===== Mode toggle: Plan / Build ===== */}
+              <div className="mb-2 flex items-center gap-1 rounded-xl border border-input-border bg-input-bg p-1">
+                <button
+                  onClick={() => setMode("plan")}
+                  title="Plan — explain the approach without changing code"
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-colors",
+                    mode === "plan"
+                      ? "bg-orange-600/15 text-orange-700 shadow-sm dark:text-orange-500"
+                      : "text-text-muted hover:text-text-primary"
+                  )}
+                >
+                  <ListTree className="h-3.5 w-3.5" />
+                  Plan
+                </button>
+                <button
+                  onClick={() => setMode("build")}
+                  title="Build — propose editable changes you review and apply"
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-colors",
+                    mode === "build"
+                      ? "bg-blue-600/15 text-blue-600 shadow-sm dark:text-blue-400"
+                      : "text-text-muted hover:text-text-primary"
+                  )}
+                >
+                  <Wrench className="h-3.5 w-3.5" />
+                  Build
+                </button>
+              </div>
+              <div
                 className={cn(
-                  "inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-[0_2px_10px_rgba(59,130,246,0.25)] transition-all hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  "flex items-center gap-1.5 rounded-xl border bg-input-bg px-2.5 py-2 text-xs text-text-primary",
+                  "border-input-border focus-within:border-chat-rose/40 focus-within:ring-2 focus-within:ring-chat-rose/10"
                 )}
               >
-                <Send className="h-3.5 w-3.5" />
-                Ask AI
-              </button>
-            )}
-          </div>
-        </motion.aside>
-      )}
-    </AnimatePresence>
+                <textarea
+                  ref={textareaRef}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder={
+                    mode === "plan"
+                      ? "Ask for a step-by-step plan…"
+                      : "Ask to fix, optimize or refactor the code…"
+                  }
+                  rows={1}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  className="min-w-0 flex-1 resize-none border-0 bg-transparent text-xs text-text-primary placeholder:text-text-muted/60 focus:outline-none"
+                />
+              </div>
+              <p className="mt-1 truncate text-[10px] text-text-muted">
+                {mode === "plan"
+                  ? "Plan mode — explains the approach, never changes the code · Enter to send"
+                  : "Build mode — proposes changes you review and apply · Enter to send"}
+              </p>
+            </div>
+
+            {/* ===== Footer ===== */}
+            <div className="border-t border-border px-4 py-3">
+              {sending ? (
+                <button
+                  onClick={stopGeneration}
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-danger/40 bg-danger/10 px-4 py-2.5 text-xs font-bold text-danger transition-all hover:bg-danger/20 active:scale-[0.98]"
+                >
+                  <Square className="h-3.5 w-3.5" />
+                  Stop generating
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSend()}
+                  disabled={!prompt.trim()}
+                  className={cn(
+                    "inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-[0_2px_10px_rgba(59,130,246,0.25)] transition-all hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  )}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Ask AI
+                </button>
+              )}
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* ===== Whole-file review overlay ===== */}
+      <SuggestionReviewOverlay
+        open={reviewOpen && pendingCount > 0 && !!proposedCode}
+        filename={currentContext?.filename ?? "code"}
+        language={currentContext?.language ?? "cpp"}
+        proposedCode={proposedCode}
+        originalCode={firstPending?.originalCode}
+        explanation={firstPending?.explanation}
+        applying={suggestions.some((s) => s.applying)}
+        onAccept={acceptAll}
+        onReject={rejectAll}
+        onClose={() => setReviewOpen(false)}
+      />
+    </>
   );
 }

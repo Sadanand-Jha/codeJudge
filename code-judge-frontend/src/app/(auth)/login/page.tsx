@@ -47,7 +47,9 @@ export default function LoginPage() {
       const res = await login({ email, password });
       if (res.success && res.data) {
         const { token, user } = res.data as any;
-        setAuth(token, user);
+        // The backend authenticates via an httpOnly cookie; the body carries no
+        // token, so store a sentinel to keep the session local.
+        setAuth(token || "session", user);
         toast.success("Logged in successfully");
         router.push("/");
       } else {

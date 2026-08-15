@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Globe, User, LogOut, Search, LogIn, Code2 } from "lucide-react";
@@ -8,7 +7,7 @@ import NavbarPromoWidget from "./NavbarPromoWidget";
 import NotificationBell from "./NotificationBell";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
-import { me, logout } from "@/services/auth";
+import { logout } from "@/services/auth";
 
 const primaryTabs = [
   { label: "HOME", href: "/" },
@@ -40,26 +39,6 @@ export default function Navbar() {
   const isProblemset =
     pathname.startsWith("/problems") || pathname === "/problemset";
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const setAuth = useAuthStore((s) => s.setAuth);
-
-  // Sync auth state with session cookie on app load
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await me();
-        if (!cancelled && res.success && res.data?.user) {
-          const user = res.data.user as { id: string; email: string; username?: string };
-          setAuth("session", user);
-        }
-      } catch {
-        // Not authenticated — keep default state
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [setAuth]);
 
   return (
     <header className="border-b border-border bg-background sticky top-0 z-50">

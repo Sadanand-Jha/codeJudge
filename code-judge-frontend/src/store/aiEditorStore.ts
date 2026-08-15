@@ -68,7 +68,3 @@ export const useAIEditorStore = create<CodeAssistantState>((set, get) => ({
     return request;
   },
 }));
-
-/** Default prompt used when the user asks about the code without typing one. */
-export const DEFAULT_ASK_PROMPT =
-  "Analyze the current file: explain what it does, identify any issues, and suggest concrete improvements.";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import type { editor } from "monaco-editor";
 import { AnimatePresence, motion } from "framer-motion";
 import { mainEditorOptions } from "@/config/editor";
 import { useEditor } from "@/hooks/useEditor";
@@ -52,12 +53,12 @@ export default function CodeEditor() {
 
   // Keep the onMount callback stable - only depends on stable refs
   const handleEditorMount = useCallback(
-    (editor: any, monaco: any) => {
-      mainEditorRef.current = editor;
-      monacoRef.current = monaco;
+    (instance: editor.IStandaloneCodeEditor, monacoApi: typeof import("monaco-editor")) => {
+      mainEditorRef.current = instance;
+      monacoRef.current = monacoApi;
 
       // Subscribe to cursor position changes
-      editor.onDidChangeCursorPosition((e: any) => {
+      instance.onDidChangeCursorPosition((e: editor.ICursorPositionChangedEvent) => {
         handleCursorChange(
           `Line ${e.position.lineNumber}, Column ${e.position.column}`
         );
@@ -133,7 +134,7 @@ export default function CodeEditor() {
       />
 
       {/* Main Workspace */}
-      <div ref={workspaceRef} className="flex min-h-0 flex-1 relative bg-[#1e1e1e]">
+      <div ref={workspaceRef} className="flex min-h-0 min-w-0 w-full flex-1 relative overflow-hidden bg-[#1e1e1e]">
         {/* Left Pane (Code) */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-[#111]">
           <EditorToolbar fileName={activeFileName} />
@@ -214,6 +215,7 @@ export default function CodeEditor() {
         languageLabel={currentLangObj?.label || "C++"}
       />
 
+      {/* Ask AI assistant panel */}
       <CodeAssistantPanel
         editorRef={mainEditorRef}
         monacoRef={monacoRef}

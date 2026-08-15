@@ -7,7 +7,7 @@ import { Users, UserCheck, UserPlus, Loader2, Star, AtSign, Eye } from "lucide-r
 import { getFollowers, getFollowing, followUser, unfollowUser, type ProfileUser } from "@/services/profile";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/helpers";
-import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
+import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
 import ProfileSectionHeader from "./ProfileSectionHeader";
 
 interface SocialPageProps {
@@ -119,10 +119,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <AnimatePresence initial={false}>
               {users.map((user, i) => {
-                const avatarUrl =
-                  user.avatarUrl && getPredefinedAvatarByUrl(user.avatarUrl)?.url
-                    ? user.avatarUrl
-                    : DEFAULT_AVATAR_URL;
+                const avatarUrl = user.avatarUrl || DEFAULT_AVATAR_URL;
                 const busy = busyId === user.id;
                 return (
                   <motion.div

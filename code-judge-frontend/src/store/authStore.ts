@@ -1,55 +1,126 @@
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
+import { me } from "@/services/auth";
+
+/** Global user profile as returned by the backend /auth/me + /api/v1/user/info. */
+export interface UserProfile {
+  id: string | number;
+  email?: string | null;
+  username?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  avatarIsMale?: boolean | null;
+  bio?: string | null;
+  mobile?: string | null;
+  role?: string | null;
+  rating?: number;
+  maxRating?: number;
+  isVerified?: boolean;
+  isActive?: boolean;
+  lastLogin?: string | null;
+  preferences?: Record<string, unknown>;
+}
 
 interface AuthState {
   token: string | null;
-  user: { id: string; email: string; username?: string } | null;
+  user: UserProfile | null;
   isAuthenticated: boolean;
   hasHydrated: boolean;
 
-  setAuth: (token: string, user: { id: string; email: string; username?: string }) => void;
+  setAuth: (token: string, user: UserProfile) => void;
+  /** Merge partial profile fields (avatar, name, bio, preferences…) into the current user. */
+  setUser: (patch: Partial<UserProfile>) => void;
+  /** Fetch the full profile from the backend (/auth/me) and merge it into the store. */
+  fetchMe: () => Promise<UserProfile | null>;
   logout: () => void;
   hydrate: () => void;
+  setHasHydrated: (hasHydrated: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  token: null,
-  user: null,
-  isAuthenticated: false,
-  hasHydrated: false,
+/**
+ * Auth state persisted in localStorage via zustand's persist middleware.
+ * Token + full user profile are written on login/register and rehydrated on
+ * every page load, so pages can render user details without calling /auth/me.
+ */
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      token: null,
+      user: null,
+      isAuthenticated: false,
+      hasHydrated: false,
 
-  setAuth: (token, user) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-      localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
-    }
-    set({ token, user, isAuthenticated: true });
-  },
+      setAuth: (token, user) => {
+        set({ token, user, isAuthenticated: true });
+      },
 
-  logout: () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
-    }
-    set({ token: null, user: null, isAuthenticated: false });
-  },
+      setUser: (patch) => {
+        const { user } = get();
+        if (!user) return;
+        set({ user: { ...user, ...patch }, isAuthenticated: true });
+      },
 
-  hydrate: () => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-      const userStr = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
-      if (token && userStr) {
+      fetchMe: async () => {
+        const { token } = get();
+        if (!token) return null;
         try {
-          const user = JSON.parse(userStr);
-          set({ token, user, isAuthenticated: true, hasHydrated: true });
-          return;
+          const res = await me();
+          const fetched = res?.data?.user as UserProfile | undefined;
+          if (!fetched) return null;
+          get().setUser(fetched);
+          return fetched;
         } catch {
-          // Invalid user JSON, clear it
+          return null;
+        }
+      },
+
+      logout: () => {
+        if (typeof window !== "undefined") {
           localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
           localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
         }
-      }
-      set({ hasHydrated: true });
+        set({ token: null, user: null, isAuthenticated: false });
+      },
+
+      hydrate: () => {
+        // persist is configured with skipHydration, so rehydration is triggered
+        // manually (kept out of module init to avoid SSR/hydration mismatches).
+        void useAuthStore.persist.rehydrate();
+      },
+
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
+    }),
+    {
+      name: STORAGE_KEYS.AUTH,
+      storage: createJSONStorage(() => localStorage),
+      skipHydration: true,
+      partialize: (state) => ({
+        token: state.token,
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        // One-time import of the legacy separate keys (byteclash_token /
+        // byteclash_user) written by previous builds.
+        if (!state.token) {
+          try {
+            const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+            const userStr = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
+            if (token && userStr) {
+              state.setAuth(token, JSON.parse(userStr));
+              localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+              localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+            }
+          } catch {
+            // Invalid legacy data — ignore and start clean.
+          }
+        }
+        state.setHasHydrated(true);
+      },
     }
-  },
-}));
+  )
+);

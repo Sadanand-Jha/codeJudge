@@ -197,15 +197,15 @@ export const loginController = async (req: Request, res: Response) => {
       maxAge: 10 * 24 * 60 * 60 * 1000, // 10 days
     });
 
+    // Return the full merged profile so the frontend can persist it in zustand
+    // and render it on every page without a follow-up /auth/me call.
+    const mergedData = await buildUserProfile(String(user.id));
+
     res.status(200).json({
       success: true,
       message: "Login successful",
       data: {
-        user: {
-          id: user.id,
-          adminId: user.adminid,
-          email: normalizedEmail,
-        },
+        user: mergedData,
       },
     });
   } catch (error: any) {
@@ -216,6 +216,69 @@ export const loginController = async (req: Request, res: Response) => {
       statusCode: 500,
     });
   }
+};
+
+/**
+ * Build the comprehensive user object (profile + info merged) for a user id.
+ * Shared by /auth/login and /auth/me so both return the same shape.
+ */
+const buildUserProfile = async (userId: string) => {
+  // Fetch both profile and info data in parallel
+  // userInfo now includes the avatar column from the users table
+  const [userProfile, userInfo] = await Promise.all([
+    userService.getUserProfileById(userId),
+    userRepo.getUserInfo(userId)
+  ]);
+
+  if (!userProfile && !userInfo) {
+    return null;
+  }
+
+  // Merge the data from both sources
+  return {
+    // From profile
+    id: userProfile?.id || userInfo?.id,
+    adminId: userProfile?.adminid || userInfo?.adminid,
+    username: userProfile?.username || userInfo?.username,
+    email: userProfile?.email || userInfo?.email,
+    role: userProfile?.role_name || userInfo?.role_name || null,
+    createdAt: userProfile?.createdat || userInfo?.created_at,
+    updatedAt: userProfile?.updatedat || userInfo?.updated_at,
+
+    // Additional fields from info
+    firstName: userInfo?.first_name || null,
+    lastName: userInfo?.last_name || null,
+    displayName: userProfile?.display_name || userInfo?.display_name || null,
+    mobile: userInfo?.mobile || null,
+    avatarUrl: userProfile?.avatar_url || userInfo?.avatar_url || null,
+    avatarIsMale: userProfile?.avatar_is_male ?? userInfo?.avatar_is_male ?? null,
+    bio: userInfo?.bio || null,
+    country: userInfo?.country || null,
+    state: userInfo?.state || null,
+    college: userInfo?.college || null,
+    company: userInfo?.company || null,
+    rating: userInfo?.rating || 0,
+    maxRating: userInfo?.max_rating || 0,
+    isVerified: userInfo?.is_verified || false,
+    isActive: userInfo?.is_active ?? userProfile?.isactive ?? true,
+    lastLogin: userInfo?.last_login || null,
+
+    // Preferences from info
+    preferences: userInfo?.preferences || {
+      theme: "system",
+      accentColor: "blue",
+      compactMode: false,
+      animationSpeed: "normal",
+      preferredLanguage: "cpp",
+      editorTheme: "one-dark",
+      editorFontSize: 14,
+      tabWidth: 4,
+      wordWrap: false,
+      autoSave: true,
+      vimMode: false,
+      emacsMode: false,
+    },
+  };
 };
 
 /**
@@ -255,14 +318,9 @@ export const meController = async (req: Request, res: Response) => {
       email: string;
     };
 
-    // Fetch both profile and info data in parallel
-    // userInfo now includes the avatar column from the users table
-    const [userProfile, userInfo] = await Promise.all([
-      userService.getUserProfileById(decoded.userId),
-      userRepo.getUserInfo(decoded.userId)
-    ]);
+    const mergedData = await buildUserProfile(decoded.userId);
 
-    if (!userProfile && !userInfo) {
+    if (!mergedData) {
       res.status(401).json({
         success: false,
         message: "User not found",
@@ -270,52 +328,6 @@ export const meController = async (req: Request, res: Response) => {
       });
       return;
     }
-
-    // Merge the data from both sources
-    const mergedData = {
-      // From profile
-      id: userProfile?.id || userInfo?.id,
-      adminId: userProfile?.adminid || userInfo?.adminid,
-      username: userProfile?.username || userInfo?.username,
-      email: userProfile?.email || userInfo?.email,
-      role: userProfile?.role_name || userInfo?.role_name || null,
-      createdAt: userProfile?.createdat || userInfo?.created_at,
-      updatedAt: userProfile?.updatedat || userInfo?.updated_at,
-
-      // Additional fields from info
-      firstName: userInfo?.first_name || null,
-      lastName: userInfo?.last_name || null,
-      displayName: userProfile?.display_name || userInfo?.display_name || null,
-      mobile: userInfo?.mobile || null,
-      avatarUrl: userProfile?.avatar_url || userInfo?.avatar_url || null,
-      avatarIsMale: userProfile?.avatar_is_male ?? userInfo?.avatar_is_male ?? null,
-      bio: userInfo?.bio || null,
-      country: userInfo?.country || null,
-      state: userInfo?.state || null,
-      college: userInfo?.college || null,
-      company: userInfo?.company || null,
-      rating: userInfo?.rating || 0,
-      maxRating: userInfo?.max_rating || 0,
-      isVerified: userInfo?.is_verified || false,
-      isActive: userInfo?.is_active ?? userProfile?.isactive ?? true,
-      lastLogin: userInfo?.last_login || null,
-
-      // Preferences from info
-      preferences: userInfo?.preferences || {
-        theme: "system",
-        accentColor: "blue",
-        compactMode: false,
-        animationSpeed: "normal",
-        preferredLanguage: "cpp",
-        editorTheme: "one-dark",
-        editorFontSize: 14,
-        tabWidth: 4,
-        wordWrap: false,
-        autoSave: true,
-        vimMode: false,
-        emacsMode: false,
-      },
-    };
 
     res.status(200).json({
       success: true,

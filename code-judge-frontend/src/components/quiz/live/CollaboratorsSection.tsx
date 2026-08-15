@@ -348,7 +348,7 @@ function CollaboratorsError({ onRetry }: { onRetry: () => void }) {
 /* ─── Main section ─── */
 
 export default function CollaboratorsSection() {
-  const currentUserId = useAuthStore((s) => s.user?.id);
+  const currentUserId = useAuthStore((s) => (s.user?.id != null ? String(s.user.id) : undefined));
   const [projects, setProjects] = useState<CollaborationProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);

@@ -15,10 +15,11 @@ import type { LiveUsage } from "@/services/ai";
 /**
  * A single message in the AI assistant conversation.
  *
- * `role` follows the LLM chat format; the `system` message carries the
- * assistant's instructions and is always restored when a session starts.
- * The optional fields beyond `role`/`content` only power the live streaming UI
- * (reasoning, usage, …) and are dropped when the history is sent to the model.
+ * `role` follows the LLM chat format. The assistant's instructions are NOT
+ * stored client-side — the backend builds the full conversation (system prompt
+ * + context + history) under the `conversationId` held by this context. The
+ * optional fields beyond `role`/`content` only power the live streaming UI
+ * (reasoning, usage, …).
  */
 export interface ChatMessage {
   id: string;
@@ -32,22 +33,21 @@ export interface ChatMessage {
   timeMs?: number;
 }
 
-/** Instructions restored for every fresh conversation. */
-export const DEFAULT_SYSTEM_MESSAGE = `You are a helpful, highly capable AI assistant running locally.
-Follow these guidelines:
-- Be concise and direct in your answers.
-- If you do not know the answer, say "I don't know" rather than making something up.
-- Format your responses using Markdown for readability (use bolding, lists, and code blocks where appropriate).
-- Maintain a friendly but professional tone.`;
-
 const makeId = () =>
   `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const createConversationId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 interface ChatContextValue {
   chatHistory: ChatMessage[];
   setChatHistory: Dispatch<SetStateAction<ChatMessage[]>>;
   addMessage: (message: Omit<ChatMessage, "id">) => ChatMessage;
   clearChat: () => void;
+  /** Stable id identifying this conversation on the backend. */
+  conversationId: string;
 }
 
 const ChatContext = createContext<ChatContextValue | undefined>(undefined);
@@ -57,13 +57,12 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
  *
  * The history lives exclusively in this provider's `useState` — it is never
  * written to localStorage/sessionStorage/IndexedDB/cookies or the backend, so a
- * full page reload (or a fresh tab) starts with a brand-new conversation that
- * always begins with the system message.
+ * full page reload (or a fresh tab) starts with a brand-new conversation. The
+ * conversation history itself is persisted server-side under `conversationId`.
  */
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
-    { id: "system", role: "system", content: DEFAULT_SYSTEM_MESSAGE },
-  ]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [conversationId, setConversationId] = useState(createConversationId);
 
   const addMessage = useCallback((message: Omit<ChatMessage, "id">): ChatMessage => {
     const full: ChatMessage = { ...message, id: makeId() };
@@ -72,12 +71,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clearChat = useCallback(() => {
-    setChatHistory([{ id: "system", role: "system", content: DEFAULT_SYSTEM_MESSAGE }]);
+    setChatHistory([]);
+    setConversationId(createConversationId());
   }, []);
 
   const value = useMemo<ChatContextValue>(
-    () => ({ chatHistory, setChatHistory, addMessage, clearChat }),
-    [chatHistory, addMessage, clearChat]
+    () => ({ chatHistory, setChatHistory, addMessage, clearChat, conversationId }),
+    [chatHistory, addMessage, clearChat, conversationId]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

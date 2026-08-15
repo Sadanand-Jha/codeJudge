@@ -35,6 +35,63 @@ g.cancelAnimationFrame = (id: number) => clearTimeout(id);
 if (typeof window.Element !== "undefined" && !window.Element.prototype.scrollIntoView) {
   window.Element.prototype.scrollIntoView = () => {};
 }
+// jsdom lacks the legacy attachEvent/detachEvent APIs that React 19's
+// change-event polyfill calls on focusin/focusout — stub them to silence it.
+if (typeof window.Element !== "undefined") {
+  const proto = window.Element.prototype as unknown as Record<string, unknown>;
+  if (typeof proto.attachEvent !== "function") proto.attachEvent = () => {};
+  if (typeof proto.detachEvent !== "function") proto.detachEvent = () => {};
+}
+// Monaco (loaded lazily by the review overlay) uses matchMedia for the layout.
+if (typeof window.matchMedia !== "function") {
+  g.matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as unknown as MediaQueryList;
+  window.matchMedia = g.matchMedia as typeof window.matchMedia;
+}
+// Monaco's editor host observes size changes with ResizeObserver.
+if (typeof g.ResizeObserver !== "function") {
+  const RO = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+  g.ResizeObserver = RO;
+  window.ResizeObserver = RO;
+}
+// framer-motion v12 drives transform/opacity through the Web Animations API,
+// which jsdom doesn't implement. Without it, AnimatePresence exit animations
+// never complete and the review overlay never unmounts.
+if (typeof window.Element !== "undefined" && typeof window.Element.prototype.animate !== "function") {
+  window.Element.prototype.animate = function (this: Element) {
+    return {
+      cancel: () => {},
+      finish: () => {},
+      pause: () => {},
+      play: () => {},
+      reverse: () => {},
+      commitStyles: () => {},
+      currentTime: 0,
+      finished: Promise.resolve(),
+      ready: Promise.resolve(),
+      effect: null,
+      onfinish: null,
+      oncancel: null,
+      playbackRate: 1,
+      playState: "finished",
+      startTime: 0,
+      updatePlaybackRate: () => {},
+    } as unknown as Animation;
+  };
+}
 g.IS_REACT_ACT_ENVIRONMENT = true;
 
 // ── dependencies factotem ───────────────────────────────────────────────
@@ -44,19 +101,33 @@ import { act } from "react";
 
 // ── mock the AI service by stubbing fetch with a fake SSE body ──────────
 import { useAIEditorStore } from "@/store/aiEditorStore";
-import {
-  useCodeAssistantStore,
-  CODE_ASSISTANT_SYSTEM_ID,
-} from "@/store/codeAssistantStore";
+import { useCodeAssistantStore } from "@/store/codeAssistantStore";
 
-const RAW_DIFF =
-  "Add a variable.\n\n```diff\n@@ -1,1 +1,2 @@\n let x = 1;\n+let y = 2;\n```";
+/** The minimal request payload the panel now sends to `/ai/chat`. */
+interface ChatRequest {
+  message?: string;
+  mode?: string;
+  problemId?: string;
+  code?: string;
+  language?: string;
+  filename?: string;
+  selection?: string;
+  selectionRange?: unknown;
+  conversationId?: string;
+}
+
+/** Build-mode reply: explanation prose + the COMPLETE updated file (last fenced block). */
+const COMPLETE_FILE_REPLY =
+  "Add a variable.\n\n```cpp\nlet x = 1;\nlet y = 2;\n```";
+
+/** Build-mode reply where the complete file changes two separate lines. */
+const COMPLETE_FILE_REPLY_MULTI =
+  "Replace two lines.\n\n```cpp\nline1\nline2new\nline3\nline4new\n```";
 
 /** Emit SSE payloads as a fake `fetch` Response for `streamChat`. */
 function stubAiWithContent(
   content: string,
-  onSystem?: (sys: string) => void,
-  onMessages?: (msgs: { role: string; content: string }[]) => void
+  onRequest?: (req: ChatRequest) => void
 ) {
   const sse = [
     `data: ${JSON.stringify({ type: "content", chunk: content })}\n`,
@@ -74,15 +145,13 @@ function stubAiWithContent(
     const body = typeof init === "object" && init && "body" in init
       ? (init as { body: unknown }).body
       : "";
-    let parsed: { messages?: { role: string; content: string }[] } = {};
+    let parsed: ChatRequest = {};
     try {
       parsed = JSON.parse(typeof body === "string" ? body : "{}");
     } catch {
       parsed = {};
     }
-    const msgs = parsed.messages ?? [];
-    onSystem?.(msgs.find((m) => m.role === "system")?.content ?? "");
-    onMessages?.(msgs);
+    onRequest?.(parsed);
     return {
       ok: true,
       status: 200,
@@ -186,9 +255,8 @@ const monacoMock = {
   KeyCode: { BracketLeft: 2, BracketRight: 3 },
 };
 
-// counters for distinct ids between tests
+// counter for distinct ids between tests
 let idSeq = 0;
-const makeId = () => `id-${++idSeq}`;
 
 function resetStore() {
   useAIEditorStore.setState({
@@ -197,9 +265,8 @@ function resetStore() {
     preparing: false,
   });
   useCodeAssistantStore.setState({
-    messages: [
-      { id: CODE_ASSISTANT_SYSTEM_ID, role: "system", content: "" },
-    ],
+    conversationId: `conv-test-${++idSeq}`,
+    messages: [],
   });
 }
 
@@ -254,6 +321,7 @@ async function mountPanel(editor: any, monaco: any, open = true) {
 
   const CodeAssistantPanel = (await import("@/components/editor/CodeAssistantPanel"))
     .default;
+  const { ThemeProvider } = await import("@/context/ThemeContext");
 
   await act(async () => {
     useAIEditorStore.setState({
@@ -269,7 +337,9 @@ async function mountPanel(editor: any, monaco: any, open = true) {
       preparing: false,
     });
     root.render(
-      React.createElement(CodeAssistantPanel, { editorRef, monacoRef })
+      React.createElement(ThemeProvider, null,
+        React.createElement(CodeAssistantPanel, { editorRef, monacoRef })
+      )
     );
   });
 
@@ -292,17 +362,28 @@ async function sendMessage(editor: any) {
   });
 }
 
-function getWidget(editor: any) {
-  return editor.__byteclashInlineWidget as {
-    getDomNode: () => HTMLElement;
-  } | null;
+function getOverlayButtons() {
+  const modal = document.querySelector("[data-review-modal]") as HTMLElement | null;
+  if (!modal) return { accept: null, reject: null };
+  const buttons = Array.from(modal.querySelectorAll("button"));
+  const accept = buttons.find((b) => b.textContent?.trim() === "Accept changes") ?? null;
+  const reject = buttons.find((b) => b.textContent?.trim() === "Reject") ?? null;
+  return { accept, reject };
+}
+
+async function waitForOverlayClosed(timeout = 3000) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    if (getOverlayButtons().accept === null) return;
+    await new Promise((r) => setTimeout(r, 25));
+  }
 }
 
 const fileText = async (editor: any) => editor.getModel().getValue();
 
-test("accepting a suggestion removes the inline widget and decorations", async () => {
+test("accepting a build suggestion replaces the file with the complete proposed code", async () => {
   resetStore();
-  const restore = stubAiWithContent(RAW_DIFF);
+  const restore = stubAiWithContent(COMPLETE_FILE_REPLY);
   try {
     const model = makeMockModel("let x = 1;\n");
     const editor = makeEditor(model);
@@ -310,33 +391,24 @@ test("accepting a suggestion removes the inline widget and decorations", async (
 
     await sendMessage(editor);
 
-    const widget = getWidget(editor);
-    if (!widget) throw new Error("inline widget was not attached after send");
-
-    const dom = widget.getDomNode();
-    const applyBtn = Array.from(dom.querySelectorAll("button")).find(
-      (b) => b.textContent === "Apply"
-    );
-    if (!applyBtn) throw new Error("Apply button not present in widget");
+    const { accept } = getOverlayButtons();
+    if (!accept) throw new Error("review overlay did not open after send");
 
     await act(async () => {
-      applyBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      accept.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    if (getWidget(editor) !== null) {
-      throw new Error("inline widget still attached after accept");
-    }
-    if ((editor.widgets as unknown[]).length !== 0) {
-      throw new Error("content widget still registered after accept");
-    }
     const text = await fileText(editor);
     if (!text.includes("let y = 2;")) {
       throw new Error(`applied text missing added line: ${JSON.stringify(text)}`);
     }
-    // decoration ids are cleared
-    if ((editor.decorations as string[]).length !== 0) {
-      throw new Error("ghost decorations still present after accept");
+    // Wait out the overlay's exit animation before asserting it is gone.
+    await act(async () => {
+      await waitForOverlayClosed();
+    });
+    if (getOverlayButtons().accept !== null) {
+      throw new Error("overlay still open after accept");
     }
   } finally {
     restore();
@@ -344,9 +416,104 @@ test("accepting a suggestion removes the inline widget and decorations", async (
   }
 });
 
-test("rejecting a suggestion removes the inline widget without editing the file", async () => {
+test("accepting a build suggestion replaces the WHOLE file, keeping every change", async () => {
   resetStore();
-  const restore = stubAiWithContent(RAW_DIFF);
+  const restore = stubAiWithContent(COMPLETE_FILE_REPLY_MULTI);
+  try {
+    const model = makeMockModel("line1\nline2\nline3\nline4\n");
+    const editor = makeEditor(model);
+    const { root } = await mountPanel(editor, monacoMock);
+
+    await sendMessage(editor);
+
+    const { accept } = getOverlayButtons();
+    if (!accept) throw new Error("review overlay did not open after send");
+
+    await act(async () => {
+      accept.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    const text = await fileText(editor);
+    if (!text.includes("line2new")) {
+      throw new Error(`first change missing: ${JSON.stringify(text)}`);
+    }
+    if (!text.includes("line4new")) {
+      throw new Error(`second change missing: ${JSON.stringify(text)}`);
+    }
+    if (text.includes("line2\n")) {
+      throw new Error(`old line2 not removed (expected full replace): ${JSON.stringify(text)}`);
+    }
+    // Wait out the overlay's exit animation before asserting it is gone.
+    await act(async () => {
+      await waitForOverlayClosed();
+    });
+    if (getOverlayButtons().accept !== null) {
+      throw new Error("overlay still open after accept");
+    }
+  } finally {
+    restore();
+    await unmountAll();
+  }
+});
+
+test("plan mode asks the AI without opening the review overlay", async () => {
+  resetStore();
+  let seenMode = "";
+  const restore = stubAiWithContent(COMPLETE_FILE_REPLY, (req) => (seenMode = req.mode ?? ""));
+  try {
+    const model = makeMockModel("let x = 1;\n");
+    const editor = makeEditor(model);
+    await mountPanel(editor, monacoMock);
+
+    const planBtn = Array.from(document.querySelectorAll("button")).find(
+      (b) => b.textContent?.trim() === "Plan"
+    );
+    if (!planBtn) throw new Error("Plan toggle not found");
+    await act(async () => {
+      planBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    await sendMessage(editor);
+
+    if (seenMode !== "plan") {
+      throw new Error(`expected mode "plan", got "${seenMode}"`);
+    }
+    // Even though the AI emits a complete-file code block, plan mode must NOT
+    // open the overlay.
+    if (getOverlayButtons().accept !== null) {
+      throw new Error("review overlay opened in plan mode");
+    }
+  } finally {
+    restore();
+    await unmountAll();
+  }
+});
+
+test("build mode is the default and requests coding_coach", async () => {
+  resetStore();
+  let seenMode = "";
+  const restore = stubAiWithContent(COMPLETE_FILE_REPLY, (req) => (seenMode = req.mode ?? ""));
+  try {
+    const model = makeMockModel("let x = 1;\n");
+    const editor = makeEditor(model);
+    await mountPanel(editor, monacoMock);
+
+    await sendMessage(editor);
+
+    if (seenMode !== "coding_coach") {
+      throw new Error(`expected mode "coding_coach", got "${seenMode}"`);
+    }
+  } finally {
+    restore();
+    await unmountAll();
+  }
+});
+
+test("rejecting a suggestion closes the overlay without editing the file", async () => {
+  resetStore();
+  const restore = stubAiWithContent(COMPLETE_FILE_REPLY);
   try {
     const model = makeMockModel("let x = 1;\n");
     const editor = makeEditor(model);
@@ -354,26 +521,24 @@ test("rejecting a suggestion removes the inline widget without editing the file"
 
     await sendMessage(editor);
 
-    const widget = getWidget(editor);
-    if (!widget) throw new Error("inline widget was not attached after send");
-
-    const dom = widget.getDomNode();
-    const rejectBtn = Array.from(dom.querySelectorAll("button")).find(
-      (b) => b.textContent === "Reject"
-    );
-    if (!rejectBtn) throw new Error("Reject button not present in widget");
+    const { reject } = getOverlayButtons();
+    if (!reject) throw new Error("review overlay did not open after send");
 
     await act(async () => {
-      rejectBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      reject.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    if (getWidget(editor) !== null) {
-      throw new Error("inline widget still attached after reject");
-    }
     const text = await fileText(editor);
     if (text.includes("let y = 2;")) {
       throw new Error(`file was modified on reject: ${JSON.stringify(text)}`);
+    }
+    // Wait out the overlay's exit animation before asserting it is gone.
+    await act(async () => {
+      await waitForOverlayClosed();
+    });
+    if (getOverlayButtons().accept !== null) {
+      throw new Error("overlay still open after reject");
     }
   } finally {
     restore();
@@ -383,9 +548,9 @@ test("rejecting a suggestion removes the inline widget without editing the file"
 
 test("code sent to the AI is the live editor content, not a stale snapshot", async () => {
   resetStore();
-  // instrument the fetch stub to record what context reached the model
-  let seenSystem = "";
-  const restore = stubAiWithContent(RAW_DIFF, (sys) => (seenSystem = sys));
+  // instrument the fetch stub to record what reached the backend
+  let seenCode = "";
+  const restore = stubAiWithContent(COMPLETE_FILE_REPLY, (req) => (seenCode = req.code ?? ""));
   try {
     const model = makeMockModel("let x = 1;\n");
     const editor = makeEditor(model);
@@ -398,13 +563,13 @@ test("code sent to the AI is the live editor content, not a stale snapshot", asy
 
     await sendMessage(editor);
 
-    if (!seenSystem.includes("let userEdit = 1;")) {
+    if (!seenCode.includes("let userEdit = 1;")) {
       throw new Error(
-        "AI did not receive latest editor content: " + seenSystem.slice(0, 200)
+        "AI did not receive latest editor content: " + seenCode.slice(0, 200)
       );
     }
-    if (seenSystem.includes("let x = 1;") === false) {
-      throw new Error("system message lost the file content");
+    if (seenCode.includes("let x = 1;") === false) {
+      throw new Error("request lost the file content");
     }
   } finally {
     restore();
@@ -415,63 +580,59 @@ test("code sent to the AI is the live editor content, not a stale snapshot", asy
 function typePrompt(text: string) {
   const ta = document.querySelector("textarea") as HTMLTextAreaElement | null;
   if (!ta) throw new Error("textarea not found");
-  const setter = Object.getOwnPropertyDescriptor(
-    window.HTMLTextAreaElement.prototype,
-    "value"
-  )?.set;
-  setter?.call(ta, text);
-  ta.dispatchEvent(new window.Event("input", { bubbles: true }));
+  // jsdom reports the native `input` event as unsupported, so React 19 wires
+  // textarea onChange through the legacy polyfill: focusin activates the
+  // element, then keyup re-checks the value. Define an OWN `value` property
+  // (shadowing React's patched prototype setter) so the value change is seen.
+  ta.dispatchEvent(new window.FocusEvent("focusin", { bubbles: true }));
+  Object.defineProperty(ta, "value", { value: text, configurable: true, writable: true });
+  ta.dispatchEvent(new window.KeyboardEvent("keyup", { bubbles: true }));
 }
 
-test("conversation context persists across turns (full history is resent)", async () => {
+test("conversation context persists across turns (stable conversationId, fresh code)", async () => {
   resetStore();
-  const historyByTurn: string[][] = [];
-  const restore = stubAiWithContent(RAW_DIFF, undefined, (msgs) => {
-    historyByTurn.push(msgs.map((m) => `${m.role}: ${m.content.slice(0, 30)}`));
-  });
+  const bodies: ChatRequest[] = [];
+  const restore = stubAiWithContent(COMPLETE_FILE_REPLY, (req) => bodies.push(req));
   try {
     const model = makeMockModel("let x = 1;\n");
     const editor = makeEditor(model);
     const { root } = await mountPanel(editor, monacoMock);
 
     await sendMessage(editor); // turn 1
-    typePrompt("and now optimize it");
-    const send2 = Array.from(document.querySelectorAll("button")).find(
-      (b) => b.textContent && b.textContent.includes("Ask AI")
-    );
-    const ta = document.querySelector("textarea") as HTMLTextAreaElement | null;
-    console.log(
-      "DEBUG send2.disabled:",
-      send2?.disabled,
-      "ta.value:",
-      JSON.stringify(ta?.value)
-    );
+    // Type the follow-up prompt; React must process the polyfilled input
+    // events inside act() so the prompt state commits before the next click.
+    await act(async () => {
+      typePrompt("and now optimize it");
+      await new Promise((r) => setTimeout(r, 0));
+    });
     await sendMessage(editor); // turn 2
 
-    if (historyByTurn.length !== 2) {
-      throw new Error(`expected 2 AI calls, got ${historyByTurn.length}`);
+    if (bodies.length !== 2) {
+      throw new Error(`expected 2 AI calls, got ${bodies.length}`);
     }
-    const turn2 = historyByTurn[1];
-    const userCount = turn2.filter((m) => m.startsWith("user:")).length;
-    const assistantCount = turn2.filter((m) => m.startsWith("assistant:")).length;
-    const systemCount = turn2.filter((m) => m.startsWith("system:")).length;
-    if (userCount !== 2) {
+    const [turn1, turn2] = bodies;
+
+    if (!turn1.conversationId) {
+      throw new Error("turn 1 is missing a conversationId");
+    }
+    if (turn1.conversationId !== turn2.conversationId) {
       throw new Error(
-        `turn 2 has ${userCount} user messages, expected 2 (prior + current)`
+        `conversationId changed across turns: ${turn1.conversationId} -> ${turn2.conversationId}`
       );
     }
-    if (assistantCount !== 1) {
-      throw new Error(
-        `turn 2 has ${assistantCount} assistant messages, expected 1`
-      );
+    if (turn1.mode !== "coding_coach") {
+      throw new Error(`expected coding_coach mode, got ${turn1.mode}`);
     }
-    if (systemCount !== 1) {
-      throw new Error(
-        `turn 2 has ${systemCount} system messages, expected 1`
-      );
+    if (turn2.message?.includes("optimize") === false) {
+      throw new Error("turn 2 user prompt missing from request");
     }
-    if (!turn2.some((m) => m.includes("optimize"))) {
-      throw new Error("turn 2 user prompt missing from history");
+    // The full file is resent (freshly) on every turn so the backend always
+    // has the latest code — the frontend never sends a system prompt.
+    if (turn1.code?.includes("let x = 1;") === false) {
+      throw new Error("turn 1 request missing the file content");
+    }
+    if (turn2.code?.includes("let x = 1;") === false) {
+      throw new Error("turn 2 request missing the file content");
     }
   } finally {
     restore();
