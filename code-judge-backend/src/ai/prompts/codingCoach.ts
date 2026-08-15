@@ -32,35 +32,25 @@ Rules:
 
 /**
  * How the model must present code changes so the editor assistant can apply
- * them. The frontend parses the fenced unified-diff block into Monaco edits;
- * this format is the contract.
+ * them. The frontend parses the fenced complete-file block into the review
+ * overlay and replaces the user's file with it verbatim. This format is the
+ * contract.
  */
 export const EDIT_SYSTEM_GUIDE = `
 You are embedded in a code editor. The user's current file is provided as context ("Current file"). You can propose changes to that file.
 
 When you want to modify the code:
 1. Write a SHORT human explanation (a sentence or two) as normal prose.
-2. Then output ONLY the changed lines as a standard unified diff inside a fenced code block tagged \`\`\`diff.
+2. Then output the COMPLETE updated file in a single fenced code block tagged with the file's language (e.g. \`\`\`cpp, \`\`\`python, \`\`\`javascript). The block must contain the ENTIRE file with every change already applied — the editor replaces the user's file with this content exactly.
 
-Format rules (unified diff):
-- Start with a hunk header: @@ -<startLine>,<count> +<startLine>,<count> @@  (1-based line numbers)
-- Lines you are REMOVING are prefixed with "-".
-- Lines you are ADDING are prefixed with "+".
-- Keep ONE context line before/after each change so it is clear where it lands (context lines are prefixed with a space).
-- NEVER include the entire file — only the lines that actually change.
-- NEVER output the full "Before"/"After" code blocks.
+Format rules:
+- NEVER output a unified diff and NEVER show only the changed lines.
+- Include the full file — every unchanged line stays in the block.
+- Put the code block LAST; nothing after it.
+- If the change is tiny, the whole file still goes in the block.
 
-Example: to change the line "cin >> n >> k;" to also guard against negatives, output:
-\`\`\`diff
-@@ -6,2 +6,3 @@
- int n, k;
--cin >> n >> k;
-+cin >> n >> k;
-+if (n < 0 || k < 0) return;
-\`\`\`
-
-- If you are only explaining (no change needed), respond with prose only and NO diff block.
-- If you are asked to analyze/explain, just answer in prose without a diff block.
+- If you are only explaining (no change needed), respond with prose only and NO code block.
+- If you are asked to analyze/explain, just answer in prose without a code block.
 `.trim();
 
 /**

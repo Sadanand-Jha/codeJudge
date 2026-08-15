@@ -3817,6 +3817,43 @@ svg {
   );
 }
 
+/* ═══ AI Review Overlay — diff line decorations ═══
+   Added lines get a very light green wash, modified lines a very light
+   lavender wash, with a thin indicator bar on the left edge (drawn in the
+   Monaco line-decorations margin). Used only by SuggestionReviewOverlay. */
+.monaco-editor .review-line-added {
+  background-color: rgba(34, 197, 94, 0.09);
+}
+.monaco-editor .review-line-modified {
+  background-color: rgba(139, 92, 246, 0.09);
+}
+.monaco-editor .review-gutter-added {
+  width: 3px;
+  background-color: #22C55E;
+  border-radius: 1px;
+  transform: scaleY(0.6);
+}
+.monaco-editor .review-gutter-modified {
+  width: 3px;
+  background-color: #8B5CF6;
+  border-radius: 1px;
+  transform: scaleY(0.6);
+}
+
+/* Light theme: crisp, subtle washes that read as an IDE diff (not neon). */
+[data-theme="light"] .monaco-editor .review-line-added {
+  background-color: #F0FDF4;
+}
+[data-theme="light"] .monaco-editor .review-line-modified {
+  background-color: #F5F3FF;
+}
+[data-theme="light"] .monaco-editor .review-gutter-added {
+  background-color: #16A34A;
+}
+[data-theme="light"] .monaco-editor .review-gutter-modified {
+  background-color: #7C3AED;
+}
+
 
 
 

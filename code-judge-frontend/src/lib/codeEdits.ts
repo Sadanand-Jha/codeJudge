@@ -484,104 +484,113 @@ export function applyEditsToEditor(
   return true;
 }
 
+/*
+ * ────────────────────────────────────────────────────────────────────────────
+ * INLINE (Copilot-style) suggestion in Monaco — COMMENTED OUT.
+ *
+ * The build flow now shows the COMPLETE proposed file in the review overlay
+ * instead of decorating the editor inline, so the inline decoration/widget
+ * machinery below is unused and disabled.
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+
 /**
  * Highlight the affected lines in Monaco with a subtle purple glow so the user
  * can see exactly what will change BEFORE applying. Returns decoration IDs that
  * must be passed to `clearEditDecorations` to remove them.
  */
-export function addEditDecorations(
-  editor: any,
-  edits: AIEdit[]
-): string[] | null {
-  const model = editor?.getModel?.();
-  if (!model) return null;
+// export function addEditDecorations(
+//   editor: any,
+//   edits: AIEdit[]
+// ): string[] | null {
+//   const model = editor?.getModel?.();
+//   if (!model) return null;
+//
+//   const prevDecorations = (editor.__byteclashAiDecorations as string[] | undefined) ?? [];
+//
+//   const opts = edits.map((e) => {
+//     const line = clamp(Math.round(e.startLine), 1, model.getLineCount());
+//     const range = model.getLineRange?.(line) ?? null;
+//     return {
+//       range,
+//       options: {
+//         isWholeLine: false,
+//         className: "byteclash-ai-edit-line",
+//         glyphMarginClassName: "byteclash-ai-edit-glyph",
+//         linesDecorationsClassName: "byteclash-ai-edit-gutter",
+//         overviewRuler: {
+//           color: "rgba(167,139,250,0.5)",
+//           darkColor: "rgba(167,139,250,0.6)",
+//           position: 3,
+//         },
+//         hoverMessage: { value: "AI suggestion — click Apply to accept" },
+//       },
+//     };
+//   });
+//
+//   const ids = editor.deltaDecorations(prevDecorations, opts);
+//   editor.__byteclashAiDecorations = ids;
+//   return ids;
+// }
 
-  const prevDecorations = (editor.__byteclashAiDecorations as string[] | undefined) ?? [];
+// /** Remove the AI suggestion decorations (on reject/apply/close). */
+// export function clearEditDecorations(editor: any): void {
+//   if (!editor) return;
+//   const ids = (editor.__byteclashAiDecorations as string[] | undefined) ?? [];
+//   if (ids.length > 0) {
+//     editor.deltaDecorations(ids, []);
+//   }
+//   editor.__byteclashAiDecorations = [];
+// }
 
-  const opts = edits.map((e) => {
-    const line = clamp(Math.round(e.startLine), 1, model.getLineCount());
-    const range = model.getLineRange?.(line) ?? null;
-    return {
-      range,
-      options: {
-        isWholeLine: false,
-        className: "byteclash-ai-edit-line",
-        glyphMarginClassName: "byteclash-ai-edit-glyph",
-        linesDecorationsClassName: "byteclash-ai-edit-gutter",
-        overviewRuler: {
-          color: "rgba(167,139,250,0.5)",
-          darkColor: "rgba(167,139,250,0.6)",
-          position: 3,
-        },
-        hoverMessage: { value: "AI suggestion — click Apply to accept" },
-      },
-    };
-  });
-
-  const ids = editor.deltaDecorations(prevDecorations, opts);
-  editor.__byteclashAiDecorations = ids;
-  return ids;
-}
-
-/** Remove the AI suggestion decorations (on reject/apply/close). */
-export function clearEditDecorations(editor: any): void {
-  if (!editor) return;
-  const ids = (editor.__byteclashAiDecorations as string[] | undefined) ?? [];
-  if (ids.length > 0) {
-    editor.deltaDecorations(ids, []);
-  }
-  editor.__byteclashAiDecorations = [];
-}
-
-/* ═══════════════ Inline (Copilot-style) suggestion in Monaco ═══════════════ */
-
-/** Cap ghost-text lines per edit so Monaco never renders an unbounded block. */
-const MAX_GHOST_LINES = 60;
-/** Cap rows rendered inside the inline suggestion widget. */
-const MAX_WIDGET_LINES = 80;
-
-/** Split a newText into visible added lines (drops trailing empty line). */
-function splitAddedLines(newText: string): string[] {
-  const lines = (newText || "").split("\n");
-  if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
-  return lines;
-}
-
-/**
- * Resolve an edit against a given file text into concrete removed/added lines.
- * Mirrors buildEditDiff's coordinate handling so the inline preview and the
- * chat diff always agree.
- */
-export function resolveEditLines(
-  fileText: string,
-  edit: AIEdit
-): { removed: string[]; added: string[] } {
-  const lines = fileText.split("\n");
-  const removed: string[] = [];
-  const fromLine = clamp(edit.startLine, 1, Math.max(1, lines.length));
-  const toLine = clamp(edit.endLine, 1, Math.max(1, lines.length));
-  const wholeLines = edit.endColumn === 1 && toLine > fromLine;
-
-  if (wholeLines) {
-    for (let i = fromLine - 1; i < toLine - 1; i++) {
-      const ln = lines[i];
-      if (ln !== undefined) removed.push(ln);
-    }
-  } else if (fromLine === toLine) {
-    const full = lines[fromLine - 1] ?? "";
-    const start = clamp(edit.startColumn - 1, 0, full.length);
-    const end = clamp(edit.endColumn - 1, start, full.length);
-    const removedText = full.slice(start, end);
-    if (removedText.trim()) removed.push(removedText);
-  } else {
-    for (let i = fromLine - 1; i < toLine; i++) {
-      const ln = lines[i];
-      if (ln !== undefined) removed.push(ln);
-    }
-  }
-
-  return { removed, added: splitAddedLines(edit.newText) };
-}
+// /** Cap ghost-text lines per edit so Monaco never renders an unbounded block. */
+// const MAX_GHOST_LINES = 60;
+// /** Cap rows rendered inside the inline suggestion widget. */
+// const MAX_WIDGET_LINES = 80;
+//
+// /** Split a newText into visible added lines (drops trailing empty line). */
+// function splitAddedLines(newText: string): string[] {
+//   const lines = (newText || "").split("\n");
+//   if (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+//   return lines;
+// }
+//
+// /**
+//  * Resolve an edit against a given file text into concrete removed/added lines.
+//  * Mirrors buildEditDiff's coordinate handling so the inline preview and the
+//  * chat diff always agree.
+//  */
+// export function resolveEditLines(
+//   fileText: string,
+//   edit: AIEdit
+// ): { removed: string[]; added: string[] } {
+//   const lines = fileText.split("\n");
+//   const removed: string[] = [];
+//   const fromLine = clamp(edit.startLine, 1, Math.max(1, lines.length));
+//   const toLine = clamp(edit.endLine, 1, Math.max(1, lines.length));
+//   const wholeLines = edit.endColumn === 1 && toLine > fromLine;
+//
+//   if (wholeLines) {
+//     for (let i = fromLine - 1; i < toLine - 1; i++) {
+//       const ln = lines[i];
+//       if (ln !== undefined) removed.push(ln);
+//     }
+//   } else if (fromLine === toLine) {
+//     const full = lines[fromLine - 1] ?? "";
+//     const start = clamp(edit.startColumn - 1, 0, full.length);
+//     const end = clamp(edit.endColumn - 1, start, full.length);
+//     const removedText = full.slice(start, end);
+//     if (removedText.trim()) removed.push(removedText);
+//   } else {
+//     for (let i = fromLine - 1; i < toLine; i++) {
+//       const ln = lines[i];
+//       if (ln !== undefined) removed.push(ln);
+//     }
+//   }
+//
+//   return { removed, added: splitAddedLines(edit.newText) };
+// }
+// ── END INLINE SUGGESTION (COMMENTED OUT) ──────────────────────────────────
 
 /* ═══════════════════ Structural analysis (blocks & delimiters) ═══════════════════ */
 
@@ -1042,312 +1051,321 @@ export function validateStructuralBalance(
   return { valid: unbalanced.length === 0, unbalanced };
 }
 
-interface InlineSuggestionCallbacks {
-  onApply: () => void;
-  onReject: () => void;
-  /** Optional extra label, e.g. the change explanation. */
-  label?: string;
-  /** When provided, renders a "previous suggestion" control in the widget. */
-  onPrev?: () => void;
-  /** When provided, renders a "next suggestion" control in the widget. */
-  onNext?: () => void;
-  /** e.g. "1 / 3" — shown next to the nav controls when navigating. */
-  positionLabel?: string;
-}
-
-export interface InlineSuggestionHandle {
-  /** Remove all decorations + the widget. Safe to call multiple times. */
-  detach: () => void;
-}
-
-/**
- * Render a rich inline suggestion directly inside Monaco:
- *  - the actual (real) lines being removed get a red deletion background and a
- *    thin red gutter bar, without modifying the model;
- *  - the new lines are shown as injected "ghost text" immediately after, with a
- *    green/pink addition tint;
- *  - a compact content widget floats near the first changed line with the
- *    "✨ AI suggested change", [Reject] and [Apply] buttons.
- *
- * The model is NEVER modified here — only decorations + a widget are added.
- * Returns a handle whose `.detach()` removes everything.
+/*
+ * ────────────────────────────────────────────────────────────────────────
+ * INLINE SUGGESTION WIDGET + GHOST TEXT — COMMENTED OUT.
+ * The build flow shows the COMPLETE proposed file in the review overlay,
+ * so the Copilot-style inline widget/decorations below are disabled.
+ * ────────────────────────────────────────────────────────────────────────
  */
-export function attachInlineSuggestion(
-  editor: any,
-  monaco: any,
-  edits: AIEdit[],
-  callbacks: InlineSuggestionCallbacks
-): InlineSuggestionHandle {
-  detachInlineSuggestion(editor);
-
-  const model = editor?.getModel?.();
-  if (!model || !monaco?.Range || edits.length === 0) {
-    return {
-      detach: () => {
-        /* editor not ready; nothing to remove */
-      },
-    };
-  }
-
-  const fileText = model.getValue();
-  const lineCount = model.getLineCount();
-  const createdIds: string[] = [];
-  let firstLine = Infinity;
-
-  for (const edit of edits) {
-    const { removed, added } = resolveEditLines(fileText, edit);
-    const fromLine = clamp(Math.round(edit.startLine), 1, lineCount);
-
-    let anchorLine = fromLine;
-
-    // Decorate the REAL removed lines with a red deletion background + gutter.
-    const removedCount =
-      edit.endColumn === 1 && edit.endLine > edit.startLine
-        ? edit.endLine - edit.startLine
-        : removed.length;
-
-    if (removedCount > 0) {
-      const rStart = fromLine;
-      const rEnd = Math.max(rStart, rStart + removedCount - 1);
-      const ids = editor.deltaDecorations(
-        [],
-        [
-          {
-            range: new monaco.Range(rStart, 1, rEnd + 1, 1),
-            options: {
-              isWholeLine: true,
-              className: "bcl-ai-inline-remove",
-              linesDecorationsClassName: "bcl-ai-inline-remove-gutter",
-              stickiness: 1,
-            },
-          },
-        ]
-      );
-      createdIds.push(...(ids ?? []));
-      anchorLine = rEnd;
-    }
-
-    // Inject the ADDED lines as ghost text with a green/pink tint, anchored to
-    // just after the removed block (or at the insertion point).
-    if (added.length > 0) {
-      const anchor = removedCount > 0 ? anchorLine : fromLine;
-      const shownAdded =
-        added.length > MAX_GHOST_LINES ? added.slice(0, MAX_GHOST_LINES) : added;
-      const ghost =
-        shownAdded.join("\n") +
-        (added.length > MAX_GHOST_LINES
-          ? `\n… (+${added.length - MAX_GHOST_LINES} more)`
-          : "") +
-        "\n";
-      const ghostRange =
-        removedCount > 0
-          ? new monaco.Range(anchor, 1, anchor, 1)
-          : new monaco.Range(
-              anchor,
-              clamp(edit.startColumn, 1, model.getLineMaxColumn(anchor)),
-              anchor,
-              clamp(edit.startColumn, 1, model.getLineMaxColumn(anchor))
-            );
-      const ids = editor.deltaDecorations(
-        [],
-        [
-          {
-            range: ghostRange,
-            options: {
-              after: {
-                content: ghost,
-                inlineClassName: "bcl-ai-inline-add",
-                cursorStops: 3, // None — don't trap the caret in ghost text
-              },
-              stickiness: 3,
-            },
-          },
-        ]
-      );
-      createdIds.push(...(ids ?? []));
-    }
-
-    firstLine = Math.min(firstLine, fromLine);
-  }
-
-  // Track all created ids for teardown.
-  editor.__byteclashInlineIds = createdIds;
-
-  if (!Number.isFinite(firstLine)) firstLine = 1;
-  firstLine = clamp(firstLine, 1, lineCount);
-
-  // Compact, theme-consistent widget with Accept / Reject.
-  let widgetDOM: HTMLDivElement | null = null;
-
-  const buildWidget = () => {
-    if (widgetDOM) return widgetDOM;
-    const root = document.createElement("div");
-    root.className = "bcl-ai-widget";
-
-    const head = document.createElement("div");
-    head.className = "bcl-ai-widget-head";
-    const badge = document.createElement("span");
-    badge.className = "bcl-ai-widget-badge";
-    badge.textContent = "✦";
-    head.appendChild(badge);
-    const label = document.createElement("span");
-    label.className = "bcl-ai-widget-label";
-    label.textContent = "AI suggested change";
-    head.appendChild(label);
-    if (callbacks.onPrev || callbacks.onNext) {
-      const nav = document.createElement("div");
-      nav.className = "bcl-ai-widget-nav";
-      if (callbacks.onPrev) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "bcl-ai-widget-navbtn";
-        b.innerHTML = "‹";
-        b.title = "Previous suggestion (Alt+[)";
-        b.onclick = (ev) => {
-          ev.stopPropagation();
-          callbacks.onPrev?.();
-        };
-        nav.appendChild(b);
-      }
-      if (callbacks.positionLabel) {
-        const pos = document.createElement("span");
-        pos.className = "bcl-ai-widget-pos";
-        pos.textContent = callbacks.positionLabel;
-        nav.appendChild(pos);
-      }
-      if (callbacks.onNext) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "bcl-ai-widget-navbtn";
-        b.innerHTML = "›";
-        b.title = "Next suggestion (Alt+])";
-        b.onclick = (ev) => {
-          ev.stopPropagation();
-          callbacks.onNext?.();
-        };
-        nav.appendChild(b);
-      }
-      head.appendChild(nav);
-    }
-    root.appendChild(head);
-
-    const body = document.createElement("div");
-    body.className = "bcl-ai-widget-diff";
-    // Reuse the snapshot captured when the suggestion was attached instead of
-    // re-reading the whole model for every edit.
-    const { removed, added } = edits.reduce<{
-      removed: string[];
-      added: string[];
-    }>(
-      (acc, e) => {
-        const r = resolveEditLines(fileText, e);
-        acc.removed.push(...r.removed);
-        acc.added.push(...r.added);
-        return acc;
-      },
-      { removed: [], added: [] }
-    );
-    const allRows: { kind: "remove" | "add"; text: string }[] = [
-      ...removed.map((t) => ({ kind: "remove" as const, text: t })),
-      ...added.map((t) => ({ kind: "add" as const, text: t })),
-    ];
-    const overflow = allRows.length - MAX_WIDGET_LINES;
-    const rows = overflow > 0 ? allRows.slice(0, MAX_WIDGET_LINES) : allRows;
-
-    rows.forEach(({ kind, text }) => {
-      const row = document.createElement("div");
-      row.className = `bcl-ai-widget-row bcl-ai-widget-${kind}`;
-      row.innerHTML = `<span class="bcl-ai-widget-sign">${
-        kind === "remove" ? "−" : "+"
-      }</span><code>${escapeHtml(text)}</code>`;
-      body.appendChild(row);
-    });
-    if (overflow > 0) {
-      const row = document.createElement("div");
-      row.className = "bcl-ai-widget-row bcl-ai-widget-more";
-      row.textContent = `… ${overflow} more line${overflow === 1 ? "" : "s"}`;
-      body.appendChild(row);
-    }
-    if (rows.length === 0 && overflow <= 0) {
-      const row = document.createElement("div");
-      row.className = "bcl-ai-widget-row";
-      row.textContent = callbacks.label || "Suggested change";
-      body.appendChild(row);
-    }
-    root.appendChild(body);
-
-    const actions = document.createElement("div");
-    actions.className = "bcl-ai-widget-actions";
-    const reject = document.createElement("button");
-    reject.type = "button";
-    reject.className = "bcl-ai-widget-btn bcl-ai-widget-reject";
-    reject.textContent = "Reject";
-    reject.onclick = (ev) => {
-      ev.stopPropagation();
-      callbacks.onReject();
-    };
-    const apply = document.createElement("button");
-    apply.type = "button";
-    apply.className = "bcl-ai-widget-btn bcl-ai-widget-apply";
-    apply.textContent = "Apply";
-    apply.onclick = (ev) => {
-      ev.stopPropagation();
-      callbacks.onApply();
-    };
-    actions.appendChild(reject);
-    actions.appendChild(apply);
-    root.appendChild(actions);
-
-    widgetDOM = root;
-    return root;
-  };
-
-  const widget = {
-    getId: () => "byteclash-inline-suggestion",
-    getDomNode: () => buildWidget(),
-    getPosition: () => ({
-      position: {
-        lineNumber: firstLine,
-        column: 1,
-      },
-      // Float the widget above the first changed line (Copilot-style).
-      preference: 1,
-    }),
-    allowBeforeOverlapping: true,
-    allowAfterOverlapping: true,
-    suppressMouseDown: true,
-  } as any;
-
-  editor.addContentWidget(widget);
-  editor.__byteclashInlineWidget = widget;
-
-  return {
-    detach: () => detachInlineSuggestion(editor),
-  };
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-/** Remove inline suggestion decorations + widget. Idempotent. */
-export function detachInlineSuggestion(editor: any): void {
-  if (!editor) return;
-  try {
-    const ids = (editor.__byteclashInlineIds as string[] | undefined) ?? [];
-    if (ids.length > 0) editor.deltaDecorations(ids, []);
-  } catch {
-    /* ignore */
-  }
-  try {
-    const widget = editor.__byteclashInlineWidget as unknown;
-    if (widget) editor.removeContentWidget(widget as any);
-  } catch {
-    /* ignore */
-  }
-  editor.__byteclashInlineIds = [];
-  editor.__byteclashInlineWidget = null;
-}
+// interface InlineSuggestionCallbacks {
+//   onApply: () => void;
+//   onReject: () => void;
+//   /** Optional extra label, e.g. the change explanation. */
+//   label?: string;
+//   /** When provided, renders a "previous suggestion" control in the widget. */
+//   onPrev?: () => void;
+//   /** When provided, renders a "next suggestion" control in the widget. */
+//   onNext?: () => void;
+//   /** e.g. "1 / 3" — shown next to the nav controls when navigating. */
+//   positionLabel?: string;
+// }
+// 
+// export interface InlineSuggestionHandle {
+//   /** Remove all decorations + the widget. Safe to call multiple times. */
+//   detach: () => void;
+// }
+// 
+// /**
+//  * Render a rich inline suggestion directly inside Monaco:
+//  *  - the actual (real) lines being removed get a red deletion background and a
+//  *    thin red gutter bar, without modifying the model;
+//  *  - the new lines are shown as injected "ghost text" immediately after, with a
+//  *    green/pink addition tint;
+//  *  - a compact content widget floats near the first changed line with the
+//  *    "✨ AI suggested change", [Reject] and [Apply] buttons.
+//  *
+//  * The model is NEVER modified here — only decorations + a widget are added.
+//  * Returns a handle whose `.detach()` removes everything.
+//  */
+// export function attachInlineSuggestion(
+//   editor: any,
+//   monaco: any,
+//   edits: AIEdit[],
+//   callbacks: InlineSuggestionCallbacks
+// ): InlineSuggestionHandle {
+//   detachInlineSuggestion(editor);
+// 
+//   const model = editor?.getModel?.();
+//   if (!model || !monaco?.Range || edits.length === 0) {
+//     return {
+//       detach: () => {
+//         /* editor not ready; nothing to remove */
+//       },
+//     };
+//   }
+// 
+//   const fileText = model.getValue();
+//   const lineCount = model.getLineCount();
+//   const createdIds: string[] = [];
+//   let firstLine = Infinity;
+// 
+//   for (const edit of edits) {
+//     const { removed, added } = resolveEditLines(fileText, edit);
+//     const fromLine = clamp(Math.round(edit.startLine), 1, lineCount);
+// 
+//     let anchorLine = fromLine;
+// 
+//     // Decorate the REAL removed lines with a red deletion background + gutter.
+//     const removedCount =
+//       edit.endColumn === 1 && edit.endLine > edit.startLine
+//         ? edit.endLine - edit.startLine
+//         : removed.length;
+// 
+//     if (removedCount > 0) {
+//       const rStart = fromLine;
+//       const rEnd = Math.max(rStart, rStart + removedCount - 1);
+//       const ids = editor.deltaDecorations(
+//         [],
+//         [
+//           {
+//             range: new monaco.Range(rStart, 1, rEnd + 1, 1),
+//             options: {
+//               isWholeLine: true,
+//               className: "bcl-ai-inline-remove",
+//               linesDecorationsClassName: "bcl-ai-inline-remove-gutter",
+//               stickiness: 1,
+//             },
+//           },
+//         ]
+//       );
+//       createdIds.push(...(ids ?? []));
+//       anchorLine = rEnd;
+//     }
+// 
+//     // Inject the ADDED lines as ghost text with a green/pink tint, anchored to
+//     // just after the removed block (or at the insertion point).
+//     if (added.length > 0) {
+//       const anchor = removedCount > 0 ? anchorLine : fromLine;
+//       const shownAdded =
+//         added.length > MAX_GHOST_LINES ? added.slice(0, MAX_GHOST_LINES) : added;
+//       const ghost =
+//         shownAdded.join("\n") +
+//         (added.length > MAX_GHOST_LINES
+//           ? `\n… (+${added.length - MAX_GHOST_LINES} more)`
+//           : "") +
+//         "\n";
+//       const ghostRange =
+//         removedCount > 0
+//           ? new monaco.Range(anchor, 1, anchor, 1)
+//           : new monaco.Range(
+//               anchor,
+//               clamp(edit.startColumn, 1, model.getLineMaxColumn(anchor)),
+//               anchor,
+//               clamp(edit.startColumn, 1, model.getLineMaxColumn(anchor))
+//             );
+//       const ids = editor.deltaDecorations(
+//         [],
+//         [
+//           {
+//             range: ghostRange,
+//             options: {
+//               after: {
+//                 content: ghost,
+//                 inlineClassName: "bcl-ai-inline-add",
+//                 cursorStops: 3, // None — don't trap the caret in ghost text
+//               },
+//               stickiness: 3,
+//             },
+//           },
+//         ]
+//       );
+//       createdIds.push(...(ids ?? []));
+//     }
+// 
+//     firstLine = Math.min(firstLine, fromLine);
+//   }
+// 
+//   // Track all created ids for teardown.
+//   editor.__byteclashInlineIds = createdIds;
+// 
+//   if (!Number.isFinite(firstLine)) firstLine = 1;
+//   firstLine = clamp(firstLine, 1, lineCount);
+// 
+//   // Compact, theme-consistent widget with Accept / Reject.
+//   let widgetDOM: HTMLDivElement | null = null;
+// 
+//   const buildWidget = () => {
+//     if (widgetDOM) return widgetDOM;
+//     const root = document.createElement("div");
+//     root.className = "bcl-ai-widget";
+// 
+//     const head = document.createElement("div");
+//     head.className = "bcl-ai-widget-head";
+//     const badge = document.createElement("span");
+//     badge.className = "bcl-ai-widget-badge";
+//     badge.textContent = "✦";
+//     head.appendChild(badge);
+//     const label = document.createElement("span");
+//     label.className = "bcl-ai-widget-label";
+//     label.textContent = "AI suggested change";
+//     head.appendChild(label);
+//     if (callbacks.onPrev || callbacks.onNext) {
+//       const nav = document.createElement("div");
+//       nav.className = "bcl-ai-widget-nav";
+//       if (callbacks.onPrev) {
+//         const b = document.createElement("button");
+//         b.type = "button";
+//         b.className = "bcl-ai-widget-navbtn";
+//         b.innerHTML = "‹";
+//         b.title = "Previous suggestion (Alt+[)";
+//         b.onclick = (ev) => {
+//           ev.stopPropagation();
+//           callbacks.onPrev?.();
+//         };
+//         nav.appendChild(b);
+//       }
+//       if (callbacks.positionLabel) {
+//         const pos = document.createElement("span");
+//         pos.className = "bcl-ai-widget-pos";
+//         pos.textContent = callbacks.positionLabel;
+//         nav.appendChild(pos);
+//       }
+//       if (callbacks.onNext) {
+//         const b = document.createElement("button");
+//         b.type = "button";
+//         b.className = "bcl-ai-widget-navbtn";
+//         b.innerHTML = "›";
+//         b.title = "Next suggestion (Alt+])";
+//         b.onclick = (ev) => {
+//           ev.stopPropagation();
+//           callbacks.onNext?.();
+//         };
+//         nav.appendChild(b);
+//       }
+//       head.appendChild(nav);
+//     }
+//     root.appendChild(head);
+// 
+//     const body = document.createElement("div");
+//     body.className = "bcl-ai-widget-diff";
+//     // Reuse the snapshot captured when the suggestion was attached instead of
+//     // re-reading the whole model for every edit.
+//     const { removed, added } = edits.reduce<{
+//       removed: string[];
+//       added: string[];
+//     }>(
+//       (acc, e) => {
+//         const r = resolveEditLines(fileText, e);
+//         acc.removed.push(...r.removed);
+//         acc.added.push(...r.added);
+//         return acc;
+//       },
+//       { removed: [], added: [] }
+//     );
+//     const allRows: { kind: "remove" | "add"; text: string }[] = [
+//       ...removed.map((t) => ({ kind: "remove" as const, text: t })),
+//       ...added.map((t) => ({ kind: "add" as const, text: t })),
+//     ];
+//     const overflow = allRows.length - MAX_WIDGET_LINES;
+//     const rows = overflow > 0 ? allRows.slice(0, MAX_WIDGET_LINES) : allRows;
+// 
+//     rows.forEach(({ kind, text }) => {
+//       const row = document.createElement("div");
+//       row.className = `bcl-ai-widget-row bcl-ai-widget-${kind}`;
+//       row.innerHTML = `<span class="bcl-ai-widget-sign">${
+//         kind === "remove" ? "−" : "+"
+//       }</span><code>${escapeHtml(text)}</code>`;
+//       body.appendChild(row);
+//     });
+//     if (overflow > 0) {
+//       const row = document.createElement("div");
+//       row.className = "bcl-ai-widget-row bcl-ai-widget-more";
+//       row.textContent = `… ${overflow} more line${overflow === 1 ? "" : "s"}`;
+//       body.appendChild(row);
+//     }
+//     if (rows.length === 0 && overflow <= 0) {
+//       const row = document.createElement("div");
+//       row.className = "bcl-ai-widget-row";
+//       row.textContent = callbacks.label || "Suggested change";
+//       body.appendChild(row);
+//     }
+//     root.appendChild(body);
+// 
+//     const actions = document.createElement("div");
+//     actions.className = "bcl-ai-widget-actions";
+//     const reject = document.createElement("button");
+//     reject.type = "button";
+//     reject.className = "bcl-ai-widget-btn bcl-ai-widget-reject";
+//     reject.textContent = "Reject";
+//     reject.onclick = (ev) => {
+//       ev.stopPropagation();
+//       callbacks.onReject();
+//     };
+//     const apply = document.createElement("button");
+//     apply.type = "button";
+//     apply.className = "bcl-ai-widget-btn bcl-ai-widget-apply";
+//     apply.textContent = "Apply";
+//     apply.onclick = (ev) => {
+//       ev.stopPropagation();
+//       callbacks.onApply();
+//     };
+//     actions.appendChild(reject);
+//     actions.appendChild(apply);
+//     root.appendChild(actions);
+// 
+//     widgetDOM = root;
+//     return root;
+//   };
+// 
+//   const widget = {
+//     getId: () => "byteclash-inline-suggestion",
+//     getDomNode: () => buildWidget(),
+//     getPosition: () => ({
+//       position: {
+//         lineNumber: firstLine,
+//         column: 1,
+//       },
+//       // Float the widget above the first changed line (Copilot-style).
+//       preference: 1,
+//     }),
+//     allowBeforeOverlapping: true,
+//     allowAfterOverlapping: true,
+//     suppressMouseDown: true,
+//   } as any;
+// 
+//   editor.addContentWidget(widget);
+//   editor.__byteclashInlineWidget = widget;
+// 
+//   return {
+//     detach: () => detachInlineSuggestion(editor),
+//   };
+// }
+// 
+// function escapeHtml(s: string): string {
+//   return s
+//     .replace(/&/g, "&amp;")
+//     .replace(/</g, "&lt;")
+//     .replace(/>/g, "&gt;");
+// }
+// 
+// /** Remove inline suggestion decorations + widget. Idempotent. */
+// export function detachInlineSuggestion(editor: any): void {
+//   if (!editor) return;
+//   try {
+//     const ids = (editor.__byteclashInlineIds as string[] | undefined) ?? [];
+//     if (ids.length > 0) editor.deltaDecorations(ids, []);
+//   } catch {
+//     /* ignore */
+//   }
+//   try {
+//     const widget = editor.__byteclashInlineWidget as unknown;
+//     if (widget) editor.removeContentWidget(widget as any);
+//   } catch {
+//     /* ignore */
+//   }
+//   editor.__byteclashInlineIds = [];
+//   editor.__byteclashInlineWidget = null;
+// }
+// 
+/* ── END INLINE SUGGESTION (COMMENTED OUT) ──────────────────────────── */

@@ -44,9 +44,22 @@ interface MonacoEditorWrapperProps {
   theme?: string;
 }
 
-// PERFORMANCE OPTIMIZATION: Memoize the theme creation function with empty deps
-// Theme is created once and reused
-const themeCreatedRef = { current: false };
+type ThemeData = {
+  base: "vs" | "vs-dark" | "hc-black" | "hc-light";
+  inherit: boolean;
+  rules: Array<{ token: string; foreground?: string; fontStyle?: string }>;
+  colors: Record<string, string>;
+};
+
+// PERFORMANCE OPTIMIZATION: Themes are defined once and reused across every
+// editor instance. Each theme name is tracked so later mounts skip redefining.
+const createdThemesRef = { current: new Set<string>() };
+
+// Module-scope tracker for the MAIN editor's theme. Monaco's theme is global
+// and this build has no `editor.getTheme()` to read it back, so every editor
+// instance records which theme it applied. The review overlay uses this to
+// restore the base theme when it unmounts.
+let activeBaseTheme = "vs";
 
 export default function MonacoEditorWrapper({
   language,
@@ -66,55 +79,163 @@ export default function MonacoEditorWrapper({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const onMountCallbackRef = useRef(onMount);
+  const monacoRef = useRef<any>(null);
+  const themeAppliedRef = useRef<string>("");
 
   // Keep the onMount callback ref up to date without causing re-renders
   useEffect(() => {
     onMountCallbackRef.current = onMount;
   }, [onMount]);
 
-  const createEditorTheme = useCallback((monaco: any) => {
-    // Only create theme once
-    if (themeCreatedRef.current) return;
-    themeCreatedRef.current = true;
-
-    monaco.editor.defineTheme("sublime-monokai", {
-      base: "vs-dark",
-      inherit: true,
-      rules: [
-        { token: "comment", foreground: "75715E" },
-        { token: "string", foreground: "E6DB74" },
-        { token: "number", foreground: "AE81FF" },
-        { token: "keyword", foreground: "F92672" },
-        { token: "identifier", foreground: "F8F8F2" },
-        { token: "type", foreground: "66D9EF", fontStyle: "italic" },
-        { token: "function", foreground: "A6E22E" },
-      ],
-      colors: {
-        "editor.background": SUBLIME_BG,
-        "editor.foreground": "#F8F8F2",
-        "editor.lineHighlightBackground": "#3E3D32",
-        "editor.lineHighlightBorder": "#3E3D32",
-        "editorLineNumber.foreground": "#90908A",
-        "editorLineNumber.activeForeground": "#C4C4B5",
-        "editorCursor.foreground": "#F8F8F0",
-        "editor.selectionBackground": "#49483E",
-        "editorIndentGuide.background": "#49483E",
-        "editorIndentGuide.activeBackground": "#75715E",
-        "editorOverviewRuler.border": BORDER_COLOR,
-        "scrollbarSlider.background": "#49483E80",
-        "scrollbarSlider.hoverBackground": "#49483Ecc",
-        "scrollbarSlider.activeBackground": "#75715Ecc",
-      },
-    });
+  const defineThemeOnce = useCallback((monaco: any, name: string, data: ThemeData) => {
+    if (createdThemesRef.current.has(name)) return;
+    createdThemesRef.current.add(name);
+    monaco.editor.defineTheme(name, data);
   }, []);
+
+  const createEditorTheme = useCallback(
+    (monaco: any) => {
+      defineThemeOnce(monaco, "sublime-monokai", {
+        base: "vs-dark",
+        inherit: true,
+        rules: [
+          { token: "comment", foreground: "75715E" },
+          { token: "string", foreground: "E6DB74" },
+          { token: "number", foreground: "AE81FF" },
+          { token: "keyword", foreground: "F92672" },
+          { token: "identifier", foreground: "F8F8F2" },
+          { token: "type", foreground: "66D9EF", fontStyle: "italic" },
+          { token: "function", foreground: "A6E22E" },
+        ],
+        colors: {
+          "editor.background": SUBLIME_BG,
+          "editor.foreground": "#F8F8F2",
+          "editor.lineHighlightBackground": "#3E3D32",
+          "editor.lineHighlightBorder": "#3E3D32",
+          "editorLineNumber.foreground": "#90908A",
+          "editorLineNumber.activeForeground": "#C4C4B5",
+          "editorCursor.foreground": "#F8F8F0",
+          "editor.selectionBackground": "#49483E",
+          "editorIndentGuide.background": "#49483E",
+          "editorIndentGuide.activeBackground": "#75715E",
+          "editorOverviewRuler.border": BORDER_COLOR,
+          "scrollbarSlider.background": "#49483E80",
+          "scrollbarSlider.hoverBackground": "#49483Ecc",
+          "scrollbarSlider.activeBackground": "#75715Ecc",
+        },
+      });
+
+      // Full color scheme for the review overlay: comments, keywords, strings,
+      // types, operators and identifiers (function/variable names) each get a
+      // distinct color, plus a separate editor background so it reads as a
+      // dedicated review surface.
+      defineThemeOnce(monaco, "review-dark", {
+        base: "vs-dark",
+        inherit: true,
+        rules: [
+          { token: "comment", foreground: "6A9955", fontStyle: "italic" },
+          { token: "comment.doc", foreground: "6A9955", fontStyle: "italic" },
+          { token: "string", foreground: "CE9178" },
+          { token: "string.escape", foreground: "D7BA7D" },
+          { token: "number", foreground: "B5CEA8" },
+          { token: "keyword", foreground: "C586C0" },
+          { token: "keyword.control", foreground: "C586C0", fontStyle: "bold" },
+          { token: "keyword.directive", foreground: "C586C0" },
+          { token: "keyword.directive.include", foreground: "C586C0" },
+          { token: "type", foreground: "4EC9B0" },
+          { token: "type.identifier", foreground: "4EC9B0" },
+          { token: "function", foreground: "DCDCAA" },
+          { token: "identifier", foreground: "9CDCFE" },
+          { token: "constant", foreground: "569CD6" },
+          { token: "operator", foreground: "D4D4D4" },
+          { token: "delimiter", foreground: "D4D4D4" },
+          { token: "annotation", foreground: "C586C0" },
+          { token: "macro", foreground: "DCDCAA" },
+        ],
+        colors: {
+          "editor.background": "#1E1E2E",
+          "editor.foreground": "#CDD6F4",
+          "editor.lineHighlightBackground": "#31324455",
+          "editor.lineHighlightBorder": "#31324455",
+          "editorLineNumber.foreground": "#585B70",
+          "editorLineNumber.activeForeground": "#CDD6F4",
+          "editorCursor.foreground": "#F5E0DC",
+          "editor.selectionBackground": "#585B7099",
+          "editor.inactiveSelectionBackground": "#585B7044",
+          "editorIndentGuide.background": "#313244",
+          "editorIndentGuide.activeBackground": "#585B70",
+          "editorWhitespace.foreground": "#585B70",
+          "editorOverviewRuler.border": "#11111B",
+          "scrollbarSlider.background": "#585B7077",
+          "scrollbarSlider.hoverBackground": "#6C708699",
+          "scrollbarSlider.activeBackground": "#89B4FA99",
+        },
+      });
+
+      // Light variant of the review surface. Reads as a modern light IDE:
+      // near-white neutral background, clear line numbers, muted-but-vivid
+      // syntax colors (lavender keywords, green strings, amber numbers).
+      defineThemeOnce(monaco, "review-light", {
+        base: "vs",
+        inherit: true,
+        rules: [
+          { token: "comment", foreground: "6B7280", fontStyle: "italic" },
+          { token: "comment.doc", foreground: "6B7280", fontStyle: "italic" },
+          { token: "string", foreground: "15803D" },
+          { token: "string.escape", foreground: "B45309" },
+          { token: "number", foreground: "B45309" },
+          { token: "keyword", foreground: "7C3AED" },
+          { token: "keyword.control", foreground: "7C3AED", fontStyle: "bold" },
+          { token: "keyword.directive", foreground: "7C3AED" },
+          { token: "keyword.directive.include", foreground: "7C3AED" },
+          { token: "type", foreground: "0E7490", fontStyle: "italic" },
+          { token: "type.identifier", foreground: "0E7490", fontStyle: "italic" },
+          { token: "function", foreground: "1D4ED8" },
+          { token: "identifier", foreground: "1F2937" },
+          { token: "constant", foreground: "B45309" },
+          { token: "operator", foreground: "374151" },
+          { token: "delimiter", foreground: "374151" },
+          { token: "annotation", foreground: "7C3AED" },
+          { token: "macro", foreground: "7C3AED" },
+        ],
+        colors: {
+          "editor.background": "#F8F8FA",
+          "editor.foreground": "#1F2937",
+          "editor.lineHighlightBackground": "#EEEDF4",
+          "editor.lineHighlightBorder": "#EEEDF4",
+          "editorLineNumber.foreground": "#9CA3AF",
+          "editorLineNumber.activeForeground": "#6B7280",
+          "editorCursor.foreground": "#7C3AED",
+          "editor.selectionBackground": "#7C3AED2E",
+          "editor.inactiveSelectionBackground": "#7C3AED14",
+          "editorIndentGuide.background": "#E7E5EE",
+          "editorIndentGuide.activeBackground": "#C9C5D8",
+          "editorWhitespace.foreground": "#D6D3E1",
+          "editorOverviewRuler.border": "#E5E1EA",
+          "scrollbarSlider.background": "#9CA3AF66",
+          "scrollbarSlider.hoverBackground": "#9CA3AFAA",
+          "scrollbarSlider.activeBackground": "#7C3AED99",
+          "editorGutter.background": "#F8F8FA",
+        },
+      });
+    },
+    [defineThemeOnce],
+  );
 
   const handleMount = useCallback(
     (editorInstance: editor.IStandaloneCodeEditor, monaco: any) => {
       editorRef.current = editorInstance;
+      monacoRef.current = monaco;
       createEditorTheme(monaco);
+      // Monaco's theme is global and `@monaco-editor/react` calls setTheme
+      // before our onMount runs, so force-apply here after defineTheme so the
+      // custom colors actually take effect.
+      if (!theme) activeBaseTheme = editorTheme;
+      themeAppliedRef.current = editorTheme;
+      monaco.editor.setTheme(editorTheme);
       onMountCallbackRef.current?.(editorInstance, monaco);
     },
-    [createEditorTheme],
+    [createEditorTheme, editorTheme, theme],
   );
 
   // ResizeObserver to replace automaticLayout polling - layout() only called on actual resize
@@ -177,6 +298,12 @@ export default function MonacoEditorWrapper({
     };
   }, []);
 
+  // Keep the active base theme (main editor) in sync, since the library itself
+  // applies light/dark theme switches and there's no getTheme() to read it.
+  useEffect(() => {
+    if (!theme) activeBaseTheme = editorTheme;
+  }, [editorTheme, theme]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -190,6 +317,13 @@ export default function MonacoEditorWrapper({
         editor.dispose();
         editorRef.current = null;
       }
+      // Monaco's theme is global: when a non-base editor (e.g. the review
+      // overlay) unmounts, put the main editor's theme back so it isn't left
+      // stuck on the overlay's colors.
+      if (monacoRef.current && activeBaseTheme !== themeAppliedRef.current) {
+        monacoRef.current.editor.setTheme(activeBaseTheme);
+      }
+      monacoRef.current = null;
     };
   }, []);
 

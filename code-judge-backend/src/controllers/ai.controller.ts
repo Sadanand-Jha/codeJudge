@@ -315,6 +315,9 @@ export const chat = async (req: Request, res: Response) => {
   let responseConversationId: string | undefined;
   const startedAt = Date.now();
 
+  console.log(conversationId, "conversationId");
+  console.log(requestId, "requestId");
+
   const onClientClose = () => controller.abort();
   res.on("close", onClientClose);
 

@@ -16,10 +16,10 @@ import {
   Briefcase,
   Compass,
   ExternalLink,
-  Heart,
-  Share2,
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import DeveloperFeedCard from "@/components/feed/DeveloperFeedCard";
+import { feedPosts } from "@/data/developerFeed";
 
 export const metadata = {
   title: "Dashboard — ByteClash",
@@ -51,74 +51,6 @@ const upcomingEvents = [
   { title: "AI & Algorithms Roundtable", time: "Today, 8:00 PM", type: "Webinar" },
   { title: "System Design Interview Prep", time: "Tomorrow, 6:30 PM", type: "Workshop" },
   { title: "Contest #247", time: "Starts in 2 days", type: "Contest" },
-];
-
-const feedPosts = [
-  {
-    id: 1,
-    author: "Sarah Chen",
-    avatar: "SC",
-    time: "2 hours ago",
-    title: "Understanding Dijkstra’s Algorithm with Visual Intuition",
-    preview:
-      "I spent the last week building animated visualizations for shortest path algorithms. Here is what finally made Dijkstra click for me...",
-    tags: ["Algorithm", "Tutorial", "Graph"],
-    likes: 342,
-    comments: 56,
-    type: "tutorial",
-  },
-  {
-    id: 2,
-    author: "Arjun Mehta",
-    avatar: "AM",
-    time: "4 hours ago",
-    title: "Codeforces Round #945 — Problem D Editorial",
-    preview:
-      "A clean O(n log n) solution using a segment tree with lazy propagation. Full explanation with code...",
-    tags: ["Editorial", "Codeforces", "Advanced"],
-    likes: 189,
-    comments: 23,
-    type: "editorial",
-  },
-  {
-    id: 3,
-    author: "Priya Nair",
-    avatar: "PN",
-    time: "6 hours ago",
-    title: "How I prepared for Google internships — 6 month roadmap",
-    preview:
-      "From zero DSA knowledge to cracking Google. Here is exactly what I studied, which problems I solved, and the mistakes I avoided...",
-    tags: ["Interview", "Career", "Google"],
-    likes: 892,
-    comments: 124,
-    type: "experience",
-  },
-  {
-    id: 4,
-    author: "Rahul Verma",
-    avatar: "RV",
-    time: "8 hours ago",
-    title: "Top 10 Trie patterns you must know",
-    preview:
-      "Tries appear in many unexpected places. These patterns cover 80% of all Trie problems on competitive programming platforms...",
-    tags: ["Data Structure", "Trie", "Patterns"],
-    likes: 256,
-    comments: 41,
-    type: "tips",
-  },
-  {
-    id: 5,
-    author: "Emily Zhang",
-    avatar: "EZ",
-    time: "12 hours ago",
-    title: "AI-generated insights: detecting DP patterns automatically",
-    preview:
-      "Using transformer models to recognize when a problem is secretly a DP problem in disguise. Cool results...",
-    tags: ["AI", "Research", "DP"],
-    likes: 567,
-    comments: 89,
-    type: "ai",
-  },
 ];
 
 const trendingDiscussions = [
@@ -311,54 +243,7 @@ export default function HomePage() {
 
                 <div className="space-y-4">
                   {feedPosts.map((post) => (
-                    <div key={post.id} className="rounded-2xl border border-border bg-card p-5 hover:border-border-hover transition-colors">
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-white text-xs font-bold">
-                            {post.avatar}
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-white">{post.author}</p>
-                            <p className="text-[11px] text-muted-foreground">{post.time}</p>
-                          </div>
-                        </div>
-                        <span className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-border-hover text-[10px] text-muted-foreground capitalize">
-                          {post.type}
-                        </span>
-                      </div>
-
-                      <h3 className="text-sm font-semibold text-white mb-2 hover:text-[#7C3AED] transition-colors cursor-pointer">
-                        {post.title}
-                      </h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">{post.preview}</p>
-
-                      <div className="flex flex-wrap gap-1.5 mb-4">
-                        {post.tags.map((tag) => (
-                          <span key={tag} className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-border-hover text-[10px] text-muted-foreground">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="flex items-center gap-4 text-muted-foreground">
-                        <button className="flex items-center gap-1.5 text-[11px] hover:text-[#EF4444] transition-colors">
-                          <Heart className="w-3.5 h-3.5" />
-                          {post.likes}
-                        </button>
-                        <button className="flex items-center gap-1.5 text-[11px] hover:text-[#3B82F6] transition-colors">
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          {post.comments}
-                        </button>
-                        <button className="flex items-center gap-1.5 text-[11px] hover:text-[#7C3AED] transition-colors">
-                          <BookOpen className="w-3.5 h-3.5" />
-                          Save
-                        </button>
-                        <button className="flex items-center gap-1.5 text-[11px] hover:text-white transition-colors ml-auto">
-                          <Share2 className="w-3.5 h-3.5" />
-                          Share
-                        </button>
-                      </div>
-                    </div>
+                    <DeveloperFeedCard key={post.id} post={post} />
                   ))}
                 </div>
               </div>

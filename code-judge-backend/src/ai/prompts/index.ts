@@ -16,7 +16,8 @@ export type AIMode =
   | "problem_explainer"
   | "editorial_explainer"
   | "code_reviewer"
-  | "ai_analysis";
+  | "ai_analysis"
+  | "plan";
 
 /** All modes that operate on a code file (they get the edit guide appended). */
 const CODE_MODES: ReadonlySet<AIMode> = new Set([
@@ -25,27 +26,29 @@ const CODE_MODES: ReadonlySet<AIMode> = new Set([
   "code_reviewer",
 ]);
 
-/** Debugger variant of the edit guide (bug-focused but same diff contract). */
+/** Debugger variant of the edit guide (bug-focused but same complete-file contract). */
 const EDIT_GUIDE_DEBUGGER = `
 You are a code debugger. Identify the root cause of the bug, explain why it happens, then fix it.
-Prefer targeted fixes over rewriting the whole file.
 
-When you modify code, present ONLY the changed lines as a standard unified diff inside a fenced \`\`\`diff block:
-- Start with a hunk header: @@ -<startLine>,<count> +<startLine>,<count> @@ (1-based line numbers)
-- "-" lines are removed, "+" lines are added, space-prefixed lines are context.
-- NEVER include the entire file.
-`.trim();
+When you fix the code, present ONLY a SHORT explanation followed by the COMPLETE updated file in a single fenced code block tagged with the file's language. The block must contain the ENTIRE file with the fix applied — the editor replaces the user's file with this content exactly. NEVER output a unified diff or only the changed lines.`.trim();
 
-/** Reviewer variant of the edit guide (same diff contract as the coach). */
+/** Reviewer variant of the edit guide (same complete-file contract as the coach). */
 const EDIT_GUIDE_REVIEWER = `
 You are a code reviewer. Review the user's code for correctness, edge cases, readability and performance.
 Praise what works, then list concrete issues with why they matter.
 
-When you propose changes, present ONLY the changed lines as a standard unified diff inside a fenced \`\`\`diff block:
-- Start with a hunk header: @@ -<startLine>,<count> +<startLine>,<count> @@ (1-based line numbers)
-- "-" lines are removed, "+" lines are added, space-prefixed lines are context.
-- NEVER include the entire file.
-`.trim();
+When you propose changes, present ONLY a SHORT explanation followed by the COMPLETE updated file in a single fenced code block tagged with the file's language. The block must contain the ENTIRE file with all changes applied — the editor replaces the user's file with this content exactly. NEVER output a unified diff or only the changed lines.`.trim();
+
+/** Plan-only variant: analyze and lay out the approach, but never edit. */
+const PLAN_PROMPT = `${CODING_COACH_SYSTEM_PROMPT}
+
+You are in PLAN mode. The user wants a plan, not code changes.
+
+- Analyze the user's code (and selection, if any) and produce a clear, step-by-step plan to achieve the goal.
+- Number the steps and be specific enough that the changes can be implemented later.
+- Cover the approach, trade-offs, complexity and pitfalls where relevant.
+- DO NOT propose edits: never output a \`\`\`diff block or any machine-readable edit payload. The file must not change.
+- Short inline snippets to illustrate an idea are fine, but never wrapped in a diff block.`;
 
 const PROMPTS: Record<AIMode, string> = {
   general: GENERAL_SYSTEM_PROMPT,
@@ -62,6 +65,7 @@ You are explaining editorials. Break down the intended solution, complexity, and
   code_reviewer: `${CODING_COACH_SYSTEM_PROMPT}
 
 ${EDIT_GUIDE_REVIEWER}`,
+  plan: PLAN_PROMPT,
   ai_analysis: `${CODING_COACH_SYSTEM_PROMPT}
 
 You are performing a structured analysis of a problem and the user's attempt. Cover difficulty, required concepts, common mistakes, and a recommended next step. Keep it organized and concise.`,
@@ -69,7 +73,7 @@ You are performing a structured analysis of a problem and the user's attempt. Co
 
 /** Whether a mode should receive the code-file context block. */
 export const modeUsesCodeContext = (mode: AIMode): boolean =>
-  CODE_MODES.has(mode) || mode === "ai_analysis";
+  CODE_MODES.has(mode) || mode === "ai_analysis" || mode === "plan";
 
 /**
  * Returns the private system prompt for a mode. Unknown/missing modes fall
