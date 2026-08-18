@@ -10,7 +10,7 @@ import { useAuthStore } from "@/store/authStore";
  */
 export default function AuthHydrator() {
   useEffect(() => {
-    useAuthStore.getState().hydrate();
+    void useAuthStore.getState().hydrate();
   }, []);
 
   return null;

@@ -28,6 +28,7 @@ import {
   ChevronDown,
   Crown,
   Loader2,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
@@ -90,40 +91,67 @@ function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onCo
   );
 }
 
-const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/" },
+type NavItemData = {
+  label: string;
+  icon: LucideIcon;
+  href: string;
+  expanded?: boolean;
+  children?: { label: string; icon: LucideIcon; href: string }[];
+};
+
+// Navigation is grouped so the rail can separate logical sections with a
+// subtle divider instead of collapsing into one unbroken list.
+const navGroups: { label: string; items: NavItemData[] }[] = [
   {
-    label: "Assessment",
-    icon: ClipboardList,
-    href: "/quiz",
-    expanded: true,
-    children: [
-      { label: "Dashboard", icon: LayoutDashboard, href: "/quiz" },
-      { label: "Create Quiz", icon: Plus, href: "/quiz/create" },
+    label: "Overview",
+    items: [
+      { label: "Dashboard", icon: LayoutDashboard, href: "/" },
+      {
+        label: "Assessment",
+        icon: ClipboardList,
+        href: "/quiz",
+        expanded: true,
+        children: [
+          { label: "Dashboard", icon: LayoutDashboard, href: "/quiz" },
+          { label: "Create Quiz", icon: Plus, href: "/quiz/create" },
+        ],
+      },
     ],
   },
-
-  { label: "Problems", icon: Code2, href: "/problems" },
-  { label: "Contests", icon: Trophy, href: "/contests" },
-  { label: "Interview", icon: Briefcase, href: "/interview" },
-  { label: "Leaderboard", icon: Award, href: "/leaderboard" },
-  { label: "Roadmaps", icon: Route, href: "/roadmaps" },
-  { label: "Collections", icon: Bookmark, href: "/collections" },
-  { label: "Discussions", icon: MessageSquare, href: "/discussions" },
-  { label: "AI Chat", icon: Sparkles, href: "/ai/chat" },
-  { label: "Editor", icon: BookOpen, href: "/editor" },
-  { label: "Achievements", icon: TrendingUp, href: "/achievements" },
-  { label: "Analytics", icon: Users, href: "/analytics" },
-  { label: "Upgrade", icon: Crown, href: "/pricing" },
-  { label: "Settings", icon: Settings, href: "/settings" },
+  {
+    label: "Practice",
+    items: [
+      { label: "Problems", icon: Code2, href: "/problems" },
+      { label: "Contests", icon: Trophy, href: "/contests" },
+      { label: "Interview", icon: Briefcase, href: "/interview" },
+      { label: "Leaderboard", icon: Award, href: "/leaderboard" },
+      { label: "Roadmaps", icon: Route, href: "/roadmaps" },
+      { label: "Collections", icon: Bookmark, href: "/collections" },
+      { label: "Achievements", icon: TrendingUp, href: "/achievements" },
+    ],
+  },
+  {
+    label: "Community",
+    items: [{ label: "Discussions", icon: MessageSquare, href: "/discussions" }],
+  },
+  {
+    label: "Tools",
+    items: [
+      { label: "AI Chat", icon: Sparkles, href: "/ai/chat" },
+      { label: "Editor", icon: BookOpen, href: "/editor" },
+      { label: "Analytics", icon: Users, href: "/analytics" },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { label: "Upgrade", icon: Crown, href: "/pricing" },
+      { label: "Settings", icon: Settings, href: "/settings" },
+    ],
+  },
 ];
 
-// Subtle staircase rhythm for expanded nav items. Offsets start near 0, climb
-// gently toward the middle of the list, then descend back — a small symmetric
-// hump (0, 2, 4, 6, ... capped), not a diagonal. Applied as margin so the step
-// settle animates smoothly when the rail expands/collapses.
-const navStepOffset = (index: number, count: number) =>
-  Math.min(Math.min(index, count - 1 - index) * 2, 10);
+const navItems = navGroups.flatMap((group) => group.items);
 
 function isQuizPath(pathname: string): boolean {
   return pathname.startsWith("/quiz");
@@ -178,10 +206,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   // building section (/quiz/{code}/problems and /quiz/{code}/problems/{id}).
   const showAiAssistant = isQuizProblemsPath(pathname);
 
-  // Rehydrate token + user from zustand's persisted storage. No /auth/me call —
-  // the profile saved at login time is rendered on every page from the store.
+  // Rehydrate token + user from zustand's persisted storage, then validate the
+  // session against the backend via /auth/me (see authStore.hydrate).
   useEffect(() => {
-    hydrate();
+    void hydrate();
   }, [hydrate]);
 
   const handleLogout = async () => {
@@ -261,7 +289,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         )}
       >
         {/* Logo */}
-        <div className={cn("py-6 flex items-center", showLabels ? "px-6 justify-start" : "px-0 justify-center")}>
+        <div className={cn("shrink-0 py-4 flex items-center", showLabels ? "px-6 justify-start" : "px-0 justify-center")}>
           <Link href="/" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center shrink-0">
               <Code2 className="w-4 h-4 text-accent-foreground" />
@@ -273,114 +301,123 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Navigation */}
-        <nav className={cn("flex-1 py-2 space-y-1 overflow-y-auto", showLabels ? "px-3" : "px-0")}>
-          {navItems.map((item, index) => {
-            const step = navStepOffset(index, navItems.length);
-            if ("children" in item) {
-              const isQuizActive = isQuizPath(pathname);
-              return (
-                <div key={item.label}>
-                  <button
-                    onClick={() => {
-                      if (!sidebarExpanded) {
-                        setSidebarExpanded(true);
-                        setAssessmentExpanded(true);
-                      } else if (isQuizActive) {
-                        collapseSidebar();
-                      } else {
-                        setAssessmentExpanded(!assessmentExpanded);
-                      }
-                    }}
-                    title={sidebarExpanded ? undefined : "Assessment"}
-                    aria-label={sidebarExpanded ? undefined : "Assessment"}
-                    style={{ marginLeft: `${showLabels ? step + (isQuizActive ? 2 : 0) : 0}px` }}
-                    className={cn(
-                      "relative w-full flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 group cursor-pointer whitespace-nowrap origin-left",
-                      showLabels ? "justify-start px-3 py-2.5" : "justify-center px-0 py-2.5",
-                      showLabels && "hover:translate-x-[3px] hover:scale-[1.03]",
-                      isQuizActive && "shadow-[0_1px_3px_rgba(124,58,237,0.18)]"
-                    )}
-                  >
-                    <div
-                      className={`absolute inset-0 rounded-xl transition-colors pointer-events-none ${
-                        isQuizActive ? "bg-ai-accent-soft" : "group-hover:bg-ai-accent/10"
-                      }`}
-                    />
-                    <item.icon
-                      className={`w-4 h-4 relative z-10 shrink-0 transition-colors ${
-                        isQuizActive ? "text-ai-accent" : "text-ai-text-sec group-hover:text-ai-text"
-                      }`}
-                    />
-                    {showLabels && (
-                      <>
-                        <span className={`relative z-10 transition-colors ${isQuizActive ? "text-ai-text" : "text-ai-text-sec group-hover:text-ai-text"}`}>
-                          {item.label}
-                        </span>
-                        <ChevronDown
-                          className={`w-4 h-4 relative z-10 ml-auto text-ai-text-mut transition-transform ${assessmentExpanded ? "rotate-180" : ""}`}
-                        />
-                      </>
-                    )}
-                  </button>
-                  {showLabels && (
-                    <AnimatePresence initial={false}>
-                      {assessmentExpanded && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          {item.children!.map((child) => {
-                            const isChildActive = pathname === child.href || (child.href !== "/" && pathname.startsWith(child.href.split("#")[0]));
-                            return (
-                              <Link
-                                key={child.label}
-                                href={child.href}
-                                onClick={() => { setAssessmentExpanded(true); setMobileMenuOpen(false); }}
-                                className="relative flex items-center gap-3 px-3 py-2 pl-10 text-sm font-medium rounded-xl transition-all duration-200 group ml-2 cursor-pointer"
-                              >
-                                {isChildActive && (
-                                  <div className="absolute inset-0 rounded-xl bg-ai-accent-soft pointer-events-none" />
-                                )}
-                                <child.icon
-                                  className={`w-3.5 h-3.5 relative z-10 transition-colors ${
-                                    isChildActive ? "text-ai-accent" : "text-ai-text-mut group-hover:text-ai-accent"
-                                  }`}
-                                />
-                                <span
-                                  className={`relative z-10 transition-colors ${
-                                    isChildActive ? "text-ai-text" : "text-ai-text-sec group-hover:text-ai-text"
-                                  }`}
-                                >
-                                  {child.label}
-                                </span>
-                              </Link>
-                            );
-                          })}
-                        </motion.div>
+        <nav className={cn("flex-1 overflow-y-auto", showLabels ? "px-2.5 py-3 space-y-1" : "px-0 py-3 space-y-1")}>
+          {navGroups.map((group, groupIndex) => (
+            <div key={group.label} className="space-y-1">
+              {groupIndex > 0 && (
+                <div className={cn("my-2 h-px shrink-0 bg-ai-border", showLabels ? "mx-1" : "mx-2.5")} />
+              )}
+              {group.items.map((item) => {
+                if ("children" in item) {
+                  const isQuizActive = isQuizPath(pathname);
+                  return (
+                    <div key={item.label}>
+                      <button
+                        onClick={() => {
+                          if (!sidebarExpanded) {
+                            setSidebarExpanded(true);
+                            setAssessmentExpanded(true);
+                          } else if (isQuizActive) {
+                            collapseSidebar();
+                          } else {
+                            setAssessmentExpanded(!assessmentExpanded);
+                          }
+                        }}
+                        title={showLabels ? undefined : item.label}
+                        aria-label={showLabels ? undefined : item.label}
+                        className={cn(
+                          "relative group w-full flex items-center gap-3 rounded-lg text-sm font-medium whitespace-nowrap cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ai-accent/40",
+                          "transition-colors duration-150 hover:bg-ai-accent/10",
+                          showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5"
+                        )}
+                      >
+                        {isQuizActive && (
+                          <div className="absolute inset-0 rounded-lg bg-ai-accent-soft pointer-events-none" />
+                        )}
+                        <NavIcon Icon={item.icon} isActive={isQuizActive} />
+                        {showLabels && (
+                          <>
+                            <span
+                              className={cn(
+                                "relative z-10 transition-colors duration-150",
+                                isQuizActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text"
+                              )}
+                            >
+                              {item.label}
+                            </span>
+                            <ChevronDown
+                              className={cn(
+                                "w-4 h-4 relative z-10 ml-auto text-ai-text-mut transition-transform duration-150",
+                                assessmentExpanded && "rotate-180"
+                              )}
+                            />
+                          </>
+                        )}
+                      </button>
+                      {showLabels && (
+                        <AnimatePresence initial={false}>
+                          {assessmentExpanded && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="ml-8 mt-1 space-y-0.5">
+                                {item.children!.map((child) => {
+                                  const isChildActive = pathname === child.href || (child.href !== "/" && pathname.startsWith(child.href.split("#")[0]));
+                                  return (
+                                    <Link
+                                      key={child.label}
+                                      href={child.href}
+                                      onClick={() => { setAssessmentExpanded(true); setMobileMenuOpen(false); }}
+                                      className="relative group flex items-center gap-2.5 px-2.5 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors duration-150 hover:bg-ai-accent/10"
+                                    >
+                                      {isChildActive && (
+                                        <div className="absolute inset-0 rounded-lg bg-ai-accent-soft pointer-events-none" />
+                                      )}
+                                      <child.icon
+                                        className={cn(
+                                          "w-4 h-4 relative z-10 transition-colors duration-150",
+                                          isChildActive ? "text-ai-accent" : "text-ai-text-mut group-hover:text-ai-accent"
+                                        )}
+                                      />
+                                      <span
+                                        className={cn(
+                                          "relative z-10 transition-colors duration-150",
+                                          isChildActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text"
+                                        )}
+                                      >
+                                        {child.label}
+                                      </span>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       )}
-                    </AnimatePresence>
-                  )}
-                </div>
-              );
-            }
-            return (
-              <NavItem
-                key={item.label}
-                item={item}
-                pathname={pathname}
-                isGuest={isGuest}
-                sidebarExpanded={sidebarExpanded}
-                showLabels={showLabels}
-                setSidebarExpanded={setSidebarExpanded}
-                collapseSidebar={collapseSidebar}
-                stepOffset={step}
-                onClick={() => setMobileMenuOpen(false)}
-              />
-            );
-          })}
+                    </div>
+                  );
+                }
+                return (
+                  <NavItem
+                    key={item.label}
+                    item={item}
+                    pathname={pathname}
+                    isGuest={isGuest}
+                    sidebarExpanded={sidebarExpanded}
+                    showLabels={showLabels}
+                    setSidebarExpanded={setSidebarExpanded}
+                    collapseSidebar={collapseSidebar}
+                    onClick={() => setMobileMenuOpen(false)}
+                  />
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Bottom: Account + Collapse */}
@@ -388,16 +425,16 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           {isAuthenticated ? (
             <div
               className={cn(
-                "flex items-center gap-2 rounded-xl transition-colors",
-                showLabels ? "px-3 py-2 justify-start bg-ai-accent-soft" : "px-0 py-1 justify-center"
+                "flex items-center gap-3 rounded-lg transition-colors duration-150",
+                showLabels ? "justify-start px-3 py-2 bg-ai-accent-soft" : "justify-center py-2.5"
               )}
             >
-              <Flame className="w-4 h-4 text-warning shrink-0" />
+              <Flame className="w-5 h-5 text-warning shrink-0" />
               {showLabels && <span className="text-xs font-medium text-ai-text whitespace-nowrap">12 Day Streak</span>}
             </div>
           ) : (
             showLabels && (
-              <div className="px-3 py-2 rounded-xl bg-ai-accent-soft border border-ai-accent/20">
+              <div className="px-3 py-2 rounded-lg bg-ai-accent-soft border border-ai-accent/20">
                 <div className="text-[10px] text-ai-text-sec mb-1">{"You're browsing as a guest"}</div>
                 <button
                   onClick={() => handleAuthRequired(pathname + window.location.search)}
@@ -412,13 +449,13 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           <Link
             href="/profile"
             className={cn(
-              "flex items-center gap-2 rounded-xl hover:bg-ai-hover transition-colors",
-              showLabels ? "px-3 py-2 justify-start" : "px-0 py-1 justify-center"
+              "flex items-center gap-3 rounded-lg transition-colors duration-150 hover:bg-ai-hover",
+              showLabels ? "justify-start px-3 py-2" : "justify-center py-2.5"
             )}
             title={showLabels ? undefined : "Account"}
             aria-label={showLabels ? undefined : "Account"}
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-accent-foreground shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-accent-foreground shrink-0">
               {savedAvatar ? (
                 <img src={savedAvatar.url} alt={savedAvatar.label} className="h-full w-full object-cover rounded-full" />
               ) : (
@@ -433,10 +470,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           {sidebarExpanded && (
             <button
               onClick={collapseSidebar}
-              className="hidden lg:flex w-full items-center gap-2 px-3 py-2 rounded-xl text-ai-text-sec hover:bg-ai-hover hover:text-ai-text transition-colors"
+              className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-ai-text-sec hover:bg-ai-hover hover:text-ai-text transition-colors duration-150"
               title="Collapse sidebar"
             >
-              <PanelLeftClose className="w-4 h-4 shrink-0" />
+              <PanelLeftClose className="w-5 h-5 shrink-0" />
               <span className="text-xs font-medium whitespace-nowrap">Collapse</span>
             </button>
           )}
@@ -526,9 +563,31 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Guest badge for navigation items
-function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels, setSidebarExpanded, collapseSidebar, stepOffset }: {
-  item: typeof navItems[number];
+// Shared icon slot: consistent size/stroke + right-side status dot, aligned to
+// the icon so it never floats. Active/hover colors come from the parent group.
+function NavIcon({ Icon, isActive, showDot }: { Icon: LucideIcon; isActive: boolean; showDot?: boolean }) {
+  return (
+    <span className="relative z-10 inline-flex shrink-0">
+      <Icon
+        className={cn(
+          "h-5 w-5 transition-colors duration-150",
+          isActive ? "text-ai-accent" : "text-ai-text-sec group-hover:text-ai-text"
+        )}
+      />
+      {showDot && (
+        <span
+          className="absolute -right-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-ai-accent ring-2 ring-ai-sidebar"
+          aria-hidden="true"
+        />
+      )}
+    </span>
+  );
+}
+
+// Standard nav link — same pill, spacing and active state for every item so the
+// rail reads as one unified navigation system.
+function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels, setSidebarExpanded, collapseSidebar }: {
+  item: (typeof navItems)[number];
   pathname: string;
   isGuest: boolean;
   onClick?: () => void;
@@ -536,26 +595,18 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
   showLabels: boolean;
   setSidebarExpanded: (v: boolean) => void;
   collapseSidebar: () => void;
-  stepOffset: number;
 }) {
-  const Icon = item.icon;
   const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
 
   // Routes that are protected for guests
   const protectedForGuests = ["/ai/chat", "/editor", "/analytics", "/settings", "/collections"];
   const isProtected = isGuest && protectedForGuests.includes(item.href);
 
-  // Staircase margin only while labels are shown; the active item steps one
-  // notch further forward. Collapsed rail keeps icons on a straight line.
-  const stepMargin = showLabels ? stepOffset + (isActive ? 2 : 0) : 0;
-
   return (
     <Link
-      key={item.label}
       href={item.href}
       title={showLabels ? undefined : item.label}
       aria-label={showLabels ? undefined : item.label}
-      style={{ marginLeft: `${stepMargin}px` }}
       onClick={(e) => {
         if (isProtected) {
           e.preventDefault();
@@ -574,32 +625,18 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
         onClick?.();
       }}
       className={cn(
-        "relative flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent/40 whitespace-nowrap origin-left",
-        showLabels ? "justify-start px-3 py-2.5" : "justify-center px-0 py-2.5",
-        showLabels && "hover:translate-x-[3px] hover:scale-[1.03]",
-        "hover:bg-ai-accent/10",
-        isActive && "shadow-[0_1px_3px_rgba(124,58,237,0.18)]"
+        "relative group w-full flex items-center gap-3 rounded-lg text-sm font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ai-accent/40",
+        "transition-colors duration-150 hover:bg-ai-accent/10",
+        showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5"
       )}
     >
       {isActive && (
-        <div className="absolute inset-0 rounded-xl bg-ai-accent-soft pointer-events-none" />
+        <div className="absolute inset-0 rounded-lg bg-ai-accent-soft pointer-events-none" />
       )}
-      <Icon
-        className={`w-4 h-4 relative z-10 shrink-0 transition-colors duration-200 ${
-          isActive ? "text-ai-accent" : "text-ai-text-sec group-hover:text-ai-text"
-        }`}
-      />
+      <NavIcon Icon={item.icon} isActive={isActive} showDot={isProtected} />
       {showLabels && (
-        <span className={`relative z-10 transition-colors duration-200 ${isActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text"}`}>
+        <span className={cn("relative z-10 transition-colors duration-150", isActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text")}>
           {item.label}
-        </span>
-      )}
-      {isProtected && (
-        <span className="ml-auto">
-          <span className="flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-accent opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
-          </span>
         </span>
       )}
     </Link>

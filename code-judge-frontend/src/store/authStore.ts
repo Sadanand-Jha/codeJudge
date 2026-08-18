@@ -33,17 +33,28 @@ interface AuthState {
   setAuth: (token: string, user: UserProfile) => void;
   /** Merge partial profile fields (avatar, name, bio, preferences…) into the current user. */
   setUser: (patch: Partial<UserProfile>) => void;
-  /** Fetch the full profile from the backend (/auth/me) and merge it into the store. */
+  /**
+   * Validate the session against the backend (/auth/me) and refresh the stored
+   * profile. Relies on the httpOnly session cookie, so it restores sign-in even
+   * when localStorage was cleared. Resolves with the fetched user or null.
+   */
   fetchMe: () => Promise<UserProfile | null>;
   logout: () => void;
-  hydrate: () => void;
+  hydrate: () => Promise<void>;
   setHasHydrated: (hasHydrated: boolean) => void;
 }
+
+// De-duplicates the /auth/me validation across the multiple hydrate() callers
+// (AuthHydrator in the root layout + AppLayout), so a page reload triggers the
+// session check exactly once.
+let sessionCheck: Promise<void> | null = null;
 
 /**
  * Auth state persisted in localStorage via zustand's persist middleware.
  * Token + full user profile are written on login/register and rehydrated on
- * every page load, so pages can render user details without calling /auth/me.
+ * every page load so pages can render user details immediately. The session is
+ * then re-validated against /auth/me so a stale or cleared store never leaves
+ * a signed-in user looking logged out.
  */
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -64,13 +75,18 @@ export const useAuthStore = create<AuthState>()(
       },
 
       fetchMe: async () => {
-        const { token } = get();
-        if (!token) return null;
         try {
           const res = await me();
           const fetched = res?.data?.user as UserProfile | undefined;
           if (!fetched) return null;
-          get().setUser(fetched);
+          const current = get().user;
+          if (current) {
+            get().setUser(fetched);
+          } else {
+            // No persisted profile (fresh load / cleared storage) but the
+            // httpOnly cookie still authenticated us — restore the session.
+            set({ user: fetched, isAuthenticated: true });
+          }
           return fetched;
         } catch {
           return null;
@@ -86,9 +102,17 @@ export const useAuthStore = create<AuthState>()(
       },
 
       hydrate: () => {
-        // persist is configured with skipHydration, so rehydration is triggered
-        // manually (kept out of module init to avoid SSR/hydration mismatches).
-        void useAuthStore.persist.rehydrate();
+        if (sessionCheck) return sessionCheck;
+        sessionCheck = (async () => {
+          // persist is configured with skipHydration, so rehydration is
+          // triggered manually (kept out of module init to avoid SSR/
+          // hydration mismatches).
+          await useAuthStore.persist.rehydrate();
+          await get().fetchMe();
+        })().finally(() => {
+          sessionCheck = null;
+        });
+        return sessionCheck;
       },
 
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
