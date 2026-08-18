@@ -2213,64 +2213,32 @@ button.cf-btn:hover {
    via semantic hook classes. Dark theme untouched.
    ============================================ */
 
-/* Search box — white with depth */
-[data-theme="light"] .problems-search-box {
+/* Filter toolbar — soft white surface */
+[data-theme="light"] .problems-toolbar {
   background-color: #FFFFFF !important;
   border-color: #E2E8F0 !important;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02) !important;
 }
 
-[data-theme="light"] .problems-search-box input::placeholder {
+/* Search input — white with depth */
+[data-theme="light"] .problems-search-input {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problems-search-input::placeholder {
   color: #94A3B8 !important;
-  font-weight: 400;
 }
 
-[data-theme="light"] .problems-search-box:focus-within {
+[data-theme="light"] .problems-search-input:focus {
   border-color: #2563EB !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
 }
 
-/* Filter chips — inactive: white bg, border, medium gray text */
-[data-theme="light"] .problems-filter-chip {
-  background-color: #FFFFFF !important;
-  border-color: #E2E8F0 !important;
-  color: #475569 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
-}
-
-[data-theme="light"] .problems-filter-chip:hover {
-  background-color: #EFF6FF !important;
-  border-color: #BFDBFE !important;
-  color: #1E40AF !important;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08) !important;
-}
-
-/* Difficulty chips — clean light surface */
-[data-theme="light"] .problems-difficulty-chip {
-  background-color: #FFFFFF !important;
-  border-color: #E2E8F0 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
-}
-
-[data-theme="light"] .problems-difficulty-chip:hover {
-  border-color: #CBD5E1 !important;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05) !important;
-}
-
-/* Topic chips — inactive: white bg, subtle border, medium gray text */
-[data-theme="light"] .problems-topic-chip {
-  background-color: #FFFFFF !important;
-  border-color: #E2E8F0 !important;
-  color: #475569 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
-}
-
-[data-theme="light"] .problems-topic-chip:hover {
-  background-color: #F5F3FF !important;
-  border-color: #C4B5FD !important;
-  color: #5B21B6 !important;
-  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.08) !important;
-}
+/* Segmented control, dropdown and toolbar buttons use the semantic
+   bg-card / border-border / text-secondary tokens, so light theme is handled
+   automatically — only the accent states carry explicit purple. */
 
 /* Results meta — softer tones */
 [data-theme="light"] .problems-results-meta {
@@ -2281,19 +2249,84 @@ button.cf-btn:hover {
   color: #334155 !important;
 }
 
-[data-theme="light"] .problems-clear-filters {
-  color: #64748B !important;
-}
-
-[data-theme="light"] .problems-clear-filters:hover {
-  color: #DC2626 !important;
-}
-
 /* Empty state — clean light card */
 [data-theme="light"] .problems-empty-state {
   background-color: #FFFFFF !important;
   border-color: #E2E8F0 !important;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* ============================================
+   Problem Table — Pop-forward row hover
+   The hovered ROW is treated as one unified
+   object. The whole <tr> scales up vertically
+   (scaleY) so the strip grows taller, overlaps
+   its neighbors above/below, lifts above them
+   (transform → stacking context + z-index), and
+   casts a single unified box-shadow. Background
+   and ring colors live on the cells, but because
+   every cell shares one color and cells are never
+   scaled horizontally, the strip reads as one
+   continuous surface with rounded corners ONLY at
+   its outer ends. Transforms never affect layout,
+   so column widths and row heights stay fixed.
+   The table uses border-collapse: separate so the
+   outer corners can be rounded.
+   ============================================ */
+
+.problems-table-row {
+  position: relative;
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+/* Row separator + reserved ring borders. Borders keep a constant 1px width so
+   hovering only recolors them instead of jumping the layout. */
+.problems-table-row td {
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background-color 200ms ease, border-color 200ms ease;
+}
+
+/* Rounded corners exist ONLY at the two outer ends of the row. Inner cells stay
+   square — no per-cell radius, shadows, or card styling. */
+.problems-table-row td:first-child {
+  border-left: 1px solid transparent;
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.problems-table-row td:last-child {
+  border-right: 1px solid transparent;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.problems-table-row:last-child td {
+  border-bottom-color: transparent;
+}
+
+/* The pop — the whole row scales as ONE unit, comes forward above the other
+   rows, and casts a single unified shadow. Nothing moves horizontally, so the
+   status icon and every column stay perfectly aligned with the header. */
+.problems-table-row:hover {
+  z-index: 5;
+  transform: scaleY(1.1);
+  transform-origin: center;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.problems-table-row:hover td {
+  background-color: rgba(124, 58, 237, 0.09);
+  border-top-color: rgba(124, 58, 237, 0.3);
+  border-bottom-color: rgba(124, 58, 237, 0.3);
+}
+
+.problems-table-row:hover td:first-child {
+  border-left-color: rgba(124, 58, 237, 0.3);
+}
+
+.problems-table-row:hover td:last-child {
+  border-right-color: rgba(124, 58, 237, 0.3);
 }
 
 /* Table — white rows, thin borders, rounded premium shell */
@@ -2313,12 +2346,31 @@ button.cf-btn:hover {
   letter-spacing: 0.06em;
 }
 
-[data-theme="light"] .problems-table-row {
-  border-color: #F1F5F9 !important;
+[data-theme="light"] .problems-table-row td {
+  border-bottom-color: #F1F5F9;
 }
 
+[data-theme="light"] .problems-table-row:last-child td {
+  border-bottom-color: transparent;
+}
+
+/* Softer light-theme hover strip */
 [data-theme="light"] .problems-table-row:hover {
-  background-color: #F8FAFC !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .problems-table-row:hover td {
+  background-color: rgba(124, 58, 237, 0.06);
+  border-top-color: rgba(124, 58, 237, 0.25);
+  border-bottom-color: rgba(124, 58, 237, 0.25);
+}
+
+[data-theme="light"] .problems-table-row:hover td:first-child {
+  border-left-color: rgba(124, 58, 237, 0.25);
+}
+
+[data-theme="light"] .problems-table-row:hover td:last-child {
+  border-right-color: rgba(124, 58, 237, 0.25);
 }
 
 /* Problem link — better hierarchy */

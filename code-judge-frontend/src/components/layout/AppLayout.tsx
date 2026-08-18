@@ -14,7 +14,6 @@ import {
   Settings,
   Bookmark,
   Menu,
-  PanelLeftClose,
   Search,
   Flame,
   Route,
@@ -466,17 +465,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
               <span className="text-xs font-medium text-ai-text truncate">{user?.username || "Guest"}</span>
             )}
           </Link>
-
-          {sidebarExpanded && (
-            <button
-              onClick={collapseSidebar}
-              className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-ai-text-sec hover:bg-ai-hover hover:text-ai-text transition-colors duration-150"
-              title="Collapse sidebar"
-            >
-              <PanelLeftClose className="w-5 h-5 shrink-0" />
-              <span className="text-xs font-medium whitespace-nowrap">Collapse</span>
-            </button>
-          )}
 
           {showLabels && (
             <div className="px-3 text-[9px] text-ai-text-mut">ByteClash v1.0.0</div>
