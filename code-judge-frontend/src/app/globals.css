@@ -3909,3 +3909,121 @@ svg {
 
 
 
+
+/* ============================================
+   Tests Section — ByteClash
+   Premium exam-prep + test-series marketplace.
+   Scoped via .tests-* hooks. Light & dark.
+   ============================================ */
+
+/* Ambient page glow — very subtle, so text stays readable. */
+[data-theme="dark"] .tests-ambient {
+  background:
+    radial-gradient(60rem 28rem at 15% -5%, rgba(139, 92, 246, 0.10) 0%, transparent 55%),
+    radial-gradient(50rem 24rem at 88% 6%, rgba(236, 72, 153, 0.07) 0%, transparent 50%),
+    radial-gradient(44rem 30rem at 50% 42%, rgba(99, 102, 241, 0.05) 0%, transparent 60%);
+}
+
+[data-theme="light"] .tests-ambient {
+  background:
+    radial-gradient(60rem 26rem at 15% -5%, rgba(139, 92, 246, 0.09) 0%, transparent 55%),
+    radial-gradient(50rem 22rem at 88% 6%, rgba(236, 72, 153, 0.07) 0%, transparent 50%),
+    radial-gradient(40rem 28rem at 50% 40%, rgba(192, 132, 252, 0.05) 0%, transparent 60%);
+}
+
+/* Compact hero glow — pulses very gently. */
+[data-theme="dark"] .tests-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(34rem 20rem at 18% 30%, rgba(139, 92, 246, 0.14) 0%, transparent 58%),
+    radial-gradient(26rem 18rem at 82% 45%, rgba(236, 72, 153, 0.10) 0%, transparent 55%);
+  animation: tests-glow-pulse 9s ease-in-out infinite;
+}
+
+[data-theme="light"] .tests-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(32rem 20rem at 16% 30%, rgba(139, 92, 246, 0.12) 0%, transparent 58%),
+    radial-gradient(26rem 18rem at 84% 45%, rgba(236, 72, 153, 0.10) 0%, transparent 55%);
+  animation: tests-glow-pulse 9s ease-in-out infinite;
+}
+
+@keyframes tests-glow-pulse {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+/* Floating micro-chips on the hero visual. */
+.tests-float-slow { animation: tests-float 7s ease-in-out infinite; }
+.tests-float-slower { animation: tests-float 10s ease-in-out infinite reverse; }
+
+@keyframes tests-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+/* Smooth progress fill on page load. */
+@keyframes tests-fill-bar {
+  from { width: 0%; }
+}
+
+.tests-fill-bar { animation: tests-fill-bar 1.1s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Hide scrollbars for horizontal rails but keep them scrollable. */
+.tests-scroll-x {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.tests-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* Exam thumbnail grid texture. */
+.tests-thumb-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+[data-theme="light"] .tests-thumb-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.28) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.28) 1px, transparent 1px);
+}
+
+/* Slight upward entrance used across tests sections. */
+@keyframes tests-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tests-rise { animation: tests-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Horizontal fade for scroll rails (left/right edges). */
+@keyframes tests-marquee-hint {
+  0%, 100% { transform: translateX(0); opacity: 0.6; }
+  50% { transform: translateX(6px); opacity: 1; }
+}
+
+.tests-scroll-hint { animation: tests-marquee-hint 2.4s ease-in-out infinite; }
+
+/* Categorized hero search dropdown — dark-first, adapts to light. */
+.tests-search-panel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
+.tests-search-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.tests-search-panel::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 9999px;
+}
+.tests-search-panel::-webkit-scrollbar-track {
+  background: transparent;
+}

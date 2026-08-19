@@ -11,6 +11,7 @@ import {
   Save,
   Square,
   Users,
+  UsersRound,
   UserPlus,
   Zap,
   AlertTriangle,
@@ -27,6 +28,7 @@ import { saveQuizDetails } from "@/utils/quizStorage";
 export const SETTINGS_SECTIONS = [
   { id: "info", label: "Quiz Info", icon: BookOpen, href: "info", tone: "pink" as const },
   { id: "registration", label: "Registration", icon: Users, href: "registration", tone: "violet" as const },
+  { id: "audience", label: "Audience", icon: UsersRound, href: "audience", tone: "violet" as const },
   { id: "collaborators", label: "Collaborators", icon: UserPlus, href: "collaborators", tone: "pink" as const },
   { id: "responses", label: "Responses", icon: BarChart3, href: "responses", tone: "blue" as const },
 ] as const;

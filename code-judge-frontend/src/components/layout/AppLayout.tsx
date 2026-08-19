@@ -23,6 +23,7 @@ import {
   Briefcase,
   Sparkles,
   ClipboardList,
+  ClipboardCheck,
   Plus,
   ChevronDown,
   Crown,
@@ -120,6 +121,7 @@ const navGroups: { label: string; items: NavItemData[] }[] = [
   {
     label: "Practice",
     items: [
+      { label: "Tests", icon: ClipboardCheck, href: "/tests" },
       { label: "Problems", icon: Code2, href: "/problems" },
       { label: "Contests", icon: Trophy, href: "/contests" },
       { label: "Interview", icon: Briefcase, href: "/interview" },
@@ -162,7 +164,7 @@ function isEditorPath(pathname: string): boolean {
 
 // Routes that should be fullscreen (no sidebar/navbar)
 function isFullscreenRoute(pathname: string): boolean {
-  return pathname.includes("/waiting");
+  return pathname.includes("/waiting") || pathname.startsWith("/tests/attempt");
 }
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {

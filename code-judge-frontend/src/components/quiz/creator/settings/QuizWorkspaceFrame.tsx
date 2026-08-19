@@ -21,6 +21,7 @@ import { toast } from "@/lib/toast";
 import { isQuizProblemsPath } from "@/lib/quizWorkspace";
 import { useQuizSettings } from "./QuizSettingsContext";
 import { SETTINGS_SECTIONS, STATUS_META } from "./QuizSettingsShell";
+import { getAudienceStatusLabel } from "@/store/roomStore";
 import { useQuizProblemsStore, getQuestionStatus } from "@/store/quizProblemsStore";
 import { type CreatorQuestion } from "@/components/quiz/creator/types";
 import ProblemDeleteModal from "./ProblemDeleteModal";
@@ -93,7 +94,7 @@ const sidebarProtect = {
 export default function QuizWorkspaceFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { code, quizId, derivedStatus, isLive, isEnded, startValidationError, requestStart } =
+  const { code, quizId, derivedStatus, isLive, isEnded, startValidationError, requestStart, details } =
     useQuizSettings();
   const [starting, setStarting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ question: CreatorQuestion; index: number } | null>(null);
@@ -259,6 +260,10 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
               const Icon = section.icon;
               const isActive = activeSection === section.id;
               const isPink = section.tone === "pink";
+              const isAudience = section.id === "audience";
+              const audienceStatus = isAudience
+                ? getAudienceStatusLabel(details?.audience)
+                : null;
               return (
                 <Link
                   {...itemProtect}
@@ -284,7 +289,25 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                     )}
                     strokeWidth={isActive ? 2.2 : 2}
                   />
-                  <span className={cn("font-medium", isActive && "font-semibold")}>{section.label}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className={cn("block font-medium", isActive && "font-semibold")}>
+                      {section.label}
+                    </span>
+                    {isAudience && (
+                      <span
+                        className={cn(
+                          "mt-0.5 block truncate text-[10px] font-semibold transition-colors",
+                          audienceStatus === "Everyone"
+                            ? "text-text-muted"
+                            : isActive
+                            ? "text-pink-500/80"
+                            : "text-text-muted group-hover:text-pink-500/80"
+                        )}
+                      >
+                        {audienceStatus}
+                      </span>
+                    )}
+                  </span>
                   {isActive && (
                     <motion.span
                       layoutId="activeQuizSettingsIndicator"

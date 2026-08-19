@@ -12,6 +12,7 @@ import {
   Activity,
   BarChart3,
   Settings,
+  UsersRound,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -27,6 +28,7 @@ export interface ProfileNavItem {
 
 export const PROFILE_NAV_ITEMS: ProfileNavItem[] = [
   { label: "Profile", href: "/profile", icon: User, tone: "from-[#EC4899] to-[#7C3AED]" },
+  { label: "Rooms", href: "/profile/rooms", icon: UsersRound, tone: "from-[#EC4899] to-[#7C3AED]" },
   { label: "Inbox", href: "/profile/inbox", icon: Inbox, tone: "from-[#3B82F6] to-[#06B6D4]" },
   { label: "Followers", href: "/profile/followers", icon: Users, tone: "from-[#22C55E] to-[#10B981]" },
   { label: "Following", href: "/profile/following", icon: Users, tone: "from-[#8B5CF6] to-[#6366F1]" },

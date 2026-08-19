@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { getQuizByCode, getQuizProblems, updateQuiz, updateQuizStatus, type Quiz } from "@/services/quiz";
-import { QuizDetails, DEFAULT_QUIZ_DETAILS } from "@/components/quiz/creator/types";
+import { QuizDetails, DEFAULT_QUIZ_DETAILS, DEFAULT_QUIZ_AUDIENCE } from "@/components/quiz/creator/types";
 import { loadQuizState, saveQuizDetails, computeQuestionsSignature, getSyncedSignature } from "@/utils/quizStorage";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import { useToast } from "@/hooks/useToast";
@@ -59,6 +59,20 @@ function validateQuizStart(details: QuizDetails): string | null {
     if (!details.registrationStart) return "Registration start time is required.";
     if (!details.registrationEnd) return "Registration end time is required.";
   }
+  const audience = details.audience;
+  if (audience?.mode === "ROOMS" && (!audience.roomIds || audience.roomIds.length === 0)) {
+    return "Select at least one room for the quiz audience.";
+  }
+  if (audience?.mode === "STUDENTS" && (!audience.students || audience.students.length === 0)) {
+    return "Select at least one student for the quiz audience.";
+  }
+  if (
+    audience?.mode === "ROOMS_STUDENTS" &&
+    (!audience.roomIds || audience.roomIds.length === 0) &&
+    (!audience.students || audience.students.length === 0)
+  ) {
+    return "Select at least one room or one student for the quiz audience.";
+  }
   return null;
 }
 
@@ -113,7 +127,13 @@ export function QuizSettingsProvider({
   const [startValidationError, setStartValidationError] = useState<string | null>(null);
   const [details, setDetails] = useState<QuizDetails>(() => {
     const saved = loadQuizState();
-    if (saved?.details) return { ...DEFAULT_QUIZ_DETAILS, ...saved.details };
+    if (saved?.details) {
+      return {
+        ...DEFAULT_QUIZ_DETAILS,
+        ...saved.details,
+        audience: { ...DEFAULT_QUIZ_AUDIENCE, ...(saved.details.audience ?? {}) },
+      };
+    }
     return { ...DEFAULT_QUIZ_DETAILS };
   });
 

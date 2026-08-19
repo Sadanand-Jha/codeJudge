@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, useMemo, use } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
@@ -48,6 +48,8 @@ import { DEFAULT_ASSESSMENT_SETTINGS, LifelineConfig } from "@/types/quiz";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
+import { loadQuizAudience } from "@/utils/quizStorage";
+import { useRoomStore, isUserEligible } from "@/store/roomStore";
 
 export default function QuizRegisterPage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = use(params);
@@ -68,6 +70,25 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
 
   const registration = getRegistration(quizCode);
   const registered = isRegistered(quizCode);
+
+  // Audience-based eligibility. The frontend only surfaces a hint — the real
+  // check happens on the registration endpoint. When no audience is stored the
+  // quiz is treated as open to everyone.
+  const audience = useMemo(() => loadQuizAudience(quizCode), [quizCode]);
+  const rooms = useRoomStore((s) => s.rooms);
+  const hydrateRooms = useRoomStore((s) => s.hydrate);
+  useEffect(() => {
+    hydrateRooms();
+  }, [hydrateRooms]);
+
+  const eligible = useMemo(() => {
+    if (!audience || audience.mode === "EVERYONE") return true;
+    if (audience.mode === "ROOMS" && audience.roomIds.length === 0) return true;
+    return isUserEligible(rooms, audience.roomIds, {
+      email: user?.email,
+      name: user?.displayName || user?.username || [user?.firstName, user?.lastName].filter(Boolean).join(" "),
+    }, audience.students ?? []);
+  }, [audience, rooms, user]);
 
   const canRegister = agreed && readRules && studentName.trim() && rollNo.trim();
 
@@ -165,6 +186,36 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
         <div className="max-w-4xl mx-auto text-center py-16">
           <p className="text-sm text-muted-foreground">Quiz not found.</p>
           <Link href="/quiz" className="text-foreground text-sm mt-2 inline-block">← Back to Quizzes</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!eligible) {
+    return (
+      <div className="min-h-screen bg-[#0B0D14]">
+        <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-6 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-danger/10 ring-1 ring-inset ring-danger/25">
+            <Lock className="h-8 w-8 text-danger" />
+          </div>
+          <h1 className="mt-5 text-2xl font-bold tracking-tight text-white">
+            Registration Restricted
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            This quiz is available only to students belonging to the selected rooms.
+          </p>
+          <div className="mt-6 flex items-center gap-2 rounded-xl border border-danger/20 bg-danger/[0.06] px-4 py-2.5">
+            <AlertCircle className="h-4 w-4 shrink-0 text-danger" />
+            <p className="text-xs text-[#D1D5DB]">
+              You are not part of an eligible room for &quot;{quiz.name}&quot;.
+            </p>
+          </div>
+          <Link
+            href={quizCodePath(quizCode)}
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-xl border border-border-hover bg-white/[0.03] px-6 text-sm font-semibold text-white transition-colors hover:bg-white/[0.06]"
+          >
+            Back to Quiz
+          </Link>
         </div>
       </div>
     );
@@ -378,6 +429,24 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                 {/* Right Column - 30% */}
                 <div className="lg:col-span-1">
                   <div className="lg:sticky lg:top-24 space-y-6">
+                    {audience && audience.mode === "ROOMS" && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-start gap-2.5 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.07] p-3.5"
+                      >
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                        <div>
+                          <p className="text-xs font-semibold text-emerald-400">
+                            You are eligible for this quiz
+                          </p>
+                          <p className="mt-0.5 text-[11px] leading-relaxed text-[#D1D5DB]">
+                            You belong to one of the rooms selected by the quiz creator.
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+
                     {/* Student Info Card */}
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}

@@ -18,6 +18,8 @@ export const STORAGE_KEYS = {
   SPLIT_PANE_CONSOLE_HEIGHT: "byteclash_split_pane_console_height",
   AI_LEFT_PANEL: "byteclash_ai_left_panel",
   QUIZ_SYNC_SIGNATURE_PREFIX: "byteclash_quiz_sync_",
+  /** Per-quiz audience config, keyed by quiz code. */
+  QUIZ_AUDIENCE_PREFIX: "byteclash_quiz_audience_",
 } as const;
 
 /**

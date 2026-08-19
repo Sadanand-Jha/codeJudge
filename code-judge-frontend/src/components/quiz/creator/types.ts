@@ -60,6 +60,61 @@ export interface QuizCollaborator {
   addedAt: string;
 }
 
+export type AudienceMode = "EVERYONE" | "ROOMS" | "STUDENTS" | "ROOMS_STUDENTS";
+
+/**
+ * A student selected individually for a quiz audience. Unlike room
+ * membership (which is dynamic), individual selection is stored as a
+ * snapshot on the quiz so historical quizzes stay consistent if a student is
+ * later removed from a room.
+ */
+export interface AudienceStudent {
+  id: string;
+  name: string;
+  rollNumber: string;
+  email: string;
+  /** Avatar id (1-7) for the predefined local avatars. */
+  avatarId: number;
+}
+
+/**
+ * Audience configuration for a quiz.
+ *
+ * Modes:
+ *   EVERYONE       — anyone with access can register.
+ *   ROOMS          — students belonging to at least one selected room (OR logic).
+ *   STUDENTS       — only the individually selected students can register.
+ *   ROOMS_STUDENTS — students from selected rooms OR the individually
+ *                    selected students (OR logic — one match is enough).
+ *
+ * `roomNames`, `students` and `eligibleCount` are display-only values. The
+ * backend must resolve actual room membership and determine eligibility —
+ * the frontend selection is never treated as authoritative.
+ */
+export interface QuizAudience {
+  mode: AudienceMode;
+  roomIds: string[];
+  roomNames: string[];
+  /** Quiz-specific individual student selection (snapshot). */
+  students: AudienceStudent[];
+  eligibleCount: number;
+}
+
+export const DEFAULT_QUIZ_AUDIENCE: QuizAudience = {
+  mode: "EVERYONE",
+  roomIds: [],
+  roomNames: [],
+  students: [],
+  eligibleCount: 0,
+};
+
+export const AUDIENCE_MODES: Array<{ id: AudienceMode; label: string }> = [
+  { id: "EVERYONE", label: "Everyone" },
+  { id: "ROOMS", label: "Selected Rooms" },
+  { id: "STUDENTS", label: "Selected Students" },
+  { id: "ROOMS_STUDENTS", label: "Rooms + Students" },
+];
+
 export interface QuizDetails {
   name: string;
   description: string;
@@ -96,6 +151,7 @@ export interface QuizDetails {
   leaderboardShowTime: boolean;
   resultVisibility: "immediate" | "after_end" | "manual";
   collaborators: QuizCollaborator[];
+  audience: QuizAudience;
 }
 
 export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
@@ -134,6 +190,7 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   leaderboardShowTime: true,
   resultVisibility: "immediate",
   collaborators: [],
+  audience: { ...DEFAULT_QUIZ_AUDIENCE },
 };
 
 export const QUESTION_TYPE_LABELS: Record<CreatorQuestionType, string> = {
