@@ -13,10 +13,12 @@ import {
   BarChart3,
   Settings,
   UsersRound,
+  ShoppingBag,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useInboxStore, loadInboxUnread } from "@/store/inboxStore";
+import { usePurchasesStore } from "@/store/purchasesStore";
 
 export interface ProfileNavItem {
   label: string;
@@ -34,6 +36,7 @@ export const PROFILE_NAV_ITEMS: ProfileNavItem[] = [
   { label: "Following", href: "/profile/following", icon: Users, tone: "from-[#8B5CF6] to-[#6366F1]" },
   { label: "Achievements", href: "/profile/achievements", icon: Trophy, tone: "from-[#FBBF24] to-[#F59E0B]" },
   { label: "Activity", href: "/profile/activity", icon: Activity, tone: "from-[#F59E0B] to-[#F97316]" },
+  { label: "My Purchases", href: "/profile/purchases", icon: ShoppingBag, tone: "from-[#EC4899] to-[#8B5CF6]" },
   { label: "Statistics", href: "/profile/statistics", icon: BarChart3, tone: "from-[#06B6D4] to-[#3B82F6]" },
 ];
 
@@ -49,6 +52,7 @@ export function isProfilePathActive(pathname: string, href: string): boolean {
 function ProfileNavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const unread = useInboxStore((s) => s.unread);
+  const showSuccess = usePurchasesStore((s) => s.showSuccess);
 
   return (
     <div className="space-y-1">
@@ -85,6 +89,9 @@ function ProfileNavLinks({ onNavigate }: { onNavigate?: () => void }) {
               <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F59E0B] px-1.5 text-[10px] font-bold text-white shadow-[0_0_12px_rgba(245,158,11,0.5)]">
                 {unread}
               </span>
+            )}
+            {item.href === "/profile/purchases" && showSuccess && (
+              <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-[#EC4899] shadow-[0_0_8px_rgba(236,72,153,0.6)]" />
             )}
             {isActive && (
               <motion.span

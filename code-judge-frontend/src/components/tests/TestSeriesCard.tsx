@@ -28,7 +28,7 @@ export function TestSeriesCard({ series, index = 0 }: { series: SeriesMeta; inde
           <SeriesThumbnail exam={exam} />
           {free && (
             <div className="absolute left-3 top-3">
-              <FreeBadge className="border-white/30 bg-black/30 text-white backdrop-blur-sm dark:border-white/25" />
+              <FreeBadge className="border-white/30 bg-black/30 text-white/90 backdrop-blur-sm dark:border-white/25" />
             </div>
           )}
         </div>
