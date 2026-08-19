@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect, type ReactNode } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   User, IdCard, Trophy, Code2, Shield, Lock, Bell, Palette,
   Link2, AlertTriangle, Save, Trash2, Check,
   ExternalLink, Loader2, Download, Pause, MessageSquareX,
   Globe, Mail, Phone, Calendar, Moon, Sun, Monitor,
   Users, Star, MapPin, BadgeCheck, Camera, AtSign,
-  Hash, Clock, Sparkles,
+  Hash, Clock, Sparkles, ChevronDown,
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import AvatarSettings from "@/components/settings/AvatarSettings";
+import SettingsSidebar, { SettingsMobileNav } from "@/components/settings/SettingsSidebar";
 import { useCurrentAvatar } from "@/store/avatarStore";
 import { useAuthStore } from "@/store/authStore";
 import { useToast } from "@/hooks/useToast";
@@ -246,6 +247,7 @@ export default function SettingsPage() {
   const toast = useToast();
   const currentAvatar = useCurrentAvatar();
   const [activeSection, setActiveSection] = useState<string>("profile");
+  const [navOpen, setNavOpen] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [originalSettings, setOriginalSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
@@ -467,65 +469,35 @@ export default function SettingsPage() {
   const displayName = settings.displayName || `${settings.firstName} ${settings.lastName}`.trim() || "Your Name";
   const countryName = COUNTRY_NAMES[settings.country] || settings.country || "—";
   const roleLabel = ROLE_LABELS[settings.role] || settings.role || "User";
+  const activeSectionLabel = SECTIONS.find((s) => s.id === activeSection)?.label ?? "Settings";
 
   return (
     <AppLayout>
       <div className="flex min-h-screen bg-background">
         {/* ===== Settings Sidebar ===== */}
-        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
-          <nav className="settings-scroll h-full overflow-y-auto p-4">
-            <p className="px-3 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-              Settings
-            </p>
-            <div className="space-y-1">
-              {SECTIONS.map((section) => {
-                const Icon = section.icon;
-                const isActive = activeSection === section.id;
-                const isDanger = section.id === "danger";
-                return (
-                  <button
-                    key={section.id}
-                    onClick={() => scrollToSection(section.id)}
-                    className={cn(
-                      "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200",
-                      isActive
-                        ? isDanger
-                          ? "bg-danger/10 text-danger"
-                          : "bg-accent/10 text-accent"
-                        : "text-text-secondary hover:bg-accent/5 hover:text-text-primary"
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        "h-5 w-5 shrink-0 transition-colors",
-                        isActive ? "text-accent" : "text-text-muted group-hover:text-text-primary"
-                      )}
-                      strokeWidth={isActive ? 2.2 : 2}
-                    />
-                    <span className={cn("font-medium", isActive && "font-semibold")}>
-                      {section.label}
-                    </span>
-                    {isActive && (
-                      <motion.span
-                        layoutId="activeSettingsIndicator"
-                        className={cn(
-                          "ml-auto h-1.5 w-1.5 rounded-full",
-                          isDanger ? "bg-danger" : "bg-accent"
-                        )}
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
-        </aside>
+        <SettingsSidebar activeSection={activeSection} onSelect={scrollToSection} />
 
         {/* ===== Main Content ===== */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-w-0 flex-1">
+          {/* Mobile settings action bar */}
+          <div className="sticky top-14 z-30 flex items-center justify-between gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur-xl lg:hidden">
+            <button
+              onClick={() => setNavOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-sm font-semibold text-text-primary transition-colors hover:border-border-hover"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-[#F59E0B] to-[#F97316]">
+                <User className="h-3 w-3 text-white" />
+              </span>
+              {activeSectionLabel}
+              <ChevronDown className="h-3.5 w-3.5 text-text-muted" />
+            </button>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+              Settings
+            </span>
+          </div>
+
           {/* ===== Page Header ===== */}
-          <div className="sticky top-14 z-20 border-b border-border bg-background/80 px-6 py-5 backdrop-blur-xl lg:px-8">
+          <div className="sticky top-28 z-20 border-b border-border bg-background/80 px-6 py-5 backdrop-blur-xl lg:top-14 lg:px-8">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-text-primary">Settings</h1>
@@ -1032,6 +1004,17 @@ export default function SettingsPage() {
         onConfirm={confirmState.onConfirm}
         onCancel={() => setConfirmState((s) => ({ ...s, open: false }))}
       />
+
+      {/* Mobile settings navigation drawer */}
+      <AnimatePresence>
+        {navOpen && (
+          <SettingsMobileNav
+            onClose={() => setNavOpen(false)}
+            activeSection={activeSection}
+            onSelect={scrollToSection}
+          />
+        )}
+      </AnimatePresence>
     </AppLayout>
   );
 }

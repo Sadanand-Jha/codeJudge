@@ -131,9 +131,9 @@ export default function SocialPage({ mode }: SocialPageProps) {
                     transition={{ duration: 0.3, delay: i * 0.04 }}
                     className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-colors hover:border-border-hover"
                   >
-                    <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[#EC4899]/5 blur-2xl" />
+                    <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[#F59E0B]/5 blur-2xl" />
                     <div className="relative flex items-start gap-4">
-                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-border bg-gradient-to-br from-[#7C3AED] to-[#3B82F6]">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-border bg-gradient-to-br from-[#F97316] to-[#F59E0B]">
                         <img src={avatarUrl} alt={user.username || "User"} className="h-full w-full object-cover" />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -168,7 +168,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
                         <button
                           onClick={() => handleUnfollow(user)}
                           disabled={busy}
-                          className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 px-3 text-[11px] font-bold text-[#EC4899] transition-all hover:bg-[#EC4899]/15 active:scale-[0.97] disabled:opacity-50"
+                          className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/10 px-3 text-[11px] font-bold text-[#F59E0B] transition-all hover:bg-[#F59E0B]/15 active:scale-[0.97] disabled:opacity-50"
                         >
                           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5" />}
                           Unfollow
@@ -182,7 +182,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
                             "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg px-3 text-[11px] font-bold transition-all active:scale-[0.97] disabled:opacity-50",
                             user.isFollowing
                               ? "border border-border bg-card-hover text-text-secondary"
-                              : "bg-gradient-to-r from-[#EC4899] to-[#7C3AED] text-white shadow-[0_4px_12px_rgba(236,72,153,0.3)]"
+                              : "bg-gradient-to-r from-[#F59E0B] to-[#F97316] text-white shadow-[0_4px_12px_rgba(245,158,11,0.3)]"
                           )}
                         >
                           {busy ? (

@@ -21,7 +21,7 @@ export default function ProfileSectionHeader({
   title,
   description,
   icon: Icon,
-  iconTone = "from-[#EC4899] to-[#7C3AED]",
+  iconTone = "from-[#F59E0B] to-[#F97316]",
   badge,
   actions,
   className,

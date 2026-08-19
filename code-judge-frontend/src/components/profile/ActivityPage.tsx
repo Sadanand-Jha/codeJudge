@@ -11,7 +11,7 @@ import ProfileSectionHeader from "./ProfileSectionHeader";
 
 const EVENT_TONE: Record<ActivityEvent["type"], { icon: React.ComponentType<{ className?: string }>; gradient: string }> = {
   contest: { icon: Trophy, gradient: "from-[#FBBF24] to-[#F59E0B]" },
-  collaboration: { icon: UserPlus, gradient: "from-[#EC4899] to-[#7C3AED]" },
+  collaboration: { icon: UserPlus, gradient: "from-[#F59E0B] to-[#F97316]" },
   achievement: { icon: BellRing, gradient: "from-[#22C55E] to-[#10B981]" },
   profile: { icon: Code2, gradient: "from-[#3B82F6] to-[#06B6D4]" },
   quiz: { icon: CalendarDays, gradient: "from-[#8B5CF6] to-[#6366F1]" },
@@ -80,7 +80,7 @@ export default function ActivityPage() {
           title="Activity"
           description="A timeline of your recent journey — contests, collaborations and milestones."
           icon={Activity}
-          iconTone="from-[#F97316] to-[#EC4899]"
+          iconTone="from-[#F59E0B] to-[#F97316]"
           badge={
             !loading && events.length > 0 ? (
               <span className="rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-bold text-accent">
@@ -100,8 +100,8 @@ export default function ActivityPage() {
             animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl border border-dashed border-border bg-card/50 p-12 text-center"
           >
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F97316]/10 to-[#EC4899]/10">
-              <Activity className="h-5 w-5 text-[#EC4899]" />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F97316]/10 to-[#F59E0B]/10">
+              <Activity className="h-5 w-5 text-[#F59E0B]" />
             </div>
             <p className="mt-4 text-sm font-semibold text-text-primary">No activity yet</p>
             <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-text-muted">
@@ -118,7 +118,7 @@ export default function ActivityPage() {
                 transition={{ duration: 0.35, delay: gi * 0.06 }}
               >
                 <div className="mb-3 flex items-center gap-3">
-                  <span className="rounded-lg bg-gradient-to-r from-[#EC4899]/15 to-[#7C3AED]/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#EC4899]">
+                  <span className="rounded-lg bg-gradient-to-r from-[#F59E0B]/15 to-[#F97316]/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">
                     {label}
                   </span>
                   <span className="h-px flex-1 bg-border" />
@@ -142,8 +142,8 @@ export default function ActivityPage() {
                         >
                           {/* Node on the rail */}
                           <span className="relative z-10 mt-5 flex h-3 w-3 shrink-0 items-center justify-center">
-                            <span className="absolute inline-flex h-3 w-3 rounded-full bg-[#EC4899]/30" />
-                            <span className="relative inline-flex h-2 w-2 rounded-full bg-gradient-to-br from-[#EC4899] to-[#7C3AED] shadow-[0_0_8px_rgba(236,72,153,0.8)]" />
+                            <span className="absolute inline-flex h-3 w-3 rounded-full bg-[#F59E0B]/30" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#F97316] shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
                           </span>
 
                           <div className="min-w-0 flex-1 rounded-2xl border border-border bg-card p-4 transition-colors hover:border-border-hover">

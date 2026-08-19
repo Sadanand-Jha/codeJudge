@@ -27,13 +27,13 @@ export interface ProfileNavItem {
 }
 
 export const PROFILE_NAV_ITEMS: ProfileNavItem[] = [
-  { label: "Profile", href: "/profile", icon: User, tone: "from-[#EC4899] to-[#7C3AED]" },
-  { label: "Rooms", href: "/profile/rooms", icon: UsersRound, tone: "from-[#EC4899] to-[#7C3AED]" },
+  { label: "Profile", href: "/profile", icon: User, tone: "from-[#F59E0B] to-[#F97316]" },
+  { label: "Rooms", href: "/profile/rooms", icon: UsersRound, tone: "from-[#F59E0B] to-[#F97316]" },
   { label: "Inbox", href: "/profile/inbox", icon: Inbox, tone: "from-[#3B82F6] to-[#06B6D4]" },
   { label: "Followers", href: "/profile/followers", icon: Users, tone: "from-[#22C55E] to-[#10B981]" },
   { label: "Following", href: "/profile/following", icon: Users, tone: "from-[#8B5CF6] to-[#6366F1]" },
   { label: "Achievements", href: "/profile/achievements", icon: Trophy, tone: "from-[#FBBF24] to-[#F59E0B]" },
-  { label: "Activity", href: "/profile/activity", icon: Activity, tone: "from-[#F97316] to-[#EC4899]" },
+  { label: "Activity", href: "/profile/activity", icon: Activity, tone: "from-[#F59E0B] to-[#F97316]" },
   { label: "Statistics", href: "/profile/statistics", icon: BarChart3, tone: "from-[#06B6D4] to-[#3B82F6]" },
 ];
 
@@ -63,7 +63,7 @@ function ProfileNavLinks({ onNavigate }: { onNavigate?: () => void }) {
             className={cn(
               "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
               isActive
-                ? "bg-[#EC4899]/10 text-text-primary shadow-[inset_0_0_0_1px_rgba(236,72,153,0.2)]"
+                ? "bg-[#F59E0B]/10 text-text-primary shadow-[inset_0_0_0_1px_rgba(245,158,11,0.25)]"
                 : "text-text-secondary hover:bg-accent/5 hover:text-text-primary"
             )}
           >
@@ -82,14 +82,14 @@ function ProfileNavLinks({ onNavigate }: { onNavigate?: () => void }) {
               {item.label}
             </span>
             {item.href === "/profile/inbox" && unread > 0 && (
-              <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#EC4899] px-1.5 text-[10px] font-bold text-white shadow-[0_0_12px_rgba(236,72,153,0.5)]">
+              <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#F59E0B] px-1.5 text-[10px] font-bold text-white shadow-[0_0_12px_rgba(245,158,11,0.5)]">
                 {unread}
               </span>
             )}
             {isActive && (
               <motion.span
                 layoutId="profileNavActive"
-                className="absolute right-2 h-1.5 w-1.5 rounded-full bg-[#EC4899] shadow-[0_0_8px_rgba(236,72,153,0.8)]"
+                className="absolute right-2 h-1.5 w-1.5 rounded-full bg-[#F59E0B] shadow-[0_0_8px_rgba(249,115,22,0.8)]"
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
               />
             )}
@@ -123,11 +123,11 @@ export function ProfileSidebarContent({ onNavigate }: { onNavigate?: () => void 
         className={cn(
           "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
           settingsActive
-            ? "bg-accent/10 text-accent shadow-[inset_0_0_0_1px_rgba(124,58,237,0.2)]"
+            ? "bg-accent/10 text-[#F59E0B] shadow-[inset_0_0_0_1px_rgba(245,158,11,0.25)]"
             : "text-text-secondary hover:bg-accent/5 hover:text-text-primary"
         )}
       >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] opacity-40 transition-opacity group-hover:opacity-100">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#F97316] to-[#F59E0B] opacity-40 transition-opacity group-hover:opacity-100">
           <Settings className="h-3.5 w-3.5 text-white" strokeWidth={2.2} />
         </span>
         <span className={cn("transition-colors", settingsActive ? "font-semibold text-accent" : "text-text-secondary")}>
@@ -136,7 +136,7 @@ export function ProfileSidebarContent({ onNavigate }: { onNavigate?: () => void 
         {settingsActive && (
           <motion.span
             layoutId="profileNavActive"
-            className="absolute right-2 h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(124,58,237,0.8)]"
+            className="absolute right-2 h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_rgba(249,115,22,0.8)]"
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
           />
         )}
@@ -145,7 +145,7 @@ export function ProfileSidebarContent({ onNavigate }: { onNavigate?: () => void 
       <div className="mt-6 rounded-xl border border-border bg-card-hover/60 p-4">
         <p className="text-[10px] font-medium leading-relaxed text-text-muted">
           Your profile is your identity across ByteClash. Customize it from{" "}
-          <Link href="/settings" onClick={onNavigate} className="font-semibold text-[#EC4899] hover:underline">
+          <Link href="/settings" onClick={onNavigate} className="font-semibold text-[#F59E0B] hover:underline">
             Settings
           </Link>
           .
@@ -205,7 +205,7 @@ export function ProfileMobileNav({
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#F97316] to-[#F59E0B]">
               <User className="h-3.5 w-3.5 text-white" />
             </span>
             <span className="text-sm font-bold text-text-primary">Profile</span>

@@ -9,14 +9,12 @@ import {
   Timer,
   Target,
   ChevronRight,
-  ClipboardList,
-  Code2,
-  Trophy,
   ArrowRight,
   Search,
   CornerDownLeft,
 } from "lucide-react";
 import { SearchBar } from "./SearchBar";
+import { ProductTabs } from "./ProductTabs";
 import { buildSearchIndex } from "./mockData";
 import type { SearchResultKind } from "./types";
 import { cn } from "@/lib/helpers";
@@ -40,33 +38,6 @@ const RESULT_GROUP: Record<SearchResultKind, string> = {
 };
 
 const RESULT_ORDER: SearchResultKind[] = ["test", "series", "problem", "contest", "teacher", "exam"];
-
-const PRODUCT_TABS = [
-  {
-    id: "tests",
-    icon: ClipboardList,
-    title: "TESTS",
-    description: "Competitive exams and teacher-created test series.",
-    href: "/tests",
-    meta: "1,40,000+ tests",
-  },
-  {
-    id: "problems",
-    icon: Code2,
-    title: "PROBLEMS",
-    description: "Individual coding and DSA problems.",
-    href: "/problems",
-    meta: "12,000+ challenges",
-  },
-  {
-    id: "contests",
-    icon: Trophy,
-    title: "CONTESTS",
-    description: "Timed competitive programming and coding competitions.",
-    href: "/contests",
-    meta: "Weekly · Monthly · Live",
-  },
-];
 
 /**
  * Assessment Hub hero — "Test. Practice. Compete. Improve."
@@ -339,67 +310,8 @@ export function TestsHero({ onSearch }: { onSearch?: (query: string) => void }) 
         </motion.div>
       </div>
 
-      {/* Product tabs — the three sibling activities */}
-      <div className="relative border-t border-border bg-card/40 px-5 py-4 sm:px-8 sm:py-5 lg:px-10">
-        <div className="grid gap-3 sm:grid-cols-3">
-          {PRODUCT_TABS.map((tab, i) => {
-            const active = tab.id === "tests";
-            const Icon = tab.icon;
-            return (
-              <motion.div
-                key={tab.id}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: 0.3 + i * 0.08 }}
-              >
-                <Link
-                  href={tab.href}
-                  className={cn(
-                    "group relative flex items-center gap-4 overflow-hidden rounded-2xl border p-4 transition-all duration-200",
-                    active
-                      ? "border-pink-500/40 bg-gradient-to-br from-pink-500/10 to-violet-600/10 shadow-[0_0_0_1px_rgba(236,72,153,0.2)]"
-                      : "border-border bg-card hover:-translate-y-0.5 hover:border-pink-500/25 hover:shadow-[0_10px_30px_rgba(0,0,0,0.12)] dark:hover:border-ai-accent/30"
-                  )}
-                >
-                  {active && (
-                    <span className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-pink-500 to-violet-600" />
-                  )}
-                  <span
-                    className={cn(
-                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
-                      active
-                        ? "bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-[0_4px_14px_rgba(236,72,153,0.35)]"
-                        : "bg-card-hover text-text-secondary ring-1 ring-border group-hover:text-pink-500 dark:group-hover:text-ai-accent"
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "text-sm font-extrabold tracking-wide",
-                          active ? "text-pink-500 dark:text-ai-accent" : "text-text-primary"
-                        )}
-                      >
-                        {tab.title}
-                      </span>
-                      {active && (
-                        <span className="rounded-full bg-pink-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-pink-500 dark:bg-ai-accent/15 dark:text-ai-accent">
-                          Viewing
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-0.5 block truncate text-[11px] text-text-secondary">{tab.description}</span>
-                    <span className="mt-1 block text-[10px] font-semibold text-text-muted">{tab.meta}</span>
-                  </span>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-text-muted transition-all group-hover:translate-x-0.5 group-hover:text-pink-500 dark:group-hover:text-ai-accent" />
-                </Link>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
+      {/* Product tabs — Problems / Tests / Contests */}
+      <ProductTabs active="tests" order={["tests", "problems", "contests"]} />
     </section>
   );
 }

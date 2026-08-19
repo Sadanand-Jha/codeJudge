@@ -293,10 +293,16 @@ body {
   }
 }
 
-/* Theme transition utility — buttery-smooth dark ↔ light switching.
-   Placed inside @layer base so Tailwind's transition-* utilities
-   (which live in @layer utilities) keep their intended behavior,
-   while every other element still eases gracefully between themes. */
+/* ============================================
+   Theme transition — buttery-smooth dark ↔ light switching.
+   The base layer gives every element a gentle transition on the color
+   properties so plain hover states stay smooth. During an actual theme
+   switch, applyThemeToDOM() briefly adds a `theme-transition` class to
+   <html>; the scoped !important rule below then forces ALL elements
+   (including those with Tailwind transition-* utilities) to ease together
+   at the SAME duration and easing, so the whole interface changes its
+   atmosphere as one unit instead of component-by-component.
+   ============================================ */
 @layer base {
   html,
   body,
@@ -304,12 +310,31 @@ body {
   *::before,
   *::after {
     transition-property: background-color, border-color, color, fill, stroke, box-shadow;
-    transition-duration: 0.4s;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+    transition-timing-function: ease-in-out;
   }
 }
 
+/* Lockstep theme switch — every element eases in unison, no stagger. */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition-property: background-color, color, border-color, box-shadow, fill, stroke, opacity;
+  transition-duration: 300ms;
+  transition-timing-function: ease-in-out;
+  transition-delay: 0s !important;
+}
+
+/* Instant theme switch for users who disable animations. */
 @media (prefers-reduced-motion: reduce) {
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition: none !important;
+  }
+
   *,
   *::before,
   *::after {
@@ -2232,8 +2257,8 @@ button.cf-btn:hover {
 }
 
 [data-theme="light"] .problems-search-input:focus {
-  border-color: #2563EB !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14) !important;
 }
 
 /* Segmented control, dropdown and toolbar buttons use the semantic
@@ -2257,26 +2282,46 @@ button.cf-btn:hover {
 }
 
 /* ============================================
-   Problem Table — Pop-forward row hover
-   The hovered ROW is treated as one unified
-   object. The whole <tr> scales up vertically
-   (scaleY) so the strip grows taller, overlaps
-   its neighbors above/below, lifts above them
-   (transform → stacking context + z-index), and
-   casts a single unified box-shadow. Background
-   and ring colors live on the cells, but because
-   every cell shares one color and cells are never
-   scaled horizontally, the strip reads as one
-   continuous surface with rounded corners ONLY at
-   its outer ends. Transforms never affect layout,
-   so column widths and row heights stay fixed.
+   Problem Table — cohesive surface
+   Rows share one tinted background on hover; the
+   rounded corners live only at the two outer ends.
    The table uses border-collapse: separate so the
    outer corners can be rounded.
    ============================================ */
 
+/* Problems page — lavender ambient shell (light only) */
+[data-theme="light"] .problems-page-shell {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(139, 92, 246, 0.06) 0%, transparent 42%),
+    radial-gradient(circle at 88% 4%, rgba(236, 72, 153, 0.05) 0%, transparent 36%) !important;
+}
+
+/* Stat strip cards — small, elegant, part of the Problems surface */
+.problems-stat-card {
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+.problems-stat-card:hover {
+  transform: translateY(-1px);
+}
+[data-theme="light"] .problems-stat-card {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+[data-theme="light"] .problems-stat-card:hover {
+  border-color: rgba(124, 58, 237, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.1) !important;
+}
+
+/* Mobile problem cards — clean light surface */
+[data-theme="light"] .problems-mobile-card {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
 .problems-table-row {
   position: relative;
-  transition: transform 200ms ease, box-shadow 200ms ease;
 }
 
 /* Row separator + reserved ring borders. Borders keep a constant 1px width so
@@ -2310,9 +2355,6 @@ button.cf-btn:hover {
    status icon and every column stay perfectly aligned with the header. */
 .problems-table-row:hover {
   z-index: 5;
-  transform: scaleY(1.1);
-  transform-origin: center;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .problems-table-row:hover td {
@@ -2356,7 +2398,7 @@ button.cf-btn:hover {
 
 /* Softer light-theme hover strip */
 [data-theme="light"] .problems-table-row:hover {
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06);
+  z-index: 5;
 }
 
 [data-theme="light"] .problems-table-row:hover td {
@@ -2379,7 +2421,7 @@ button.cf-btn:hover {
 }
 
 [data-theme="light"] .problems-problem-link:hover {
-  color: #2563EB !important;
+  color: #7C3AED !important;
 }
 
 [data-theme="light"] .problems-problem-id {
@@ -2440,6 +2482,43 @@ button.cf-btn:hover {
   background-color: #F8FAFC !important;
   border-color: #CBD5E1 !important;
   color: #0F172A !important;
+}
+
+/* Category discovery cards (Practice by Exam / Subject / Difficulty) —
+   clean white surfaces with a gentle purple hover. */
+[data-theme="light"] .problems-cat-card {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problems-cat-card:hover {
+  border-color: rgba(124, 58, 237, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.1) !important;
+}
+
+/* Category chips (exam / subject pills) */
+[data-theme="light"] .problems-cat-chip {
+  background-color: #FFFFFF !important;
+  border-color: #E2E8F0 !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03) !important;
+}
+
+[data-theme="light"] .problems-cat-chip:hover {
+  border-color: rgba(124, 58, 237, 0.35) !important;
+  color: #7C3AED !important;
+}
+
+/* Selected filter tag chips — darker purple text on white for contrast */
+[data-theme="light"] .problems-topic-chip {
+  border-color: rgba(124, 58, 237, 0.3) !important;
+  background-color: rgba(124, 58, 237, 0.08) !important;
+  color: #7C3AED !important;
+}
+
+[data-theme="light"] .problems-topic-chip button {
+  color: #7C3AED !important;
 }
 
 /* ============================================
@@ -4026,4 +4105,259 @@ svg {
 }
 .tests-search-panel::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* ============================================
+   Problems Section — ByteClash
+   Premium problem hub (hero + CP spotlight).
+   Scoped via .problems-* hooks. Light & dark.
+   ============================================ */
+
+/* Ambient page glow — subtle, keeps text readable. */
+[data-theme="dark"] .problems-ambient {
+  background:
+    radial-gradient(60rem 28rem at 15% -5%, rgba(59, 130, 246, 0.10) 0%, transparent 55%),
+    radial-gradient(50rem 24rem at 88% 6%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(44rem 30rem at 50% 42%, rgba(236, 72, 153, 0.05) 0%, transparent 60%);
+}
+
+[data-theme="light"] .problems-ambient {
+  background:
+    radial-gradient(60rem 26rem at 15% -5%, rgba(59, 130, 246, 0.08) 0%, transparent 55%),
+    radial-gradient(50rem 22rem at 88% 6%, rgba(139, 92, 246, 0.07) 0%, transparent 50%),
+    radial-gradient(40rem 28rem at 50% 40%, rgba(192, 132, 252, 0.05) 0%, transparent 60%);
+}
+
+/* Hero glow — pulses very gently. */
+[data-theme="dark"] .problems-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(34rem 20rem at 18% 30%, rgba(59, 130, 246, 0.14) 0%, transparent 58%),
+    radial-gradient(26rem 18rem at 82% 45%, rgba(139, 92, 246, 0.10) 0%, transparent 55%);
+  animation: problems-glow-pulse 9s ease-in-out infinite;
+}
+
+[data-theme="light"] .problems-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(32rem 20rem at 16% 30%, rgba(59, 130, 246, 0.10) 0%, transparent 58%),
+    radial-gradient(26rem 18rem at 84% 45%, rgba(139, 92, 246, 0.10) 0%, transparent 55%);
+  animation: problems-glow-pulse 9s ease-in-out infinite;
+}
+
+@keyframes problems-glow-pulse {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+/* Floating micro-chips on the hero visual. */
+.problems-float-slow { animation: problems-float 7s ease-in-out infinite; }
+.problems-float-slower { animation: problems-float 10s ease-in-out infinite reverse; }
+
+@keyframes problems-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+/* Competitive Programming spotlight — blue/violet ambient glow. */
+[data-theme="dark"] .problems-cp-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(36rem 22rem at 12% 40%, rgba(59, 130, 246, 0.14) 0%, transparent 58%),
+    radial-gradient(30rem 18rem at 85% 50%, rgba(139, 92, 246, 0.10) 0%, transparent 55%);
+}
+
+[data-theme="light"] .problems-cp-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(36rem 22rem at 12% 40%, rgba(59, 130, 246, 0.10) 0%, transparent 58%),
+    radial-gradient(30rem 18rem at 85% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 55%);
+}
+
+/* Segmented control (Mode switcher / exam switcher). */
+[data-theme="light"] .problems-segmented {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Stream picker / category cards — soft light-mode shadow. */
+[data-theme="light"] .problems-cat-card {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+[data-theme="light"] .problems-cat-card:hover {
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10);
+}
+
+/* ============================================
+   Contests Section — ByteClash
+   Premium contest arena (hero + upcoming/past).
+   Scoped via .contests-* hooks. Light & dark.
+   ============================================ */
+
+/* Ambient page glow — amber/orange/rose arena identity. */
+[data-theme="dark"] .contests-ambient {
+  background:
+    radial-gradient(60rem 28rem at 15% -5%, rgba(245, 158, 11, 0.10) 0%, transparent 55%),
+    radial-gradient(50rem 24rem at 88% 6%, rgba(249, 115, 22, 0.08) 0%, transparent 50%),
+    radial-gradient(44rem 30rem at 50% 42%, rgba(244, 63, 94, 0.05) 0%, transparent 60%);
+}
+
+[data-theme="light"] .contests-ambient {
+  background:
+    radial-gradient(60rem 26rem at 15% -5%, rgba(245, 158, 11, 0.08) 0%, transparent 55%),
+    radial-gradient(50rem 22rem at 88% 6%, rgba(249, 115, 22, 0.07) 0%, transparent 50%),
+    radial-gradient(40rem 28rem at 50% 40%, rgba(244, 63, 94, 0.05) 0%, transparent 60%);
+}
+
+/* Hero glow — pulses very gently. */
+[data-theme="dark"] .contests-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(34rem 20rem at 18% 30%, rgba(245, 158, 11, 0.14) 0%, transparent 58%),
+    radial-gradient(26rem 18rem at 82% 45%, rgba(249, 115, 22, 0.10) 0%, transparent 55%);
+  animation: contests-glow-pulse 9s ease-in-out infinite;
+}
+
+[data-theme="light"] .contests-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(32rem 20rem at 16% 30%, rgba(245, 158, 11, 0.10) 0%, transparent 58%),
+    radial-gradient(26rem 18rem at 84% 45%, rgba(249, 115, 22, 0.10) 0%, transparent 55%);
+  animation: contests-glow-pulse 9s ease-in-out infinite;
+}
+
+@keyframes contests-glow-pulse {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+
+/* Animated fire headline — gradient sweeps from orange to red so the
+   letters flicker like moving flames (no light yellows). */
+.fire-text,
+.contests-fire-text {
+  background-image: linear-gradient(
+    110deg,
+    #f59e0b 0%,
+    #f97316 18%,
+    #ea580c 34%,
+    #dc2626 50%,
+    #ef4444 64%,
+    #ea580c 78%,
+    #f97316 90%,
+    #f59e0b 100%
+  );
+  background-size: 280% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: contests-fire-flow 9s linear infinite;
+}
+
+@keyframes contests-fire-flow {
+  0% { background-position: 0% center; }
+  100% { background-position: 280% center; }
+}
+
+[data-theme="dark"] .fire-text,
+[data-theme="dark"] .contests-fire-text {
+  background-image: linear-gradient(
+    110deg,
+    #fbbf24 0%,
+    #f59e0b 16%,
+    #f97316 34%,
+    #ef4444 52%,
+    #f97316 68%,
+    #f59e0b 84%,
+    #fbbf24 100%
+  );
+  filter: drop-shadow(0 0 22px rgba(251, 146, 60, 0.35));
+}
+
+/* Floating micro-chips on the hero visual. */
+.contests-float-slow { animation: contests-float 7s ease-in-out infinite; }
+.contests-float-slower { animation: contests-float 10s ease-in-out infinite reverse; }
+
+@keyframes contests-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+/* Segmented control (status switcher). */
+[data-theme="light"] .contests-segmented {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Past-contests table — soft light-mode surface. */
+[data-theme="light"] .contests-table {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Arena hero backdrop — subtle diagonal grid texture. */
+.contests-arena-grid {
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(245, 158, 11, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 158, 11, 0.05) 1px, transparent 1px);
+  background-size: 38px 38px;
+  mask-image: radial-gradient(70% 80% at 50% 40%, black 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(70% 80% at 50% 40%, black 30%, transparent 100%);
+}
+
+/* Ember particles drifting up through the hero. */
+.contests-particle {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgba(251, 146, 60, 0.65);
+  box-shadow: 0 0 10px rgba(251, 146, 60, 0.55);
+  opacity: 0;
+  animation: contests-rise 7s ease-in-out infinite;
+}
+
+@keyframes contests-rise {
+  0% { transform: translateY(24px); opacity: 0; }
+  25% { opacity: 0.8; }
+  75% { opacity: 0.5; }
+  100% { transform: translateY(-52px); opacity: 0; }
+}
+
+/* Pulse ring on the primary CTA. */
+.contests-cta-pulse {
+  animation: contests-cta-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes contests-cta-glow {
+  0%, 100% { box-shadow: 0 4px 18px rgba(245, 158, 11, 0.35); }
+  50% { box-shadow: 0 6px 26px rgba(249, 115, 22, 0.6); }
+}
+
+/* LIVE banner — red glow breathing. */
+.contests-live-glow {
+  animation: contests-live-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes contests-live-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.28); }
+  50% { box-shadow: 0 0 28px 2px rgba(244, 63, 94, 0.38); }
+}
+
+/* Countdown digits — hot glow in dark mode. */
+[data-theme="dark"] .contests-countdown-num {
+  text-shadow: 0 0 18px rgba(251, 146, 60, 0.55);
+}
+
+/* Champion podium tile — golden halo. */
+.contests-rank-1 {
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35), 0 12px 34px rgba(245, 158, 11, 0.45);
 }

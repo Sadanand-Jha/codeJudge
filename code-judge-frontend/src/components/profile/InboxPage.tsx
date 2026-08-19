@@ -119,7 +119,7 @@ export default function InboxPage() {
       id: `collab-${r.id}`,
       kind: "collaboration",
       icon: UserPlus,
-      iconTone: "from-[#EC4899] to-[#7C3AED]",
+      iconTone: "from-[#F59E0B] to-[#F97316]",
       title: `Collaboration request · ${r.quiz_name}${r.quiz_code ? ` (${r.quiz_code})` : ""}`,
       description:
         r.status === "pending"
@@ -152,10 +152,10 @@ export default function InboxPage() {
           title="Inbox"
           description="Messages, notifications, collaboration requests and quiz invitations."
           icon={Mail}
-          iconTone="from-[#EC4899] to-[#7C3AED]"
+          iconTone="from-[#F59E0B] to-[#F97316]"
           badge={
             pendingCount > 0 ? (
-              <span className="rounded-full bg-[#EC4899]/10 px-2.5 py-1 text-[10px] font-bold text-[#EC4899]">
+              <span className="rounded-full bg-[#F59E0B]/10 px-2.5 py-1 text-[10px] font-bold text-[#F59E0B]">
                 {pendingCount} unread
               </span>
             ) : undefined
@@ -182,7 +182,7 @@ export default function InboxPage() {
               className={cn(
                 "flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all duration-200",
                 activeTab === tab.id
-                  ? "bg-gradient-to-r from-[#EC4899]/15 to-[#7C3AED]/15 text-text-primary shadow-[inset_0_0_0_1px_rgba(236,72,153,0.25)]"
+                  ? "bg-gradient-to-r from-[#F59E0B]/15 to-[#F97316]/15 text-text-primary shadow-[inset_0_0_0_1px_rgba(245,158,11,0.25)]"
                   : "text-text-secondary hover:bg-accent/5 hover:text-text-primary"
               )}
             >
@@ -210,11 +210,11 @@ export default function InboxPage() {
             animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl border border-dashed border-border bg-card/50 p-12 text-center"
           >
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#EC4899]/10 to-[#7C3AED]/10">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F59E0B]/10 to-[#F97316]/10">
               {activeTab === "notifications" ? (
-                <Bell className="h-5 w-5 text-[#EC4899]" />
+                <Bell className="h-5 w-5 text-[#F59E0B]" />
               ) : (
-                <Trophy className="h-5 w-5 text-[#EC4899]" />
+                <Trophy className="h-5 w-5 text-[#F59E0B]" />
               )}
             </div>
             <p className="mt-4 text-sm font-semibold text-text-primary">
@@ -243,13 +243,13 @@ export default function InboxPage() {
                     className={cn(
                       "relative flex flex-wrap items-center gap-3.5 rounded-2xl border p-4 transition-colors",
                       item.unread
-                        ? "border-[#EC4899]/25 bg-gradient-to-r from-[#EC4899]/[0.06] to-[#7C3AED]/[0.04]"
+                        ? "border-[#F59E0B]/25 bg-gradient-to-r from-[#F59E0B]/[0.06] to-[#F97316]/[0.04]"
                         : "border-border bg-card"
                     )}
                   >
                     {/* Unread indicator */}
                     {item.unread && (
-                      <span className="absolute left-0 top-1/2 hidden h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#EC4899] sm:block" />
+                      <span className="absolute left-0 top-1/2 hidden h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#F59E0B] sm:block" />
                     )}
 
                     <div className="relative flex w-full flex-wrap items-center gap-3.5 sm:w-auto sm:flex-nowrap sm:flex-1">
@@ -277,7 +277,7 @@ export default function InboxPage() {
                             </span>
                           )}
                           {item.unread && (
-                            <span className="flex h-1.5 w-1.5 rounded-full bg-[#EC4899] shadow-[0_0_8px_rgba(236,72,153,0.8)]" />
+                            <span className="flex h-1.5 w-1.5 rounded-full bg-[#F59E0B] shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
                           )}
                         </div>
                         <p className="mt-0.5 text-xs text-text-secondary">{item.description}</p>

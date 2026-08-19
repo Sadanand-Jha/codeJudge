@@ -38,11 +38,11 @@ function ratingBadge(rating: number): { label: string; className: string } {
   if (rating >= 2100)
     return { label: "Grandmaster", className: "border-[#FBBF24]/40 bg-[#FBBF24]/10 text-[#FBBF24]" };
   if (rating >= 1900)
-    return { label: "Master", className: "border-[#7C3AED]/40 bg-[#7C3AED]/10 text-[#7C3AED]" };
+    return { label: "Master", className: "border-[#F97316]/40 bg-[#F97316]/10 text-[#F97316]" };
   if (rating >= 1600)
     return { label: "Expert", className: "border-[#3B82F6]/40 bg-[#3B82F6]/10 text-[#3B82F6]" };
   if (rating >= 1400)
-    return { label: "Specialist", className: "border-[#EC4899]/40 bg-[#EC4899]/10 text-[#EC4899]" };
+    return { label: "Specialist", className: "border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#F59E0B]" };
   if (rating >= 1200)
     return { label: "Pupil", className: "border-[#22C55E]/40 bg-[#22C55E]/10 text-[#22C55E]" };
   return { label: "Newbie", className: "border-border bg-card-hover text-text-secondary" };
@@ -65,7 +65,7 @@ const RATING_HIGHLIGHTS: Highlight[] = [
   { title: "Rising Coder", desc: "Reached 1200 rating", icon: Rocket, gradient: "from-[#22C55E] to-[#10B981]", glow: "rgba(34,197,94,0.2)", min: 1200 },
   { title: "Specialist", desc: "Reached 1400 rating", icon: Star, gradient: "from-[#F59E0B] to-[#F97316]", glow: "rgba(245,158,11,0.2)", min: 1400 },
   { title: "Expert", desc: "Reached 1600 rating", icon: Target, gradient: "from-[#3B82F6] to-[#2563EB]", glow: "rgba(59,130,246,0.2)", min: 1600 },
-  { title: "Master", desc: "Reached 1900 rating", icon: Gem, gradient: "from-[#7C3AED] to-[#6D28D9]", glow: "rgba(124,58,237,0.2)", min: 1900 },
+  { title: "Master", desc: "Reached 1900 rating", icon: Gem, gradient: "from-[#F97316] to-[#F59E0B]", glow: "rgba(245,158,11,0.25)", min: 1900 },
   { title: "Grandmaster", desc: "Reached 2100 rating", icon: Crown, gradient: "from-[#FBBF24] to-[#DC2626]", glow: "rgba(251,191,36,0.2)", min: 2100 },
 ];
 
@@ -145,8 +145,8 @@ export default function ProfileOverview() {
         title: "Member",
         desc: "Part of the ByteClash community",
         icon: Award,
-        gradient: "from-[#EC4899] to-[#7C3AED]",
-        glow: "rgba(236,72,153,0.2)",
+        gradient: "from-[#F59E0B] to-[#F97316]",
+        glow: "rgba(245,158,11,0.25)",
       });
     }
     return list;
@@ -199,18 +199,18 @@ export default function ProfileOverview() {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-[var(--card-shadow)]"
         >
-          {/* Soft gradient backdrop */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#EC4899]/10 via-transparent to-[#3B82F6]/10" />
-          <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-[#7C3AED]/10 blur-[100px]" />
-          <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[#EC4899]/10 blur-[100px]" />
+          {/* Soft gradient backdrop — fire theme */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#F59E0B]/15 via-transparent to-[#DC2626]/10" />
+          <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-[#F97316]/10 blur-[100px]" />
+          <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[#F59E0B]/10 blur-[100px]" />
 
           <div className="relative z-10 flex flex-col gap-8 p-6 sm:p-10 md:flex-row md:items-center md:justify-between">
             {/* Avatar + identity */}
             <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
               {/* Perfectly circular avatar with gradient ring + glow */}
               <div className="relative shrink-0">
-                <div className="absolute -inset-3 rounded-full bg-gradient-to-br from-[#EC4899] via-[#7C3AED] to-[#3B82F6] opacity-50 blur-2xl" />
-                <div className="relative h-32 w-32 rounded-full bg-gradient-to-br from-[#EC4899] via-[#7C3AED] to-[#3B82F6] p-[3px] shadow-lg sm:h-36 sm:w-36">
+                <div className="absolute -inset-3 rounded-full bg-gradient-to-br from-[#F59E0B] via-[#F97316] to-[#DC2626] opacity-50 blur-2xl" />
+                <div className="relative h-32 w-32 rounded-full bg-gradient-to-br from-[#F59E0B] via-[#F97316] to-[#DC2626] p-[3px] shadow-lg sm:h-36 sm:w-36">
                   <img
                     src={resolveAvatar(profile?.avatarUrl)}
                     alt={profile?.username || "User"}
@@ -227,7 +227,7 @@ export default function ProfileOverview() {
               {/* Name + info */}
               <div className="text-center sm:text-left">
                 <div className="flex flex-wrap items-center justify-center gap-2.5 sm:justify-start">
-                  <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
+                  <h1 className="fire-text text-2xl font-bold tracking-tight sm:text-3xl">
                     {profile?.username || "User"}
                   </h1>
                   <span
@@ -239,7 +239,7 @@ export default function ProfileOverview() {
                     {title.label}
                   </span>
                   {profile?.role && profile.role.toLowerCase() === "admin" && (
-                    <span className="rounded-full border border-[#7C3AED]/30 bg-[#7C3AED]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-[#7C3AED]">
+                    <span className="rounded-full border border-[#F97316]/30 bg-[#F97316]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-[#F97316]">
                       Admin
                     </span>
                   )}
@@ -292,7 +292,7 @@ export default function ProfileOverview() {
             <div className="hidden shrink-0 md:block">
               <div className="relative">
                 <div className="absolute inset-0 rounded-full bg-[#FBBF24]/20 blur-2xl" />
-                <div className="relative flex h-28 w-28 flex-col items-center justify-center rounded-full border border-[#FBBF24]/20 bg-gradient-to-br from-[#FBBF24]/10 to-[#7C3AED]/10 shadow-lg">
+                <div className="relative flex h-28 w-28 flex-col items-center justify-center rounded-full border border-[#FBBF24]/20 bg-gradient-to-br from-[#FBBF24]/10 to-[#F97316]/10 shadow-lg">
                   <Trophy className="h-9 w-9 text-[#FBBF24]" />
                   <span className="mt-1.5 text-[10px] font-bold uppercase tracking-widest text-[#FBBF24]">
                     {profile?.rating ?? 0}
@@ -300,7 +300,7 @@ export default function ProfileOverview() {
                 </div>
                 <span className="absolute -right-1 -top-1 h-3 w-3 animate-pulse rounded-full bg-[#FBBF24] shadow-[0_0_12px_rgba(251,191,36,0.8)]" />
                 <span
-                  className="absolute -bottom-2 left-3 h-2 w-2 animate-pulse rounded-full bg-[#7C3AED] shadow-[0_0_12px_rgba(124,58,237,0.8)]"
+                  className="absolute -bottom-2 left-3 h-2 w-2 animate-pulse rounded-full bg-[#F97316] shadow-[0_0_12px_rgba(249,115,22,0.8)]"
                   style={{ animationDelay: "0.5s" }}
                 />
               </div>
@@ -318,7 +318,7 @@ export default function ProfileOverview() {
               transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
               className="rounded-2xl border border-border bg-card p-6"
             >
-              <SectionTitle icon={Quote} tone="from-[#EC4899] to-[#7C3AED]" title="About Me" />
+              <SectionTitle icon={Quote} tone="from-[#F59E0B] to-[#F97316]" title="About Me" />
               <div className="mt-4">
                 {profile?.bio ? (
                   <p className="text-sm leading-relaxed text-text-secondary">{profile.bio}</p>
@@ -347,7 +347,7 @@ export default function ProfileOverview() {
               transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
               className="rounded-2xl border border-border bg-card p-6"
             >
-              <SectionTitle icon={Target} tone="from-[#3B82F6] to-[#06B6D4]" title="Current Focus" />
+              <SectionTitle icon={Target} tone="from-[#F97316] to-[#DC2626]" title="Current Focus" />
               <p className="mt-4 text-sm leading-relaxed text-text-secondary">
                 {profile?.bio
                   ? "Always improving — this is where your current goals and interests will live."
@@ -364,14 +364,14 @@ export default function ProfileOverview() {
               transition={{ duration: 0.4, delay: 0.12, ease: "easeOut" }}
               className="rounded-2xl border border-border bg-card p-6"
             >
-              <SectionTitle icon={Code2} tone="from-[#22C55E] to-[#10B981]" title="Skills" />
+              <SectionTitle icon={Code2} tone="from-[#FBBF24] to-[#F59E0B]" title="Skills" />
               <div className="mt-4 flex flex-wrap gap-2">
                 {skills.map((skill) => (
                   <span
                     key={skill}
                     className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card-hover px-3 py-1.5 text-xs font-semibold text-text-primary"
                   >
-                    <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-[#EC4899] to-[#7C3AED]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-[#F59E0B] to-[#F97316]" />
                     {skill}
                   </span>
                 ))}
@@ -387,7 +387,7 @@ export default function ProfileOverview() {
               transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
               className="rounded-2xl border border-border bg-card p-6"
             >
-              <SectionTitle icon={Link2} tone="from-[#8B5CF6] to-[#6366F1]" title="Coding Platforms" />
+              <SectionTitle icon={Link2} tone="from-[#F59E0B] to-[#EA580C]" title="Coding Platforms" />
               <div className="mt-4 space-y-2.5">
                 {["Codeforces", "LeetCode", "CodeChef"].map((platform) => (
                   <div
@@ -418,7 +418,7 @@ export default function ProfileOverview() {
             <SectionTitle icon={Award} tone="from-[#FBBF24] to-[#F59E0B]" title="Highlights" />
             <Link
               href="/profile/achievements"
-              className="text-xs font-semibold text-[#EC4899] transition-colors hover:text-[#7C3AED]"
+              className="text-xs font-semibold text-[#F59E0B] transition-colors hover:text-[#F97316]"
             >
               View all →
             </Link>
@@ -454,11 +454,11 @@ export default function ProfileOverview() {
           transition={{ duration: 0.4, delay: 0.24, ease: "easeOut" }}
           className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 sm:p-8"
         >
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#EC4899]/10 via-transparent to-[#7C3AED]/10" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#F59E0B]/10 via-transparent to-[#DC2626]/10" />
           <div className="relative z-10 flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
             <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
               <div className="relative shrink-0">
-                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#EC4899] to-[#7C3AED] p-[2px]">
+                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#F59E0B] to-[#F97316] p-[2px]">
                   <img
                     src={resolveAvatar(profile?.avatarUrl)}
                     alt={profile?.username || "User"}
@@ -474,7 +474,7 @@ export default function ProfileOverview() {
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
               <Link
                 href="/settings"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#7C3AED]/25 transition-all hover:shadow-[#7C3AED]/40 hover:brightness-110"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#F59E0B] to-[#F97316] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#F59E0B]/25 transition-all hover:shadow-[#F97316]/40 hover:brightness-110"
               >
                 <Pencil className="h-4 w-4" />
                 Edit Profile

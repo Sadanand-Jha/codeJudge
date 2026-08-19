@@ -65,7 +65,7 @@ export default function AchievementsPage() {
           icon={Award}
           iconTone="from-[#A78BFA] to-[#8B5CF6]"
           badge={
-            <span className="rounded-full border border-[#E9DFFC] bg-white/70 px-2.5 py-1 text-[10px] font-semibold text-[#7C3AED] dark:border-[#292235] dark:bg-[#111116] dark:text-[#A78BFA]">
+            <span className="rounded-full border border-[#E9DFFC] bg-white/70 px-2.5 py-1 text-[10px] font-semibold text-[#F97316] dark:border-[#292235] dark:bg-[#111116] dark:text-[#A78BFA]">
               {unlockedCount} of {ACHIEVEMENTS.length} unlocked
             </span>
           }
@@ -116,7 +116,7 @@ export default function AchievementsPage() {
                     className={cn(
                       "h-5 w-5 transition-colors duration-300",
                       a.status === "unlocked" && "text-white",
-                      a.status === "progress" && "text-[#7C3AED] dark:text-[#A78BFA]",
+                      a.status === "progress" && "text-[#F97316] dark:text-[#A78BFA]",
                       a.status === "locked" && "text-[#A78BFA]/60 dark:text-[#A78BFA]/45"
                     )}
                   />
@@ -131,7 +131,7 @@ export default function AchievementsPage() {
 
                 <div className="mt-auto pt-4">
                   {a.status === "unlocked" && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#8B5CF6]/10 px-2.5 py-1 text-[10px] font-semibold text-[#7C3AED] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#8B5CF6]/10 px-2.5 py-1 text-[10px] font-semibold text-[#F97316] dark:bg-[#A78BFA]/10 dark:text-[#A78BFA]">
                       <Check className="h-3 w-3" strokeWidth={3} />
                       Unlocked
                     </span>
@@ -144,7 +144,7 @@ export default function AchievementsPage() {
                           {a.current}
                           <span className="text-text-muted"> / {a.target}{a.unit ? ` ${a.unit}` : ""}</span>
                         </span>
-                        <span className="text-[10px] font-medium text-[#7C3AED] dark:text-[#A78BFA]">{pct}%</span>
+                        <span className="text-[10px] font-medium text-[#F97316] dark:text-[#A78BFA]">{pct}%</span>
                       </div>
                       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[#E9DFFC] dark:bg-white/[0.06]">
                         <motion.div

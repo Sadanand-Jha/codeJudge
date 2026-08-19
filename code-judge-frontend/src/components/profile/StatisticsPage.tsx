@@ -169,7 +169,7 @@ function SpeedCard() {
       className="rounded-2xl border border-border bg-card p-6"
     >
       <div className="flex items-center gap-3 mb-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#EC4899] to-[#7C3AED]">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#F97316]">
           <Zap className="h-4.5 w-4.5 text-white" />
         </div>
         <div>

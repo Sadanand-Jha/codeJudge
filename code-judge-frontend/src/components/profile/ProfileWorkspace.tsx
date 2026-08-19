@@ -35,7 +35,7 @@ export default function ProfileWorkspace({ children }: { children: React.ReactNo
             onClick={() => setNavOpen(true)}
             className="flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 text-sm font-semibold text-text-primary transition-colors hover:border-border-hover"
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-[#EC4899] to-[#7C3AED]">
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-[#F59E0B] to-[#F97316]">
               <User className="h-3 w-3 text-white" />
             </span>
             {activeItem?.label ?? "Profile"}

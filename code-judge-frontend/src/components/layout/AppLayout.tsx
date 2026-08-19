@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Code2,
-  Trophy,
   Award,
   TrendingUp,
   MessageSquare,
@@ -24,8 +23,6 @@ import {
   Sparkles,
   ClipboardList,
   ClipboardCheck,
-  Plus,
-  ChevronDown,
   Crown,
   Loader2,
   type LucideIcon,
@@ -95,8 +92,6 @@ type NavItemData = {
   label: string;
   icon: LucideIcon;
   href: string;
-  expanded?: boolean;
-  children?: { label: string; icon: LucideIcon; href: string }[];
 };
 
 // Navigation is grouped so the rail can separate logical sections with a
@@ -106,24 +101,13 @@ const navGroups: { label: string; items: NavItemData[] }[] = [
     label: "Overview",
     items: [
       { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-      {
-        label: "Assessment",
-        icon: ClipboardList,
-        href: "/quiz",
-        expanded: true,
-        children: [
-          { label: "Dashboard", icon: LayoutDashboard, href: "/quiz" },
-          { label: "Create Quiz", icon: Plus, href: "/quiz/create" },
-        ],
-      },
+      { label: "Assessment", icon: ClipboardList, href: "/quiz" },
     ],
   },
   {
     label: "Practice",
     items: [
       { label: "Tests", icon: ClipboardCheck, href: "/tests" },
-      { label: "Problems", icon: Code2, href: "/problems" },
-      { label: "Contests", icon: Trophy, href: "/contests" },
       { label: "Interview", icon: Briefcase, href: "/interview" },
       { label: "Leaderboard", icon: Award, href: "/leaderboard" },
       { label: "Roadmaps", icon: Route, href: "/roadmaps" },
@@ -154,10 +138,6 @@ const navGroups: { label: string; items: NavItemData[] }[] = [
 
 const navItems = navGroups.flatMap((group) => group.items);
 
-function isQuizPath(pathname: string): boolean {
-  return pathname.startsWith("/quiz");
-}
-
 function isEditorPath(pathname: string): boolean {
   return pathname === "/editor";
 }
@@ -177,7 +157,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const logoutConfirmOpen = useUIStore((s) => s.logoutConfirmOpen);
   const cancelLogout = useUIStore((s) => s.cancelLogout);
   const openAuthModal = useUIStore((s) => s.openAuthModal);
-  const [assessmentExpanded, setAssessmentExpanded] = useState(() => isQuizPath(pathname));
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
@@ -308,115 +287,19 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
               {groupIndex > 0 && (
                 <div className={cn("my-2 h-px shrink-0 bg-ai-border", showLabels ? "mx-1" : "mx-2.5")} />
               )}
-              {group.items.map((item) => {
-                if ("children" in item) {
-                  const isQuizActive = isQuizPath(pathname);
-                  return (
-                    <div key={item.label}>
-                      <button
-                        onClick={() => {
-                          if (!sidebarExpanded) {
-                            setSidebarExpanded(true);
-                            setAssessmentExpanded(true);
-                          } else if (isQuizActive) {
-                            collapseSidebar();
-                          } else {
-                            setAssessmentExpanded(!assessmentExpanded);
-                          }
-                        }}
-                        title={showLabels ? undefined : item.label}
-                        aria-label={showLabels ? undefined : item.label}
-                        className={cn(
-                          "relative group w-full flex items-center gap-3 rounded-lg text-sm font-medium whitespace-nowrap cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ai-accent/40",
-                          "transition-colors duration-150 hover:bg-ai-accent/10",
-                          showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5"
-                        )}
-                      >
-                        {isQuizActive && (
-                          <div className="absolute inset-0 rounded-lg bg-ai-accent-soft pointer-events-none" />
-                        )}
-                        <NavIcon Icon={item.icon} isActive={isQuizActive} />
-                        {showLabels && (
-                          <>
-                            <span
-                              className={cn(
-                                "relative z-10 transition-colors duration-150",
-                                isQuizActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text"
-                              )}
-                            >
-                              {item.label}
-                            </span>
-                            <ChevronDown
-                              className={cn(
-                                "w-4 h-4 relative z-10 ml-auto text-ai-text-mut transition-transform duration-150",
-                                assessmentExpanded && "rotate-180"
-                              )}
-                            />
-                          </>
-                        )}
-                      </button>
-                      {showLabels && (
-                        <AnimatePresence initial={false}>
-                          {assessmentExpanded && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="ml-8 mt-1 space-y-0.5">
-                                {item.children!.map((child) => {
-                                  const isChildActive = pathname === child.href || (child.href !== "/" && pathname.startsWith(child.href.split("#")[0]));
-                                  return (
-                                    <Link
-                                      key={child.label}
-                                      href={child.href}
-                                      onClick={() => { setAssessmentExpanded(true); setMobileMenuOpen(false); }}
-                                      className="relative group flex items-center gap-2.5 px-2.5 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors duration-150 hover:bg-ai-accent/10"
-                                    >
-                                      {isChildActive && (
-                                        <div className="absolute inset-0 rounded-lg bg-ai-accent-soft pointer-events-none" />
-                                      )}
-                                      <child.icon
-                                        className={cn(
-                                          "w-4 h-4 relative z-10 transition-colors duration-150",
-                                          isChildActive ? "text-ai-accent" : "text-ai-text-mut group-hover:text-ai-accent"
-                                        )}
-                                      />
-                                      <span
-                                        className={cn(
-                                          "relative z-10 transition-colors duration-150",
-                                          isChildActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text"
-                                        )}
-                                      >
-                                        {child.label}
-                                      </span>
-                                    </Link>
-                                  );
-                                })}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      )}
-                    </div>
-                  );
-                }
-                return (
-                  <NavItem
-                    key={item.label}
-                    item={item}
-                    pathname={pathname}
-                    isGuest={isGuest}
-                    sidebarExpanded={sidebarExpanded}
-                    showLabels={showLabels}
-                    setSidebarExpanded={setSidebarExpanded}
-                    collapseSidebar={collapseSidebar}
-                    onClick={() => setMobileMenuOpen(false)}
-                  />
-                );
-              })}
+              {group.items.map((item) => (
+                <NavItem
+                  key={item.label}
+                  item={item}
+                  pathname={pathname}
+                  isGuest={isGuest}
+                  sidebarExpanded={sidebarExpanded}
+                  showLabels={showLabels}
+                  setSidebarExpanded={setSidebarExpanded}
+                  collapseSidebar={collapseSidebar}
+                  onClick={() => setMobileMenuOpen(false)}
+                />
+              ))}
             </div>
           ))}
         </nav>
