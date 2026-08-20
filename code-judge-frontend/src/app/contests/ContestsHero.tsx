@@ -81,7 +81,7 @@ function FeaturedCard({ contest, now }: { contest: Contest | null; now: number }
 
   if (!contest) {
     return (
-      <div className="relative mx-auto max-w-[400px] rounded-2xl border border-border bg-card/80 p-6 text-center backdrop-blur-sm">
+      <div className="relative mx-auto max-w-[380px] rounded-2xl border border-border bg-card/80 p-6 text-center backdrop-blur-sm">
         <Swords className="mx-auto h-9 w-9 text-amber-400 dark:text-amber-300" />
         <h3 className="mt-3 text-lg font-extrabold tracking-tight text-text-primary">The arena is quiet… for now.</h3>
         <p className="mt-1 text-xs text-text-secondary">The next battle begins soon.</p>
@@ -224,7 +224,7 @@ export function ContestsHero({
       <div className="contests-particle left-[42%] bottom-24 h-1.5 w-1.5" style={{ animationDelay: "4s" }} />
       <div className="contests-particle right-[10%] bottom-16 h-2.5 w-2.5" style={{ animationDelay: "1.4s" }} />
 
-      <div className="relative grid gap-8 px-5 py-8 sm:px-8 sm:py-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-6 lg:px-10 lg:py-12">
+      <div className="relative grid gap-8 px-5 py-8 sm:px-8 sm:py-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-6 lg:px-10 lg:py-12">
         {/* Left — copy + search */}
         <div>
           <motion.div
@@ -244,7 +244,7 @@ export function ContestsHero({
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.08 }}
-            className="mt-4 text-[38px] font-black leading-[1.04] tracking-tight text-text-primary sm:text-[52px] lg:text-[60px]"
+            className="mt-4 text-[34px] font-extrabold leading-[1.06] tracking-tight text-text-primary sm:text-[42px] lg:text-[48px]"
           >
             PROVE
             <br />
@@ -327,7 +327,7 @@ export function ContestsHero({
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="relative"
+          className="relative hidden lg:block"
         >
           <FeaturedCard contest={featured} now={now} />
 
