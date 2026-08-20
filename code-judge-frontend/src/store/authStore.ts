@@ -78,7 +78,12 @@ export const useAuthStore = create<AuthState>()(
         try {
           const res = await me();
           const fetched = res?.data?.user as UserProfile | undefined;
-          if (!fetched) return null;
+          if (!fetched) {
+            // Session ended / invalid (e.g. missing cookie) — clear the
+            // persisted session so the UI no longer shows a signed-in user.
+            get().logout();
+            return null;
+          }
           const current = get().user;
           if (current) {
             get().setUser(fetched);
@@ -88,7 +93,13 @@ export const useAuthStore = create<AuthState>()(
             set({ user: fetched, isAuthenticated: true });
           }
           return fetched;
-        } catch {
+        } catch (error: any) {
+          // A 401 means the backend rejected the session (expired/revoked
+          // token) — clear the persisted session. Transient network/5xx
+          // errors are left alone so the user isn't logged out spuriously.
+          if (error?.response?.status === 401) {
+            get().logout();
+          }
           return null;
         }
       },

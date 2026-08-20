@@ -311,7 +311,7 @@ export function TestsHero({ onSearch }: { onSearch?: (query: string) => void }) 
       </div>
 
       {/* Product tabs — Problems / Tests / Contests */}
-      <ProductTabs active="tests" order={["tests", "problems", "contests"]} />
+      <ProductTabs active="tests" />
     </section>
   );
 }
