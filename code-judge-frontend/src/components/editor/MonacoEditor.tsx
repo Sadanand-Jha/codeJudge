@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
 import type { CSSProperties } from "react";
 import type { editor } from "monaco-editor";
 import { SUBLIME_BG, BORDER_COLOR } from "@/config/editor";
@@ -35,11 +35,21 @@ const MonacoEditor = dynamic(
   },
 );
 
+export interface MonacoEditorWrapperHandle {
+  getValue: () => string;
+  setValue: (code: string) => void;
+  setLanguage: (language: string) => void;
+  getEditor: () => editor.IStandaloneCodeEditor | null;
+  getMonaco: () => typeof import("monaco-editor") | null;
+}
+
 interface MonacoEditorWrapperProps {
   language: string;
-  value: string;
-  onChange?: (value: string) => void;
-  onMount?: (editor: editor.IStandaloneCodeEditor, monaco: any) => void;
+  defaultValue?: string;
+  onMount?: (
+    editor: editor.IStandaloneCodeEditor,
+    monaco: typeof import("monaco-editor"),
+  ) => void;
   options?: editor.IStandaloneEditorConstructionOptions;
   theme?: string;
 }
@@ -61,14 +71,13 @@ const createdThemesRef = { current: new Set<string>() };
 // restore the base theme when it unmounts.
 let activeBaseTheme = "vs";
 
-export default function MonacoEditorWrapper({
-  language,
-  value,
-  onChange,
-  onMount,
-  options,
-  theme,
-}: MonacoEditorWrapperProps) {
+const MonacoEditorWrapper = forwardRef<
+  MonacoEditorWrapperHandle,
+  MonacoEditorWrapperProps
+>(function MonacoEditorWrapper(
+  { language, defaultValue, onMount, options, theme },
+  ref,
+) {
   const { theme: appTheme } = useTheme();
   const isLight = appTheme === "light";
   const editorTheme = theme ?? (isLight ? "vs" : "sublime-monokai");
@@ -79,7 +88,7 @@ export default function MonacoEditorWrapper({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const onMountCallbackRef = useRef(onMount);
-  const monacoRef = useRef<any>(null);
+  const monacoRef = useRef<typeof import("monaco-editor") | null>(null);
   const themeAppliedRef = useRef<string>("");
 
   // Keep the onMount callback ref up to date without causing re-renders
@@ -87,14 +96,17 @@ export default function MonacoEditorWrapper({
     onMountCallbackRef.current = onMount;
   }, [onMount]);
 
-  const defineThemeOnce = useCallback((monaco: any, name: string, data: ThemeData) => {
-    if (createdThemesRef.current.has(name)) return;
-    createdThemesRef.current.add(name);
-    monaco.editor.defineTheme(name, data);
-  }, []);
+  const defineThemeOnce = useCallback(
+    (monaco: typeof import("monaco-editor"), name: string, data: ThemeData) => {
+      if (createdThemesRef.current.has(name)) return;
+      createdThemesRef.current.add(name);
+      monaco.editor.defineTheme(name, data);
+    },
+    [],
+  );
 
   const createEditorTheme = useCallback(
-    (monaco: any) => {
+    (monaco: typeof import("monaco-editor")) => {
       defineThemeOnce(monaco, "sublime-monokai", {
         base: "vs-dark",
         inherit: true,
@@ -223,7 +235,10 @@ export default function MonacoEditorWrapper({
   );
 
   const handleMount = useCallback(
-    (editorInstance: editor.IStandaloneCodeEditor, monaco: any) => {
+    (
+      editorInstance: editor.IStandaloneCodeEditor,
+      monaco: typeof import("monaco-editor"),
+    ) => {
       editorRef.current = editorInstance;
       monacoRef.current = monaco;
       createEditorTheme(monaco);
@@ -236,6 +251,54 @@ export default function MonacoEditorWrapper({
       onMountCallbackRef.current?.(editorInstance, monaco);
     },
     [createEditorTheme, editorTheme, theme],
+  );
+
+  // Dynamic language: update the existing model's language in place instead of
+  // recreating the editor or swapping its value, so cursor/undo state survives.
+  useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editor || !monaco) return;
+    const model = editor.getModel();
+    if (model && model.getLanguageId() !== language) {
+      monaco.editor.setModelLanguage(model, language);
+    }
+  }, [language]);
+
+  // Dynamic theme: Monaco's theme is global, so switch it in place without
+  // recreating the editor instance.
+  useEffect(() => {
+    if (!theme) activeBaseTheme = editorTheme;
+    const monaco = monacoRef.current;
+    if (monaco && themeAppliedRef.current !== editorTheme) {
+      monaco.editor.setTheme(editorTheme);
+      themeAppliedRef.current = editorTheme;
+    }
+  }, [editorTheme, theme]);
+
+  // Imperative API: consumers only interact with the editor on explicit
+  // actions (Run/Submit/Save/AI apply). No React state is synced per keystroke.
+  useImperativeHandle(
+    ref,
+    () => ({
+      getValue: () => editorRef.current?.getModel?.()?.getValue?.() ?? "",
+      setValue: (value: string) => {
+        const editor = editorRef.current;
+        const model = editor?.getModel?.();
+        if (!model || model.getValue() === value) return;
+        model.setValue(value);
+      },
+      setLanguage: (lang: string) => {
+        const editor = editorRef.current;
+        const monaco = monacoRef.current;
+        const model = editor?.getModel?.();
+        if (!model || !monaco || model.getLanguageId() === lang) return;
+        monaco.editor.setModelLanguage(model, lang);
+      },
+      getEditor: () => editorRef.current,
+      getMonaco: () => monacoRef.current,
+    }),
+    [],
   );
 
   // ResizeObserver to replace automaticLayout polling - layout() only called on actual resize
@@ -336,16 +399,17 @@ export default function MonacoEditorWrapper({
     >
       <MonacoEditor
         language={language}
-        value={value}
+        defaultValue={defaultValue ?? ""}
         theme={editorTheme}
         options={{
           ...options,
           // Explicitly disable automaticLayout since we use ResizeObserver
           automaticLayout: false,
         }}
-        onChange={(v) => onChange?.(v ?? "")}
         onMount={handleMount}
       />
     </div>
   );
-}
+});
+
+export default MonacoEditorWrapper;

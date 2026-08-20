@@ -15,7 +15,6 @@ import { runCode as runCodeService, fetchAndMergeLanguages } from "@/services/ed
 export function useEditor() {
   const [languageId, setLanguageId] = useState<number>(DEFAULT_LANGUAGE_ID);
   const [availableLanguages, setAvailableLanguages] = useState<LanguageOption[]>(STATIC_LANG_OPTIONS);
-  const [code, setCode] = useState(DEFAULT_CODE.cpp);
   const [input, setInput] = useState(DEFAULT_INPUT);
   const [output, setOutput] = useState("");
   const [cursorPosition, setCursorPosition] = useState("Line 1, Column 1");
@@ -48,13 +47,16 @@ export function useEditor() {
   const handleLanguageChange = useCallback((id: number) => {
     setLanguageId(id);
     const lang = getLanguageOptionById(id);
-    if (lang) {
-      setCode(DEFAULT_CODE[lang.monaco] || "");
-    }
-  }, []);
+    if (!lang) return;
 
-  const handleCodeChange = useCallback((value: string) => {
-    setCode(value);
+    // The editor is uncontrolled: reset its model content directly instead of
+    // round-tripping through React state (which would reset the cursor).
+    const editor = mainEditorRef.current;
+    const model = editor?.getModel?.();
+    const defaultCode = DEFAULT_CODE[lang.monaco] || "";
+    if (model && model.getValue() !== defaultCode) {
+      model.setValue(defaultCode);
+    }
   }, []);
 
   const handleCursorChange = useCallback((position: string) => {
@@ -65,8 +67,14 @@ export function useEditor() {
     setIsCompiling(true);
     setOutput("Compiling...\n");
 
+    // Read the latest code straight from Monaco — the editor owns the content.
+    const currentCode =
+      mainEditorRef.current?.getModel?.()?.getValue?.() ??
+      DEFAULT_CODE[getLanguageOptionById(languageId)?.monaco ?? "cpp"] ??
+      "";
+
     try {
-      const data = await runCodeService(code, input, languageId);
+      const data = await runCodeService(currentCode, input, languageId);
       setOutput(data.stdout || data.message || "Something went wrong.");
     } catch (error) {
       console.error("Error running code:", error);
@@ -74,7 +82,7 @@ export function useEditor() {
     } finally {
       setIsCompiling(false);
     }
-  }, [code, input, languageId]);
+  }, [input, languageId]);
 
   // High-performance drag resize handlers using RAF + throttled state updates
   useEffect(() => {
@@ -188,7 +196,6 @@ export function useEditor() {
 
   return {
     languageId,
-    code,
     input,
     output,
     cursorPosition,
@@ -204,7 +211,6 @@ export function useEditor() {
     activeFileName,
     availableLanguages,
     setLanguageId,
-    setCode,
     setInput,
     setOutput,
     setCursorPosition,
@@ -212,7 +218,6 @@ export function useEditor() {
     setRightPanelWidth,
     setInputPanelHeight,
     handleLanguageChange,
-    handleCodeChange,
     handleCursorChange,
     runCode,
   };

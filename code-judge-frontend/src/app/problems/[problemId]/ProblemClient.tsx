@@ -69,13 +69,16 @@ const CONSOLE_TABS = [
   "Discussion",
 ] as const;
 
+// Initial editor content. The editor is uncontrolled: Monaco owns this content
+// and only this initial value is fed in via defaultValue.
+const DEFAULT_SOLUTION = `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n\n    return 0;\n}`;
+
 export default function ProblemClient({ problem }: { problem: Problem }) {
   const [activeTab, setActiveTab] = useState<TabType>("description");
   const [bookmarked, setBookmarked] = useState(false);
   const [language, setLanguage] = useState("javascript");
   const [consoleTab, setConsoleTab] = useState<(typeof CONSOLE_TABS)[number]>("Test Results");
   const [editorFullscreen, setEditorFullscreen] = useState(false);
-  const [code, setCode] = useState(`#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n\n    return 0;\n}`);
 
   const { theme: appTheme } = useTheme();
   const isLight = appTheme === "light";
@@ -125,10 +128,6 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
     if (editorRef.current && typeof editorRef.current.layout === "function") {
       editorRef.current.layout();
     }
-  }, []);
-
-  const handleCodeChange = useCallback((value: string) => {
-    setCode(value);
   }, []);
 
   const handleEditorMount = useCallback(
@@ -350,7 +349,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                   type: "current_file",
                   language,
                   filename: "solution.cpp",
-                  content: code,
+                  content: editorRef.current?.getModel?.()?.getValue?.() ?? "",
                 },
               });
             }}
@@ -665,8 +664,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                       <div className="flex-1 min-h-0 relative bg-[#0D1117]">
                         <MonacoEditorWrapper
                           language="cpp"
-                          value={code}
-                          onChange={handleCodeChange}
+                          defaultValue={DEFAULT_SOLUTION}
                           onMount={handleEditorMount}
                           options={{
                             automaticLayout: false,

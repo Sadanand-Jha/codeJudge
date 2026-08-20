@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import type { CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,7 +33,7 @@ import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
-import { isNestedQuizPath, isQuizProblemsPath } from "@/lib/quizWorkspace";
+import { isQuizProblemsPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import { ChatProvider } from "@/context/ChatContext";
@@ -179,9 +180,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     setSidebarExpanded(false);
   }, []);
 
-  // Nested quiz creator workspace — the project sidebar slides out of the
-  // viewport and the Quiz Settings / Problem workspace takes its place.
-  const nestedWorkspace = isNestedQuizPath(pathname);
   // The AI assistant is only relevant inside the quiz creator's problem
   // building section (/quiz/{code}/problems and /quiz/{code}/problems/{id}).
   const showAiAssistant = isQuizProblemsPath(pathname);
@@ -235,7 +233,11 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen w-full min-w-0 bg-ai-bg flex" data-ai-scope>
+    <div
+      className="min-h-screen w-full min-w-0 bg-ai-bg flex"
+      data-ai-scope
+      style={{ "--rail-w": sidebarExpanded ? "16rem" : "3.75rem" } as CSSProperties}
+    >
       {/* Mobile overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -263,9 +265,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         className={cn(
           "fixed left-0 top-0 h-screen bg-ai-sidebar border-r border-ai-border flex flex-col z-50 select-none overflow-hidden",
           "transition-[width,transform] duration-200 ease-out",
-          sidebarExpanded || mobileMenuOpen ? "w-64" : "w-[60px]",
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          nestedWorkspace && "lg:-translate-x-full lg:pointer-events-none"
+          "w-[var(--rail-w)]",
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Logo */}
@@ -361,7 +362,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "flex-1 w-0 min-w-0 flex flex-col min-h-screen transition-[margin] duration-200 ease-out",
-          nestedWorkspace ? "lg:ml-0" : sidebarExpanded ? "lg:ml-64" : "lg:ml-[60px]"
+          "lg:ml-[var(--rail-w)]"
         )}
       >
         {/* ===== TOP HEADER ===== */}

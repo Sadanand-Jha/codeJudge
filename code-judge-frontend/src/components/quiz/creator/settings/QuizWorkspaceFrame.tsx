@@ -80,14 +80,16 @@ const sidebarProtect = {
 /**
  * Nested quiz creator workspace.
  *
- * The app project sidebar slides out of the viewport (handled by AppLayout)
- * and this frame takes its place. It renders a persistent Quiz Settings
- * sidebar that survives navigation between settings sections and the problem
- * workspace, plus a problem navigation column when editing problems.
+ * The app project rail stays visible (handled by AppLayout, width exposed via
+ * the --rail-w CSS variable) and this frame renders the persistent Quiz
+ * Settings sidebar right beside it — tracking the rail so everything shifts
+ * when the rail expands on hover. The sidebar survives navigation between
+ * settings sections and the problem workspace, plus a problem navigation
+ * column when editing problems.
  *
  * Desktop:
- *   [ Quiz Settings ][ Problem Nav ][ Editor ]   (problem workspace)
- *   [ Quiz Settings ][ Settings Content ]        (settings workspace)
+ *   [ Rail ][ Quiz Settings ][ Problem Nav ][ Editor ]   (problem workspace)
+ *   [ Rail ][ Quiz Settings ][ Settings Content ]        (settings workspace)
  *
  * Mobile: the sidebars are hidden; each page provides its own mobile nav.
  */
@@ -208,7 +210,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
         exit={{ x: "-100%" }}
         transition={SLIDE}
         {...sidebarProtect}
-        className="quiz-sidebar-lock fixed left-0 top-14 bottom-0 z-40 hidden w-60 flex-col border-r border-border bg-card lg:flex"
+        className="quiz-sidebar-lock fixed left-[var(--rail-w)] top-14 bottom-0 z-40 hidden w-60 flex-col border-r border-border bg-card transition-[left] duration-200 ease-out lg:flex"
       >
         <nav className="settings-scroll flex-1 overflow-y-auto p-4">
           <div className="mb-3 flex items-center gap-2">
@@ -397,7 +399,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
             exit={{ x: "-100%" }}
             transition={SLIDE}
             {...sidebarProtect}
-            className="quiz-sidebar-lock fixed left-60 top-14 bottom-0 z-30 hidden w-56 flex-col border-r border-border bg-card-hover/50 lg:flex"
+            className="quiz-sidebar-lock fixed left-[calc(var(--rail-w)+15rem)] top-14 bottom-0 z-30 hidden w-56 flex-col border-r border-border bg-card-hover/50 transition-[left] duration-200 ease-out lg:flex"
           >
             <div className="relative border-b border-border px-3 pb-3.5 pt-3">
               <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-pink-500/40 to-transparent" />
@@ -568,7 +570,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
       <div
         className={cn(
           "flex-1 min-w-0 transition-[padding] duration-300 ease-out",
-          inProblems ? "lg:pl-[464px]" : "lg:pl-60"
+          inProblems ? "lg:pl-[calc(var(--rail-w)+15rem+14rem)]" : "lg:pl-[calc(var(--rail-w)+15rem)]"
         )}
       >
         <AnimatePresence mode="wait">

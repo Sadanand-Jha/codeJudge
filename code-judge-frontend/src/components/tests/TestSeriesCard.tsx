@@ -20,9 +20,9 @@ export function TestSeriesCard({ series, index = 0 }: { series: SeriesMeta; inde
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.4, delay: Math.min(index * 0.06, 0.3) }}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-pink-500/30 hover:shadow-[0_16px_40px_rgba(236,72,153,0.10)] dark:hover:border-ai-accent/30 dark:hover:shadow-[0_16px_44px_rgba(139,92,246,0.16)]"
+      className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:border-pink-500/30 hover:shadow-[0_16px_40px_rgba(236,72,153,0.10)] dark:hover:border-ai-accent/30 dark:hover:shadow-[0_16px_44px_rgba(139,92,246,0.16)]"
     >
-      <Link href={`/tests/series/${series.id}`} className="flex flex-1 flex-col">
+      <Link href={`/tests/series/${series.id}`} className="flex w-full flex-1 flex-col">
         {/* Thumbnail */}
         <div className="relative">
           <SeriesThumbnail exam={exam} />

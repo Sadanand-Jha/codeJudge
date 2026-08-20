@@ -1,18 +1,17 @@
 /**
  * Quiz nested-workspace route helpers.
  *
- * The quiz creator uses a nested workspace: the project sidebar slides away
- * and the Quiz Settings / Problem workspace takes its place. These helpers
- * let the shared layouts know which routes belong to that nested workspace.
+ * The quiz creator uses a nested workspace: the app project rail stays visible
+ * and the Quiz Settings / Problem workspace sits beside it. These helpers let
+ * the shared layouts know which routes belong to that nested workspace.
  */
 
 /**
  * True when `pathname` lives inside the nested quiz creator workspace —
- * i.e. the route renders a Quiz Settings sidebar that replaces the app
- * project sidebar (and, for /problems, a problem navigation column).
+ * i.e. the route renders a Quiz Settings sidebar next to the app project rail
+ * (and, for /problems, a problem navigation column).
  */
 export function isNestedQuizPath(pathname: string): boolean {
-  if (pathname === "/quiz/create") return true;
   const m = pathname.match(/^\/quiz\/[^/]+\//);
   if (!m) return false;
   const rest = pathname.slice(m[0].length);

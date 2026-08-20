@@ -15,7 +15,9 @@ import {
   Minus,
   FileDiff,
 } from "lucide-react";
-import MonacoEditorWrapper from "./MonacoEditor";
+import MonacoEditorWrapper, {
+  type MonacoEditorWrapperHandle,
+} from "./MonacoEditor";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
 import type { editor as MonacoEditorNS, Range as MonacoRange } from "monaco-editor";
@@ -188,6 +190,7 @@ export default function SuggestionReviewOverlay({
   const editorInstanceRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null);
   const monacoInstanceRef = useRef<{ Range: typeof MonacoRange } | null>(null);
   const decorationRef = useRef<MonacoEditorNS.IEditorDecorationsCollection | null>(null);
+  const editorHandleRef = useRef<MonacoEditorWrapperHandle | null>(null);
 
   const options = useMemo(
     () => ({
@@ -252,9 +255,11 @@ export default function SuggestionReviewOverlay({
     [applyDecorations]
   );
 
-  // Re-apply decorations when the file or the diff changes (e.g. a second
-  // suggestion opens the overlay with a fresh proposed file).
+  // Keep the read-only editor in sync with a new proposed file and re-apply the
+  // decorations. The editor is uncontrolled, so push the value through the
+  // imperative handle instead of feeding a controlled `value` prop.
   useEffect(() => {
+    editorHandleRef.current?.setValue(proposedCode);
     applyDecorations();
   }, [applyDecorations, proposedCode]);
 
@@ -441,8 +446,9 @@ export default function SuggestionReviewOverlay({
 
               <div className="relative min-h-0 flex-1">
                 <MonacoEditorWrapper
+                  ref={editorHandleRef}
                   language={language}
-                  value={proposedCode}
+                  defaultValue={proposedCode}
                   options={options}
                   theme={isLight ? "review-light" : "review-dark"}
                   onMount={handleEditorMount}

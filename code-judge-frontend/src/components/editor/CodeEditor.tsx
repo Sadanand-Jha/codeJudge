@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { editor } from "monaco-editor";
 import { AnimatePresence, motion } from "framer-motion";
 import { mainEditorOptions } from "@/config/editor";
+import { DEFAULT_CODE } from "@/constants/languages";
 import { useEditor } from "@/hooks/useEditor";
 import { useAutocomplete } from "@/hooks/useAutocomplete";
 import { useAIEditorStore } from "@/store/aiEditorStore";
@@ -18,7 +19,6 @@ import CodeAssistantPanel from "./CodeAssistantPanel";
 export default function CodeEditor() {
   const {
     languageId,
-    code,
     input,
     output,
     cursorPosition,
@@ -34,7 +34,6 @@ export default function CodeEditor() {
     activeFileName,
     availableLanguages,
     handleLanguageChange,
-    handleCodeChange,
     handleCursorChange,
     setInput,
     runCode,
@@ -51,28 +50,44 @@ export default function CodeEditor() {
     languageId: monacoLanguage,
   });
 
+  // Throttle cursor-position reporting so moving/typing doesn't trigger a React
+  // state update on every keystroke. Monaco owns the editor content; the footer
+  // position is purely cosmetic, so a trailing-edge throttle is plenty.
+  const cursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCursorUpdateRef = useRef(0);
+
   // Keep the onMount callback stable - only depends on stable refs
   const handleEditorMount = useCallback(
     (instance: editor.IStandaloneCodeEditor, monacoApi: typeof import("monaco-editor")) => {
       mainEditorRef.current = instance;
       monacoRef.current = monacoApi;
 
-      // Subscribe to cursor position changes
+      // Subscribe to cursor position changes (throttled to ~10/s)
       instance.onDidChangeCursorPosition((e: editor.ICursorPositionChangedEvent) => {
-        handleCursorChange(
-          `Line ${e.position.lineNumber}, Column ${e.position.column}`
-        );
+        const text = `Line ${e.position.lineNumber}, Column ${e.position.column}`;
+        const now = Date.now();
+        if (now - lastCursorUpdateRef.current >= 100) {
+          lastCursorUpdateRef.current = now;
+          handleCursorChange(text);
+        } else {
+          if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+          cursorTimerRef.current = setTimeout(() => {
+            cursorTimerRef.current = null;
+            lastCursorUpdateRef.current = Date.now();
+            handleCursorChange(text);
+          }, 100);
+        }
       });
     },
     [mainEditorRef, monacoRef, handleCursorChange],
   );
 
-  const handleCodeChangeCallback = useCallback(
-    (value: string) => {
-      handleCodeChange(value);
-    },
-    [handleCodeChange],
-  );
+  // Clear any pending throttled cursor update on unmount.
+  useEffect(() => {
+    return () => {
+      if (cursorTimerRef.current) clearTimeout(cursorTimerRef.current);
+    };
+  }, []);
 
   const handleInputChange = useCallback(
     (value: string) => {
@@ -94,10 +109,12 @@ export default function CodeEditor() {
     setShowScanOverlay(false);
 
     const editor = mainEditorRef.current;
+    let content = "";
     let selection: string | undefined;
     let selectionRange: { startLine: number; startColumn: number; endLine: number; endColumn: number } | undefined;
     if (editor) {
       const model = editor.getModel();
+      content = model?.getValue() ?? "";
       const s = editor.getSelection();
       if (model && s && !s.isEmpty()) {
         selection = model.getValueInRange(s) || undefined;
@@ -115,12 +132,12 @@ export default function CodeEditor() {
         type: "current_file",
         language: monacoLanguage,
         filename: activeFileName,
-        content: code,
+        content,
         selection,
         selectionRange,
       },
     });
-  }, [mainEditorRef, monacoLanguage, activeFileName, code]);
+  }, [mainEditorRef, monacoLanguage, activeFileName]);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-[#1a1a1a] text-[#b0b0b0] font-sans selection:bg-[#49483E]">
@@ -142,9 +159,8 @@ export default function CodeEditor() {
           <div className="relative flex-1 bg-[#272822]">
             <MonacoEditorWrapper
               language={monacoLanguage}
-              value={code}
+              defaultValue={DEFAULT_CODE.cpp}
               options={editorOptions}
-              onChange={handleCodeChangeCallback}
               onMount={handleEditorMount}
             />
             <AnimatePresence>
