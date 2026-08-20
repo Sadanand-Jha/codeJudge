@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bold,
@@ -20,7 +20,6 @@ import {
   Video,
   X,
   Plus,
-  GripVertical,
   Copy,
   Trash2,
   Check,
@@ -31,6 +30,8 @@ import {
   ToggleRight,
   ListChecks,
   CircleDot,
+  ChevronUp,
+  ChevronDown,
   FileText as FileTextIcon,
 } from "lucide-react";
 import { CreatorQuestion, CreatorQuestionType } from "./types";
@@ -99,8 +100,6 @@ export default function QuestionCanvas({
   onPrevious,
   onNext,
 }: QuestionCanvasProps) {
-  const [draggedOption, setDraggedOption] = useState<number | null>(null);
-  const [dragOverOption, setDragOverOption] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isChoiceType = question.type === "single_choice" || question.type === "multiple_choice" || question.type === "true_false";
@@ -394,8 +393,6 @@ export default function QuestionCanvas({
               <AnimatePresence>
                 {question.options.map((option, optIndex) => {
                   const colorSet = OPTION_COLORS[optIndex % OPTION_COLORS.length];
-                  const isDragging = draggedOption === optIndex;
-                  const isDragOver = dragOverOption === optIndex;
 
                   return (
                     <motion.div
@@ -403,31 +400,12 @@ export default function QuestionCanvas({
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      draggable
-                      onDragStart={() => setDraggedOption(optIndex)}
-                      onDragOver={(e) => { e.preventDefault(); setDragOverOption(optIndex); }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        if (draggedOption !== null) reorderOptions(draggedOption, optIndex);
-                        setDraggedOption(null);
-                        setDragOverOption(null);
-                      }}
-                      onDragEnd={() => { setDraggedOption(null); setDragOverOption(null); }}
                       className={`group flex items-start gap-3 rounded-xl border p-4 transition-all ${
-                        isDragging
-                          ? "opacity-40 border-[#EC4899]/50 bg-[#EC4899]/10"
-                          : isDragOver
-                          ? "border-[#EC4899]/60 bg-[#EC4899]/10 shadow-[0_0_20px_rgba(236,72,153,0.15)]"
-                          : option.isCorrect
+                        option.isCorrect
                           ? "border-[#22C55E]/40 bg-[#22C55E]/5 shadow-[0_0_16px_rgba(34,197,94,0.1)]"
                           : "border-border bg-[#111217] hover:border-border-hover hover:bg-[#171923]"
                       }`}
                     >
-                      {/* Drag handle */}
-                      <div className="pt-1 cursor-move text-[#6B7280] opacity-0 group-hover:opacity-100 transition-opacity" onMouseDown={(e) => e.stopPropagation()}>
-                        <GripVertical className="w-3.5 h-3.5" />
-                      </div>
-
                       {/* Selection */}
                       <div className="pt-0.5">
                         <button
@@ -475,6 +453,22 @@ export default function QuestionCanvas({
                       {/* Actions */}
                       {question.type !== "true_false" && (
                         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => reorderOptions(optIndex, optIndex - 1)}
+                            disabled={optIndex === 0}
+                            className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[#6B7280] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Move up"
+                          >
+                            <ChevronUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => reorderOptions(optIndex, optIndex + 1)}
+                            disabled={optIndex === question.options.length - 1}
+                            className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[#6B7280] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Move down"
+                          >
+                            <ChevronDown className="w-3.5 h-3.5" />
+                          </button>
                           <button
                             onClick={() => handleOptionImageUpload(optIndex)}
                             className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[#6B7280] hover:text-white transition-colors"

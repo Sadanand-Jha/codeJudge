@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   Search,
-  GripVertical,
   CheckCircle2,
   AlertCircle,
   FileText,
@@ -21,6 +20,8 @@ import {
   MoreHorizontal,
   Copy,
   Trash2,
+  ChevronUp,
+  ChevronDown,
   ListChecks as ListChecksIcon,
 } from "lucide-react";
 import { CreatorQuestion, CreatorQuestionType, getQuestionStatus } from "./types";
@@ -73,8 +74,6 @@ export default function QuestionSidebar({
   searchQuery,
   onSearchChange,
 }: QuestionSidebarProps) {
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
 
   const filtered = questions.filter((q) => {
@@ -161,8 +160,6 @@ export default function QuestionSidebar({
             const status = getQuestionStatus(q);
             const TypeIcon = TYPE_ICONS[q.type];
             const typeColor = TYPE_COLORS[q.type];
-            const isDragging = draggedIndex === i;
-            const isDragOver = dragOverIndex === i;
             const isMenuOpen = expandedMenu === q.id;
 
             return (
@@ -171,35 +168,15 @@ export default function QuestionSidebar({
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
-                draggable
-                onDragStart={() => setDraggedIndex(i)}
-                onDragOver={(e) => { e.preventDefault(); setDragOverIndex(i); }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (draggedIndex !== null) onReorder(draggedIndex, i);
-                  setDraggedIndex(null);
-                  setDragOverIndex(null);
-                }}
-                onDragEnd={() => { setDraggedIndex(null); setDragOverIndex(null); }}
                 className={`group relative rounded-xl border transition-all cursor-pointer ${
-                  isDragging
-                    ? "opacity-40 border-[#EC4899]/50 bg-[#EC4899]/10"
-                    : isDragOver
-                    ? "border-[#EC4899]/60 bg-[#EC4899]/10 shadow-[0_0_20px_rgba(236,72,153,0.15)]"
-                    : isActive
+                  isActive
                     ? "border-[#EC4899]/40 bg-[#EC4899]/10 shadow-[0_0_20px_rgba(236,72,153,0.1)]"
                     : "border-border hover:border-border-hover hover:bg-white/[0.02]"
                 }`}
                 onClick={() => onSelect(q.id)}
               >
-                {isDragOver && <div className="absolute -top-0.5 left-2 right-2 h-0.5 bg-[#EC4899] rounded-full" />}
                 <div className="p-2.5">
                   <div className="flex items-start gap-2">
-                    {/* Drag handle */}
-                    <div className="pt-0.5 cursor-move text-[#6B7280] opacity-0 group-hover:opacity-100 transition-opacity" onMouseDown={(e) => e.stopPropagation()}>
-                      <GripVertical className="w-3 h-3" />
-                    </div>
-
                     {/* Type icon */}
                     <div
                       className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
@@ -263,6 +240,22 @@ export default function QuestionSidebar({
                             className="absolute right-0 top-full z-50 mt-1 w-36 rounded-xl border border-border-hover bg-[#111217] shadow-2xl shadow-black/50 overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                           >
+                            <button
+                              onClick={() => { onReorder(i, i - 1); setExpandedMenu(null); }}
+                              disabled={i === 0}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-[10px] text-muted-foreground hover:text-white hover:bg-white/[0.04] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronUp className="w-3 h-3" />
+                              Move up
+                            </button>
+                            <button
+                              onClick={() => { onReorder(i, i + 1); setExpandedMenu(null); }}
+                              disabled={i === questions.length - 1}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-[10px] text-muted-foreground hover:text-white hover:bg-white/[0.04] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <ChevronDown className="w-3 h-3" />
+                              Move down
+                            </button>
                             <button
                               onClick={() => { onDuplicate(q.id); setExpandedMenu(null); }}
                               className="w-full flex items-center gap-2 px-3 py-2 text-[10px] text-muted-foreground hover:text-white hover:bg-white/[0.04] transition-colors"

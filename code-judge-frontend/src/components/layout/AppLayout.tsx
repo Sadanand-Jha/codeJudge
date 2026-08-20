@@ -25,6 +25,9 @@ import {
   ClipboardList,
   ClipboardCheck,
   Crown,
+  Trophy,
+  History,
+  MessagesSquare,
   Loader2,
   type LucideIcon,
 } from "lucide-react";
@@ -42,6 +45,7 @@ import NavbarRightActions from "./NavbarRightActions";
 import { useTheme } from "@/context/ThemeContext";
 import LowCreditNotification from "@/components/ai/LowCreditNotification";
 import AiAssistantStrip from "@/components/ai/AiAssistantStrip";
+import { IS_DEMO_CREATOR } from "@/components/creator/workspace/mockData";
 
 function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -96,43 +100,41 @@ type NavItemData = {
 };
 
 // Navigation is grouped so the rail can separate logical sections with a
-// subtle divider instead of collapsing into one unbroken list.
+// subtle divider instead of collapsing into one unbroken list. The student
+// sidebar stays learning-focused; the Creator Studio entry lives in its own
+// group above the account row.
 const navGroups: { label: string; items: NavItemData[] }[] = [
   {
-    label: "Overview",
+    label: "MAIN",
     items: [
-      { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-      { label: "Assessment", icon: ClipboardList, href: "/quiz" },
+      { label: "Home", icon: LayoutDashboard, href: "/" },
+      { label: "Tests", icon: ClipboardCheck, href: "/tests" },
+      { label: "Problems", icon: Code2, href: "/problems" },
+      { label: "Contests", icon: Trophy, href: "/contests" },
+      { label: "Quiz", icon: ClipboardList, href: "/quiz" },
+      { label: "Leaderboard", icon: Award, href: "/leaderboard" },
     ],
   },
   {
-    label: "Practice",
+    label: "PERSONAL",
     items: [
-      { label: "Tests", icon: ClipboardCheck, href: "/tests" },
-      { label: "Interview", icon: Briefcase, href: "/interview" },
-      { label: "Leaderboard", icon: Award, href: "/leaderboard" },
-      { label: "Roadmaps", icon: Route, href: "/roadmaps" },
-      { label: "Collections", icon: Bookmark, href: "/collections" },
+      { label: "Saved", icon: Bookmark, href: "/collections" },
+      { label: "History", icon: History, href: "/history" },
+      { label: "Purchases", icon: Briefcase, href: "/profile/purchases" },
       { label: "Achievements", icon: TrendingUp, href: "/achievements" },
     ],
   },
   {
-    label: "Community",
-    items: [{ label: "Discussions", icon: MessageSquare, href: "/discussions" }],
-  },
-  {
-    label: "Tools",
+    label: "MORE",
     items: [
+      { label: "Interview", icon: MessageSquare, href: "/interview" },
+      { label: "Roadmaps", icon: Route, href: "/roadmaps" },
+      { label: "Discussions", icon: MessagesSquare, href: "/discussions" },
       { label: "AI Chat", icon: Sparkles, href: "/ai/chat" },
       { label: "Editor", icon: BookOpen, href: "/editor" },
       { label: "Analytics", icon: Users, href: "/analytics" },
-    ],
-  },
-  {
-    label: "System",
-    items: [
-      { label: "Upgrade", icon: Crown, href: "/pricing" },
       { label: "Settings", icon: Settings, href: "/settings" },
+      { label: "Upgrade", icon: Crown, href: "/pricing" },
     ],
   },
 ];
@@ -305,8 +307,52 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        {/* Bottom: Account + Collapse */}
+        {/* Bottom: Creator Studio + Account + Collapse */}
         <div className="border-t border-ai-border p-2 space-y-1">
+          {/* Creator Studio — visually distinct, sits above the account row */}
+          {isAuthenticated ? (
+            <Link
+              href="/creator"
+              title={showLabels ? undefined : "Creator Studio"}
+              aria-label={showLabels ? undefined : "Creator Studio"}
+              className={cn(
+                "group relative flex items-center gap-3 rounded-lg transition-colors duration-150",
+                showLabels ? "justify-start px-3 py-2" : "justify-center py-2.5"
+              )}
+            >
+              <span className="relative z-10 inline-flex shrink-0">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-violet-600">
+                  <Flame className="h-4 w-4 text-white" />
+                </span>
+                {showLabels && (
+                  <span className="absolute -right-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-pink-500 ring-2 ring-ai-sidebar" />
+                )}
+              </span>
+              {showLabels && (
+                <span className="relative z-10 flex min-w-0 flex-col leading-tight">
+                  <span className="truncate text-xs font-semibold text-ai-text">
+                    {IS_DEMO_CREATOR ? "Creator Studio" : "Become a Creator"}
+                  </span>
+                  <span className="truncate text-[9px] font-medium text-pink-500/80 dark:text-ai-accent/80">
+                    {IS_DEMO_CREATOR ? "Create, manage & grow" : "Teach on ByteClash"}
+                  </span>
+                </span>
+              )}
+            </Link>
+          ) : (
+            showLabels && (
+              <div className="px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500/[0.08] to-violet-600/[0.08] border border-pink-500/20">
+                <div className="text-[10px] font-semibold text-ai-text">Teach your own tests</div>
+                <button
+                  onClick={() => handleAuthRequired("/creator")}
+                  className="mt-0.5 text-[10px] font-semibold text-pink-500 hover:text-pink-600 dark:text-ai-accent transition-colors"
+                >
+                  Become a Creator →
+                </button>
+              </div>
+            )
+          )}
+
           {isAuthenticated ? (
             <div
               className={cn(
