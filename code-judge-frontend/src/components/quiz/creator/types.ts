@@ -38,6 +38,7 @@ export interface CreatorQuestion {
   correctAnswer: string | number | number[];
   explanation: string;
   hint: string;
+  solution?: string;
   marks: number;
   negativeMarks: number;
   difficulty: "Easy" | "Medium" | "Hard" | "Expert";
@@ -258,9 +259,10 @@ export function createDefaultQuestion(id: string): CreatorQuestion {
       { id: `opt_${timestamp}_d`, label: "D", content: "", isCorrect: false },
     ],
     correctAnswer: -1,
-    explanation: "",
-    hint: "",
-    marks: 10,
+  explanation: "",
+  hint: "",
+  solution: "",
+  marks: 10,
     negativeMarks: 0,
     difficulty: "Medium",
     expectedTime: 2,

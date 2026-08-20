@@ -4361,3 +4361,11 @@ svg {
 .contests-rank-1 {
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35), 0 12px 34px rgba(245, 158, 11, 0.45);
 }
+
+/* ===== Creator Studio — editable placeholder ===== */
+[data-placeholder]:empty::before,
+[data-placeholder]:empty > br:last-child::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
