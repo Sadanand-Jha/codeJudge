@@ -108,9 +108,9 @@ export default function CreatorShell({ children }: { children: React.ReactNode }
             <ThemeToggle />
             <CreatorNotifications />
             <Link
-              href="/profile"
+              href="/creator/profile"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-violet-600 text-xs font-bold text-white ring-2 ring-white/10 transition-shadow hover:shadow-[0_0_16px_rgba(236,72,153,0.35)]"
-              aria-label="Profile"
+              aria-label="Creator Profile"
               title={user?.username ?? "Account"}
             >
               {avatarInitial}

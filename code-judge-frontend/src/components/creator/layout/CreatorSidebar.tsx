@@ -31,6 +31,9 @@ import {
   ArrowLeft,
   BadgeCheck,
   Presentation,
+  Sparkles,
+  MailPlus,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -57,6 +60,7 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
       { label: "Question Bank", href: "/creator/question-bank", icon: Database },
       { label: "Problems", href: "/creator/problems", icon: NotebookPen },
       { label: "Resources", href: "/creator/resources", icon: FolderKanban },
+      { label: "AI Studio", href: "/creator/ai-studio", icon: Sparkles },
     ],
   },
   {
@@ -76,6 +80,7 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
       { label: "Classes", href: "/creator/classes", icon: GraduationCap },
       { label: "Batches", href: "/creator/batches", icon: Boxes },
       { label: "Organizations", href: "/creator/organizations", icon: Building2 },
+      { label: "Invitations", href: "/creator/invitations", icon: MailPlus },
     ],
   },
   {
@@ -96,10 +101,11 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
       { label: "Billing", href: "/creator/billing", icon: Wallet, exact: true },
       { label: "Refunds", href: "/creator/billing/refunds", icon: RotateCcw },
       { label: "Tax & Compliance", href: "/creator/billing/tax", icon: Scale },
+      { label: "Documents", href: "/creator/billing/documents", icon: FileText },
     ],
   },
   {
-    label: "Profile",
+    label: "Creator",
     items: [
       { label: "Creator Profile", href: "/creator/profile", icon: UserRound, exact: true },
       { label: "Public Profile", href: "/creator/profile/public", icon: Globe },

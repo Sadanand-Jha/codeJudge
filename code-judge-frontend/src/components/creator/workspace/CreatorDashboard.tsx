@@ -114,7 +114,7 @@ function WeeklySalesChart() {
             initial={{ height: 0 }}
             animate={{ height: `${(d.sales / max) * 100}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="w-full max-w-[34px] rounded-t-lg bg-gradient-to-t from-pink-500 to-violet-500 opacity-90"
+            className="w-full max-w-[34px] rounded-t-lg bg-[#EC4899] opacity-90"
           />
           <span className="text-[10px] font-medium text-text-muted">{d.day}</span>
         </div>
@@ -210,7 +210,7 @@ function WelcomeChecklist({ items }: { items: WelcomeChecklistItem[] }) {
       </div>
       <div className="mb-3 h-1 rounded-full bg-white/[0.06]">
         <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-[#EC4899] to-[#BE185D]"
+          className="h-full rounded-full bg-[#EC4899]"
           animate={{ width: `${(done / items.length) * 100}%` }}
           transition={{ duration: 0.4 }}
         />

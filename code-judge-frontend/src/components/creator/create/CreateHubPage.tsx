@@ -13,7 +13,6 @@ import {
   FilePlus2,
   Upload,
   Clock3,
-  Timer,
   Settings2,
   GraduationCap,
 } from "lucide-react";
@@ -61,7 +60,7 @@ const CREATE_OPTIONS: CreateOption[] = [
     id: "assessment",
     title: "Assessment",
     description: "A classroom assessment assigned to a class or batch with a due date.",
-    href: "/creator/tests/create",
+    href: "/creator/tests/create?type=assessment",
     icon: Presentation,
     gradient: "from-sky-500 to-indigo-600",
     accent: "text-sky-500",

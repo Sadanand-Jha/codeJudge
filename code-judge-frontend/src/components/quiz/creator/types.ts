@@ -152,6 +152,12 @@ export interface QuizDetails {
   resultVisibility: "immediate" | "after_end" | "manual";
   collaborators: QuizCollaborator[];
   audience: QuizAudience;
+
+  // Availability & Scheduling
+  availabilityMode: "immediate" | "scheduled";
+  availabilityStart: string;
+  availabilityEnd: string;
+  availabilityEndBehavior: "auto_submit" | "allow_finish" | "stop_immediately";
 }
 
 export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
@@ -191,6 +197,12 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   resultVisibility: "immediate",
   collaborators: [],
   audience: { ...DEFAULT_QUIZ_AUDIENCE },
+
+  // Availability & Scheduling
+  availabilityMode: "immediate",
+  availabilityStart: "",
+  availabilityEnd: "",
+  availabilityEndBehavior: "auto_submit",
 };
 
 export const QUESTION_TYPE_LABELS: Record<CreatorQuestionType, string> = {

@@ -14,7 +14,7 @@ export function MiniBarChart({
   data,
   height = 200,
   formatter,
-  barClassName = "from-pink-500 to-violet-600",
+  barClassName = "bg-[#EC4899]",
 }: {
   data: Array<{ label: string; value: number }>;
   height?: number;
@@ -38,7 +38,7 @@ export function MiniBarChart({
               initial={{ height: 0 }}
               animate={{ height: `${Math.max((d.value / max) * 100, 2)}%` }}
               transition={{ delay: i * 0.03, duration: 0.55, ease: "easeOut" }}
-              className={cn("w-full rounded-t-md bg-gradient-to-t", barClassName)}
+              className={cn("w-full rounded-t-md", barClassName)}
             />
           </div>
           <span className="mt-1.5 truncate text-center text-[9px] font-medium text-text-muted">

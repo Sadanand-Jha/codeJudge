@@ -21,11 +21,11 @@ import type { BreakdownCategory, DailyEarningPoint, BillingMetricKey } from "./t
 
 export const METRIC_META: Record<
   BillingMetricKey,
-  { label: string; stroke: string; fill: string; prev: string }
+  { label: string; color: string; prev: string }
 > = {
-  earnings: { label: "Earnings", stroke: "#8B5CF6", fill: "#7C3AED", prev: "#A78BFA" },
-  sales: { label: "Sales", stroke: "#38BDF8", fill: "#0EA5E9", prev: "#7DD3FC" },
-  refunds: { label: "Refunds", stroke: "#FB7185", fill: "#F43F5E", prev: "#FDA4AF" },
+  earnings: { label: "Earnings", color: "#EC4899", prev: "#EC489988" },
+  sales: { label: "Sales", color: "#EC4899", prev: "#EC489988" },
+  refunds: { label: "Refunds", color: "#EC4899", prev: "#EC489988" },
 };
 
 interface TooltipRow {
@@ -146,15 +146,16 @@ export function EarningsAreaChart({
   height?: number;
 }) {
   const meta = METRIC_META[metric];
+  const gradId = `earnGrad-${metric}`;
 
   return (
     <div style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 8, right: 4, left: -8, bottom: 0 }}>
           <defs>
-            <linearGradient id={`earnGrad-${metric}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={meta.fill} stopOpacity={0.32} />
-              <stop offset="100%" stopColor={meta.fill} stopOpacity={0} />
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={meta.color} stopOpacity={0.28} />
+              <stop offset="100%" stopColor={meta.color} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
@@ -188,11 +189,11 @@ export function EarningsAreaChart({
           <Area
             type="monotone"
             dataKey={metric}
-            stroke={meta.stroke}
+            stroke={meta.color}
             strokeWidth={2.5}
-            fill={`url(#earnGrad-${metric})`}
-            dot={{ r: 3, fill: meta.fill, stroke: "var(--card)", strokeWidth: 2 }}
-            activeDot={{ r: 5, fill: meta.fill, stroke: "var(--card)", strokeWidth: 2 }}
+            fill={`url(#${gradId})`}
+            dot={{ r: 3, fill: meta.color, stroke: "var(--card)", strokeWidth: 2 }}
+            activeDot={{ r: 5, fill: meta.color, stroke: "var(--card)", strokeWidth: 2 }}
             animationDuration={700}
           />
         </AreaChart>
@@ -235,10 +236,10 @@ export function SalesBarChart({
             tickFormatter={(v: number) => (metric === "sales" ? String(v) : formatINRCompact(v))}
             width={52}
           />
-          <Tooltip content={<SalesTooltip metric={metric} />} cursor={{ fill: "rgba(124,58,237,0.06)" }} />
-          <Bar dataKey={metric} fill={meta.fill} radius={[6, 6, 0, 0]} maxBarSize={28} animationDuration={700}>
+          <Tooltip content={<SalesTooltip metric={metric} />} cursor={{ fill: "rgba(236,72,153,0.06)" }} />
+          <Bar dataKey={metric} fill={meta.color} radius={[6, 6, 0, 0]} maxBarSize={28} animationDuration={700}>
             {data.map((d, i) => (
-              <Cell key={d.date} fill={i === data.length - 1 ? meta.fill : `${meta.fill}88`} />
+              <Cell key={d.date} fill={i === data.length - 1 ? meta.color : `${meta.color}88`} />
             ))}
           </Bar>
         </BarChart>
@@ -318,7 +319,7 @@ export function ProductRevenueList({
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06] dark:bg-white/[0.05]">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-pink-500 to-violet-500"
+                className="h-full rounded-full bg-[#EC4899]"
                 style={{ width: `${pct}%` }}
               />
             </div>
