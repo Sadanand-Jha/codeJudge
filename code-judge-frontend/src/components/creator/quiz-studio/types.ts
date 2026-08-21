@@ -12,10 +12,108 @@ export type StudioStepId =
   | "questions"
   | "settings"
   | "audience"
+  | "registration"
   | "pricing"
   | "branding"
   | "review"
   | "publish";
+
+// ─────────────────────────────────────────
+// Registration — platform-controlled field catalog.
+// Creators may ONLY configure these predefined fields. Identity and contact
+// information (name, email, phone, password, government IDs, address) are
+// platform-managed and are intentionally NOT part of this catalog.
+// ─────────────────────────────────────────
+
+export interface RegistrationFieldDef {
+  key: string;
+  label: string;
+  inputType: "text" | "select";
+  placeholder?: string;
+  /** Fixed starting options for select fields (creator-editable copy). */
+  options?: string[];
+}
+
+export const REGISTRATION_FIELD_CATALOG: Array<{
+  group: "Academic / Identity" | "Assessment / Event";
+  fields: RegistrationFieldDef[];
+}> = [
+  {
+    group: "Academic / Identity",
+    fields: [
+      { key: "roll_number", label: "Roll Number", inputType: "text", placeholder: "Enter your roll number" },
+      { key: "enrollment_number", label: "Enrollment Number", inputType: "text", placeholder: "Enter enrollment number" },
+      { key: "branch", label: "Branch", inputType: "select", options: ["CSE", "ECE", "EEE", "ME", "CE", "IT", "Other"] },
+      { key: "course", label: "Course / Program", inputType: "select", options: ["B.Tech", "M.Tech", "B.Sc", "M.Sc", "BCA", "MCA", "Other"] },
+      { key: "year", label: "Year", inputType: "select", options: ["1st Year", "2nd Year", "3rd Year", "4th Year"] },
+      { key: "semester", label: "Semester", inputType: "select", options: ["Semester 1", "Semester 2", "Semester 3", "Semester 4", "Semester 5", "Semester 6", "Semester 7", "Semester 8"] },
+      { key: "section", label: "Section", inputType: "select", options: ["A", "B", "C", "D"] },
+      { key: "batch", label: "Batch", inputType: "text", placeholder: "e.g. 2022 – 2026" },
+      { key: "college", label: "College / Institution", inputType: "text", placeholder: "Select or enter college" },
+      { key: "campus", label: "Campus", inputType: "text", placeholder: "Enter campus" },
+    ],
+  },
+  {
+    group: "Assessment / Event",
+    fields: [
+      { key: "candidate_id", label: "Candidate ID", inputType: "text", placeholder: "Enter candidate ID" },
+      { key: "registration_id", label: "Registration ID", inputType: "text", placeholder: "Enter registration ID" },
+      { key: "team_name", label: "Team Name", inputType: "text", placeholder: "Enter team name" },
+      { key: "group", label: "Group", inputType: "text", placeholder: "Enter group" },
+      { key: "exam_center", label: "Exam Center", inputType: "text", placeholder: "Enter exam center" },
+      { key: "lab_section", label: "Lab / Section", inputType: "text", placeholder: "Enter lab / section" },
+    ],
+  },
+];
+
+export function getRegistrationFieldDef(key: string): RegistrationFieldDef | undefined {
+  for (const g of REGISTRATION_FIELD_CATALOG) {
+    const f = g.fields.find((x) => x.key === key);
+    if (f) return f;
+  }
+  return undefined;
+}
+
+/** A creator-configured instance of a catalog field. */
+export interface RegistrationFieldConfig {
+  id: string;
+  /** Catalog key — immutable after creation. */
+  key: string;
+  required: boolean;
+  /** Editable copy of the select options. */
+  options?: string[];
+  /** Text validation. */
+  minLength?: number;
+  maxLength?: number;
+}
+
+export interface RegistrationFormSettings {
+  formTitle: string;
+  description: string;
+  deadline: string;
+  maxRegistrations: number;
+  allowEditAfterSubmit: boolean;
+  allowSaveProgress: boolean;
+  showProgress: boolean;
+  requireEmailVerification: boolean;
+  requireOtpVerification: boolean;
+  allowMultipleRegistrations: boolean;
+  confirmationMessage: string;
+}
+
+export const DEFAULT_REGISTRATION_SETTINGS: RegistrationFormSettings = {
+  formTitle: "Registration",
+  description: "",
+  deadline: "",
+  maxRegistrations: 0,
+  allowEditAfterSubmit: false,
+  allowSaveProgress: true,
+  showProgress: true,
+  requireEmailVerification: false,
+  requireOtpVerification: false,
+  allowMultipleRegistrations: false,
+  confirmationMessage: "Your registration has been received.",
+};
 
 export interface StudioSection {
   id: string;
@@ -52,20 +150,9 @@ export type AccessMode = "public" | "private" | "unlisted" | "classroom";
 export interface StudioSettings {
   randomizeQuestions: boolean;
   randomizeOptions: boolean;
-  oneQuestionPerScreen: boolean;
-  allowQuestionNavigation: boolean;
-  allowBackNavigation: boolean;
-  showProgress: boolean;
-  showQuestionNumbers: boolean;
   negativeMarking: boolean;
   negativeMarkValue: number;
-  partialMarking: boolean;
-  attemptLimit: number;
-  resultMode: "immediate" | "after_end" | "manual";
-  showScore: boolean;
-  showPercentage: boolean;
-  showCorrectAnswers: boolean;
-  showExplanations: boolean;
+  showResultsImmediately: boolean;
   fullscreenMode: boolean;
   tabSwitchDetection: boolean;
   copyProtection: boolean;
@@ -73,8 +160,13 @@ export interface StudioSettings {
 
 export interface StudioAudience {
   mode: AccessMode;
-  accessCodeEnabled: boolean;
   accessCode: string;
+  /** Room ids whose members can attempt this quiz (classroom mode). */
+  roomIds: string[];
+  /** roomId → roll numbers explicitly allowed to attempt (defaults to all room members). */
+  roomStudentSelections: Record<string, string[]>;
+  /** Individually invited student emails (classroom mode). */
+  invitedEmails: string[];
   selectedStudents: Array<{ id: string; name: string; roll: string; email: string }>;
   csvPreview: string;
 }
@@ -107,11 +199,16 @@ export interface StudioState {
   sections: StudioSection[];
   settings: StudioSettings;
   audience: StudioAudience;
+  registration: {
+    settings: RegistrationFormSettings;
+    fields: RegistrationFieldConfig[];
+  };
   pricing: StudioPricing;
   branding: StudioBranding;
   saveStatus: "idle" | "saving" | "saved" | "unsaved";
   lastSaved: Date | string | null;
   published: boolean;
+  serverQuizId?: string | null;
 }
 
 export const DEFAULT_QUIZ_INFO: StudioQuizInfo = {
@@ -137,29 +234,33 @@ export const DEFAULT_QUIZ_INFO: StudioQuizInfo = {
 export const DEFAULT_SETTINGS: StudioSettings = {
   randomizeQuestions: false,
   randomizeOptions: false,
-  oneQuestionPerScreen: false,
-  allowQuestionNavigation: true,
-  allowBackNavigation: true,
-  showProgress: true,
-  showQuestionNumbers: true,
   negativeMarking: false,
   negativeMarkValue: 1,
-  partialMarking: false,
-  attemptLimit: 1,
-  resultMode: "immediate",
-  showScore: true,
-  showPercentage: true,
-  showCorrectAnswers: true,
-  showExplanations: true,
+  showResultsImmediately: true,
   fullscreenMode: false,
   tabSwitchDetection: false,
   copyProtection: false,
 };
 
+export const DEFAULT_REGISTRATION: {
+  settings: RegistrationFormSettings;
+  fields: RegistrationFieldConfig[];
+} = {
+  settings: { ...DEFAULT_REGISTRATION_SETTINGS },
+  fields: [
+    { id: "rfld_roll", key: "roll_number", required: true },
+    { id: "rfld_branch", key: "branch", required: true },
+    { id: "rfld_year", key: "year", required: true },
+    { id: "rfld_section", key: "section", required: false },
+  ],
+};
+
 export const DEFAULT_AUDIENCE: StudioAudience = {
   mode: "public",
-  accessCodeEnabled: false,
   accessCode: "",
+  roomIds: [],
+  roomStudentSelections: {},
+  invitedEmails: [],
   selectedStudents: [],
   csvPreview: "",
 };
@@ -189,6 +290,7 @@ export const STEPS: Array<{ id: StudioStepId; label: string }> = [
   { id: "questions", label: "Questions" },
   { id: "settings", label: "Settings" },
   { id: "audience", label: "Audience" },
+  { id: "registration", label: "Registration" },
   { id: "pricing", label: "Pricing" },
   { id: "branding", label: "Branding" },
   { id: "review", label: "Review" },

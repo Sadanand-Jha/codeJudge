@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, AlertOctagon } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import type { StudioState } from "../types";
+import { getRegistrationFieldDef } from "../types";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 
 interface ReviewItem {
@@ -25,7 +26,7 @@ export function ReviewStep() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 space-y-8">
       <div>
-        <h2 className="text-lg font-extrabold text-text-primary">Review & Validation</h2>
+        <h2 className="text-lg font-semibold text-text-primary">Review & Validation</h2>
         <p className="mt-1 text-xs text-text-secondary">
           Publishing is blocked until all errors are resolved. Warnings will not
           prevent publishing but are recommended to fix.
@@ -61,10 +62,10 @@ function ReviewGroup({
     emerald: "text-emerald-500",
   };
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-center gap-2 mb-3">
         <Icon className={`h-4 w-4 ${colorMap[color]}`} />
-        <span className="text-xs font-extrabold uppercase tracking-wider text-text-secondary">
+        <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
           {title} ({items.length})
         </span>
       </div>
@@ -147,15 +148,6 @@ function computeItems(
     items.push({ id: "desc", severity: "ok", label: "Short description is set" });
   }
 
-  if (!state.info.thumbnailUrl) {
-    items.push({
-      id: "thumb",
-      severity: "warning",
-      label: "Thumbnail not uploaded",
-      fix: () => goToStep("branding"),
-    });
-  }
-
   if (state.info.duration <= 0) {
     items.push({
       id: "duration",
@@ -209,21 +201,72 @@ function computeItems(
     });
   }
 
-  if (state.settings.attemptLimit < 1) {
+  // ── Audience ──
+  if (state.audience.mode === "classroom") {
+    const roomCount = (state.audience.roomIds ?? []).length;
+    const manualCount = (state.audience.invitedEmails ?? []).length;
+    if (roomCount === 0 && manualCount === 0) {
+      items.push({
+        id: "audience-empty",
+        severity: "error",
+        label: "No audience selected",
+        detail: "Select at least one room or manually add students.",
+        fix: () => goToStep("audience"),
+      });
+    } else {
+      items.push({
+        id: "audience-ok",
+        severity: "ok",
+        label:
+          roomCount > 0 && manualCount > 0
+            ? `${roomCount} room(s) + ${manualCount} manually added student(s)`
+            : roomCount > 0
+            ? `${roomCount} room(s) selected`
+            : `${manualCount} manually added student(s)`,
+      });
+    }
+  }
+
+  // ── Registration ──
+  const regFields = state.registration?.fields ?? [];
+  if (regFields.length === 0) {
     items.push({
-      id: "attempts",
-      severity: "error",
-      label: "Attempt limit must be at least 1",
-      fix: () => goToStep("settings"),
+      id: "reg-fields",
+      severity: "warning",
+      label: "No registration fields configured",
+      detail: "Add academic fields like Roll Number or Branch for participant records.",
+      fix: () => goToStep("registration"),
+    });
+  } else {
+    items.push({
+      id: "reg-fields",
+      severity: "ok",
+      label: `${regFields.length} registration field(s) configured`,
     });
   }
 
-  if (state.audience.mode !== "public" && !state.audience.accessCodeEnabled) {
+  const emptySelectField = regFields.find((f) => {
+    const def = getRegistrationFieldDef(f.key);
+    return def?.inputType === "select" && (!f.options || f.options.length === 0);
+  });
+  if (emptySelectField) {
     items.push({
-      id: "secret",
+      id: "reg-options",
+      severity: "error",
+      label: `Registration field "${getRegistrationFieldDef(emptySelectField.key)?.label}" has no options`,
+      detail: "Add at least one option for select fields.",
+      fix: () => goToStep("registration"),
+    });
+  }
+
+  const deadline = state.registration?.settings.deadline;
+  if (deadline && new Date(deadline).getTime() < Date.now()) {
+    items.push({
+      id: "reg-deadline",
       severity: "warning",
-      label: "Private quiz has no access code",
-      fix: () => goToStep("audience"),
+      label: "Registration deadline is in the past",
+      detail: "Students will not be able to register unless the deadline is extended.",
+      fix: () => goToStep("registration"),
     });
   }
 
@@ -232,16 +275,7 @@ function computeItems(
       id: "price",
       severity: "error",
       label: "Paid quiz requires a price",
-      fix: () => goToStep("settings"),
-    });
-  }
-
-  if (!state.branding.creatorName) {
-    items.push({
-      id: "creator",
-      severity: "warning",
-      label: "Creator name not set",
-      fix: () => goToStep("branding"),
+      fix: () => goToStep("pricing"),
     });
   }
 

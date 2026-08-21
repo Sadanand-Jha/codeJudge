@@ -27,17 +27,17 @@ export function LiveRail() {
   const totalMarks = summary.totalMarks;
   const valid = summary.validQuestions;
   const healthContent = Math.max(0, Math.min(100, Math.round((valid / totalQs) * 100)));
-  const healthSettings = state.settings.attemptLimit >= 1 ? 90 : 0;
+  const healthSettings = 90;
   const healthPublish = Math.round(
     ((state.info.title.trim().length >= 3 ? 1 : 0) +
       (summary.validQuestions > 0 ? 1 : 0) +
-      (state.audience.mode !== "public" || state.settings.attemptLimit >= 1 ? 1 : 0)) *
+      (state.audience.mode !== "public" ? 1 : 0)) *
       (100 / 3)
   );
 
   return (
     <div className="flex w-64 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-card/50 p-4 text-xs">
-      <h3 className="text-[10px] font-extrabold uppercase tracking-wider text-text-secondary">
+      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
         Live Summary
       </h3>
 
@@ -65,7 +65,7 @@ export function LiveRail() {
               </div>
               <div className="h-1.5 rounded-full bg-border overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-pink-500 to-violet-600 transition-all"
+                  className="h-full bg-indigo-300 transition-all"
                   style={{ width: `${pct}%` }}
                 />
               </div>
@@ -77,7 +77,7 @@ export function LiveRail() {
       <div>
         <div className="mb-1.5 flex items-center gap-1.5">
           <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-          <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-500">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-500">
             Needs attention ({incomplete.length})
           </p>
         </div>
@@ -106,7 +106,7 @@ export function LiveRail() {
       </div>
 
       <div>
-        <p className="mb-2 text-[10px] font-extrabold uppercase tracking-wider text-text-secondary">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
           Quiz Health
         </p>
         <div className="space-y-2">
@@ -117,7 +117,7 @@ export function LiveRail() {
       </div>
 
       <div className="mt-auto border-t border-border pt-3 flex items-center gap-2 text-[10px] text-text-secondary">
-        <Sparkles className="h-3.5 w-3.5 text-pink-500" />
+        <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
         <span>AI Credits: 842 / 1000</span>
       </div>
     </div>
@@ -134,7 +134,7 @@ function Metric({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-white/[0.02] p-2.5 text-center">
+    <div className="rounded-lg border border-border bg-card-hover/40 p-2.5 text-center">
       <Icon className="mx-auto h-3.5 w-3.5 text-text-muted" />
       <p className="mt-0.5 text-lg font-bold text-text-primary">{value}</p>
       <p className="text-[10px] text-text-secondary">{label}</p>
@@ -144,9 +144,9 @@ function Metric({
 
 function HealthRow({ label, value, color }: { label: string; value: number; color: string }) {
   const colorClass = {
-    pink: "from-pink-500 to-violet-600",
+    pink: "bg-indigo-300",
     amber: "from-amber-500 to-orange-500",
-    violet: "from-violet-500 to-pink-500",
+    violet: "bg-indigo-300",
   }[color];
   return (
     <div>
@@ -156,7 +156,7 @@ function HealthRow({ label, value, color }: { label: string; value: number; colo
       </div>
       <div className="h-1.5 rounded-full bg-border overflow-hidden">
         <div
-          className={`h-full w-${value}/100 bg-gradient-to-r ${colorClass} transition-all`}
+          className={`h-full ${colorClass} transition-all`}
           style={{ width: `${value}%` }}
         />
       </div>

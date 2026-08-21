@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationBell from "./NotificationBell";
 import { useAuthStore } from "@/store/authStore";
@@ -20,7 +20,6 @@ export default function NavbarRightActions() {
   const savedAvatar = useSavedAvatar();
   const creditBalance = useAICreditsStore((s) => s.balance);
   const openAuthModal = useUIStore((s) => s.openAuthModal);
-  const requestLogout = useUIStore((s) => s.requestLogout);
 
   // A user is "premium" (PRO / ULTIMATE) when they have an active paid
   // subscription. Derived solely from existing subscription/credit state —
@@ -61,13 +60,6 @@ export default function NavbarRightActions() {
               PRO
             </span>
           )}
-          <button
-            onClick={requestLogout}
-            className="hidden sm:flex p-2 rounded-lg hover:bg-accent/5 text-text-secondary hover:text-danger transition-colors"
-            aria-label="Log out"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       ) : (
         <button

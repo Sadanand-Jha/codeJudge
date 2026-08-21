@@ -248,4 +248,24 @@ export class QuizService {
   async getStudentQuestionReview(attemptId: number): Promise<any[]> {
     return this.repository.getStudentQuestionReview(attemptId);
   }
+
+  // ==================== QUIZ PARTICIPANTS (audience allow-list) ====================
+
+  async replaceQuizParticipants(
+    quizId: number,
+    participants: Array<{
+      email: string;
+      name?: string | null;
+      rollNumber?: string | null;
+      source?: "room" | "individual";
+      roomId?: number | null;
+      allowed?: boolean;
+    }>
+  ): Promise<number> {
+    return this.repository.replaceQuizParticipants(quizId, participants);
+  }
+
+  async getQuizParticipants(quizId: string | number): Promise<any[]> {
+    return this.repository.getQuizParticipants(Number(quizId));
+  }
 }

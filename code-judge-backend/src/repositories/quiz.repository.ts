@@ -1370,4 +1370,69 @@ export class QuizRepository {
     const result = await pool.query(query, [attemptId]);
     return result.rows;
   }
+
+  // ==================== QUIZ PARTICIPANTS (audience allow-list) ====================
+
+  /**
+   * Replace the full participant list for a quiz (delete-and-recreate in a
+   * transaction). Participants carry `allowed` so creators can pre-select
+   * which students may attempt the quiz.
+   */
+  async replaceQuizParticipants(
+    quizId: number,
+    participants: Array<{
+      email: string;
+      name?: string | null;
+      rollNumber?: string | null;
+      source?: "room" | "individual";
+      roomId?: number | null;
+      allowed?: boolean;
+    }>
+  ): Promise<number> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("DELETE FROM quiz_participants WHERE quiz_id = $1", [quizId]);
+
+      let saved = 0;
+      for (const p of participants) {
+        if (!p?.email) continue;
+        await client.query(
+          `INSERT INTO quiz_participants
+             (quiz_id, email, name, roll_number, source, room_id, allowed, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT (quiz_id, email) DO NOTHING`,
+          [
+            quizId,
+            p.email.toLowerCase(),
+            p.name ?? null,
+            p.rollNumber ?? null,
+            p.source === "room" ? "room" : "individual",
+            p.roomId ?? null,
+            p.allowed !== false,
+          ]
+        );
+        saved++;
+      }
+
+      await client.query("COMMIT");
+      return saved;
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getQuizParticipants(quizId: number): Promise<any[]> {
+    const query = `
+      SELECT id, quiz_id, email, name, roll_number, source, room_id, allowed, created_at, updated_at
+      FROM quiz_participants
+      WHERE quiz_id = $1
+      ORDER BY created_at ASC, id ASC
+    `;
+    const result = await pool.query(query, [quizId]);
+    return result.rows;
+  }
 }

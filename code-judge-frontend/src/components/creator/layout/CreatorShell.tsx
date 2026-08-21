@@ -85,7 +85,7 @@ export default function CreatorShell({ children }: { children: React.ReactNode }
       {/* Main column */}
       <div className="lg:pl-[264px]">
         {/* Top bar */}
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-ai-bg/80 px-4 backdrop-blur-xl sm:px-6">
+        <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border bg-ai-bg/80 px-4 backdrop-blur-xl sm:px-6">
           <button
             type="button"
             aria-label="Open menu"
@@ -118,7 +118,16 @@ export default function CreatorShell({ children }: { children: React.ReactNode }
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        {/* The quiz studio is a full-bleed workspace — keep it tight to the navbar. */}
+        <main
+          className={
+            pathname.startsWith("/creator/quizzes/create") || pathname.startsWith("/creator/quizzes/ai-generate")
+              ? "px-4 pt-0 pb-6 sm:px-6 lg:px-8"
+              : "px-4 py-6 sm:px-6 lg:px-8"
+          }
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

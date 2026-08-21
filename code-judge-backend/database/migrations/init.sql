@@ -673,3 +673,10 @@ drop column if exists endtime
 
 ALTER TABLE quiz
 ADD COLUMN IF NOT EXISTS exam_cat integer;
+
+
+alter table quiz_problems
+add column negative_marks integer;
+
+alter table quiz_problems
+add column marks integer;

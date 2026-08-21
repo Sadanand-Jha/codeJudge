@@ -8,31 +8,26 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Code2,
-  Award,
-  TrendingUp,
-  MessageSquare,
   Settings,
-  Bookmark,
   Menu,
-  Search,
   Flame,
-  Route,
-  Users,
   LogOut,
   BookOpen,
   Briefcase,
   Sparkles,
-  ClipboardList,
   ClipboardCheck,
-  Crown,
   Trophy,
-  History,
-  MessagesSquare,
   Loader2,
   ChevronDown,
   User,
+  Waypoints,
+  Repeat,
   type LucideIcon,
 } from "lucide-react";
+import {
+  getActivePreparationModule,
+  PREPARATION_BASE,
+} from "@/config/preparation";
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
@@ -102,43 +97,53 @@ type NavItemData = {
 };
 
 // Navigation is grouped so the rail can separate logical sections with a
-// subtle divider instead of collapsing into one unbroken list. The student
-// sidebar stays learning-focused; the Creator Studio entry lives in its own
-// group above the account row.
+// subtle divider instead of collapsing into one unbroken list.
+//
+// Information architecture:
+//   HOME        → feed / dashboard
+//   TESTS       → assessments (Tests, Contests, Problems)
+//   PREPARATION → one primary entity; its sections live in a dedicated
+//                 workspace sidebar inside /preparation/* (like Profile)
+//   ACCOUNT     → Profile, Purchases, Settings
 const navGroups: { label: string; items: NavItemData[] }[] = [
   {
     label: "MAIN",
+    items: [{ label: "Home", icon: LayoutDashboard, href: "/" }],
+  },
+  {
+    label: "TESTS",
     items: [
-      { label: "Home", icon: LayoutDashboard, href: "/" },
       { label: "Tests", icon: ClipboardCheck, href: "/tests" },
-      { label: "Problems", icon: Code2, href: "/problems" },
       { label: "Contests", icon: Trophy, href: "/contests" },
-      { label: "Quiz", icon: ClipboardList, href: "/quiz" },
-      { label: "Leaderboard", icon: Award, href: "/leaderboard" },
+      { label: "Problems", icon: Code2, href: "/problems" },
     ],
   },
   {
-    label: "PERSONAL",
-    items: [
-      { label: "Saved", icon: Bookmark, href: "/collections" },
-    ],
+    label: "PREPARATION",
+    items: [{ label: "Preparation", icon: Waypoints, href: "/preparation" }],
   },
   {
-    label: "MORE",
+    label: "TOOLS",
     items: [
-      { label: "Interview", icon: MessageSquare, href: "/interview" },
-      { label: "Roadmaps", icon: Route, href: "/roadmaps" },
-      { label: "Discussions", icon: MessagesSquare, href: "/discussions" },
       { label: "AI Chat", icon: Sparkles, href: "/ai/chat" },
       { label: "Editor", icon: BookOpen, href: "/editor" },
-      { label: "Analytics", icon: Users, href: "/analytics" },
+    ],
+  },
+  {
+    label: "ACCOUNT",
+    items: [
+      { label: "Profile", icon: User, href: "/profile" },
+      { label: "Purchases", icon: Briefcase, href: "/profile/purchases" },
       { label: "Settings", icon: Settings, href: "/settings" },
-      { label: "Upgrade", icon: Crown, href: "/pricing" },
     ],
   },
 ];
 
-const navItems = navGroups.flatMap((group) => group.items);
+// Flat list (longest href first) used for page-title resolution and for
+// guest-protection checks.
+const navItems: NavItemData[] = navGroups
+  .flatMap((group) => group.items)
+  .sort((a, b) => b.href.length - a.href.length);
 
 function isEditorPath(pathname: string): boolean {
   return pathname === "/editor";
@@ -153,6 +158,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  // Account dropdown state lives here (not inside ProfileMenu) so the
+  // sidebar's collapse handlers can close it — the card must never float
+  // over a collapsed rail.
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const authModalOpen = useUIStore((s) => s.authModalOpen);
   const authModalRedirect = useUIStore((s) => s.authModalRedirect);
   const closeAuthModal = useUIStore((s) => s.closeAuthModal);
@@ -179,6 +188,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const collapseSidebar = useCallback(() => {
     suppressHoverRef.current = true;
     setSidebarExpanded(false);
+    setAccountMenuOpen(false);
   }, []);
 
   // The AI assistant is only relevant inside the quiz creator's problem
@@ -201,9 +211,15 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const pageTitle =
-    navItems.find((n) => pathname === n.href || (n.href !== "/" && pathname.startsWith(n.href)))?.label ||
-    "ByteClash";
+  const pageTitle = (() => {
+    if (pathname === PREPARATION_BASE) return "Preparation";
+    const prepModule = getActivePreparationModule(pathname);
+    if (prepModule) return `Preparation · ${prepModule.label}`;
+    return (
+      navItems.find((n) => (n.href === "/" ? pathname === "/" : pathname.startsWith(n.href)))?.label ||
+      "ByteClash"
+    );
+  })();
 
   const handleAuthRequired = (redirectUrl?: string) => {
     openAuthModal(redirectUrl);
@@ -247,7 +263,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 z-40 lg:hidden"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setAccountMenuOpen(false);
+            }}
           />
         )}
       </AnimatePresence>
@@ -258,7 +277,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           suppressHoverRef.current = false;
           setSidebarExpanded(true);
         }}
-        onMouseLeave={() => setSidebarExpanded(false)}
+        onMouseLeave={() => {
+          setSidebarExpanded(false);
+          setAccountMenuOpen(false);
+        }}
         onDragStart={(e) => e.preventDefault()}
         onContextMenu={(e) => e.preventDefault()}
         onCopy={(e) => e.preventDefault()}
@@ -299,7 +321,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                   showLabels={showLabels}
                   setSidebarExpanded={setSidebarExpanded}
                   collapseSidebar={collapseSidebar}
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setAccountMenuOpen(false);
+                  }}
                 />
               ))}
             </div>
@@ -378,6 +403,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
           <ProfileMenu
             showLabels={showLabels}
+            sidebarExpanded={sidebarExpanded}
+            setSidebarExpanded={setSidebarExpanded}
+            open={accountMenuOpen}
+            onOpenChange={setAccountMenuOpen}
             isAuthenticated={isAuthenticated}
             username={user?.username || "Guest"}
             avatar={savedAvatar}
@@ -492,25 +521,53 @@ function NavIcon({ Icon, isActive, showDot }: { Icon: LucideIcon; isActive: bool
 
 // Student account menu — student-only. The only bridge to the creator world is
 // the "Creator Studio" item at the bottom of the menu.
-function ProfileMenu({ showLabels, isAuthenticated, username, avatar, onAuthRequired }: {
+function ProfileMenu({ showLabels, sidebarExpanded, setSidebarExpanded, open, onOpenChange, isAuthenticated, username, avatar, onAuthRequired }: {
   showLabels: boolean;
+  sidebarExpanded: boolean;
+  setSidebarExpanded: (v: boolean) => void;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
   isAuthenticated: boolean;
   username: string;
   avatar: { url: string; label: string } | null;
   onAuthRequired: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const requestLogout = useUIStore((s) => s.requestLogout);
+  const openAuthModal = useUIStore((s) => s.openAuthModal);
+  const setOpen = onOpenChange;
+
+  // Sign the current session out and immediately surface the auth modal so
+  // the user can sign in with a different account.
+  const handleSwitchAccount = async () => {
+    setOpen(false);
+    try {
+      await logout();
+    } catch {
+      // Backend call failed — clear the local session anyway so the
+      // switch never leaves the user stuck on the old account.
+    }
+    useAuthStore.getState().logout();
+    toast.success("Signed out — sign in with another account");
+    openAuthModal("/");
+  };
 
   const handleTrigger = () => {
     if (!isAuthenticated) {
       onAuthRequired();
       return;
     }
-    setOpen((o) => !o);
+    // Collapsed rail: the first click expands the sidebar (opening the menu
+    // here would render a clipped card); only expand it and let the user
+    // click again to open the account menu.
+    if (!sidebarExpanded) {
+      setSidebarExpanded(true);
+      return;
+    }
+    setOpen(!open);
   };
 
   return (
-    <div className="relative">
+    <div className="relative" onMouseLeave={() => setOpen(false)}>
       <button
         type="button"
         onClick={handleTrigger}
@@ -546,8 +603,11 @@ function ProfileMenu({ showLabels, isAuthenticated, username, avatar, onAuthRequ
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.16, ease: "easeOut" }}
-              className="absolute bottom-full left-0 z-50 mb-2 w-60 overflow-hidden rounded-xl border border-ai-border bg-ai-sidebar p-1.5 shadow-2xl shadow-black/30"
+              className="absolute bottom-full left-0 z-50 w-60 pt-2"
             >
+              {/* pt-2 above acts as a hover bridge so moving the cursor from
+                  the trigger into the card never fires onMouseLeave. */}
+              <div className="overflow-hidden rounded-xl border border-ai-border bg-ai-sidebar p-1.5 shadow-2xl shadow-black/30">
               <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] text-xs font-bold text-accent-foreground shrink-0">
                   {avatar ? (
@@ -564,44 +624,34 @@ function ProfileMenu({ showLabels, isAuthenticated, username, avatar, onAuthRequ
 
               <div className="my-1 h-px bg-ai-border" />
 
-              <ProfileMenuItem href="/profile" icon={User} label="Profile" onNavigate={() => setOpen(false)} />
-              <ProfileMenuItem href="/profile/history" icon={History} label="History" onNavigate={() => setOpen(false)} />
-              <ProfileMenuItem href="/profile/purchases" icon={Briefcase} label="Purchases" onNavigate={() => setOpen(false)} />
-              <ProfileMenuItem href="/profile/achievements" icon={TrendingUp} label="Achievements" onNavigate={() => setOpen(false)} />
-              <ProfileMenuItem href="/settings" icon={Settings} label="Settings" onNavigate={() => setOpen(false)} />
-
-              <div className="my-1 h-px bg-ai-border" />
-
-              <Link
-                href="/creator"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-pink-500 transition-colors hover:bg-pink-500/10 dark:text-ai-accent"
+              {/* Navigation lives in the sidebar rail — this menu only handles
+                  account-level actions: switching accounts and logging out. */}
+              <button
+                type="button"
+                onClick={handleSwitchAccount}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-ai-text-sec transition-colors hover:bg-ai-hover hover:text-ai-text"
               >
-                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-pink-500 to-violet-600">
-                  <Flame className="h-3 w-3 text-white" />
-                </span>
-                Creator Studio
-              </Link>
+                <Repeat className="h-3.5 w-3.5 shrink-0" />
+                Switch account
+              </button>
 
-              <div className="my-1 h-px bg-ai-border" />
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  requestLogout();
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger/10"
+              >
+                <LogOut className="h-3.5 w-3.5 shrink-0" />
+                Log out
+              </button>
+              </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-function ProfileMenuItem({ href, icon: Icon, label, onNavigate }: { href: string; icon: LucideIcon; label: string; onNavigate: () => void }) {
-  return (
-    <Link
-      href={href}
-      onClick={onNavigate}
-      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-ai-text-sec transition-colors hover:bg-ai-hover hover:text-ai-text"
-    >
-      <Icon className="h-3.5 w-3.5 shrink-0" />
-      {label}
-    </Link>
   );
 }
 

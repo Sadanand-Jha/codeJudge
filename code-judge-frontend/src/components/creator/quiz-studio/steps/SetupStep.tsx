@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   FileText,
   Sparkles,
@@ -15,11 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
-import {
-  type CreatorQuestionType,
-} from "../types";
-import { toast } from "@/lib/toast";
-import { GhostButton, Badge } from "../primitives";
+import { Badge } from "../primitives";
 import { SearchableDropdown } from "@/components/ui";
 import { getAllSubjects, getAllExamCategories } from "@/services/quiz";
 
@@ -55,11 +51,11 @@ const CREATE_CHOICES = [
 ] as const;
 
 export function SetupStep() {
-  const { state, updateInfo, addQuestion, summary } = useStudio();
+  const router = useRouter();
+  const { state, updateInfo, summary } = useStudio();
   const [choice, setChoice] = useState<
     "scratch" | "ai" | "import" | "duplicate" | null
   >("scratch");
-  const [showAi, setShowAi] = useState(false);
 
   const info = state.info;
   const marks = summary.totalMarks;
@@ -73,28 +69,13 @@ export function SetupStep() {
 
   const removeThumbnail = () => updateInfo({ thumbnailUrl: "" });
 
-  const onAiGenerate = useCallback(() => {
-    setShowAi(true);
-  }, []);
-
-  const confirmAi = (topic: string, count: number, qtype: CreatorQuestionType) => {
-    setShowAi(false);
-    toast.success({
-      title: "Questions generated",
-      description: `Added ${count} ${qtype.replace("_", " ")} question(s) on "${topic}".`,
-    });
-    for (let i = 0; i < count; i++) {
-      addQuestion();
-    }
-  };
-
   const hasBasicInfo = info.title.trim().length >= 3;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-8">
       {/* Creation method choice */}
       <div>
-        <h2 className="text-lg font-extrabold text-text-primary">How do you want to start?</h2>
+        <h2 className="text-lg font-semibold text-text-primary">How do you want to start?</h2>
         <p className="mt-1 text-xs text-text-secondary">
           You can always use AI tools later inside the editor.
         </p>
@@ -111,22 +92,18 @@ export function SetupStep() {
             selected={choice === c.id}
             onClick={() => {
               if (c.id === "ai") {
-                setChoice("ai");
-                onAiGenerate();
+                router.push("/creator/quizzes/ai-generate");
               } else {
                 setChoice(c.id);
-                setShowAi(false);
               }
             }}
           />
         ))}
       </div>
 
-      {showAi && <AiGeneratePanel onConfirm={confirmAi} />}
-
       {/* Basic information */}
       <div className="space-y-6">
-        <h3 className="text-sm font-extrabold uppercase tracking-wider text-text-secondary">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-text-secondary">
           Quiz Information
         </h3>
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -137,7 +114,7 @@ export function SetupStep() {
                 value={info.title}
                 onChange={(e) => updateInfo({ title: e.target.value })}
                 placeholder="e.g. JEE Main 2026 Mock Test 01"
-                className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/15"
+                className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
               />
             </div>
 
@@ -148,7 +125,7 @@ export function SetupStep() {
                 onChange={(e) => updateInfo({ shortDescription: e.target.value })}
                 rows={2}
                 placeholder="A concise summary shown in listings."
-                className="w-full rounded-xl border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/15"
+                className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
               />
             </div>
 
@@ -159,7 +136,7 @@ export function SetupStep() {
                 onChange={(e) => updateInfo({ fullDescription: e.target.value })}
                 rows={4}
                 placeholder="Explain what the quiz covers, target audience, pattern..."
-                className="w-full rounded-xl border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/15"
+                className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
               />
             </div>
 
@@ -206,7 +183,7 @@ export function SetupStep() {
                   value={info.classGrade}
                   onChange={(e) => updateInfo({ classGrade: e.target.value })}
                   placeholder="e.g. 12th, B.Tech Sem 5"
-                  className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/15"
+                  className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
                 />
               </div>
               */}
@@ -229,7 +206,7 @@ export function SetupStep() {
                 <select
                   value={info.language}
                   onChange={(e) => updateInfo({ language: e.target.value })}
-                  className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/15"
+                  className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3.5 text-sm text-text-primary outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
                 >
                   {LANGUAGES.map((l) => (
                     <option key={l.id} value={l.id}>
@@ -253,7 +230,7 @@ export function SetupStep() {
                     max={600}
                     value={info.duration || ""}
                     onChange={(e) => updateInfo({ duration: Number(e.target.value) })}
-                    className="h-11 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/15"
+                    className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
                   />
                 </div>
               </div>
@@ -297,33 +274,32 @@ function ChoiceCard({
   onClick: () => void;
 }) {
   return (
-    <motion.button
+    <button
       type="button"
       onClick={onClick}
-      whileHover={{ y: -2 }}
       className={cn(
-        "flex flex-col items-center gap-2 rounded-2xl border p-4 text-center text-sm transition-all",
+        "flex flex-col items-center gap-2 rounded-xl border p-4 text-center text-sm transition-all duration-150 ease-out hover:-translate-y-0.5",
         selected
-          ? "border-pink-500/40 bg-pink-500/6 text-pink-600 dark:text-pink-400"
-          : "border-border bg-card hover:border-border-hover hover:bg-white/[0.03]"
+          ? "border-indigo-500/40 bg-indigo-500/6 text-indigo-600 dark:border-pink-400/70 dark:bg-pink-500/10 dark:text-pink-300"
+          : "border-border bg-card hover:border-border-hover hover:bg-card-hover"
       )}
     >
       <div
         className={cn(
           "flex h-10 w-10 items-center justify-center rounded-xl",
           selected
-            ? "bg-pink-500/12 text-pink-500"
-            : "bg-white/[0.04] text-text-secondary"
+            ? "bg-indigo-500/12 text-indigo-500"
+            : "bg-card-hover/40 text-text-secondary"
         )}
       >
         <Icon className="h-5 w-5" />
       </div>
       <span className="font-semibold text-text-primary">{label}</span>
       <p className="text-[11px] text-text-secondary">{desc}</p>
-      <Badge color="purple" className="mt-0.5">
+      <Badge color="accent" className="mt-0.5">
         {meta}
       </Badge>
-    </motion.button>
+    </button>
   );
 }
 
@@ -349,11 +325,11 @@ function DifficultySelect({
       className={cn(
         "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold capitalize transition-all",
         selected
-          ? "border-transparent bg-gradient-to-r from-pink-500 to-violet-600 text-white"
-          : "border-border bg-white/[0.02] text-text-secondary hover:text-text-primary"
+          ? cn("border-transparent text-white", color)
+          : "border-border bg-card-hover/40 text-text-secondary hover:text-text-primary"
       )}
     >
-      <span className={cn("h-2 w-2 rounded-full", color)} />
+      <span className={cn("h-2 w-2 rounded-full", selected ? "bg-white" : color)} />
       {value}
     </button>
   );
@@ -416,7 +392,7 @@ function ThumbnailUploader({
 }) {
   return (
     <div className="flex flex-col items-center">
-      <label className="relative flex h-40 w-full max-w-[180px] cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card/60 text-xs text-text-secondary transition-colors hover:border-pink-500/40 hover:bg-white/[0.03]">
+      <label className="relative flex h-40 w-full max-w-[180px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/60 text-xs text-text-secondary transition-colors hover:border-indigo-500/40 hover:bg-card-hover">
         {url ? (
           <img src={url} alt="thumbnail" className="h-full w-full rounded-xl object-cover" />
         ) : (
@@ -489,57 +465,5 @@ function SummaryRail({
         </p>
       )}
     </div>
-  );
-}
-
-function AiGeneratePanel({
-  onConfirm,
-}: {
-  onConfirm: (topic: string, count: number, type: CreatorQuestionType) => void;
-}) {
-  const [topic, setTopic] = useState("");
-  const [count, setCount] = useState(5);
-  const [type, setType] = useState<CreatorQuestionType>("single_choice");
-  return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: "auto" }}
-      exit={{ opacity: 0, height: 0 }}
-      className="rounded-2xl border border-pink-500/30 bg-pink-500/5 p-5"
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="h-4 w-4 text-pink-500" />
-        <span className="text-sm font-bold text-text-primary">AI Generate Questions</span>
-      </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <input
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          placeholder="Topic, e.g. Electrostatics"
-          className="h-10 rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50"
-        />
-        <input
-          type="number"
-          min={1}
-          max={50}
-          value={count}
-          onChange={(e) => setCount(Number(e.target.value))}
-          className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary outline-none focus:border-pink-500/50"
-        />
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value as CreatorQuestionType)}
-          className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary outline-none focus:border-pink-500/50"
-        >
-          <option value="single_choice">MCQ</option>
-          <option value="multiple_choice">Multiple Select</option>
-          <option value="true_false">True/False</option>
-          <option value="text">Short Answer</option>
-        </select>
-      </div>
-      <div className="mt-4 flex justify-end gap-2">
-        <GhostButton onClick={() => {}}>Generate (simulated)</GhostButton>
-      </div>
-    </motion.div>
   );
 }

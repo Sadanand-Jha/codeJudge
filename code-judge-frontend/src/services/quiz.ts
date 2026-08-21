@@ -322,6 +322,48 @@ export async function updateQuizStatus(quizId: string, status: "published" | "un
 }
 
 // ─────────────────────────────────────────
+// Quiz Participants (audience allow-list)
+// ─────────────────────────────────────────
+
+export interface QuizParticipantInput {
+  email: string;
+  name?: string | null;
+  rollNumber?: string | null;
+  source?: "room" | "individual";
+  roomId?: number | string | null;
+  allowed?: boolean;
+}
+
+export interface QuizParticipant {
+  id: number;
+  quiz_id: number;
+  email: string;
+  name: string | null;
+  roll_number: string | null;
+  source: "room" | "individual";
+  room_id: number | null;
+  allowed: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+/** Replace the full participant list for a quiz. */
+export async function setQuizParticipants(quizId: string, participants: QuizParticipantInput[]): Promise<{ saved: number }> {
+  const response = await apiClient.put<{ success: boolean; data: { saved: number } }>(
+    `/v1/user/quiz/${quizId}/participants`,
+    { participants }
+  );
+  return response.data.data;
+}
+
+export async function getQuizParticipants(quizId: string): Promise<QuizParticipant[]> {
+  const response = await apiClient.get<{ success: boolean; data: QuizParticipant[] }>(
+    `/v1/user/quiz/${quizId}/participants`
+  );
+  return response.data.data;
+}
+
+// ─────────────────────────────────────────
 // Quiz Question Management API
 // ─────────────────────────────────────────
 

@@ -1989,3 +1989,49 @@ export const getStudentResponseDetail = async (req: Request, res: Response) => {
     });
   }
 };
+// ==================== QUIZ PARTICIPANTS (audience allow-list) ====================
+
+/**
+ * PUT /api/v1/user/quiz/:quizId/participants
+ * Body: { participants: [{ email, name?, rollNumber?, source?, roomId?, allowed? }] }
+ * Replaces the full participant list for the quiz.
+ */
+export const setQuizParticipants = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const participants = req.body?.participants;
+
+    if (!Array.isArray(participants)) {
+      return res.status(400).json({
+        success: false,
+        message: "participants must be an array",
+      });
+    }
+
+    const saved = await quizService.replaceQuizParticipants(Number(quizId), participants);
+    res.status(200).json({ success: true, data: { saved } });
+  } catch (error) {
+    console.error("Error saving quiz participants:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while saving quiz participants",
+    });
+  }
+};
+
+/**
+ * GET /api/v1/user/quiz/:quizId/participants
+ */
+export const getQuizParticipantsController = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const participants = await quizService.getQuizParticipants(quizId);
+    res.status(200).json({ success: true, data: participants });
+  } catch (error) {
+    console.error("Error fetching quiz participants:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching quiz participants",
+    });
+  }
+};

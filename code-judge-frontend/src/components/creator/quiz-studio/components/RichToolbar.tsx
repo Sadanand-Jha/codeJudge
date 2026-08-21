@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import {
   Bold,
   Italic,
@@ -51,7 +51,7 @@ export function RichToolbar({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 rounded-t-xl border-b border-border bg-white/[0.03] p-1.5">
+    <div className="flex flex-wrap items-center gap-0.5 rounded-t-xl border-b border-border bg-card-hover/40 p-1.5">
       {COMMANDS.map((c) => (
         <button
           key={c.cmd}
@@ -61,7 +61,7 @@ export function RichToolbar({
             exec(c.cmd, c.arg);
           }}
           title={c.label}
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-white/[0.06] hover:text-text-primary"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-card-hover hover:text-text-primary"
         >
           <c.icon className="h-4 w-4" />
         </button>
@@ -74,7 +74,7 @@ export function RichToolbar({
           promptAndExec("createLink");
         }}
         title="Insert link"
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-white/[0.06] hover:text-text-primary"
+        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-card-hover hover:text-text-primary"
       >
         <Link className="h-4 w-4" />
       </button>
@@ -85,7 +85,7 @@ export function RichToolbar({
           promptAndExec("insertImage");
         }}
         title="Insert image"
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-white/[0.06] hover:text-text-primary"
+        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-card-hover hover:text-text-primary"
       >
         <ImageIcon className="h-4 w-4" />
       </button>
@@ -107,7 +107,7 @@ export function RichToolbar({
           exec("insertHTML", html);
         }}
         title="Insert table"
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-white/[0.06] hover:text-text-primary"
+        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-card-hover hover:text-text-primary"
       >
         <Table className="h-4 w-4" />
       </button>
@@ -118,7 +118,7 @@ export function RichToolbar({
           exec("insertHTML", '<span class="math-inline">\\( \\)</span>');
         }}
         title="Insert math"
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-white/[0.06] hover:text-text-primary"
+        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-card-hover hover:text-text-primary"
       >
         <Sigma className="h-4 w-4" />
       </button>
@@ -138,7 +138,7 @@ export function EditableContent({
   minHeight?: string;
 }) {
   const elRef = useRef<HTMLDivElement>(null);
-  const lastValueRef = useRef(value);
+  const lastValueRef = useRef<string | null>(null);
 
   // Sync DOM only when the external `value` changes from a source other than
   // the user typing (avoids the controlled contentEditable cursor-jump bug).
@@ -150,23 +150,26 @@ export function EditableContent({
       el.innerHTML = value;
       lastValueRef.current = value;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
-  const setRef = (el: HTMLDivElement | null) => {
-    if (!el) return;
-    el.contentEditable = "true";
-    el.spellcheck = false;
-    el.dataset.placeholder = placeholder || "";
-    el.innerHTML = value;
-    lastValueRef.current = value;
-  };
+  // Stable ref callback — recreating it on every render makes React detach and
+  // reattach the ref each keystroke, which reset innerHTML (and the caret).
+  const setRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      elRef.current = el;
+      if (!el) return;
+      el.contentEditable = "true";
+      el.spellcheck = false;
+      el.dataset.placeholder = placeholder || "";
+    },
+    [placeholder]
+  );
 
   return (
     <div
       ref={setRef}
       className={cn(
-        "w-full resize-none border-0 bg-transparent px-0 text-sm text-text-primary placeholder-text-muted outline-none",
+        "w-full resize-none border-0 bg-transparent px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none",
         "[&>[data-placeholder]:not(:empty)+br]:h-0",
         minHeight
       )}

@@ -44,6 +44,7 @@ export interface CreatorNavItem {
   href: string;
   icon: LucideIcon;
   exact?: boolean;
+  match?: (pathname: string) => boolean;
 }
 
 export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
@@ -55,7 +56,7 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
     label: "Content",
     items: [
       { label: "Tests", href: "/creator/tests", icon: ClipboardList },
-      { label: "Quizzes", href: "/creator/quizzes", icon: ListChecks },
+      { label: "Quizzes", href: "/creator/quizzes", icon: ListChecks, exact: true },
       { label: "Test Series", href: "/creator/series", icon: Layers },
       { label: "Question Bank", href: "/creator/question-bank", icon: Database },
       { label: "Problems", href: "/creator/problems", icon: NotebookPen },
@@ -68,7 +69,7 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
     items: [
       { label: "Create New", href: "/creator/create", icon: FilePlus2, exact: true },
       { label: "Create Test", href: "/creator/tests/create", icon: ClipboardList },
-      { label: "Create Quiz", href: "/creator/quizzes/create", icon: ListChecks },
+      { label: "Create Quiz", href: "/creator/quizzes/create", icon: ListChecks, match: (p) => p === "/creator/quizzes/create" || p === "/creator/quizzes/ai-generate" },
       { label: "Create Problem", href: "/creator/problems/create", icon: NotebookPen },
       { label: "Create Test Series", href: "/creator/series/create", icon: Layers },
     ],
@@ -129,7 +130,11 @@ function NavRow({
   pathname: string;
   showLabels: boolean;
 }) {
-  const isActive = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const isActive = item.match
+    ? item.match(pathname)
+    : item.exact
+    ? pathname === item.href
+    : pathname === item.href || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;
   return (
     <Link

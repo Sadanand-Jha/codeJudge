@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   CircleDot,
   ListChecks,
@@ -25,8 +25,10 @@ import { useStudio } from "../StudioProvider";
 import { EditableContent, RichToolbar } from "./RichToolbar";
 import { AiAssistantPanel } from "./AiAssistantPanel";
 
-const TYPE_ICON: Record<CreatorQuestionType, React.ComponentType<{ className?: string }>> = {
-  single_choice: CircleDot,
+const noSpinCls =
+  "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+
+const TYPE_ICON: Record<CreatorQuestionType, React.ComponentType<{ className?: string }>> = {  single_choice: CircleDot,
   multiple_choice: ListChecks,
   true_false: ToggleRight,
   fill_blanks: FileText,
@@ -42,6 +44,8 @@ export function QuestionEditor() {
 
   const [aiOpen, setAiOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingImageOption = useRef<string | null>(null);
 
   if (!q) {
     return (
@@ -99,8 +103,21 @@ export function QuestionEditor() {
   };
 
   const openImageAssistant = (optId: string) => {
-    const url = window.prompt("Paste image URL");
-    if (url) updateOption(optId, { imageUrl: url });
+    pendingImageOption.current = optId;
+    imageInputRef.current?.click();
+  };
+
+  const handleOptionImagePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const optId = pendingImageOption.current;
+    const file = e.target.files?.[0];
+    // Reset so picking the same file again still fires onChange
+    e.target.value = "";
+    if (!optId || !file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") updateOption(optId, { imageUrl: reader.result });
+    };
+    reader.readAsDataURL(file);
   };
 
   const questionNumber = Number((state.activeQuestionId ?? "").match(/q_(\d+)/)?.[1] ?? "");
@@ -108,10 +125,19 @@ export function QuestionEditor() {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Hidden file picker for option images */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleOptionImagePicked}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/12 to-violet-600/12 text-pink-500">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-text-secondary">
             <StemIcon className="h-4 w-4" />
           </span>
           <span className="text-xs font-bold text-text-secondary">
@@ -178,7 +204,7 @@ export function QuestionEditor() {
 
           {/* After-answer block */}
           <div className="space-y-4">
-            <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-text-secondary">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
               After answer
             </h4>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -191,7 +217,7 @@ export function QuestionEditor() {
                   onChange={(e) => update({ explanation: e.target.value })}
                   rows={3}
                   placeholder="Explain why the correct answer is right."
-                  className="w-full rounded-xl border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50"
+                  className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/50"
                 />
               </div>
               <div className="space-y-1.5">
@@ -203,7 +229,7 @@ export function QuestionEditor() {
                   onChange={(e) => update({ hint: e.target.value })}
                   rows={3}
                   placeholder="A scaffolded hint…"
-                  className="w-full rounded-xl border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50"
+                  className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/50"
                 />
               </div>
               <div className="md:col-span-2 space-y-1.5">
@@ -215,7 +241,7 @@ export function QuestionEditor() {
                   onChange={(e) => update({ solution: e.target.value })}
                   rows={3}
                   placeholder="Walk through the worked solution…"
-                  className="w-full rounded-xl border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50"
+                  className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/50"
                 />
               </div>
             </div>
@@ -229,8 +255,8 @@ export function QuestionEditor() {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors",
                 aiOpen
-                  ? "border-pink-500/40 bg-pink-500/10 text-pink-600 dark:text-pink-400"
-                  : "border-border text-text-secondary hover:text-text-primary hover:bg-white/[0.03]"
+                  ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                  : "border-border text-text-secondary hover:text-text-primary hover:bg-card-hover"
               )}
             >
               <Sparkles className="h-3.5 w-3.5" /> AI Assistant
@@ -240,13 +266,13 @@ export function QuestionEditor() {
       </div>
 
       {/* Advanced Question Settings */}
-      <div className="border-t border-border bg-white/[0.02]">
+      <div className="border-t border-border bg-card-hover/40">
         <button
           type="button"
           onClick={() => setAdvancedOpen(!advancedOpen)}
           className="flex w-full items-center justify-between px-6 py-3 text-left"
         >
-          <span className="text-xs font-extrabold uppercase tracking-wider text-text-secondary">
+          <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
             Advanced Question Settings
           </span>
           {advancedOpen ? <ChevronUp className="h-4 w-4 text-text-muted" /> : <ChevronDown className="h-4 w-4 text-text-muted" />}
@@ -280,7 +306,7 @@ function TypeSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as CreatorQuestionType)}
-        className="appearance-none rounded-lg border border-input-border bg-input-bg py-1.5 pl-2.5 pr-7 text-xs font-medium text-text-primary outline-none focus:border-pink-500/50"
+        className="appearance-none rounded-lg border border-input-border bg-input-bg py-1.5 pl-2.5 pr-7 text-xs font-medium text-text-primary outline-none focus:border-indigo-500/50"
       >
         <option value="single_choice">Multiple Choice</option>
         <option value="multiple_choice">Multiple Select</option>
@@ -331,7 +357,7 @@ function MetadataRow({
           min={0}
           value={q.marks || ""}
           onChange={(e) => update({ marks: Number(e.target.value) })}
-          className="w-12 border-0 border-b border-input-border bg-transparent text-xs font-bold text-text-primary text-center outline-none"
+          className={cn("w-12 border-0 border-b border-input-border bg-transparent text-xs font-bold text-text-primary text-center outline-none", noSpinCls)}
         />
       </div>
       <div className="flex items-center gap-1.5">
@@ -339,9 +365,9 @@ function MetadataRow({
         <input
           type="number"
           min={0}
-          value={q.negativeMarks || ""}
+          value={q.negativeMarks ?? 0}
           onChange={(e) => update({ negativeMarks: Number(e.target.value) })}
-          className="w-10 border-0 border-b border-input-border bg-transparent text-xs font-bold text-text-primary text-center outline-none"
+          className={cn("w-10 border-0 border-b border-input-border bg-transparent text-xs font-bold text-text-primary text-center outline-none", noSpinCls)}
         />
       </div>
       <div className="flex items-center gap-1.5">
@@ -351,7 +377,7 @@ function MetadataRow({
           min={0}
           value={q.expectedTime || ""}
           onChange={(e) => update({ expectedTime: Number(e.target.value) })}
-          className="w-12 border-0 border-b border-input-border bg-transparent text-xs font-bold text-text-primary text-center outline-none"
+          className={cn("w-12 border-0 border-b border-input-border bg-transparent text-xs font-bold text-text-primary text-center outline-none", noSpinCls)}
         />
         <span className="text-text-muted">min</span>
       </div>
@@ -403,7 +429,7 @@ function OptionsEditor({
             "inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-colors",
             options.length >= 6
               ? "cursor-not-allowed opacity-40"
-              : "hover:border-pink-500/30 hover:text-text-primary"
+              : "hover:border-indigo-500/30 hover:text-text-primary"
           )}
         >
           <Plus className="h-3.5 w-3.5" /> Add option
@@ -437,7 +463,7 @@ function OptionRow({
       className={cn(
         "flex items-start gap-2 rounded-xl border p-3 transition-all",
         selected
-          ? "border-pink-500/40 bg-pink-500/8"
+          ? "border-emerald-500/40 bg-emerald-500/[0.08]"
           : "border-border bg-card/40 hover:border-border-hover"
       )}
     >
@@ -447,8 +473,8 @@ function OptionRow({
         className={cn(
           "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-colors",
           selected
-            ? "border-pink-500 bg-pink-500 text-white"
-            : "border-border bg-transparent text-text-secondary group-hover:border-pink-500"
+            ? "border-emerald-500 bg-emerald-500 text-white"
+            : "border-border bg-transparent text-text-secondary group-hover:border-emerald-500"
         )}
         title={isSingle ? "Mark correct" : "Toggle correct"}
       >
@@ -458,7 +484,7 @@ function OptionRow({
         className={cn(
           "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs font-bold",
           selected
-            ? "border-pink-500 bg-pink-500 text-white"
+            ? "border-emerald-500 bg-emerald-500 text-white"
             : "border-border text-text-muted"
         )}
       >
@@ -493,7 +519,7 @@ function OptionRow({
         </button>
       </div>
       {selected && (
-        <span className="mt-1 flex items-center gap-1 text-[9px] font-bold text-pink-600 dark:text-pink-400">
+        <span className="mt-1 flex items-center gap-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
           <Check className="h-3 w-3" /> Correct answer
         </span>
       )}
@@ -538,7 +564,7 @@ function OtherTypeEditor({
               className={cn(
                 "flex-1 rounded-lg border px-3 py-2 text-xs font-bold transition-colors",
                 q.correctAnswer === v
-                  ? "border-pink-500/40 bg-pink-500/10 text-pink-600 dark:text-pink-400"
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                   : "border-border text-text-secondary hover:text-text-primary"
               )}
             >
@@ -553,7 +579,7 @@ function OtherTypeEditor({
           onChange={handleAnswerChange}
           placeholder={isNumeric ? "Numeric answer" : "Enter the answer"}
           className={cn(
-            "w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50",
+            "w-full rounded-lg border border-input-border bg-input-bg px-3 py-2 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/50",
             isCode && "font-mono"
           )}
         />
@@ -605,9 +631,9 @@ function ConfigPanel({
         <input
           type="number"
           min={0}
-          value={q.negativeMarks || ""}
+          value={q.negativeMarks ?? 0}
           onChange={(e) => update({ negativeMarks: Number(e.target.value) })}
-          className="h-9 w-full rounded-lg border border-input-border bg-input-bg px-2 text-sm text-text-primary outline-none"
+          className={cn("h-9 w-full rounded-lg border border-input-border bg-input-bg px-2 text-sm text-text-primary outline-none", noSpinCls)}
         />
       </div>
       <div className="space-y-1.5">
@@ -617,7 +643,7 @@ function ConfigPanel({
           min={0}
           value={q.expectedTime || ""}
           onChange={(e) => update({ expectedTime: Number(e.target.value) })}
-          className="h-9 w-full rounded-lg border border-input-border bg-input-bg px-2 text-sm text-text-primary outline-none"
+          className={cn("h-9 w-full rounded-lg border border-input-border bg-input-bg px-2 text-sm text-text-primary outline-none", noSpinCls)}
         />
       </div>
       <div className="space-y-1.5">
@@ -666,7 +692,7 @@ function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) 
       {tags.map((t) => (
         <span
           key={t}
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-white/[0.03] px-1.5 py-0.5 text-[10px] font-medium text-text-primary"
+          className="inline-flex items-center gap-1 rounded-full border border-border bg-card-hover/40 px-1.5 py-0.5 text-[10px] font-medium text-text-primary"
         >
           {t}
           <button

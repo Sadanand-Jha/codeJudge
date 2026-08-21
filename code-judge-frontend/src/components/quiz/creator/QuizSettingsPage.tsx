@@ -686,17 +686,17 @@ export default function QuizSettingsPage({
               <button
                 onClick={handleContinue}
                 disabled={savingToServer}
-                className="group flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(124,58,237,0.3)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(236,72,153,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="group flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-4 text-xs font-bold !text-white shadow-[0_4px_16px_rgba(124,58,237,0.3)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(236,72,153,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {savingToServer ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" /> Saving Quiz...
                   </>
                 ) : (
-                  <>
+                  <div className="flex items-center gap-1.5">
                     Save &amp; Continue
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </>
+                  </div>
                 )}
               </button>
             </div>
@@ -1345,7 +1345,7 @@ export default function QuizSettingsPage({
               <button
                 onClick={handleContinue}
                 disabled={savingToServer}
-                className="group flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(124,58,237,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="group flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-5 text-xs font-bold !text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(124,58,237,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {savingToServer ? (
                   <>

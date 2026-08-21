@@ -40,7 +40,9 @@ import {
   respondToCollaboratorRequest,
   removeQuizCollaborator,
   getQuizResponses,
-  getStudentResponseDetail
+  getStudentResponseDetail,
+  setQuizParticipants,
+  getQuizParticipantsController
 } from "../../../controllers/quiz.controller.ts";
 import { QuizService } from "../../../services/database/quiz.service.ts";
 
@@ -234,6 +236,11 @@ router.get("/:quizId/responses", getQuizResponses);
 
 // GET /api/v1/user/quiz/:quizId/responses/:userId — single student detail (owner/collaborator)
 router.get("/:quizId/responses/:userId", getStudentResponseDetail);
+
+// GET /api/v1/user/quiz/:quizId/participants — audience allow-list (owner/collaborator)
+router.get("/:quizId/participants", getQuizParticipantsController);
+// PUT /api/v1/user/quiz/:quizId/participants — replace the participant list
+router.put("/:quizId/participants", setQuizParticipants);
 
 // ==================== JOIN QUIZ ====================
 

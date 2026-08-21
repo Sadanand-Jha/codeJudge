@@ -10,7 +10,6 @@ import {
   Check,
   Loader2,
 } from "lucide-react";
-import Link from "next/link";
 import { cn } from "@/lib/helpers";
 import { STEPS } from "./types";
 import { useStudio, useSaveStatus } from "./StudioProvider";
@@ -24,9 +23,15 @@ export function StudioHeader() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(state.info.title);
 
+  const startEditing = () => {
+    setDraft(state.info.title);
+    setEditing(true);
+  };
+
   const commit = () => {
     setEditing(false);
-    if (draft.trim() !== state.info.title) updateInfo({ title: draft });
+    const next = draft.trim();
+    if (next && next !== state.info.title) updateInfo({ title: next });
   };
 
   const label =
@@ -35,17 +40,10 @@ export function StudioHeader() {
       : state.info.title;
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/70 px-4 backdrop-blur-xl sm:px-6">
-      <Link
-        href="/creator"
-        className="shrink-0 rounded-lg border border-border bg-white/[0.03] px-2.5 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-white/[0.06]"
-      >
-        ← Back to Studio
-      </Link>
-
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background px-4 sm:px-6">
       <div className="flex min-w-0 items-center gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600">
-          <Rocket className="h-4 w-4 text-white" />
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-300 dark:bg-indigo-300">
+          <Rocket className="h-3.5 w-3.5 text-white" />
         </div>
         <div className="min-w-0">
           {editing ? (
@@ -61,32 +59,30 @@ export function StudioHeader() {
                   setEditing(false);
                 }
               }}
-              className="w-60 min-w-[180px] border-0 bg-transparent text-sm font-semibold text-text-primary placeholder-text-muted outline-none focus:bg-white/[0.03] rounded"
+              className="w-60 min-w-[180px] rounded border-0 bg-transparent text-sm font-semibold text-text-primary placeholder-text-muted outline-none"
               placeholder="Untitled Quiz"
             />
           ) : (
             <p
-              className="group relative inline-flex cursor-text items-center text-sm font-semibold text-text-primary"
+              className="group inline-flex cursor-text items-center truncate text-sm font-semibold text-text-primary"
               title="Click to edit title"
-              onDoubleClick={() => setEditing(true)}
+              onClick={() => setEditing(true)}
             >
               {label}
-              <span className="ml-1 hidden group-hover:inline-block h-4 w-px bg-border" />
+              <span className="ml-1.5 hidden h-3.5 w-px bg-border group-hover:inline-block" />
             </p>
           )}
-          <div className="mt-0.5 flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest bg-amber-500/10 text-amber-600 dark:text-amber-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              Draft
-            </span>
-          </div>
         </div>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+          Draft
+        </span>
       </div>
 
-      <div className="ml-auto flex items-center gap-2 text-xs text-text-secondary">
+      <div className="ml-auto flex items-center gap-3 text-xs text-text-secondary">
         {status === "saving" && (
           <>
-            <Loader2 className="h-3 w-3 animate-spin text-pink-500" />
+            <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />
             <span>Saving…</span>
           </>
         )}
@@ -97,28 +93,30 @@ export function StudioHeader() {
           </>
         )}
         {status === "unsaved" && (
-          <span className="text-amber-500">Unsaved changes</span>
+          <span className="text-amber-600 dark:text-amber-400">Unsaved changes</span>
         )}
       </div>
 
-      <div className="h-5 w-px bg-border" />
+      <div className="hidden h-5 w-px bg-border sm:block" />
 
-      <button
-        type="button"
-        onClick={() => goToStep("review")}
-        className="rounded-lg border border-pink-500/30 bg-pink-500/8 px-2 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-500/12 dark:text-pink-400"
-        title="AI Assist"
-      >
-        <Sparkles className="h-4 w-4" />
-      </button>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => goToStep("review")}
+          className="rounded-md p-2 text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
+          title="AI Assist"
+        >
+          <Sparkles className="h-4 w-4" />
+        </button>
 
-      <button
-        type="button"
-        className="rounded-lg border border-border bg-white/[0.03] px-2 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary"
-        title="Preview quiz"
-      >
-        <Eye className="h-4 w-4" />
-      </button>
+        <button
+          type="button"
+          className="rounded-md p-2 text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
+          title="Preview quiz"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+      </div>
     </header>
   );
 }
@@ -139,44 +137,54 @@ export function StudioStepper() {
   const progressPct = Math.round(((stepIndex) / (STEPS.length - 1)) * 100);
 
   return (
-    <div className="border-b border-border bg-card/60">
-      <nav className="flex items-center overflow-x-auto px-2 py-3 sm:px-4" aria-label="Quiz creation steps">
+    <div className="border-b border-border bg-card">
+      <div className="h-0.5 w-full overflow-hidden bg-border/50">
+        <div
+          className="h-full bg-indigo-300 transition-all duration-200 dark:bg-indigo-300"
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+      <nav className="flex items-stretch overflow-x-auto px-2 sm:px-4" aria-label="Quiz creation steps">
         {STEPS.map((step, i) => {
           const active = state.step === step.id;
           const done = completed.includes(step.id) || i < stepIndex;
-          const upcoming = i > stepIndex;
+          const clickable = i <= stepIndex;
           return (
-            <div key={step.id} className="relative flex shrink-0 items-center">
+            <div key={step.id} className="flex shrink-0 items-center">
               <button
                 type="button"
-                onClick={() => (i < stepIndex || i === stepIndex ? goToStep(step.id as typeof step.id) : null)}
+                onClick={() => (clickable ? goToStep(step.id as typeof step.id) : null)}
+                disabled={!clickable}
                 className={cn(
-                  "relative z-10 flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold transition-all",
+                  "relative flex items-center gap-2 px-3.5 py-3 text-xs transition-colors duration-150",
                   active
-                    ? "border-transparent bg-gradient-to-r from-pink-500 to-violet-600 text-white shadow-[0_4px_14px_rgba(236,72,153,0.3)]"
+                    ? "font-semibold text-indigo-600 dark:text-indigo-400"
                     : done
-                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 hover:bg-emerald-500/15"
-                    : "border-border bg-background/60 text-text-secondary hover:text-text-primary"
+                    ? "font-medium text-text-primary hover:text-text-primary"
+                    : "font-medium text-text-muted"
                 )}
               >
                 <span
                   className={cn(
-                    "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
+                    "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold transition-colors duration-150",
                     active
-                      ? "bg-white/20 text-white"
+                      ? "bg-indigo-300 text-white dark:bg-indigo-300"
                       : done
-                      ? "bg-emerald-500 text-white"
-                      : "bg-white/[0.06] text-text-secondary"
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                      : "bg-card-hover text-text-secondary"
                   )}
                 >
                   {done ? <Check className="h-3 w-3" /> : <span>{i + 1}</span>}
                 </span>
-                <span className="hidden sm:inline">{step.label}</span>
+                <span>{step.label}</span>
+                {active && (
+                  <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-t bg-indigo-300 dark:bg-indigo-300" />
+                )}
               </button>
               {i < STEPS.length - 1 && (
                 <span
                   className={cn(
-                    "mx-1 hidden h-0.5 w-6 sm:mx-2",
+                    "mx-1 h-px w-6 shrink-0 sm:w-8",
                     done ? "bg-emerald-500/40" : "bg-border"
                   )}
                 />
@@ -185,18 +193,29 @@ export function StudioStepper() {
           );
         })}
       </nav>
-      <div className="h-1 w-full overflow-hidden bg-border/40">
-        <div
-          className="h-full w-[var(--prog)] bg-gradient-to-r from-pink-500 to-violet-600 transition-all duration-300"
-          style={{ "--prog": progressPct + "%" } as React.CSSProperties}
-        />
-      </div>
     </div>
   );
 }
 
 export function StudioFooter() {
-  const { state, prevStep, nextStep, stepIndex, summary, publish } = useStudio();
+  const { state, prevStep, nextStep, stepIndex, summary, publish, saveToServer } = useStudio();
+  const [savingDraft, setSavingDraft] = useState(false);
+
+  const handleSaveDraft = async () => {
+    if (savingDraft) return;
+    setSavingDraft(true);
+    try {
+      await saveToServer();
+      toast.success({ title: "Saved to server", description: "Your quiz draft and questions are saved." });
+    } catch (err) {
+      toast.error({
+        title: "Could not save draft",
+        description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+      });
+    } finally {
+      setSavingDraft(false);
+    }
+  };
 
   const canContinue = () => {
     if (state.step === "setup") return state.info.title.trim().length >= 3;
@@ -207,55 +226,153 @@ export function StudioFooter() {
   const isLast = stepIndex === STEPS.length - 1;
   const isQuestions = state.step === "questions";
   const activeIdx = state.questions.findIndex((q) => q.id === state.activeQuestionId) + 1;
+  const [confirmPublish, setConfirmPublish] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
-  const handlePublish = () => {
-    publish();
+  const handleConfirmPublish = async () => {
+    if (publishing) return;
+    setPublishing(true);
+    try {
+      await saveToServer({ publish: true });
+      toast.success({
+        title: state.info.title || "Quiz published",
+        description: "Your quiz is now live.",
+      });
+      publish();
+    } catch (err) {
+      toast.error({
+        title: "Could not publish quiz",
+        description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+      });
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
-    <footer className="sticky bottom-0 z-20 flex h-14 shrink-0 items-center justify-between gap-3 border-t border-border bg-background/70 px-4 backdrop-blur-xl sm:px-6">
+    <footer className="sticky bottom-0 z-20 flex h-14 shrink-0 items-center justify-between gap-3 border-t border-border bg-background px-4 sm:px-6">
       <button
         type="button"
         onClick={prevStep}
         disabled={stepIndex === 0}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary disabled:opacity-50"
-        )}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-1.5 text-sm font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary disabled:pointer-events-none disabled:opacity-40"
       >
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
 
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2">
         {isQuestions && (
-          <span className="text-xs font-medium text-text-secondary">
+          <span className="mr-1 text-xs text-text-secondary">
             Question {activeIdx || 0} of {state.questions.length}
           </span>
         )}
         <button
           type="button"
-          onClick={() => toast.success({ title: "Saved to draft", description: "You can continue editing later." })}
-          className="rounded-xl border border-border bg-white/[0.03] px-4 py-2 text-sm font-semibold text-text-secondary hover:bg-white/[0.06]"
+          onClick={handleSaveDraft}
+          disabled={savingDraft}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-1.5 text-sm font-medium text-text-primary transition-colors duration-150 hover:bg-card-hover disabled:opacity-60"
         >
-          Save Draft
+          {savingDraft ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Saving…
+            </>
+          ) : (
+            "Save Draft"
+          )}
         </button>
         {isLast ? (
-          <button
-            type="button"
-            onClick={handlePublish}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-2 text-sm font-bold text-white transition-all hover:brightness-105 hover:shadow-[0_8px_24px_rgba(236,72,153,0.45)]"
-          >
-            <Rocket className="h-4 w-4" /> Publish Quiz
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => setConfirmPublish(true)}
+              disabled={publishing}
+              className="inline-flex w-36 items-center justify-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 px-4 py-1.5 text-sm font-semibold transition-colors duration-150 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25 disabled:opacity-60"
+            >
+              <Rocket className="h-4 w-4" /> Publish Quiz
+            </button>
+
+            {/* Publish confirmation */}
+            {confirmPublish && (
+              <div
+                className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+                onClick={() => !publishing && setConfirmPublish(false)}
+              >
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full max-w-md overflow-hidden rounded-xl border border-border bg-card shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+                >
+                  <div className="border-b border-border px-6 py-5">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                        <Rocket className="h-5 w-5" />
+                      </span>
+                      <div>
+                        <h3 className="text-base font-semibold text-text-primary">Publish this quiz?</h3>
+                        <p className="mt-0.5 text-xs text-text-secondary">
+                          It will go live immediately for eligible students.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-6 py-5">
+                    <dl className="divide-y divide-border rounded-lg border border-border">
+                      {[
+                        { label: "Quiz", value: state.info.title || "Untitled Quiz" },
+                        { label: "Code", value: state.info.code },
+                        { label: "Questions", value: `${summary.questionCount} · ${summary.totalMarks} marks` },
+                        { label: "Duration", value: `${state.info.duration} min` },
+                      ].map((r) => (
+                        <div key={r.label} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
+                          <dt className="text-text-secondary">{r.label}</dt>
+                          <dd className="max-w-[60%] truncate font-medium text-text-primary">{r.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-3.5 py-2.5 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                      Once students start attempting, questions and key settings
+                      become locked. You can unpublish later if needed.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmPublish(false)}
+                      disabled={publishing}
+                      className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-colors duration-150 hover:bg-card-hover disabled:opacity-60"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmPublish}
+                      disabled={publishing}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-900 transition-colors duration-150 hover:bg-indigo-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25 disabled:opacity-60"
+                    >
+                      {publishing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" /> Publishing…
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4" /> Yes, Publish
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <button
             type="button"
             onClick={nextStep}
             disabled={!canContinue()}
             className={cn(
-              "inline-flex items-center justify-center gap-1.5 rounded-xl px-5 py-2 text-sm font-bold text-white transition-all",
+              "inline-flex w-36 items-center justify-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors duration-150",
               canContinue()
-                ? "bg-gradient-to-r from-pink-500 to-violet-600 shadow-[0_8px_24px_rgba(236,72,153,0.35)] hover:brightness-105"
-                : "cursor-not-allowed bg-white/[0.08] text-text-muted"
+                ? "border border-indigo-500/40 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
+                : "cursor-not-allowed bg-card-hover text-text-muted"
             )}
           >
             Continue <span className="hidden sm:inline">→</span>
@@ -267,7 +384,7 @@ export function StudioFooter() {
 }
 
 export function StudioShell({ children }: { children: React.ReactNode }) {
-  const { state } = useStudio();
+  const { state, publish } = useStudio();
   const title = state.info.title.trim() || "Untitled Quiz";
 
   useEffect(() => {
@@ -278,19 +395,27 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   }, [title]);
 
   return (
-    <div className="flex min-h-[calc(100vh-112px)] h-full flex-col bg-background text-foreground">
+    <div className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden bg-background text-foreground">
       <StudioHeader />
       <StudioStepper />
       <AnimatePresence mode="wait">
         <motion.main
           key={state.step}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.18 }}
-          className="flex-1 overflow-y-auto"
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="flex-1 overflow-y-auto bg-background px-3 py-5 sm:px-5"
         >
-          {children}
+          {/* Big content card — keeps step content on a clean white surface */}
+          <div
+            className={cn(
+              "mx-auto min-h-full overflow-hidden rounded-xl border border-border bg-card shadow-sm",
+              state.step === "setup" ? "max-w-5xl" : "max-w-[1400px]"
+            )}
+          >
+            {children}
+          </div>
         </motion.main>
       </AnimatePresence>
       <StudioFooter />

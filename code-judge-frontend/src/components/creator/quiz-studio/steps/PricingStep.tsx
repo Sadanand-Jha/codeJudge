@@ -20,7 +20,7 @@ export function PricingStep() {
   return (
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
       <div>
-        <h2 className="text-lg font-extrabold text-text-primary">Pricing & Monetization</h2>
+        <h2 className="text-lg font-semibold text-text-primary">Pricing & Monetization</h2>
         <p className="mt-1 text-xs text-text-secondary">
           Configure whether your quiz is free or paid. Actual payout depends on the
           configured payment system; the figures below are indicative.
@@ -30,7 +30,7 @@ export function PricingStep() {
       <div className="grid gap-4 sm:grid-cols-2">
         <label
           className={cn(
-            "flex flex-col gap-1 rounded-2xl border p-5 text-left transition-all",
+            "flex flex-col gap-1 rounded-xl border p-5 text-left transition-all",
             p.mode === "free"
               ? "border-emerald-500/40 bg-emerald-500/5"
               : "border-border hover:border-border-hover"
@@ -45,30 +45,29 @@ export function PricingStep() {
               updateBranding({});
             }}
           />
-          <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-300">FREE</span>
+          <span className="text-base font-semibold text-emerald-600 dark:text-emerald-300">FREE</span>
           <span className="text-xs text-text-secondary">Reach the widest audience. No price, no friction.</span>
         </label>
-        <label
+        <div
           className={cn(
-            "flex flex-col gap-1 rounded-2xl border p-5 text-left transition-all",
+            "flex flex-col gap-1 rounded-xl border p-5 text-left opacity-60",
             p.mode === "paid"
-              ? "border-pink-500/40 bg-pink-500/5"
-              : "border-border hover:border-border-hover"
+              ? "border-indigo-500/40 bg-indigo-500/5 dark:border-pink-400/70 dark:bg-pink-500/10"
+              : "border-border"
           )}
         >
-          <input
-            type="radio"
-            className="sr-only"
-            checked={p.mode === "paid"}
-            onChange={() => updatePricing({ mode: "paid", price: 199, originalPrice: 249 })}
-          />
-          <span className="text-base font-extrabold text-pink-600 dark:text-pink-400">PAID</span>
+          <div className="flex items-center justify-between">
+            <span className="text-base font-semibold text-indigo-600 dark:text-indigo-400">PAID</span>
+            <span className="rounded-full border border-border bg-card-hover px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-text-muted">
+              Coming soon
+            </span>
+          </div>
           <span className="text-xs text-text-secondary">Set a price and earn from every enrollment.</span>
-        </label>
+        </div>
       </div>
 
       {p.mode === "paid" && (
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
+        <div className="rounded-xl border border-border bg-card p-5 space-y-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className="block text-xs font-bold uppercase text-text-secondary">
@@ -82,7 +81,7 @@ export function PricingStep() {
                   value={p.price || ""}
                   onChange={(e) => updatePricing({ price: Number(e.target.value) })}
                   placeholder="199"
-                  className="h-11 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary"
+                  className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary"
                 />
               </div>
             </div>
@@ -98,7 +97,7 @@ export function PricingStep() {
                   value={p.originalPrice || ""}
                   onChange={(e) => updatePricing({ originalPrice: Number(e.target.value) })}
                   placeholder="249"
-                  className="h-11 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary"
+                  className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary"
                 />
               </div>
             </div>
@@ -111,14 +110,14 @@ export function PricingStep() {
             )}
           >
             Students will see ₹{p.price} with{" "}
-            <span className="font-extrabold">
+            <span className="font-semibold">
               {Math.round((1 - p.price / p.originalPrice) * 100)}% OFF
             </span>{" "}
             against ₹{p.originalPrice}.
           </div>
 
-          <div className="rounded-xl border border-border bg-white/[0.02] p-4">
-            <p className="mb-2 text-[10px] font-extrabold uppercase tracking-wider text-text-secondary">
+          <div className="rounded-xl border border-border bg-card-hover/40 p-4">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
               Payout Estimate
             </p>
             <div className="grid grid-cols-3 gap-2 text-center">
@@ -138,8 +137,8 @@ export function PricingStep() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-text-secondary">
+      <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-text-secondary">
           <PiggyBank className="h-4 w-4" /> Payment history & payout account
         </div>
         <p className="text-xs text-text-secondary">

@@ -87,6 +87,20 @@
   --ai-accent-hover: #A78BFA;
   --ai-accent-soft: rgba(139, 92, 246, 0.12);
   --ai-user-bubble: #19142A;
+
+  /* == Creator Profile (premium) == */
+  --profile-bg: #0B0B0F;
+  --profile-surface: #111116;
+  --profile-surface-elevated: #16161C;
+  --profile-border: #24242B;
+  --profile-text-primary: #F4F4F5;
+  --profile-text-secondary: #A1A1AA;
+  --profile-text-muted: #71717A;
+  --profile-accent: #E85AAD;
+  --profile-accent-hover: #D44A9D;
+  --profile-accent-soft: rgba(232, 90, 173, 0.10);
+  --profile-purple: #8B7CF6;
+  --profile-purple-soft: rgba(139, 124, 246, 0.10);
 }
 
 /* ============================================
@@ -149,7 +163,7 @@
 
   /* == AI workspace (LM Studio-style app chrome) == */
   --ai-bg: #FAFAFA;
-  --ai-sidebar: #F4F5F7;
+  --ai-sidebar: #FFFFFF;
   --ai-composer: #FFFFFF;
   --ai-surface: #FFFFFF;
   --ai-hover: #EEF0F3;
@@ -161,6 +175,20 @@
   --ai-accent-hover: #5B3DE8;
   --ai-accent-soft: #F1EDFF;
   --ai-user-bubble: #F3EEFF;
+
+  /* == Creator Profile (premium) == */
+  --profile-bg: #FAFAFA;
+  --profile-surface: #FFFFFF;
+  --profile-surface-elevated: #FFFFFF;
+  --profile-border: #E9E9ED;
+  --profile-text-primary: #17171A;
+  --profile-text-secondary: #6B6B73;
+  --profile-text-muted: #96969F;
+  --profile-accent: #E85AAD;
+  --profile-accent-hover: #D44A9D;
+  --profile-accent-soft: rgba(232, 90, 173, 0.08);
+  --profile-purple: #8B7CF6;
+  --profile-purple-soft: rgba(139, 124, 246, 0.08);
 }
 
 @theme inline {
@@ -227,6 +255,20 @@
   --color-ai-accent-soft: var(--ai-accent-soft);
   --color-ai-surface: var(--ai-surface);
   --color-ai-user-bubble: var(--ai-user-bubble);
+
+  /* Creator Profile (premium) */
+  --color-profile-bg: var(--profile-bg);
+  --color-profile-surface: var(--profile-surface);
+  --color-profile-surface-elevated: var(--profile-surface-elevated);
+  --color-profile-border: var(--profile-border);
+  --color-profile-text-primary: var(--profile-text-primary);
+  --color-profile-text-secondary: var(--profile-text-secondary);
+  --color-profile-text-muted: var(--profile-text-muted);
+  --color-profile-accent: var(--profile-accent);
+  --color-profile-accent-hover: var(--profile-accent-hover);
+  --color-profile-accent-soft: var(--profile-accent-soft);
+  --color-profile-purple: var(--profile-purple);
+  --color-profile-purple-soft: var(--profile-purple-soft);
 }
 
 /* ============================================
@@ -368,12 +410,12 @@ html.theme-transition *::after {
 
 /* Selection color */
 ::selection {
-  background: rgba(124, 58, 237, 0.3);
-  color: #fff;
+  background: rgba(165, 180, 252, 0.9);
+  color: #1e1b4b;
 }
 
 [data-theme="light"] ::selection {
-  background: rgba(124, 58, 237, 0.22);
+  background: rgba(67, 56, 202, 0.85);
   color: #fff;
 }
 

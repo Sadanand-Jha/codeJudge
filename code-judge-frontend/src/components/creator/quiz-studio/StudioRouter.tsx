@@ -7,6 +7,7 @@ import { SetupStep } from "./steps/SetupStep";
 import { QuestionsStep } from "./steps/QuestionsStep";
 import { SettingsStep } from "./steps/SettingsStep";
 import { AudienceStep } from "./steps/AudienceStep";
+import { RegistrationStep } from "./steps/RegistrationStep";
 import { PricingStep } from "./steps/PricingStep";
 import { BrandingStep } from "./steps/BrandingStep";
 import { ReviewStep } from "./steps/ReviewStep";
@@ -23,6 +24,8 @@ export function StudioRouter() {
       return <SettingsStep />;
     case "audience":
       return <AudienceStep />;
+    case "registration":
+      return <RegistrationStep />;
     case "pricing":
       return <PricingStep />;
     case "branding":

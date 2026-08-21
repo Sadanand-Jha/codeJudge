@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings, UserRound, Bell, ShieldCheck, Building2, Wallet, LogOut, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { PageHeader, MockDataTag, Panel, BillButton } from "@/components/creator/billing/ui";
+import { PageHeader, MockDataTag, Panel } from "@/components/creator/billing/ui";
 import { Toggle } from "@/components/ui/settings";
 import { useToast } from "@/hooks/useToast";
 import { SETTINGS_SECTIONS } from "./mockData";
@@ -51,13 +51,14 @@ export function CreatorSettingsPage() {
         subtitle="Manage your account, notifications and payout preferences."
         badge={<MockDataTag />}
         actions={
-          <BillButton
-            variant="danger"
+          <button
+            type="button"
             onClick={() => setConfirmLogout(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/10 px-3.5 py-2 text-[13px] font-bold text-danger transition-colors hover:bg-red-600 hover:text-white"
           >
             <LogOut className="h-3.5 w-3.5" />
             Sign out
-          </BillButton>
+          </button>
         }
       />
 
@@ -101,7 +102,7 @@ export function CreatorSettingsPage() {
                 <Link
                   href="/"
                   onClick={() => setConfirmLogout(false)}
-                  className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-2.5 text-[13px] font-bold text-danger transition-colors hover:bg-danger/20"
+                  className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-2.5 text-[13px] font-bold text-danger transition-colors hover:bg-red-600 hover:text-white"
                 >
                   Sign out
                 </Link>

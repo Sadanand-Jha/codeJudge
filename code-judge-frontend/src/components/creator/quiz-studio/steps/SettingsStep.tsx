@@ -6,12 +6,11 @@ import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { SwitchField } from "../primitives";
 
-const GROUPS: Array<{ id: string; label: string; fields: SettingField[] }> = [
+const GROUPS: Array<{ id: string; label: string; fields: SettingField[]; comingSoon?: boolean }> = [
   {
     id: "general",
     label: "General",
     fields: [
-      { key: "attemptLimit", label: "Attempt limit", type: "number" },
       { key: "negativeMarking", label: "Enable negative marking" },
     ],
   },
@@ -21,35 +20,19 @@ const GROUPS: Array<{ id: string; label: string; fields: SettingField[] }> = [
     fields: [
       { key: "randomizeQuestions", label: "Randomize question order" },
       { key: "randomizeOptions", label: "Randomize option order" },
-      { key: "oneQuestionPerScreen", label: "One question per screen" },
-      { key: "allowQuestionNavigation", label: "Allow question navigation" },
-      { key: "allowBackNavigation", label: "Allow back navigation" },
-      { key: "showProgress", label: "Show progress indicator" },
-      { key: "showQuestionNumbers", label: "Show question numbers" },
-    ],
-  },
-  {
-    id: "scoring",
-    label: "Scoring",
-    fields: [
-      { key: "partialMarking", label: "Partial marking" },
-      { key: "negativeMarking", label: "Negative marking on wrong answer" },
     ],
   },
   {
     id: "result",
     label: "Result & Visibility",
     fields: [
-      { key: "showScore", label: "Show score" },
-      { key: "showPercentage", label: "Show percentage" },
-      { key: "showCorrectAnswers", label: "Show correct answers" },
-      { key: "showExplanations", label: "Show explanations" },
-      { key: "resultMode", label: "Result timing", type: "select", options: ["immediate", "after_end", "manual"] },
+      { key: "showResultsImmediately", label: "Show results immediately" },
     ],
   },
   {
     id: "security",
     label: "Security",
+    comingSoon: true,
     fields: [
       { key: "fullscreenMode", label: "Full-screen mode" },
       { key: "tabSwitchDetection", label: "Tab-switch detection" },
@@ -68,9 +51,15 @@ interface SettingField {
 export function SettingsStep() {
   return (
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
-      <h2 className="text-lg font-extrabold text-text-primary">Quiz Settings</h2>
+      <h2 className="text-lg font-semibold text-text-primary">Quiz Settings</h2>
       {GROUPS.map((g) => (
-        <SettingGroup key={g.id} id={g.id} label={g.label} fields={g.fields} />
+        <SettingGroup
+          key={g.id}
+          id={g.id}
+          label={g.label}
+          fields={g.fields}
+          comingSoon={g.comingSoon}
+        />
       ))}
     </div>
   );
@@ -80,22 +69,31 @@ function SettingGroup({
   id,
   label,
   fields,
+  comingSoon,
 }: {
   id: string;
   label: string;
   fields: SettingField[];
+  comingSoon?: boolean;
 }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className={cn("rounded-xl border border-border bg-card p-4", comingSoon && "opacity-60")}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between text-left"
         aria-expanded={open}
       >
-        <span className="text-xs font-extrabold uppercase tracking-wider text-text-secondary">
-          {label}
+        <span className="flex items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+            {label}
+          </span>
+          {comingSoon && (
+            <span className="rounded-full border border-border bg-card-hover px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-text-muted">
+              Coming soon
+            </span>
+          )}
         </span>
         <ChevronDown
           className={cn("h-4 w-4 text-text-secondary transition-transform", open && "rotate-180")}
@@ -103,9 +101,18 @@ function SettingGroup({
       </button>
       {open && (
         <div className="mt-3 space-y-1">
-          {fields.map((f) => (
-            <Field key={f.key} field={f} />
-          ))}
+          {fields.map((f) =>
+            comingSoon ? (
+              <div key={f.key} className="flex items-center justify-between py-2.5">
+                <span className="text-sm text-text-muted">{f.label}</span>
+                <span className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-border bg-border opacity-60">
+                  <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm" />
+                </span>
+              </div>
+            ) : (
+              <Field key={f.key} field={f} />
+            )
+          )}
         </div>
       )}
     </div>

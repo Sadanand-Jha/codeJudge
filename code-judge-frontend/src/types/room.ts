@@ -8,6 +8,8 @@ export interface RoomStudent {
   name: string;
   rollNumber: string;
   email: string;
+  /** Public @username shown in creator-facing lists (falls back to name). */
+  username?: string;
   active: boolean;
   /** Avatar id (1-7) for the predefined local avatars. */
   avatarId: number;

@@ -68,7 +68,7 @@ export function QuestionList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search questions…"
-            className="h-8 w-full rounded-lg border border-input-border bg-input-bg pl-8 text-xs text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50"
+            className="h-8 w-full rounded-lg border border-input-border bg-input-bg pl-8 text-xs text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/50"
           />
         </div>
 
@@ -77,7 +77,7 @@ export function QuestionList() {
           <button
             type="button"
             onClick={addQuestion}
-            className="flex items-center gap-1 rounded-lg border border-pink-500/30 bg-pink-500/10 px-2 py-1 text-[10px] font-bold text-pink-600 dark:text-pink-400 hover:bg-pink-500/20"
+            className="flex items-center gap-1 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2 py-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20"
           >
             + Add Question
           </button>
@@ -111,8 +111,8 @@ export function QuestionList() {
                 onDragEnd={handleDragEnd}
                 onDrop={(e) => handleDrop(e, q.id)}
                 className={cn(
-                  "group relative flex cursor-pointer items-center gap-1.5 border-l-2 border-transparent px-3 py-2.5 text-left transition-all hover:bg-white/[0.03]",
-                  active && "border-pink-500 bg-white/[0.04]"
+                  "group relative flex cursor-pointer items-center gap-1.5 border-l-2 border-transparent px-3 py-2.5 text-left transition-all hover:bg-card-hover",
+                  active && "border-indigo-500 bg-card-hover/40"
                 )}
                 onClick={() => setActiveQuestion(q.id)}
               >
@@ -197,7 +197,7 @@ export function QuestionList() {
           <button
             type="button"
             onClick={() => toast.info({ title: "AI Generate", description: "Generate questions with AI." })}
-            className="font-semibold text-pink-600 dark:text-pink-400 hover:text-pink-500"
+            className="font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500"
           >
             AI Generate
           </button>

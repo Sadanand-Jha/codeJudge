@@ -28,19 +28,11 @@ import {
   Layers,
   FileText,
   Video,
-  FileCode,
   Lightbulb,
   MessageSquare,
   ThumbsUp,
 } from "lucide-react";
-import AppLayout from "@/components/layout/AppLayout";
-
-const stats = [
-  { label: "Total Roadmaps", value: "24", icon: BookOpen, color: "text-[#7C3AED]" },
-  { label: "Completed", value: "3", icon: Check, color: "text-[#22C55E]" },
-  { label: "In Progress", value: "2", icon: Play, color: "text-[#3B82F6]" },
-  { label: "Hours Invested", value: "147h", icon: Clock, color: "text-[#F59E0B]" },
-];
+import { PrepPageHeader } from "@/components/preparation";
 
 const featuredRoadmap = {
   title: "Data Structures & Algorithms",
@@ -308,32 +300,15 @@ export default function RoadmapsPage() {
   });
 
   return (
-    <AppLayout>
+    <>
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto">
           {/* Page Header */}
-          <div className="flex items-start justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-text-primary tracking-tight">Roadmaps</h1>
-              <p className="text-sm text-text-secondary mt-2 max-w-2xl">
-                Master Data Structures, Algorithms, Competitive Programming and Interviews through structured learning paths.
-              </p>
-            </div>
-            <div className="hidden md:grid grid-cols-4 gap-3">
-              {stats.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <div key={stat.label} className="rounded-xl border border-border bg-card px-4 py-3 min-w-[120px]">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Icon className={`w-3.5 h-3.5 ${stat.color}`} />
-                      <span className="text-[10px] text-text-muted uppercase tracking-wider">{stat.label}</span>
-                    </div>
-                    <p className="text-lg font-bold text-text-primary">{stat.value}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <PrepPageHeader
+            section="Roadmaps"
+            title="Roadmaps"
+            subtitle="Structured learning paths organized by goal — master Data Structures, Algorithms, Competitive Programming and Interviews step by step."
+          />
 
           {/* Featured Roadmap Hero */}
           <div className="relative rounded-2xl border border-border bg-gradient-to-br from-accent/5 via-card to-card p-6 mb-6 overflow-hidden">
@@ -765,7 +740,7 @@ export default function RoadmapsPage() {
                       </div>
                       <div className="flex items-start gap-2">
                         <ThumbsUp className="w-3.5 h-3.5 text-success mt-0.5 shrink-0" />
-                        <p className="text-[11px] text-text-secondary leading-relaxed">Don't skip the basics — strong fundamentals make advanced topics easier.</p>
+                        <p className="text-[11px] text-text-secondary leading-relaxed">Don&apos;t skip the basics — strong fundamentals make advanced topics easier.</p>
                       </div>
                       <div className="flex items-start gap-2">
                         <ThumbsUp className="w-3.5 h-3.5 text-success mt-0.5 shrink-0" />
@@ -875,6 +850,6 @@ export default function RoadmapsPage() {
           </div>
         </div>
       </div>
-    </AppLayout>
+    </>
   );
 }
