@@ -140,6 +140,11 @@ export interface QuizSubject {
   subject_name: string;
 }
 
+export interface QuizExamCategory {
+  id: number;
+  exam_cat: string;
+}
+
 /**
  * Get all quiz subjects
  * GET /api/v1/user/quiz/quiz-subjects
@@ -147,6 +152,16 @@ export interface QuizSubject {
 export async function getAllSubjects(search?: string, signal?: AbortSignal): Promise<QuizSubject[]> {
   const params = search ? { search } : undefined;
   const response = await apiClient.get<QuizSubject[]>("/v1/user/quiz-subjects", { params, signal });
+  return response.data;
+}
+
+/**
+ * Get all quiz exam categories
+ * GET /api/v1/user/quiz/quiz-exam-categories
+ */
+export async function getAllExamCategories(search?: string, signal?: AbortSignal): Promise<QuizExamCategory[]> {
+  const params = search ? { search } : undefined;
+  const response = await apiClient.get<QuizExamCategory[]>("/v1/user/quiz-exam-categories", { params, signal });
   return response.data;
 }
 

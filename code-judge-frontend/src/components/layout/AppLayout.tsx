@@ -121,9 +121,6 @@ const navGroups: { label: string; items: NavItemData[] }[] = [
     label: "PERSONAL",
     items: [
       { label: "Saved", icon: Bookmark, href: "/collections" },
-      { label: "History", icon: History, href: "/history" },
-      { label: "Purchases", icon: Briefcase, href: "/profile/purchases" },
-      { label: "Achievements", icon: TrendingUp, href: "/achievements" },
     ],
   },
   {
@@ -568,8 +565,9 @@ function ProfileMenu({ showLabels, isAuthenticated, username, avatar, onAuthRequ
               <div className="my-1 h-px bg-ai-border" />
 
               <ProfileMenuItem href="/profile" icon={User} label="Profile" onNavigate={() => setOpen(false)} />
+              <ProfileMenuItem href="/profile/history" icon={History} label="History" onNavigate={() => setOpen(false)} />
               <ProfileMenuItem href="/profile/purchases" icon={Briefcase} label="Purchases" onNavigate={() => setOpen(false)} />
-              <ProfileMenuItem href="/achievements" icon={TrendingUp} label="Achievements" onNavigate={() => setOpen(false)} />
+              <ProfileMenuItem href="/profile/achievements" icon={TrendingUp} label="Achievements" onNavigate={() => setOpen(false)} />
               <ProfileMenuItem href="/settings" icon={Settings} label="Settings" onNavigate={() => setOpen(false)} />
 
               <div className="my-1 h-px bg-ai-border" />

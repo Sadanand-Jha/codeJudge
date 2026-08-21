@@ -14,6 +14,7 @@ import {
   Settings,
   UsersRound,
   ShoppingBag,
+  History,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -34,6 +35,7 @@ export const PROFILE_NAV_ITEMS: ProfileNavItem[] = [
   { label: "Inbox", href: "/profile/inbox", icon: Inbox, tone: "from-[#3B82F6] to-[#06B6D4]" },
   { label: "Followers", href: "/profile/followers", icon: Users, tone: "from-[#22C55E] to-[#10B981]" },
   { label: "Following", href: "/profile/following", icon: Users, tone: "from-[#8B5CF6] to-[#6366F1]" },
+  { label: "History", href: "/profile/history", icon: History, tone: "from-[#3B82F6] to-[#06B6D4]" },
   { label: "Achievements", href: "/profile/achievements", icon: Trophy, tone: "from-[#FBBF24] to-[#F59E0B]" },
   { label: "Activity", href: "/profile/activity", icon: Activity, tone: "from-[#F59E0B] to-[#F97316]" },
   { label: "My Purchases", href: "/profile/purchases", icon: ShoppingBag, tone: "from-[#EC4899] to-[#8B5CF6]" },

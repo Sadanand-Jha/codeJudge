@@ -16,12 +16,12 @@ import {
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import {
-  EXAMS,
-  LANGUAGES,
   type CreatorQuestionType,
 } from "../types";
 import { toast } from "@/lib/toast";
 import { GhostButton, Badge } from "../primitives";
+import { SearchableDropdown } from "@/components/ui";
+import { getAllSubjects, getAllExamCategories } from "@/services/quiz";
 
 const CREATE_CHOICES = [
   {
@@ -165,38 +165,41 @@ export function SetupStep() {
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-text-secondary">Subject</label>
-                <input
+                <SearchableDropdown
+                  label="Subject"
+                  placeholder="Search subjects..."
+                  required
                   value={info.subject}
-                  onChange={(e) => updateInfo({ subject: e.target.value })}
-                  placeholder="e.g. Mathematics"
-                  className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/15"
+                  selectedId={info.subjectId}
+                  onSelect={(option) => updateInfo({ subject: option.label, subjectId: option.id })}
+                  onClear={() => updateInfo({ subject: "", subjectId: "" })}
+                  searchFn={async (query, signal) => {
+                    const results = await getAllSubjects(query, signal);
+                    return results.map((s) => ({ id: s.id, label: s.subject_name }));
+                  }}
+                  minChars={1}
+                  debounceMs={300}
+                  maxVisible={8}
                 />
               </div>
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-text-secondary">Category</label>
-                <input
-                  value={info.category}
-                  onChange={(e) => updateInfo({ category: e.target.value })}
-                  placeholder="e.g. Engineering"
-                  className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/15"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-text-secondary">Exam</label>
-                <select
+                <SearchableDropdown
+                  label="Exam"
+                  placeholder="Search exams..."
                   value={info.exam}
-                  onChange={(e) => updateInfo({ exam: e.target.value })}
-                  className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/15"
-                >
-                  <option value="">Select exam</option>
-                  {EXAMS.map((e) => (
-                    <option key={e} value={e}>
-                      {e}
-                    </option>
-                  ))}
-                </select>
+                  selectedId={info.examId}
+                  onSelect={(option) => updateInfo({ exam: option.label, examId: option.id })}
+                  onClear={() => updateInfo({ exam: "", examId: "" })}
+                  searchFn={async (query, signal) => {
+                    const results = await getAllExamCategories(query, signal);
+                    return results.map((e) => ({ id: e.id, label: e.exam_cat }));
+                  }}
+                  minChars={1}
+                  debounceMs={300}
+                  maxVisible={8}
+                />
               </div>
+              {/* Class / Grade - commented out for now
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-text-secondary">Class / Grade</label>
                 <input
@@ -206,6 +209,7 @@ export function SetupStep() {
                   className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/15"
                 />
               </div>
+              */}
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-text-secondary">Difficulty</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -219,6 +223,7 @@ export function SetupStep() {
                   ))}
                 </div>
               </div>
+              {/* Language - commented out for now
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-text-secondary">Language</label>
                 <select
@@ -233,6 +238,7 @@ export function SetupStep() {
                   ))}
                 </select>
               </div>
+              */}
               <div className="space-y-2 sm:col-span-2">
                 <label className="block text-xs font-bold text-text-secondary">Tags</label>
                 <TagInput tags={info.tags} onChange={(tags) => updateInfo({ tags })} />

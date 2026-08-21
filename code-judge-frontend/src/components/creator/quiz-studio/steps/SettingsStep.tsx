@@ -114,7 +114,7 @@ function SettingGroup({
 
 function Field({ field }: { field: SettingField }) {
   const { state, updateSettings } = useStudio();
-  const value = (state.settings as Record<string, unknown>)[field.key];
+  const value = (state.settings as unknown as Record<string, unknown>)[field.key];
 
   if (field.type === "select") {
     return (

@@ -34,8 +34,9 @@ export interface StudioQuizInfo {
   shortDescription: string;
   fullDescription: string;
   subject: string;
-  category: string;
+  subjectId: string | number;
   exam: string;
+  examId: string | number;
   classGrade: string;
   difficulty: "Easy" | "Medium" | "Hard" | "Expert";
   language: string;
@@ -109,7 +110,7 @@ export interface StudioState {
   pricing: StudioPricing;
   branding: StudioBranding;
   saveStatus: "idle" | "saving" | "saved" | "unsaved";
-  lastSaved: Date | null;
+  lastSaved: Date | string | null;
   published: boolean;
 }
 
@@ -120,8 +121,9 @@ export const DEFAULT_QUIZ_INFO: StudioQuizInfo = {
   shortDescription: "",
   fullDescription: "",
   subject: "",
-  category: "",
+  subjectId: "",
   exam: "",
+  examId: "",
   classGrade: "",
   difficulty: "Medium",
   language: "English",

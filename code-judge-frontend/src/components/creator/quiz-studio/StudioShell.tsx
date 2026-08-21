@@ -123,9 +123,11 @@ export function StudioHeader() {
   );
 }
 
-function formatTime(d: Date | null): string {
+function formatTime(d: Date | string | null): string {
   if (!d) return "";
-  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+  const time = typeof d === "string" ? new Date(d).getTime() : d.getTime();
+  if (isNaN(time)) return "";
+  const diff = Math.floor((Date.now() - time) / 1000);
   if (diff < 5) return "just now";
   if (diff < 60) return `${diff}s ago`;
   return `${Math.floor(diff / 60)}m ago`;

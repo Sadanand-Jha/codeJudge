@@ -8,7 +8,6 @@ import {
   FileCode,
   ListMusic,
   TrendingUp,
-  Award,
   MessageSquare,
   Settings,
 } from "lucide-react";
@@ -21,7 +20,6 @@ const menuItems = [
   { label: "Submissions", icon: FileCode, href: "/submissions" },
   { label: "Playlists", icon: ListMusic, href: "/playlists" },
   { label: "Ratings", icon: TrendingUp, href: "/ratings" },
-  { label: "Achievements", icon: Award, href: "/achievements" },
   { label: "Discussions", icon: MessageSquare, href: "/discussions" },
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
