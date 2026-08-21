@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Loader2, Plus } from "lucide-react";
 import { CreatorSidebar, CREATOR_NAV } from "./CreatorSidebar";
 import { useAuthStore } from "@/store/authStore";
+import { useSavedAvatar } from "@/store/avatarStore";
+import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { CreatorNotifications } from "@/components/creator/workspace/notifications";
 
@@ -25,11 +27,11 @@ export default function CreatorShell({ children }: { children: React.ReactNode }
   const [drawerOpen, setDrawerOpen] = useState(false);
   const user = useAuthStore((s) => s.user);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const savedAvatar = useSavedAvatar();
+  const avatarUrl = savedAvatar?.url || DEFAULT_AVATAR_URL;
 
   const breadcrumb = useBreadcrumb(pathname);
   const title = breadcrumb[0] === "Creator Studio" ? "Creator Studio" : `${breadcrumb[0]} / ${breadcrumb[1]}`;
-
-  const avatarInitial = user?.username?.[0]?.toUpperCase() ?? "C";
 
   if (!hasHydrated) {
     return (
@@ -109,11 +111,15 @@ export default function CreatorShell({ children }: { children: React.ReactNode }
             <CreatorNotifications />
             <Link
               href="/creator/profile"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-violet-600 text-xs font-bold text-white ring-2 ring-white/10 transition-shadow hover:shadow-[0_0_16px_rgba(236,72,153,0.35)]"
+              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ring-2 ring-white/10 transition-shadow hover:shadow-[0_0_16px_rgba(236,72,153,0.35)]"
               aria-label="Creator Profile"
               title={user?.username ?? "Account"}
             >
-              {avatarInitial}
+              <img
+                src={avatarUrl}
+                alt={user?.username ?? "Account"}
+                className="h-full w-full object-cover"
+              />
             </Link>
           </div>
         </header>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CircleDot,
   ListChecks,
@@ -187,7 +187,9 @@ export function QuestionEditor() {
             <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
               {q.type === "true_false" ? "Correct answer" : "Answer"}
             </label>
-            {isMcq ? (
+            {q.type === "true_false" ? (
+              <TrueFalseEditor q={q} update={update} />
+            ) : isMcq ? (
               <OptionsEditor
                 options={q.options}
                 isSingle={isSingle}
@@ -306,7 +308,7 @@ function TypeSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as CreatorQuestionType)}
-        className="appearance-none rounded-lg border border-input-border bg-input-bg py-1.5 pl-2.5 pr-7 text-xs font-medium text-text-primary outline-none focus:border-indigo-500/50"
+        className="appearance-none rounded-full border border-border bg-card py-1.5 pl-3.5 pr-8 text-xs font-semibold text-text-primary shadow-sm transition-colors duration-150 outline-none hover:border-indigo-500/40 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15"
       >
         <option value="single_choice">Multiple Choice</option>
         <option value="multiple_choice">Multiple Select</option>
@@ -354,9 +356,12 @@ function MetadataRow({
         <span className="text-text-muted">Marks</span>
         <input
           type="number"
-          min={0}
           value={q.marks || ""}
-          onChange={(e) => update({ marks: Number(e.target.value) })}
+          min={0}
+          max={100}
+          onChange={(e) =>
+            update({ marks: Math.min(100, Math.max(0, Number(e.target.value))) })
+          }
           className={cn("w-12 border-0 border-b border-input-border bg-transparent text-xs font-bold text-text-primary text-center outline-none", noSpinCls)}
         />
       </div>
@@ -364,9 +369,12 @@ function MetadataRow({
         <span className="text-text-muted">Negative</span>
         <input
           type="number"
-          min={0}
           value={q.negativeMarks ?? 0}
-          onChange={(e) => update({ negativeMarks: Number(e.target.value) })}
+          min={0}
+          max={100}
+          onChange={(e) =>
+            update({ negativeMarks: Math.min(100, Math.max(0, Number(e.target.value))) })
+          }
           className={cn("w-10 border-0 border-b border-input-border bg-transparent text-xs font-bold text-text-primary text-center outline-none", noSpinCls)}
         />
       </div>
@@ -374,8 +382,8 @@ function MetadataRow({
         <span className="text-text-muted">Time</span>
         <input
           type="number"
-          min={0}
           value={q.expectedTime || ""}
+          min={0}
           onChange={(e) => update({ expectedTime: Number(e.target.value) })}
           className={cn("w-12 border-0 border-b border-input-border bg-transparent text-xs font-bold text-text-primary text-center outline-none", noSpinCls)}
         />
@@ -630,9 +638,12 @@ function ConfigPanel({
         <label className="block text-[10px] font-bold uppercase text-text-secondary">Negative</label>
         <input
           type="number"
-          min={0}
           value={q.negativeMarks ?? 0}
-          onChange={(e) => update({ negativeMarks: Number(e.target.value) })}
+          min={0}
+          max={100}
+          onChange={(e) =>
+            update({ negativeMarks: Math.min(100, Math.max(0, Number(e.target.value))) })
+          }
           className={cn("h-9 w-full rounded-lg border border-input-border bg-input-bg px-2 text-sm text-text-primary outline-none", noSpinCls)}
         />
       </div>
@@ -640,8 +651,8 @@ function ConfigPanel({
         <label className="block text-[10px] font-bold uppercase text-text-secondary">Time (min)</label>
         <input
           type="number"
-          min={0}
           value={q.expectedTime || ""}
+          min={0}
           onChange={(e) => update({ expectedTime: Number(e.target.value) })}
           className={cn("h-9 w-full rounded-lg border border-input-border bg-input-bg px-2 text-sm text-text-primary outline-none", noSpinCls)}
         />
@@ -719,6 +730,84 @@ function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) 
         placeholder="Add tag…"
         className="h-6 min-w-[70px] flex-1 border-0 bg-transparent text-xs text-text-primary placeholder-text-muted outline-none"
       />
+    </div>
+  );
+}
+
+/* ── True / False ────────────────────────────────────────
+   Exactly two fixed options: True and False. The creator only
+   picks which one is correct. */
+
+function TrueFalseEditor({
+  q,
+  update,
+}: {
+  q: CreatorQuestion;
+  update: (patch: Partial<CreatorQuestion>) => void;
+}) {
+  const isTfPair =
+    q.options.length === 2 &&
+    q.options[0].content === "True" &&
+    q.options[1].content === "False";
+
+  useEffect(() => {
+    if (!isTfPair) {
+      update({
+        options: [
+          { id: `${q.id}_tf_true`, label: "A", content: "True", isCorrect: false },
+          { id: `${q.id}_tf_false`, label: "B", content: "False", isCorrect: false },
+        ],
+        correctAnswer: -1,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTfPair, q.id]);
+
+  const selected = typeof q.correctAnswer === "number" ? q.correctAnswer : -1;
+
+  const select = (i: number) => {
+    update({
+      options: q.options.map((o, idx) => ({ ...o, isCorrect: idx === i })),
+      correctAnswer: i,
+    });
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card/40 p-3">
+      <div className="grid grid-cols-2 gap-3">
+        {(["True", "False"] as const).map((label, i) => {
+          const active = selected === i;
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => select(i)}
+              aria-pressed={active}
+              className={cn(
+                "flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-bold transition-colors duration-150",
+                active
+                  ? "border-emerald-500 bg-emerald-500 text-white"
+                  : "border-border bg-input-bg text-text-secondary hover:border-emerald-500/40 hover:text-text-primary"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-bold",
+                  active ? "border-white/70 text-white" : "border-border text-text-muted"
+                )}
+              >
+                {active ? <Check className="h-3 w-3" /> : label === "True" ? "T" : "F"}
+              </span>
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      {selected === -1 && (
+        <p className="mt-2 text-[11px] text-amber-600 dark:text-amber-400">
+          Select whether the statement is true or false.
+        </p>
+      )}
     </div>
   );
 }

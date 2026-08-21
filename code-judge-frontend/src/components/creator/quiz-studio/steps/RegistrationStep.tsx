@@ -119,6 +119,27 @@ export function RegistrationStep() {
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
         {/* ── Left column ── */}
         <div className="space-y-5">
+          {/* Form requirement */}
+          <section className="rounded-xl border border-border bg-card">
+            <label className="flex cursor-pointer items-start gap-3 px-5 py-4">
+              <input
+                type="checkbox"
+                checked={reg.settings.collectAdditionalInfo}
+                onChange={(e) => updateSettings({ collectAdditionalInfo: e.target.checked })}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded accent-indigo-500"
+              />
+              <span>
+                <span className="block text-sm font-medium text-text-primary">
+                  Participants must fill a registration form
+                </span>
+                <span className="mt-0.5 block text-xs text-text-secondary">
+                  When checked, students provide the academic details you select
+                  below. Otherwise they register with just their platform account.
+                </span>
+              </span>
+            </label>
+          </section>
+
           {/* Platform Information */}
           <section className="rounded-xl border border-border bg-card">
             <div className="border-b border-border px-5 py-3.5">
@@ -152,7 +173,12 @@ export function RegistrationStep() {
           </section>
 
           {/* Registration Fields */}
-          <section className="rounded-xl border border-border bg-card">
+          <section
+            className={cn(
+              "rounded-xl border border-border bg-card transition-opacity duration-150",
+              !reg.settings.collectAdditionalInfo && "pointer-events-none opacity-50"
+            )}
+          >
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3.5">
               <div>
                 <h3 className="text-sm font-semibold text-text-primary">Registration Fields</h3>
@@ -438,7 +464,12 @@ export function RegistrationStep() {
           </section>
 
           {/* Advanced settings */}
-          <section className="rounded-xl border border-border bg-card">
+          <section
+            className={cn(
+              "rounded-xl border border-border bg-card transition-opacity duration-150",
+              !reg.settings.collectAdditionalInfo && "pointer-events-none opacity-50"
+            )}
+          >
             <div className="border-b border-border px-5 py-3.5">
               <h3 className="text-sm font-semibold text-text-primary">Settings</h3>
             </div>
@@ -527,37 +558,44 @@ export function RegistrationStep() {
                   </p>
                 </div>
 
-                {fields.map((field) => {
-                  const def = getRegistrationFieldDef(field.key);
-                  if (!def) return null;
-                  return (
-                    <div key={field.id}>
-                      <label className="block text-xs font-medium text-text-primary">
-                        {def.label}
-                        {field.required && <span className="ml-0.5 text-rose-500">*</span>}
-                      </label>
-                      <div className="mt-1.5">
-                        {def.inputType === "select" ? (
-                          <select className={cn(inputCls, "py-2")} defaultValue="" disabled>
-                            <option value="" disabled>
-                              Select {def.label.toLowerCase()}
-                            </option>
-                            {(field.options ?? []).map((o) => (
-                              <option key={o}>{o}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type="text"
-                            placeholder={def.placeholder}
-                            className={cn(inputCls, "py-2")}
-                            readOnly
-                          />
-                        )}
+                {reg.settings.collectAdditionalInfo ? (
+                  fields.map((field) => {
+                    const def = getRegistrationFieldDef(field.key);
+                    if (!def) return null;
+                    return (
+                      <div key={field.id}>
+                        <label className="block text-xs font-medium text-text-primary">
+                          {def.label}
+                          {field.required && <span className="ml-0.5 text-rose-500">*</span>}
+                        </label>
+                        <div className="mt-1.5">
+                          {def.inputType === "select" ? (
+                            <select className={cn(inputCls, "py-2")} defaultValue="" disabled>
+                              <option value="" disabled>
+                                Select {def.label.toLowerCase()}
+                              </option>
+                              {(field.options ?? []).map((o) => (
+                                <option key={o}>{o}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              placeholder={def.placeholder}
+                              className={cn(inputCls, "py-2")}
+                              readOnly
+                            />
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                ) : (
+                  <p className="rounded-lg border border-dashed border-border px-3 py-3 text-center text-xs text-text-muted">
+                    No additional details required — students register with just
+                    their platform account.
+                  </p>
+                )}
               </div>
 
               <div className="mt-5 flex justify-end border-t border-border pt-4">

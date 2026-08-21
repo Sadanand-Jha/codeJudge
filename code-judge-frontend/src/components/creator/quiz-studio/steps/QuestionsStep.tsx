@@ -1,18 +1,25 @@
 "use client";
 
+import { useState } from "react";
 import { QuestionList } from "../components/QuestionList";
 import { QuestionEditor } from "../components/QuestionEditor";
 import { LiveRail } from "../components/LiveRail";
+import { AiGenerateModal } from "../components/AiGenerateModal";
 import { useStudio } from "../StudioProvider";
 import { Plus, Sparkles, ListChecks } from "lucide-react";
-import { toast } from "@/lib/toast";
+import type { CreatorQuestion } from "../types";
 
 export function QuestionsStep() {
-  const { state, addQuestion } = useStudio();
+  const { state, addQuestion, importQuestions } = useStudio();
+  const [aiOpen, setAiOpen] = useState(false);
+
+  const handleAiQuestions = (questions: CreatorQuestion[]) => {
+    importQuestions(questions);
+  };
 
   return (
     <div className="flex h-[calc(100vh-112px)] min-h-[540px] border-t border-border">
-      <QuestionList />
+      <QuestionList onAiGenerate={() => setAiOpen(true)} />
 
       <main className="flex-1 overflow-hidden">
         {state.questions.length === 0 || !state.activeQuestionId ? (
@@ -36,21 +43,21 @@ export function QuestionsStep() {
               </button>
               <button
                 type="button"
-                onClick={() => toast.info({ title: "AI", description: "Generate questions with AI." })}
+                onClick={() => setAiOpen(true)}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
               >
                 <Sparkles className="h-3.5 w-3.5" /> Generate with AI
               </button>
               <button
                 type="button"
-                onClick={() => toast.info({ title: "Import", description: "Import questions from a file." })}
+                onClick={() => {}}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
               >
                 Import Questions
               </button>
               <button
                 type="button"
-                onClick={() => toast.info({ title: "Question Bank", description: "Open your reusable question bank." })}
+                onClick={() => {}}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
               >
                 Question Bank
@@ -63,6 +70,12 @@ export function QuestionsStep() {
       </main>
 
       <LiveRail />
+
+      <AiGenerateModal
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        onQuestionsAdded={handleAiQuestions}
+      />
     </div>
   );
 }

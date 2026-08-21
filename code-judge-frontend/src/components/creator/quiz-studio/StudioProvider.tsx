@@ -59,6 +59,7 @@ interface StudioContextValue {
   updateBranding: (p: Partial<StudioState["branding"]>) => void;
   updateQuestion: (id: string, patch: Partial<CreatorQuestion>) => void;
   addQuestion: () => string;
+  importQuestions: (questions: CreatorQuestion[]) => void;
   removeQuestion: (id: string) => void;
   duplicateQuestion: (id: string) => void;
   reorderQuestions: (ids: string[]) => void;
@@ -217,6 +218,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       return { ...s, questions, activeQuestionId: next.id };
     });
     return next.id;
+  };
+
+  const importQuestions = (questions: CreatorQuestion[]) => {
+    setState((s) => {
+      const updated = [...s.questions, ...questions];
+      return { ...s, questions: updated, activeQuestionId: questions[0]?.id ?? s.activeQuestionId };
+    });
   };
 
   const removeQuestion = (id: string) =>
@@ -453,6 +461,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
       updateBranding,
       updateQuestion,
       addQuestion,
+      importQuestions,
       removeQuestion,
       duplicateQuestion,
       reorderQuestions,

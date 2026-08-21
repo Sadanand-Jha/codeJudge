@@ -88,6 +88,8 @@ export interface RegistrationFieldConfig {
 }
 
 export interface RegistrationFormSettings {
+  /** Whether participants must fill the additional registration form. */
+  collectAdditionalInfo: boolean;
   formTitle: string;
   description: string;
   deadline: string;
@@ -102,6 +104,7 @@ export interface RegistrationFormSettings {
 }
 
 export const DEFAULT_REGISTRATION_SETTINGS: RegistrationFormSettings = {
+  collectAdditionalInfo: true,
   formTitle: "Registration",
   description: "",
   deadline: "",

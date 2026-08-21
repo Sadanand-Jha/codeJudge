@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Clock } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { SwitchField } from "../primitives";
+import { TimingSection } from "../components/timing";
 
 const GROUPS: Array<{ id: string; label: string; fields: SettingField[]; comingSoon?: boolean }> = [
   {
@@ -51,7 +52,19 @@ interface SettingField {
 export function SettingsStep() {
   return (
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
-      <h2 className="text-lg font-semibold text-text-primary">Quiz Settings</h2>
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-5 flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10">
+            <Clock className="h-4 w-4 text-indigo-500" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-text-primary">Timing & Lifecycle</h3>
+            <p className="text-[11px] text-text-secondary">Configure when the quiz runs and how long participants get.</p>
+          </div>
+        </div>
+        <TimingSection />
+      </div>
+
       {GROUPS.map((g) => (
         <SettingGroup
           key={g.id}
@@ -66,7 +79,6 @@ export function SettingsStep() {
 }
 
 function SettingGroup({
-  id,
   label,
   fields,
   comingSoon,

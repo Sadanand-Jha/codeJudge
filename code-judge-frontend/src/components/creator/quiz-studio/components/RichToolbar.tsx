@@ -1,39 +1,8 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
-import {
-  Bold,
-  Italic,
-  Underline,
-  Subscript,
-  Superscript,
-  List,
-  ListOrdered,
-  Link,
-  Code,
-  Image as ImageIcon,
-  Table,
-  Sigma,
-} from "lucide-react";
 import { cn } from "@/lib/helpers";
-
-const COMMANDS: Array<{
-  cmd: string;
-  arg?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  prompt?: boolean;
-}> = [
-  { cmd: "bold", icon: Bold, label: "Bold" },
-  { cmd: "italic", icon: Italic, label: "Italic" },
-  { cmd: "underline", icon: Underline, label: "Underline" },
-  { cmd: "subscript", icon: Subscript, label: "Subscript" },
-  { cmd: "superscript", icon: Superscript, label: "Superscript" },
-  { cmd: "insertUnorderedList", icon: List, label: "Bulleted list" },
-  { cmd: "insertOrderedList", icon: ListOrdered, label: "Numbered list" },
-  { cmd: "unlink", icon: Link, label: "Remove link", prompt: false },
-  { cmd: "formatBlock", arg: "code", icon: Code, label: "Inline code" },
-];
+import { Image as ImageIcon } from "lucide-react";
 
 export function RichToolbar({
   onCommand,
@@ -45,82 +14,23 @@ export function RichToolbar({
     onCommand?.();
   };
 
-  const promptAndExec = (cmd: string) => {
-    const val = window.prompt(cmd === "createLink" ? "Enter link URL" : "Enter image URL");
-    if (val) exec(cmd, val);
+  const insertImage = () => {
+    const val = window.prompt("Enter image URL");
+    if (val) exec("insertImage", val);
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 rounded-t-xl border-b border-border bg-card-hover/40 p-1.5">
-      {COMMANDS.map((c) => (
-        <button
-          key={c.cmd}
-          type="button"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            exec(c.cmd, c.arg);
-          }}
-          title={c.label}
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-card-hover hover:text-text-primary"
-        >
-          <c.icon className="h-4 w-4" />
-        </button>
-      ))}
-      <div className="mx-1.5 h-4 w-px bg-border" />
+    <div className="flex items-center gap-0.5 rounded-t-xl border-b border-border bg-card-hover/40 p-1.5">
       <button
         type="button"
         onMouseDown={(e) => {
           e.preventDefault();
-          promptAndExec("createLink");
-        }}
-        title="Insert link"
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-card-hover hover:text-text-primary"
-      >
-        <Link className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onMouseDown={(e) => {
-          e.preventDefault();
-          promptAndExec("insertImage");
+          insertImage();
         }}
         title="Insert image"
         className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-card-hover hover:text-text-primary"
       >
         <ImageIcon className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onMouseDown={(e) => {
-          e.preventDefault();
-          const rows = window.prompt("Rows x Columns", "3x3");
-          const [r, c] = (rows || "3x3").split("x").map(Number);
-          let html = '<table style="width:100%;border-collapse:collapse;">';
-          for (let i = 0; i < (r || 3); i++) {
-            html += "<tr>";
-            for (let j = 0; j < (c || 3); j++) {
-              html += '<td style="border:1px solid #d1d5db;padding:4px;">&nbsp;</td>';
-            }
-            html += "</tr>";
-          }
-          html += "</table>";
-          exec("insertHTML", html);
-        }}
-        title="Insert table"
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-card-hover hover:text-text-primary"
-      >
-        <Table className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        onMouseDown={(e) => {
-          e.preventDefault();
-          exec("insertHTML", '<span class="math-inline">\\( \\)</span>');
-        }}
-        title="Insert math"
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-card-hover hover:text-text-primary"
-      >
-        <Sigma className="h-4 w-4" />
       </button>
     </div>
   );
