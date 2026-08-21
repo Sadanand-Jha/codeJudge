@@ -961,6 +961,17 @@ export class QuizRepository {
     return result.rows;
   }
 
+  async getAllExamCategories(search?: string): Promise<any[]> {
+    if (search) {
+      const query = `SELECT * FROM exam_categories WHERE exam_cat ILIKE $1`;
+      const result = await pool.query(query, [`%${search}%`]);
+      return result.rows;
+    }
+    const query = `SELECT * FROM exam_categories ORDER BY exam_cat`;
+    const result = await pool.query(query);
+    return result.rows;
+  }
+
   // ==================== COLLABORATORS & REQUESTS ====================
 
   /**

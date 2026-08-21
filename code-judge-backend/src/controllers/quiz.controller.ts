@@ -1617,6 +1617,23 @@ export const getAllSubjects = async (req: Request, res: Response) => {
   }
 }
 
+export const getAllExamCategories = async (req: Request, res: Response) => {
+  try {
+    const { search = "" } = req.query;
+    const examCategories = await quizService.getAllExamCategories(search as string);
+    res.status(200).json({
+      success: true,
+      data: examCategories,
+    });
+  } catch (error) {
+    console.error("Error fetching exam categories:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching exam categories",
+    });
+  }
+}
+
 // ==================== COLLABORATOR REQUESTS ====================
 
 /**

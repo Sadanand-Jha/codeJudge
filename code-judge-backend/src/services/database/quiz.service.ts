@@ -189,6 +189,10 @@ export class QuizService {
     return this.repository.getAllSubjects(search);
   }
 
+  async getAllExamCategories(search?: string): Promise<any[]> {
+    return this.repository.getAllExamCategories(search);
+  }
+
   async isAcceptedCollaborator(userId: number, quizId: number): Promise<boolean> {
     return this.repository.isAcceptedCollaborator(userId, quizId);
   }

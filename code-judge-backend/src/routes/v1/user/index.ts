@@ -7,7 +7,7 @@ import { userRegister, forgetPassword, profile, lookupUser } from "../../../cont
 import { getTimezones } from "../../../controllers/timezone.controller.ts";
 import { authenticate } from "../../../middleware/auth.ts";
 import { updateAvatar } from "../../../controllers/avatar.controller.ts";
-import { getAllSubjects } from "../../../controllers/quiz.controller.ts";
+import { getAllSubjects, getAllExamCategories } from "../../../controllers/quiz.controller.ts";
 import {
   getCountries,
   getStatesByCountry,
@@ -49,6 +49,7 @@ router.patch("/avatar", authenticate, updateAvatar);
 
 // ===================== SUBJECTS ==========
 router.get("/quiz-subjects", getAllSubjects)
+router.get("/quiz-exam-categories", getAllExamCategories)
 
 // ===================== TIMEZONES ==========
 router.get("/timezones", authenticate, getTimezones);

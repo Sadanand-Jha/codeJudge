@@ -660,3 +660,16 @@ VALUES
     (5, 'IST', 'Indian Standard Time', '+05:30', 5.50),
     (6, 'JST', 'Japan Standard Time', '+09:00', 9.00),
     (7, 'AEST', 'Australian Eastern Standard Time', '+10:00', 10.00);
+
+ALTER TABLE quiz
+ADD COLUMN IF NOT EXISTS isscheduled BOOLEAN;
+
+ALTER TABLE quiz
+ADD COLUMN IF NOT EXISTS duration integer;
+
+alter table quiz
+drop column if exists endtime
+
+
+ALTER TABLE quiz
+ADD COLUMN IF NOT EXISTS exam_cat integer;
