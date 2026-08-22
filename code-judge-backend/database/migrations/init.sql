@@ -662,9 +662,6 @@ VALUES
     (7, 'AEST', 'Australian Eastern Standard Time', '+10:00', 10.00);
 
 ALTER TABLE quiz
-ADD COLUMN IF NOT EXISTS isscheduled BOOLEAN;
-
-ALTER TABLE quiz
 ADD COLUMN IF NOT EXISTS duration integer;
 
 alter table quiz
@@ -680,3 +677,7 @@ add column negative_marks integer;
 
 alter table quiz_problems
 add column marks integer;
+
+ALTER TABLE quiz
+ADD COLUMN endtime TIMESTAMP;
+

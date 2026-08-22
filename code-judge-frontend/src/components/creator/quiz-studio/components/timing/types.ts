@@ -15,9 +15,9 @@ export type EndBehavior = "manual" | "auto_duration";
 export interface ScheduleConfig {
   startDate: string;
   startTime: string;
+  /** Optional fixed end for the quiz window. Empty = manual end. */
   endDate: string;
   endTime: string;
-  autoEnd: boolean;
 }
 
 export interface ManualConfig {
@@ -49,7 +49,6 @@ export const DEFAULT_SCHEDULE: ScheduleConfig = {
   startTime: "",
   endDate: "",
   endTime: "",
-  autoEnd: false,
 };
 
 export const DEFAULT_MANUAL: ManualConfig = {

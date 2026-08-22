@@ -21,14 +21,12 @@ export function TimingSummary({ state }: { state: TimingState }) {
         value: formatDateTime(schedule.startDate, schedule.startTime),
       });
     }
-    if (schedule.autoEnd && schedule.endDate) {
-      rows.push({
-        label: "Quiz ends",
-        value: formatDateTime(schedule.endDate, schedule.endTime),
-      });
-    } else {
-      rows.push({ label: "Quiz ends", value: "Manual end" });
-    }
+    rows.push({
+      label: "Quiz ends",
+      value: schedule.endDate
+        ? formatDateTime(schedule.endDate, schedule.endTime)
+        : "Manual end",
+    });
   } else {
     rows.push({ label: "Status", value: meta.label });
     if (manual.startedAt) {
@@ -63,29 +61,6 @@ export function TimingSummary({ state }: { state: TimingState }) {
   });
 
   const warnings: string[] = [];
-
-  if (
-    mode === "schedule" &&
-    schedule.autoEnd &&
-    schedule.endDate &&
-    schedule.endTime
-  ) {
-    const endDate = new Date(`${schedule.endDate}T${schedule.endTime}`);
-    const endMinutes =
-      endDate.getHours() * 60 + endDate.getMinutes();
-    const startMinutes = schedule.startTime
-      ? (() => {
-          const [h, m] = schedule.startTime.split(":").map(Number);
-          return h * 60 + m;
-        })()
-      : 0;
-    const sessionMinutes = endMinutes - startMinutes;
-    if (sessionMinutes > 0 && participantDuration > sessionMinutes) {
-      warnings.push(
-        `A participant starting near the end of the quiz window may have less time if attempts are required to end when the quiz session ends.`
-      );
-    }
-  }
 
   if (
     mode === "manual" &&

@@ -24,7 +24,12 @@ import type {
   AdvancedConfig,
   TimingState,
 } from "./types";
-import { isPast, isStartAfterEnd, formatTime12 } from "./helpers";
+import { isPast, formatTime12, isStartAfterEnd } from "./helpers";
+
+/** Combine separate date + time fields into a datetime-local string. */
+function combineDateTime(date: string, time: string, fallbackTime: string) {
+  return date ? `${date}T${time || fallbackTime}` : "";
+}
 
 export function TimingSection() {
   const { state, updateInfo } = useStudio();
@@ -46,10 +51,7 @@ export function TimingSection() {
         );
       }
       if (
-        schedule.startDate &&
         schedule.endDate &&
-        schedule.startTime &&
-        schedule.endTime &&
         isStartAfterEnd(
           schedule.startDate,
           schedule.startTime,
@@ -57,10 +59,7 @@ export function TimingSection() {
           schedule.endTime
         )
       ) {
-        errs.push("End time must be later than the start time.");
-      }
-      if (schedule.autoEnd && (!schedule.endDate || !schedule.endTime)) {
-        errs.push("Choose when this quiz should automatically end.");
+        errs.push("End time must be after the scheduled start time.");
       }
     }
     if (participantDuration <= 0) {
@@ -71,12 +70,20 @@ export function TimingSection() {
 
   const handleScheduleChange = useCallback(
     (patch: Partial<ScheduleConfig>) => {
-      setSchedule((prev) => ({ ...prev, ...patch }));
+      const next = { ...schedule, ...patch };
+      setSchedule(next);
+      // Sync into studio info so saveToServer persists starttime/endtime.
+      updateInfo({
+        startDate: combineDateTime(next.startDate, next.startTime, "00:00"),
+        endDate: next.endDate
+          ? combineDateTime(next.endDate, next.endTime, "23:59")
+          : "",
+      });
       if (mode === "schedule" && patch.startDate) {
         setManual((prev) => ({ ...prev, status: "scheduled" }));
       }
     },
-    [mode]
+    [mode, schedule, updateInfo]
   );
 
   const handleManualChange = useCallback((patch: Partial<ManualConfig>) => {
@@ -91,8 +98,17 @@ export function TimingSection() {
     setMode(newMode);
     if (newMode === "schedule") {
       setManual((prev) => ({ ...prev, status: "scheduled" }));
+      // Re-sync any already-entered schedule into the saved info.
+      updateInfo({
+        startDate: combineDateTime(schedule.startDate, schedule.startTime, "00:00"),
+        endDate: schedule.endDate
+          ? combineDateTime(schedule.endDate, schedule.endTime, "23:59")
+          : "",
+      });
     } else {
       setManual((prev) => ({ ...prev, status: "draft" }));
+      // Manual mode has no fixed window — drop any stale scheduled values.
+      updateInfo({ startDate: "", endDate: "" });
     }
   };
 
@@ -201,7 +217,7 @@ export function TimingSection() {
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
           <p className="text-[11px] leading-relaxed text-emerald-600 dark:text-emerald-400">
             Your quiz will remain inactive until you click{" "}
-            <strong>Start Quiz</strong>. Saving this quiz will not make it live
+            <strong>Publish Quiz</strong>. Saving this quiz will not make it live
             immediately.
           </p>
         </div>
@@ -270,18 +286,13 @@ export function TimingSection() {
             <span className="font-semibold text-text-primary">
               {formatTime12(schedule.startTime)}
             </span>
-            {schedule.autoEnd && schedule.endTime ? (
-              <>
-                <ArrowRight className="h-3 w-3 text-text-muted" />
-                <span className="font-semibold text-text-primary">
-                  {formatTime12(schedule.endTime)}
-                </span>
-              </>
+            <ArrowRight className="h-3 w-3 text-text-muted" />
+            {schedule.endDate ? (
+              <span className="font-semibold text-text-primary">
+                {formatTime12(schedule.endTime || "23:59")}
+              </span>
             ) : (
-              <>
-                <ArrowRight className="h-3 w-3 text-text-muted" />
-                <span className="text-text-muted">Manual end</span>
-              </>
+              <span className="text-text-muted">Manual end</span>
             )}
           </div>
         ) : (

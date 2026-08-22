@@ -335,9 +335,23 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     if (id !== state.step && !validateAllQuestions()) return;
     setState((s) => ({ ...s, step: id }));
   };
-  const nextStep = () => {
+  const nextStep = async () => {
     const i = STEPS.findIndex((st) => st.id === state.step);
     if (i < STEPS.length - 1 && !validateAllQuestions()) return;
+
+    if (state.step === "setup") {
+      try {
+        const { quizId } = await saveToServer({ setupOnly: true });
+        setState((s) => ({ ...s, serverQuizId: quizId }));
+      } catch (err) {
+        toast.error({
+          title: "Could not save quiz",
+          description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+        });
+        return;
+      }
+    }
+
     setState((s) => {
       const idx = STEPS.findIndex((st) => st.id === s.step);
       return { ...s, step: idx < STEPS.length - 1 ? STEPS[idx + 1].id : s.step };
@@ -354,7 +368,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   const [savingToServer, setSavingToServer] = useState(false);
 
   const saveToServer = async (
-    opts?: { publish?: boolean }
+    opts?: { publish?: boolean; setupOnly?: boolean }
   ): Promise<{ quizId: string; code: string }> => {
     if (savingToServer) throw new Error("Save already in progress");
     if (state.info.title.trim().length < 3) {
@@ -366,11 +380,13 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         name: state.info.title.trim(),
         code: state.info.code,
         description: state.info.shortDescription || undefined,
+        fullDescription: state.info.fullDescription || undefined,
         subject: state.info.subject || undefined,
         difficulty: state.info.difficulty,
         timeLimit: state.info.duration || undefined,
         starttime: state.info.startDate || undefined,
         endtime: state.info.endDate || undefined,
+
         randomizeQuestions: state.settings.randomizeQuestions,
         randomizeOptions: state.settings.randomizeOptions,
         showResultsImmediately: state.settings.showResultsImmediately,
@@ -378,6 +394,7 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         negativeMarkValue: state.settings.negativeMarkValue,
         totalQuestions: summary.questionCount,
         totalMarks: summary.totalMarks,
+        passingMarks: state.info.passingMarks || Math.ceil(summary.totalMarks * 0.4),
         tags: state.info.tags.length > 0 ? state.info.tags : undefined,
       };
 
@@ -393,51 +410,54 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           showResultsImmediately: payload.showResultsImmediately,
           negativeMarking: payload.negativeMarking,
           totalMarks: payload.totalMarks,
+          passingMarks: payload.passingMarks,
         });
       } else {
         const quiz = await createQuiz(payload);
         quizId = String(quiz.id);
       }
 
-      await syncQuizQuestions(quizId, state.questions);
+      if (!opts?.setupOnly) {
+        await syncQuizQuestions(quizId, state.questions);
 
-      // Build the unique participant set — union of allowed room members and
-      // individually invited emails, deduped by email.
-      const audience = state.audience;
-      const selRoomIds = audience.roomIds ?? [];
-      const selections = audience.roomStudentSelections ?? {};
-      const allRooms = useRoomStore.getState().rooms;
-      const byEmail = new Map<string, QuizParticipantInput>();
+        // Build the unique participant set — union of allowed room members and
+        // individually invited emails, deduped by email.
+        const audience = state.audience;
+        const selRoomIds = audience.roomIds ?? [];
+        const selections = audience.roomStudentSelections ?? {};
+        const allRooms = useRoomStore.getState().rooms;
+        const byEmail = new Map<string, QuizParticipantInput>();
 
-      for (const roomId of selRoomIds) {
-        const room = allRooms.find((r) => r.id === roomId);
-        if (!room) continue;
-        const selected: string[] | undefined = selections[roomId];
-        for (const student of room.students) {
-          if (!student.active || !student.email) continue;
-          if (selected && !selected.includes(student.rollNumber)) continue;
-          const key = student.email.toLowerCase();
-          if (!byEmail.has(key)) {
-            byEmail.set(key, {
-              email: student.email,
-              name: student.name,
-              rollNumber: student.rollNumber,
-              source: "room",
-              roomId: null,
-              allowed: true,
-            });
+        for (const roomId of selRoomIds) {
+          const room = allRooms.find((r) => r.id === roomId);
+          if (!room) continue;
+          const selected: string[] | undefined = selections[roomId];
+          for (const student of room.students) {
+            if (!student.active || !student.email) continue;
+            if (selected && !selected.includes(student.rollNumber)) continue;
+            const key = student.email.toLowerCase();
+            if (!byEmail.has(key)) {
+              byEmail.set(key, {
+                email: student.email,
+                name: student.name,
+                rollNumber: student.rollNumber,
+                source: "room",
+                roomId: null,
+                allowed: true,
+              });
+            }
           }
         }
-      }
 
-      for (const email of audience.invitedEmails ?? []) {
-        const key = email.toLowerCase();
-        if (!byEmail.has(key)) {
-          byEmail.set(key, { email, source: "individual", allowed: true });
+        for (const email of audience.invitedEmails ?? []) {
+          const key = email.toLowerCase();
+          if (!byEmail.has(key)) {
+            byEmail.set(key, { email, source: "individual", allowed: true });
+          }
         }
-      }
 
-      await setQuizParticipants(quizId, [...byEmail.values()]);
+        await setQuizParticipants(quizId, [...byEmail.values()]);
+      }
 
       if (opts?.publish) {
         await updateQuizStatus(quizId, "published");

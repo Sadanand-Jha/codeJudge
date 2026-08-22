@@ -26,10 +26,7 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
       ? `${attemptEndHour}:${String(attemptEndMin).padStart(2, "0")} PM`
       : "3:12 PM";
 
-  const sessionEnd =
-    mode === "schedule" && schedule.autoEnd && schedule.endTime
-      ? formatTime12(schedule.endTime)
-      : null;
+  const sessionEnd = null;
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">

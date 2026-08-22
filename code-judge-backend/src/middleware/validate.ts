@@ -83,7 +83,7 @@ export function validate(schema: z.ZodSchema) {
  * Validates:
  * - name: required, 3-100 chars
  * - code: required, min 16 chars
- * - starttime/endtime: optional ISO date strings
+ * - starttime: optional ISO date strings
  * - visibility/difficulty: optional positive integers
  * - totalMarks/passingMarks: optional non-negative numbers
  * - shuffleQuestions/shuffleOptions/showResultsImmediately/negativeMarking/leaderboard: optional booleans
@@ -99,8 +99,11 @@ export const quizSchema = z.object({
     .trim()
     .min(16, "Quiz code must be at least 16 characters")
     .max(64, "Quiz code must be at most 64 characters"),
-  starttime: z.string().optional(),
-  endtime: z.string().optional(),
+  description: z.string().max(250, "Short description must be at most 250 characters").optional(),
+  fullDescription: z.string().max(5000, "Detailed description must be at most 5000 characters").optional(),
+  starttime: z.string().nullable().optional(),
+  endtime: z.string().nullable().optional(),
+
   visibility: z.number().int().positive().optional(),
   difficulty: z.union([z.string(), z.number().int().positive()]).optional(),
   totalMarks: z.number().nonnegative().optional(),

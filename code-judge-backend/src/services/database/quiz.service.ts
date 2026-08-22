@@ -29,6 +29,10 @@ export class QuizService {
     return this.repository.getQuizByCode(code);
   }
 
+  async generateUniqueCode(): Promise<string> {
+    return this.repository.generateUniqueCode();
+  }
+
   async getQuizProblems(quizId: string): Promise<any[]> {
     return this.repository.getQuizProblems(quizId);
   }
@@ -54,7 +58,6 @@ export class QuizService {
     code: string;
     createdby: number;
     starttime?: Date;
-    endtime?: Date;
     visibility?: number;
     difficulty?: number;
     totalMarks?: number;

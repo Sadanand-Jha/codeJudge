@@ -22,7 +22,7 @@ export function CreateStep({
 
   if (created) {
     return (
-      <div className="mx-auto max-w-lg space-y-6 py-12 text-center">
+      <div className="mx-auto max-w-lg space-y-6 pb-12 text-center">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}

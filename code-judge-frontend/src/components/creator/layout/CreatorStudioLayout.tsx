@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2 } from "lucide-react";
 import { CreatorSidebar } from "./CreatorSidebar";
+import CreatorNavbar from "./CreatorNavbar";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuthStore } from "@/store/authStore";
 
@@ -24,7 +25,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   }
 
   return (
-    <AppLayout>
+    <AppLayout header={<CreatorNavbar onMobileMenuToggle={() => setDrawerOpen(true)} />}>
       <div className="flex min-h-screen bg-background">
         {/* Mobile drawer overlay */}
         <AnimatePresence>

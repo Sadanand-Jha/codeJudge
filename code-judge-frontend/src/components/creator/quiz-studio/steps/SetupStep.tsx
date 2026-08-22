@@ -1,23 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   FileText,
   Sparkles,
   Upload,
   X,
-  Trash2,
   Check,
   Clock,
   ListChecks,
   Award,
+  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { Badge } from "../primitives";
 import { SearchableDropdown } from "@/components/ui";
-import { getAllSubjects, getAllExamCategories } from "@/services/quiz";
+import { getAllSubjects, getAllExamCategories, generateQuizCode as fetchQuizCode } from "@/services/quiz";
+import { toast } from "@/lib/toast";
 
 const CREATE_CHOICES = [
   {
@@ -59,15 +60,15 @@ export function SetupStep() {
 
   const info = state.info;
   const marks = summary.totalMarks;
+  const generatedForTitle = useRef("");
 
-  const handleThumbnail = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    updateInfo({ thumbnailUrl: url });
-  };
-
-  const removeThumbnail = () => updateInfo({ thumbnailUrl: "" });
+  useEffect(() => {
+    const title = info.title.trim();
+    if (title.length >= 3 && title !== generatedForTitle.current) {
+      generatedForTitle.current = title;
+      fetchQuizCode().then((code) => updateInfo({ code })).catch(() => {});
+    }
+  }, [info.title, updateInfo]);
 
   const hasBasicInfo = info.title.trim().length >= 3;
 
@@ -119,25 +120,56 @@ export function SetupStep() {
             </div>
 
             <div className="space-y-2">
+              <label className="block text-xs font-bold text-text-secondary">Quiz Code</label>
+              <div className="flex gap-2">
+                <input
+                  value={info.code}
+                  readOnly
+                  placeholder="Auto-generated when you enter a title"
+                  className="h-10 flex-1 rounded-lg border border-input-border bg-input-bg px-3.5 font-mono text-sm tracking-wider text-text-primary placeholder-text-muted outline-none"
+                />
+                {info.code && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(info.code);
+                      toast.success({ title: "Code copied", description: info.code });
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copy
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-text-muted">
+                Unique 16-character code used to share this quiz.
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <label className="block text-xs font-bold text-text-secondary">Short Description</label>
               <textarea
                 value={info.shortDescription}
-                onChange={(e) => updateInfo({ shortDescription: e.target.value })}
+                onChange={(e) => updateInfo({ shortDescription: e.target.value.slice(0, 250) })}
                 rows={2}
+                maxLength={250}
                 placeholder="A concise summary shown in listings."
                 className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
               />
+              <p className="text-[11px] text-text-muted text-right">{info.shortDescription.length}/250</p>
             </div>
 
             <div className="space-y-2">
               <label className="block text-xs font-bold text-text-secondary">Detailed Description</label>
               <textarea
                 value={info.fullDescription}
-                onChange={(e) => updateInfo({ fullDescription: e.target.value })}
+                onChange={(e) => updateInfo({ fullDescription: e.target.value.slice(0, 5000) })}
                 rows={4}
+                maxLength={5000}
                 placeholder="Explain what the quiz covers, target audience, pattern..."
                 className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
               />
+              <p className="text-[11px] text-text-muted text-right">{info.fullDescription.length}/5000</p>
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -234,16 +266,31 @@ export function SetupStep() {
                   />
                 </div>
               </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-text-secondary">Passing Marks</label>
+                <div className="relative">
+                  <Award className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                  <input
+                    type="number"
+                    min={0}
+                    max={marks || undefined}
+                    value={info.passingMarks || ""}
+                    placeholder={`Default: ${Math.ceil((marks || 0) * 0.4)}`}
+                    onChange={(e) => updateInfo({ passingMarks: Number(e.target.value) })}
+                    className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+                  />
+                </div>
+                <p className="text-[11px] text-text-muted">
+                  {info.passingMarks
+                    ? `${info.passingMarks} / ${marks || 0} marks`
+                    : `Defaults to 40% (${Math.ceil((marks || 0) * 0.4)} marks) if left empty`}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Thumbnail + summary rail */}
+          {/* Summary rail */}
           <div className="flex flex-col gap-5">
-            <ThumbnailUploader
-              url={info.thumbnailUrl}
-              onUpload={handleThumbnail}
-              onRemove={removeThumbnail}
-            />
             <SummaryRail
               questionCount={summary.questionCount}
               totalMarks={marks}
@@ -377,41 +424,6 @@ function TagInput({
         placeholder="Type and press Enter…"
         className="h-8 min-w-[140px] flex-1 border-none bg-transparent text-xs text-text-primary placeholder-text-muted outline-none"
       />
-    </div>
-  );
-}
-
-function ThumbnailUploader({
-  url,
-  onUpload,
-  onRemove,
-}: {
-  url: string;
-  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onRemove: () => void;
-}) {
-  return (
-    <div className="flex flex-col items-center">
-      <label className="relative flex h-40 w-full max-w-[180px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/60 text-xs text-text-secondary transition-colors hover:border-indigo-500/40 hover:bg-card-hover">
-        {url ? (
-          <img src={url} alt="thumbnail" className="h-full w-full rounded-xl object-cover" />
-        ) : (
-          <>
-            <Upload className="mb-1.5 h-5 w-5" />
-            <span>Upload thumbnail</span>
-          </>
-        )}
-        <input type="file" accept="image/*" hidden onChange={onUpload} />
-      </label>
-      {url && (
-        <button
-          type="button"
-          onClick={onRemove}
-          className="mt-2 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-rose-500"
-        >
-          <Trash2 className="h-3 w-3" /> Remove
-        </button>
-      )}
     </div>
   );
 }

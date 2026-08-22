@@ -106,7 +106,7 @@ function MetricCard({ metric, index }: { metric: CreatorDashboardMetric; index: 
 function WeeklySalesChart() {
   const max = Math.max(...WEEKLY_SALES.map((d) => d.sales));
   return (
-    <div className="flex h-40 items-end justify-between gap-2">
+    <div className="flex h-56 items-end justify-between gap-2">
       {WEEKLY_SALES.map((d) => (
         <div key={d.day} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
           <span className="text-[10px] font-semibold text-text-secondary tabular-nums">{d.sales}</span>
@@ -114,7 +114,7 @@ function WeeklySalesChart() {
             initial={{ height: 0 }}
             animate={{ height: `${(d.sales / max) * 100}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="w-full max-w-[34px] rounded-t-lg bg-[#EC4899] opacity-90"
+            className="w-full rounded-t-lg bg-[#EC4899] opacity-90"
           />
           <span className="text-[10px] font-medium text-text-muted">{d.day}</span>
         </div>

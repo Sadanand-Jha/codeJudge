@@ -200,6 +200,7 @@ export function StudioStepper() {
 export function StudioFooter() {
   const { state, prevStep, nextStep, stepIndex, summary, publish, saveToServer } = useStudio();
   const [savingDraft, setSavingDraft] = useState(false);
+  const [continuing, setContinuing] = useState(false);
 
   const handleSaveDraft = async () => {
     if (savingDraft) return;
@@ -214,6 +215,16 @@ export function StudioFooter() {
       });
     } finally {
       setSavingDraft(false);
+    }
+  };
+
+  const handleContinue = async () => {
+    if (continuing) return;
+    setContinuing(true);
+    try {
+      await nextStep();
+    } finally {
+      setContinuing(false);
     }
   };
 
@@ -366,16 +377,24 @@ export function StudioFooter() {
         ) : (
           <button
             type="button"
-            onClick={nextStep}
-            disabled={!canContinue()}
+            onClick={handleContinue}
+            disabled={!canContinue() || continuing}
             className={cn(
               "inline-flex w-36 items-center justify-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors duration-150",
-              canContinue()
+              canContinue() && !continuing
                 ? "border border-indigo-500/40 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
                 : "cursor-not-allowed bg-card-hover text-text-muted"
             )}
           >
-            Continue <span className="hidden sm:inline">→</span>
+            {continuing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Saving…
+              </>
+            ) : (
+              <>
+                Continue <span className="hidden sm:inline">→</span>
+              </>
+            )}
           </button>
         )}
       </div>

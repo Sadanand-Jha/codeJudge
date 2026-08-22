@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   BookOpen,
+  CalendarClock,
   Loader2,
   Save,
   Square,
@@ -27,6 +28,7 @@ import { saveQuizDetails } from "@/utils/quizStorage";
 
 export const SETTINGS_SECTIONS = [
   { id: "info", label: "Quiz Info", icon: BookOpen, href: "info", tone: "pink" as const },
+  { id: "schedule", label: "Schedule", icon: CalendarClock, href: "schedule", tone: "blue" as const },
   { id: "registration", label: "Registration", icon: Users, href: "registration", tone: "violet" as const },
   { id: "audience", label: "Audience", icon: UsersRound, href: "audience", tone: "violet" as const },
   { id: "collaborators", label: "Collaborators", icon: UserPlus, href: "collaborators", tone: "pink" as const },

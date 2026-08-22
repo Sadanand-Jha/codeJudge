@@ -27,7 +27,7 @@ const GROUPS: Array<{ id: string; label: string; fields: SettingField[]; comingS
     id: "result",
     label: "Result & Visibility",
     fields: [
-      { key: "showResultsImmediately", label: "Show results immediately" },
+      { key: "showResultsImmediately", label: "Show results", description: "Students can see the marks obtained in their attempt" },
     ],
   },
   {

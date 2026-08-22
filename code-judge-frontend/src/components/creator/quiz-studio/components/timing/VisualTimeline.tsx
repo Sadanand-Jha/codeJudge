@@ -35,10 +35,9 @@ export function VisualTimeline({ state }: { state: TimingState }) {
         },
         {
           label: "Ends",
-          time:
-            schedule.autoEnd && schedule.endDate
-              ? formatTime12(schedule.endTime)
-              : "\u2014",
+          time: schedule.endDate
+            ? formatTime12(schedule.endTime || "23:59")
+            : "Manual",
           active: false,
           done: manual.status === "ended",
         },

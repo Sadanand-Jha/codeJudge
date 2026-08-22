@@ -57,7 +57,7 @@ export function PublishStep({
       value: state.pricing.mode === "paid" ? "₹" + state.pricing.price : "Free",
     },
     { label: "Start", value: state.info.startDate || "Immediately" },
-    { label: "End", value: state.info.endDate || "No end date" },
+    { label: "End", value: state.info.endDate || "Manual" },
   ];
 
   return (
@@ -68,8 +68,8 @@ export function PublishStep({
             Ready to publish?
           </h2>
           <p className="mt-1 text-xs text-text-secondary">
-            Review the details below. After publishing, some settings may become
-            locked once students begin attempting the quiz.
+            Publishing will immediately make this quiz live. Participants will be
+            able to start attempting it right away.
           </p>
         </div>
 
@@ -149,7 +149,8 @@ export function PublishStep({
                 <div>
                   <h3 className="text-base font-semibold text-text-primary">Publish this quiz?</h3>
                   <p className="mt-0.5 text-xs text-text-secondary">
-                    It will go live immediately for eligible students.
+                    This will make the quiz live immediately. Participants can start
+                    attempting it as soon as you confirm.
                   </p>
                 </div>
               </div>

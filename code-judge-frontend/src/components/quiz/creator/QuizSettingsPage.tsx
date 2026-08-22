@@ -327,6 +327,20 @@ export default function QuizSettingsPage({
     }
   };
 
+  /* ---- End mode ---- */
+  const selectNoFixedEnd = () => update({ availabilityEnd: "" });
+
+  const selectScheduledEnd = () => {
+    if (details.availabilityEnd) return;
+    const base = details.availabilityStart
+      ? new Date(details.availabilityStart)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const end = new Date(base.getTime() + 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const local = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    update({ availabilityEnd: local });
+  };
+
   /* ---- Validation ---- */
   const registrationEndInvalid = Boolean(
     details.registrationEnabled &&
@@ -408,7 +422,11 @@ export default function QuizSettingsPage({
   const handleContinue = async () => {
     setAttempted(true);
     if (Object.keys(errors).length > 0) {
-      const firstSection = details.registrationEnabled ? "registration" : "info";
+      const firstSection = Object.keys(errors).some((k) => k.startsWith("registration"))
+        ? "registration"
+        : Object.keys(errors).some((k) => k.startsWith("availability"))
+          ? "availability"
+          : "info";
       scrollToSection(firstSection);
       toast.error({
         title: "Missing information",
@@ -433,8 +451,8 @@ export default function QuizSettingsPage({
         difficulty: details.difficulty,
         visibility: details.visibilityId ?? undefined,
         timeLimit: details.timeLimit,
-        starttime: details.startDate || undefined,
-        endtime: details.endDate || undefined,
+        starttime: details.availabilityStart || undefined,
+        endtime: details.availabilityEnd || undefined,
         timeZone: details.timeZone,
         randomizeQuestions: details.randomizeQuestions,
         randomizeOptions: details.randomizeOptions,
@@ -996,7 +1014,7 @@ export default function QuizSettingsPage({
                           type="radio"
                           name="endMode"
                           checked={!!details.availabilityEnd}
-                          onChange={() => {}}
+                          onChange={selectScheduledEnd}
                           className="sr-only"
                         />
                         <div className="flex flex-col items-center gap-1.5 flex-1">
@@ -1023,12 +1041,14 @@ export default function QuizSettingsPage({
                           value={details.availabilityEnd.split("T")[0]}
                           onChange={(v) => update({ availabilityEnd: `${v}T${details.availabilityEnd.split("T")[1] || "23:59"}` })}
                           required
+                          error={(attempted && errors.availabilityEnd) || undefined}
                         />
                         <DateTimeField
                           label="End Time"
                           value={details.availabilityEnd.split("T")[1]?.slice(0, 5) || ""}
                           onChange={(v) => update({ availabilityEnd: `${details.availabilityEnd.split("T")[0]}T${v}:00` })}
                           required
+                          error={(attempted && errors.availabilityEnd) || undefined}
                         />
                       </motion.div>
                     )}

@@ -158,6 +158,28 @@ export class QuizRepository {
   }
 
   /**
+   * Generate a unique 16-character alphabetic quiz code.
+   * Keeps generating until a code that doesn't exist in the quiz table is found.
+   */
+  async generateUniqueCode(): Promise<string> {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let code = "";
+    let exists = true;
+    while (exists) {
+      code = "";
+      for (let i = 0; i < 16; i++) {
+        code += chars[Math.floor(Math.random() * chars.length)];
+      }
+      const result = await pool.query(
+        "SELECT 1 FROM quiz WHERE code = $1 LIMIT 1",
+        [code]
+      );
+      exists = result.rows.length > 0;
+    }
+    return code;
+  }
+
+  /**
    * Get a quiz by its code with full details
    */
   async getQuizByCode(code: string): Promise<any | null> {
@@ -324,7 +346,6 @@ export class QuizRepository {
     code: string;
     createdby: number;
     starttime?: Date;
-    endtime?: Date;
     visibility?: number;
     difficulty?: number;
     totalMarks?: number;
@@ -338,12 +359,12 @@ export class QuizRepository {
   }): Promise<any> {
     const query = `
       INSERT INTO quiz (
-        name, code, createdby, starttime, endtime, visibility, difficulty,
+        name, code, createdby, starttime, visibility, difficulty,
         total_marks, passing_marks, shuffle_questions, shuffle_options,
         Show_Results_Immediately, negative_marking, leaderboard, status,
         created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const result = await pool.query(query, [
@@ -351,7 +372,6 @@ export class QuizRepository {
       data.code,
       data.createdby,
       data.starttime || null,
-      data.endtime || null,
       data.visibility || null,
       data.difficulty || null,
       data.totalMarks || 0,
@@ -456,7 +476,7 @@ export class QuizRepository {
 
     const query = `
       UPDATE quiz
-      SET ${fields.join(", ")} = CURRENT_TIMESTAMP
+      SET ${fields.join(", ")}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $${paramCount}
       RETURNING *
     `;

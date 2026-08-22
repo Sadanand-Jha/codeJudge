@@ -42,7 +42,8 @@ import {
   getQuizResponses,
   getStudentResponseDetail,
   setQuizParticipants,
-  getQuizParticipantsController
+  getQuizParticipantsController,
+  generateQuizCodeEndpoint,
 } from "../../../controllers/quiz.controller.ts";
 import { QuizService } from "../../../services/database/quiz.service.ts";
 
@@ -130,6 +131,9 @@ router.get("/code/:code", getQuizByCode);
 
 // GET /api/v1/user/quiz/visibility-options — get visibility options from quiz_visibility table
 router.get("/visibility-options", getQuizVisibilityOptions);
+
+// GET /api/v1/user/quiz/generate-code — generate a unique 16-char quiz code
+router.get("/generate-code", generateQuizCodeEndpoint);
 
 // GET /api/v1/user/quiz/collaborator-requests/incoming — get the user's incoming collaborator requests
 router.get("/collaborator-requests/incoming", getIncomingCollaboratorRequests);

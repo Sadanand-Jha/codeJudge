@@ -261,6 +261,15 @@ export async function getOldQuizzes(params: {
 }
 
 /**
+ * Generate a unique 16-character alphabetic quiz code
+ * GET /api/v1/user/quiz/generate-code
+ */
+export async function generateQuizCode(): Promise<string> {
+  const response = await apiClient.get<{ success: boolean; data: { code: string } }>("/v1/user/quiz/generate-code");
+  return response.data.data.code;
+}
+
+/**
  * Create a new quiz from the creator settings form
  * POST /api/v1/user/quiz
  */
@@ -276,8 +285,8 @@ export async function createQuiz(data: CreateQuizPayload): Promise<Quiz> {
 export async function updateQuiz(quizId: string, data: Partial<{
   name: string;
   code: string;
-  starttime: string;
-  endtime: string;
+  starttime: string | null;
+  endtime: string | null;
   visibility: number;
   difficulty: number;
   totalMarks: number;

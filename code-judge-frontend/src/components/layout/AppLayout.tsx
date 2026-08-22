@@ -155,7 +155,7 @@ function isFullscreenRoute(pathname: string): boolean {
   return pathname.includes("/waiting") || pathname.startsWith("/tests/attempt");
 }
 
-function AppLayoutContent({ children }: { children: React.ReactNode }) {
+function AppLayoutContent({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -372,7 +372,9 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         )}
       >
         {/* ===== TOP HEADER ===== */}
-        {!isEditorPath(pathname) && (
+        {header ? (
+          header
+        ) : !isEditorPath(pathname) ? (
         <header
           onDragStart={(e) => e.preventDefault()}
           onContextMenu={(e) => e.preventDefault()}
@@ -417,7 +419,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             {/* Right actions */}
             <NavbarRightActions />
           </header>
-        )}
+        ) : null}
 
         {/* ===== PAGE CONTENT ===== */}
         <main className="flex-1">{children}</main>
@@ -643,10 +645,11 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
       }}
       className={cn(
         "relative group w-full flex items-center gap-3 rounded-lg text-sm font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ai-accent/40",
-        isCreatorStudio && showLabels
+        isCreatorStudio
           ? "creator-studio-btn"
           : "transition-colors duration-150 hover:bg-ai-accent/10",
-        showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5"
+        showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5",
+        isCreatorStudio && showLabels && "-mx-2.5 px-[1.375rem]"
       )}
     >
       {isActive && !isCreatorStudio && (
@@ -669,11 +672,11 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
 }
 
 // Main AppLayout with providers
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
   return (
     <ChatProvider>
       <GuestModeProvider>
-        <AppLayoutContent>{children}</AppLayoutContent>
+        <AppLayoutContent header={header}>{children}</AppLayoutContent>
       </GuestModeProvider>
     </ChatProvider>
   );

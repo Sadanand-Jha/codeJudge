@@ -128,6 +128,25 @@ export const getQuizByCode = async (req: Request, res: Response) => {
 };
 
 /**
+ * GET /api/v1/user/quiz/generate-code
+ * Generate a unique 16-character alphabetic quiz code.
+ */
+export const generateQuizCodeEndpoint = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+    const code = await quizService.generateUniqueCode();
+    res.status(200).json({ success: true, data: { code } });
+  } catch (error) {
+    console.error("Error generating quiz code:", error);
+    res.status(500).json({ success: false, message: "Internal server error while generating quiz code" });
+  }
+};
+
+/**
  * POST /api/v1/user/quiz
  * Create a new quiz from the creator settings form.
  */
@@ -207,7 +226,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       code: code,
       createdby: Number(userId),
       starttime: body.starttime ? new Date(body.starttime) : new Date(Date.now() + 3600000),
-      endtime: body.endtime ? new Date(body.endtime) : new Date(Date.now() + 7200000),
+
       visibility: visibilityId ?? 1,
       difficulty: difficultyId ?? 1,
       totalMarks: calculatedTotal || 50,

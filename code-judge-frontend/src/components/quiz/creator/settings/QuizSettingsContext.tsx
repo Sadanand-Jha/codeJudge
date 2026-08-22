@@ -10,6 +10,15 @@ import { useToast } from "@/hooks/useToast";
 
 export type QuizStatus = "draft" | "scheduled" | "registration_open" | "live" | "ended" | "completed";
 
+/** Convert a backend ISO timestamp to a datetime-local value (YYYY-MM-DDTHH:mm). */
+function toLocalInput(value?: string | null): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function deriveQuizStatus(opts: {
   hasQuizId: boolean;
   status?: string;
@@ -160,14 +169,17 @@ export function QuizSettingsProvider({
   }, [refresh]);
 
   useEffect(() => {
-    // Only hydrate the name from the backend when the quiz object itself
-    // changes (initial load or explicit refresh) — never while the user is
-    // actively editing the name field.
-    if (quiz?.name && !details.name.trim()) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate the quiz name from backend when quiz object changes
-      setDetails((d) => ({ ...d, name: quiz.name }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: only sync once per quiz load, not on every keystroke
+    // Only hydrate from the backend when the quiz object itself changes
+    // (initial load or explicit refresh) — never while the user is actively
+    // editing a field. Empty local fields are filled from saved quiz values.
+    if (!quiz) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate saved schedule/name from the backend when the quiz loads
+    setDetails((d) => ({
+      ...d,
+      name: !d.name.trim() && quiz.name ? quiz.name : d.name,
+      startDate: d.startDate || toLocalInput(quiz.starttime),
+      endDate: d.endDate || toLocalInput(quiz.endtime),
+    }));
   }, [quiz]);
 
   const updateDetails = useCallback((patch: Partial<QuizDetails>) => {

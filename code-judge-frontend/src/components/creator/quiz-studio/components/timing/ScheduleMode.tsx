@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Play, Info } from "lucide-react";
-import { cn } from "@/lib/helpers";
+import { Play, Info, Flag } from "lucide-react";
 import { DateTimeField } from "./DateTimeField";
 import { ConfirmModal } from "./ConfirmModal";
 import {
@@ -10,6 +9,7 @@ import {
   toTimeString,
   formatTime12,
   isPast,
+  isStartAfterEnd,
 } from "./helpers";
 import type { ScheduleConfig, QuizLifecycle } from "./types";
 
@@ -31,6 +31,19 @@ export function ScheduleMode({
   const isLive = manualStatus === "live";
   const isEnded = manualStatus === "ended";
   const locked = isLive || isEnded;
+
+  const endInvalid = isStartAfterEnd(
+    schedule.startDate,
+    schedule.startTime,
+    schedule.endDate,
+    schedule.endTime
+  );
+  const endError =
+    schedule.endDate && !schedule.startDate
+      ? "Set a start date first, then the end."
+      : endInvalid
+        ? "End must be after the scheduled start."
+        : undefined;
 
   return (
     <div className="space-y-5">
@@ -61,53 +74,40 @@ export function ScheduleMode({
           )}
       </div>
 
+      {/* ===== End date & time ===== */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-            Automatically end quiz
-          </p>
-          <button
-            type="button"
-            onClick={() => onChange({ autoEnd: !schedule.autoEnd })}
-            className={cn(
-              "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
-              schedule.autoEnd
-                ? "border-indigo-400 bg-indigo-300"
-                : "border-border bg-border"
-            )}
-          >
-            <span
-              className={cn(
-                "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
-                schedule.autoEnd ? "translate-x-[18px]" : "translate-x-0.5"
-              )}
-            />
-          </button>
-        </div>
-        <p className="text-[11px] text-text-secondary">
-          {schedule.autoEnd
-            ? "When the quiz ends, new participants can no longer start an attempt. Participants who are already taking the quiz follow the configured end behavior."
-            : "Quiz remains live until you manually end it."}
+        <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+          End
         </p>
-        {schedule.autoEnd && (
-          <DateTimeField
-            label="End date & time"
-            date={schedule.endDate}
-            time={schedule.endTime}
-            onDateChange={(d) => onChange({ endDate: d })}
-            onTimeChange={(t) => onChange({ endTime: t })}
-            error={validationErrors.find((e) => e.includes("end"))}
-            disabled={locked}
-          />
-        )}
-        {schedule.autoEnd && schedule.endDate && schedule.endTime && (
-          <div className="flex items-start gap-2 rounded-lg border border-border bg-card-hover px-3 py-2">
-            <Info className="mt-0.5 h-3 w-3 shrink-0 text-text-muted" />
-            <p className="text-[11px] text-text-secondary">
-              Participants will no longer be able to start the quiz after{" "}
-              {formatTime12(schedule.endTime)}.
-            </p>
-          </div>
+        <DateTimeField
+          label="End date & time (optional)"
+          date={schedule.endDate}
+          time={schedule.endTime}
+          onDateChange={(d) => onChange({ endDate: d })}
+          onTimeChange={(t) => onChange({ endTime: t })}
+          error={endError}
+          disabled={locked}
+        />
+        {schedule.endDate ? (
+          !endError && (
+            <div className="flex items-center gap-2 rounded-lg border border-indigo-500/20 bg-indigo-500/[0.04] px-3 py-2">
+              <Flag className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
+              <p className="text-[11px] text-indigo-600 dark:text-indigo-400">
+                The quiz will stop accepting attempts at{" "}
+                {formatTime12(schedule.endTime)} on{" "}
+                {new Date(`${schedule.endDate}T00:00`).toLocaleDateString(
+                  "en-IN",
+                  { day: "numeric", month: "long" }
+                )}
+                .
+              </p>
+            </div>
+          )
+        ) : (
+          <p className="flex items-center gap-2 text-[11px] text-text-secondary">
+            <span className="h-px w-6 shrink-0 bg-border" />
+            Leave empty to end the quiz manually anytime.
+          </p>
         )}
       </div>
 

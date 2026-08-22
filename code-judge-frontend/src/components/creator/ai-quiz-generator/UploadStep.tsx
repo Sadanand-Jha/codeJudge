@@ -118,7 +118,7 @@ export function UploadStep({
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 py-8">
+    <div className="mx-auto max-w-2xl space-y-8 pb-8">
       {/* Header */}
       <div className="text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/20">

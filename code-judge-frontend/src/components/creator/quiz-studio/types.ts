@@ -142,13 +142,14 @@ export interface StudioQuizInfo {
   difficulty: "Easy" | "Medium" | "Hard" | "Expert";
   language: string;
   duration: number;
+  passingMarks: number;
   tags: string[];
   thumbnailUrl: string;
   startDate: string;
   endDate: string;
 }
 
-export type AccessMode = "public" | "private" | "unlisted" | "classroom";
+export type AccessMode = "public" | "private" | "classroom";
 
 export interface StudioSettings {
   randomizeQuestions: boolean;
@@ -228,6 +229,7 @@ export const DEFAULT_QUIZ_INFO: StudioQuizInfo = {
   difficulty: "Medium",
   language: "English",
   duration: 60,
+  passingMarks: 0,
   tags: [],
   thumbnailUrl: "",
   startDate: "",

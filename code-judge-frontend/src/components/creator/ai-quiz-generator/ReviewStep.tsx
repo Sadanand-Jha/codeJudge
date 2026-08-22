@@ -84,7 +84,7 @@ export function ReviewStep({
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 py-6">
+    <div className="mx-auto max-w-3xl space-y-6 pb-6">
       {/* Header */}
       <div className="text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
