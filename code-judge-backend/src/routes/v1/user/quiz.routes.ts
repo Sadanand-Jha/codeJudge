@@ -1,5 +1,4 @@
 import { Router } from "express";
-import type { Request, Response } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
 import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, cloneQuizSchema, joinQuizSchema } from "../../../middleware/validate.ts";
 import {
@@ -9,6 +8,7 @@ import {
   getQuizProblemsController,
   registerForQuiz,
   getMyQuizzes,
+  getMyCreatedQuizzes,
   createQuiz,
   updateQuiz,
   deleteQuiz,
@@ -33,6 +33,7 @@ import {
   retryQuizResultsEmail,
   getAllSubjects,
   getQuizVisibilityOptions,
+  getQuizDifficultyOptions,
   sendCollaboratorRequest,
   getQuizCollaborators,
   getMyCollaborations,
@@ -45,10 +46,6 @@ import {
   getQuizParticipantsController,
   generateQuizCodeEndpoint,
 } from "../../../controllers/quiz.controller.ts";
-import { QuizService } from "../../../services/database/quiz.service.ts";
-
-const quizService = new QuizService();
-
 const router = Router();
 
 // All quiz routes require authentication
@@ -74,63 +71,16 @@ router.get("/old-quizzes", getPreviousQuizzes);
  * GET /api/v1/user/quiz/my-quizzes
  * Get quizzes created by the authenticated user
  */
-router.get("/my-quizzes", async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.userId;
-
-    if (!userId) {
-      res.status(401).json({
-        success: false,
-        message: "Unauthorized access",
-      });
-      return;
-    }
-
-    const {
-      page = "1",
-      limit = "10",
-      search = "",
-      status,
-      visibility,
-      sortBy = "created_at",
-      sortOrder = "DESC",
-    } = req.query;
-
-    const result = await quizService.getAllQuizzes({
-      page: Number(page),
-      limit: Number(limit),
-      search: search as string,
-      status: status as string,
-      visibility: visibility ? Number(visibility) : undefined,
-      sortBy: sortBy as string,
-      sortOrder: sortOrder as string,
-      userId: Number(userId),
-    });
-
-    res.status(200).json({
-      success: true,
-      data: result.quizzes,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total: result.total,
-        totalPages: Math.ceil(result.total / Number(limit)),
-      },
-    });
-  } catch (error) {
-    console.error("Error fetching my quizzes:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error while fetching my quizzes",
-    });
-  }
-});
+router.get("/my-quizzes", getMyCreatedQuizzes);
 
 // GET /api/v1/user/quiz/code/:code — get a quiz by its code
 router.get("/code/:code", getQuizByCode);
 
 // GET /api/v1/user/quiz/visibility-options — get visibility options from quiz_visibility table
 router.get("/visibility-options", getQuizVisibilityOptions);
+
+// GET /api/v1/user/quiz/difficulty-options — get difficulty options from quiz_difficulty table
+router.get("/difficulty-options", getQuizDifficultyOptions);
 
 // GET /api/v1/user/quiz/generate-code — generate a unique 16-char quiz code
 router.get("/generate-code", generateQuizCodeEndpoint);

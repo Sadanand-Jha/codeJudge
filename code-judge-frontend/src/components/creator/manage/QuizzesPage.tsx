@@ -17,10 +17,9 @@ import {
   HelpCircle,
   Radio,
 } from "lucide-react";
-import { useBillingData } from "@/components/creator/billing/hooks";
+import { useData } from "@/lib/hooks/useData";
 import {
   PageHeader,
-  MockDataTag,
   SegmentedControl,
   BillButton,
   StatCard,
@@ -32,12 +31,15 @@ import {
 } from "@/components/creator/billing/ui";
 import type { StatusTone } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
+import { getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
+import { toast } from "@/lib/toast";
 
 type QuizStatus = "live" | "draft" | "scheduled" | "completed";
 
-interface MockQuiz {
+interface QuizCard {
   id: string;
   title: string;
+  code: string;
   subject: string;
   questions: number;
   durationMin: number;
@@ -47,18 +49,27 @@ interface MockQuiz {
   status: QuizStatus;
 }
 
-const MOCK_QUIZZES: MockQuiz[] = [
-  { id: "q_01", title: "Rotational Motion Quick Quiz", subject: "Physics", questions: 12, durationMin: 15, attempts: 8420, completionRate: 78, rating: 4.7, status: "live" },
-  { id: "q_02", title: "Quant Aptitude Sprint 10", subject: "Quantitative Aptitude", questions: 10, durationMin: 12, attempts: 12040, completionRate: 71, rating: 4.4, status: "live" },
-  { id: "q_03", title: "Name Reactions in Organic Chemistry", subject: "Chemistry", questions: 15, durationMin: 20, attempts: 5310, completionRate: 64, rating: 4.2, status: "live" },
-  { id: "q_04", title: "Critical Reasoning Basics", subject: "Verbal Ability", questions: 10, durationMin: 15, attempts: 3250, completionRate: 58, rating: 3.9, status: "live" },
-  { id: "q_05", title: "Indian Polity Rapid Fire", subject: "General Knowledge", questions: 20, durationMin: 25, attempts: 0, completionRate: 0, rating: 0, status: "draft" },
-  { id: "q_06", title: "Calculus Fundamentals Check", subject: "Mathematics", questions: 15, durationMin: 18, attempts: 0, completionRate: 0, rating: 0, status: "draft" },
-  { id: "q_07", title: "Human Physiology Quiz", subject: "Biology", questions: 15, durationMin: 20, attempts: 0, completionRate: 0, rating: 0, status: "scheduled" },
-  { id: "q_08", title: "Vocabulary Booster 5", subject: "English", questions: 12, durationMin: 10, attempts: 0, completionRate: 0, rating: 0, status: "scheduled" },
-  { id: "q_09", title: "Daily GK Quiz — Aug 2026 Set 4", subject: "General Knowledge", questions: 10, durationMin: 10, attempts: 21300, completionRate: 66, rating: 4.1, status: "completed" },
-  { id: "q_10", title: "Seating Arrangement Puzzle", subject: "Reasoning", questions: 8, durationMin: 12, attempts: 19880, completionRate: 61, rating: 4.0, status: "completed" },
-];
+function mapQuizToCard(q: Quiz): QuizCard {
+  const raw = (q as any).status;
+  let status: QuizStatus = "draft";
+  if (raw === "published" || raw === "live") status = "live";
+  else if (raw === "scheduled") status = "scheduled";
+  else if (raw === "completed") status = "completed";
+  else if (raw === "draft") status = "draft";
+
+  return {
+    id: String(q.id),
+    title: q.name,
+    code: q.code,
+    subject: (q as any).subject || "General",
+    questions: (q as any).total_questions ?? 0,
+    durationMin: (q as any).duration ?? 0,
+    attempts: (q as any).attempts ?? 0,
+    completionRate: (q as any).completion_rate ?? 0,
+    rating: (q as any).rating ?? 0,
+    status,
+  };
+}
 
 const TABS: ReadonlyArray<{ id: TabId; label: string }> = [
   { id: "all", label: "All" },
@@ -85,7 +96,10 @@ const CARD_ACTIONS = [
 ] as const;
 
 export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
-  const { state, data, retry } = useBillingData(() => MOCK_QUIZZES, { delayMs: 650, demoState });
+  const { status, data, retry, error } = useData(async () => {
+    const res = await getMyCreatedQuizzes({ page: 1, limit: 50 });
+    return res.quizzes.map(mapQuizToCard);
+  });
   const [filter, setFilter] = useState<TabId>("all");
 
   const filtered = useMemo(() => {
@@ -107,7 +121,6 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
       <PageHeader
         title="Your Quizzes"
         subtitle="Manage your quick assessments and quizzes"
-        badge={<MockDataTag />}
         actions={
           <BillButton href="/creator/quizzes/create" icon={<Plus className="h-4 w-4" />}>
             New Quiz
@@ -115,9 +128,9 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         }
       />
 
-      {state === "loading" && (
+      {status === "loading" && (
         <>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <StatCardSkeleton key={i} />
             ))}
@@ -130,9 +143,9 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         </>
       )}
 
-      {state === "error" && <ErrorState onRetry={retry} />}
+      {status === "error" && <ErrorState onRetry={retry} message={error?.message} />}
 
-      {state === "empty" && (
+      {status === "empty" && (
         <EmptyState
           title="No quizzes yet"
           description="Create a quick assessment to engage students and gather instant feedback."
@@ -140,16 +153,16 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         />
       )}
 
-      {state === "ready" && data && (
+      {status === "ready" && data && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <SegmentedControl options={TABS} value={filter} onChange={setFilter} size="md" />
             <span className="text-[11px] font-semibold text-text-muted">
               Showing {filtered.length} of {data.length} quizzes
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
             <StatCard
               label="Total Quizzes"
               value={filtered.length}
@@ -201,12 +214,21 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.02, duration: 0.3 }}
-                    className="flex flex-col rounded-2xl border border-border bg-card p-5 transition-colors duration-200 hover:border-border-hover"
+                    className="flex flex-col rounded-2xl border border-border bg-card p-4 transition-colors duration-200 hover:border-border-hover sm:p-5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h3 className="truncate text-sm font-semibold text-text-primary">{q.title}</h3>
-                        <p className="mt-0.5 text-[11px] text-text-muted">{q.subject}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(q.code);
+                            toast.success({ title: "Code copied", description: q.code });
+                          }}
+                          className="mt-0.5 font-mono text-[11px] text-text-muted transition-colors hover:text-text-primary"
+                        >
+                          {q.code}
+                        </button>
                       </div>
                       <StatusBadge label={meta.label} tone={meta.tone} dot />
                     </div>
@@ -215,7 +237,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                       <MiniStat label="Questions" value={String(q.questions)} icon={HelpCircle} />
                       <MiniStat label="Duration" value={`${q.durationMin} min`} icon={Timer} />
                       <MiniStat label="Attempts" value={q.attempts.toLocaleString("en-IN")} icon={Users} />
-                      <MiniStat label="Completion" value={engaged ? `${q.completionRate}%` : "—"} icon={BarChart3} />
+                      <MiniStat label="Completion" value={engaged ? `${q.completionRate}%` : "\u2014"} icon={BarChart3} />
                     </div>
 
                     {engaged && (
@@ -237,7 +259,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                       <Stars rating={q.rating} />
                     </div>
 
-                    <div className="mt-4 flex items-center gap-1 border-t border-border pt-3">
+                    <div className="mt-4 flex flex-wrap items-center gap-1 border-t border-border pt-3">
                       {CARD_ACTIONS.map((action) => {
                         const Icon = action.icon;
                         return (
@@ -247,7 +269,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-text-secondary transition-colors hover:bg-white/[0.04] hover:text-pink-500 dark:hover:text-ai-accent"
                           >
                             <Icon className="h-3.5 w-3.5" />
-                            {action.label}
+                            <span className="hidden sm:inline">{action.label}</span>
                           </button>
                         );
                       })}
@@ -256,7 +278,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                         className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-danger/80 transition-colors hover:bg-danger/10 hover:text-danger"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                        Delete
+                        <span className="hidden sm:inline">Delete</span>
                       </button>
                     </div>
                   </motion.div>

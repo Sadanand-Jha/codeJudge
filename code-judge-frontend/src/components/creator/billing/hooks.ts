@@ -43,10 +43,15 @@ export function useBillingData<T>(
         setState("error");
         return;
       }
-      Promise.resolve(loaderRef.current()).then((result) => {
-        setData(result);
-        setState("ready");
-      });
+      Promise.resolve(loaderRef.current())
+        .then((result) => {
+          setData(result);
+          setState("ready");
+        })
+        .catch(() => {
+          setData(null);
+          setState("error");
+        });
     }, delay);
     return timer;
   }, [demoState]);

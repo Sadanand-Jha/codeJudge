@@ -107,51 +107,51 @@ function initialState(): StudioState {
 
 export function StudioProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<StudioState>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw) as StudioState;
-          if (parsed && parsed.info && parsed.questions) {
-            return {
-              ...initialState(),
-              ...parsed,
-              info: { ...DEFAULT_QUIZ_INFO, ...parsed.info },
-              settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
-              audience: {
-                ...DEFAULT_AUDIENCE,
-                ...parsed.audience,
-                roomIds: Array.isArray(parsed.audience?.roomIds)
-                  ? parsed.audience.roomIds
-                  : [],
-                roomStudentSelections:
-                  parsed.audience?.roomStudentSelections &&
-                  typeof parsed.audience.roomStudentSelections === "object"
-                    ? parsed.audience.roomStudentSelections
-                    : {},
-                invitedEmails: Array.isArray(parsed.audience?.invitedEmails)
-                  ? parsed.audience.invitedEmails
-                  : [],
-                // Older drafts may hold a short/legacy code — upgrade to 16 chars.
-                accessCode:
-                  parsed.audience?.accessCode?.length === 16
-                    ? parsed.audience.accessCode
-                    : generateQuizCode(),
-              },
-              registration: {
-                settings: {
-                  ...DEFAULT_REGISTRATION.settings,
-                  ...(parsed.registration?.settings ?? {}),
-                },
-                fields: Array.isArray(parsed.registration?.fields)
-                  ? parsed.registration.fields
-                  : DEFAULT_REGISTRATION.fields,
-              },
-            };
-          }
-        }
-      } catch {}
-    }
+    // if (typeof window !== "undefined") {
+    //   try {
+    //     const raw = localStorage.getItem(STORAGE_KEY);
+    //     if (raw) {
+    //       const parsed = JSON.parse(raw) as StudioState;
+    //       if (parsed && parsed.info && parsed.questions) {
+    //         return {
+    //           ...initialState(),
+    //           ...parsed,
+    //           info: { ...DEFAULT_QUIZ_INFO, ...parsed.info },
+    //           settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
+    //           audience: {
+    //             ...DEFAULT_AUDIENCE,
+    //             ...parsed.audience,
+    //             roomIds: Array.isArray(parsed.audience?.roomIds)
+    //               ? parsed.audience.roomIds
+    //               : [],
+    //             roomStudentSelections:
+    //               parsed.audience?.roomStudentSelections &&
+    //               typeof parsed.audience.roomStudentSelections === "object"
+    //                 ? parsed.audience.roomStudentSelections
+    //                 : {},
+    //             invitedEmails: Array.isArray(parsed.audience?.invitedEmails)
+    //               ? parsed.audience.invitedEmails
+    //               : [],
+    //             // Older drafts may hold a short/legacy code — upgrade to 16 chars.
+    //             accessCode:
+    //               parsed.audience?.accessCode?.length === 16
+    //                 ? parsed.audience.accessCode
+    //                 : generateQuizCode(),
+    //           },
+    //           registration: {
+    //             settings: {
+    //               ...DEFAULT_REGISTRATION.settings,
+    //               ...(parsed.registration?.settings ?? {}),
+    //             },
+    //             fields: Array.isArray(parsed.registration?.fields)
+    //               ? parsed.registration.fields
+    //               : DEFAULT_REGISTRATION.fields,
+    //           },
+    //         };
+    //       }
+    //     }
+    //   } catch {}
+    // }
     return initialState();
   });
 
@@ -166,10 +166,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        setState((s) => ({ ...s, saveStatus: "saved", lastSaved: new Date() }));
+        // localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        // setState((s) => ({ ...s, saveStatus: "saved", lastSaved: new Date() }));
       } catch {
-        setState((s) => ({ ...s, saveStatus: "idle" }));
+        // setState((s) => ({ ...s, saveStatus: "idle" }));
       }
     }, 800);
     return () => {
@@ -332,12 +332,12 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   };
 
   const goToStep = (id: StudioState["step"]) => {
-    if (id !== state.step && !validateAllQuestions()) return;
+    if (id !== state.step && state.step !== "setup" && state.step !== "publish" && !validateAllQuestions()) return;
     setState((s) => ({ ...s, step: id }));
   };
   const nextStep = async () => {
     const i = STEPS.findIndex((st) => st.id === state.step);
-    if (i < STEPS.length - 1 && !validateAllQuestions()) return;
+    if (state.step !== "setup" && state.step !== "publish" && !validateAllQuestions()) return;
 
     if (state.step === "setup") {
       try {
@@ -382,7 +382,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
         description: state.info.shortDescription || undefined,
         fullDescription: state.info.fullDescription || undefined,
         subject: state.info.subject || undefined,
+        subjectId: state.info.subjectId ? Number(state.info.subjectId) : undefined,
+        examId: state.info.examId ? Number(state.info.examId) : undefined,
         difficulty: state.info.difficulty,
+        difficultyId: state.info.difficultyId ? Number(state.info.difficultyId) : undefined,
         timeLimit: state.info.duration || undefined,
         starttime: state.info.startDate || undefined,
         endtime: state.info.endDate || undefined,
@@ -405,6 +408,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
           code: payload.code,
           starttime: payload.starttime,
           endtime: payload.endtime,
+          subjectId: payload.subjectId,
+          examId: payload.examId,
+          difficulty: payload.difficultyId,
+          duration: payload.timeLimit,
           shuffleQuestions: payload.randomizeQuestions,
           shuffleOptions: payload.randomizeOptions,
           showResultsImmediately: payload.showResultsImmediately,

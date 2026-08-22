@@ -270,6 +270,14 @@ export async function generateQuizCode(): Promise<string> {
 }
 
 /**
+ * GET /api/v1/user/quiz/difficulty-options
+ */
+export async function getQuizDifficultyOptions(): Promise<{ id: number; heading: string }[]> {
+  const response = await apiClient.get("/v1/user/quiz/difficulty-options");
+  return response.data as { id: number; heading: string }[];
+}
+
+/**
  * Create a new quiz from the creator settings form
  * POST /api/v1/user/quiz
  */
@@ -289,6 +297,9 @@ export async function updateQuiz(quizId: string, data: Partial<{
   endtime: string | null;
   visibility: number;
   difficulty: number;
+  subjectId: number;
+  examId: number;
+  duration: number;
   totalMarks: number;
   passingMarks: number;
   shuffleQuestions: boolean;

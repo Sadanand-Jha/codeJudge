@@ -7,7 +7,6 @@ import {
   Sparkles,
   Upload,
   X,
-  Check,
   Clock,
   ListChecks,
   Award,
@@ -17,7 +16,7 @@ import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { Badge } from "../primitives";
 import { SearchableDropdown } from "@/components/ui";
-import { getAllSubjects, getAllExamCategories, generateQuizCode as fetchQuizCode } from "@/services/quiz";
+import { getAllSubjects, getAllExamCategories, generateQuizCode as fetchQuizCode, getQuizDifficultyOptions } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 
 const CREATE_CHOICES = [
@@ -60,15 +59,15 @@ export function SetupStep() {
 
   const info = state.info;
   const marks = summary.totalMarks;
-  const generatedForTitle = useRef("");
+  const fetchedRef = useRef(false);
+  const [difficultyOptions, setDifficultyOptions] = useState<{ id: number; heading: string }[]>([]);
 
   useEffect(() => {
-    const title = info.title.trim();
-    if (title.length >= 3 && title !== generatedForTitle.current) {
-      generatedForTitle.current = title;
-      fetchQuizCode().then((code) => updateInfo({ code })).catch(() => {});
-    }
-  }, [info.title, updateInfo]);
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    fetchQuizCode().then((code) => updateInfo({ code })).catch(() => {});
+    getQuizDifficultyOptions().then(setDifficultyOptions).catch(() => {});
+  }, []);
 
   const hasBasicInfo = info.title.trim().length >= 3;
 
@@ -125,7 +124,7 @@ export function SetupStep() {
                 <input
                   value={info.code}
                   readOnly
-                  placeholder="Auto-generated when you enter a title"
+                  placeholder="Auto-generated"
                   className="h-10 flex-1 rounded-lg border border-input-border bg-input-bg px-3.5 font-mono text-sm tracking-wider text-text-primary placeholder-text-muted outline-none"
                 />
                 {info.code && (
@@ -221,16 +220,27 @@ export function SetupStep() {
               */}
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-text-secondary">Difficulty</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["Easy", "Medium", "Hard", "Expert"] as const).map((d) => (
-                    <DifficultySelect
-                      key={d}
-                      value={d}
-                      selected={info.difficulty === d}
-                      onSelect={() => updateInfo({ difficulty: d })}
-                    />
-                  ))}
-                </div>
+                {difficultyOptions.length === 0 ? (
+                  <p className="text-[11px] text-text-muted">Loading difficulty options…</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {difficultyOptions.map((opt, i) => (
+                      <DifficultySelect
+                        key={opt.id}
+                        value={opt.heading}
+                        index={i}
+                        selected={
+                          info.difficultyId !== "" && info.difficultyId != null
+                            ? String(info.difficultyId) === String(opt.id)
+                            : info.difficulty.toLowerCase() === opt.heading.toLowerCase()
+                        }
+                        onSelect={() => {
+                          updateInfo({ difficulty: opt.heading, difficultyId: opt.id });
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
               {/* Language - commented out for now
               <div className="space-y-2">
@@ -248,10 +258,6 @@ export function SetupStep() {
                 </select>
               </div>
               */}
-              <div className="space-y-2 sm:col-span-2">
-                <label className="block text-xs font-bold text-text-secondary">Tags</label>
-                <TagInput tags={info.tags} onChange={(tags) => updateInfo({ tags })} />
-              </div>
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-text-secondary">Duration (minutes)</label>
                 <div className="relative">
@@ -289,16 +295,7 @@ export function SetupStep() {
             </div>
           </div>
 
-          {/* Summary rail */}
-          <div className="flex flex-col gap-5">
-            <SummaryRail
-              questionCount={summary.questionCount}
-              totalMarks={marks}
-              duration={info.duration}
-              completed={summary.validQuestions}
-              status={hasBasicInfo ? "ok" : "incomplete"}
-            />
-          </div>
+
         </div>
       </div>
     </div>
@@ -350,21 +347,29 @@ function ChoiceCard({
   );
 }
 
+const DIFFICULTY_FALLBACK_COLORS = ["bg-emerald-500", "bg-amber-500", "bg-orange-500", "bg-rose-500"];
+
+const DIFFICULTY_NAMED_COLORS: Record<string, string> = {
+  easy: "bg-emerald-500",
+  medium: "bg-amber-500",
+  hard: "bg-orange-500",
+  expert: "bg-rose-500",
+};
+
 function DifficultySelect({
   value,
+  index,
   selected,
   onSelect,
 }: {
-  value: "Easy" | "Medium" | "Hard" | "Expert";
+  value: string;
+  index: number;
   selected: boolean;
   onSelect: () => void;
 }) {
-  const color = {
-    Easy: "bg-emerald-500",
-    Medium: "bg-amber-500",
-    Hard: "bg-orange-500",
-    Expert: "bg-rose-500",
-  }[value];
+  const color =
+    DIFFICULTY_NAMED_COLORS[value.toLowerCase()] ??
+    DIFFICULTY_FALLBACK_COLORS[index % DIFFICULTY_FALLBACK_COLORS.length];
   return (
     <button
       type="button"
@@ -428,54 +433,4 @@ function TagInput({
   );
 }
 
-function SummaryRail({
-  questionCount,
-  totalMarks,
-  duration,
-  completed,
-  status,
-}: {
-  questionCount: number;
-  totalMarks: number;
-  duration: number;
-  completed: number;
-  status: "ok" | "incomplete";
-}) {
-  return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2 text-center">
-        <div className="rounded-xl border border-border bg-card p-3">
-          <div className="flex items-center justify-center gap-1 text-xs text-text-secondary">
-            <ListChecks className="h-3.5 w-3.5" /> Questions
-          </div>
-          <p className="text-lg font-bold text-text-primary">{questionCount}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3">
-          <div className="flex items-center justify-center gap-1 text-xs text-text-secondary">
-            <Award className="h-3.5 w-3.5" /> Marks
-          </div>
-          <p className="text-lg font-bold text-text-primary">{totalMarks}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3">
-          <div className="flex items-center justify-center gap-1 text-xs text-text-secondary">
-            <Clock className="h-3.5 w-3.5" /> Duration
-          </div>
-          <p className="text-lg font-bold text-text-primary">{duration || 0} min</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3">
-          <div className="flex items-center justify-center gap-1 text-xs text-text-secondary">
-            <Check className="h-3.5 w-3.5" /> Complete
-          </div>
-          <p className="text-lg font-bold text-text-primary">
-            {completed}/{questionCount}
-          </p>
-        </div>
-      </div>
-      {status === "incomplete" && (
-        <p className="text-[11px] font-semibold text-amber-500">
-          Complete the quiz title to continue to the next step.
-        </p>
-      )}
-    </div>
-  );
-}
+

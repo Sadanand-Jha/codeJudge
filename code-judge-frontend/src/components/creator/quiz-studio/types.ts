@@ -139,7 +139,8 @@ export interface StudioQuizInfo {
   exam: string;
   examId: string | number;
   classGrade: string;
-  difficulty: "Easy" | "Medium" | "Hard" | "Expert";
+  difficulty: string;
+  difficultyId: string | number;
   language: string;
   duration: number;
   passingMarks: number;
@@ -227,6 +228,7 @@ export const DEFAULT_QUIZ_INFO: StudioQuizInfo = {
   examId: "",
   classGrade: "",
   difficulty: "Medium",
+  difficultyId: "",
   language: "English",
   duration: 60,
   passingMarks: 0,

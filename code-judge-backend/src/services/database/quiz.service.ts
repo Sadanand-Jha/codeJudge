@@ -60,6 +60,9 @@ export class QuizService {
     starttime?: Date;
     visibility?: number;
     difficulty?: number;
+    subjectId?: number;
+    examId?: number;
+    duration?: number;
     totalMarks?: number;
     passingMarks?: number;
     shuffleQuestions?: boolean;

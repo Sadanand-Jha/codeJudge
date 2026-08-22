@@ -106,6 +106,10 @@ export const quizSchema = z.object({
 
   visibility: z.number().int().positive().optional(),
   difficulty: z.union([z.string(), z.number().int().positive()]).optional(),
+  difficultyId: z.number().int().positive().optional(),
+  subjectId: z.number().int().positive().optional(),
+  examId: z.number().int().positive().optional(),
+  duration: z.number().int().positive().optional(),
   totalMarks: z.number().nonnegative().optional(),
   passingMarks: z.number().nonnegative().optional(),
   shuffleQuestions: z.boolean().optional(),
