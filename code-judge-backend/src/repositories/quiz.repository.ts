@@ -137,6 +137,9 @@ export class QuizRepository {
         q.endtime,
         q.visibility,
         q.difficulty,
+        q.subject_id,
+        q.exam_cat,
+        q.duration,
         q.total_marks,
         q.passing_marks,
         q.shuffle_questions,
@@ -197,6 +200,9 @@ export class QuizRepository {
         q.endtime,
         q.visibility,
         q.difficulty,
+        q.subject_id,
+        q.exam_cat,
+        q.duration,
         q.total_marks,
         q.passing_marks,
         q.shuffle_questions,
@@ -366,12 +372,21 @@ export class QuizRepository {
     leaderboard?: boolean;
     status?: string;
   }): Promise<any> {
+    let statusId: number | null = null;
+    if (data.status) {
+      const statusResult = await pool.query(
+        "SELECT id FROM quiz_status WHERE LOWER(name) = LOWER($1) LIMIT 1",
+        [data.status]
+      );
+      statusId = statusResult.rows.length > 0 ? statusResult.rows[0].id : null;
+    }
+
     const query = `
       INSERT INTO quiz (
         name, code, createdby, starttime, visibility, difficulty,
         subject_id, exam_cat, duration, total_marks, passing_marks,
         shuffle_questions, shuffle_options, show_results_immediately,
-        negative_marking, leaderboard, status, created_at, updated_at
+        negative_marking, leaderboard, quiz_status, created_at, updated_at
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
@@ -393,7 +408,7 @@ export class QuizRepository {
       data.showResultsImmediately || false,
       data.negativeMarking || false,
       data.leaderboard !== false,
-      data.status || "draft",
+      statusId,
     ]);
     return result.rows[0];
   }
@@ -470,14 +485,30 @@ export class QuizRepository {
     const updateableFields = [
       "name", "code", "starttime", "endtime", "visibility", "difficulty",
       "subject_id", "exam_cat", "duration", "total_marks", "passing_marks", "shuffle_questions", "shuffle_options",
-      "show_results_immediately", "negative_marking", "leaderboard", "status"
+      "show_results_immediately", "negative_marking", "leaderboard", "quiz_status"
     ];
 
+    const fieldKeyMap: Record<string, string> = {
+      status: "quiz_status",
+      subjectId: "subject_id",
+      examId: "exam_cat",
+      timeLimit: "duration",
+      totalQuestions: "total_marks",
+      shuffleQuestions: "shuffle_questions",
+      shuffleOptions: "shuffle_options",
+      showResultsImmediately: "show_results_immediately",
+      negativeMarking: "negative_marking",
+      passingMarks: "passing_marks",
+      passingPercentage: "passing_marks",
+    };
+
     for (const field of updateableFields) {
-      if (data[field] !== undefined) {
+      const camelKey = Object.keys(fieldKeyMap).find((k) => fieldKeyMap[k] === field);
+      const val = data[field] ?? (camelKey ? data[camelKey] : undefined);
+      if (val !== undefined) {
         paramCount++;
         fields.push(`${field} = $${paramCount}`);
-        values.push(data[field]);
+        values.push(val);
       }
     }
 
@@ -512,17 +543,23 @@ export class QuizRepository {
       if (!originalQuiz.rows.length) throw new Error("Quiz not found");
 
       const original = originalQuiz.rows[0];
+
+      const statusResult = await client.query(
+        "SELECT id FROM quiz_status WHERE LOWER(name) = 'draft' LIMIT 1"
+      );
+      const draftStatusId = statusResult.rows.length > 0 ? statusResult.rows[0].id : 1;
+
       const newQuiz = await client.query(
         `INSERT INTO quiz (name, code, createdby, starttime, endtime, visibility, difficulty,
          total_marks, passing_marks, shuffle_questions, shuffle_options, show_results_immediately,
-         negative_marking, leaderboard, status, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'draft', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         negative_marking, leaderboard, quiz_status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
          RETURNING *`,
         [
           newName, newCode, createdBy, original.starttime, original.endtime,
           original.visibility, original.difficulty, original.total_marks, original.passing_marks,
           original.shuffle_questions, original.shuffle_options, original.show_results_immediately,
-          original.negative_marking, original.leaderboard
+          original.negative_marking, original.leaderboard, draftStatusId
         ]
       );
 
@@ -839,7 +876,7 @@ export class QuizRepository {
 
     const q = quiz.rows[0];
 
-    if (q.status === 'draft') {
+    if (q.status?.toLowerCase() === 'draft') {
       return { allowed: false, reason: "Quiz is not published" };
     }
 
@@ -994,7 +1031,7 @@ export class QuizRepository {
       const result = await pool.query(query, [`%${search}%`]);
       return result.rows;
     }
-    const query = `SELECT * FROM subjects ORDER BY name`;
+    const query = `SELECT * FROM subjects ORDER BY subject_name`;
     const result = await pool.query(query);
     return result.rows;
   }

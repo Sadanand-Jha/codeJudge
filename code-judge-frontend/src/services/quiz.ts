@@ -13,6 +13,20 @@ export interface Quiz {
   createdby: number;
   starttime: string | null;
   endtime: string | null;
+  visibility: number | null;
+  visibility_name: string | null;
+  difficulty: number | null;
+  difficulty_name: string | null;
+  subject_id: number | null;
+  exam_cat: number | null;
+  duration: number | null;
+  total_marks: number | null;
+  passing_marks: number | null;
+  shuffle_questions: boolean | null;
+  shuffle_options: boolean | null;
+  show_results_immediately: boolean | null;
+  negative_marking: boolean | null;
+  leaderboard: boolean | null;
   status: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -101,6 +115,11 @@ export interface QuizProblem {
   problem_description: string | null;
   quiz_problem_type: number | null;
   problem_type_name: string | null;
+  question_number: number | null;
+  explaination: string | null;
+  hint: string | null;
+  difficulty: number | null;
+  difficulty_name: string | null;
   created_at: string | null;
   updated_at: string | null;
   options: QuizProblemOption[];
@@ -181,6 +200,38 @@ export async function getQuizById(quizId: string): Promise<Quiz> {
 export async function getQuizByCode(code: string): Promise<Quiz> {
   const response = await apiClient.get<Quiz>(`/v1/user/quiz/code/${code}`);
   return response.data;
+}
+
+export interface QuizProblemWithOptions extends QuizProblem {
+  options: QuizProblemOption[];
+}
+
+/**
+ * Load a quiz and its problems for editing in the studio.
+ * Returns quiz metadata + resolved subject/exam names + problems.
+ */
+export async function loadQuizForEdit(quizId: string): Promise<{
+  quiz: Quiz & { subject_name?: string; exam_cat_name?: string };
+  problems: QuizProblemWithOptions[];
+}> {
+  const [quiz, problems, subjects, exams] = await Promise.all([
+    getQuizById(quizId),
+    getQuizProblems(quizId),
+    getAllSubjects(),
+    getAllExamCategories(),
+  ]);
+
+  const subjectName = quiz.subject_id
+    ? subjects.find((s) => s.id === quiz.subject_id)?.subject_name ?? ""
+    : "";
+  const examName = quiz.exam_cat
+    ? exams.find((e) => e.id === quiz.exam_cat)?.exam_cat ?? ""
+    : "";
+
+  return {
+    quiz: { ...quiz, subject_name: subjectName, exam_cat_name: examName },
+    problems: problems as QuizProblemWithOptions[],
+  };
 }
 
 /**

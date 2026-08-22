@@ -28,10 +28,9 @@ import { WaitingRoomToast } from "@/components/quiz/live/WaitingRoomToast";
 import { AvatarHoverPreview } from "@/components/quiz/live/AvatarHoverPreview";
 import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/WaitingRoomThemeContext";
 import { useTheme } from "@/context/ThemeContext";
-import { mockLiveAssessmentRoom, mockEmptyLiveAssessmentRoom } from "@/mocks/liveAssessment";
 import { useToast } from "@/hooks/useToast";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
-import { getQuizCode, quizCodePath } from "@/services/quiz";
+import { getQuizCode, quizCodePath, getQuizByCode, type Quiz } from "@/services/quiz";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 
@@ -68,9 +67,44 @@ export default function WaitingRoomPage() {
 
   if (!quizCode) notFound();
 
-  const room = quizCode === getQuizCode(mockEmptyLiveAssessmentRoom.quizId)
-    ? mockEmptyLiveAssessmentRoom
-    : mockLiveAssessmentRoom;
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchQuiz() {
+      try {
+        setLoading(true);
+        const data = await getQuizByCode(quizCode);
+        if (!cancelled) {
+          setQuiz(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError("Quiz not found");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+    fetchQuiz();
+    return () => { cancelled = true; };
+  }, [quizCode]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-ai-accent border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (error || !quiz) {
+    notFound();
+  }
 
   const registration = getRegistration(quizCode);
   const registered = isRegistered(quizCode);
@@ -78,7 +112,7 @@ export default function WaitingRoomPage() {
   const startedRef = useMemo(() => ({ current: false as boolean }), []);
   const started = useRealtimeStartFlag(quizCode, startedRef);
 
-  const [participants, setParticipants] = useState(room.participants);
+  const [participants, setParticipants] = useState<LiveParticipant[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [exitModalOpen, setExitModalOpen] = useState(false);
 
@@ -88,7 +122,7 @@ export default function WaitingRoomPage() {
     <WaitingRoomThemeProvider>
       <WaitingRoomPageInner
         quizCode={quizCode}
-        room={room}
+        quiz={quiz}
         started={started}
         participants={participants}
         setParticipants={setParticipants}
@@ -113,7 +147,7 @@ export default function WaitingRoomPage() {
 
 function WaitingRoomPageInner({
   quizCode,
-  room,
+  quiz,
   started,
   participants,
   setParticipants,
@@ -133,7 +167,7 @@ function WaitingRoomPageInner({
   registration,
 }: {
   quizCode: string;
-  room: typeof mockLiveAssessmentRoom;
+  quiz: Quiz;
   started: boolean;
   participants: LiveParticipant[];
   setParticipants: React.Dispatch<React.SetStateAction<LiveParticipant[]>>;
@@ -157,26 +191,38 @@ function WaitingRoomPageInner({
   const textSecondary = activeConfig.textSecondary;
 
   const remainingTime = useMemo(() => {
-    if (!room.scheduledStartAt) return "Soon";
-    const diff = new Date(room.scheduledStartAt).getTime() - Date.now();
+    if (!quiz.starttime) return "Soon";
+    const diff = new Date(quiz.starttime).getTime() - Date.now();
     if (diff <= 0) return "Starting soon";
     const mins = Math.floor(diff / 60000);
     const secs = Math.floor((diff % 60000) / 1000);
     return `${mins}m ${secs}s`;
-  }, [room.scheduledStartAt]);
+  }, [quiz.starttime]);
 
   useEffect(() => {
     if (started) return;
-    const pool = room.participants;
-    if (pool.length === 0) return;
+    // Simulate participants joining (in production, this would come from real-time updates)
     const interval = setInterval(() => {
       setParticipants((prev) => {
-        const next = [...prev, pool[Math.floor(Math.random() * pool.length)]];
+        const next = [...prev, { 
+          id: Date.now().toString(), 
+          username: `Student ${Math.floor(Math.random() * 1000)}`,
+          avatar: "👤",
+          status: "idle" as const,
+          progress: 0,
+          questionsAnswered: 0,
+          totalQuestions: 0,
+          currentQuestion: 0,
+          timeSpent: 0,
+          connection: "excellent" as const,
+          joinedAt: new Date().toISOString(),
+          positionSeed: Math.random(),
+        }];
         return next.slice(-40);
       });
     }, 4000);
     return () => clearInterval(interval);
-  }, [started, room.participants]);
+  }, [started]);
 
   const handleStarted = () => {
     try {
@@ -185,11 +231,11 @@ function WaitingRoomPageInner({
   };
 
   const infoCards = [
-    { icon: Users, label: "Students", value: room.stats.studentsJoined, color: "#EC4899" },
-    { icon: Clock, label: "Starts In", value: "Soon", color: "#F59E0B" },
-    { icon: ListChecks, label: "Questions", value: 20, color: "#3B82F6" },
+    { icon: Users, label: "Students", value: participants.length, color: "#EC4899" },
+    { icon: Clock, label: "Starts In", value: remainingTime, color: "#F59E0B" },
+    { icon: ListChecks, label: "Questions", value: "—", color: "#3B82F6" },
     { icon: FileText, label: "Type", value: "MCQ", color: "#22C55E" },
-    { icon: Award, label: "Max Marks", value: 100, color: "#A855F7" },
+    { icon: Award, label: "Max Marks", value: quiz.total_marks || "—", color: "#A855F7" },
   ];
 
   return (
@@ -305,7 +351,7 @@ function WaitingRoomPageInner({
           className="waiting-header-title text-2xl sm:text-3xl font-bold mb-1 transition-all duration-350"
           style={{ color: textPrimary }}
         >
-          {room.quizName}
+          {quiz.name}
         </motion.h1>
 
         <motion.p
@@ -315,7 +361,7 @@ function WaitingRoomPageInner({
           className="waiting-header-sub text-sm transition-all duration-350"
           style={{ color: textSecondary }}
         >
-          by {room.teacherName} • {room.subject}
+          by {quiz.creator_name || "Unknown"} • Quiz Code: {quiz.code}
         </motion.p>
 
         <motion.p
@@ -443,7 +489,7 @@ function WaitingRoomPageInner({
             <div className="text-center">
               <p className={`waiting-summary-value text-lg font-bold transition-colors duration-350 ${
                 isDark ? 'text-white' : 'text-[#1a1a2e]'
-              }`}>{room.stats.studentsJoined}</p>
+              }`}>{participants.length}</p>
               <p className={`waiting-summary-muted text-[9px] uppercase tracking-wider transition-colors duration-350 ${
                 isDark ? 'text-muted-foreground' : 'text-[#9ca3af]'
               }`}>Joined</p>
@@ -506,7 +552,7 @@ function WaitingRoomPageInner({
         )}
 
         {/* Countdown */}
-        <CountdownCard targetAt={room.scheduledStartAt} onStarted={handleStarted} />
+        <CountdownCard targetAt={quiz.starttime ?? undefined} onStarted={handleStarted} />
       </div>
 
       {/* Exit Confirmation Modal */}

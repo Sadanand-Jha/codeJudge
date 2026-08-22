@@ -58,7 +58,7 @@ export function QuestionList({ onAiGenerate }: { onAiGenerate?: () => void }) {
   };
 
   return (
-    <div className="flex h-full w-72 shrink-0 flex-col border-r border-border bg-card/50">
+    <div data-sidebar="true" className="flex h-full w-72 shrink-0 flex-col border-r border-border bg-card/50">
       {/* Header */}
       <div className="border-b border-border px-3.5 pb-3 pt-4">
         <div className="flex items-center justify-between">
@@ -83,7 +83,7 @@ export function QuestionList({ onAiGenerate }: { onAiGenerate?: () => void }) {
         <button
           type="button"
           onClick={addQuestion}
-          className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-indigo-500/40 hover:text-text-primary"
+          className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-xs font-medium text-text-secondary transition-all duration-200 hover:border-indigo-500/60 hover:bg-indigo-500/5 hover:text-indigo-600 hover:shadow-[0_0_12px_rgba(99,102,241,0.15)] dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
         >
           <PlusIcon /> Add Question
         </button>

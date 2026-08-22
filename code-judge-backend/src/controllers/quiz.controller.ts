@@ -273,6 +273,8 @@ export const createQuiz = async (req: Request, res: Response) => {
       status: "draft",
     });
 
+
+
     res.status(201).json({
       success: true,
       message: "Quiz created successfully",

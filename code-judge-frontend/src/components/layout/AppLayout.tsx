@@ -23,6 +23,7 @@ import {
   User,
   Waypoints,
   Repeat,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -36,6 +37,7 @@ import { logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
 import { isQuizProblemsPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
+import { Sidebar } from "@/components/ui/Sidebar";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import { ChatProvider } from "@/context/ChatContext";
 import AuthModal from "@/components/modals/AuthModal";
@@ -111,14 +113,15 @@ const navGroups: { label: string; items: NavItemData[] }[] = [
     label: "MAIN",
     items: [{ label: "Home", icon: LayoutDashboard, href: "/" }],
   },
-  {
-    label: "TESTS",
-    items: [
-      { label: "Tests", icon: ClipboardCheck, href: "/tests" },
-      { label: "Contests", icon: Trophy, href: "/contests" },
-      { label: "Problems", icon: Code2, href: "/problems" },
-    ],
-  },
+{
+      label: "TESTS",
+      items: [
+        { label: "Tests", icon: ClipboardCheck, href: "/tests" },
+        { label: "Contests", icon: Trophy, href: "/contests" },
+        { label: "Problems", icon: Code2, href: "/problems" },
+        { label: "Join Quiz", icon: UserPlus, href: "/quiz" },
+      ],
+    },
   {
     label: "PREPARATION",
     items: [{ label: "Preparation", icon: Waypoints, href: "/preparation" }],
@@ -273,26 +276,26 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       </AnimatePresence>
 
       {/* ===== SIDEBAR ===== */}
-      <aside
-        onMouseEnter={() => {
-          suppressHoverRef.current = false;
-          setSidebarExpanded(true);
-        }}
-        onMouseLeave={() => {
-          setSidebarExpanded(false);
-          setAccountMenuOpen(false);
-        }}
-        onDragStart={(e) => e.preventDefault()}
-        onContextMenu={(e) => e.preventDefault()}
-        onCopy={(e) => e.preventDefault()}
-        onCut={(e) => e.preventDefault()}
+      <Sidebar
+        dataSidebar="true"
         className={cn(
-          "fixed left-0 top-0 h-screen bg-ai-sidebar border-r border-ai-border flex flex-col z-50 select-none overflow-hidden",
+          "fixed left-0 top-0 h-screen bg-ai-sidebar border-r border-ai-border flex flex-col z-50 overflow-hidden",
           "transition-[width,transform] duration-200 ease-out",
           "w-[var(--rail-w)]",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
+        <div
+          onMouseEnter={() => {
+            suppressHoverRef.current = false;
+            setSidebarExpanded(true);
+          }}
+          onMouseLeave={() => {
+            setSidebarExpanded(false);
+            setAccountMenuOpen(false);
+          }}
+          className="flex flex-col h-full"
+        >
         {/* Logo */}
         <div className={cn("shrink-0 py-4 flex items-center", showLabels ? "px-6 justify-start" : "px-0 justify-center")}>
           <Link href="/" className="flex items-center gap-2.5">
@@ -362,7 +365,8 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             <div className="px-3 text-[9px] text-ai-text-mut">ByteClash v1.0.0</div>
           )}
         </div>
-      </aside>
+      </div>
+      </Sidebar>
 
       {/* ===== MAIN CONTENT ===== */}
       <div

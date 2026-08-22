@@ -39,17 +39,20 @@ export function StudioRouter() {
   }
 }
 
-export function QuizStudio() {
-  const router = useRouter();
-  return (
-    <StudioProvider>
-      <QuizStudioInner onDashboard={() => router.push("/creator/quizzes")} />
-    </StudioProvider>
-  );
-}
+function StudioShellWithRouter({ onDashboard }: { onDashboard: () => void }) {
+  const { state, loading } = useStudio();
 
-function QuizStudioInner({ onDashboard }: { onDashboard: () => void }) {
-  const { state } = useStudio();
+  if (loading) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-300 border-t-transparent" />
+          <p className="text-sm text-text-secondary">Loading quiz…</p>
+        </div>
+      </div>
+    );
+  }
+
   if (state.published) {
     return <SuccessStep onDashboard={onDashboard} />;
   }
@@ -57,5 +60,23 @@ function QuizStudioInner({ onDashboard }: { onDashboard: () => void }) {
     <StudioShell>
       <StudioRouter />
     </StudioShell>
+  );
+}
+
+export function QuizCreator() {
+  const router = useRouter();
+  return (
+    <StudioProvider>
+      <StudioShellWithRouter onDashboard={() => router.push("/creator/quizzes")} />
+    </StudioProvider>
+  );
+}
+
+export function QuizEditor({ quizId }: { quizId: string }) {
+  const router = useRouter();
+  return (
+    <StudioProvider editMode initialQuizId={quizId}>
+      <StudioShellWithRouter onDashboard={() => router.push("/creator/quizzes")} />
+    </StudioProvider>
   );
 }

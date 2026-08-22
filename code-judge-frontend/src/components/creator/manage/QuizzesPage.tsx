@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -31,7 +32,7 @@ import {
 } from "@/components/creator/billing/ui";
 import type { StatusTone } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
-import { getMyCreatedQuizzes, type Quiz } from "@/services/quiz";
+import { getMyCreatedQuizzes, deleteQuiz, type Quiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 
 type QuizStatus = "live" | "draft" | "scheduled" | "completed";
@@ -96,6 +97,9 @@ const CARD_ACTIONS = [
 ] as const;
 
 export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
+  const router = useRouter();
+  const [deleteTarget, setDeleteTarget] = useState<QuizCard | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { status, data, retry, error } = useData(async () => {
     const res = await getMyCreatedQuizzes({ page: 1, limit: 50 });
     return res.quizzes.map(mapQuizToCard);
@@ -115,6 +119,24 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
     const rating = engaged.length ? engaged.reduce((s, q) => s + q.rating, 0) / engaged.length : 0;
     return { live, completion, rating };
   }, [filtered]);
+
+  const handleDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    try {
+      await deleteQuiz(deleteTarget.id);
+      toast.success({ title: "Quiz deleted", description: `"${deleteTarget.title}" has been deleted.` });
+      setDeleteTarget(null);
+      retry();
+    } catch (err) {
+      toast.error({
+        title: "Could not delete quiz",
+        description: err instanceof Error ? err.message : "Something went wrong.",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -266,6 +288,11 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                           <button
                             key={action.label}
                             type="button"
+                            onClick={() => {
+                              if (action.label === "Edit") {
+                                router.push(`/creator/quizzes/${q.id}/edit`);
+                              }
+                            }}
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-text-secondary transition-colors hover:bg-white/[0.04] hover:text-pink-500 dark:hover:text-ai-accent"
                           >
                             <Icon className="h-3.5 w-3.5" />
@@ -275,6 +302,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                       })}
                       <button
                         type="button"
+                        onClick={() => setDeleteTarget(q)}
                         className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-danger/80 transition-colors hover:bg-danger/10 hover:text-danger"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -287,6 +315,74 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
             </div>
           )}
         </>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => !deleting && setDeleteTarget(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm overflow-hidden rounded-xl border border-border bg-card shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+          >
+            <div className="border-b border-border px-6 py-5">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger">
+                  <Trash2 className="h-5 w-5" />
+                </span>
+                <div>
+                  <h3 className="text-base font-semibold text-text-primary">Delete this quiz?</h3>
+                  <p className="mt-0.5 text-xs text-text-secondary">
+                    This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4">
+              <dl className="divide-y divide-border rounded-lg border border-border">
+                {[
+                  { label: "Quiz", value: deleteTarget.title || "Untitled Quiz" },
+                  { label: "Code", value: deleteTarget.code },
+                  { label: "Subject", value: deleteTarget.subject },
+                  { label: "Questions", value: String(deleteTarget.questions) },
+                  { label: "Status", value: STATUS_META[deleteTarget.status]?.label ?? deleteTarget.status },
+                ].map((r) => (
+                  <div key={r.label} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
+                    <dt className="text-text-secondary">{r.label}</dt>
+                    <dd className="max-w-[60%] truncate font-medium text-text-primary">{r.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-colors duration-150 hover:bg-card-hover disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm font-semibold text-danger transition-colors duration-150 hover:bg-danger/20 disabled:opacity-60"
+              >
+                {deleting ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-danger border-t-transparent" />
+                    Deleting…
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

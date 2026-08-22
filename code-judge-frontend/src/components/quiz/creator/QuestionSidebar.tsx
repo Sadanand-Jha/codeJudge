@@ -92,7 +92,7 @@ export default function QuestionSidebar({
   const progress = questions.length > 0 ? Math.round((completedCount / questions.length) * 100) : 0;
 
   return (
-    <aside className="w-[280px] shrink-0 border-r border-border bg-[#0B0D14] flex flex-col h-full">
+    <aside data-sidebar="true" className="w-[280px] shrink-0 border-r border-border bg-[#0B0D14] flex flex-col h-full">
       {/* Header stats */}
       <div className="px-4 pt-4 pb-3 border-b border-border">
         <div className="flex items-center justify-between mb-3">

@@ -135,28 +135,28 @@ export function QuestionEditor() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-3">
+      <div className="flex w-full items-center justify-between gap-3 bg-pink-400 px-6 py-[5px]">
         <div className="flex items-center gap-3">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-text-secondary">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/30 bg-white/15 text-white">
             <StemIcon className="h-4 w-4" />
           </span>
-          <span className="text-xs font-bold text-text-secondary">
+          <span className="text-xs font-bold !text-white">
             Question {questionNumber || ""}
           </span>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs font-medium text-text-secondary">
+          <span className="text-xs font-medium text-white/80">
             {q.marks} marks
           </span>
           <TypeSelect value={q.type} onChange={(t) => update({ type: t, correctAnswer: "" })} />
-          <button
+          {/* <button
             type="button"
             onClick={() => setAdvancedOpen(!advancedOpen)}
             aria-label="Question settings"
-            className="rounded-lg border border-border p-1.5 text-xs text-text-secondary hover:text-text-primary"
+            className="rounded-lg border border-white/30 bg-white/15 p-1.5 text-xs text-white hover:bg-white/25"
           >
             {advancedOpen ? <ChevronUp className="h-4 w-4" /> : <Settings2 className="h-4 w-4" />}
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -303,23 +303,65 @@ function TypeSelect({
   value: CreatorQuestionType;
   onChange: (v: CreatorQuestionType) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const labels: Record<CreatorQuestionType, string> = {
+    single_choice: "MCQ",
+    multiple_choice: "Multi",
+    true_false: "True / False",
+    fill_blanks: "Fill Blank",
+    integer: "Integer",
+    text: "Short Answer",
+    paragraph: "Long Answer",
+    code_output: "Coding",
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
   return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as CreatorQuestionType)}
-        className="appearance-none rounded-full border border-border bg-card py-1.5 pl-3.5 pr-8 text-xs font-semibold text-text-primary shadow-sm transition-colors duration-150 outline-none hover:border-indigo-500/40 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/15"
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-semibold !text-white transition-colors hover:bg-white/25"
       >
-        <option value="single_choice">Multiple Choice</option>
-        <option value="multiple_choice">Multiple Select</option>
-        <option value="true_false">True / False</option>
-        <option value="fill_blanks">Fill in the Blank</option>
-        <option value="integer">Integer / Number</option>
-        <option value="text">Short Answer</option>
-        <option value="paragraph">Long Answer</option>
-        <option value="code_output">Coding</option>
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-text-muted" />
+        {labels[value]}
+        <ChevronDown className={cn("h-3 w-3 text-white transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+          {(Object.keys(labels) as CreatorQuestionType[]).map((type) => {
+            const Icon = TYPE_ICON[type];
+            const active = type === value;
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => {
+                  onChange(type);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors",
+                  active
+                    ? "bg-pink-500/10 font-semibold text-pink-600 dark:text-pink-300"
+                    : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                <span>{labels[type]}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -331,26 +373,67 @@ function MetadataRow({
   q: CreatorQuestion;
   update: (patch: Partial<CreatorQuestion>) => void;
 }) {
+  const [diffOpen, setDiffOpen] = useState(false);
+  const diffRef = useRef<HTMLDivElement>(null);
   const diffOptions: Array<"Easy" | "Medium" | "Hard" | "Expert"> = ["Easy", "Medium", "Hard", "Expert"];
-  const diffColor = {
-    Easy: "bg-emerald-500/10 text-emerald-600",
-    Medium: "bg-amber-500/10 text-amber-600",
-    Hard: "bg-orange-500/10 text-orange-600",
-    Expert: "bg-rose-500/10 text-rose-600",
-  }[q.difficulty] ?? "bg-amber-500/10 text-amber-600";
+  const diffDot: Record<string, string> = {
+    Easy: "bg-emerald-500",
+    Medium: "bg-amber-500",
+    Hard: "bg-orange-500",
+    Expert: "bg-rose-500",
+  };
+  const diffTextColor: Record<string, string> = {
+    Easy: "text-emerald-400",
+    Medium: "text-amber-400",
+    Hard: "text-orange-400",
+    Expert: "text-rose-400",
+  };
+
+  useEffect(() => {
+    if (!diffOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (diffRef.current && !diffRef.current.contains(e.target as Node)) setDiffOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [diffOpen]);
+
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card/50 px-3 py-2 text-xs">
-      <div className="flex items-center gap-1.5">
+      <div ref={diffRef} className="relative flex items-center gap-1.5">
         <span className="text-text-muted">Difficulty</span>
-        <select
-          value={q.difficulty}
-          onChange={(e) => update({ difficulty: e.target.value as CreatorQuestion["difficulty"] })}
-          className="rounded border border-input-border bg-input-bg px-1.5 py-0.5 text-xs font-bold capitalize text-text-primary outline-none"
+        <button
+          type="button"
+          onClick={() => setDiffOpen(!diffOpen)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-1 text-xs font-semibold !text-white transition-colors hover:bg-white/25"
         >
-          {diffOptions.map((d) => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
+          <span className={cn("h-2 w-2 rounded-full", diffDot[q.difficulty] ?? "bg-amber-500")} />
+          {q.difficulty}
+          <ChevronDown className={cn("h-3 w-3 text-white transition-transform", diffOpen && "rotate-180")} />
+        </button>
+        {diffOpen && (
+          <div className="absolute left-0 top-full z-50 mt-1 w-36 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+            {diffOptions.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => {
+                  update({ difficulty: d });
+                  setDiffOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors",
+                  q.difficulty === d
+                    ? "bg-pink-500/10 font-semibold text-pink-600 dark:text-pink-300"
+                    : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                )}
+              >
+                <span className={cn("h-2 w-2 rounded-full", diffDot[d])} />
+                <span>{d}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-1.5">
         <span className="text-text-muted">Marks</span>
@@ -388,11 +471,6 @@ function MetadataRow({
           className={cn("w-12 border-0 border-b border-input-border bg-transparent text-xs font-bold text-text-primary text-center outline-none", noSpinCls)}
         />
         <span className="text-text-muted">min</span>
-      </div>
-      <div className="ml-auto flex items-center gap-1.5">
-        <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-bold", diffColor)}>
-          {q.difficulty}
-        </span>
       </div>
     </div>
   );

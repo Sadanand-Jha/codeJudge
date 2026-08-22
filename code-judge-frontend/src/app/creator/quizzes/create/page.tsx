@@ -1,4 +1,4 @@
-import { QuizStudio } from "@/components/creator/quiz-studio/StudioRouter";
+import { QuizCreator } from "@/components/creator/quiz-studio/StudioRouter";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function CreateQuizRoute() {
-  return <QuizStudio />;
+  return <QuizCreator />;
 }

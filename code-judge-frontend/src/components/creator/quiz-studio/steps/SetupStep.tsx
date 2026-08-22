@@ -52,7 +52,7 @@ const CREATE_CHOICES = [
 
 export function SetupStep() {
   const router = useRouter();
-  const { state, updateInfo, summary } = useStudio();
+  const { state, updateInfo, summary, editMode } = useStudio();
   const [choice, setChoice] = useState<
     "scratch" | "ai" | "import" | "duplicate" | null
   >("scratch");
@@ -65,237 +65,225 @@ export function SetupStep() {
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
-    fetchQuizCode().then((code) => updateInfo({ code })).catch(() => {});
+    if (!editMode) {
+      fetchQuizCode().then((code) => updateInfo({ code })).catch(() => {});
+    }
     getQuizDifficultyOptions().then(setDifficultyOptions).catch(() => {});
-  }, []);
+  }, [editMode]);
 
   const hasBasicInfo = info.title.trim().length >= 3;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-8">
-      {/* Creation method choice */}
-      <div>
-        <h2 className="text-lg font-semibold text-text-primary">How do you want to start?</h2>
-        <p className="mt-1 text-xs text-text-secondary">
-          You can always use AI tools later inside the editor.
-        </p>
-      </div>
+      {/* Creation method choice — only on create, not edit */}
+      {!editMode && (
+        <>
+          <div>
+            <h2 className="text-lg font-semibold text-text-primary">How do you want to start?</h2>
+            <p className="mt-1 text-xs text-text-secondary">
+              You can always use AI tools later inside the editor.
+            </p>
+          </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {CREATE_CHOICES.map((c) => (
-          <ChoiceCard
-            key={c.id}
-            icon={c.icon}
-            label={c.label}
-            desc={c.desc}
-            meta={c.meta}
-            selected={choice === c.id}
-            onClick={() => {
-              if (c.id === "ai") {
-                router.push("/creator/quizzes/ai-generate");
-              } else {
-                setChoice(c.id);
-              }
-            }}
-          />
-        ))}
-      </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {CREATE_CHOICES.map((c) => (
+              <ChoiceCard
+                key={c.id}
+                icon={c.icon}
+                label={c.label}
+                desc={c.desc}
+                meta={c.meta}
+                selected={choice === c.id}
+                onClick={() => {
+                  if (c.id === "ai") {
+                    router.push("/creator/quizzes/ai-generate");
+                  } else {
+                    setChoice(c.id);
+                  }
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Basic information */}
       <div className="space-y-6">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-text-secondary">
-          Quiz Information
-        </h3>
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-5">
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-text-secondary">Quiz Title</label>
+        <div className="-mx-4 -mt-6 bg-pink-400 px-4 pt-6 pb-0.5 sm:-mx-6 sm:-mt-8 sm:px-6 sm:pt-8 lg:-mx-8 lg:px-8">
+          <h3 className="text-center text-xl font-bold uppercase tracking-wider !text-white">
+            Quiz Information
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {/* Title */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-text-secondary">Quiz Title</label>
+            <input
+              value={info.title}
+              onChange={(e) => updateInfo({ title: e.target.value.slice(0, 100) })}
+              maxLength={100}
+              placeholder="e.g. JEE Main 2026 Mock Test 01"
+              className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+            />
+            <p className="text-[11px] text-text-muted text-right">{info.title.length}/100</p>
+          </div>
+
+          {/* Code + Copy */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-text-secondary">Quiz Code</label>
+            <div className="flex gap-2">
               <input
-                value={info.title}
-                onChange={(e) => updateInfo({ title: e.target.value })}
-                placeholder="e.g. JEE Main 2026 Mock Test 01"
-                className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+                value={info.code}
+                readOnly
+                placeholder="Auto-generated"
+                className="h-10 flex-1 rounded-lg border border-input-border bg-input-bg px-3.5 font-mono text-sm tracking-wider text-text-primary placeholder-text-muted outline-none"
               />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-text-secondary">Quiz Code</label>
-              <div className="flex gap-2">
-                <input
-                  value={info.code}
-                  readOnly
-                  placeholder="Auto-generated"
-                  className="h-10 flex-1 rounded-lg border border-input-border bg-input-bg px-3.5 font-mono text-sm tracking-wider text-text-primary placeholder-text-muted outline-none"
-                />
-                {info.code && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(info.code);
-                      toast.success({ title: "Code copied", description: info.code });
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
-                  >
-                    <Copy className="h-3.5 w-3.5" /> Copy
-                  </button>
-                )}
-              </div>
-              <p className="text-[11px] text-text-muted">
-                Unique 16-character code used to share this quiz.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-text-secondary">Short Description</label>
-              <textarea
-                value={info.shortDescription}
-                onChange={(e) => updateInfo({ shortDescription: e.target.value.slice(0, 250) })}
-                rows={2}
-                maxLength={250}
-                placeholder="A concise summary shown in listings."
-                className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
-              />
-              <p className="text-[11px] text-text-muted text-right">{info.shortDescription.length}/250</p>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-text-secondary">Detailed Description</label>
-              <textarea
-                value={info.fullDescription}
-                onChange={(e) => updateInfo({ fullDescription: e.target.value.slice(0, 5000) })}
-                rows={4}
-                maxLength={5000}
-                placeholder="Explain what the quiz covers, target audience, pattern..."
-                className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
-              />
-              <p className="text-[11px] text-text-muted text-right">{info.fullDescription.length}/5000</p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div className="space-y-2">
-                <SearchableDropdown
-                  label="Subject"
-                  placeholder="Search subjects..."
-                  required
-                  value={info.subject}
-                  selectedId={info.subjectId}
-                  onSelect={(option) => updateInfo({ subject: option.label, subjectId: option.id })}
-                  onClear={() => updateInfo({ subject: "", subjectId: "" })}
-                  searchFn={async (query, signal) => {
-                    const results = await getAllSubjects(query, signal);
-                    return results.map((s) => ({ id: s.id, label: s.subject_name }));
+              {info.code && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(info.code);
+                    toast.success({ title: "Code copied", description: info.code });
                   }}
-                  minChars={1}
-                  debounceMs={300}
-                  maxVisible={8}
-                />
-              </div>
-              <div className="space-y-2">
-                <SearchableDropdown
-                  label="Exam"
-                  placeholder="Search exams..."
-                  value={info.exam}
-                  selectedId={info.examId}
-                  onSelect={(option) => updateInfo({ exam: option.label, examId: option.id })}
-                  onClear={() => updateInfo({ exam: "", examId: "" })}
-                  searchFn={async (query, signal) => {
-                    const results = await getAllExamCategories(query, signal);
-                    return results.map((e) => ({ id: e.id, label: e.exam_cat }));
-                  }}
-                  minChars={1}
-                  debounceMs={300}
-                  maxVisible={8}
-                />
-              </div>
-              {/* Class / Grade - commented out for now
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-text-secondary">Class / Grade</label>
-                <input
-                  value={info.classGrade}
-                  onChange={(e) => updateInfo({ classGrade: e.target.value })}
-                  placeholder="e.g. 12th, B.Tech Sem 5"
-                  className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
-                />
-              </div>
-              */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-text-secondary">Difficulty</label>
-                {difficultyOptions.length === 0 ? (
-                  <p className="text-[11px] text-text-muted">Loading difficulty options…</p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {difficultyOptions.map((opt, i) => (
-                      <DifficultySelect
-                        key={opt.id}
-                        value={opt.heading}
-                        index={i}
-                        selected={
-                          info.difficultyId !== "" && info.difficultyId != null
-                            ? String(info.difficultyId) === String(opt.id)
-                            : info.difficulty.toLowerCase() === opt.heading.toLowerCase()
-                        }
-                        onSelect={() => {
-                          updateInfo({ difficulty: opt.heading, difficultyId: opt.id });
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-              {/* Language - commented out for now
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-text-secondary">Language</label>
-                <select
-                  value={info.language}
-                  onChange={(e) => updateInfo({ language: e.target.value })}
-                  className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3.5 text-sm text-text-primary outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
                 >
-                  {LANGUAGES.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-text-secondary">Duration (minutes)</label>
-                <div className="relative">
-                  <Clock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                  <input
-                    type="number"
-                    min={1}
-                    max={600}
-                    value={info.duration || ""}
-                    onChange={(e) => updateInfo({ duration: Number(e.target.value) })}
-                    className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-text-secondary">Passing Marks</label>
-                <div className="relative">
-                  <Award className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                  <input
-                    type="number"
-                    min={0}
-                    max={marks || undefined}
-                    value={info.passingMarks || ""}
-                    placeholder={`Default: ${Math.ceil((marks || 0) * 0.4)}`}
-                    onChange={(e) => updateInfo({ passingMarks: Number(e.target.value) })}
-                    className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
-                  />
-                </div>
-                <p className="text-[11px] text-text-muted">
-                  {info.passingMarks
-                    ? `${info.passingMarks} / ${marks || 0} marks`
-                    : `Defaults to 40% (${Math.ceil((marks || 0) * 0.4)} marks) if left empty`}
-                </p>
-              </div>
+                  <Copy className="h-3.5 w-3.5" /> Copy
+                </button>
+              )}
             </div>
           </div>
 
+          {/* Subject */}
+          <div className="space-y-2">
+            <SearchableDropdown
+              label="Subject"
+              placeholder="Search subjects..."
+              required
+              value={info.subject}
+              selectedId={info.subjectId}
+              onSelect={(option) => updateInfo({ subject: option.label, subjectId: option.id })}
+              onClear={() => updateInfo({ subject: "", subjectId: "" })}
+              searchFn={async (query, signal) => {
+                const results = await getAllSubjects(query, signal);
+                return results.map((s) => ({ id: s.id, label: s.subject_name }));
+              }}
+              minChars={1}
+              debounceMs={300}
+              maxVisible={8}
+            />
+          </div>
 
+          {/* Exam */}
+          <div className="space-y-2">
+            <SearchableDropdown
+              label="Exam"
+              placeholder="Search exams..."
+              value={info.exam}
+              selectedId={info.examId}
+              onSelect={(option) => updateInfo({ exam: option.label, examId: option.id })}
+              onClear={() => updateInfo({ exam: "", examId: "" })}
+              searchFn={async (query, signal) => {
+                const results = await getAllExamCategories(query, signal);
+                return results.map((e) => ({ id: e.id, label: e.exam_cat }));
+              }}
+              minChars={1}
+              debounceMs={300}
+              maxVisible={8}
+            />
+          </div>
+
+          {/* Difficulty */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-text-secondary">Difficulty</label>
+            {difficultyOptions.length === 0 ? (
+              <p className="text-[11px] text-text-muted">Loading difficulty options…</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {difficultyOptions.map((opt, i) => (
+                  <DifficultySelect
+                    key={opt.id}
+                    value={opt.heading}
+                    index={i}
+                    selected={
+                      info.difficultyId !== "" && info.difficultyId != null
+                        ? String(info.difficultyId) === String(opt.id)
+                        : info.difficulty.toLowerCase() === opt.heading.toLowerCase()
+                    }
+                    onSelect={() => {
+                      updateInfo({ difficulty: opt.heading, difficultyId: opt.id });
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Duration */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-text-secondary">Duration (minutes)</label>
+            <div className="relative">
+              <Clock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <input
+                type="number"
+                min={1}
+                max={600}
+                value={info.duration || ""}
+                onChange={(e) => updateInfo({ duration: Number(e.target.value) })}
+                className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+              />
+            </div>
+          </div>
+
+          {/* Passing Marks */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-text-secondary">Passing Marks</label>
+            <div className="relative">
+              <Award className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <input
+                type="number"
+                min={0}
+                max={marks || undefined}
+                value={info.passingMarks || ""}
+                placeholder={`Default: ${Math.ceil((marks || 0) * 0.4)}`}
+                onChange={(e) => updateInfo({ passingMarks: Number(e.target.value) })}
+                className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+              />
+            </div>
+            <p className="text-[11px] text-text-muted">
+              {info.passingMarks
+                ? `${info.passingMarks} / ${marks || 0} marks`
+                : `Defaults to 40% (${Math.ceil((marks || 0) * 0.4)} marks) if left empty`}
+            </p>
+          </div>
+
+          {/* Short Description */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-text-secondary">Short Description</label>
+            <textarea
+              value={info.shortDescription}
+              onChange={(e) => updateInfo({ shortDescription: e.target.value.slice(0, 250) })}
+              rows={2}
+              maxLength={250}
+              placeholder="A concise summary shown in listings."
+              className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+            />
+            <p className="text-[11px] text-text-muted text-right">{info.shortDescription.length}/250</p>
+          </div>
+
+          {/* Detailed Description */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-text-secondary">Detailed Description</label>
+            <textarea
+              value={info.fullDescription}
+              onChange={(e) => updateInfo({ fullDescription: e.target.value.slice(0, 5000) })}
+              rows={4}
+              maxLength={5000}
+              placeholder="Explain what the quiz covers, target audience, pattern..."
+              className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+            />
+            <p className="text-[11px] text-text-muted text-right">{info.fullDescription.length}/5000</p>
+          </div>
         </div>
       </div>
     </div>

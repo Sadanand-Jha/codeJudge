@@ -36,7 +36,7 @@ export function LiveRail() {
   );
 
   return (
-    <div className="flex w-64 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-card/50 p-4 text-xs">
+    <div data-sidebar="true" className="flex w-64 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-card/50 p-4 text-xs">
       <h3 className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
         Live Summary
       </h3>

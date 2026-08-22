@@ -144,7 +144,7 @@ export function QuizWorkspace({
       </AnimatePresence>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:block fixed inset-y-0 left-0 z-30 w-[260px] border-r border-[#263245] bg-[#1B2433] flex flex-col">
+      <aside data-sidebar="true" className="hidden lg:block fixed inset-y-0 left-0 z-30 w-[260px] border-r border-[#263245] bg-[#1B2433] flex flex-col">
         <div className="flex h-14 shrink-0 items-center gap-3 border-b border-[#263245] px-4">
           <Link href="/creator" className="flex items-center gap-2">
             <ArrowLeft className="w-4 h-4" />

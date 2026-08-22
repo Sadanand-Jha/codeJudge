@@ -99,7 +99,7 @@ export function AiAssistantPanel({
   };
 
   return (
-    <div className="flex shrink-0 flex-col border-l border-border bg-card/50">
+    <div data-sidebar="true" className="flex shrink-0 flex-col border-l border-border bg-card/50">
       <div className="flex items-center justify-between border-b border-border p-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-indigo-500" />

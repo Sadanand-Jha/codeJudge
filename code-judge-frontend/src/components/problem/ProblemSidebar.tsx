@@ -35,7 +35,7 @@ export default function ProblemSidebar({
   tags,
 }: ProblemSidebarProps) {
   return (
-    <aside className="space-y-4">
+    <aside data-sidebar="true" className="space-y-4">
       {/* Problem Information Card */}
       <div className="card-premium p-6">
         <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-text-muted">

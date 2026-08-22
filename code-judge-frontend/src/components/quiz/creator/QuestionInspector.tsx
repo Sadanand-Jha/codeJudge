@@ -110,7 +110,7 @@ export default function QuestionInspector({ question, onChange }: QuestionInspec
   };
 
   return (
-    <aside className="w-[320px] shrink-0 border-l border-border bg-[#0B0D14] flex flex-col h-full">
+    <aside data-sidebar="true" className="w-[320px] shrink-0 border-l border-border bg-[#0B0D14] flex flex-col h-full">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
         <h3 className="text-xs font-bold text-white flex items-center gap-2">

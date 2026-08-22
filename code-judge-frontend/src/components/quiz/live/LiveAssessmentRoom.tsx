@@ -107,7 +107,7 @@ export function LiveAssessmentRoom({ data, onBack }: LiveAssessmentRoomProps) {
           <AnimatedCrowd participants={participants} />
         </div>
 
-        <aside className="hidden lg:flex w-80 xl:w-96 border-l border-border bg-[#0B0D14] flex-col shrink-0">
+        <aside data-sidebar="true" className="hidden lg:flex w-80 xl:w-96 border-l border-border bg-[#0B0D14] flex-col shrink-0">
           <div className="flex items-center gap-1 p-2 border-b border-border">
             <TabButton active={rightTab === "stats"} onClick={() => setRightTab("stats")} icon={BarChart3} label="Statistics" />
             <TabButton active={rightTab === "activity"} onClick={() => setRightTab("activity")} icon={Activity} label="Activity" badge={activity.length} />

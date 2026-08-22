@@ -530,7 +530,7 @@ export function RegistrationStep() {
         </div>
 
         {/* ── Live Preview ── */}
-        <aside className="xl:sticky xl:top-4 xl:self-start">
+        <aside data-sidebar="true" className="xl:sticky xl:top-4 xl:self-start">
           <section className="overflow-hidden rounded-xl border border-border bg-card">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <h3 className="text-sm font-semibold text-text-primary">Live Preview</h3>

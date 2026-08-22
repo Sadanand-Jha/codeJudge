@@ -214,6 +214,7 @@ export interface StudioState {
   lastSaved: Date | string | null;
   published: boolean;
   serverQuizId?: string | null;
+  editMode?: boolean;
 }
 
 export const DEFAULT_QUIZ_INFO: StudioQuizInfo = {
@@ -358,6 +359,7 @@ export const createEmptyQuestion = (id: string): CreatorQuestion => ({
   images: [],
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
+  serverId: undefined,
 });
 
 export const QUESTION_TYPE_META: Array<{

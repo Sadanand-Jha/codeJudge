@@ -72,7 +72,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
         <div className="flex-1 overflow-y-auto">
           <main
             className={
-              pathname.startsWith("/creator/quizzes/create") || pathname.startsWith("/creator/quizzes/ai-generate")
+              pathname.startsWith("/creator/quizzes")
                 ? "px-4 pt-0 pb-6 sm:px-6 lg:px-8"
                 : "px-4 py-6 sm:px-6 lg:px-8"
             }

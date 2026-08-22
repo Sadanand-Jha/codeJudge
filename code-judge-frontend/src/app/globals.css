@@ -6,6 +6,42 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ============================================
+   Sidebar Drag Prevention — Global Utility
+   Prevents native browser dragging on sidebar elements
+   (links, buttons, icons, text, images).
+   ============================================ */
+[data-sidebar="true"] {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+[data-sidebar="true"] * {
+  -webkit-user-drag: none;
+  user-drag: none;
+  draggable: false !important;
+}
+
+[data-sidebar="true"] a,
+[data-sidebar="true"] button,
+[data-sidebar="true"] [role="button"],
+[data-sidebar="true"] img,
+[data-sidebar="true"] svg,
+[data-sidebar="true"] input,
+[data-sidebar="true"] textarea,
+[data-sidebar="true"] select {
+  -webkit-user-drag: none;
+  user-drag: none;
+  draggable: false !important;
+}
+
+/* Allow explicit draggable elements to work (for drag-drop zones outside sidebars) */
+[data-draggable="true"] {
+  draggable: true !important;
+  -webkit-user-drag: auto;
+  user-drag: auto;
+}
+
+/* ============================================
    ByteClash Theme Design System
    ============================================
    Background: #09090B (dark) / #F8FAFC (light)
@@ -17,7 +53,7 @@
    Gold: #FBBF24
    Text Primary: #FFFFFF (dark) / #111827 (light)
    Text Secondary: #9CA3AF (dark) / #6B7280 (light)
-*/
+ */
 
 :root {
   /* == Core surfaces == */

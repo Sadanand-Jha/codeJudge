@@ -5,17 +5,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
   Rocket,
-  Eye,
-  Sparkles,
   Check,
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { STEPS } from "./types";
 import { useStudio, useSaveStatus } from "./StudioProvider";
 import { toast } from "@/lib/toast";
-
-export { STEPS };
 
 export function StudioHeader() {
   const { state, goToStep, updateInfo } = useStudio();
@@ -98,25 +93,6 @@ export function StudioHeader() {
       </div>
 
       <div className="hidden h-5 w-px bg-border sm:block" />
-
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => goToStep("review")}
-          className="rounded-md p-2 text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
-          title="AI Assist"
-        >
-          <Sparkles className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          className="rounded-md p-2 text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
-          title="Preview quiz"
-        >
-          <Eye className="h-4 w-4" />
-        </button>
-      </div>
     </header>
   );
 }
@@ -132,9 +108,9 @@ function formatTime(d: Date | string | null): string {
 }
 
 export function StudioStepper() {
-  const { state, goToStep, stepIndex } = useStudio();
-  const completed = useMemo(() => STEPS.slice(0, stepIndex).map((s) => s.id), [stepIndex]);
-  const progressPct = Math.round(((stepIndex) / (STEPS.length - 1)) * 100);
+  const { state, goToStep, stepIndex, steps } = useStudio();
+  const completed = useMemo(() => steps.slice(0, stepIndex).map((s) => s.id), [stepIndex, steps]);
+  const progressPct = Math.round(((stepIndex) / (steps.length - 1)) * 100);
 
   return (
     <div className="border-b border-border bg-card">
@@ -145,7 +121,7 @@ export function StudioStepper() {
         />
       </div>
       <nav className="flex items-stretch overflow-x-auto px-2 sm:px-4" aria-label="Quiz creation steps">
-        {STEPS.map((step, i) => {
+        {steps.map((step, i) => {
           const active = state.step === step.id;
           const done = completed.includes(step.id) || i < stepIndex;
           const clickable = i <= stepIndex;
@@ -181,7 +157,7 @@ export function StudioStepper() {
                   <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-t bg-indigo-300 dark:bg-indigo-300" />
                 )}
               </button>
-              {i < STEPS.length - 1 && (
+              {i < steps.length - 1 && (
                 <span
                   className={cn(
                     "mx-1 h-px w-6 shrink-0 sm:w-8",
@@ -198,7 +174,7 @@ export function StudioStepper() {
 }
 
 export function StudioFooter() {
-  const { state, prevStep, nextStep, stepIndex, summary, publish, saveToServer } = useStudio();
+  const { state, prevStep, nextStep, stepIndex, steps, summary, publish, saveToServer } = useStudio();
   const [savingDraft, setSavingDraft] = useState(false);
   const [continuing, setContinuing] = useState(false);
 
@@ -234,7 +210,7 @@ export function StudioFooter() {
     return true;
   };
 
-  const isLast = stepIndex === STEPS.length - 1;
+  const isLast = stepIndex === steps.length - 1;
   const isQuestions = state.step === "questions";
   const activeIdx = state.questions.findIndex((q) => q.id === state.activeQuestionId) + 1;
   const [confirmPublish, setConfirmPublish] = useState(false);

@@ -108,7 +108,7 @@ export function PreparationSidebarContent({ onNavigate }: { onNavigate?: () => v
  */
 export default function PreparationSidebar() {
   return (
-    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
+    <aside data-sidebar="true" className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
       <PreparationSidebarContent />
     </aside>
   );

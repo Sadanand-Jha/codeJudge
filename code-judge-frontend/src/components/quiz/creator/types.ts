@@ -53,6 +53,7 @@ export interface CreatorQuestion {
   images: Array<{ id: string; url: string; caption?: string }>;
   createdAt: string;
   updatedAt: string;
+  serverId?: number;
 }
 
 export interface QuizCollaborator {
