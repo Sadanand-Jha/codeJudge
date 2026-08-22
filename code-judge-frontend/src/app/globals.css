@@ -335,6 +335,51 @@ body {
   }
 }
 
+.creator-studio-btn {
+  background: linear-gradient(135deg, #dc2626, #e11d48, #ec4899, #e11d48, #dc2626);
+  background-size: 300% 300%;
+  color: white;
+  border-radius: 0 !important;
+  margin-left: -0.625rem !important;
+  margin-right: -0.625rem !important;
+  padding-left: 1.5rem !important;
+  padding-right: 0.75rem !important;
+  padding-top: 0.625rem !important;
+  padding-bottom: 0.625rem !important;
+  width: calc(100% + 1.25rem) !important;
+  justify-content: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  min-height: 2.75rem;
+}
+
+.ai-studio-btn {
+  background: #8b5cf6;
+  color: white;
+  border-radius: 0 !important;
+  margin-left: -0.75rem !important;
+  margin-right: -0.75rem !important;
+  padding-left: 1.5rem !important;
+  padding-right: 0.75rem !important;
+  padding-top: 0.625rem !important;
+  padding-bottom: 0.625rem !important;
+  width: calc(100% + 1.5rem) !important;
+  justify-content: flex-start;
+  min-height: 2.75rem;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* ============================================
    Theme transition — buttery-smooth dark ↔ light switching.
    The base layer gives every element a gentle transition on the color
@@ -796,6 +841,12 @@ button.cf-btn:hover {
 
 /* ===== White text → dark text (on light surfaces) ===== */
 [data-theme="light"] .text-white { color: #111827 !important; }
+[data-theme="light"] .creator-studio-btn,
+[data-theme="light"] .creator-studio-btn .text-white,
+[data-theme="light"] .creator-studio-btn span,
+[data-theme="light"] .ai-studio-btn,
+[data-theme="light"] .ai-studio-btn .text-white,
+[data-theme="light"] .ai-studio-btn span { color: #FFFFFF !important; }
 [data-theme="light"] .text-\[\#F8FAFC\] { color: #111827 !important; }
 [data-theme="light"] .text-\[\#E5E7EB\] { color: #111827 !important; }
 [data-theme="light"] .text-\[\#AAB6C8\] { color: #6B7280 !important; }

@@ -11,6 +11,7 @@ import {
   Settings,
   Menu,
   Flame,
+  Clapperboard,
   LogOut,
   BookOpen,
   Briefcase,
@@ -125,7 +126,7 @@ const navGroups: { label: string; items: NavItemData[] }[] = [
   {
     label: "TOOLS",
     items: [
-      { label: "AI Chat", icon: Sparkles, href: "/ai/chat" },
+      { label: "Creator Studio", icon: Clapperboard, href: "/creator" },
       { label: "Editor", icon: BookOpen, href: "/editor" },
     ],
   },
@@ -331,74 +332,18 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        {/* Bottom: Creator Studio + Account + Collapse */}
+        {/* Bottom: Account + Collapse */}
         <div className="border-t border-ai-border p-2 space-y-1">
-          {/* Creator Studio — visually distinct, sits above the account row */}
-          {isAuthenticated ? (
-            <Link
-              href="/creator"
-              title={showLabels ? undefined : "Creator Studio"}
-              aria-label={showLabels ? undefined : "Creator Studio"}
-              className={cn(
-                "group relative flex items-center gap-3 rounded-lg transition-colors duration-150",
-                showLabels ? "justify-start px-3 py-2" : "justify-center py-2.5"
-              )}
-            >
-              <span className="relative z-10 inline-flex shrink-0">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-violet-600">
-                  <Flame className="h-4 w-4 text-white" />
-                </span>
-                {showLabels && (
-                  <span className="absolute -right-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-pink-500 ring-2 ring-ai-sidebar" />
-                )}
-              </span>
-              {showLabels && (
-                <span className="relative z-10 flex min-w-0 flex-col leading-tight">
-                  <span className="truncate text-xs font-semibold text-ai-text">
-                    {IS_DEMO_CREATOR ? "Creator Studio" : "Become a Creator"}
-                  </span>
-                  <span className="truncate text-[9px] font-medium text-pink-500/80 dark:text-ai-accent/80">
-                    {IS_DEMO_CREATOR ? "Create, manage & grow" : "Teach on ByteClash"}
-                  </span>
-                </span>
-              )}
-            </Link>
-          ) : (
-            showLabels && (
-              <div className="px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500/[0.08] to-violet-600/[0.08] border border-pink-500/20">
-                <div className="text-[10px] font-semibold text-ai-text">Teach your own tests</div>
-                <button
-                  onClick={() => handleAuthRequired("/creator")}
-                  className="mt-0.5 text-[10px] font-semibold text-pink-500 hover:text-pink-600 dark:text-ai-accent transition-colors"
-                >
-                  Become a Creator →
-                </button>
-              </div>
-            )
-          )}
-
-          {isAuthenticated ? (
-            <div
-              className={cn(
-                "flex items-center gap-3 rounded-lg transition-colors duration-150",
-                showLabels ? "justify-start px-3 py-2 bg-ai-accent-soft" : "justify-center py-2.5"
-              )}
-            >
-              <Flame className="w-5 h-5 text-warning shrink-0" />
-              {showLabels && <span className="text-xs font-medium text-ai-text whitespace-nowrap">12 Day Streak</span>}
+          {!isAuthenticated && showLabels && (
+            <div className="px-3 py-2 rounded-lg bg-ai-accent-soft border border-ai-accent/20">
+              <div className="text-[10px] text-ai-text-sec mb-1">{"You're browsing as a guest"}</div>
+              <button
+                onClick={() => handleAuthRequired(pathname + window.location.search)}
+                className="text-[10px] font-semibold text-ai-accent hover:text-ai-accent-hover transition-colors"
+              >
+                Sign in to unlock all features →
+              </button>
             </div>
-          ) : (
-            showLabels && (
-              <div className="px-3 py-2 rounded-lg bg-ai-accent-soft border border-ai-accent/20">
-                <div className="text-[10px] text-ai-text-sec mb-1">{"You're browsing as a guest"}</div>
-                <button
-                  onClick={() => handleAuthRequired(pathname + window.location.search)}
-                  className="text-[10px] font-semibold text-ai-accent hover:text-ai-accent-hover transition-colors"
-                >
-                  Sign in to unlock all features →
-                </button>
-              </div>
-            )
           )}
 
           <ProfileMenu
@@ -668,6 +613,7 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
   collapseSidebar: () => void;
 }) {
   const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+  const isCreatorStudio = item.href === "/creator";
 
   // Routes that are protected for guests
   const protectedForGuests = ["/ai/chat", "/editor", "/analytics", "/settings", "/collections"];
@@ -697,16 +643,24 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
       }}
       className={cn(
         "relative group w-full flex items-center gap-3 rounded-lg text-sm font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ai-accent/40",
-        "transition-colors duration-150 hover:bg-ai-accent/10",
+        isCreatorStudio && showLabels
+          ? "creator-studio-btn"
+          : "transition-colors duration-150 hover:bg-ai-accent/10",
         showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5"
       )}
     >
-      {isActive && (
+      {isActive && !isCreatorStudio && (
         <div className="absolute inset-0 rounded-lg bg-ai-accent-soft pointer-events-none" />
       )}
-      <NavIcon Icon={item.icon} isActive={isActive} showDot={isProtected} />
+      {isCreatorStudio ? (
+        <span className="relative z-10 inline-flex shrink-0">
+          <item.icon className="h-5 w-5 text-white" />
+        </span>
+      ) : (
+        <NavIcon Icon={item.icon} isActive={isActive} showDot={isProtected} />
+      )}
       {showLabels && (
-        <span className={cn("relative z-10 transition-colors duration-150", isActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text")}>
+        <span className={cn("relative z-10 transition-colors duration-150", isCreatorStudio ? "text-white font-semibold" : isActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text")}>
           {item.label}
         </span>
       )}

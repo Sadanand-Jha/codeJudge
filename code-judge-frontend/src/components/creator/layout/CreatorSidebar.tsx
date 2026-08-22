@@ -28,10 +28,10 @@ import {
   ListChecks,
   Boxes,
   Gauge,
-  ArrowLeft,
   BadgeCheck,
   Presentation,
   Sparkles,
+  MessageSquare,
   MailPlus,
   FileText,
   type LucideIcon,
@@ -62,6 +62,7 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
       { label: "Problems", href: "/creator/problems", icon: NotebookPen },
       { label: "Resources", href: "/creator/resources", icon: FolderKanban },
       { label: "AI Studio", href: "/creator/ai-studio", icon: Sparkles },
+      { label: "AI Chat", href: "/ai/chat", icon: MessageSquare },
     ],
   },
   {
@@ -136,6 +137,7 @@ function NavRow({
     ? pathname === item.href
     : pathname === item.href || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;
+  const isAiStudio = item.href === "/creator/ai-studio";
   return (
     <Link
       href={item.href}
@@ -144,24 +146,32 @@ function NavRow({
       className={cn(
         "group relative flex w-full items-center gap-2.5 rounded-lg py-2 text-[13px] font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
         showLabels ? "px-3" : "justify-center px-0",
-        isActive ? "text-text-primary" : "text-text-secondary hover:bg-white/[0.04] hover:text-text-primary dark:hover:bg-ai-hover"
+        isAiStudio
+          ? "ai-studio-btn"
+          : isActive ? "text-text-primary" : "text-text-secondary hover:bg-white/[0.04] hover:text-text-primary dark:hover:bg-ai-hover"
       )}
     >
-      {isActive && (
+      {isActive && !isAiStudio && (
         <motion.span
           layoutId="creatorSidebarActive"
           className="absolute inset-0 rounded-lg border border-pink-500/20 bg-pink-500/[0.08] dark:border-ai-accent/20 dark:bg-ai-accent-soft"
           transition={{ type: "spring", stiffness: 500, damping: 35 }}
         />
       )}
-      <Icon
-        className={cn(
-          "relative z-10 h-[18px] w-[18px] shrink-0 transition-colors",
-          isActive ? "text-pink-500 dark:text-ai-accent" : "text-text-muted group-hover:text-text-primary"
-        )}
-      />
+      {isAiStudio ? (
+        <span className="relative z-10 inline-flex shrink-0">
+          <Icon className="h-5 w-5 text-white" />
+        </span>
+      ) : (
+        <Icon
+          className={cn(
+            "relative z-10 h-[18px] w-[18px] shrink-0 transition-colors",
+            isActive ? "text-pink-500 dark:text-ai-accent" : "text-text-muted group-hover:text-text-primary"
+          )}
+        />
+      )}
       {showLabels && (
-        <span className={cn("relative z-10 truncate", isActive && "font-semibold")}>{item.label}</span>
+        <span className={cn("relative z-10 truncate", isAiStudio ? "text-white font-semibold" : isActive && "font-semibold")}>{item.label}</span>
       )}
     </Link>
   );
@@ -183,19 +193,6 @@ export function CreatorSidebar({
 
   return (
     <div className="flex h-full w-full flex-col">
-      {/* Brand */}
-      <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-border px-5">
-        <Link href="/creator" onClick={onNavigate} className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-violet-600">
-            <LayoutDashboard className="h-4 w-4 text-white" />
-          </div>
-          <div className="leading-tight">
-            <p className="text-sm font-bold tracking-tight text-text-primary">Creator Studio</p>
-            <p className="text-[10px] font-medium text-text-muted">Test Creator Console</p>
-          </div>
-        </Link>
-      </div>
-
       {/* Creator identity header */}
       <div className="border-b border-border px-4 py-3">
         <Link
@@ -219,7 +216,7 @@ export function CreatorSidebar({
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto hide-scrollbar px-3 py-4">
         {CREATOR_NAV.map((group, gi) => (
           <div key={group.label} className={cn(gi > 0 && "mt-6")}>
             <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">
@@ -249,14 +246,6 @@ export function CreatorSidebar({
             </Link>
           ))}
         </div>
-        <Link
-          href="/"
-          onClick={onNavigate}
-          className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-[12px] font-semibold text-text-secondary transition-colors hover:border-pink-500/30 hover:text-text-primary"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Student Mode
-        </Link>
       </div>
     </div>
   );

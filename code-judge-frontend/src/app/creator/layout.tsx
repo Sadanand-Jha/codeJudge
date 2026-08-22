@@ -1,5 +1,5 @@
-import CreatorShell from "@/components/creator/layout/CreatorShell";
+import CreatorStudioLayout from "@/components/creator/layout/CreatorStudioLayout";
 
 export default function CreatorLayout({ children }: { children: React.ReactNode }) {
-  return <CreatorShell>{children}</CreatorShell>;
+  return <CreatorStudioLayout>{children}</CreatorStudioLayout>;
 }
