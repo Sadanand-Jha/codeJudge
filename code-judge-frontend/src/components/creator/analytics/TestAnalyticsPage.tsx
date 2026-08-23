@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Users, CheckCircle2, Trophy, Gauge } from "lucide-react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   PageHeader,
@@ -217,6 +218,8 @@ const Q_STATUS_TONE: Record<QuestionRow["status"], StatusTone> = {
 export function TestAnalyticsPage({ demoState }: { demoState?: "empty" | "error" }) {
   const [testId, setTestId] = useState<TestId>("jee");
   const [range, setRange] = useState<Range>("30d");
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const effectiveRange: Range = isMobile ? "7d" : range;
   const { state, data, retry } = useBillingData(() => ({ tests: TESTS }), {
     delayMs: 650,
     demoState,
@@ -237,7 +240,7 @@ export function TestAnalyticsPage({ demoState }: { demoState?: "empty" | "error"
 
       {state === "loading" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <StatCardSkeleton key={i} />
             ))}
@@ -262,7 +265,7 @@ export function TestAnalyticsPage({ demoState }: { demoState?: "empty" | "error"
 
       {state === "ready" && data && test && (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Attempts"
               value={test.attempts}
@@ -308,10 +311,16 @@ export function TestAnalyticsPage({ demoState }: { demoState?: "empty" | "error"
 
             <Panel
               title="Attempts over time"
-              subtitle={`${test.name} — last ${range === "7d" ? "7 days" : range === "30d" ? "14 days" : "12 weeks"}`}
-              action={<SegmentedControl value={range} onChange={setRange} options={RANGE_OPTIONS} />}
+              subtitle={`${test.name} — last ${effectiveRange === "7d" ? "7 days" : effectiveRange === "30d" ? "14 days" : "12 weeks"}`}
+              action={
+                <SegmentedControl
+                  value={effectiveRange}
+                  onChange={setRange}
+                  options={isMobile ? RANGE_OPTIONS.filter((o) => o.id === "7d") : RANGE_OPTIONS}
+                />
+              }
             >
-              <MiniBarChart data={test.attemptsSeries[range]} height={210} />
+              <MiniBarChart data={test.attemptsSeries[effectiveRange]} height={isMobile ? 160 : 210} />
             </Panel>
           </div>
 

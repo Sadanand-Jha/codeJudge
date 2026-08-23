@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Download, Users, UserCheck, ClipboardList, Trophy, UserRound, BarChart3, MessageSquare } from "lucide-react";
+import { Users, Clock, Trophy, Target, Search, Eye, Share2, BarChart3, Download, UserCheck, ClipboardList, UserRound, MessageSquare } from "lucide-react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useToast } from "@/hooks/useToast";
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
@@ -95,6 +96,8 @@ const AVATAR_COLORS = [
 export function StudentAnalyticsPage({ demoState }: { demoState?: "empty" | "error" }) {
   const toast = useToast();
   const [range, setRange] = useState<Range>("30d");
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const effectiveRange: Range = isMobile ? "7d" : range;
   const { state, data, retry } = useBillingData(
     () => ({
       students: STUDENTS,
@@ -134,7 +137,7 @@ export function StudentAnalyticsPage({ demoState }: { demoState?: "empty" | "err
 
       {state === "loading" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <StatCardSkeleton key={i} />
             ))}
@@ -159,7 +162,7 @@ export function StudentAnalyticsPage({ demoState }: { demoState?: "empty" | "err
 
       {state === "ready" && data && (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Total Students"
               value={data.stats.total}
@@ -317,9 +320,15 @@ export function StudentAnalyticsPage({ demoState }: { demoState?: "empty" | "err
             <Panel
               title="Performance trend"
               subtitle="Average student scores over time"
-              action={<SegmentedControl value={range} onChange={setRange} options={RANGE_OPTIONS} />}
+              action={
+                <SegmentedControl
+                  value={effectiveRange}
+                  onChange={setRange}
+                  options={isMobile ? RANGE_OPTIONS.filter((o) => o.id === "7d") : RANGE_OPTIONS}
+                />
+              }
             >
-              <MiniBarChart data={data.perfTrend[range]} height={200} formatter={(v) => `${v}%`} />
+              <MiniBarChart data={data.perfTrend[effectiveRange]} height={isMobile ? 160 : 200} formatter={(v) => `${v}%`} />
             </Panel>
 
             <Panel title="Top students" subtitle="Highest performers by best score">

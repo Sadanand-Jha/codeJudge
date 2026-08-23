@@ -63,10 +63,10 @@ export default function StudentDetailsPanel({
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-5">
-              {/* Identity */}
+              {/* Identity — avatar from backend */}
               <div className="flex items-center gap-3.5">
                 <img
-                  src={getAvatarUrlById(student.avatarId)}
+                  src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
                   alt=""
                   className="h-14 w-14 rounded-full object-cover ring-2 ring-border"
                 />

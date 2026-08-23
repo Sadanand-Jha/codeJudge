@@ -47,15 +47,7 @@ export default function EditStudentModal({ open, onClose, student, onSave }: Edi
       setError("Roll number is required.");
       return;
     }
-    if (!username.trim()) {
-      setError("Username is required.");
-      return;
-    }
-    if (!/^[a-zA-Z0-9._-]{2,30}$/.test(username.trim())) {
-      setError("Username must be 2-30 chars: letters, numbers, ., _, -.");
-      return;
-    }
-    onSave({ name, rollNumber: roll, username, active });
+    onSave({ name, rollNumber: roll, active });
     onClose();
   };
 
@@ -108,11 +100,10 @@ export default function EditStudentModal({ open, onClose, student, onSave }: Edi
           <label className="mb-1.5 block text-xs font-semibold text-text-primary">Username</label>
           <input
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="rahul.kumar42"
-            className="h-10 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
+            disabled
+            className="h-10 w-full rounded-xl border border-border bg-card-hover/60 px-3.5 text-sm text-text-muted cursor-not-allowed"
           />
-          <p className="mt-1 text-[11px] text-text-muted">2-30 chars: letters, numbers, ., _, -</p>
+          <p className="mt-1 text-[11px] text-text-muted">Username cannot be changed.</p>
         </div>
         <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-card px-3.5 py-2.5">
           <span className="text-xs font-semibold text-text-primary">Active</span>

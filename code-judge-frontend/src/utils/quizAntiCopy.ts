@@ -136,7 +136,7 @@ export function disablePrint(e: KeyboardEvent): void {
  * Generate dynamic watermark
  */
 export function generateWatermark(username: string, rollNumber: string, quizCode: string): string {
-  const timestamp = new Date().toLocaleString('en-IN');
+  const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
   const watermarkText = `${username} | ${rollNumber} | ${quizCode} | ${timestamp}`;
   
   return watermarkText;

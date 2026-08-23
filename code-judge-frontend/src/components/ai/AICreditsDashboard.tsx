@@ -257,7 +257,7 @@ export default function AICreditsDashboard({ compact = false }: { compact?: bool
                 <div className="min-w-0 flex-1">
                   <div className="text-[11px] font-semibold text-text-primary">{entry.featureLabel}</div>
                   <div className="text-[10px] text-text-muted">
-                    {new Date(entry.timestamp).toLocaleString()} · {entry.promptSizeKB}KB in
+                    {new Date(entry.timestamp).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} · {entry.promptSizeKB}KB in
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

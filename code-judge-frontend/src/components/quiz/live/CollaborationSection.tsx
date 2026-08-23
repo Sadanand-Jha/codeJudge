@@ -51,7 +51,7 @@ function collabStatus(quiz: CollaborationProject): StatusInfo {
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return new Date(dateStr).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", day: "numeric", year: "numeric" });
 }
 
 function adminName(quiz: CollaborationProject): string {

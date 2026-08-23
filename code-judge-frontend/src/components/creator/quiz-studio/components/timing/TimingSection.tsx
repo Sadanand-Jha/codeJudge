@@ -201,6 +201,7 @@ export function TimingSection() {
             <strong>
               {schedule.startDate &&
                 new Date(schedule.startDate).toLocaleDateString("en-IN", {
+                  timeZone: "Asia/Kolkata",
                   day: "numeric",
                   month: "long",
                 })}

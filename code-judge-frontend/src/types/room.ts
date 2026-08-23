@@ -14,6 +14,8 @@ export interface RoomStudent {
   active: boolean;
   /** Avatar id (1-7) for the predefined local avatars. */
   avatarId: number;
+  /** Avatar URL from DB — if present, use this instead of dicebear fallback. */
+  avatarUrl?: string | null;
   /** ISO timestamp when the student was added to this room. */
   addedAt?: string;
 }
@@ -35,6 +37,8 @@ export interface Room {
   updatedAt: string;
   archived: boolean;
   students: RoomStudent[];
+  /** Member count from backend (when rooms are fetched via /my-rooms). */
+  memberCount?: number;
 }
 
 export type RoomFilterTab = "all" | "active" | "inactive";

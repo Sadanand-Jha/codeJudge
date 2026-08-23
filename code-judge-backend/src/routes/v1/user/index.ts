@@ -15,6 +15,8 @@ import {
   updateUserLocation,
 } from "../../../controllers/profile.controller.ts";
 import aiRoutes from "./ai.routes.ts";
+import roomRoutes from "../room.routes.ts";
+import { listRooms } from "../../../controllers/room.controller.ts";
 
 
 const router = Router();
@@ -26,6 +28,7 @@ router.use("/editor", editorRoutes);
 router.use("/contest", contestRoutes);
 router.use("/quiz", quizRoutes);
 router.use("/ai", aiRoutes);
+router.use("/rooms", roomRoutes);
 
 
 
@@ -56,6 +59,9 @@ router.get("/timezones", authenticate, getTimezones);
 
 // ===================== USER LOOKUP (for collaborators) ==========
 router.get("/users/:userId", authenticate, lookupUser);
+
+// ===================== ROOMS MY-ROOMS ALIAS (frontend expects /my-rooms) ==========
+router.get("/my-rooms", authenticate, listRooms);
 
 
 

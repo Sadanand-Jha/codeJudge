@@ -64,7 +64,8 @@ export function formatDuration(duration: number | null): string {
 
 export function formatDate(starttime: string | null): string {
   if (!starttime) return "—";
-  return new Date(starttime).toLocaleDateString("en-US", {
+  return new Date(starttime).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
     month: "short",
     day: "numeric",
     year: "numeric",

@@ -26,8 +26,9 @@ import { useAuthStore } from "@/store/authStore";
 import { timeAgo, isWithinWindow } from "@/lib/formatters";
 import { exportStudentsToFile } from "@/utils/excelImport";
 import { useToast } from "@/hooks/useToast";
-import { RoomStudent } from "@/types/room";
+import { Room, RoomStudent } from "@/types/room";
 import { getAvatarUrlById } from "@/config/dicebear";
+import { updateMemberStatus, updateRoomPatch, removeMember } from "@/services/rooms";
 import RoomMenu, { RoomMenuItem } from "@/components/quiz/creator/settings/audience/RoomMenu";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
@@ -55,6 +56,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const toast = useToast();
   const rooms = useRoomStore((s) => s.rooms);
   const hydrate = useRoomStore((s) => s.hydrate);
+  const setRooms = useRoomStore((s) => s.setRooms);
   const addStudents = useRoomStore((s) => s.addStudents);
   const updateStudent = useRoomStore((s) => s.updateStudent);
   const removeStudents = useRoomStore((s) => s.removeStudents);
@@ -63,6 +65,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const duplicateRoom = useRoomStore((s) => s.duplicateRoom);
   const deleteRoom = useRoomStore((s) => s.deleteRoom);
   const { user } = useAuthStore();
+  const [backendLoading, setBackendLoading] = useState(false);
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<StudentFilter>("all");
@@ -79,6 +82,60 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Fetch room details with members from backend on going to room page — calls GET /my-rooms/:id and populates students
+  useEffect(() => {
+    if (!roomId || !/^\d+$/.test(roomId)) return;
+    setBackendLoading(true);
+    import("@/services/rooms")
+      .then(({ getRoom }) =>
+        getRoom(roomId)
+          .then((res: unknown) => {
+            const data = (res as { data?: Record<string, unknown> })?.data ?? (res as Record<string, unknown>);
+            if (!data || !data.id) return;
+            const members = (data.members as unknown[]) ?? [];
+            const mappedStudents: RoomStudent[] = members.map((m: unknown) => {
+              const mm = m as Record<string, unknown>;
+              const userObj = (mm.user as Record<string, unknown>) ?? mm;
+              const username = String((userObj.username as string) ?? (mm.username as string) ?? "");
+              return {
+                id: String(userObj.id ?? mm.userId ?? mm.membershipId ?? Math.random()),
+                name: String((userObj.displayName as string) ?? (userObj.username as string) ?? username ?? "Unknown"),
+                rollNumber: username,
+                username: username.toLowerCase(),
+                active: (mm.statusName as string) === "ACTIVE" || mm.status === 1 || mm.status === "ACTIVE",
+                avatarId: Number(userObj.avatarId ?? 1),
+                avatarUrl: (userObj.avatarUrl as string) ?? null,
+                addedAt: String((mm.joinedAt as string) ?? new Date().toISOString()),
+              };
+            });
+            const current = useRoomStore.getState().rooms;
+            const exists = current.find((r) => String(r.id) === String(roomId));
+            if (exists) {
+              const updated = current.map((r) =>
+                String(r.id) === String(roomId) ? { ...r, students: mappedStudents, memberCount: mappedStudents.length, updatedAt: String((data.updated_at as string) ?? r.updatedAt) } : r
+              );
+              setRooms(updated as Room[]);
+            } else {
+              const newRoom: Room = {
+                id: String(data.id),
+                name: String((data.name as string) ?? "Room"),
+                description: (data.description as string) ?? undefined,
+                ownerId: String((data.owner_id as string | number) ?? user?.id ?? ""),
+                createdAt: String((data.created_at as string) ?? new Date().toISOString()),
+                updatedAt: String((data.updated_at as string) ?? new Date().toISOString()),
+                archived: !(data.is_active as boolean),
+                students: mappedStudents,
+                memberCount: mappedStudents.length,
+              };
+              setRooms([...current, newRoom]);
+            }
+          })
+          .catch(() => {})
+          .finally(() => setBackendLoading(false))
+      )
+      .catch(() => setBackendLoading(false));
+  }, [roomId, setRooms, user?.id]);
 
   const ownedRooms = useMemo(() => getOwnedRooms(rooms, user?.id), [rooms, user]);
   const room = ownedRooms.find((r) => r.id === roomId);
@@ -125,6 +182,15 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   }, [room, filter, query, sort]);
 
   if (!room) {
+    if (backendLoading) {
+      return (
+        <div className="rounded-2xl border border-border bg-card px-6 py-16 text-center">
+          <Users className="mx-auto h-8 w-8 animate-pulse text-text-muted" />
+          <h2 className="mt-3 text-lg font-bold text-text-primary">Loading room...</h2>
+          <p className="mt-1 text-sm text-text-secondary">Fetching students from backend (GET /my-rooms)…</p>
+        </div>
+      );
+    }
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
         <Users className="mx-auto h-8 w-8 text-text-muted" />
@@ -172,9 +238,18 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
     toast.success({ title: "Export started", description: `${room.students.length} students exported.` });
   };
 
-  const handleRemoveSelected = () => {
+  const isBackendRoom = /^\d+$/.test(room.id);
+
+  const handleRemoveSelected = async () => {
     const ids = [...selected];
     if (ids.length === 0) return;
+    if (isBackendRoom) {
+      for (const sid of ids) {
+        const stu = room.students.find((s) => s.id === sid);
+        const identifier = stu?.username ?? sid;
+        try { await removeMember(room.id, identifier); } catch {}
+      }
+    }
     removeStudents(room.id, ids);
     setSelected(new Set());
     toast.success({ title: "Students removed", description: `${ids.length} student${ids.length !== 1 ? "s" : ""} removed from ${room.name}.` });
@@ -187,7 +262,11 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       label: room.archived ? "Restore Room" : "Archive Room",
       icon: room.archived ? ArchiveRestore : Archive,
       destructive: !room.archived,
-      onClick: () => {
+      onClick: async () => {
+        // Sync to backend first if backend room
+        if (isBackendRoom) {
+          try { await updateRoomPatch(room.id, { archived: !room.archived }); } catch {}
+        }
         if (room.archived) {
           unarchiveRoom(room.id);
           toast.success({ title: "Room restored", description: "The room is active again." });
@@ -467,7 +546,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                     <td className="px-2 py-3">
                       <div className="flex items-center gap-2.5">
                         <img
-                          src={getAvatarUrlById(student.avatarId)}
+                          src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
                           alt=""
                           className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-border"
                         />
@@ -522,6 +601,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
         existing={room.students}
         roomName={room.name}
         initialTab={addTab}
+        roomId={room.id}
         viewStudentsHref={`${basePath}/${room.id}`}
         onAdd={(students) => {
           addStudents(room.id, students);
@@ -558,13 +638,16 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
         }}
       />
 
-      {/* Edit student */}
+      {/* Edit student — status synced to backend */}
       <EditStudentModal
         open={Boolean(editingStudent)}
         onClose={() => setEditingStudent(null)}
         student={editingStudent}
-        onSave={(patch) => {
+        onSave={async (patch) => {
           if (editingStudent) {
+            if (isBackendRoom && patch.active !== undefined) {
+              try { await updateMemberStatus(room.id, editingStudent.username ?? editingStudent.id, patch.active); } catch {}
+            }
             updateStudent(room.id, editingStudent.id, patch);
             toast.success({ title: "Student updated", description: "Changes have been saved." });
           }
@@ -602,7 +685,10 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    if (isBackendRoom) {
+                      try { await removeMember(room.id, removingStudent.username ?? removingStudent.id); } catch {}
+                    }
                     removeStudents(room.id, [removingStudent.id]);
                     setRemovingStudent(null);
                     toast.success({ title: "Student removed", description: `${removingStudent.name} was removed from ${room.name}.` });

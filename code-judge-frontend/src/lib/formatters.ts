@@ -2,6 +2,9 @@
  * Formatting helpers shared across the app.
  */
 
+/** Shared IST (Kolkata) timezone option for all date formatting. */
+export const IST_TIMEZONE = "Asia/Kolkata";
+
 export function timeAgo(dateValue: string | number | Date): string {
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) return "recently";
@@ -22,7 +25,34 @@ export function timeAgo(dateValue: string | number | Date): string {
 export function formatDate(dateValue: string | number | Date): string {
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-IN", { timeZone: IST_TIMEZONE, month: "short", day: "numeric" });
+}
+
+/** Full date+time in IST — "5 Jan 2025, 2:30 PM" */
+export function formatDateTimeIST(dateValue: string | number | Date): string {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-IN", {
+    timeZone: IST_TIMEZONE,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+/** Short date in IST — "5 Jan 2025" */
+export function formatDateIST(dateValue: string | number | Date): string {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-IN", {
+    timeZone: IST_TIMEZONE,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 /**

@@ -569,7 +569,7 @@ export default function QuizLeaderboardPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-[11px] text-[#6B7280]">
-                            {new Date(entry.submissionTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(entry.submissionTime).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </td>
                         <td className="px-4 py-3">

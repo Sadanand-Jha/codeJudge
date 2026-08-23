@@ -14,6 +14,7 @@ import {
   Target,
   BarChart3,
 } from "lucide-react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   PageHeader,
@@ -182,8 +183,10 @@ const ENGAGEMENT = [
 
 export function AnalyticsOverviewPage({ demoState }: { demoState?: "empty" | "error" }) {
   const [range, setRange] = useState<Range>("30d");
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const effectiveRange: Range = isMobile ? "7d" : range;
   const { state, data, retry } = useBillingData(
-    () => ({ stats: buildStats(range), topTests: TOP_TESTS, engagement: ENGAGEMENT }),
+    () => ({ stats: buildStats(effectiveRange), topTests: TOP_TESTS, engagement: ENGAGEMENT }),
     { delayMs: 650, demoState }
   );
 
@@ -201,12 +204,13 @@ export function AnalyticsOverviewPage({ demoState }: { demoState?: "empty" | "er
       />
 
       {state === "loading" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            {Array.from({ length: 5 }).map((_, i) => (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
               <StatCardSkeleton key={i} />
             ))}
           </div>
+          <StatCardSkeleton />
           <PanelSkeleton title="Revenue over time" />
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <PanelSkeleton title="Top Tests" />
@@ -227,16 +231,7 @@ export function AnalyticsOverviewPage({ demoState }: { demoState?: "empty" | "er
 
       {state === "ready" && data && (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            <StatCard
-              label="Total Revenue"
-              value={data.stats.revenue}
-              display={formatINRCompact(data.stats.revenue)}
-              delta={data.stats.revenueDelta}
-              hint="this period"
-              accent="primary"
-              icon={<TrendingUp className="h-3.5 w-3.5" />}
-            />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Total Attempts"
               value={data.stats.attempts}
@@ -274,23 +269,38 @@ export function AnalyticsOverviewPage({ demoState }: { demoState?: "empty" | "er
               icon={<Target className="h-3.5 w-3.5" />}
             />
           </div>
+          <div className="mt-3">
+            <StatCard
+              label="Total Revenue"
+              value={data.stats.revenue}
+              display={formatINRCompact(data.stats.revenue)}
+              delta={data.stats.revenueDelta}
+              hint="this period"
+              accent="primary"
+              icon={<TrendingUp className="h-3.5 w-3.5" />}
+            />
+          </div>
 
           <Panel
             title="Revenue over time"
-            subtitle={`${formatINR(REVENUE_SERIES[range].reduce((s, p) => s + p.value, 0))} earned across this period`}
+            subtitle={`${formatINR(REVENUE_SERIES[effectiveRange].reduce((s, p) => s + p.value, 0))} earned across this period`}
             action={
               <div className="flex flex-col items-end gap-2">
-                <SegmentedControl value={range} onChange={setRange} options={RANGE_OPTIONS} />
+                <SegmentedControl
+                  value={effectiveRange}
+                  onChange={setRange}
+                  options={isMobile ? RANGE_OPTIONS.filter((o) => o.id === "7d") : RANGE_OPTIONS}
+                />
                 <DeltaPill pct={data.stats.revenueDelta} tone="good" />
               </div>
             }
           >
-            <MiniBarChart data={REVENUE_SERIES[range]} height={220} formatter={formatINRCompact} />
+            <MiniBarChart data={REVENUE_SERIES[effectiveRange]} height={isMobile ? 180 : 220} formatter={formatINRCompact} />
           </Panel>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
             <Panel title="Top Tests" subtitle="Best performing tests by revenue">
-              <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {TOP_TESTS.map((t, i) => {
                   const maxRevenue = Math.max(...TOP_TESTS.map((x) => x.revenue));
                   return (
@@ -299,20 +309,20 @@ export function AnalyticsOverviewPage({ demoState }: { demoState?: "empty" | "er
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="rounded-xl border border-border/60 bg-white/[0.02] p-3.5 transition-colors hover:border-pink-500/30"
+                      className="rounded-xl border border-border/60 bg-white/[0.02] p-3 sm:p-3.5 transition-colors hover:border-pink-500/30"
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-pink-500 to-violet-600 text-[11px] font-bold text-white">
+                      <div className="flex items-center justify-between gap-2 sm:gap-3">
+                        <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-pink-500 to-violet-600 text-[10px] font-bold text-white sm:h-6 sm:w-6 sm:text-[11px]">
                             {i + 1}
                           </span>
-                          <p className="truncate text-[13px] font-semibold text-text-primary">{t.name}</p>
+                          <p className="truncate text-xs font-semibold text-text-primary sm:text-[13px]">{t.name}</p>
                         </div>
                         <p className="shrink-0 text-xs font-bold text-text-primary tabular-nums">
                           {formatINRCompact(t.revenue)}
                         </p>
                       </div>
-                      <div className="mt-2.5 flex items-center justify-between text-[11px] text-text-secondary">
+                      <div className="mt-2 flex items-center justify-between text-[10px] sm:text-[11px] text-text-secondary">
                         <span>{t.attempts.toLocaleString("en-IN")} attempts</span>
                         <span>{t.avgScore}% avg score</span>
                       </div>
@@ -331,7 +341,7 @@ export function AnalyticsOverviewPage({ demoState }: { demoState?: "empty" | "er
             </Panel>
 
             <Panel title="Engagement" subtitle="How students interact with your content">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 {ENGAGEMENT.map((e, i) => {
                   const Icon = e.icon;
                   return (
@@ -340,16 +350,16 @@ export function AnalyticsOverviewPage({ demoState }: { demoState?: "empty" | "er
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="rounded-xl border border-border bg-card-hover p-4"
+                      className="rounded-xl border border-border bg-card-hover p-3 sm:p-4"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 dark:text-ai-accent">
-                          <Icon className="h-4 w-4" />
+                      <div className="flex items-center gap-2 sm:gap-2.5">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 dark:text-ai-accent sm:h-8 sm:w-8">
+                          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </div>
                         <p className="text-xs font-medium text-text-secondary">{e.label}</p>
                       </div>
-                      <div className="mt-3 flex items-center gap-2">
-                        <p className="text-xl font-bold text-text-primary tabular-nums">{e.value}</p>
+                      <div className="mt-2 flex items-center gap-2 sm:mt-3">
+                        <p className="text-lg font-bold text-text-primary tabular-nums sm:text-xl">{e.value}</p>
                         <DeltaPill pct={e.delta} />
                       </div>
                       <p className="mt-1 text-[10px] text-text-muted">{e.hint}</p>

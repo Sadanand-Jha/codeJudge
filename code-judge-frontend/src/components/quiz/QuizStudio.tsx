@@ -665,7 +665,7 @@ export default function QuizStudio() {
 
   const formatLastSaved = (date: Date | null) => {
     if (!date) return "";
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
   };
 
   return (
@@ -1173,7 +1173,7 @@ export default function QuizStudio() {
                           <div className="flex-1 min-w-0">
                             <p className="text-[10px] font-medium text-white">Version {version.version}</p>
                             <p className="text-[9px] text-[#6B7280]">
-                              {new Date(version.createdAt).toLocaleString()}
+                              {new Date(version.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
                             </p>
                           </div>
                           <button className="px-2 py-1 rounded-lg bg-white/[0.04] border border-border-hover text-[9px] text-muted-foreground hover:text-white hover:border-white/[0.15] transition-colors">

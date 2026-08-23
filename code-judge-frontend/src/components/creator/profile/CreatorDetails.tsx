@@ -14,7 +14,7 @@ export function CreatorDetails({ profile }: { profile: CreatorProfile }) {
       label: "Languages",
       value: profile.languages.join(", "),
     },
-    { label: "Joined", value: profile.createdAt },
+    { label: "Joined", value: new Date(profile.createdAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" }) },
     { label: "Creator ID", value: profile.creatorId },
   ].filter(Boolean) as Array<{ label: string; value: string }>;
 

@@ -33,14 +33,14 @@ export function EditableField({
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <div className="flex items-center gap-2">
-        <label className="text-xs font-medium text-text-secondary">{label}</label>
-        {confidence}
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <label className="shrink-0 text-xs font-medium text-text-secondary">{label}</label>
+        {confidence && <span className="shrink-0">{confidence}</span>}
         {!editing && (
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="ml-auto flex h-6 w-6 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
+            className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
           >
             <Pencil className="h-3 w-3" />
           </button>

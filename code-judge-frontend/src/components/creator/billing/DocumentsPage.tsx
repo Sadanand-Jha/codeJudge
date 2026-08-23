@@ -51,7 +51,7 @@ export function DocumentsPage({ demoState }: { demoState?: "empty" | "error" }) 
       setGenerating(false);
       setGenOpen(false);
       const [y, m] = genMonth.split("-");
-      const label = new Date(Number(y), Number(m) - 1, 1).toLocaleString("en-IN", { month: "long", year: "numeric" });
+      const label = new Date(Number(y), Number(m) - 1, 1).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", month: "long", year: "numeric" });
       const doc: FinancialDocument = {
         id: `doc_gen_${Date.now()}`,
         name: `Monthly Statement — ${label}`,

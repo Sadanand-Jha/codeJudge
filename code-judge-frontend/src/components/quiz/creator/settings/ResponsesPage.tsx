@@ -611,7 +611,7 @@ export default function ResponsesPage() {
         data.quiz.total_marks ?? "",
         s.percentage != null ? Number(s.percentage).toFixed(1) : "",
         s.time_taken != null ? formatTimeTaken(s.time_taken) : "",
-        s.completed_at ? new Date(s.completed_at).toLocaleString() : "",
+        s.completed_at ? new Date(s.completed_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "",
       ];
     });
     const csv = [header, ...rows].map((r) => r.map(esc).join(",")).join("\n");
@@ -951,7 +951,7 @@ export default function ResponsesPage() {
                       <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-violet-500">{formatPercent(s.percentage)}</td>
                       <td className="px-4 py-3 text-right text-sm text-text-secondary tabular-nums">{formatTimeTaken(s.time_taken)}</td>
                       <td className="px-4 py-3 text-xs text-text-secondary">
-                        {s.completed_at ? new Date(s.completed_at).toLocaleString() : "—"}
+                        {s.completed_at ? new Date(s.completed_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "—"}
                       </td>
                     </tr>
                   );
@@ -1106,7 +1106,7 @@ export default function ResponsesPage() {
                         Status: <span className="font-semibold capitalize text-text-primary">{detail.attempt.attempt_status.replace("_", " ")}</span>
                       </span>
                       <span className="rounded-full bg-card-hover px-3 py-1.5">
-                        Submitted: <span className="font-semibold text-text-primary">{detail.attempt.completed_at ? new Date(detail.attempt.completed_at).toLocaleString() : "—"}</span>
+                        Submitted: <span className="font-semibold text-text-primary">{detail.attempt.completed_at ? new Date(detail.attempt.completed_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "—"}</span>
                       </span>
                     </div>
 

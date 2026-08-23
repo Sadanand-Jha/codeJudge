@@ -56,7 +56,7 @@ export function AiQuizGenerator() {
     <div className="min-h-[calc(100vh-4rem)]">
       {/* Stepper */}
       <div className="sticky top-16 z-30 border-b border-border bg-ai-bg/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-3xl items-center gap-1 px-3 py-2 sm:gap-2 sm:px-6 sm:py-3">
           {STEPS.map((s, i) => {
             const isActive = s.id === step;
             const isDone = i < currentIndex;
@@ -67,7 +67,7 @@ export function AiQuizGenerator() {
                 {i > 0 && (
                   <div
                     className={cn(
-                      "mx-1 h-px w-6 sm:w-10",
+                      "mx-0.5 h-px w-4 sm:mx-1 sm:w-10",
                       i <= currentIndex ? "bg-violet-500" : "bg-border"
                     )}
                   />
@@ -77,7 +77,7 @@ export function AiQuizGenerator() {
                   onClick={() => isClickable && setStep(s.id)}
                   disabled={!isClickable}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
+                    "flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-medium transition-colors sm:gap-1.5 sm:px-2.5 sm:py-1.5 sm:text-xs",
                     isActive && "bg-violet-500/10 text-violet-600 dark:text-violet-400",
                     isDone && !isActive && "text-emerald-600 dark:text-emerald-400",
                     !isActive && !isDone && "text-text-muted",
@@ -86,7 +86,7 @@ export function AiQuizGenerator() {
                 >
                   <span
                     className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
+                      "flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold sm:h-5 sm:w-5 sm:text-[10px]",
                       isActive
                         ? "bg-violet-500 text-white"
                         : isDone

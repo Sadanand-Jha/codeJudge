@@ -33,7 +33,7 @@ const todayDate = () => toLocalInput(new Date()).split("T")[0];
 
 function formatDisplay(v: string): string {
   const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? v : d.toLocaleString();
+  return Number.isNaN(d.getTime()) ? v : d.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 }
 
 function formatTimezoneLabel(name: string): string {

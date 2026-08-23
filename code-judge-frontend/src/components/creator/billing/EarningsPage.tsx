@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ShoppingCart, ReceiptIndianRupee, Percent, UserCheck, UserPlus } from "lucide-react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useBillingData } from "./hooks";
 import {
   PageHeader,
@@ -39,9 +40,11 @@ export function EarningsPage({ demoState }: { demoState?: "empty" | "error" }) {
   const { state, retry } = useBillingData(() => ({ ok: true }), { demoState });
   const [range, setRange] = useState("10");
   const [metric, setMetric] = useState<BillingMetricKey>("earnings");
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
+  const effectiveRange = isMobile ? "7" : range;
   const chartData =
-    range === "7" ? EARNINGS_LAST_10_DAYS.slice(3) : range === "30" ? EARNINGS_LAST_30_DAYS : EARNINGS_LAST_10_DAYS;
+    effectiveRange === "7" ? EARNINGS_LAST_10_DAYS.slice(3) : effectiveRange === "30" ? EARNINGS_LAST_30_DAYS : EARNINGS_LAST_10_DAYS;
   const total = chartData.reduce((s, d) => s + d.earnings, 0);
   const breakdownTotal = EARNINGS_BREAKDOWN.reduce((s, b) => s + b.amount, 0);
 
@@ -96,7 +99,7 @@ export function EarningsPage({ demoState }: { demoState?: "empty" | "error" }) {
             subtitle={`${formatINR(total)} in the selected window`}
             action={
               <div className="flex flex-wrap items-center gap-2">
-                <SegmentedControl value={range} onChange={setRange} options={RANGE_OPTIONS} />
+                <SegmentedControl value={effectiveRange} onChange={setRange} options={isMobile ? RANGE_OPTIONS.filter((o) => o.id === "7") : RANGE_OPTIONS} />
                 <SegmentedControl
                   value={metric}
                   onChange={setMetric}

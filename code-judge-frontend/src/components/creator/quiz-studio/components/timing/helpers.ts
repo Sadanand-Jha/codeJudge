@@ -10,6 +10,7 @@ export function formatDateTime(date: string, time: string): string {
   if (!date) return "\u2014";
   const d = new Date(`${date}T${time || "00:00"}`);
   const datePart = d.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
     day: "numeric",
     month: "short",
     year: "numeric",

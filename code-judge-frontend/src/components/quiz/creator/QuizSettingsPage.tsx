@@ -1109,8 +1109,8 @@ export default function QuizSettingsPage({
                         </p>
                         <p className="mt-1 text-sm text-text-secondary">
                           {details.availabilityMode === "scheduled"
-                            ? `Students can attempt from ${details.availabilityStart ? new Date(details.availabilityStart).toLocaleString() : "scheduled start"} to ${details.availabilityEnd ? new Date(details.availabilityEnd).toLocaleString() : "no fixed end"}`
-                            : `Quiz opens immediately after publishing${details.availabilityEnd ? ` and ends ${new Date(details.availabilityEnd).toLocaleString()}` : " with no fixed end"}`
+                            ? `Students can attempt from ${details.availabilityStart ? new Date(details.availabilityStart).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "scheduled start"} to ${details.availabilityEnd ? new Date(details.availabilityEnd).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "no fixed end"}`
+                            : `Quiz opens immediately after publishing${details.availabilityEnd ? ` and ends ${new Date(details.availabilityEnd).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}` : " with no fixed end"}`
                           }
                           <span className="ml-2 text-[10px] font-medium text-amber-500">({details.timeZone})</span>
                         </p>

@@ -27,8 +27,8 @@ export function ProblemTable({
   onEdit: (id: string, title: string) => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border">
-      <table className="w-full text-left text-sm">
+    <div className="overflow-x-auto rounded-xl border border-border">
+      <table className="w-full min-w-[640px] text-left text-sm">
         <thead>
           <tr className="border-b border-border bg-white/[0.02] dark:bg-white/[0.01]">
             <th className="w-10 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted" />
@@ -76,18 +76,18 @@ export function ProblemTable({
                   <ConfIcon className={cn("h-3.5 w-3.5", conf.cls)} />
                 </td>
                 <td className="px-3 py-2.5">
-                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                     <button
                       type="button"
                       onClick={() => onEdit(p.id, p.title)}
-                      className="flex h-6 w-6 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
                     <button
                       type="button"
                       onClick={() => onRemove(p.id)}
-                      className="flex h-6 w-6 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-rose-500/10 hover:text-rose-500"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-rose-500/10 hover:text-rose-500"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

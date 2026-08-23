@@ -444,7 +444,7 @@ export default function QuestionBuilderStudio({
 
   const formatLastSaved = (date: Date | null) => {
     if (!date) return "";
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
   };
 
   return (

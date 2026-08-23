@@ -97,7 +97,7 @@ export function ScheduleMode({
                 {formatTime12(schedule.endTime)} on{" "}
                 {new Date(`${schedule.endDate}T00:00`).toLocaleDateString(
                   "en-IN",
-                  { day: "numeric", month: "long" }
+                  { timeZone: "Asia/Kolkata", day: "numeric", month: "long" }
                 )}
                 .
               </p>

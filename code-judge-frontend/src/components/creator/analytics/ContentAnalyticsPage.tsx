@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ClipboardList, HelpCircle, Layers, FileStack, Star, Eye, Share2, BarChart3 } from "lucide-react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useToast } from "@/hooks/useToast";
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
@@ -88,6 +89,8 @@ const TYPE_ICON: Record<ContentType, typeof ClipboardList> = {
 export function ContentAnalyticsPage({ demoState }: { demoState?: "empty" | "error" }) {
   const toast = useToast();
   const [range, setRange] = useState<Range>("30d");
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const effectiveRange: Range = isMobile ? "7d" : range;
   const { state, data, retry } = useBillingData(
     () => ({
       items: CONTENT_ITEMS,
@@ -102,7 +105,7 @@ export function ContentAnalyticsPage({ demoState }: { demoState?: "empty" | "err
     { delayMs: 650, demoState }
   );
 
-  const engagement = data?.engagement[range] ?? [];
+  const engagement = data?.engagement[effectiveRange] ?? [];
   const maxAttempts = Math.max(...engagement.map((e) => e.attempts), 1);
   const maxCompletion = Math.max(...engagement.map((e) => e.completionRate), 1);
   const maxRevenue = Math.max(...engagement.map((e) => e.revenue), 1);
@@ -123,7 +126,7 @@ export function ContentAnalyticsPage({ demoState }: { demoState?: "empty" | "err
 
       {state === "loading" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <StatCardSkeleton key={i} />
             ))}
@@ -145,7 +148,7 @@ export function ContentAnalyticsPage({ demoState }: { demoState?: "empty" | "err
 
       {state === "ready" && data && (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Tests"
               value={data.stats.tests}
@@ -305,7 +308,13 @@ export function ContentAnalyticsPage({ demoState }: { demoState?: "empty" | "err
           <Panel
             title="Engagement by type"
             subtitle="Comparing tests, quizzes and series across key metrics"
-            action={<SegmentedControl value={range} onChange={setRange} options={RANGE_OPTIONS} />}
+            action={
+              <SegmentedControl
+                value={effectiveRange}
+                onChange={setRange}
+                options={isMobile ? RANGE_OPTIONS.filter((o) => o.id === "7d") : RANGE_OPTIONS}
+              />
+            }
           >
             <div className="space-y-5">
               {engagement.map((row, i) => (

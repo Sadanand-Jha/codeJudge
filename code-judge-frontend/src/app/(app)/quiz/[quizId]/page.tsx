@@ -174,7 +174,7 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
             </div>
             <div>
               <span className="text-xs text-muted-foreground">Last Updated</span>
-              <p className="font-medium text-white">{new Date(quiz.createdAt).toLocaleDateString()}</p>
+              <p className="font-medium text-white">{new Date(quiz.createdAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</p>
             </div>
           </div>
 

@@ -34,7 +34,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm lg:hidden"
               onClick={() => setDrawerOpen(false)}
             />
           )}
@@ -48,7 +48,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
               animate={{ x: 0 }}
               exit={{ x: -320 }}
               transition={{ type: "spring", stiffness: 380, damping: 34 }}
-              className="fixed inset-y-0 left-0 z-50 w-[264px] border-r border-border bg-card shadow-2xl lg:hidden"
+              className="fixed inset-y-0 left-0 z-[80] w-[264px] border-r border-border bg-card shadow-2xl lg:hidden"
             >
               <button
                 type="button"

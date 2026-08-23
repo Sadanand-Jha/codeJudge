@@ -14,6 +14,8 @@ import {
   Wallet,
   TrendingUp,
   ArrowLeftRight,
+  ArrowLeft,
+  Home,
   Banknote,
   RotateCcw,
   Scale,
@@ -248,6 +250,19 @@ export function CreatorSidebar({
             </Link>
           ))}
         </div>
+        {/* Back to Student Mode — mobile only, at last of sidebar */}
+        {mobile && (
+          <div className="mt-3 border-t border-border pt-3">
+            <Link
+              href="/dashboard"
+              onClick={onNavigate}
+              className="flex cursor-pointer items-center gap-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 py-2.5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
+            >
+              <ArrowLeft className="h-4 w-4 text-white" />
+              Back to Student Mode
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

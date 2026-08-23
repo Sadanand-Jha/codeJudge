@@ -18,6 +18,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useBillingData } from "./hooks";
 import {
   PageHeader,
@@ -71,9 +72,13 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
   const [exportOpen, setExportOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [activeTxn, setActiveTxn] = useState<Transaction | null>(null);
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const breakdownTotal = EARNINGS_BREAKDOWN.reduce((s, b) => s + b.amount, 0);
   const recentTxns = TRANSACTIONS.slice(0, 6);
+  // Mobile: show only 7d for revenue over time
+  const earningsData = isMobile ? EARNINGS_LAST_10_DAYS.slice(-7) : EARNINGS_LAST_10_DAYS;
+  const earningsTotal = earningsData.reduce((s, d) => s + d.earnings, 0);
 
   return (
     <div className="space-y-6">
@@ -126,8 +131,8 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
 
       {state === "ready" && (
         <>
-          {/* 1. Earnings overview — 6 cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {/* 1. Earnings overview — 2 per line on mobile */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
             {OVERVIEW_STATS.map((s) => (
               <StatCard
                 key={s.id}
@@ -141,11 +146,11 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
             ))}
           </div>
 
-          {/* 2. Last 10 days earnings */}
+          {/* 2. Last 10 days earnings — mobile shows 7d */}
           <Panel
             className="overflow-hidden"
-            title="Earnings — Last 10 Days"
-            subtitle={`${formatINR(EARNINGS_TOTAL_LAST_10)} earned in the last 10 days`}
+            title={isMobile ? "Earnings — Last 7 Days" : "Earnings — Last 10 Days"}
+            subtitle={`${formatINR(earningsTotal)} earned in the last ${isMobile ? "7" : "10"} days`}
             action={
               <div className="flex flex-col items-end gap-2">
                 <SegmentedControl
@@ -159,13 +164,13 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
                 />
                 <span className="flex items-center gap-1.5 text-[11px] text-text-secondary">
                   <DeltaPill pct={EARNINGS_DELTA_LAST_10} tone="good" />
-                  vs previous 10 days
+                  vs previous {isMobile ? "7" : "10"} days
                 </span>
               </div>
             }
           >
             <EarningsAreaChart
-              data={EARNINGS_LAST_10_DAYS}
+              data={earningsData}
               metric={metric}
               height={280}
               comparePrev={metric === "earnings"}
@@ -267,9 +272,9 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
             </Panel>
           </div>
 
-          {/* 4. Insights + Monthly summary */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <Panel title="Financial Insights" subtitle="Auto-generated from your data" className="lg:col-span-2">
+          {/* 4. Insights + Monthly summary — monthly full width */}
+          <div className="grid grid-cols-1 gap-6">
+            <Panel title="Financial Insights" subtitle="Auto-generated from your data" className="col-span-full">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {INSIGHTS.map((ins) => (
                   <motion.div

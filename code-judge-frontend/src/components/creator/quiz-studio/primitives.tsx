@@ -238,12 +238,12 @@ export function Card({
       )}
     >
       {(title || action) && (
-        <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
-          <div>
-            {title && <h3 className="text-sm font-semibold text-text-primary">{title}</h3>}
-            {description && <p className="mt-0.5 text-xs text-text-secondary">{description}</p>}
+        <div className="flex flex-col gap-2 border-b border-border px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:px-5 sm:py-4">
+          <div className="min-w-0 flex-1">
+            {title && <h3 className="truncate text-sm font-semibold text-text-primary">{title}</h3>}
+            {description && <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary sm:line-clamp-none">{description}</p>}
           </div>
-          {action}
+          {action && <div className="shrink-0 self-start">{action}</div>}
         </div>
       )}
       <div className="px-5 py-4">{children}</div>

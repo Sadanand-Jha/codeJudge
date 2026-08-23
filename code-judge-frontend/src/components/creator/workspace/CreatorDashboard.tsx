@@ -23,6 +23,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   formatINRCompact,
@@ -244,6 +245,8 @@ export function CreatorDashboard({
   demoState?: "empty" | "error";
 }) {
   const [range, setRange] = useState<"7d" | "30d" | "90d">("30d");
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  const effectiveRange = isMobile ? "7d" : range;
   const profile = CREATOR_PROFILE;
 
   const { state, data, retry } = useBillingData(
@@ -267,8 +270,8 @@ export function CreatorDashboard({
           <div className="flex flex-wrap items-center gap-2">
             <SegmentedControl
               size="sm"
-              options={RANGE_OPTIONS}
-              value={range}
+              options={isMobile ? RANGE_OPTIONS.filter((o) => o.id === "7d") : RANGE_OPTIONS}
+              value={effectiveRange}
               onChange={(r) => setRange(r)}
             />
             <BillButton variant="ghost" href="/creator/billing/earnings">
@@ -279,7 +282,7 @@ export function CreatorDashboard({
       />
 
       {state === "loading" && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
           {Array.from({ length: 5 }).map((_, i) => (
             <StatCardSkeleton key={i} />
           ))}
@@ -296,10 +299,12 @@ export function CreatorDashboard({
 
       {ready && (
         <>
-          {/* Metrics */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          {/* Metrics — 2 per line on mobile, This Month's Revenue full width */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
             {data.metrics.map((m, i) => (
-              <MetricCard key={m.id} metric={m} index={i} />
+              <div key={m.id} className={m.id === "month" ? "col-span-2 xl:col-span-5" : ""}>
+                <MetricCard metric={m} index={i} />
+              </div>
             ))}
           </div>
 

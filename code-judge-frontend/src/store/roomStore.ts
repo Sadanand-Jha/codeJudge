@@ -4,7 +4,10 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Room, RoomStudent } from "@/types/room";
 import { AudienceStudent } from "@/components/quiz/creator/types";
-import { MOCK_ROOMS } from "@/mocks/rooms";
+// Dummy rooms commented out — now using backend implementation for rooms (see src/services/rooms.ts)
+// import { MOCK_ROOMS } from "@/mocks/rooms";
+// Using empty initial state; rooms are fetched/created via backend (quiz_rooms / room_members)
+const MOCK_ROOMS: Room[] = [];
 
 interface CreateRoomInput {
   name: string;
@@ -24,6 +27,7 @@ interface RoomStoreState {
   recentlyUsedStudentIds: string[];
 
   hydrate: () => void;
+  setRooms: (rooms: Room[]) => void;
   createRoom: (input: CreateRoomInput) => Room;
   updateRoom: (id: string, patch: { name?: string; description?: string }) => void;
   archiveRoom: (id: string) => void;
@@ -74,8 +78,11 @@ export const useRoomStore = create<RoomStoreState>()(
       hydrate: () =>
         set((state) => ({
           hydrated: true,
-          rooms: migrateStudentUsernames(state.rooms),
+          // Remove dummy mock rooms (ids like room_cse_a) — now using backend
+          rooms: migrateStudentUsernames(state.rooms.filter((r) => !String(r.id).startsWith("room_"))),
         })),
+
+      setRooms: (rooms) => set({ rooms: migrateStudentUsernames(rooms) }),
 
       createRoom: ({ name, description, students, ownerId }) => {
         const now = new Date().toISOString();

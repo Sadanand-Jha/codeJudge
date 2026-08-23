@@ -138,70 +138,70 @@ export function ReviewStep({
         </div>
       </Card>
 
-      {/* Thumbnail + Summary */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-        {/* Thumbnail */}
-        <Card title="Thumbnail" className="sm:col-span-1">
-          <div className="flex flex-col items-center">
-            <label className="relative flex h-40 w-full max-w-[180px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/60 text-xs text-text-secondary transition-colors hover:border-violet-500/40 hover:bg-card-hover">
-              {config.thumbnailUrl ? (
-                <img src={config.thumbnailUrl} alt="thumbnail" className="h-full w-full rounded-xl object-cover" />
-              ) : (
-                <>
-                  <Upload className="mb-1.5 h-5 w-5" />
-                  <span>Upload thumbnail</span>
-                </>
+        {/* Thumbnail + Summary — responsive: stack on mobile, 3 cols on desktop */}
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-3">
+          {/* Thumbnail */}
+          <Card title="Thumbnail" className="sm:col-span-1">
+            <div className="flex flex-col items-center">
+              <label className="relative flex h-32 w-full max-w-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/60 p-3 text-center text-xs text-text-secondary transition-colors hover:border-violet-500/40 hover:bg-card-hover sm:h-40">
+                {config.thumbnailUrl ? (
+                  <img src={config.thumbnailUrl} alt="thumbnail" className="h-full w-full rounded-xl object-cover" />
+                ) : (
+                  <>
+                    <Upload className="mb-1 h-5 w-5 shrink-0" />
+                    <span className="text-[11px] sm:text-xs">Upload thumbnail</span>
+                  </>
+                )}
+                <input
+                  ref={thumbRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={handleThumbUpload}
+                />
+              </label>
+              {config.thumbnailUrl && (
+                <button
+                  type="button"
+                  onClick={() => update({ thumbnailUrl: "" })}
+                  className="mt-2 inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-rose-500"
+                >
+                  <Trash2 className="h-3 w-3" /> Remove
+                </button>
               )}
-              <input
-                ref={thumbRef}
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={handleThumbUpload}
-              />
-            </label>
-            {config.thumbnailUrl && (
-              <button
-                type="button"
-                onClick={() => update({ thumbnailUrl: "" })}
-                className="mt-2 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-rose-500"
-              >
-                <Trash2 className="mr-1 h-3 w-3" /> Remove
-              </button>
-            )}
-          </div>
-        </Card>
+            </div>
+          </Card>
 
-        {/* Summary rail */}
-        <Card title="Summary" className="sm:col-span-2">
-          <div className="grid grid-cols-2 gap-2 text-center">
-            <div className="rounded-xl border border-border bg-card p-3">
-              <div className="flex items-center justify-center gap-1 text-xs text-text-secondary">
-                <ListChecks className="h-3.5 w-3.5" /> Questions
+          {/* Summary rail — 2 per line on mobile, prevent icon overlap */}
+          <Card title="Summary" className="sm:col-span-2">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-center">
+              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
+                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
+                  <ListChecks className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Questions</span>
+                </div>
+                <p className="text-base font-bold text-text-primary sm:text-lg">{config.problems.length}</p>
               </div>
-              <p className="text-lg font-bold text-text-primary">{config.problems.length}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-3">
-              <div className="flex items-center justify-center gap-1 text-xs text-text-secondary">
-                <Award className="h-3.5 w-3.5" /> Marks
+              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
+                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
+                  <Award className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Marks</span>
+                </div>
+                <p className="text-base font-bold text-text-primary sm:text-lg">{config.problems.length}</p>
               </div>
-              <p className="text-lg font-bold text-text-primary">{config.problems.length}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-3">
-              <div className="flex items-center justify-center gap-1 text-xs text-text-secondary">
-                <Clock className="h-3.5 w-3.5" /> Duration
+              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
+                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
+                  <Clock className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Duration</span>
+                </div>
+                <p className="text-base font-bold text-text-primary sm:text-lg">{config.duration} min</p>
               </div>
-              <p className="text-lg font-bold text-text-primary">{config.duration} min</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-3">
-              <div className="flex items-center justify-center gap-1 text-xs text-text-secondary">
-                <Check className="h-3.5 w-3.5" /> Difficulty
+              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
+                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
+                  <Check className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Difficulty</span>
+                </div>
+                <p className="truncate text-base font-bold text-text-primary sm:text-lg">{config.difficulty}</p>
               </div>
-              <p className="text-lg font-bold text-text-primary">{config.difficulty}</p>
             </div>
-          </div>
-        </Card>
-      </div>
+          </Card>
+        </div>
 
       {/* Quiz Details */}
       <Card
@@ -229,24 +229,24 @@ export function ReviewStep({
             />
           </div>
 
-          {/* Row 2: Difficulty selector */}
+          {/* Row 2: Difficulty selector — 2 per line on mobile to prevent icon overlap */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-text-secondary">Difficulty</label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {DIFFICULTIES.map((d) => (
                 <button
                   key={d}
                   type="button"
                   onClick={() => update({ difficulty: d })}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold capitalize transition-all",
+                    "flex items-center justify-center gap-1 rounded-lg border px-2 py-2 text-[11px] font-bold capitalize transition-all sm:gap-1.5 sm:px-3 sm:text-xs",
                     config.difficulty === d
                       ? cn("border-transparent text-white", difficultyDot[d])
                       : "border-border bg-card-hover/40 text-text-secondary hover:text-text-primary"
                   )}
                 >
-                  <span className={cn("h-2 w-2 rounded-full", config.difficulty === d ? "bg-white" : difficultyDot[d])} />
-                  {d}
+                  <span className={cn("h-2 w-2 shrink-0 rounded-full", config.difficulty === d ? "bg-white" : difficultyDot[d])} />
+                  <span className="truncate">{d}</span>
                 </button>
               ))}
             </div>

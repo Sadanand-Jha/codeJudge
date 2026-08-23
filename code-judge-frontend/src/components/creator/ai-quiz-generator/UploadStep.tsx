@@ -118,21 +118,21 @@ export function UploadStep({
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 pb-8">
+    <div className="mx-auto max-w-2xl space-y-6 pb-8 sm:space-y-8">
       {/* Header */}
-      <div className="text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/20">
-          <Sparkles className="h-7 w-7 text-white" />
+      <div className="text-center px-2">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/20 sm:mb-4 sm:h-14 sm:w-14">
+          <Sparkles className="h-6 w-6 text-white sm:h-7 sm:w-7" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-text-primary">
+        <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">
           Generate Quiz with AI
         </h1>
-        <p className="mt-2 text-sm text-text-secondary">
+        <p className="mt-1.5 text-sm text-text-secondary sm:mt-2">
           Upload your problem list — we&apos;ll build the quiz configuration for you.
         </p>
         <Link
           href="/creator/quizzes/create"
-          className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-text-secondary transition-colors hover:border-violet-500/30 hover:text-text-primary"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary transition-colors hover:border-violet-500/30 hover:text-text-primary sm:mt-4 sm:px-3.5"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Create Quiz
@@ -149,7 +149,7 @@ export function UploadStep({
         onDrop={onDrop}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "relative cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all duration-200",
+          "relative cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-200 sm:p-10",
           dragging
             ? "border-violet-500 bg-violet-500/[0.06]"
             : file?.valid
@@ -198,9 +198,9 @@ export function UploadStep({
       </div>
 
       {/* Info section */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Info className="h-4 w-4 text-violet-500" />
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+        <div className="flex items-center gap-2 mb-2 sm:mb-3">
+          <Info className="h-4 w-4 shrink-0 text-violet-500" />
           <h3 className="text-sm font-semibold text-text-primary">
             What AI will generate
           </h3>
@@ -208,21 +208,21 @@ export function UploadStep({
         <p className="mb-3 text-xs text-text-secondary">
           The AI analyzes your problem list and suggests:
         </p>
-        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-1 sm:gap-1.5 sm:grid-cols-3">
           {WHAT_AI_GENERATES.map((item) => (
             <div
               key={item}
-              className="flex items-center gap-1.5 rounded-md bg-white/[0.03] px-2 py-1.5 text-[11px] font-medium text-text-secondary"
+              className="flex items-center gap-1 rounded-md bg-white/[0.03] px-1.5 py-1.5 text-[10px] font-medium text-text-secondary sm:gap-1.5 sm:px-2 sm:text-[11px]"
             >
               <FileCheck className="h-3 w-3 shrink-0 text-violet-500" />
-              {item}
+              <span className="truncate">{item}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Hard limit notice */}
-      <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
+      <div className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3 sm:gap-3 sm:p-4">
         <AlertCircle className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
         <div>
           <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">

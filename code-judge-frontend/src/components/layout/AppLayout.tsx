@@ -257,7 +257,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
     <div
       className="min-h-screen w-full min-w-0 bg-ai-bg flex"
       data-ai-scope
-      style={{ "--rail-w": sidebarExpanded ? "16rem" : "3.75rem" } as CSSProperties}
+      style={{ "--rail-w": mobileMenuOpen || sidebarExpanded ? "16rem" : "3.75rem" } as CSSProperties}
     >
       {/* Mobile overlay */}
       <AnimatePresence>

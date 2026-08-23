@@ -46,7 +46,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
                 Back to Quizzes
               </Link>
               <h1 className="text-2xl font-bold text-white">{quiz.title} - Results</h1>
-              <p className="text-sm text-muted-foreground mt-1">Completed on {new Date().toLocaleDateString()}</p>
+              <p className="text-sm text-muted-foreground mt-1">Completed on {new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</p>
             </div>
             <div className="text-right">
               <p className="text-3xl font-bold text-white">{percentage}%</p>

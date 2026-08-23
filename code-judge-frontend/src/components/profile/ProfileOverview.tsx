@@ -158,7 +158,7 @@ export default function ProfileOverview() {
   }, [profile]);
 
   const joinedDate = profile?.createdAt
-    ? new Date(profile.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+    ? new Date(profile.createdAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", year: "numeric" })
     : undefined;
 
   const country = profile?.country ? (typeof profile.country === "string" ? profile.country : profile.country?.name) : undefined;

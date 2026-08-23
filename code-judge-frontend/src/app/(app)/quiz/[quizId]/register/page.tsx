@@ -335,9 +335,9 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       <InfoItem icon={GraduationCap} label="Subject" value="Computer Science" />
                       <InfoItem icon={Target} label="Topic" value="Data Structures & Algorithms" />
                       <InfoItem icon={Star} label="Difficulty" value="Medium" />
-                      <InfoItem icon={Calendar} label="Created On" value={new Date(quiz.created_at || Date.now()).toLocaleDateString()} />
-                      <InfoItem icon={Clock} label="Start Time" value={quiz.starttime ? new Date(quiz.starttime).toLocaleString() : "TBD"} />
-                      <InfoItem icon={Clock} label="End Time" value={quiz.endtime ? new Date(quiz.endtime).toLocaleString() : "TBD"} />
+                      <InfoItem icon={Calendar} label="Created On" value={new Date(quiz.created_at || Date.now()).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })} />
+                      <InfoItem icon={Clock} label="Start Time" value={quiz.starttime ? new Date(quiz.starttime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "TBD"} />
+                      <InfoItem icon={Clock} label="End Time" value={quiz.endtime ? new Date(quiz.endtime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "TBD"} />
                       <InfoItem icon={Timer} label="Duration" value={quizDuration} />
                       <InfoItem icon={Globe} label="Visibility" value="Public" />
                       <InfoItem icon={Lock} label="Language" value="English" />

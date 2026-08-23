@@ -387,7 +387,7 @@ export default function SettingsPage() {
         
         // Format member since date
         const memberSince = data.createdAt 
-          ? new Date(data.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+          ? new Date(data.createdAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "long", year: "numeric" })
           : "March 2024";
         
         // Map API response to settings
@@ -523,7 +523,7 @@ export default function SettingsPage() {
                     className="hidden items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-[10px] font-semibold text-success sm:flex"
                   >
                     <Check className="h-3 w-3" />
-                    {lastSaved ? `Auto saved ${lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Auto saved"}
+                    {lastSaved ? `Auto saved ${lastSaved.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" })}` : "Auto saved"}
                   </motion.span>
                 )}
                 <button
