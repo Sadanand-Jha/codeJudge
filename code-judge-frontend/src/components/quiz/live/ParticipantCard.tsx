@@ -5,7 +5,7 @@ import { Clock, Wifi, Target, ListChecks } from "lucide-react";
 import type { LiveParticipant } from "@/types/liveAssessment";
 import { STATUS_META, CONNECTION_META } from "@/types/liveAssessment";
 import { formatDuration } from "@/lib/liveAssessmentHelpers";
-import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
+import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
 import { StatusBadge } from "./StatusBadge";
 
 interface ParticipantCardProps {
@@ -16,10 +16,7 @@ interface ParticipantCardProps {
 export function ParticipantCard({ participant, index = 0 }: ParticipantCardProps) {
   const meta = STATUS_META[participant.status];
   const conn = CONNECTION_META[participant.connection];
-  const displayAvatarUrl =
-    participant.avatarUrl && getPredefinedAvatarByUrl(participant.avatarUrl)
-      ? participant.avatarUrl
-      : DEFAULT_AVATAR_URL;
+  const displayAvatarUrl = participant.avatarUrl || DEFAULT_AVATAR_URL;
 
   return (
     <motion.div

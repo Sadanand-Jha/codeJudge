@@ -10,6 +10,13 @@ export const createRoom = async (req: Request, res: Response) => {
     if (!userId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
     const { name, description } = req.body;
     if (!name || !String(name).trim()) { res.status(400).json({ success: false, message: "Room name is required" }); return; }
+    // Enforce maximum rooms per creator (must match frontend MAX_ROOMS_PER_CREATOR)
+    const MAX_ROOMS_PER_CREATOR = 5;
+    const countResult = await roomRepo.countRoomsByOwner(String(userId));
+    if (countResult >= MAX_ROOMS_PER_CREATOR) {
+      res.status(403).json({ success: false, message: `You can create at most ${MAX_ROOMS_PER_CREATOR} rooms. Remove or archive a room to create a new one.` });
+      return;
+    }
     const room = await roomRepo.createRoom(String(userId), String(name).trim(), description ? String(description).trim() : undefined);
     res.status(201).json({ success: true, data: room });
   } catch (e) {
@@ -73,6 +80,21 @@ export const searchUsers = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: users });
   } catch (e) {
     console.error("searchUsers error", e);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// GET /api/v1/user/rooms/by-student/:username
+export const getRoomsForStudent = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) { res.status(401).json({ success: false, message: "Unauthorized" }); return; }
+    const username = String(req.params.username ?? "").trim();
+    if (!username) { res.status(400).json({ success: false, message: "username is required" }); return; }
+    const rooms = await roomRepo.getRoomsForStudent(String(userId), username);
+    res.status(200).json({ success: true, data: rooms });
+  } catch (e) {
+    console.error("getRoomsForStudent error", e);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeft, AtSign, Check, CheckSquare, FileSpreadsheet, Loader2, Plus, Search, Users, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { MAX_STUDENTS_PER_ROOM, MAX_ROOMS_PER_CREATOR } from "@/lib/constants";
 import { RoomStudent } from "@/types/room";
 import { useRoomStore, getOwnedRooms } from "@/store/roomStore";
 import { useAuthStore } from "@/store/authStore";
@@ -178,6 +179,14 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
 
   const handleCreate = async () => {
     if (!name.trim()) { setError("Room name is required."); return; }
+    if (ownedRooms.length >= MAX_ROOMS_PER_CREATOR) {
+      toast.error({ title: "Room limit reached", description: `You can create at most ${MAX_ROOMS_PER_CREATOR} rooms.` });
+      return;
+    }
+    if (pending.length > MAX_STUDENTS_PER_ROOM) {
+      toast.error({ title: "Too many students", description: `A room can have at most ${MAX_STUDENTS_PER_ROOM} students.` });
+      return;
+    }
     setCreating(true);
     setError(null);
     try {

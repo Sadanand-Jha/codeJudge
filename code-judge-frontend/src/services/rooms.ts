@@ -89,6 +89,23 @@ export async function fetchMyRooms(): Promise<Room[]> {
   }));
 }
 
+export async function fetchRoomsForStudent(username: string): Promise<Room[]> {
+  const res = await apiClient.get(`/v1/user/rooms/by-student/${encodeURIComponent(username)}`);
+  const data = (res.data as unknown as { data?: unknown })?.data ?? res.data;
+  const rows = Array.isArray(data) ? data as Record<string, unknown>[] : [];
+  return rows.map((row) => ({
+    id: String(row.id),
+    name: String(row.name ?? ""),
+    description: (row.description as string) ?? undefined,
+    ownerId: row.owner_id != null ? String(row.owner_id) : undefined,
+    createdAt: (row.created_at as string) ?? new Date().toISOString(),
+    updatedAt: (row.updated_at as string) ?? new Date().toISOString(),
+    archived: (row.is_active as boolean) === false,
+    students: [],
+    memberCount: typeof row.member_count === "number" ? row.member_count : Number(row.member_count ?? 0),
+  }));
+}
+
 // Legacy fallback: direct user lookup via /v1/user/users/:username (now returns avatar too)
 export async function lookupUserDirect(username: string): Promise<SearchedUser> {
   const res = await apiClient.get<{ success: boolean; data: SearchedUser }>(`/v1/user/users/${encodeURIComponent(username)}`);

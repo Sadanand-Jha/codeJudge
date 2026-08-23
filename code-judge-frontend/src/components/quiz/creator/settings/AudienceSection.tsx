@@ -676,7 +676,7 @@ function IndividualStudents({
             >
               <div className="flex min-w-0 items-center gap-2.5">
                 <img
-                  src={getAvatarUrlById(s.avatarId)}
+                  src={s.avatarUrl || getAvatarUrlById(s.avatarId)}
                   alt=""
                   className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-border"
                 />

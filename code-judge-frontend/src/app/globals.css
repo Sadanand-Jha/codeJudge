@@ -92,6 +92,11 @@
   cursor: pointer;
 }
 
+/* Studio pages — 10px top margin for page titles (Your Quizzes etc.) on all studio pages */
+[data-studio="true"] main > div:first-child {
+  margin-top: 10px;
+}
+
 /* ============================================
    ByteClash Theme Design System
    ============================================

@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
+  AlertTriangle,
   Archive,
   ArchiveRestore,
   Copy,
   Download,
   Eye,
   FileSpreadsheet,
+  Loader2,
   Plus,
   Search,
   Settings2,
@@ -17,12 +19,14 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { MAX_ROOMS_PER_CREATOR } from "@/lib/constants";
 import { useRoomStore, getOwnedRooms } from "@/store/roomStore";
 import { useAuthStore } from "@/store/authStore";
 import { timeAgo, isWithinWindow } from "@/lib/formatters";
 import { exportStudentsToFile } from "@/utils/excelImport";
 import { useToast } from "@/hooks/useToast";
 import RoomMenu, { RoomMenuItem } from "@/components/quiz/creator/settings/audience/RoomMenu";
+import SortDropdown from "@/components/ui/SortDropdown";
 import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateRoomModal";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
@@ -78,18 +82,21 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   const [duplicateTarget, setDuplicateTarget] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [addTarget, setAddTarget] = useState<{ roomId: string; tab: "manual" | "import" } | null>(null);
+  const [loadingRooms, setLoadingRooms] = useState(true);
 
   useEffect(() => {
     hydrate();
     // Fetch rooms from backend on going to rooms page — calls GET /my-rooms
+    setLoadingRooms(true);
     import("@/services/rooms").then(({ fetchMyRooms }) => {
       fetchMyRooms()
         .then((backendRooms) => {
           // Only overwrite if backend returned data; keeps local fallback
           if (Array.isArray(backendRooms)) setRooms(backendRooms);
         })
-        .catch(() => {});
-    });
+        .catch(() => {})
+        .finally(() => setLoadingRooms(false));
+    }).catch(() => setLoadingRooms(false));
   }, [hydrate, setRooms]);
 
   // Only rooms owned by the authenticated admin.
@@ -201,6 +208,23 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
     },
   ];
 
+  // Full-page loading screen while rooms & students are fetched from the backend
+  if (loadingRooms) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <div className="rounded-2xl border border-border bg-card px-8 py-12 text-center shadow-lg">
+          <div className="relative mx-auto h-14 w-14">
+            <Loader2 className="h-14 w-14 animate-spin text-pink-500" />
+          </div>
+          <h2 className="mt-5 text-lg font-bold text-text-primary">Loading your rooms…</h2>
+          <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-text-secondary">
+            Fetching students from the backend. This will only take a moment.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
@@ -211,17 +235,31 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
             Create and manage student groups that you can reuse across your quizzes.
           </p>
         </div>
-        <button
+                <button
           onClick={() => {
             setCreateTab("manual");
             setCreateOpen(true);
           }}
-          className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] sm:h-11 sm:px-4"
+          disabled={ownedRooms.length >= MAX_ROOMS_PER_CREATOR}
+          title={
+            ownedRooms.length >= MAX_ROOMS_PER_CREATOR
+              ? `You can have at most ${MAX_ROOMS_PER_CREATOR} rooms`
+              : "Create a new room"
+          }
+          className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] sm:h-11 sm:px-4 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus className="h-4 w-4" />
           Create Room
         </button>
       </div>
+
+      {/* Room limit hint */}
+      {ownedRooms.length >= MAX_ROOMS_PER_CREATOR && (
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-warning">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          You&apos;ve reached the maximum of {MAX_ROOMS_PER_CREATOR} rooms. Remove or archive a room to create a new one.
+        </p>
+      )}
 
       {/* Room Overview stats */}
       <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 lg:grid-cols-4 lg:gap-6">
@@ -269,18 +307,12 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
               </button>
             ))}
           </div>
-          <select
+          <SortDropdown
+            options={SORTS.map((s) => ({ id: s.id, label: s.label }))}
             value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            className="h-9 shrink-0 rounded-xl border border-input-border bg-input-bg px-3 text-[11px] font-semibold text-text-primary focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10 sm:h-12 sm:px-3.5 sm:text-xs"
-            aria-label="Sort rooms"
-          >
-            {SORTS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setSort(v as SortKey)}
+            ariaLabel="Sort rooms"
+          />
         </div>
       </div>
 

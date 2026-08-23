@@ -85,6 +85,18 @@ export async function unfollowUser(userId: string): Promise<void> {
   await apiClient.delete(`/v1/user/follow/${encodeURIComponent(userId)}`);
 }
 
+/**
+ * GET /v1/user/follow/search?username=xxx
+ * Search for a user by exact username for the follow system.
+ */
+export async function searchUserForFollow(username: string): Promise<ProfileUser> {
+  const res = await apiClient.get<{ success: boolean; data: unknown }>("/v1/user/follow/search", {
+    params: { username },
+  });
+  const data = (res.data as { data?: unknown })?.data ?? res.data;
+  return toProfileUser(data);
+}
+
 /* =============================================
    Profile activity feed
    ---------------------------------------------

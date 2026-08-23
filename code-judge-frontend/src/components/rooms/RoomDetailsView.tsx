@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { STUDENTS_PER_PAGE } from "@/lib/constants";
 import { useRoomStore, getOwnedRooms, countRoomQuizUsage } from "@/store/roomStore";
 import { useAuthStore } from "@/store/authStore";
 import { timeAgo, isWithinWindow } from "@/lib/formatters";
@@ -30,6 +31,7 @@ import { Room, RoomStudent } from "@/types/room";
 import { getAvatarUrlById } from "@/config/dicebear";
 import { updateMemberStatus, updateRoomPatch, removeMember } from "@/services/rooms";
 import RoomMenu, { RoomMenuItem } from "@/components/quiz/creator/settings/audience/RoomMenu";
+import SortDropdown from "@/components/ui/SortDropdown";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
 import DeleteRoomModal from "./DeleteRoomModal";
@@ -71,6 +73,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const [filter, setFilter] = useState<StudentFilter>("all");
   const [sort, setSort] = useState<StudentSort>("default");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
   const [addOpen, setAddOpen] = useState(false);
   const [addTab, setAddTab] = useState<"manual" | "import">("manual");
   const [duplicateOpen, setDuplicateOpen] = useState(false);
@@ -178,34 +181,48 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       }
       return 0;
     });
-    return list;
+        return list;
   }, [room, filter, query, sort]);
 
-  if (!room) {
+  // Reset to first page whenever the filter, search, or sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, query, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / STUDENTS_PER_PAGE));
+  const paginatedStudents = useMemo(
+    () => filteredStudents.slice((currentPage - 1) * STUDENTS_PER_PAGE, currentPage * STUDENTS_PER_PAGE),
+    [filteredStudents, currentPage]
+  );
     if (backendLoading) {
       return (
-        <div className="rounded-2xl border border-border bg-card px-6 py-16 text-center">
-          <Users className="mx-auto h-8 w-8 animate-pulse text-text-muted" />
-          <h2 className="mt-3 text-lg font-bold text-text-primary">Loading room...</h2>
-          <p className="mt-1 text-sm text-text-secondary">Fetching students from backend (GET /my-rooms)…</p>
+        <div className="flex min-h-[60vh] items-center justify-center px-4">
+          <div className="rounded-2xl border border-border bg-card px-8 py-12 text-center shadow-lg">
+            <Users className="mx-auto h-12 w-12 animate-pulse text-pink-500" />
+            <h2 className="mt-5 text-lg font-bold text-text-primary">Loading room…</h2>
+            <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-text-secondary">
+              Fetching students from the backend. This will only take a moment.
+            </p>
+          </div>
         </div>
       );
     }
-    return (
-      <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
-        <Users className="mx-auto h-8 w-8 text-text-muted" />
-        <h2 className="mt-3 text-lg font-bold text-text-primary">Room not found</h2>
-        <p className="mt-1 text-sm text-text-secondary">This room may have been deleted.</p>
-        <Link
-          href={basePath}
-          className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Rooms
-        </Link>
-      </div>
-    );
-  }
+    if (!room) {
+      return (
+        <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
+          <Users className="mx-auto h-8 w-8 text-text-muted" />
+          <h2 className="mt-3 text-lg font-bold text-text-primary">Room not found</h2>
+          <p className="mt-1 text-sm text-text-secondary">This room may have been deleted.</p>
+          <Link
+            href={basePath}
+            className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to Rooms
+          </Link>
+        </div>
+      );
+    }
 
   const toggleSelected = (id: string) => {
     setSelected((prev) => {
@@ -405,16 +422,16 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               </button>
             ))}
           </div>
-          <select
+          <SortDropdown
+            options={[
+              { id: "default", label: "Default Order" },
+              { id: "recent", label: "Recently Added" },
+              { id: "name", label: "Name A–Z" },
+            ]}
             value={sort}
-            onChange={(e) => setSort(e.target.value as StudentSort)}
-            className="h-9 rounded-lg border border-input-border bg-input-bg px-2.5 text-[11px] font-semibold text-text-primary focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
-            aria-label="Sort students"
-          >
-            <option value="default">Default Order</option>
-            <option value="recent">Recently Added</option>
-            <option value="name">Name A–Z</option>
-          </select>
+            onChange={(v) => setSort(v as StudentSort)}
+            ariaLabel="Sort students"
+          />
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Room, RoomStudent } from "@/types/room";
 import { AudienceStudent } from "@/components/quiz/creator/types";
+import { MAX_STUDENTS_PER_ROOM } from "@/lib/constants";
 // Dummy rooms commented out — now using backend implementation for rooms (see src/services/rooms.ts)
 // import { MOCK_ROOMS } from "@/mocks/rooms";
 // Using empty initial state; rooms are fetched/created via backend (quiz_rooms / room_members)
@@ -159,16 +160,18 @@ export const useRoomStore = create<RoomStoreState>()(
         set({ rooms: get().rooms.filter((r) => r.id !== id) });
       },
 
-      addStudents: (roomId, students) => {
+            addStudents: (roomId, students) => {
         if (!students || students.length === 0) return;
         const now = new Date().toISOString();
         set({
           rooms: get().rooms.map((r) => {
             if (r.id !== roomId) return r;
             const existingKeys = new Set(r.students.map((s) => s.rollNumber.toLowerCase()));
+            const cap = Math.max(0, MAX_STUDENTS_PER_ROOM - r.students.length);
             const fresh = students
               .map((s) => ({ ...s, id: s.id || uid("stu"), addedAt: s.addedAt || now }))
-              .filter((s) => !existingKeys.has(s.rollNumber.toLowerCase()));
+              .filter((s) => !existingKeys.has(s.rollNumber.toLowerCase()))
+              .slice(0, cap);
             return bumpUpdatedAt({ ...r, students: [...r.students, ...fresh] });
           }),
         });

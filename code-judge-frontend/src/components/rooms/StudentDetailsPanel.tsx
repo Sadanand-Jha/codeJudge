@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, AtSign, Check, Pencil, Trash2, Users, X } from "lucide-react";
@@ -7,6 +8,7 @@ import { cn } from "@/lib/helpers";
 import { Room, RoomStudent } from "@/types/room";
 import { getStudentRooms } from "@/store/roomStore";
 import { getAvatarUrlById } from "@/config/dicebear";
+import { fetchRoomsForStudent } from "@/services/rooms";
 
 interface StudentDetailsPanelProps {
   student: RoomStudent | null;
@@ -28,7 +30,22 @@ export default function StudentDetailsPanel({
   onEdit,
   onRemove,
 }: StudentDetailsPanelProps) {
-  const roomsForStudent = student ? getStudentRooms(rooms, student.rollNumber) : [];
+  const [backendRooms, setBackendRooms] = useState<Room[] | null>(null);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+
+  useEffect(() => {
+    const username = student?.username ?? student?.rollNumber;
+    if (!username) { setBackendRooms(null); return; }
+    setLoadingRooms(true);
+    fetchRoomsForStudent(username)
+      .then(setBackendRooms)
+      .catch(() => setBackendRooms([]))
+      .finally(() => setLoadingRooms(false));
+  }, [student?.username, student?.rollNumber]);
+
+  // Prefer backend rooms (owner is creator) — fallback to local getStudentRooms for offline/mock
+  const localRooms = student ? getStudentRooms(rooms, student.rollNumber) : [];
+  const roomsForStudent = backendRooms !== null ? backendRooms : localRooms;
 
   return (
     <AnimatePresence>
@@ -110,8 +127,9 @@ export default function StudentDetailsPanel({
                   Rooms
                 </p>
                 <div className="mt-2 space-y-1.5">
-                  {roomsForStudent.length === 0 && (
-                    <p className="text-xs text-text-muted">This student is not in any room.</p>
+                  {loadingRooms && <p className="text-xs text-text-muted">Loading rooms where admin is creator…</p>}
+                  {!loadingRooms && roomsForStudent.length === 0 && (
+                    <p className="text-xs text-text-muted">This student is not in any room where you are admin.</p>
                   )}
                   {roomsForStudent.map((room) => (
                     <Link
@@ -128,7 +146,7 @@ export default function StudentDetailsPanel({
                           {room.name}
                         </span>
                         <span className="block text-[10px] text-text-muted">
-                          {room.students.length} student{room.students.length !== 1 ? "s" : ""}
+                          {(room.memberCount ?? room.students.length)} student{(room.memberCount ?? room.students.length) !== 1 ? "s" : ""}
                           {room.archived ? " · Archived" : ""}
                         </span>
                       </span>

@@ -120,7 +120,7 @@ export default function SelectStudentsModal({
         </span>
         {icon && (
           <img
-            src={getAvatarUrlById(student.avatarId)}
+            src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
             alt=""
             className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-border"
           />

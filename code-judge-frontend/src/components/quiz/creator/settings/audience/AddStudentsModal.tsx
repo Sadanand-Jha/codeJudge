@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, AtSign, Check, CheckSquare, FileSpreadsheet, Loader2, Plus, Search, Users, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { MAX_STUDENTS_PER_ROOM } from "@/lib/constants";
 import { RoomStudent } from "@/types/room";
 import { useRoomStore, getOwnedRooms } from "@/store/roomStore";
 import { useAuthStore } from "@/store/authStore";
@@ -124,12 +125,15 @@ export default function AddStudentsModal({
 
   const handleAddSearched = async () => {
     if (!searchedUser) return;
+    if (existing.length + pending.length >= MAX_STUDENTS_PER_ROOM) {
+      toast.error({ title: "Room is full", description: `A room can have at most ${MAX_STUDENTS_PER_ROOM} students.` });
+      return;
+    }
     setAdding(true);
     try {
       if (roomId) {
         try {
-          await addMemberToRoom(roomId, searchedUser.username);
-          toast.success({ title: "Added to DB", description: `@${searchedUser.username} added to ${roomName ?? "room"}` });
+                    await addMemberToRoom(roomId, searchedUser.username);
         } catch (err: unknown) {
           const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
           if (msg?.includes("Room not found") || (err as { response?: { status?: number } })?.response?.status === 404) {
@@ -152,8 +156,7 @@ export default function AddStudentsModal({
       };
       onAdd([student]);
       setPending((prev) => [...prev, student]);
-      setQuery("");
-      toast.success({ title: "Student added", description: `@${student.username} added` });
+            setQuery("");
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message || (e instanceof Error ? e.message : "Failed to add");
       setSearchError(msg);
@@ -164,6 +167,10 @@ export default function AddStudentsModal({
     if (!selectedRoom) return;
     const toAdd = selectedRoom.students.filter((s) => roomSelectedUsernames.has((s.username ?? s.rollNumber).toLowerCase()) && !excluded.has((s.username ?? s.rollNumber).toLowerCase()));
     if (toAdd.length === 0) { setSearchError("Select at least one student"); return; }
+    if (existing.length + pending.length + toAdd.length > MAX_STUDENTS_PER_ROOM) {
+      toast.error({ title: "Room is full", description: `A room can have at most ${MAX_STUDENTS_PER_ROOM} students.` });
+      return;
+    }
     // Try DB for each if target roomId exists
     for (const s of toAdd) {
       if (roomId) {
@@ -283,7 +290,7 @@ export default function AddStudentsModal({
             </div>
             {searchError && <p className="mt-2 text-xs font-medium text-danger">{searchError}</p>}
             {searchedUser && (
-              <div style={{ marginTop: "20px", height: "100px" }} className="flex flex-col justify-center rounded-2xl border border-border bg-card p-4 shadow-xl">
+              <div style={{ marginTop: "20px", height: "150px" }} className="flex flex-col justify-center rounded-2xl border border-border bg-card p-4 shadow-xl">
                 <div className="flex items-center gap-3.5">
                   {avatarSrc ? <img src={avatarSrc} alt={searchedUser.username} className="h-12 w-12 rounded-full object-cover ring-2 ring-border" /> : <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-pink-500/20 to-violet-600/20 text-sm font-bold text-pink-500 ring-2 ring-border">{searchedUser.username.slice(0,2).toUpperCase()}</div>}
                   <div className="min-w-0 flex-1">
@@ -293,7 +300,7 @@ export default function AddStudentsModal({
                   <span className="rounded-full bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success">ACTIVE</span>
                 </div>
                 <button onClick={handleAddSearched} disabled={adding} className="mt-3 flex h-8 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50">
-                  {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add to {roomName ?? "Room"}
+                  {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-20 w-3.5" />} Add to {roomName ?? "Room"}
                 </button>
               </div>
             )}
@@ -318,7 +325,7 @@ export default function AddStudentsModal({
                             <div key={s.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-white/[0.04]">
                               {s.avatarUrl ? <img src={s.avatarUrl} alt="" className="h-6 w-6 rounded-full object-cover ring-1 ring-border" /> : <img src={getAvatarUrlById(s.avatarId)} alt="" className="h-6 w-6 rounded-full object-cover ring-1 ring-border" />}
                               <span className="min-w-0 flex-1 truncate text-xs font-medium text-text-primary">@{s.username ?? s.rollNumber}</span>
-                              <button onClick={async () => { const key = (s.username ?? s.rollNumber).toLowerCase(); if (excluded.has(key)) return; if (roomId) { try { await addMemberToRoom(roomId, s.username ?? s.rollNumber); toast.success({ title: "Added to DB", description: `@${s.username} added` }); } catch {} } const copy: RoomStudent = { ...s, id: `stu_${Date.now()}_${Math.random().toString(36).slice(2,4)}` }; onAdd([copy]); setPending((prev) => [...prev, copy]); }} className="flex h-6 shrink-0 cursor-pointer items-center gap-1 rounded-md bg-pink-500/10 px-2 text-[11px] font-bold text-pink-500 hover:bg-pink-500/20"><Plus className="h-3 w-3" /> Add</button>
+                              <button onClick={async () => { const key = (s.username ?? s.rollNumber).toLowerCase(); if (excluded.has(key)) return; if (existing.length + pending.length >= MAX_STUDENTS_PER_ROOM) { toast.error({ title: "Room is full", description: `A room can have at most ${MAX_STUDENTS_PER_ROOM} students.` }); return; } if (roomId) { try { await addMemberToRoom(roomId, s.username ?? s.rollNumber); } catch {} } const copy: RoomStudent = { ...s, id: `stu_${Date.now()}_${Math.random().toString(36).slice(2,4)}` }; onAdd([copy]); setPending((prev) => [...prev, copy]); }} className="flex h-6 shrink-0 cursor-pointer items-center gap-1 rounded-md bg-pink-500/10 px-2 text-[11px] font-bold text-pink-500 hover:bg-pink-500/20"><Plus className="h-3 w-3" /> Add</button>
                             </div>
                           ))}
                           {available.length > 5 && <p className="text-center text-[10px] text-text-muted">+{available.length - 5} more — use Choose from Rooms tab for full list</p>}

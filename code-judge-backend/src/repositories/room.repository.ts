@@ -22,6 +22,11 @@ export class RoomRepository {
     return result.rows[0];
   }
 
+  async countRoomsByOwner(ownerId: string): Promise<number> {
+    const result = await pool.query("SELECT COUNT(*)::int as count FROM quiz_rooms WHERE owner_id = $1", [ownerId]);
+    return result.rows[0]?.count ?? 0;
+  }
+
   async getRoomsByOwner(ownerId: string) {
     const result = await pool.query(
       `SELECT qr.*, COALESCE(cnt.member_count,0)::int as member_count
@@ -203,5 +208,19 @@ export class RoomRepository {
       avatarId: r.avatar_id,
       avatarUrl: r.avatar_url,
     }));
+  }
+
+  async getRoomsForStudent(ownerId: string, username: string) {
+    const result = await pool.query(
+      `SELECT qr.*, COALESCE(cnt.member_count,0)::int as member_count
+       FROM quiz_rooms qr
+       JOIN room_members rm ON rm.room_id = qr.id
+       JOIN users u ON rm.user_id = u.id
+       LEFT JOIN (SELECT room_id, COUNT(*) as member_count FROM room_members GROUP BY room_id) cnt ON cnt.room_id = qr.id
+       WHERE qr.owner_id::text = $1 AND LOWER(u.username) = LOWER($2)
+       ORDER BY qr.updated_at DESC`,
+      [String(ownerId), String(username).trim()]
+    );
+    return result.rows;
   }
 }

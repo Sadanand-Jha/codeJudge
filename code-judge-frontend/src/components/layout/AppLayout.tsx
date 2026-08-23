@@ -137,7 +137,6 @@ const navGroups: { label: string; items: NavItemData[] }[] = [
     label: "ACCOUNT",
     items: [
       { label: "Profile", icon: User, href: "/profile" },
-      { label: "Purchases", icon: Briefcase, href: "/profile/purchases" },
       { label: "Settings", icon: Settings, href: "/settings" },
     ],
   },

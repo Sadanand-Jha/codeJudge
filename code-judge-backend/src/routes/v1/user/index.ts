@@ -16,6 +16,7 @@ import {
 } from "../../../controllers/profile.controller.ts";
 import aiRoutes from "./ai.routes.ts";
 import roomRoutes from "../room.routes.ts";
+import followRoutes from "../follow.routes.ts";
 import { listRooms } from "../../../controllers/room.controller.ts";
 
 
@@ -29,6 +30,7 @@ router.use("/contest", contestRoutes);
 router.use("/quiz", quizRoutes);
 router.use("/ai", aiRoutes);
 router.use("/rooms", roomRoutes);
+router.use("/follow", followRoutes);
 
 
 

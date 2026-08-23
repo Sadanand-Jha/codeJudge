@@ -79,6 +79,8 @@ export interface AudienceStudent {
   email?: string;
   /** Avatar id (1-7) for the predefined local avatars. */
   avatarId: number;
+  /** Avatar URL from DB — if present, use this instead of avatarId fallback. */
+  avatarUrl?: string | null;
 }
 
 /**
