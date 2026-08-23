@@ -45,6 +45,7 @@ import {
   setQuizParticipants,
   getQuizParticipantsController,
   generateQuizCodeEndpoint,
+  saveQuizProblemFull,
 } from "../../../controllers/quiz.controller.ts";
 const router = Router();
 
@@ -116,6 +117,9 @@ router.get("/:quizId/problems", getQuizProblemsController);
 
 // POST /api/v1/user/quiz/:quizId/problems — add a question
 router.post("/:quizId/problems", validate(quizProblemSchema), addQuizProblem);
+
+// POST /api/v1/user/quiz/problems/save-full — save a question with its options in one transaction
+router.post("/problems/save-full", saveQuizProblemFull);
 
 // PUT /api/v1/user/quiz/problems/:problemId — update a question
 router.put("/problems/:problemId", validate(quizProblemSchema), updateQuizProblem);

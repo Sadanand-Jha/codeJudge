@@ -5,13 +5,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   ArrowLeft,
+  AtSign,
   Check,
   ChevronRight,
   Download,
   FileSpreadsheet,
   FileUp,
   Hash,
-  Mail,
   RefreshCw,
   UserRound,
   X,
@@ -49,19 +49,19 @@ interface StudentImportPanelProps {
 const COLUMN_LABELS: Record<ColumnKey, string> = {
   name: "Name",
   roll: "Roll Number",
-  email: "Email ID",
+  username: "Username",
 };
 
 const COLUMN_HINTS: Record<ColumnKey, { desc: string; example: string }> = {
   name: { desc: "Student's full name.", example: "Rahul Kumar" },
   roll: { desc: "Student's unique college/school roll number.", example: "23CSE1042" },
-  email: { desc: "Student's valid email address.", example: "rahul@gmail.com" },
+  username: { desc: "Student's unique username.", example: "rahul.kumar42" },
 };
 
 const FIELD_ICONS: Record<ColumnKey, React.ComponentType<{ className?: string }>> = {
   name: UserRound,
   roll: Hash,
-  email: Mail,
+  username: AtSign,
 };
 
 /**
@@ -77,7 +77,7 @@ export default function StudentImportPanel({
   const [step, setStep] = useState<Step>("prepare");
   const [fileName, setFileName] = useState("");
   const [sheetData, setSheetData] = useState<ExcelSheetData | null>(null);
-  const [mapping, setMapping] = useState<ColumnMapping>({ name: null, roll: null, email: null });
+  const [mapping, setMapping] = useState<ColumnMapping>({ name: null, roll: null, username: null });
   const [classification, setClassification] = useState<Classification | null>(null);
   const [showIssues, setShowIssues] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
@@ -87,7 +87,7 @@ export default function StudentImportPanel({
     setStep("prepare");
     setFileName("");
     setSheetData(null);
-    setMapping({ name: null, roll: null, email: null });
+    setMapping({ name: null, roll: null, username: null });
     setClassification(null);
     setShowIssues(false);
     setParseError(null);
@@ -129,7 +129,7 @@ export default function StudentImportPanel({
       id: `import_${Date.now()}_${i}`,
       name: r.name,
       rollNumber: r.rollNumber,
-      email: r.email,
+      username: r.username,
       active: true,
       avatarId: (i % 7) + 1,
     }));
@@ -249,34 +249,27 @@ function PrepareStep({
       <div>
         <h4 className="text-sm font-bold text-text-primary">Prepare your Excel sheet</h4>
         <p className="mt-1 text-xs leading-relaxed text-text-secondary">
-          Your Excel file should contain student information in three columns. Make sure the first row
-          contains the column names.
+          Your Excel file only needs a <span className="font-semibold text-text-primary">Username</span> column. One username per row — we&apos;ll derive the profile from the username.
         </p>
       </div>
 
       {/* Mini-spreadsheet example */}
       <div className="overflow-x-auto rounded-xl border border-border">
-        <table className="w-full min-w-[340px] text-left text-xs">
+        <table className="w-full min-w-[240px] text-left text-xs">
           <thead>
             <tr className="border-b border-border bg-white/[0.03]">
-              {(["Name", "Roll Number", "Email ID"] as const).map((col) => (
-                <th key={col} className="px-3 py-2.5 font-bold text-text-primary">
-                  <span className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
-                    {col}
-                    <span className="rounded-md bg-pink-500/15 px-1.5 py-px text-[9px] font-bold uppercase tracking-wider text-pink-500">
-                      Required
-                    </span>
+              <th className="px-3 py-2.5 font-bold text-text-primary">
+                <span className="flex items-center gap-1.5 whitespace-nowrap">
+                  Username
+                  <span className="rounded-md bg-pink-500/15 px-1.5 py-px text-[9px] font-bold uppercase tracking-wider text-pink-500">
+                    Required
                   </span>
-                </th>
-              ))}
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody className="font-medium text-text-secondary">
-            {[
-              ["Rahul Kumar", "23CSE1042", "rahul@gmail.com"],
-              ["Priya Singh", "23CSE1043", "priya@gmail.com"],
-              ["Aman Sharma", "23CSE1044", "aman@gmail.com"],
-            ].map((row, i) => (
+            {[["rahul.kumar42"], ["priya.singh43"], ["aman.sharma44"]].map((row, i) => (
               <tr key={i} className="border-b border-border/50 last:border-0">
                 {row.map((cell, j) => (
                   <td key={j} className="px-3 py-2">
@@ -290,18 +283,14 @@ function PrepareStep({
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card/40 px-3 py-2 text-[11px]">
-        <span className="font-bold text-text-muted">Required columns:</span>
-        {["Name", "Roll Number", "Email ID"].map((c, i) => (
-          <span key={c} className="flex items-center gap-1.5">
-            {i > 0 && <span className="text-border-hover">·</span>}
-            <span className="font-semibold text-text-primary">{c}</span>
-          </span>
-        ))}
+        <span className="font-bold text-text-muted">Required column:</span>
+        <span className="font-semibold text-text-primary">Username</span>
+        <span className="text-text-muted">· optional: Name, Roll Number (derived if omitted)</span>
       </div>
 
-      {/* Field explanations — 3 → 2 → 1 column layout */}
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:last:col-span-2 lg:grid-cols-3 lg:last:col-span-1">
-        {(["name", "roll", "email"] as ColumnKey[]).map((key) => {
+      {/* Field explanations */}
+      <div className="grid grid-cols-1 gap-2">
+        {(["username"] as ColumnKey[]).map((key) => {
           const Icon = FIELD_ICONS[key];
           return (
             <div key={key} className="min-w-0 rounded-xl border border-border bg-card p-3.5">
@@ -316,6 +305,7 @@ function PrepareStep({
               <code className="mt-2 block w-fit break-words rounded-lg bg-input-bg px-2 py-1 text-xs font-medium text-text-primary">
                 {COLUMN_HINTS[key].example}
               </code>
+              <p className="mt-2 text-[11px] text-text-muted">If Name/Roll columns are present they&apos;ll be used, otherwise filled from the username.</p>
             </div>
           );
         })}
@@ -326,12 +316,12 @@ function PrepareStep({
         <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Important</p>
         <ul className="mt-1.5 grid gap-1 text-[11px] text-text-secondary sm:grid-cols-2">
           {[
-            "All three columns are required.",
-            "The first row should contain the column names.",
-            "Each subsequent row represents one student.",
-            "Do not merge cells — keep one student per row.",
-            "Roll numbers should be unique within the room.",
-            "Email addresses should be valid.",
+            "Only the Username column is required.",
+            "The first row must be 'Username'.",
+            "Each subsequent row is one username.",
+            "Do not merge cells — keep one username per row.",
+            "Usernames must be 2-30 chars: letters, numbers, ., _, -.",
+            "Duplicates are skipped automatically.",
             "Avoid completely empty rows.",
           ].map((rule, i) => (
             <li key={i} className="flex items-start gap-1.5">
@@ -429,7 +419,7 @@ function MappingStep({
       </div>
 
       <div className="grid gap-2.5">
-        {(["name", "roll", "email"] as ColumnKey[]).map((key) => (
+        {(["name", "roll", "username"] as ColumnKey[]).map((key) => (
           <div
             key={key}
             className="rounded-xl border border-border bg-card p-3.5"
@@ -437,9 +427,15 @@ function MappingStep({
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="text-xs font-bold text-text-primary">{COLUMN_LABELS[key]}</span>
-                <span className="shrink-0 whitespace-nowrap rounded-md bg-pink-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-pink-500">
-                  Required
-                </span>
+                {key === "username" ? (
+                  <span className="shrink-0 whitespace-nowrap rounded-md bg-pink-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-pink-500">
+                    Required
+                  </span>
+                ) : (
+                  <span className="shrink-0 whitespace-nowrap rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-text-muted">
+                    Optional
+                  </span>
+                )}
               </div>
               <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
                 <span className="shrink-0 text-[11px] text-text-muted">Your column</span>
@@ -517,7 +513,7 @@ function MissingColumnState({
       <div className="rounded-xl border border-border bg-card p-3.5">
         <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Required columns</p>
         <div className="mt-2 space-y-1.5">
-          {(["name", "roll", "email"] as ColumnKey[]).map((key) => {
+          {(["name", "roll", "username"] as ColumnKey[]).map((key) => {
             const ok = Boolean(mapping[key]);
             return (
               <div key={key} className="flex items-center gap-2 text-xs">
@@ -599,7 +595,7 @@ function ValidationStep({
         <div className="hidden grid-cols-[minmax(0,1.6fr)_104px_minmax(0,0.9fr)_112px] items-center gap-3 border-b border-border bg-white/[0.03] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-muted sm:grid">
           <span>Name</span>
           <span>Roll Number</span>
-          <span>Email</span>
+          <span>Username</span>
           <span className="text-right">Status</span>
         </div>
         <div className="max-h-64 overflow-y-auto">
@@ -632,7 +628,7 @@ function ValidationStep({
                 {r.rollNumber || "—"}
               </span>
               <span className="order-4 col-span-2 truncate text-[11px] text-text-muted sm:order-3 sm:col-span-1">
-                {r.email || "—"}
+                {r.username ? `@${r.username}` : "—"}
               </span>
               <span
                 className={cn(

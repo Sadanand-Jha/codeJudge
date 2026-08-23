@@ -12,14 +12,11 @@ export const getAllLanguages = async (): Promise<any> => {
   try {
     const response = await fetch(`${JUDGE0_URL}/languages`);
     if (!response.ok) {
-      throw new Error(`Failed to fetch languages: ${response.statusText}`);
+      return null;
     }
     return response.json();
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new Error(error.message);
-    }
-    throw new Error('An unknown error occurred while fetching languages');
+  } catch {
+    return null;
   }
 }
 
@@ -34,45 +31,43 @@ export const getAllLanguages = async (): Promise<any> => {
  * displayed in the editor.
  */
 export const fetchAndMergeLanguages = async (): Promise<LanguageOption[]> => {
-  try {
-    const apiLanguages: Array<{ id: number; name: string }> = await getAllLanguages();
+  const apiLanguages = await getAllLanguages();
 
-    console.log("API Languages:", apiLanguages);
-
-    // Get the set of CP language names for filtering
-    const cpLanguageNames = new Set(
-      CP_LANGUAGE_OPTIONS.map(lang => lang.judge0Name.toLowerCase())
-    );
-
-    // Map API language IDs to our CP static config using judge0Name
-    const merged: LanguageOption[] = [];
-
-    for (const lang of apiLanguages) {
-      const staticLang = getLanguageOptionByName(lang.name);
-      console.log("Processing lang:", lang.name, "Found:", !!staticLang);
-      
-      // Only include if it's in our CP languages list
-      if (staticLang && cpLanguageNames.has(staticLang.judge0Name.toLowerCase())) {
-        merged.push({
-          ...staticLang,
-          value: lang.id, // Use the API-provided ID
-        });
-      }
-    }
-
-    console.log("Merged CP languages:", merged);
-
-    // Fallback to CP static config if API returns nothing useful
-    if (merged.length === 0) {
-      return CP_LANGUAGE_OPTIONS;
-    }
-
-    return merged;
-  } catch (error) {
-    console.error("Error fetching languages, falling back to CP config:", error);
-    // If API is unreachable, fall back to CP static config
+  if (!apiLanguages) {
     return CP_LANGUAGE_OPTIONS;
   }
+
+  console.log("API Languages:", apiLanguages);
+
+  // Get the set of CP language names for filtering
+  const cpLanguageNames = new Set(
+    CP_LANGUAGE_OPTIONS.map(lang => lang.judge0Name.toLowerCase())
+  );
+
+  // Map API language IDs to our CP static config using judge0Name
+  const merged: LanguageOption[] = [];
+
+  for (const lang of apiLanguages) {
+    const staticLang = getLanguageOptionByName(lang.name);
+    console.log("Processing lang:", lang.name, "Found:", !!staticLang);
+    
+    // Only include if it's in our CP languages list
+    if (staticLang && cpLanguageNames.has(staticLang.judge0Name.toLowerCase())) {
+      merged.push({
+        ...staticLang,
+        value: lang.id, // Use the API-provided ID
+      });
+    }
+  }
+
+  console.log("Merged CP languages:", merged);
+
+  // Fallback to CP static config if API returns nothing useful
+  if (merged.length === 0) {
+    return CP_LANGUAGE_OPTIONS;
+  }
+
+  return merged;
 };
 
 export const runCode = async (code: string, input: string, languageId: number): Promise<any> => {

@@ -15,14 +15,17 @@ export class UserService {
         return this.repository.checkUserExistsByEmail(email);
     }
 
+    async checkUsernameExists(username: string): Promise<boolean> {
+        return this.repository.checkUsernameExists(username);
+    }
+
     async getUserByEmail(email: string): Promise<any> {
         return this.repository.getUserByEmail(email);
     }
 
-    async createUser(email: string, password: string): Promise<any> {
-        // Generate username from email (everything before @)
-        const username = email.split('@')[0];
-        return this.repository.createUser(email, password, username);
+    async createUser(email: string, password: string, username?: string): Promise<any> {
+        const finalUsername = username || email.split('@')[0];
+        return this.repository.createUser(email, password, finalUsername);
     }
 
     async getUserProfileById(userId: string): Promise<any> {

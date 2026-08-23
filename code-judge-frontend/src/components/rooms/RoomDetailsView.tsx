@@ -110,7 +110,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       if (filter === "recent" && !(s.addedAt && isWithinWindow(s.addedAt, RECENT_WINDOW_MS)))
         return false;
       if (filter === "issues" && !hasStudentIssue(s)) return false;
-      if (q && !`${s.name} ${s.rollNumber} ${s.email}`.toLowerCase().includes(q)) return false;
+      if (q && !`${s.name} ${s.rollNumber} ${s.username ?? s.email ?? ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
     list = [...list].sort((a, b) => {
@@ -167,7 +167,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const handleExport = () => {
     exportStudentsToFile(
       room.name.replace(/[^\w\s-]/g, ""),
-      room.students.map((s) => ({ name: s.name, rollNumber: s.rollNumber, email: s.email }))
+      room.students.map((s) => ({ name: s.name, rollNumber: s.rollNumber, username: s.username ?? s.email?.split("@")[0] ?? "" }))
     );
     toast.success({ title: "Export started", description: `${room.students.length} students exported.` });
   };
@@ -436,7 +436,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                 </th>
                 <th className="px-2 py-2.5">Student</th>
                 <th className="hidden px-2 py-2.5 md:table-cell">Roll</th>
-                <th className="hidden px-2 py-2.5 lg:table-cell">Email</th>
+                <th className="hidden px-2 py-2.5 lg:table-cell">Username</th>
                 <th className="hidden px-2 py-2.5 sm:table-cell">Added</th>
                 <th className="px-2 py-2.5 text-right">Status</th>
               </tr>
@@ -488,7 +488,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                       {student.rollNumber}
                     </td>
                     <td className="hidden px-2 py-3 text-xs text-text-secondary lg:table-cell">
-                      {student.email}
+                      @{(student.username ?? student.email?.split("@")[0] ?? "").toLowerCase() || "—"}
                     </td>
                     <td className="hidden px-2 py-3 text-xs text-text-muted sm:table-cell">
                       {student.addedAt ? timeAgo(student.addedAt) : "—"}
@@ -636,7 +636,12 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   );
 }
 
+function getUsername(student: RoomStudent): string {
+  return (student.username ?? student.email?.split("@")[0] ?? "").trim();
+}
+
 function hasStudentIssue(student: RoomStudent): boolean {
-  const validEmail = student.email.trim() === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(student.email.trim());
-  return !student.active || !student.rollNumber.trim() || !validEmail;
+  const username = getUsername(student);
+  const validUsername = username !== "" && /^[a-zA-Z0-9._-]{2,30}$/.test(username);
+  return !student.active || !student.rollNumber.trim() || !validUsername;
 }

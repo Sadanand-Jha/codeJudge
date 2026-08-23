@@ -259,6 +259,15 @@ export class QuizRepository {
   }
 
   /**
+   * Count problems for a quiz
+   */
+  async getQuizProblemCount(quizId: string): Promise<number> {
+    const query = `SELECT COUNT(*)::int AS count FROM quiz_problems WHERE quiz_id = $1`;
+    const result = await pool.query(query, [quizId]);
+    return result.rows[0]?.count ?? 0;
+  }
+
+  /**
    * Get all options for a quiz problem
    */
   async getQuizProblemOptions(problemId: string): Promise<any[]> {
@@ -620,12 +629,14 @@ export class QuizRepository {
 
     if (fields.length === 0) return null;
 
+    fields.push(`updated_at = CURRENT_TIMESTAMP`);
+
     paramCount++;
     values.push(problemId);
 
     const query = `
       UPDATE quiz_problems
-      SET ${fields.join(", ")} = CURRENT_TIMESTAMP
+      SET ${fields.join(", ")}
       WHERE id = $${paramCount}
       RETURNING *
     `;
@@ -668,6 +679,117 @@ export class QuizRepository {
     }
 
     return newProblem.rows[0];
+  }
+
+  async saveQuizProblemFull(data: {
+    problemId?: number;
+    quizId: number;
+    problemStatement: string;
+    problemDescription?: string;
+    quizProblemType?: number;
+    questionNumber?: number;
+    explanation?: string;
+    hint?: string;
+    difficulty?: number;
+    referenceNotes?: string;
+    internalComments?: string;
+    marks?: number;
+    negativeMarks?: number;
+    options?: Array<{
+      optionStatement: string;
+      optionDescription?: string;
+      isCorrect: boolean;
+    }>;
+  }): Promise<any> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      let problem;
+      if (data.problemId) {
+        const fields: string[] = [];
+        const values: any[] = [];
+        let paramCount = 0;
+
+        const updateableFields: Record<string, any> = {
+          problem_statement: data.problemStatement,
+          problem_description: data.problemDescription ?? null,
+          quiz_problem_type: data.quizProblemType ?? null,
+          question_number: data.questionNumber ?? null,
+          explaination: data.explanation ?? null,
+          hint: data.hint ?? null,
+          difficulty: data.difficulty ?? null,
+          reference_notes: data.referenceNotes ?? null,
+          internal_comments: data.internalComments ?? null,
+          marks: data.marks ?? null,
+          negative_marks: data.negativeMarks ?? null,
+        };
+
+        for (const [field, value] of Object.entries(updateableFields)) {
+          if (value !== undefined) {
+            paramCount++;
+            fields.push(`${field} = $${paramCount}`);
+            values.push(value);
+          }
+        }
+
+        if (fields.length > 0) {
+          paramCount++;
+          fields.push(`updated_at = CURRENT_TIMESTAMP`);
+          values.push(data.problemId);
+
+          const query = `UPDATE quiz_problems SET ${fields.join(", ")} WHERE id = $${paramCount} RETURNING *`;
+          const result = await client.query(query, values);
+          problem = result.rows[0];
+        } else {
+          const result = await client.query("SELECT * FROM quiz_problems WHERE id = $1", [data.problemId]);
+          problem = result.rows[0];
+        }
+      } else {
+        const result = await client.query(
+          `INSERT INTO quiz_problems (
+            quiz_id, problem_statement, problem_description, quiz_problem_type,
+            question_number, explaination, hint, difficulty, reference_notes, internal_comments,
+            marks, negative_marks, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          RETURNING *`,
+          [
+            data.quizId,
+            data.problemStatement,
+            data.problemDescription || null,
+            data.quizProblemType || null,
+            data.questionNumber || 1,
+            data.explanation || null,
+            data.hint || null,
+            data.difficulty || null,
+            data.referenceNotes || null,
+            data.internalComments || null,
+            data.marks ?? null,
+            data.negativeMarks ?? null,
+          ]
+        );
+        problem = result.rows[0];
+      }
+
+      if (data.options && problem) {
+        await client.query("DELETE FROM quiz_problem_options WHERE problem_id = $1", [problem.id]);
+        for (const opt of data.options) {
+          await client.query(
+            `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, iscorrect, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            [problem.id, opt.optionStatement, opt.optionDescription || null, opt.isCorrect]
+          );
+        }
+      }
+
+      await client.query("COMMIT");
+      return problem;
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async reorderQuizProblems(quizId: number, problemIds: number[]): Promise<void> {

@@ -7,6 +7,7 @@ import { Code2, Mail, Lock, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { login } from "@/services/auth";
 import { toast } from "@/lib/toast";
+import AuthBackground from "@/components/auth/AuthBackground";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -63,7 +64,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-6">
+    <div className="relative min-h-screen flex items-center justify-center px-6">
+      <AuthBackground />
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">

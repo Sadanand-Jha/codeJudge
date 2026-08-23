@@ -583,6 +583,16 @@ export const addQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
+    const MAX_PROBLEMS = 25;
+    const problemCount = await quizService.getQuizProblemCount(String(quizId));
+    if (problemCount >= MAX_PROBLEMS) {
+      res.status(400).json({
+        success: false,
+        message: `A quiz can have at most ${MAX_PROBLEMS} problems`,
+      });
+      return;
+    }
+
     const problem = await quizService.createQuizProblem({
       ...body,
       quizId: Number(quizId),
@@ -652,6 +662,92 @@ export const updateQuizProblem = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while updating question",
+    });
+  }
+};
+
+/**
+ * POST /api/v1/user/quiz/problems/save-full
+ * Save a quiz problem with all its options in a single transaction (upsert)
+ */
+export const saveQuizProblemFull = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const body = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+      return;
+    }
+
+    const quizId = body.quizId;
+    if (!quizId) {
+      res.status(400).json({
+        success: false,
+        message: "quizId is required",
+      });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(String(quizId));
+    if (!quiz) {
+      res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+      return;
+    }
+
+    if (quiz.createdby !== Number(userId)) {
+      res.status(403).json({
+        success: false,
+        message: "You are not authorized to save questions for this quiz",
+      });
+      return;
+    }
+
+    const MAX_PROBLEMS = 25;
+    if (!body.problemId) {
+      const problemCount = await quizService.getQuizProblemCount(String(quizId));
+      if (problemCount >= MAX_PROBLEMS) {
+        res.status(400).json({
+          success: false,
+          message: `A quiz can have at most ${MAX_PROBLEMS} problems`,
+        });
+        return;
+      }
+    }
+
+    const result = await quizService.saveQuizProblemFull({
+      problemId: body.problemId || undefined,
+      quizId: Number(quizId),
+      problemStatement: body.problemStatement,
+      problemDescription: body.problemDescription,
+      quizProblemType: body.quizProblemType,
+      questionNumber: body.questionNumber,
+      explanation: body.explanation,
+      hint: body.hint,
+      difficulty: body.difficulty,
+      referenceNotes: body.referenceNotes,
+      internalComments: body.internalComments,
+      marks: body.marks,
+      negativeMarks: body.negativeMarks,
+      options: body.options || [],
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Question saved successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error saving quiz problem:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while saving question",
     });
   }
 };

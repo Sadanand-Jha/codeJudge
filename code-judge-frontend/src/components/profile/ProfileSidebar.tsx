@@ -31,7 +31,6 @@ export interface ProfileNavItem {
 
 export const PROFILE_NAV_ITEMS: ProfileNavItem[] = [
   { label: "Profile", href: "/profile", icon: User, tone: "from-[#F59E0B] to-[#F97316]" },
-  { label: "Rooms", href: "/profile/rooms", icon: UsersRound, tone: "from-[#F59E0B] to-[#F97316]" },
   { label: "Inbox", href: "/profile/inbox", icon: Inbox, tone: "from-[#3B82F6] to-[#06B6D4]" },
   { label: "Followers", href: "/profile/followers", icon: Users, tone: "from-[#22C55E] to-[#10B981]" },
   { label: "Following", href: "/profile/following", icon: Users, tone: "from-[#8B5CF6] to-[#6366F1]" },

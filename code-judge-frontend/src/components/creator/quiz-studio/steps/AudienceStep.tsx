@@ -293,9 +293,9 @@ export function AudienceStep() {
 /* ─── Unified Student Panel ─────────────────────────────────────────────── */
 
 interface AllStudentsPanelProps {
-  selectedRooms: Array<{ id: string; name: string; students: Array<{ id: string; name: string; rollNumber: string; email: string; username?: string; active: boolean }> }>;
+  selectedRooms: Array<{ id: string; name: string; students: Array<{ id: string; name: string; rollNumber: string; email?: string; username?: string; active: boolean }> }>;
   selections: Record<string, string[]>;
-  rooms: Array<{ id: string; students: Array<{ id: string; name: string; rollNumber: string; email: string; username?: string; active: boolean }> }>;
+  rooms: Array<{ id: string; students: Array<{ id: string; name: string; rollNumber: string; email?: string; username?: string; active: boolean }> }>;
   toggleStudent: (roomId: string, rollNumber: string) => void;
   updateAudience: (patch: Record<string, unknown>) => void;
   eligibleCount: number;
@@ -319,7 +319,7 @@ function AllStudentsPanel({
         rollNumber: string;
         name: string;
         username?: string;
-        email: string;
+        email?: string;
         roomIds: string[];
         roomNames: string[];
         isAllowed: boolean;
@@ -342,8 +342,8 @@ function AllStudentsPanel({
           seen.set(key, {
             rollNumber: student.rollNumber,
             name: student.name,
-            username: student.username,
-            email: student.email,
+            username: student.username ?? (student as unknown as { email?: string }).email?.split("@")[0],
+            email: (student as unknown as { email?: string }).email,
             roomIds: [room.id],
             roomNames: [room.name],
             isAllowed: allowed,
@@ -362,7 +362,7 @@ function AllStudentsPanel({
         s.name.toLowerCase().includes(q) ||
         (s.username ?? "").toLowerCase().includes(q) ||
         s.rollNumber.toLowerCase().includes(q) ||
-        s.email.toLowerCase().includes(q)
+        (s.email ?? "").toLowerCase().includes(q)
     );
   }, [allStudents, query]);
 
@@ -480,10 +480,10 @@ function AllStudentsPanel({
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium text-text-primary">
-                    @{student.username || student.name}
+                    @{student.username ?? student.email?.split("@")[0] ?? student.name}
                   </p>
                   <p className="truncate text-[10px] text-text-muted">
-                    {student.email} &middot; {student.rollNumber}
+                    {student.username ? `@${student.username}` : student.email ?? ""} &middot; {student.rollNumber}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-1">

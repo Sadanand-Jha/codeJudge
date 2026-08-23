@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Check, Mail, Pencil, Trash2, Users, X } from "lucide-react";
+import { ArrowRight, AtSign, Check, Pencil, Trash2, Users, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { Room, RoomStudent } from "@/types/room";
 import { getStudentRooms } from "@/store/roomStore";
@@ -96,10 +96,10 @@ export default function StudentDetailsPanel({
                 </div>
                 <div className="rounded-xl border border-border bg-card p-3.5">
                   <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                    <Mail className="h-3 w-3" />
-                    Email
+                    <AtSign className="h-3 w-3" />
+                    Username
                   </p>
-                  <p className="mt-1 truncate text-sm text-text-primary">{student.email}</p>
+                  <p className="mt-1 truncate text-sm text-text-primary">@{student.username ?? student.email?.split("@")[0] ?? "—"}</p>
                 </div>
               </div>
 
@@ -116,7 +116,7 @@ export default function StudentDetailsPanel({
                   {roomsForStudent.map((room) => (
                     <Link
                       key={room.id}
-                      href={`/profile/rooms/${room.id}`}
+                      href={`/creator/rooms/${room.id}`}
                       onClick={onClose}
                       className="group flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 transition-colors hover:border-border-hover"
                     >

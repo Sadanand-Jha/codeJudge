@@ -37,6 +37,10 @@ export class QuizService {
     return this.repository.getQuizProblems(quizId);
   }
 
+  async getQuizProblemCount(quizId: string): Promise<number> {
+    return this.repository.getQuizProblemCount(quizId);
+  }
+
   async getQuizProblemOptions(problemId: string): Promise<any[]> {
     return this.repository.getQuizProblemOptions(problemId);
   }
@@ -113,6 +117,10 @@ export class QuizService {
 
   async updateQuizProblem(problemId: number, data: any): Promise<any> {
     return this.repository.updateQuizProblem(problemId, data);
+  }
+
+  async saveQuizProblemFull(data: any): Promise<any> {
+    return this.repository.saveQuizProblemFull(data);
   }
 
   async deleteQuizProblem(problemId: number): Promise<boolean> {

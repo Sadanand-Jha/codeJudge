@@ -23,6 +23,7 @@ import { useQuizSettings } from "./QuizSettingsContext";
 import { SETTINGS_SECTIONS, STATUS_META } from "./QuizSettingsShell";
 import { getAudienceStatusLabel } from "@/store/roomStore";
 import { useQuizProblemsStore, getQuestionStatus } from "@/store/quizProblemsStore";
+import { syncQuizProblemsThenAdd } from "@/utils/quizQuestionSync";
 import { type CreatorQuestion } from "@/components/quiz/creator/types";
 import ProblemDeleteModal from "./ProblemDeleteModal";
 
@@ -99,6 +100,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
   const { code, quizId, derivedStatus, isLive, isEnded, startValidationError, requestStart, details } =
     useQuizSettings();
   const [starting, setStarting] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ question: CreatorQuestion; index: number } | null>(null);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
 
@@ -108,7 +110,6 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
   const activeProblemId = useQuizProblemsStore((s) => s.activeProblemId);
   const hydrate = useQuizProblemsStore((s) => s.hydrate);
   const setActiveProblem = useQuizProblemsStore((s) => s.setActiveProblem);
-  const addProblem = useQuizProblemsStore((s) => s.addProblem);
   const deleteProblem = useQuizProblemsStore((s) => s.deleteProblem);
   const duplicateProblem = useQuizProblemsStore((s) => s.duplicateProblem);
   const deleteAllProblems = useQuizProblemsStore((s) => s.deleteAllProblems);
@@ -154,9 +155,33 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
   const completedProblems = problems.filter((p) => getQuestionStatus(p) === "complete").length;
   const progress = problems.length > 0 ? Math.round((completedProblems / problems.length) * 100) : 0;
 
-  const handleAddProblem = () => {
-    const id = addProblem();
-    router.push(`/quiz/${code}/problems/${id}`);
+  const MAX_PROBLEMS = 25;
+
+  const handleAddProblem = async () => {
+    if (adding) return;
+    const store = useQuizProblemsStore.getState();
+    if (store.problems.length >= MAX_PROBLEMS) {
+      toast.error({
+        title: "Problem limit reached",
+        description: `A quiz can have at most ${MAX_PROBLEMS} problems.`,
+      });
+      return;
+    }
+    setAdding(true);
+    try {
+      // Persist whatever problems currently exist (including the one being
+      // edited) to the server, THEN create the next problem.
+      const id = await syncQuizProblemsThenAdd(quizId, store.problems, store.addProblem);
+      router.push(`/quiz/${code}/problems/${id}`);
+    } catch (err) {
+      console.error("Failed to save problem before adding:", err);
+      toast.error({
+        title: "Could not add problem",
+        description: "The current problem couldn't be saved to the server. Please try again.",
+      });
+    } finally {
+      setAdding(false);
+    }
   };
 
   const handleUndoOnToast = (toastId: string) => {
@@ -416,11 +441,12 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                 <button
                   {...itemProtect}
                   onClick={handleAddProblem}
-                  className="flex h-7 shrink-0 items-center gap-1 rounded-lg bg-gradient-to-br from-pink-500 to-accent px-2 text-[10px] font-bold text-white shadow-[0_4px_14px_-2px_rgba(236,72,153,0.55)] transition-all duration-150 hover:brightness-110 hover:shadow-[0_4px_18px_-2px_rgba(236,72,153,0.7)] active:scale-95"
+                  disabled={adding}
+                  className="flex h-7 shrink-0 items-center gap-1 rounded-lg bg-gradient-to-br from-pink-500 to-accent px-2 text-[10px] font-bold text-white shadow-[0_4px_14px_-2px_rgba(236,72,153,0.55)] transition-all duration-150 hover:brightness-110 hover:shadow-[0_4px_18px_-2px_rgba(236,72,153,0.7)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                   title="Add problem"
                 >
-                  <Plus className="h-3 w-3" strokeWidth={2.5} />
-                  Add
+                  {adding ? <Loader2 className="h-3 w-3 animate-spin" strokeWidth={2.5} /> : <Plus className="h-3 w-3" strokeWidth={2.5} />}
+                  {adding ? "Adding..." : "Add"}
                 </button>
               </div>
               <div className="mt-3 flex items-center justify-between gap-2">
@@ -554,10 +580,11 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                   <button
                     {...itemProtect}
                     onClick={handleAddProblem}
-                    className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-pink-500 transition-colors hover:text-pink-400"
+                    disabled={adding}
+                    className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-pink-500 transition-colors hover:text-pink-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Plus className="h-3 w-3" />
-                    Add Problem
+                    {adding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                    {adding ? "Adding..." : "Add Problem"}
                   </button>
                 </div>
               )}

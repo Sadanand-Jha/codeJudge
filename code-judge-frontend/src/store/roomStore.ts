@@ -33,7 +33,7 @@ interface RoomStoreState {
   addStudents: (roomId: string, students: RoomStudent[]) => void;
   removeStudents: (roomId: string, studentIds: string[]) => void;
   setStudentActive: (roomId: string, studentId: string, active: boolean) => void;
-  updateStudent: (roomId: string, studentId: string, patch: Partial<Pick<RoomStudent, "name" | "rollNumber" | "email" | "active">>) => void;
+  updateStudent: (roomId: string, studentId: string, patch: Partial<Pick<RoomStudent, "name" | "rollNumber" | "username" | "active">>) => void;
   markRecentlyUsed: (roomId: string) => void;
   markRecentlyUsedStudent: (rollNumber: string) => void;
 }
@@ -52,6 +52,17 @@ function bumpUpdatedAt(room: Room): Room {
  * Room store backed by the room service (currently mock/localStorage, later a
  * real API). Persisted to localStorage so rooms survive reloads.
  */
+function migrateStudentUsernames(rooms: Room[]): Room[] {
+  return rooms.map((room) => ({
+    ...room,
+    students: room.students.map((s) => {
+      if (s.username) return s;
+      const fallback = (s as unknown as { email?: string }).email?.split("@")[0]?.toLowerCase().replace(/[^a-z0-9._-]/g, "") || `user_${s.rollNumber.toLowerCase()}`;
+      return { ...s, username: fallback };
+    }),
+  }));
+}
+
 export const useRoomStore = create<RoomStoreState>()(
   persist(
     (set, get) => ({
@@ -60,7 +71,11 @@ export const useRoomStore = create<RoomStoreState>()(
       recentlyUsedIds: [],
       recentlyUsedStudentIds: [],
 
-      hydrate: () => set({ hydrated: true }),
+      hydrate: () =>
+        set((state) => ({
+          hydrated: true,
+          rooms: migrateStudentUsernames(state.rooms),
+        })),
 
       createRoom: ({ name, description, students, ownerId }) => {
         const now = new Date().toISOString();
@@ -187,7 +202,9 @@ export const useRoomStore = create<RoomStoreState>()(
                           ...s,
                           name: patch.name !== undefined ? patch.name.trim() : s.name,
                           rollNumber: patch.rollNumber !== undefined ? patch.rollNumber.trim() : s.rollNumber,
-                          email: patch.email !== undefined ? patch.email.trim().toLowerCase() : s.email,
+                          username: patch.username !== undefined ? patch.username.trim().toLowerCase() : s.username,
+                          // keep legacy email in sync if present
+                          email: (patch as Record<string, unknown>).email !== undefined ? String((patch as Record<string, unknown>).email).trim().toLowerCase() : s.email,
                           active: patch.active ?? s.active,
                         }
                       : s
@@ -371,22 +388,25 @@ export function countAudience(
 /**
  * Resolve whether a logged-in user is eligible for a quiz: belongs to any of
  * the selected rooms OR matches an individually selected student. Matches on
- * email, roll number, then full name.
+ * username, roll number, then full name (falls back to legacy email for persisted data).
  */
 export function isUserEligible(
   rooms: Room[],
   roomIds: string[],
-  user?: { email?: string | null; rollNo?: string | null; name?: string | null } | null,
+  user?: { email?: string | null; username?: string | null; rollNo?: string | null; name?: string | null } | null,
   individuals: AudienceStudent[] = []
 ): boolean {
-  if (!user?.email && !user?.rollNo && !user?.name) return false;
+  if (!user?.email && !user?.username && !user?.rollNo && !user?.name) return false;
   const selected = new Set(roomIds);
   const email = user.email?.toLowerCase();
+  const username = user.username?.toLowerCase();
   const roll = user.rollNo?.toLowerCase();
   const name = user.name?.toLowerCase();
 
-  const matches = (s: { email: string; rollNumber: string; name: string }) => {
-    if (email && s.email.toLowerCase() === email) return true;
+  const matches = (s: { username?: string; email?: string; rollNumber: string; name: string }) => {
+    const sUsername = (s.username ?? s.email?.split("@")[0] ?? "").toLowerCase();
+    if (username && sUsername === username) return true;
+    if (email && s.email?.toLowerCase() === email) return true;
     if (roll && s.rollNumber.toLowerCase() === roll) return true;
     if (name && s.name.toLowerCase() === name) return true;
     return false;

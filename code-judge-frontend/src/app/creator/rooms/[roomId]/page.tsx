@@ -7,7 +7,7 @@ export default function RoomDetailsPage({ params }: { params: Promise<{ roomId: 
   const { roomId } = use(params);
   return (
     <div className="mx-auto max-w-5xl px-6 py-8 lg:px-8">
-      <RoomDetailsView roomId={roomId} basePath="/rooms" />
+      <RoomDetailsView roomId={roomId} basePath="/creator/rooms" />
     </div>
   );
 }

@@ -64,12 +64,12 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
         </AnimatePresence>
 
         {/* Creator Studio Sidebar (second sidebar — sticky) */}
-        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
+        <aside data-sidebar="true" className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
           <CreatorSidebar pathname={pathname} />
         </aside>
 
         {/* Main content */}
-        <div className="flex-1 overflow-y-auto">
+        <div data-studio="true" className="flex-1 overflow-y-auto">
           <main
             className={
               pathname.startsWith("/creator/quizzes")

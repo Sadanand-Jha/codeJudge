@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   Award,
+  ArrowRight,
   Check,
   CheckCircle2,
   Clock,
@@ -23,6 +24,11 @@ import {
 } from "lucide-react";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import {
+  syncQuizQuestions,
+  syncQuizProblemsThenAdd,
+  validateProblemsForContinue,
+} from "@/utils/quizQuestionSync";
+import {
   QUESTION_TYPE_LABELS,
   QUESTION_TYPE_ORDER,
   VISIBILITY_OPTIONS,
@@ -32,7 +38,6 @@ import {
   type CreatorQuestionType,
 } from "@/components/quiz/creator/types";
 import { useQuizSettings } from "@/components/quiz/creator/settings/QuizSettingsContext";
-import { syncQuizQuestions } from "@/utils/quizQuestionSync";
 import { downloadQuizPaperPdf } from "@/utils/quizPdf";
 import { type PdfConfig, type PdfStudent } from "@/utils/pdfConfig";
 import { toast } from "@/lib/toast";
@@ -588,9 +593,10 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
   const problems = useQuizProblemsStore((s) => s.problems);
   const activeProblemId = useQuizProblemsStore((s) => s.activeProblemId);
   const hydrate = useQuizProblemsStore((s) => s.hydrate);
-  const addProblem = useQuizProblemsStore((s) => s.addProblem);
   const deleteAllProblems = useQuizProblemsStore((s) => s.deleteAllProblems);
   const [syncing, setSyncing] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [continuing, setContinuing] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
@@ -613,9 +619,33 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
   const isSynced = total > 0 && currentSig === savedSig;
   const lockSync = Boolean(isLive || isEnded);
 
-  const handleAdd = () => {
-    const id = addProblem();
-    router.push(`${problemsBase}/${id}`);
+  const MAX_PROBLEMS = 25;
+
+  const handleAdd = async () => {
+    if (adding) return;
+    const store = useQuizProblemsStore.getState();
+    if (store.problems.length >= MAX_PROBLEMS) {
+      toast.error({
+        title: "Problem limit reached",
+        description: `A quiz can have at most ${MAX_PROBLEMS} problems.`,
+      });
+      return;
+    }
+    setAdding(true);
+    try {
+      // Persist whatever questions currently exist (including the one being
+      // edited) to the server, THEN create the next question.
+      const id = await syncQuizProblemsThenAdd(quizId, store.problems, store.addProblem);
+      router.push(`${problemsBase}/${id}`);
+    } catch (err) {
+      console.error("Failed to save question before adding:", err);
+      toast.error({
+        title: "Could not add question",
+        description: "The current question couldn't be saved to the server. Please try again.",
+      });
+    } finally {
+      setAdding(false);
+    }
   };
 
   const handleSyncQuestions = async () => {    if (!quizId) {
@@ -642,6 +672,51 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
       });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleContinue = async () => {
+    if (continuing) return;
+
+    // 1) Validate: every question plus its options must be filled in.
+    const issues = validateProblemsForContinue(problems);
+    if (issues.length > 0) {
+      const shown = issues.slice(0, 3).map((i) => i.message).join(" ");
+      const extra = issues.length > 3 ? ` and ${issues.length - 3} more.` : "";
+      toast.error({
+        title: `${issues.length} question${issues.length !== 1 ? "s" : ""} need${issues.length === 1 ? "s" : ""} your attention`,
+        description: `${shown}${extra}`,
+      });
+      return;
+    }
+
+    // 2) The quiz must already exist on the server before saving questions.
+    if (!quizId) {
+      toast.error({
+        title: "Quiz not saved yet",
+        description: "Save the quiz draft first so the questions can be saved to it.",
+      });
+      return;
+    }
+
+    // 3) Persist every problem to the backend, then move on.
+    setContinuing(true);
+    try {
+      await syncQuizQuestions(String(quizId), problems);
+      setSyncedSignature(code, currentSig);
+      toast.success({
+        title: "All questions saved",
+        description: `${problems.length} question${problems.length !== 1 ? "s" : ""} saved to the server.`,
+      });
+      router.push(`/quiz/${code}/settings/info`);
+    } catch (err) {
+      console.error("Failed to save questions on continue:", err);
+      toast.error({
+        title: "Could not save questions",
+        description: "Something went wrong while saving. Please try again.",
+      });
+    } finally {
+      setContinuing(false);
     }
   };
 
@@ -728,9 +803,10 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
           </p>
           <button
             onClick={handleAdd}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-2.5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.25)] transition-all hover:brightness-105 active:scale-[0.98]"
+            disabled={adding}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-2.5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.25)] transition-all hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Plus className="h-3.5 w-3.5" /> Add Question
+            {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} {adding ? "Adding..." : "Add Question"}
           </button>
         </div>
       </div>
@@ -800,6 +876,21 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
           >
             {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isSynced ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
             {syncing ? "Saving..." : isSynced ? "Saved" : "Save to Server"}
+          </button>
+          <button
+            onClick={handleContinue}
+            disabled={continuing || total === 0 || lockSync}
+            title={
+              lockSync
+                ? "Questions are locked while the quiz is live or ended."
+                : total === 0
+                  ? "Add at least one question first."
+                  : "Validate your questions, save them all, then continue."
+            }
+            className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-4 py-1.5 text-[11px] font-bold text-white shadow-[0_2px_12px_rgba(124,58,237,0.35)] transition-all hover:shadow-[0_4px_18px_rgba(236,72,153,0.45)] hover:brightness-105 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {continuing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
+            {continuing ? "Saving & continuing..." : "Continue"}
           </button>
         </div>
       </div>

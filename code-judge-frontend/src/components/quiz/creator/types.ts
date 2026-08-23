@@ -74,7 +74,9 @@ export interface AudienceStudent {
   id: string;
   name: string;
   rollNumber: string;
-  email: string;
+  username?: string;
+  /** @deprecated legacy email — kept for backwards compatibility */
+  email?: string;
   /** Avatar id (1-7) for the predefined local avatars. */
   avatarId: number;
 }

@@ -154,7 +154,6 @@ CREATE TABLE IF NOT EXISTS problem_tags (
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    adminid VARCHAR NOT NULL,
     username VARCHAR NOT NULL,
     email VARCHAR NOT NULL,
     password VARCHAR,

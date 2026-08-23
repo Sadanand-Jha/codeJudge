@@ -20,7 +20,15 @@ const DIFF_COLORS: Record<string, string> = {
   Expert: "text-rose-500",
 };
 
-export function QuestionList({ onAiGenerate }: { onAiGenerate?: () => void }) {
+import { X } from "lucide-react";
+
+export function QuestionList({
+  onAiGenerate,
+  onToggleSidebar,
+}: {
+  onAiGenerate?: () => void;
+  onToggleSidebar?: () => void;
+}) {
   const {
     state,
     reorderQuestions,
@@ -59,15 +67,27 @@ export function QuestionList({ onAiGenerate }: { onAiGenerate?: () => void }) {
 
   return (
     <div data-sidebar="true" className="flex h-full w-72 shrink-0 flex-col border-r border-border bg-card/50">
-      {/* Header */}
+            {/* Header */}
       <div className="border-b border-border px-3.5 pb-3 pt-4">
         <div className="flex items-center justify-between">
           <h3 className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">
             Questions
           </h3>
-          <span className="rounded-full bg-card-hover px-2 py-0.5 text-[10px] font-semibold text-text-secondary">
-            {state.questions.length}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-card-hover px-2 py-0.5 text-[10px] font-semibold text-text-secondary">
+              {state.questions.length}
+            </span>
+            {onToggleSidebar && (
+              <button
+                type="button"
+                onClick={onToggleSidebar}
+                className="rounded p-0.5 text-text-secondary hover:text-text-primary lg:hidden"
+                aria-label="Close question list"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="relative mt-3">
@@ -131,7 +151,7 @@ export function QuestionList({ onAiGenerate }: { onAiGenerate?: () => void }) {
                         "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-bold",
                         active
                           ? "bg-indigo-600 text-white"
-                          : "bg-card-hover text-text-secondary"
+                          : "bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-gray-100"
                       )}
                     >
                       {i + 1}

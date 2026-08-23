@@ -47,6 +47,7 @@ interface SettingField {
   label: string;
   type?: "number" | "select";
   options?: string[];
+  description?: string;
 }
 
 export function SettingsStep() {

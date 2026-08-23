@@ -1,11 +1,11 @@
 "use client";
 
-import { Award, Clock, ListChecks, Sparkles, BarChart3, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Award, Clock, ListChecks, Sparkles, BarChart3, AlertCircle, CheckCircle2, Download } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 
-export function LiveRail() {
+export function LiveRail({ onDownloadPdf }: { onDownloadPdf?: () => void }) {
   const { state, summary } = useStudio();
 
   const marksByDiff = state.questions.reduce(
@@ -116,9 +116,22 @@ export function LiveRail() {
         </div>
       </div>
 
-      <div className="mt-auto border-t border-border pt-3 flex items-center gap-2 text-[10px] text-text-secondary">
-        <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-        <span>AI Credits: 842 / 1000</span>
+      <div className="mt-auto border-t border-border pt-3 space-y-2">
+        {onDownloadPdf && (
+          <button
+            type="button"
+            onClick={onDownloadPdf}
+            disabled={state.questions.length === 0}
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-pink-500/30 bg-pink-500/10 px-3 py-2 text-[11px] font-semibold text-pink-500 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Download PDF
+          </button>
+        )}
+        <div className="flex items-center gap-2 text-[10px] text-text-secondary">
+          <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+          <span>AI Credits: 842 / 1000</span>
+        </div>
       </div>
     </div>
   );

@@ -439,20 +439,20 @@ export async function getQuizParticipants(quizId: string): Promise<QuizParticipa
 // ─────────────────────────────────────────
 
 export interface QuizProblemCreate {
-  problem_statement: string;
-  problem_description?: string;
-  quiz_problem_type?: number;
-  question_number?: number;
+  problemStatement: string;
+  problemDescription?: string;
+  quizProblemType?: number;
+  questionNumber?: number;
   explanation?: string;
   hint?: string;
   difficulty?: number;
-  reference_notes?: string;
-  internal_comments?: string;
+  referenceNotes?: string;
+  internalComments?: string;
 }
 
 export interface QuizProblemOptionCreate {
-  option_statement: string;
-  option_description?: string;
+  optionStatement: string;
+  optionDescription?: string;
   isCorrect: boolean;
 }
 
@@ -505,6 +505,32 @@ export async function reorderQuizProblems(quizId: string, problemIds: number[]):
  */
 export async function addQuizProblemOption(problemId: string, data: QuizProblemOptionCreate): Promise<QuizProblemOption> {
   const response = await apiClient.post<QuizProblemOption>(`/v1/user/quiz/problems/${problemId}/options`, data);
+  return response.data;
+}
+
+export interface QuizProblemSaveFull {
+  problemId?: number;
+  quizId: number;
+  problemStatement: string;
+  problemDescription?: string;
+  quizProblemType?: number;
+  questionNumber?: number;
+  explanation?: string;
+  hint?: string;
+  difficulty?: number;
+  referenceNotes?: string;
+  internalComments?: string;
+  marks?: number;
+  negativeMarks?: number;
+  options?: QuizProblemOptionCreate[];
+}
+
+/**
+ * Save a quiz problem with all its options in a single transaction (upsert)
+ * POST /api/v1/user/quiz/problems/save-full
+ */
+export async function saveQuizProblemFull(data: QuizProblemSaveFull): Promise<QuizProblem> {
+  const response = await apiClient.post<QuizProblem>('/v1/user/quiz/problems/save-full', data);
   return response.data;
 }
 

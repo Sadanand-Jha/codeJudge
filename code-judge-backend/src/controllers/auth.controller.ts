@@ -11,6 +11,60 @@ import { authenticate } from "../middleware/auth.js";
 const userService = new UserService();
 const userRepo = new userRepository();
 
+/**
+ * GET /api/auth/check-username?username=xxx
+ * Returns whether the username is available
+ */
+export const checkUsernameController = async (req: Request, res: Response) => {
+  try {
+    const { username } = req.query;
+
+    if (!username || typeof username !== "string") {
+      res.status(400).json({
+        success: false,
+        available: false,
+        message: "Username is required",
+      });
+      return;
+    }
+
+    const trimmed = username.trim();
+
+    if (trimmed.length < 3 || trimmed.length > 20) {
+      res.status(400).json({
+        success: false,
+        available: false,
+        message: "Username must be 3-20 characters",
+      });
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+      res.status(400).json({
+        success: false,
+        available: false,
+        message: "Username can only contain letters, numbers, and underscores",
+      });
+      return;
+    }
+
+    const exists = await userService.checkUsernameExists(trimmed);
+
+    res.status(200).json({
+      success: true,
+      available: !exists,
+      message: exists ? "Username is already taken" : "Username is available",
+    });
+  } catch (error: any) {
+    console.error("Error in checkUsernameController:", error);
+    res.status(500).json({
+      success: false,
+      available: false,
+      message: "Internal server error while checking username",
+    });
+  }
+};
+
 // ============================================
 // Auth Controllers
 // ============================================
@@ -92,18 +146,48 @@ export const verifyOtpController = async (req: Request, res: Response) => {
  */
 export const registerController = async (req: Request, res: Response) => {
   try {
-    const { email, password, registration_token } = req.body;
+    const { email, password, registration_token, username } = req.body;
 
-    if (!email || !password || !registration_token) {
+    if (!email || !password || !registration_token || !username) {
       res.status(400).json({
         success: false,
-        message: "Email, password, and registration_token are required",
+        message: "Email, password, username, and registration_token are required",
         statusCode: 400,
       });
       return;
     }
 
-    const result = await register(email, password, registration_token);
+    const trimmedUsername = username.trim();
+
+    if (trimmedUsername.length < 3 || trimmedUsername.length > 20) {
+      res.status(400).json({
+        success: false,
+        message: "Username must be 3-20 characters",
+        statusCode: 400,
+      });
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) {
+      res.status(400).json({
+        success: false,
+        message: "Username can only contain letters, numbers, and underscores",
+        statusCode: 400,
+      });
+      return;
+    }
+
+    const usernameTaken = await userService.checkUsernameExists(trimmedUsername);
+    if (usernameTaken) {
+      res.status(400).json({
+        success: false,
+        message: "Username is already taken",
+        statusCode: 400,
+      });
+      return;
+    }
+
+    const result = await register(email, password, registration_token, trimmedUsername);
 
     if (!result.success) {
       res.status(result.statusCode || 400).json(result);
@@ -180,7 +264,6 @@ export const loginController = async (req: Request, res: Response) => {
     const sessionToken = jwt.sign(
       {
         userId: String(user.id),
-        adminId: user.adminid,
         email: normalizedEmail
       },
       jwtSecret,
@@ -238,7 +321,6 @@ const buildUserProfile = async (userId: string) => {
   return {
     // From profile
     id: userProfile?.id || userInfo?.id,
-    adminId: userProfile?.adminid || userInfo?.adminid,
     username: userProfile?.username || userInfo?.username,
     email: userProfile?.email || userInfo?.email,
     role: userProfile?.role_name || userInfo?.role_name || null,
@@ -314,7 +396,6 @@ export const meController = async (req: Request, res: Response) => {
     const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
     const decoded = jwt.verify(session_token, jwtSecret) as {
       userId: string;
-      adminId: string;
       email: string;
     };
 
@@ -379,7 +460,6 @@ export const getProfileController = async (req: Request, res: Response) => {
     const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
     const decoded = jwt.verify(session_token, jwtSecret) as {
       userId: string;
-      adminId: string;
       email: string;
     };
 
@@ -389,7 +469,6 @@ export const getProfileController = async (req: Request, res: Response) => {
       message: "Profile fetched successfully",
       data: {
         userId: decoded.userId,
-        adminId: decoded.adminId,
         email: decoded.email,
       },
     });

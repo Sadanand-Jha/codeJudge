@@ -83,6 +83,7 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
       { label: "Batches", href: "/creator/batches", icon: Boxes },
       { label: "Organizations", href: "/creator/organizations", icon: Building2 },
       { label: "Invitations", href: "/creator/invitations", icon: MailPlus },
+      { label: "Rooms", href: "/creator/rooms", icon: UserRound },
     ],
   },
   {
@@ -119,6 +120,7 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
 ];
 
 const BOTTOM_NAV: Array<{ label: string; href: string; icon: LucideIcon }> = [
+  { label: "Upgrade", href: "/pricing", icon: Sparkles },
   { label: "Help Center", href: "/docs", icon: BookOpen },
 ];
 

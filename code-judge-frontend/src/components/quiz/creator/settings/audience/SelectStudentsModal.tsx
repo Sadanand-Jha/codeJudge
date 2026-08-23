@@ -53,7 +53,7 @@ export default function SelectStudentsModal({
     return directory.filter((s) => {
       if (filter === "recent" && !recent.has(s.rollNumber.toLowerCase())) return false;
       if (q) {
-        const haystack = `${s.name} ${s.rollNumber} ${s.email}`.toLowerCase();
+        const haystack = `${s.name} ${s.rollNumber} ${s.username ?? (s as unknown as { email?: string }).email ?? ""}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
@@ -128,7 +128,7 @@ export default function SelectStudentsModal({
         <span className="min-w-0 flex-1">
           <span className="block truncate text-xs font-semibold text-text-primary">{student.name}</span>
           <span className="mt-0.5 block truncate text-[11px] text-text-muted">
-            {student.rollNumber} · {student.email}
+            {student.rollNumber} · @{(student.username ?? (student as unknown as { email?: string }).email?.split("@")[0] ?? "").toLowerCase()}
           </span>
         </span>
       </button>
@@ -197,7 +197,7 @@ export default function SelectStudentsModal({
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by name, roll number or email..."
+                placeholder="Search by name, roll number or username..."
                 className="h-10 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
               />
             </div>

@@ -123,7 +123,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
     if (!room) return;
     exportStudentsToFile(
       room.name.replace(/[^\w\s-]/g, ""),
-      room.students.map((s) => ({ name: s.name, rollNumber: s.rollNumber, email: s.email }))
+      room.students.map((s) => ({ name: s.name, rollNumber: s.rollNumber, username: s.username ?? (s as unknown as { email?: string }).email?.split("@")[0] ?? "" }))
     );
     toast.success({ title: "Export started", description: `${room.students.length} students exported.` });
   };

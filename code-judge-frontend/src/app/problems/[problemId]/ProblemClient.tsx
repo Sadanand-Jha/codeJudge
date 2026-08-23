@@ -119,7 +119,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
 
   const ratingColor = getRatingHex(problem.rating);
   const difficultyPillStyle = {
-    color: ratingColor,
+    color: isLight ? "#111827" : ratingColor,
     borderColor: `${ratingColor}30`,
     backgroundColor: `${ratingColor}10`,
   };

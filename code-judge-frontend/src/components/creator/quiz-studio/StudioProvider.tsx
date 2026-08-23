@@ -19,13 +19,9 @@ import {
   updateQuizStatus,
   setQuizParticipants,
   loadQuizForEdit,
-  addQuizProblem,
-  updateQuizProblem,
   type QuizParticipantInput,
   type Quiz,
   type QuizProblemWithOptions,
-  type QuizProblemCreate,
-  type QuizProblemOptionCreate,
 } from "@/services/quiz";
 import { syncQuizQuestions } from "@/utils/quizQuestionSync";
 import { useRoomStore } from "@/store/roomStore";
@@ -46,6 +42,13 @@ import {
 } from "./types";
 
 const STORAGE_KEY = "studio_quiz_draft";
+
+/** Sentinel error used when question validation blocks a save/navigation. */
+export const QUESTION_VALIDATION_FAILED = "QUESTION_VALIDATION_FAILED";
+
+export function isQuestionValidationError(err: unknown): boolean {
+  return err instanceof Error && err.message === QUESTION_VALIDATION_FAILED;
+}
 
 const BACKEND_TYPE_MAP: Record<number, CreatorQuestionType> = {
   1: "single_choice",
@@ -354,83 +357,22 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   const updateBranding = (p: Partial<StudioState["branding"]>) =>
     setState((s) => ({ ...s, branding: { ...s.branding, ...p } }));
 
-  function mapCreatorQuestionToBackend(q: CreatorQuestion, quizId: number, questionNumber: number): QuizProblemCreate {
-    const TYPE_MAP: Record<CreatorQuestionType, number> = {
-      single_choice: 1,
-      multiple_choice: 2,
-      true_false: 3,
-      fill_blanks: 4,
-      integer: 5,
-      text: 6,
-      paragraph: 7,
-      code_output: 8,
-    };
-
-    const DIFFICULTY_MAP: Record<CreatorQuestion["difficulty"], number> = {
-      Easy: 1,
-      Medium: 2,
-      Hard: 3,
-      Expert: 4,
-    };
-
-    return {
-      problem_statement: q.title,
-      problem_description: q.explanation,
-      quiz_problem_type: TYPE_MAP[q.type],
-      question_number: questionNumber,
-      explanation: q.hint,
-      hint: q.solution,
-      difficulty: DIFFICULTY_MAP[q.difficulty],
-      reference_notes: q.tags.join(", "),
-      internal_comments: "",
-    };
-  }
-
-  function mapCreatorOptionsToBackend(options: CreatorOption[]): QuizProblemOptionCreate[] {
-    return options.map((opt) => ({
-      option_statement: opt.content,
-      option_description: opt.caption || "",
-      isCorrect: opt.isCorrect,
-    }));
-  }
-
   const updateQuestion = (id: string, patch: Partial<CreatorQuestion>) =>
     setState((s) => ({
       ...s,
       questions: s.questions.map((q) => (q.id === id ? { ...q, ...patch, updatedAt: new Date().toISOString() } : q)),
     }));
 
-  const addQuestion = async () => {
-    const activeId = state.activeQuestionId;
-    if (activeId && state.serverQuizId) {
-      await saveToServer({ setupOnly: true });
-    }
+    const addQuestion = () => {
+    // Questions are held locally and persisted to the backend together via
+    // syncQuizQuestions() whenever the user saves / continues. See saveToServer().
     const next = createEmptyQuestion(`q_${Date.now()}`);
-    setState((s) => {
-      const questions = [...s.questions, next];
-      return { ...s, questions, activeQuestionId: next.id };
-    });
-
-    if (state.serverQuizId && state.info.title.trim().length >= 3) {
-      try {
-        const questionNumber = state.questions.length + 1;
-        const problemData = mapCreatorQuestionToBackend(next, state.serverQuizId, questionNumber);
-        const createdProblem = await addQuizProblem(String(state.serverQuizId), problemData);
-        const optionsData = mapCreatorOptionsToBackend(next.options);
-        for (const opt of optionsData) {
-          await addQuizProblemOption(String(createdProblem.id), opt);
-        }
-        setState((s) => ({
-          ...s,
-          questions: s.questions.map((q) => (q.id === next.id ? { ...q, serverId: createdProblem.id } : q)),
-        }));
-      } catch (err) {
-        console.error("Failed to save question to backend:", err);
-        toast.error({ title: "Save failed", description: "Could not save question to server" });
-      }
-    }
-
-    return next.id;
+    setState((s) => ({
+      ...s,
+      questions: [...s.questions, next],
+      activeQuestionId: next.id,
+    }));
+    return Promise.resolve(next.id);
   };
 
   const importQuestions = (questions: CreatorQuestion[]) => {
@@ -550,7 +492,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   };
   const nextStep = async () => {
     const i = steps.findIndex((st) => st.id === state.step);
-    if (state.step !== "setup" && state.step !== "publish" && !validateAllQuestions()) return;
 
     if (state.step === "setup") {
       try {
@@ -561,12 +502,32 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           return;
         }
       } catch (err) {
-        toast.error({
-          title: "Could not save quiz",
-          description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
-        });
+        if (!isQuestionValidationError(err)) {
+          toast.error({
+            title: "Could not save quiz",
+            description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+          });
+        }
         return;
       }
+    } else if (state.step === "questions") {
+      // Validate the problems, then persist the quiz + all problems to the
+      // server before moving on. saveToServer runs validation internally, so an
+      // incomplete question blocks the save and we stay on this step.
+      if (!validateAllQuestions()) return;
+      try {
+        await saveToServer();
+      } catch (err) {
+        if (!isQuestionValidationError(err)) {
+          toast.error({
+            title: "Could not save questions",
+            description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+          });
+        }
+        return;
+      }
+    } else if (state.step !== "publish") {
+      if (!validateAllQuestions()) return;
     }
 
     setState((s) => {
@@ -574,11 +535,28 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       return { ...s, step: idx < steps.length - 1 ? steps[idx + 1].id : s.step };
     });
   };
-  const prevStep = () =>
+
+  const prevStep = async () => {
+    if (state.step === "questions") {
+      // Validate and save the problems to the server before going back.
+      if (!validateAllQuestions()) return;
+      try {
+        await saveToServer();
+      } catch (err) {
+        if (!isQuestionValidationError(err)) {
+          toast.error({
+            title: "Could not save questions",
+            description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+          });
+        }
+        return;
+      }
+    }
     setState((s) => {
       const i = steps.findIndex((st) => st.id === s.step);
       return { ...s, step: i > 0 ? steps[i - 1].id : s.step };
     });
+  };
   const publish = () =>
     setState((s) => ({ ...s, published: true }));
 
@@ -590,6 +568,11 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
     if (savingToServer) throw new Error("Save already in progress");
     if (state.info.title.trim().length < 3) {
       throw new Error("Quiz title is required before saving");
+    }
+    // Validate the problems before persisting anything. setupOnly only creates
+    // the quiz shell (no questions involved yet), so skip validation there.
+    if (!opts?.setupOnly && !validateAllQuestions()) {
+      throw new Error(QUESTION_VALIDATION_FAILED);
     }
     setSavingToServer(true);
     try {
@@ -657,12 +640,14 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           if (!room) continue;
           const selected: string[] | undefined = selections[roomId];
           for (const student of room.students) {
-            if (!student.active || !student.email) continue;
+            const studentUsername = (student as unknown as { username?: string; email?: string }).username ?? (student as unknown as { email?: string }).email?.split("@")[0];
+            const studentEmail = (student as unknown as { email?: string }).email ?? (studentUsername ? `${studentUsername}@placeholder.local` : undefined);
+            if (!student.active || !studentEmail) continue;
             if (selected && !selected.includes(student.rollNumber)) continue;
-            const key = student.email.toLowerCase();
+            const key = studentEmail.toLowerCase();
             if (!byEmail.has(key)) {
               byEmail.set(key, {
-                email: student.email,
+                email: studentEmail,
                 name: student.name,
                 rollNumber: student.rollNumber,
                 source: "room",

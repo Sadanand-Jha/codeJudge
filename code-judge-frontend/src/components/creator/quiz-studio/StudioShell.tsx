@@ -9,7 +9,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { useStudio, useSaveStatus } from "./StudioProvider";
+import { useStudio, useSaveStatus, isQuestionValidationError } from "./StudioProvider";
 import { toast } from "@/lib/toast";
 
 export function StudioHeader() {
@@ -185,6 +185,7 @@ export function StudioFooter() {
       await saveToServer();
       toast.success({ title: "Saved to server", description: "Your quiz draft and questions are saved." });
     } catch (err) {
+      if (isQuestionValidationError(err)) return; // specific per-question toast already shown
       toast.error({
         title: "Could not save draft",
         description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
@@ -227,10 +228,12 @@ export function StudioFooter() {
       });
       publish();
     } catch (err) {
-      toast.error({
-        title: "Could not publish quiz",
-        description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
-      });
+      if (!isQuestionValidationError(err)) {
+        toast.error({
+          title: "Could not publish quiz",
+          description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+        });
+      }
     } finally {
       setPublishing(false);
     }
@@ -240,7 +243,7 @@ export function StudioFooter() {
     <footer className="sticky bottom-0 z-20 flex h-14 shrink-0 items-center justify-between gap-3 border-t border-border bg-background px-4 sm:px-6">
       <button
         type="button"
-        onClick={prevStep}
+        onClick={() => void prevStep()}
         disabled={stepIndex === 0}
         className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-1.5 text-sm font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary disabled:pointer-events-none disabled:opacity-40"
       >
@@ -390,7 +393,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   }, [title]);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden bg-background text-foreground">
+    <div data-studio="true" className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden bg-background text-foreground">
       <StudioHeader />
       <StudioStepper />
       <AnimatePresence mode="wait">

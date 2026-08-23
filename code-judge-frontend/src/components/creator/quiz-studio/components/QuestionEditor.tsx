@@ -149,14 +149,6 @@ export function QuestionEditor() {
             {q.marks} marks
           </span>
           <TypeSelect value={q.type} onChange={(t) => update({ type: t, correctAnswer: "" })} />
-          {/* <button
-            type="button"
-            onClick={() => setAdvancedOpen(!advancedOpen)}
-            aria-label="Question settings"
-            className="rounded-lg border border-white/30 bg-white/15 p-1.5 text-xs text-white hover:bg-white/25"
-          >
-            {advancedOpen ? <ChevronUp className="h-4 w-4" /> : <Settings2 className="h-4 w-4" />}
-          </button> */}
         </div>
       </div>
 

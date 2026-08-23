@@ -448,7 +448,7 @@ function AllowedRooms({
           <p className="mt-0.5 text-xs text-text-secondary">Select from rooms created under your account.</p>
         </div>
         <Link
-          href="/rooms"
+          href="/creator/rooms"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted transition-colors hover:text-pink-500"
         >
           <Settings2 className="h-3.5 w-3.5" />
@@ -483,7 +483,7 @@ function AllowedRooms({
               Create Room
             </button>
             <Link
-              href="/rooms"
+              href="/creator/rooms"
               className="inline-flex h-9 items-center rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover"
             >
               Manage Rooms
@@ -643,7 +643,7 @@ function IndividualStudents({
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <Link
-              href="/rooms"
+              href="/creator/rooms"
               className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover"
             >
               <Settings2 className="h-3.5 w-3.5" />

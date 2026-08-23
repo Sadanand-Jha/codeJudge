@@ -34,11 +34,62 @@
   draggable: false !important;
 }
 
+[data-sidebar="true"] button,
+[data-sidebar="true"] [role="button"],
+[data-sidebar="true"] a[href] {
+  cursor: pointer;
+}
+
 /* Allow explicit draggable elements to work (for drag-drop zones outside sidebars) */
 [data-draggable="true"] {
   draggable: true !important;
   -webkit-user-drag: auto;
   user-drag: auto;
+}
+
+/* ============================================
+   Studio Page — Prevent Select / Drag / Copy
+   Applied via data-studio="true" on the root
+   studio container. Keeps the UI locked down
+   so content cannot be accidentally dragged
+   or copied out of the studio workspace.
+   ============================================ */
+[data-studio="true"],
+[data-studio="true"] * {
+  -webkit-user-drag: none;
+  user-drag: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Re-allow selection inside actual input fields */
+[data-studio="true"] input,
+[data-studio="true"] textarea,
+[data-studio="true"] select,
+[data-studio="true"] [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+[data-studio="true"] a,
+[data-studio="true"] button,
+[data-studio="true"] [role="button"],
+[data-studio="true"] img,
+[data-studio="true"] svg {
+  -webkit-user-drag: none;
+  user-drag: none;
+  draggable: false !important;
+}
+
+/* Every button inside Creator Studio shows pointer cursor */
+[data-studio="true"] button,
+[data-studio="true"] [role="button"],
+[data-studio="true"] a[href] {
+  cursor: pointer;
 }
 
 /* ============================================

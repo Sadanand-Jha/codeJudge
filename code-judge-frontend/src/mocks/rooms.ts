@@ -42,7 +42,7 @@ function mulberry32(seed: number): () => number {
 interface SeedStudent {
   name: string;
   rollNumber: string;
-  email: string;
+  username: string;
   avatarId: number;
   active: boolean;
 }
@@ -69,7 +69,7 @@ function generateStudents(roomKey: string, prefix: string, count: number, startI
     students.push({
       name: `${firstName} ${lastName}`,
       rollNumber: roll,
-      email: `${firstName}.${lastName}${String(seedIndex).slice(0, 2)}@student.edu`.toLowerCase(),
+      username: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${String(seedIndex).slice(0, 2)}`,
       avatarId: (seedIndex % 7) + 1,
       active: rand() > 0.08,
     });
@@ -86,7 +86,7 @@ function generateStudents(roomKey: string, prefix: string, count: number, startI
       id: `${roomKey}_stu_${i}`,
       name: s.name,
       rollNumber: roll,
-      email: s.email,
+      username: s.username,
       active: s.active,
       avatarId: s.avatarId,
     });

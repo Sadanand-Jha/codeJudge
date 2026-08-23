@@ -7,9 +7,10 @@ export interface RoomStudent {
   id: string;
   name: string;
   rollNumber: string;
-  email: string;
-  /** Public @username shown in creator-facing lists (falls back to name). */
+  /** Public @username shown in creator-facing lists. */
   username?: string;
+  /** @deprecated Use username instead — kept for backwards compatibility with persisted data. */
+  email?: string;
   active: boolean;
   /** Avatar id (1-7) for the predefined local avatars. */
   avatarId: number;

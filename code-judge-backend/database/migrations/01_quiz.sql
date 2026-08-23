@@ -28,3 +28,49 @@ REFERENCES quiz_status(id);
 
 ALTER TABLE quiz
 ALTER COLUMN quiz_status SET NOT NULL;
+
+
+CREATE TABLE quiz_participant_status (
+    id INTEGER PRIMARY KEY,
+    status VARCHAR(50) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO quiz_participant_status (id, status)
+VALUES
+    (1, 'allowed'),
+    (2, 'not_allowed');
+
+CREATE TABLE quiz_participants (
+    id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+
+    quiz_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+
+    status INTEGER NOT NULL,
+
+    rollno VARCHAR(100),
+
+    registered_at TIMESTAMP,
+    started_at TIMESTAMP,
+    submitted_at TIMESTAMP,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_quiz_participant_quiz
+        FOREIGN KEY (quiz_id)
+        REFERENCES quiz(id),
+
+    CONSTRAINT fk_quiz_participant_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id),
+
+    CONSTRAINT fk_quiz_participant_status
+        FOREIGN KEY (status)
+        REFERENCES quiz_participant_status(id),
+
+    CONSTRAINT uq_quiz_participant_quiz_user
+        UNIQUE (quiz_id, user_id)
+);
