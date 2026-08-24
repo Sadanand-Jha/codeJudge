@@ -1638,6 +1638,9 @@ export const getQuizProblemsController = async (req: Request, res: Response) => 
     const { quizId } = req.params;
     const problems = await quizService.getQuizProblems(quizId);
 
+    console.log("k6 testing................................")
+
+
     const problemsWithOptions = await Promise.all(
       problems.map(async (problem: any) => {
         const options = await quizService.getQuizProblemOptions(String(problem.id));
