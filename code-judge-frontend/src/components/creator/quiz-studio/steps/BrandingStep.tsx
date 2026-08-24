@@ -4,6 +4,8 @@ import { Palette } from "lucide-react";
 
 export function BrandingStep() {
   return (
+    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="">
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
       <div>
         <h2 className="text-lg font-semibold text-text-primary">Branding</h2>
@@ -24,6 +26,8 @@ export function BrandingStep() {
           available in a future version.
         </p>
       </div>
+    </div>
+    </div>
     </div>
   );
 }

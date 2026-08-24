@@ -52,6 +52,8 @@ interface SettingField {
 
 export function SettingsStep() {
   return (
+    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="">
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="mb-5 flex items-center gap-2.5">
@@ -75,6 +77,8 @@ export function SettingsStep() {
           comingSoon={g.comingSoon}
         />
       ))}
+    </div>
+    </div>
     </div>
   );
 }

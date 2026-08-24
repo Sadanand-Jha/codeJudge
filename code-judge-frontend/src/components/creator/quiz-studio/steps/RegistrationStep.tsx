@@ -103,6 +103,8 @@ export function RegistrationStep() {
   /* ── render ────────────────────────────────────────────── */
 
   return (
+    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="">
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -612,6 +614,8 @@ export function RegistrationStep() {
           </section>
         </aside>
       </div>
+    </div>
+    </div>
     </div>
   );
 }

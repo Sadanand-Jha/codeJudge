@@ -372,7 +372,8 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       {/* ===== MAIN CONTENT ===== */}
       <div
         className={cn(
-          "flex-1 w-0 min-w-0 flex flex-col min-h-screen transition-[margin] duration-200 ease-out",
+          "flex-1 w-0 min-w-0 flex flex-col transition-[margin] duration-200 ease-out",
+          isStudioRoute ? "h-screen overflow-hidden" : "min-h-screen",
           !isStudioRoute && "lg:ml-[var(--rail-w)]"
         )}
       >

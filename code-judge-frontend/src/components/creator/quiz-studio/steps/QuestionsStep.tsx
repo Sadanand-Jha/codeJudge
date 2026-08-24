@@ -6,7 +6,7 @@ import { QuestionEditor } from "../components/QuestionEditor";
 import { LiveRail } from "../components/LiveRail";
 import { AiGenerateModal } from "../components/AiGenerateModal";
 import { useStudio } from "../StudioProvider";
-import { Plus, Sparkles, ListChecks, Download, Loader2 } from "lucide-react";
+import { Plus, Sparkles, ListChecks } from "lucide-react";
 import type { CreatorQuestion } from "../types";
 import { downloadQuizPaperPdf } from "@/utils/quizPdf";
 import { type PdfConfig, type PdfStudent } from "@/utils/pdfConfig";
@@ -18,6 +18,7 @@ export function QuestionsStep() {
   const { state, addQuestion, importQuestions } = useStudio();
   const [aiOpen, setAiOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
@@ -68,90 +69,54 @@ export function QuestionsStep() {
 
   return (
     <>
-      <div className="flex flex-col border-t border-border lg:h-[calc(100vh-112px)] lg:min-h-[540px] lg:flex-row">
-        {/* Mobile sidebar drawer overlay */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 z-40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+      <div className="flex min-h-0 flex-col gap-3 bg-[#F8FAFC] lg:h-full lg:flex-row lg:overflow-hidden">
+        {sidebarOpen && <div className="fixed inset-0 z-40 lg:hidden bg-black/20" onClick={() => setSidebarOpen(false)} />}
 
-        {/* Question list sidebar */}
         <aside
           className={`
-            fixed inset-y-0 left-0 z-50 flex h-[calc(100vh-4rem)] w-72 shrink-0 flex-col border-r border-border bg-card/50 transition-transform duration-200 lg:translate-x-0 lg:static lg:z-auto lg:flex
+            fixed inset-y-0 left-0 z-50 flex w-[280px] shrink-0 flex-col border border-zinc-200 bg-white rounded-xl transition-transform duration-200 lg:static lg:z-auto lg:flex overflow-visible
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
           `}
         >
-          <QuestionList
-            onAiGenerate={() => setAiOpen(true)}
-            onToggleSidebar={() => setSidebarOpen(false)}
-          />
+          <QuestionList onAiGenerate={() => setAiOpen(true)} onToggleSidebar={() => setSidebarOpen(false)} />
         </aside>
 
-        {/* Main editor */}
-        <main className="min-w-0 flex-1 overflow-y-auto lg:overflow-hidden">
-          {/* Mobile header with sidebar toggle */}
-          <div className="flex items-center justify-between border-b border-border px-4 py-3 lg:hidden">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-white rounded-xl border border-zinc-200">
+          <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-2 lg:hidden">
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-card-hover"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
             >
               <ListChecks className="h-3.5 w-3.5" />
               Questions ({state.questions.length})
             </button>
-            <button
-              type="button"
-              onClick={() => setPdfModalOpen(true)}
-              disabled={state.questions.length === 0}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/30 bg-pink-500/10 px-3 py-1.5 text-xs font-medium text-pink-500 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Download className="h-3.5 w-3.5" />
-              PDF
-            </button>
+            <span className="text-xs text-zinc-500">
+              {state.questions.length > 0 ? `${state.questions.filter((q) => q.title.trim()).length} / ${state.questions.length} complete` : ""}
+            </span>
           </div>
 
           {state.questions.length === 0 || !state.activeQuestionId ? (
-            <div className="flex min-h-[400px] flex-col items-center justify-center gap-4 px-4 py-10 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-card text-text-muted">
-                <ListChecks className="h-6 w-6" />
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10 text-center bg-[#FCFCF9]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-zinc-200 shadow-sm">
+                <ListChecks className="h-6 w-6 text-zinc-600" />
               </div>
-              <h3 className="text-base font-semibold text-text-primary">
-                Create your first question
-              </h3>
-              <p className="max-w-sm text-xs leading-relaxed text-text-secondary">
-                You can reorder, duplicate, and edit questions anytime.
-              </p>
-              <div className="flex flex-wrap justify-center gap-2">
+              <h3 className="text-[18px] font-semibold text-zinc-900">Build your first question</h3>
+              <p className="max-w-sm text-sm leading-relaxed text-zinc-500">Create a question manually or let AI generate one from your content.</p>
+              <div className="flex flex-wrap justify-center gap-2 mt-2">
                 <button
                   type="button"
                   onClick={() => addQuestion()}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 px-4 py-2 text-xs font-semibold transition-colors duration-150 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-zinc-800"
                 >
-                  <Plus className="h-3.5 w-3.5" /> Create Question
+                  <Plus className="h-4 w-4" /> Create Question
                 </button>
                 <button
                   type="button"
                   onClick={() => setAiOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
                 >
-                  <Sparkles className="h-3.5 w-3.5" /> Generate with AI
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {}}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
-                >
-                  Import Questions
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {}}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
-                >
-                  Question Bank
+                  <Sparkles className="h-4 w-4 text-violet-600" /> Generate with AI
                 </button>
               </div>
             </div>
@@ -160,17 +125,12 @@ export function QuestionsStep() {
           )}
         </main>
 
-        {/* Live rail - hidden on mobile, shown on desktop */}
-        <div className="lg:w-64 lg:shrink-0">
-          <LiveRail onDownloadPdf={() => setPdfModalOpen(true)} />
+        <div className={`${rightCollapsed ? "w-10" : "w-[340px]"} hidden shrink-0 lg:flex`}>
+          <LiveRail onDownloadPdf={() => setPdfModalOpen(true)} collapsed={rightCollapsed} onToggle={() => setRightCollapsed(!rightCollapsed)} />
         </div>
       </div>
 
-      <AiGenerateModal
-        open={aiOpen}
-        onClose={() => setAiOpen(false)}
-        onQuestionsAdded={handleAiQuestions}
-      />
+      <AiGenerateModal open={aiOpen} onClose={() => setAiOpen(false)} onQuestionsAdded={handleAiQuestions} />
 
       {state.info.code && (
         <QuizSettingsProvider code={state.info.code}>

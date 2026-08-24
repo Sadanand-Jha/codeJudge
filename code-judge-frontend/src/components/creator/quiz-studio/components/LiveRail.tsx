@@ -1,178 +1,188 @@
 "use client";
 
-import { Award, Clock, ListChecks, Sparkles, BarChart3, AlertCircle, CheckCircle2, Download } from "lucide-react";
-import { cn } from "@/lib/helpers";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2, AlertTriangle, X, Settings2, ChevronDown, ChevronRight } from "lucide-react";
 import { useStudio } from "../StudioProvider";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 
-export function LiveRail({ onDownloadPdf }: { onDownloadPdf?: () => void }) {
-  const { state, summary } = useStudio();
+export function LiveRail({ onDownloadPdf, collapsed, onToggle }: { onDownloadPdf?: () => void; collapsed?: boolean; onToggle?: () => void }) {
+  const { state, updateQuestion } = useStudio();
+  const q = state.questions.find((x) => x.id === state.activeQuestionId);
+  const [propsCollapsed, setPropsCollapsed] = useState(false);
 
-  const marksByDiff = state.questions.reduce(
-    (acc: Record<string, { q: number; m: number }>, q) => {
-      const d = q.difficulty;
-      acc[d] = acc[d] || { q: 0, m: 0 };
-      acc[d].q += 1;
-      acc[d].m += q.marks;
-      return acc;
-    },
-    {}
-  );
+  if (collapsed) {
+    return (
+      <div className="hidden lg:flex w-10 shrink-0 rounded-xl border border-zinc-200 bg-white flex-col items-center py-4">
+        <button
+          onClick={onToggle}
+          className="rotate-90 whitespace-nowrap text-[11px] font-medium text-zinc-600 hover:text-zinc-900"
+        >
+          Properties →
+        </button>
+      </div>
+    );
+  }
 
-  const incomplete = state.questions.filter(
-    (q) => getQuestionStatus(q) !== "complete"
-  );
+  if (!q) {
+    return (
+      <div className="hidden lg:flex w-[340px] shrink-0 flex-col rounded-xl border border-zinc-200 bg-white">
+        <div className="p-4 text-xs text-zinc-500">Select a question</div>
+      </div>
+    );
+  }
 
-  const totalQs = summary.questionCount || 1;
-  const totalMarks = summary.totalMarks;
-  const valid = summary.validQuestions;
-  const healthContent = Math.max(0, Math.min(100, Math.round((valid / totalQs) * 100)));
-  const healthSettings = 90;
-  const healthPublish = Math.round(
-    ((state.info.title.trim().length >= 3 ? 1 : 0) +
-      (summary.validQuestions > 0 ? 1 : 0) +
-      (state.audience.mode !== "public" ? 1 : 0)) *
-      (100 / 3)
-  );
+  const hasTitle = q.title.replace(/<[^>]*>/g, "").trim().length > 0;
+  const hasOptions = q.options.length >= 2 && q.options.every((o) => o.content.trim() !== "");
+  const hasCorrect = q.options.some((o) => o.isCorrect) || (q.correctAnswer !== "" && q.correctAnswer !== undefined && q.correctAnswer !== -1);
+  const hasMarks = (q.marks || 0) > 0;
+  const isChoice = q.type === "single_choice" || q.type === "multiple_choice" || q.type === "true_false";
+  const warnings: string[] = [];
+  if (!hasTitle) warnings.push("Question text required");
+  if (isChoice && !hasCorrect) warnings.push("No correct answer selected");
+  if (!q.explanation.trim()) warnings.push("Explanation missing");
+  if (q.options.length < 2 && isChoice) warnings.push("At least 2 options required");
 
   return (
-    <div data-sidebar="true" className="flex w-64 shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-card/50 p-4 text-xs">
-      <h3 className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
-        Live Summary
-      </h3>
-
-      <div className="grid grid-cols-2 gap-2">
-        <Metric icon={ListChecks} label="Questions" value={String(summary.questionCount)} />
-        <Metric icon={Award} label="Marks" value={String(totalMarks)} />
-        <Metric icon={Clock} label="Minutes" value={String(summary.totalTime)} />
-        <Metric icon={BarChart3} label="Complete" value={`${valid}/${summary.questionCount}`} />
-      </div>
-
-      <div>
-        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-text-secondary">
-          Difficulty
-        </p>
-        {(["Easy", "Medium", "Hard", "Expert"] as const).map((d) => {
-          const cell = marksByDiff[d] || { q: 0, m: 0 };
-          const pct = (cell.q / totalQs) * 100;
-          return (
-            <div key={d} className="space-y-0.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-text-secondary">{d}</span>
-                <span className="text-[10px] font-medium text-text-primary">
-                  {cell.q} · {cell.m}
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-border overflow-hidden">
-                <div
-                  className="h-full bg-indigo-300 transition-all"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div>
-        <div className="mb-1.5 flex items-center gap-1.5">
-          <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-500">
-            Needs attention ({incomplete.length})
-          </p>
-        </div>
-        {incomplete.length === 0 ? (
-          <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-2 text-xs">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-            <span className="text-emerald-600 dark:text-emerald-300">Everything looks good</span>
-          </div>
-        ) : (
-          <ul className="space-y-1">
-            {incomplete.slice(0, 5).map((q) => (
-              <li
-                key={q.id}
-                className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-2"
-              >
-                <p className="font-semibold text-amber-600 dark:text-amber-300">
-                  Question {state.questions.findIndex((x) => x.id === q.id) + 1}
-                </p>
-                <p className="text-[10px] text-text-secondary">
-                  {q.title ? "Missing correct answer" : "Question text is empty"}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div>
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
-          Quiz Health
-        </p>
-        <div className="space-y-2">
-          <HealthRow label="Content" value={healthContent} color="pink" />
-          <HealthRow label="Settings" value={healthSettings} color="amber" />
-          <HealthRow label="Ready to publish" value={healthPublish} color="violet" />
-        </div>
-      </div>
-
-      <div className="mt-auto border-t border-border pt-3 space-y-2">
-        {onDownloadPdf && (
-          <button
-            type="button"
-            onClick={onDownloadPdf}
-            disabled={state.questions.length === 0}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-pink-500/30 bg-pink-500/10 px-3 py-2 text-[11px] font-semibold text-pink-500 transition-colors hover:bg-pink-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Download PDF
+    <div className="flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 shrink-0">
+        <span className="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
+          <Settings2 className="h-3.5 w-3.5" /> Properties
+        </span>
+        {onToggle && (
+          <button onClick={onToggle} className="p-1 rounded-lg hover:bg-zinc-100 text-zinc-500">
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
-        <div className="flex items-center gap-2 text-[10px] text-text-secondary">
-          <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-          <span>AI Credits: 842 / 1000</span>
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-6">
+        <div>
+          <div className="flex items-center justify-between">
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-700">Question Properties</h3>
+            <button onClick={() => setPropsCollapsed(!propsCollapsed)} className="text-zinc-400 hover:text-zinc-600">
+              {propsCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+          </div>
+          {!propsCollapsed && (
+            <div className="mt-3 space-y-3">
+            <div>
+              <label className="text-xs text-zinc-600">Marks</label>
+              <input
+                value={q.marks}
+                onChange={(e) => updateQuestion(q.id, { marks: Number(e.target.value) || 0 })}
+                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-900 focus:border-pink-300 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-zinc-600">Difficulty</label>
+              <div className="mt-1 relative">
+                <select
+                  value={q.difficulty}
+                  onChange={(e) => updateQuestion(q.id, { difficulty: e.target.value as any })}
+                  className="w-full appearance-none rounded-lg border border-zinc-200 bg-white px-3 py-1.5 pr-8 text-xs text-zinc-900 focus:border-pink-300 focus:outline-none"
+                >
+                  <option>Easy</option>
+                  <option>Medium</option>
+                  <option>Hard</option>
+                  <option>Expert</option>
+                </select>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400">⌄</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-zinc-600">Time</label>
+              <div className="mt-1 flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-3 py-1.5">
+                <input
+                  value={q.expectedTime}
+                  onChange={(e) => updateQuestion(q.id, { expectedTime: Number(e.target.value) || 0 })}
+                  className="w-full bg-transparent text-xs text-zinc-900 focus:outline-none"
+                />
+                <span className="text-xs text-zinc-500">min</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-zinc-600">Negative Marking</label>
+              <input
+                value={q.negativeMarks ?? 0}
+                onChange={(e) => updateQuestion(q.id, { negativeMarks: Number(e.target.value) || 0 })}
+                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-900 focus:border-pink-300 focus:outline-none"
+              />
+            </div>
+          </div>
+          )}
+        </div>
+
+        <div>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Question Status</h3>
+          <div className="mt-3 space-y-2 text-xs">
+            <StatusRow done={hasTitle} label="Question text" />
+            <StatusRow
+              done={isChoice ? q.options.every((o) => o.content.trim() !== "") : String(q.correctAnswer ?? "").trim().length > 0}
+              label={isChoice ? `${q.options.length} options` : "Correct answer"}
+            />
+            <StatusRow done={hasCorrect} label="Correct answer" />
+            <StatusRow done={hasMarks} label="Marks assigned" />
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Warnings</h3>
+          <div className="mt-3 space-y-2">
+            {warnings.length === 0 ? (
+              <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                <CheckCircle2 className="h-3.5 w-3.5" /> No warnings
+              </div>
+            ) : (
+              warnings.map((w) => (
+                <div key={w} className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800">
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" /> {w}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-zinc-100 space-y-2">
+          <label className="text-[11px] font-medium text-zinc-600">
+            Topic
+            <div className="mt-1 text-xs text-zinc-900 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-2">
+              {q.topic || <span className="text-zinc-400">—</span>}
+            </div>
+          </label>
+          {q.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {q.tags.map((t) => (
+                <span key={t} className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] text-zinc-600">
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-pink-200 bg-pink-50 p-3">
+          <p className="text-xs font-bold text-pink-700">Preview</p>
+          <div className="mt-2 rounded-lg border border-pink-200 bg-white p-3">
+            <p className="text-xs font-semibold text-pink-700">As Student</p>
+            <p className="mt-1 text-xs leading-relaxed text-zinc-600">This is how the question will appear to students.</p>
+            <button
+              onClick={onDownloadPdf}
+              className="mt-2 inline-flex items-center gap-1 rounded-lg border border-pink-200 bg-white px-2.5 py-1 text-xs font-medium text-pink-600 hover:bg-pink-50"
+            >
+              👁 Preview
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function Metric({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}) {
+function StatusRow({ done, label }: { done: boolean; label: string }) {
   return (
-    <div className="rounded-lg border border-border bg-card-hover/40 p-2.5 text-center">
-      <Icon className="mx-auto h-3.5 w-3.5 text-text-muted" />
-      <p className="mt-0.5 text-lg font-bold text-text-primary">{value}</p>
-      <p className="text-[10px] text-text-secondary">{label}</p>
-    </div>
-  );
-}
-
-function HealthRow({ label, value, color }: { label: string; value: number; color: string }) {
-  const colorClass = {
-    pink: "bg-indigo-300",
-    amber: "from-amber-500 to-orange-500",
-    violet: "bg-indigo-300",
-  }[color];
-  return (
-    <div>
-      <div className="mb-0.5 flex items-center justify-between">
-        <span className="text-[10px] text-text-secondary">{label}</span>
-        <span className="text-[10px] font-medium text-text-primary">{value}%</span>
-      </div>
-      <div className="h-1.5 rounded-full bg-border overflow-hidden">
-        <div
-          className={`h-full ${colorClass} transition-all`}
-          style={{ width: `${value}%` }}
-        />
-      </div>
+    <div className={`flex items-center gap-2 ${done ? "text-emerald-700" : "text-zinc-500"}`}>
+      {done ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> : <span className="h-3.5 w-3.5 rounded-full border border-zinc-300" />}
+      <span className="text-xs">{label}</span>
     </div>
   );
 }

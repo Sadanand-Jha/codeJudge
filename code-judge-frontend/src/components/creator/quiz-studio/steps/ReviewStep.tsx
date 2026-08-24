@@ -24,6 +24,8 @@ export function ReviewStep() {
   const oks = items.filter((i) => i.severity === "ok");
 
   return (
+    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="">
     <div className="mx-auto max-w-4xl px-4 py-6 space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-text-primary">Review & Validation</h2>
@@ -41,6 +43,8 @@ export function ReviewStep() {
       )}
 
       <ReviewGroup icon={CheckCircle2} title="Checks passed" items={oks} color="emerald" />
+    </div>
+    </div>
     </div>
   );
 }

@@ -40,7 +40,6 @@ import {
   StudioQuestion,
   QuizSettingsConfig,
 } from "@/types/quiz";
-import QuestionBuilderStudio from "@/components/quiz/QuestionBuilderStudio";
 import QuizSettings from "@/components/quiz/QuizSettings";
 import QuizStudio from "@/components/quiz/QuizStudio";
 import { GenerateResultsButton } from "@/components/quiz/GenerateResultsButton";
@@ -153,16 +152,23 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
     { icon: Settings, text: "Assessment settings updated", time: "3 hours ago", type: "settings" },
   ];
 
-  // If in question builder fullscreen
+  // If in question builder fullscreen — redirect to Studio (canonical builder)
   if (showQuestionBuilder) {
     return (
-      <QuestionBuilderStudio
-        quizId={quizId}
-        quizName={settings.general.name || quizName}
-        initialQuestions={questions}
-        onBack={() => setShowQuestionBuilder(false)}
-        onSaveQuestions={setQuestions}
-      />
+      <div className="flex h-screen items-center justify-center bg-background p-6">
+        <div className="max-w-md text-center">
+          <h2 className="text-lg font-semibold text-white">Question Builder moved</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The legacy builder was removed. Use the Studio at <span className="font-mono text-white">/creator/quizzes/{quizId}/edit → Questions</span>.
+          </p>
+          <button
+            onClick={() => setShowQuestionBuilder(false)}
+            className="mt-4 rounded-lg bg-pink-600 px-4 py-2 text-sm font-medium text-white hover:bg-pink-700"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
     );
   }
 

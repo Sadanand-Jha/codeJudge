@@ -26,7 +26,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
 
   return (
     <AppLayout header={<CreatorNavbar onMobileMenuToggle={() => setDrawerOpen(true)} />}>
-      <div className="flex min-h-screen bg-background">
+      <div className="flex flex-1 bg-background">
         {/* Mobile drawer overlay */}
         <AnimatePresence>
           {drawerOpen && (
@@ -63,18 +63,18 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
           )}
         </AnimatePresence>
 
-        {/* Creator Studio Sidebar (second sidebar — sticky) */}
-        <aside data-sidebar="true" className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
+        {/* Creator Studio Sidebar */}
+        <aside data-sidebar="true" className="hidden w-60 shrink-0 border-r border-border bg-card lg:block">
           <CreatorSidebar pathname={pathname} />
         </aside>
 
         {/* Main content */}
-        <div data-studio="true" className="flex-1 overflow-y-auto">
+        <div data-studio="true" className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <main
             className={
               pathname.startsWith("/creator/quizzes")
-                ? "px-4 pt-0 pb-6 sm:px-6 lg:px-8"
-                : "px-4 py-6 sm:px-6 lg:px-8"
+                ? "flex-1 flex flex-col min-h-0"
+                : "px-4 py-6 sm:px-6 lg:px-8 flex-1 overflow-y-auto"
             }
           >
             {children}

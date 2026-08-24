@@ -2,36 +2,48 @@
 
 import { useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/helpers";
-import { Image as ImageIcon } from "lucide-react";
+import { Bold, Italic, Underline, Strikethrough, Code2, Link2, Image as ImageIcon, Sigma, Table, Undo2, Redo2 } from "lucide-react";
 
-export function RichToolbar({
-  onCommand,
-}: {
-  onCommand?: () => void;
-}) {
+export function RichToolbar({ onCommand }: { onCommand?: () => void }) {
   const exec = (cmd: string, arg?: string) => {
     document.execCommand(cmd, false, arg);
     onCommand?.();
   };
-
   const insertImage = () => {
     const val = window.prompt("Enter image URL");
     if (val) exec("insertImage", val);
   };
-
+  const Btn = ({ icon: Icon, title, onClick }: { icon: any; title: string; onClick?: () => void }) => (
+    <button
+      type="button"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onClick?.();
+      }}
+      title={title}
+      className="flex h-7 w-7 items-center justify-center rounded text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </button>
+  );
   return (
-    <div className="flex items-center gap-0.5 rounded-t-xl border-b border-border bg-card-hover/40 p-1.5">
-      <button
-        type="button"
-        onMouseDown={(e) => {
-          e.preventDefault();
-          insertImage();
-        }}
-        title="Insert image"
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-text-secondary transition-all hover:border-border hover:bg-card-hover hover:text-text-primary"
-      >
-        <ImageIcon className="h-4 w-4" />
-      </button>
+    <div className="flex flex-wrap items-center gap-0.5 border-b border-zinc-200 bg-white px-2 py-1.5">
+      <Btn icon={Bold} title="Bold" onClick={() => exec("bold")} />
+      <Btn icon={Italic} title="Italic" onClick={() => exec("italic")} />
+      <Btn icon={Underline} title="Underline" onClick={() => exec("underline")} />
+      <Btn icon={Strikethrough} title="Strikethrough" onClick={() => exec("strikeThrough")} />
+      <span className="mx-1 h-4 w-px bg-zinc-200" />
+      <Btn icon={Code2} title="Code" onClick={() => exec("insertHTML", "<code>" + window.getSelection()?.toString() + "</code>")} />
+      <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("subscript"); }} title="Subscript" className="px-1 text-xs text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded">x₂</button>
+      <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("superscript"); }} title="Superscript" className="px-1 text-xs text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded">x²</button>
+      <span className="mx-1 h-4 w-px bg-zinc-200" />
+      <Btn icon={Link2} title="Link" onClick={() => { const url = window.prompt("Enter URL"); if (url) exec("createLink", url); }} />
+      <Btn icon={ImageIcon} title="Image" onClick={insertImage} />
+      <Btn icon={Sigma} title="Math" onClick={() => exec("insertHTML", "<span class='math'>Σ</span>")} />
+      <Btn icon={Table} title="Table" onClick={() => exec("insertHTML", "<table class='border-collapse border border-zinc-300'><tr><td class='border border-zinc-300 px-3 py-1'></td><td class='border border-zinc-300 px-3 py-1'></td></tr><tr><td class='border border-zinc-300 px-3 py-1'></td><td class='border border-zinc-300 px-3 py-1'></td></tr></table>")} />
+      <span className="mx-1 h-4 w-px bg-zinc-200" />
+      <Btn icon={Undo2} title="Undo" onClick={() => exec("undo")} />
+      <Btn icon={Redo2} title="Redo" onClick={() => exec("redo")} />
     </div>
   );
 }
@@ -50,8 +62,6 @@ export function EditableContent({
   const elRef = useRef<HTMLDivElement>(null);
   const lastValueRef = useRef<string | null>(null);
 
-  // Sync DOM only when the external `value` changes from a source other than
-  // the user typing (avoids the controlled contentEditable cursor-jump bug).
   useEffect(() => {
     const el = elRef.current;
     if (!el) return;
@@ -62,8 +72,6 @@ export function EditableContent({
     }
   }, [value]);
 
-  // Stable ref callback — recreating it on every render makes React detach and
-  // reattach the ref each keystroke, which reset innerHTML (and the caret).
   const setRef = useCallback(
     (el: HTMLDivElement | null) => {
       elRef.current = el;
@@ -79,8 +87,7 @@ export function EditableContent({
     <div
       ref={setRef}
       className={cn(
-        "w-full resize-none border-0 bg-transparent px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none",
-        "[&>[data-placeholder]:not(:empty)+br]:h-0",
+        "w-full resize-none border-0 bg-transparent px-4 py-3 text-[15px] leading-relaxed text-zinc-900 placeholder:text-zinc-400 outline-none",
         minHeight
       )}
       data-placeholder={placeholder}

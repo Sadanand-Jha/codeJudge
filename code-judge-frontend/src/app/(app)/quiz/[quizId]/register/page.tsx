@@ -268,9 +268,9 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
             </div>
             <nav className="space-y-1">
               <NavItem icon={BookOpen} label="Overview" href={`/quiz/${quizCode}`} />
-              <NavItem icon={Users} label="Participants" href={`/quiz/${quizCode}/participants`} />
+              <NavItem icon={Users} label="Dashboard" href={`/quiz/${quizCode}/dashboard`} />
               <NavItem icon={Trophy} label="Leaderboard" href={`/quiz/${quizCode}/leaderboard`} />
-              <NavItem icon={BarChart3} label="Analytics" href={`/quiz/${quizCode}/analytics`} />
+              <NavItem icon={BarChart3} label="Settings" href={`/quiz/${quizCode}/settings`} />
             </nav>
           </div>
         </div>

@@ -211,9 +211,9 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
           <Link href="/quiz" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:border-white/20 transition-colors text-center">
             Back to Dashboard
           </Link>
-          <button className="flex-1 h-10 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors">
+          <Link href={`/quiz/${quizId}/attempt`} className="flex-1 h-10 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors flex items-center justify-center">
             Try Again
-          </button>
+          </Link>
         </div>
       </div>
     </div>

@@ -86,6 +86,8 @@ export function AudienceStep() {
     updateAudience({ roomIds: a.roomIds.filter((id) => id !== roomId) });
 
   return (
+    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="">
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
       <div>
         <h2 className="text-lg font-semibold text-text-primary">Audience & Access</h2>
@@ -286,6 +288,8 @@ export function AudienceStep() {
           toast.success({ title: "Room created and added to audience" });
         }}
       />
+    </div>
+    </div>
     </div>
   );
 }

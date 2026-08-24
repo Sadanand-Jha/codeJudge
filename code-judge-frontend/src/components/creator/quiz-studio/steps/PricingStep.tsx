@@ -18,6 +18,8 @@ export function PricingStep() {
   ];
 
   return (
+    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="">
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
       <div>
         <h2 className="text-lg font-semibold text-text-primary">Pricing & Monetization</h2>
@@ -151,6 +153,8 @@ export function PricingStep() {
           <TrendingUp className="h-3.5 w-3.5 text-text-muted" />
         </div>
       </div>
+    </div>
+    </div>
     </div>
   );
 }

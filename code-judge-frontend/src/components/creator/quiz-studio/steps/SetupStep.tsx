@@ -74,6 +74,8 @@ export function SetupStep() {
   const hasBasicInfo = info.title.trim().length >= 3;
 
   return (
+    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="">
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-8">
       {/* Creation method choice — only on create, not edit */}
       {!editMode && (
@@ -286,6 +288,8 @@ export function SetupStep() {
           </div>
         </div>
       </div>
+    </div>
+    </div>
     </div>
   );
 }

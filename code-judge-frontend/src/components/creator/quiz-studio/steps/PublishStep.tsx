@@ -61,6 +61,8 @@ export function PublishStep({
   ];
 
   return (
+    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="">
     <div className="mx-auto max-w-2xl px-4 py-10">
       <div className="rounded-xl border border-border bg-card">
         <div className="border-b border-border px-6 py-5">
@@ -216,6 +218,8 @@ export function PublishStep({
         </div>
       )}
     </div>
+    </div>
+    </div>
   );
 }
 
@@ -228,6 +232,8 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
   };
 
   return (
+    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="">
     <div className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center px-4 py-10 text-center">
       <div>
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
@@ -306,6 +312,8 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
           </button>
         </div>
       </div>
+    </div>
+    </div>
     </div>
   );
 }
