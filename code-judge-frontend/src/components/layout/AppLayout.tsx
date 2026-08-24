@@ -428,7 +428,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         ) : null}
 
         {/* ===== PAGE CONTENT ===== */}
-        <main className="flex-1">{children}</main>
+        <main className={cn("flex-1", isStudioRoute && "min-h-0 flex flex-col overflow-hidden")}>{children}</main>
       </div>
 
       <LogoutConfirmModal

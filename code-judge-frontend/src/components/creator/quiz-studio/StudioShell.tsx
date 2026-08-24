@@ -60,10 +60,14 @@ export function StudioHeader() {
       </div>
 
       <div className="hidden items-center gap-1.5 text-xs text-emerald-600 sm:flex ml-3 border-l border-zinc-200 pl-3">
-        <Check className="h-3.5 w-3.5" />
-        <span>Saved 12 sec ago</span>
-        {/* real status hidden for pixel match, keep subtle */}
-        {status === "saving" && <span className="ml-2 flex items-center gap-1 text-zinc-500"><Loader2 className="h-3 w-3 animate-spin" />Saving…</span>}
+        {status === "saving" ? (
+          <span className="flex items-center gap-1 text-zinc-500"><Loader2 className="h-3 w-3 animate-spin" />Saving…</span>
+        ) : status === "saved" && lastSaved ? (
+          <>
+            <Check className="h-3.5 w-3.5" />
+            <span>Saved</span>
+          </>
+        ) : null}
       </div>
 
       <div className="ml-auto flex items-center gap-3">
@@ -121,7 +125,10 @@ export function StudioStepper() {
 
   return (
     <div className="shrink-0 border-b border-zinc-200 bg-white">
-      <nav className="flex items-center overflow-x-auto px-4" aria-label="Quiz creation steps">
+      <nav
+        className="flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        aria-label="Quiz creation steps"
+      >
         {display.map((step, i) => {
           const active = state.step === step.id;
           const done = i < stepIndex;
@@ -220,7 +227,7 @@ export function StudioFooter() {
   };
 
   return (
-    <footer className="sticky bottom-0 z-20 flex h-14 shrink-0 items-center justify-between gap-3 border-t border-zinc-200 bg-white px-4">
+    <footer className="flex h-14 shrink-0 items-center justify-between gap-3 border-t border-zinc-200 bg-white px-4">
       <button
         type="button"
         onClick={() => void prevStep()}
@@ -321,7 +328,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   }, [title]);
 
   return (
-    <div data-studio="true" className="flex h-full flex-col overflow-hidden bg-[#F8FAFC] text-foreground font-['Inter']">
+    <div data-studio="true" className="flex flex-1 min-h-0 flex-col overflow-hidden bg-[#F8FAFC] text-foreground font-['Inter']">
       <StudioHeader />
       <StudioStepper />
       <AnimatePresence mode="wait">
@@ -331,12 +338,16 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          className="flex-1 min-h-0 overflow-y-auto bg-[#F8FAFC] p-3"
+          className="flex-1 min-h-0 flex flex-col bg-[#F8FAFC]"
         >
-          <div className="mx-auto max-w-[1600px] pt-3">{children}</div>
+          <div
+            className="mx-auto flex flex-1 min-h-0 w-full max-w-[1600px] flex-col overflow-y-auto p-3"
+          >
+            {children}
+          </div>
         </motion.main>
       </AnimatePresence>
-      <StudioFooter />
+      {state.step !== "questions" && <StudioFooter />}
     </div>
   );
 }

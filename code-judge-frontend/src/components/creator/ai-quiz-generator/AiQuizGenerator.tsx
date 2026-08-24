@@ -53,9 +53,9 @@ export function AiQuizGenerator() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)]">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       {/* Stepper */}
-      <div className="sticky top-16 z-30 border-b border-border bg-ai-bg/80 backdrop-blur-xl">
+      <div className="sticky top-0 z-30 border-b border-border bg-ai-bg/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl items-center gap-1 px-3 py-2 sm:gap-2 sm:px-6 sm:py-3">
           {STEPS.map((s, i) => {
             const isActive = s.id === step;

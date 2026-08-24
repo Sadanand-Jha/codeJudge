@@ -152,7 +152,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
 
       {status === "loading" && (
         <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <StatCardSkeleton key={i} />
             ))}
@@ -184,7 +184,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
             <StatCard
               label="Total Quizzes"
               value={filtered.length}
@@ -268,7 +268,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                           <span className="text-text-muted">Completion</span>
                           <span className="font-bold text-text-primary tabular-nums">{q.completionRate}%</span>
                         </div>
-                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-card-hover">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-pink-500 to-violet-600"
                             style={{ width: `${q.completionRate}%` }}
@@ -293,7 +293,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                                 router.push(`/creator/quizzes/${q.id}/edit`);
                               }
                             }}
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-text-secondary transition-colors hover:bg-white/[0.04] hover:text-pink-500 dark:hover:text-ai-accent"
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-text-secondary transition-colors hover:bg-card-hover hover:text-pink-500 dark:hover:text-ai-accent"
                           >
                             <Icon className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline">{action.label}</span>
@@ -390,7 +390,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
 
 function MiniStat({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-white/[0.02] px-3 py-2">
+    <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
       <p className="flex items-center gap-1 text-[10px] text-text-muted">
         <Icon className="h-3 w-3" />
         {label}
@@ -419,7 +419,7 @@ function Stars({ rating }: { rating: number }) {
 
 function QuizCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="mt-2 h-3 w-1/2" />
       <div className="mt-4 grid grid-cols-2 gap-2">

@@ -69,7 +69,7 @@ export function QuestionsStep() {
 
   return (
     <>
-      <div className="flex min-h-0 flex-col gap-3 bg-[#F8FAFC] lg:h-full lg:flex-row lg:overflow-hidden">
+      <div className="flex min-h-0 flex-col gap-3 bg-[#F8FAFC] lg:flex-1 lg:min-h-0 lg:flex-row lg:overflow-hidden">
         {sidebarOpen && <div className="fixed inset-0 z-40 lg:hidden bg-black/20" onClick={() => setSidebarOpen(false)} />}
 
         <aside

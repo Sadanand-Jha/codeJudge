@@ -44,7 +44,7 @@ export function LiveRail({ onDownloadPdf, collapsed, onToggle }: { onDownloadPdf
   if (q.options.length < 2 && isChoice) warnings.push("At least 2 options required");
 
   return (
-    <div className="flex h-full w-[340px] shrink-0 flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white">
+    <div className="flex h-full w-[340px] shrink-0 flex-col rounded-xl border border-zinc-200 bg-white">
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 shrink-0">
         <span className="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
           <Settings2 className="h-3.5 w-3.5" /> Properties
