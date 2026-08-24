@@ -49,6 +49,7 @@ export interface CreatorNavItem {
   icon: LucideIcon;
   exact?: boolean;
   match?: (pathname: string) => boolean;
+  color?: "pink" | "purple";
 }
 
 export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
@@ -61,10 +62,10 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
     items: [
       { label: "All Quizzes", href: "/creator/quizzes", icon: ListChecks, match: (p) => p === "/creator/quizzes" || (p.startsWith("/creator/quizzes/") && !p.startsWith("/creator/quizzes/create") && !p.startsWith("/creator/quizzes/ai-generate")) },
       { label: "Create Quiz", href: "/creator/quizzes/create", icon: FilePlus2, match: (p) => p === "/creator/quizzes/create" || p === "/creator/quizzes/ai-generate" },
-      { label: "Tests", href: "/creator/tests", icon: ClipboardList },
-      { label: "Create Test", href: "/creator/tests/create", icon: NotebookPen },
-      { label: "Test Series", href: "/creator/series", icon: Layers },
-      { label: "Create Test Series", href: "/creator/series/create", icon: FolderKanban },
+      { label: "Tests", href: "/creator/tests", icon: ClipboardList, match: (p) => p === "/creator/tests" || (p.startsWith("/creator/tests/") && !p.startsWith("/creator/tests/create")), color: "purple" },
+      { label: "Create Test", href: "/creator/tests/create", icon: NotebookPen, match: (p) => p === "/creator/tests/create", color: "purple" },
+      { label: "Test Series", href: "/creator/series", icon: Layers, color: "purple" },
+      { label: "Create Test Series", href: "/creator/series/create", icon: FolderKanban, color: "purple" },
       { label: "Create New", href: "/creator/create", icon: Sparkles, exact: true },
     ],
   },
@@ -160,6 +161,7 @@ function NavRow({
     : pathname === item.href || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;
   const isAiStudio = item.href === "/creator/ai-studio";
+  const isPurple = item.color === "purple";
   return (
     <Link
       href={item.href}
@@ -176,7 +178,12 @@ function NavRow({
       {isActive && !isAiStudio && (
         <motion.span
           layoutId="creatorSidebarActive"
-          className="absolute inset-0 rounded-lg border border-pink-500/20 bg-pink-500/[0.08] dark:border-ai-accent/20 dark:bg-ai-accent-soft"
+          className={cn(
+            "absolute inset-0 rounded-lg border",
+            isPurple
+              ? "border-violet-500/20 bg-violet-500/[0.08] dark:border-ai-accent/20 dark:bg-ai-accent-soft"
+              : "border-pink-500/20 bg-pink-500/[0.08] dark:border-ai-accent/20 dark:bg-ai-accent-soft"
+          )}
           transition={{ type: "spring", stiffness: 500, damping: 35 }}
         />
       )}
@@ -188,7 +195,11 @@ function NavRow({
         <Icon
           className={cn(
             "relative z-10 h-[18px] w-[18px] shrink-0 transition-colors",
-            isActive ? "text-pink-500 dark:text-ai-accent" : "text-text-muted group-hover:text-text-primary"
+            isActive
+              ? isPurple
+                ? "text-violet-600 dark:text-ai-accent"
+                : "text-pink-500 dark:text-ai-accent"
+              : "text-text-muted group-hover:text-text-primary"
           )}
         />
       )}

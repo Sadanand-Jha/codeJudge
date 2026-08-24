@@ -74,7 +74,7 @@ export function SetupStep() {
   const hasBasicInfo = info.title.trim().length >= 3;
 
   return (
-    <div className="flex flex-col bg-background">
+    <div className="flex flex-col bg-[#F9FAFB] dark:bg-background">
     <div className="">
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-8">
       {/* Creation method choice — only on create, not edit */}
@@ -109,8 +109,8 @@ export function SetupStep() {
         </>
       )}
 
-      {/* Basic information */}
-      <div className="space-y-6">
+      {/* Basic information — white card with shadow like image */}
+      <div className="rounded-xl bg-white dark:bg-card border border-gray-100 dark:border-border shadow-[0_4px_20px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] dark:shadow-none p-6 sm:p-7 space-y-6">
         <div className="border-b border-pink-500/20 pb-3">
           <h3 className="text-sm font-bold uppercase tracking-wider text-pink-500">
             Basic Information
@@ -126,7 +126,7 @@ export function SetupStep() {
               onChange={(e) => updateInfo({ title: e.target.value.slice(0, 100) })}
               maxLength={100}
               placeholder="e.g. JEE Main 2026 Mock Test 01"
-              className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+              className="h-10 w-full rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
             />
             <p className="text-[11px] text-text-muted text-right">{info.title.length}/100</p>
           </div>
@@ -139,7 +139,7 @@ export function SetupStep() {
                 value={info.code}
                 readOnly
                 placeholder="Auto-generated"
-                className="h-10 flex-1 rounded-lg border border-input-border bg-input-bg px-3.5 font-mono text-sm tracking-wider text-text-primary placeholder-text-muted outline-none"
+                className="h-10 flex-1 rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg px-3.5 font-mono text-sm tracking-wider text-text-primary placeholder-text-muted outline-none"
               />
               {info.code && (
                 <button
@@ -232,7 +232,7 @@ export function SetupStep() {
                 max={600}
                 value={info.duration || ""}
                 onChange={(e) => updateInfo({ duration: Number(e.target.value) })}
-                className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+                className="h-10 w-full rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
               />
             </div>
           </div>
@@ -249,7 +249,7 @@ export function SetupStep() {
                 value={info.passingMarks || ""}
                 placeholder={`Default: ${Math.ceil((marks || 0) * 0.4)}`}
                 onChange={(e) => updateInfo({ passingMarks: Number(e.target.value) })}
-                className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+                className="h-10 w-full rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
               />
             </div>
             <p className="text-[11px] text-text-muted">
@@ -268,7 +268,7 @@ export function SetupStep() {
               rows={2}
               maxLength={250}
               placeholder="A concise summary shown in listings."
-              className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+              className="w-full rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
             />
             <p className="text-[11px] text-text-muted text-right">{info.shortDescription.length}/250</p>
           </div>
@@ -282,7 +282,7 @@ export function SetupStep() {
               rows={4}
               maxLength={5000}
               placeholder="Explain what the quiz covers, target audience, pattern..."
-              className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+              className="w-full rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
             />
             <p className="text-[11px] text-text-muted text-right">{info.fullDescription.length}/5000</p>
           </div>
@@ -316,23 +316,23 @@ function ChoiceCard({
       className={cn(
         "flex flex-col items-center gap-2 rounded-xl border p-4 text-center text-sm transition-all duration-150 ease-out hover:-translate-y-0.5",
         selected
-          ? "border-pink-500/40 bg-pink-500/5 text-pink-600 shadow-[0_0_0_1px_rgba(236,72,153,0.15)]"
-          : "border-border bg-card hover:border-pink-500/20 hover:bg-pink-500/[0.02]"
+          ? "border-pink-500 bg-white dark:bg-card text-pink-600 shadow-[0_4px_16px_rgba(236,72,153,0.12),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[0_0_0_1px_rgba(236,72,153,0.15)]"
+          : "border-gray-200 dark:border-border bg-white dark:bg-card shadow-[0_2px_10px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none hover:border-pink-500/20 hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
       )}
     >
       <div
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-xl",
+          "flex h-10 w-10 items-center justify-center rounded-lg",
           selected
-            ? "bg-pink-500/10 text-pink-500"
-            : "bg-card-hover/40 text-text-secondary"
+            ? "bg-violet-50 dark:bg-pink-500/10 text-violet-600 dark:text-pink-500 border border-violet-100 dark:border-pink-500/20"
+            : "bg-gray-50 dark:bg-card-hover/40 text-gray-500 dark:text-text-secondary border border-gray-100 dark:border-transparent"
         )}
       >
         <Icon className="h-5 w-5" />
       </div>
       <span className="font-semibold text-text-primary">{label}</span>
-      <p className="text-[11px] text-text-secondary">{desc}</p>
-      <span className="mt-0.5 inline-flex items-center rounded-md border border-pink-500/20 bg-pink-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pink-600">
+      <p className="text-[11px] leading-snug text-text-secondary">{desc}</p>
+      <span className="mt-0.5 inline-flex items-center rounded-md bg-gray-100 dark:bg-pink-500/10 border border-gray-200 dark:border-pink-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:text-pink-600">
         {meta}
       </span>
     </button>

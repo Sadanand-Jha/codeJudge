@@ -67,9 +67,6 @@ export function QuestionEditor() {
   const [afterTab, setAfterTab] = useState<"explanation" | "hint" | "solution">("explanation");
   const [showType, setShowType] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
-  const [showMarks, setShowMarks] = useState(false);
-  const [showNeg, setShowNeg] = useState(false);
-  const [showTime, setShowTime] = useState(false);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImageOption = useRef<string | null>(null);
   const [draggedOpt, setDraggedOpt] = useState<string | null>(null);
@@ -249,83 +246,48 @@ export function QuestionEditor() {
               </div>
             )}
           </div>
-          <div className="relative flex items-center gap-1.5 px-3 py-2">
+          <div className="flex items-center gap-1.5 px-3 py-2">
             <span className="text-text-muted">Marks</span>
-            <button onClick={() => { setShowMarks(!showMarks); setShowNeg(false); setShowTime(false); }} className="inline-flex items-center gap-1 font-medium text-text-primary">
-              {q.marks} <ChevronDown className="h-3 w-3 text-text-muted" />
-            </button>
-            {showMarks && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
-                <div className="p-2">
-                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Marks</p>
-                  <div className="mt-1 flex items-center gap-1">
-                    <button onClick={() => update({ marks: Math.max(0, q.marks - 1) })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">−</button>
-                    <input type="number" value={q.marks} onChange={(e) => update({ marks: Math.max(0, Number(e.target.value) || 0) })} className="h-7 flex-1 rounded-lg border border-border bg-input-bg px-2 text-center text-xs text-text-primary outline-none focus:border-pink-500/60" />
-                    <button onClick={() => update({ marks: q.marks + 1 })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">+</button>
-                  </div>
-                  <div className="mt-2 grid grid-cols-4 gap-1">
-                    {[1, 2, 4, 5, 10].map((v) => (
-                      <button key={v} onClick={() => { update({ marks: v }); setShowMarks(false); }} className={cn("rounded-lg px-2 py-1 text-[11px] font-medium transition-colors", q.marks === v ? "bg-[#E91E63] text-white" : "border border-border bg-card text-text-secondary hover:bg-card-hover")}>
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            <input
+              type="text"
+              inputMode="numeric"
+              value={q.marks}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9.]/g, "");
+                update({ marks: v === "" ? 0 : Math.max(0, Number(v) || 0) });
+              }}
+              className="w-12 bg-transparent text-xs font-medium text-text-primary focus:outline-none"
+            />
           </div>
-          <div className="relative flex items-center gap-1.5 px-3 py-2">
+          <div className="flex items-center gap-1.5 px-3 py-2">
             <span className="text-text-muted">Negative</span>
-            <button onClick={() => { setShowNeg(!showNeg); setShowMarks(false); setShowTime(false); }} className="inline-flex items-center gap-1 font-medium text-text-primary">
-              {q.negativeMarks ?? 0} <ChevronDown className="h-3 w-3 text-text-muted" />
-            </button>
-            {showNeg && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
-                <div className="p-2">
-                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Negative Marking</p>
-                  <div className="mt-1 flex items-center gap-1">
-                    <button onClick={() => update({ negativeMarks: Math.max(0, (q.negativeMarks ?? 0) - 0.25) })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">−</button>
-                    <input type="number" step="0.25" value={q.negativeMarks ?? 0} onChange={(e) => update({ negativeMarks: Math.max(0, Number(e.target.value) || 0) })} className="h-7 flex-1 rounded-lg border border-border bg-input-bg px-2 text-center text-xs text-text-primary outline-none focus:border-pink-500/60" />
-                    <button onClick={() => update({ negativeMarks: (q.negativeMarks ?? 0) + 0.25 })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">+</button>
-                  </div>
-                  <div className="mt-2 grid grid-cols-4 gap-1">
-                    {[0, 0.25, 0.5, 1].map((v) => (
-                      <button key={v} onClick={() => { update({ negativeMarks: v }); setShowNeg(false); }} className={cn("rounded-lg px-2 py-1 text-[11px] font-medium transition-colors", (q.negativeMarks ?? 0) === v ? "bg-[#E91E63] text-white" : "border border-border bg-card text-text-secondary hover:bg-card-hover")}>
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            <input
+              type="text"
+              inputMode="decimal"
+              value={q.negativeMarks ?? 0}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9.]/g, "");
+                update({ negativeMarks: v === "" ? 0 : Math.max(0, Number(v) || 0) });
+              }}
+              className="w-12 bg-transparent text-xs font-medium text-text-primary focus:outline-none"
+            />
           </div>
-          <div className="relative flex items-center gap-1.5 px-3 py-2">
+          <div className="flex items-center gap-1.5 px-3 py-2">
             <span className="text-text-muted">Time</span>
-            <button onClick={() => { setShowTime(!showTime); setShowMarks(false); setShowNeg(false); }} className="inline-flex items-center gap-1 font-medium text-text-primary">
-              {q.expectedTime} min <ChevronDown className="h-3 w-3 text-text-muted" />
-            </button>
-            {showTime && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
-                <div className="p-2">
-                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Time (minutes)</p>
-                  <div className="mt-1 flex items-center gap-1">
-                    <button onClick={() => update({ expectedTime: Math.max(0, q.expectedTime - 1) })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">−</button>
-                    <input type="number" value={q.expectedTime} onChange={(e) => update({ expectedTime: Math.max(0, Number(e.target.value) || 0) })} className="h-7 flex-1 rounded-lg border border-border bg-input-bg px-2 text-center text-xs text-text-primary outline-none focus:border-pink-500/60" />
-                    <button onClick={() => update({ expectedTime: q.expectedTime + 1 })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">+</button>
-                  </div>
-                  <div className="mt-2 grid grid-cols-4 gap-1">
-                    {[5, 10, 15, 30, 60].map((v) => (
-                      <button key={v} onClick={() => { update({ expectedTime: v }); setShowTime(false); }} className={cn("rounded-lg px-2 py-1 text-[11px] font-medium transition-colors", q.expectedTime === v ? "bg-[#E91E63] text-white" : "border border-border bg-card text-text-secondary hover:bg-card-hover")}>
-                        {v}m
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            <input
+              type="text"
+              inputMode="numeric"
+              value={q.expectedTime}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9]/g, "");
+                update({ expectedTime: v === "" ? 0 : Math.max(0, Number(v) || 0) });
+              }}
+              className="w-12 bg-transparent text-xs font-medium text-text-primary focus:outline-none"
+            />
+            <span className="text-xs text-text-muted">min</span>
           </div>
         </div>
-        {(showType || showDiff || showMarks || showNeg || showTime) && <div className="fixed inset-0 z-40" onClick={() => { setShowType(false); setShowDiff(false); setShowMarks(false); setShowNeg(false); setShowTime(false); }} />}
+        {(showType || showDiff) && <div className="fixed inset-0 z-40" onClick={() => { setShowType(false); setShowDiff(false); }} />}
       </div>
 
       <div className="p-6">
