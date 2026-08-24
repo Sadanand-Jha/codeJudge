@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import WorkspaceSwitcher from "@/components/layout/WorkspaceSwitcher";
 import { CREATOR_PROFILE, CREATOR_NOTIFICATIONS } from "@/components/creator/workspace/mockData";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -429,8 +430,9 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
         />
       </div>
 
-      {/* Right: Theme + Notifications + Profile */}
+      {/* Right: Workspace + Theme + Notifications + Profile */}
       <div className="flex items-center gap-1 shrink-0">
+        <WorkspaceSwitcher />
         <ThemeToggle />
         <NotificationsDropdown />
         <ProfileMenu />

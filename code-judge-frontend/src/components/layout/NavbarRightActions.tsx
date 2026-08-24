@@ -4,6 +4,7 @@ import Link from "next/link";
 import { UserPlus } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationBell from "./NotificationBell";
+import WorkspaceSwitcher from "./WorkspaceSwitcher";
 import { useAuthStore } from "@/store/authStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
@@ -32,6 +33,7 @@ export default function NavbarRightActions() {
 
   return (
     <div className="flex items-center gap-2">
+      <WorkspaceSwitcher />
       <ThemeToggle />
       <NotificationBell />
       {isAuthenticated ? (

@@ -34,7 +34,9 @@ import {
   Presentation,
   Sparkles,
   MessageSquare,
-  MailPlus,
+       MailPlus,
+  Megaphone,
+  Plus,
   FileText,
   type LucideIcon,
 } from "lucide-react";
@@ -55,30 +57,27 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
     items: [{ label: "Dashboard", href: "/creator", icon: LayoutDashboard, exact: true }],
   },
   {
-    label: "Content",
+    label: "Quizzes",
     items: [
+      { label: "All Quizzes", href: "/creator/quizzes", icon: ListChecks, exact: true },
+      { label: "Create Quiz", href: "/creator/quizzes/create", icon: FilePlus2, match: (p) => p === "/creator/quizzes/create" || p === "/creator/quizzes/ai-generate" },
       { label: "Tests", href: "/creator/tests", icon: ClipboardList },
-      { label: "Quizzes", href: "/creator/quizzes", icon: ListChecks, exact: true },
+      { label: "Create Test", href: "/creator/tests/create", icon: NotebookPen },
       { label: "Test Series", href: "/creator/series", icon: Layers },
+      { label: "Create Test Series", href: "/creator/series/create", icon: FolderKanban },
+      { label: "Create New", href: "/creator/create", icon: Sparkles, exact: true },
+    ],
+  },
+  {
+    label: "Question Bank",
+    items: [
       { label: "Question Bank", href: "/creator/question-bank", icon: Database },
       { label: "Problems", href: "/creator/problems", icon: NotebookPen },
       { label: "Resources", href: "/creator/resources", icon: FolderKanban },
-      { label: "AI Studio", href: "/creator/ai-studio", icon: Sparkles },
-      { label: "AI Chat", href: "/ai/chat", icon: MessageSquare },
     ],
   },
   {
-    label: "Create",
-    items: [
-      { label: "Create New", href: "/creator/create", icon: FilePlus2, exact: true },
-      { label: "Create Test", href: "/creator/tests/create", icon: ClipboardList },
-      { label: "Create Quiz", href: "/creator/quizzes/create", icon: ListChecks, match: (p) => p === "/creator/quizzes/create" || p === "/creator/quizzes/ai-generate" },
-      { label: "Create Problem", href: "/creator/problems/create", icon: NotebookPen },
-      { label: "Create Test Series", href: "/creator/series/create", icon: Layers },
-    ],
-  },
-  {
-    label: "Audience",
+    label: "Participants",
     items: [
       { label: "Students", href: "/creator/students", icon: Users },
       { label: "Classes", href: "/creator/classes", icon: GraduationCap },
@@ -89,7 +88,7 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
     ],
   },
   {
-    label: "Analytics",
+    label: "Reports",
     items: [
       { label: "Overview", href: "/creator/analytics", icon: BarChart3, exact: true },
       { label: "Test Analytics", href: "/creator/analytics/test", icon: Gauge },
@@ -97,8 +96,27 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
       { label: "Content Analytics", href: "/creator/analytics/content", icon: Presentation },
     ],
   },
+    {
+    label: "AI Studio",
+    items: [
+      { label: "AI Studio", href: "/creator/ai-studio", icon: Sparkles },
+      { label: "AI Chat", href: "/ai/chat", icon: MessageSquare },
+    ],
+  },
   {
-    label: "Finance",
+    label: "Advertise",
+    items: [
+      {
+        label: "Advertise",
+        href: "/creator/advertise",
+        icon: Megaphone,
+        match: (p) => p === "/creator/advertise" || p.startsWith("/creator/advertise/"),
+      },
+      { label: "Create Campaign", href: "/creator/advertise/create", icon: Plus },
+    ],
+  },
+  {
+    label: "Payments",
     items: [
       { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },
       { label: "Transactions", href: "/creator/billing/transactions", icon: ArrowLeftRight },
@@ -110,7 +128,7 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
     ],
   },
   {
-    label: "Creator",
+    label: "Settings",
     items: [
       { label: "Creator Profile", href: "/creator/profile", icon: UserRound, exact: true },
       { label: "Public Profile", href: "/creator/profile/public", icon: Globe },

@@ -11,7 +11,6 @@ import {
   Settings,
   Menu,
   Flame,
-  Clapperboard,
   LogOut,
   BookOpen,
   Briefcase,
@@ -45,7 +44,6 @@ import NavbarRightActions from "./NavbarRightActions";
 import { useTheme } from "@/context/ThemeContext";
 import LowCreditNotification from "@/components/ai/LowCreditNotification";
 import AiAssistantStrip from "@/components/ai/AiAssistantStrip";
-import { IS_DEMO_CREATOR } from "@/components/creator/workspace/mockData";
 
 function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -128,10 +126,7 @@ const navGroups: { label: string; items: NavItemData[] }[] = [
   },
   {
     label: "TOOLS",
-    items: [
-      { label: "Creator Studio", icon: Clapperboard, href: "/creator" },
-      { label: "Editor", icon: BookOpen, href: "/editor" },
-    ],
+    items: [{ label: "Editor", icon: BookOpen, href: "/editor" }],
   },
   {
     label: "ACCOUNT",
@@ -159,6 +154,10 @@ function isFullscreenRoute(pathname: string): boolean {
 
 function AppLayoutContent({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
   const pathname = usePathname();
+  // Creator Studio has its own dedicated layout + navigation. It is a separate
+  // workspace, so on /creator routes we hide the student sidebar entirely and
+  // only Studio's navigation is visible.
+  const isStudioRoute = pathname.startsWith("/creator");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   // Account dropdown state lives here (not inside ProfileMenu) so the
@@ -215,6 +214,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   };
 
   const pageTitle = (() => {
+    if (isStudioRoute) return "Studio";
     if (pathname === PREPARATION_BASE) return "Preparation";
     const prepModule = getActivePreparationModule(pathname);
     if (prepModule) return `Preparation · ${prepModule.label}`;
@@ -256,7 +256,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
     <div
       className="min-h-screen w-full min-w-0 bg-ai-bg flex"
       data-ai-scope
-      style={{ "--rail-w": mobileMenuOpen || sidebarExpanded ? "16rem" : "3.75rem" } as CSSProperties}
+      style={{ "--rail-w": isStudioRoute ? "0rem" : mobileMenuOpen || sidebarExpanded ? "16rem" : "3.75rem" } as CSSProperties}
     >
       {/* Mobile overlay */}
       <AnimatePresence>
@@ -274,7 +274,8 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         )}
       </AnimatePresence>
 
-      {/* ===== SIDEBAR ===== */}
+      {/* ===== SIDEBAR (hidden inside Creator Studio — it has its own nav) ===== */}
+      {!isStudioRoute && (
       <Sidebar
         dataSidebar="true"
         className={cn(
@@ -366,12 +367,13 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         </div>
       </div>
       </Sidebar>
+      )}
 
       {/* ===== MAIN CONTENT ===== */}
       <div
         className={cn(
           "flex-1 w-0 min-w-0 flex flex-col min-h-screen transition-[margin] duration-200 ease-out",
-          "lg:ml-[var(--rail-w)]"
+          !isStudioRoute && "lg:ml-[var(--rail-w)]"
         )}
       >
         {/* ===== TOP HEADER ===== */}
@@ -469,8 +471,7 @@ function NavIcon({ Icon, isActive, showDot }: { Icon: LucideIcon; isActive: bool
   );
 }
 
-// Student account menu — student-only. The only bridge to the creator world is
-// the "Creator Studio" item at the bottom of the menu.
+// Student account menu — student-only.
 function ProfileMenu({ showLabels, sidebarExpanded, setSidebarExpanded, open, onOpenChange, isAuthenticated, username, avatar, onAuthRequired }: {
   showLabels: boolean;
   sidebarExpanded: boolean;
@@ -618,7 +619,6 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
   collapseSidebar: () => void;
 }) {
   const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
-  const isCreatorStudio = item.href === "/creator";
 
   // Routes that are protected for guests
   const protectedForGuests = ["/ai/chat", "/editor", "/analytics", "/settings", "/collections"];
@@ -648,25 +648,16 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
       }}
       className={cn(
         "relative group w-full flex items-center gap-3 rounded-lg text-sm font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ai-accent/40",
-        isCreatorStudio
-          ? "creator-studio-btn"
-          : "transition-colors duration-150 hover:bg-ai-accent/10",
-        showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5",
-        isCreatorStudio && showLabels && "-mx-2.5 px-[1.375rem]"
+        "transition-colors duration-150 hover:bg-ai-accent/10",
+        showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5"
       )}
     >
-      {isActive && !isCreatorStudio && (
+      {isActive && (
         <div className="absolute inset-0 rounded-lg bg-ai-accent-soft pointer-events-none" />
       )}
-      {isCreatorStudio ? (
-        <span className="relative z-10 inline-flex shrink-0">
-          <item.icon className="h-5 w-5 text-white" />
-        </span>
-      ) : (
-        <NavIcon Icon={item.icon} isActive={isActive} showDot={isProtected} />
-      )}
+      <NavIcon Icon={item.icon} isActive={isActive} showDot={isProtected} />
       {showLabels && (
-        <span className={cn("relative z-10 transition-colors duration-150", isCreatorStudio ? "text-white font-semibold" : isActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text")}>
+        <span className={cn("relative z-10 transition-colors duration-150", isActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text")}>
           {item.label}
         </span>
       )}

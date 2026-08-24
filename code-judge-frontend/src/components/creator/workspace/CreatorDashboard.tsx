@@ -299,10 +299,10 @@ export function CreatorDashboard({
 
       {ready && (
         <>
-          {/* Metrics — 2 per line on mobile, This Month's Revenue full width */}
+          {/* Metrics — 2 per line on mobile; This Month's Revenue is full width on its own line on mobile only */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
             {data.metrics.map((m, i) => (
-              <div key={m.id} className={m.id === "month" ? "col-span-2 xl:col-span-5" : ""}>
+              <div key={m.id} className={m.id === "month" ? "col-span-2 xl:col-span-1" : ""}>
                 <MetricCard metric={m} index={i} />
               </div>
             ))}

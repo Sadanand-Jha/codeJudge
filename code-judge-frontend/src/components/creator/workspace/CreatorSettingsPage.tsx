@@ -113,8 +113,8 @@ export function CreatorSettingsPage() {
       </AnimatePresence>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        {/* Section nav */}
-        <div className="space-y-1">
+        {/* Section nav — horizontal scroll on mobile, vertical sidebar on desktop */}
+        <div className="flex gap-2 overflow-x-auto pb-2 lg:flex-col lg:gap-1 lg:overflow-visible lg:pb-0">
           {sections.map((section) => {
             const Icon = SECTION_ICONS[section.id] ?? Settings;
             const enabledCount = section.rows.filter((r) => r.enabled).length;
@@ -125,7 +125,7 @@ export function CreatorSettingsPage() {
                 type="button"
                 onClick={() => setActiveTab(section.id)}
                 className={cn(
-                  "group flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors",
+                  "group flex w-auto shrink-0 items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition-colors lg:w-full",
                   isActive
                     ? "border-pink-500/30 bg-pink-500/[0.06] dark:border-ai-accent/30 dark:bg-ai-accent-soft"
                     : "border-transparent hover:border-border hover:bg-white/[0.03]"
@@ -133,12 +133,12 @@ export function CreatorSettingsPage() {
               >
                 <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-pink-500 dark:text-ai-accent" : "text-text-muted")} />
                 <div className="min-w-0 flex-1">
-                  <p className={cn("text-[13px] font-semibold", isActive ? "text-text-primary" : "text-text-secondary")}>{section.label}</p>
-                  <p className="text-[10px] text-text-muted">
+                  <p className={cn("text-[13px] font-semibold whitespace-nowrap", isActive ? "text-text-primary" : "text-text-secondary")}>{section.label}</p>
+                  <p className="hidden text-[10px] text-text-muted lg:block">
                     {enabledCount}/{section.rows.length} enabled
                   </p>
                 </div>
-                <ChevronRight className={cn("h-3.5 w-3.5", isActive ? "text-pink-500 dark:text-ai-accent" : "text-text-muted")} />
+                <ChevronRight className={cn("hidden h-3.5 w-3.5 lg:block", isActive ? "text-pink-500 dark:text-ai-accent" : "text-text-muted")} />
               </button>
             );
           })}
