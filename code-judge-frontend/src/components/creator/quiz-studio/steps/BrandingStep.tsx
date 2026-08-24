@@ -4,7 +4,7 @@ import { Palette } from "lucide-react";
 
 export function BrandingStep() {
   return (
-    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="flex flex-col bg-background">
     <div className="">
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
       <div>

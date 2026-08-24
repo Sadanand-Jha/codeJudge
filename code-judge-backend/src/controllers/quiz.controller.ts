@@ -630,8 +630,7 @@ export const updateQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
-    const problem = await quizService.getQuizProblems(String(problemId));
-    const target = Array.isArray(problem) ? problem[0] : null;
+    const target = await quizService.getQuizProblemById(problemId);
 
     if (!target) {
       res.status(404).json({
@@ -769,8 +768,7 @@ export const deleteQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
-    const problems = await quizService.getQuizProblems(problemId);
-    const target = Array.isArray(problems) ? problems[0] : null;
+    const target = await quizService.getQuizProblemById(problemId);
 
     if (!target) {
       res.status(404).json({
@@ -829,8 +827,7 @@ export const duplicateQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
-    const problems = await quizService.getQuizProblems(problemId);
-    const target = Array.isArray(problems) ? problems[0] : null;
+    const target = await quizService.getQuizProblemById(problemId);
 
     if (!target) {
       res.status(404).json({
@@ -942,8 +939,7 @@ export const addQuizProblemOption = async (req: Request, res: Response) => {
       return;
     }
 
-    const problems = await quizService.getQuizProblems(problemId);
-    const target = Array.isArray(problems) ? problems[0] : null;
+    const target = await quizService.getQuizProblemById(problemId);
 
     if (!target) {
       res.status(404).json({

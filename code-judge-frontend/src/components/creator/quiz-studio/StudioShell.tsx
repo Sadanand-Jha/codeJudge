@@ -32,8 +32,8 @@ export function StudioHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-zinc-200 bg-white px-4">
-      <button onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 transition-colors">
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background px-4">
+      <button onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors">
         <ArrowLeft className="h-4 w-4" />
       </button>
       <div className="flex items-center gap-2 min-w-0">
@@ -47,21 +47,21 @@ export function StudioHeader() {
               if (e.key === "Enter") commit();
               if (e.key === "Escape") setEditing(false);
             }}
-            className="min-w-[160px] rounded border border-zinc-200 px-2 py-1 text-sm font-semibold text-zinc-900 outline-none"
+            className="min-w-[160px] rounded border border-border bg-input-bg px-2 py-1 text-sm font-semibold text-text-primary outline-none"
           />
         ) : (
-          <button onClick={() => setEditing(true)} className="truncate text-left font-['Inter'] text-sm font-semibold text-zinc-900">
+          <button onClick={() => setEditing(true)} className="truncate text-left font-['Inter'] text-sm font-semibold text-text-primary">
             {label}
           </button>
         )}
-        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-700">
+        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
           DRAFT
         </span>
       </div>
 
-      <div className="hidden items-center gap-1.5 text-xs text-emerald-600 sm:flex ml-3 border-l border-zinc-200 pl-3">
+      <div className="hidden items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 sm:flex ml-3 border-l border-border pl-3">
         {status === "saving" ? (
-          <span className="flex items-center gap-1 text-zinc-500"><Loader2 className="h-3 w-3 animate-spin" />Saving…</span>
+          <span className="flex items-center gap-1 text-text-muted"><Loader2 className="h-3 w-3 animate-spin" />Saving…</span>
         ) : status === "saved" && lastSaved ? (
           <>
             <Check className="h-3.5 w-3.5" />
@@ -71,32 +71,14 @@ export function StudioHeader() {
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        <div className="hidden items-center gap-2 sm:flex">
-          <span className="font-['Inter'] text-xs font-medium text-zinc-600">{topCounter}</span>
-          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-zinc-200">
-            <div className="h-full bg-[#E91E63] rounded-full transition-all" style={{ width: `${Math.max(8, Math.min(100, progress))}%` }} />
+        {state.step === "questions" && (
+          <div className="hidden items-center gap-2 sm:flex">
+            <span className="font-['Inter'] text-xs font-medium text-text-secondary">{topCounter}</span>
+            <div className="h-1.5 w-20 overflow-hidden rounded-full bg-border">
+              <div className="h-full bg-[#E91E63] rounded-full transition-all" style={{ width: `${Math.max(8, Math.min(100, progress))}%` }} />
+            </div>
           </div>
-        </div>
-        <div className="hidden h-6 w-px bg-zinc-200 sm:block" />
-        <button
-          onClick={async () => {
-            if (savingDraft) return;
-            setSavingDraft(true);
-            try {
-              await saveToServer();
-              toast.success({ title: "Saved to server", description: "Your quiz draft and questions are saved." });
-            } catch (err) {
-              if (isQuestionValidationError(err)) return;
-              toast.error({ title: "Could not save draft", description: err instanceof Error ? err.message : "Something went wrong." });
-            } finally {
-              setSavingDraft(false);
-            }
-          }}
-          disabled={savingDraft}
-          className="hidden h-8 rounded-lg border border-zinc-200 bg-white px-4 text-xs font-medium text-zinc-700 hover:bg-zinc-50 sm:inline-flex disabled:opacity-60"
-        >
-          {savingDraft ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : "Save Draft"}
-        </button>
+        )}
         <button
           onClick={async () => {
             if (continuing) return;
@@ -124,9 +106,9 @@ export function StudioStepper() {
   const display = steps.map((s, i) => ({ id: s.id, label: labels[i] ?? s.label }));
 
   return (
-    <div className="shrink-0 border-b border-zinc-200 bg-white">
+    <div className="shrink-0 border-b border-border bg-background">
       <nav
-        className="flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex items-center justify-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         aria-label="Quiz creation steps"
       >
         {display.map((step, i) => {
@@ -140,7 +122,7 @@ export function StudioStepper() {
                 onClick={() => goToStep(step.id as any)}
                 className={cn(
                   "flex items-center gap-2 py-3 text-xs whitespace-nowrap",
-                  active ? "font-semibold text-[#E91E63]" : done ? "font-medium text-emerald-600" : "font-medium text-zinc-500"
+                  active ? "font-semibold text-[#E91E63]" : done ? "font-medium text-emerald-600 dark:text-emerald-400" : "font-medium text-text-muted"
                 )}
               >
                 <span
@@ -150,14 +132,14 @@ export function StudioStepper() {
                       ? "bg-[#E91E63] text-white"
                       : done
                         ? "bg-emerald-500 text-white"
-                        : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                        : "bg-card-hover text-text-secondary border border-border"
                   )}
                 >
                   {done ? <Check className="h-3 w-3" /> : num}
                 </span>
                 <span>{step.label}</span>
               </button>
-              {i < display.length - 1 && <span className="mx-2 h-px w-8 bg-zinc-200" />}
+              {i < display.length - 1 && <span className="mx-2 h-px w-8 bg-border" />}
               {active && <span className="absolute" />}
             </div>
           );
@@ -227,19 +209,19 @@ export function StudioFooter() {
   };
 
   return (
-    <footer className="flex h-14 shrink-0 items-center justify-between gap-3 border-t border-zinc-200 bg-white px-4">
+    <footer className="flex h-14 shrink-0 items-center justify-between gap-3 border-t border-border bg-background px-4">
       <button
         type="button"
         onClick={() => void prevStep()}
         disabled={stepIndex === 0}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-text-primary hover:bg-card-hover disabled:opacity-40"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Back
       </button>
 
       {isQuestions ? (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-600">Question {activeIdx || 1} of {state.questions.length}</span>
+          <span className="text-xs text-text-secondary">Question {activeIdx || 1} of {state.questions.length}</span>
           <div className="ml-2 flex items-center gap-1.5">
             <button
               onClick={() => {
@@ -247,7 +229,7 @@ export function StudioFooter() {
                 if (idx > 0) setActiveQuestion(state.questions[idx - 1].id);
               }}
               disabled={activeIdx <= 1}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 hover:bg-zinc-50 disabled:opacity-40"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-muted hover:bg-card-hover disabled:opacity-40"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
@@ -257,7 +239,7 @@ export function StudioFooter() {
                 if (idx < state.questions.length - 1) setActiveQuestion(state.questions[idx + 1].id);
               }}
               disabled={activeIdx >= state.questions.length}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[#E91E63] hover:bg-zinc-50 disabled:opacity-40"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-[#E91E63] hover:bg-card-hover disabled:opacity-40"
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
@@ -268,14 +250,6 @@ export function StudioFooter() {
       )}
 
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleSaveDraft}
-          disabled={savingDraft}
-          className="hidden h-8 rounded-lg border border-zinc-200 bg-white px-4 text-xs font-medium text-zinc-700 hover:bg-zinc-50 sm:inline-flex disabled:opacity-60"
-        >
-          {savingDraft ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : "Save Draft"}
-        </button>
         {isLast ? (
           <>
             <button
@@ -288,11 +262,11 @@ export function StudioFooter() {
             </button>
             {confirmPublish && (
               <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" onClick={() => !publishing && setConfirmPublish(false)}>
-                <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-xl border bg-white p-6 shadow-xl">
-                  <h3 className="font-semibold">Publish this quiz?</h3>
-                  <p className="mt-1 text-xs text-zinc-600">It will go live immediately for eligible students.</p>
+                <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-xl border border-border bg-background p-6 shadow-xl">
+                  <h3 className="font-semibold text-text-primary">Publish this quiz?</h3>
+                  <p className="mt-1 text-xs text-text-secondary">It will go live immediately for eligible students.</p>
                   <div className="mt-4 flex justify-end gap-2">
-                    <button onClick={() => setConfirmPublish(false)} className="rounded-lg border px-4 py-2 text-xs">Cancel</button>
+                    <button onClick={() => setConfirmPublish(false)} className="rounded-lg border border-border bg-card px-4 py-2 text-xs text-text-primary hover:bg-card-hover">Cancel</button>
                     <button onClick={handleConfirmPublish} className="rounded-lg bg-[#E91E63] px-4 py-2 text-xs font-semibold text-white">
                       {publishing ? "Publishing…" : "Yes, Publish"}
                     </button>
@@ -308,7 +282,7 @@ export function StudioFooter() {
             disabled={!canContinue() || continuing}
             className={cn(
               "inline-flex h-8 items-center justify-center gap-1 rounded-lg px-5 text-xs font-semibold",
-              canContinue() && !continuing ? "bg-[#E91E63] text-white hover:bg-[#D81B60]" : "bg-zinc-100 text-zinc-400 cursor-not-allowed"
+              canContinue() && !continuing ? "bg-[#E91E63] text-white hover:bg-[#D81B60]" : "bg-card-hover text-text-muted cursor-not-allowed"
             )}
           >
             {continuing ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : <>Continue <span>→</span></>}
@@ -328,7 +302,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   }, [title]);
 
   return (
-    <div data-studio="true" className="flex flex-1 min-h-0 flex-col overflow-hidden bg-[#F8FAFC] text-foreground font-['Inter']">
+    <div data-studio="true" className="flex flex-1 min-h-0 flex-col bg-background text-foreground font-['Inter']">
       <StudioHeader />
       <StudioStepper />
       <AnimatePresence mode="wait">
@@ -338,7 +312,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          className="flex-1 min-h-0 flex flex-col bg-[#F8FAFC]"
+          className="flex-1 min-h-0 flex flex-col bg-background"
         >
           <div
             className="mx-auto flex flex-1 min-h-0 w-full max-w-[1600px] flex-col overflow-y-auto p-3"
@@ -347,7 +321,6 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           </div>
         </motion.main>
       </AnimatePresence>
-      {state.step !== "questions" && <StudioFooter />}
     </div>
   );
 }

@@ -61,7 +61,7 @@ export function PublishStep({
   ];
 
   return (
-    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="flex flex-col bg-background">
     <div className="">
     <div className="mx-auto max-w-2xl px-4 py-10">
       <div className="rounded-xl border border-border bg-card">
@@ -232,7 +232,7 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
   };
 
   return (
-    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="flex flex-col bg-background">
     <div className="">
     <div className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center px-4 py-10 text-center">
       <div>

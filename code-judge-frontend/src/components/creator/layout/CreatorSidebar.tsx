@@ -41,7 +41,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { CREATOR_PROFILE } from "@/components/creator/workspace/mockData";
+import { useAuthStore } from "@/store/authStore";
 
 export interface CreatorNavItem {
   label: string;
@@ -59,7 +59,7 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
   {
     label: "Quizzes",
     items: [
-      { label: "All Quizzes", href: "/creator/quizzes", icon: ListChecks, exact: true },
+      { label: "All Quizzes", href: "/creator/quizzes", icon: ListChecks, match: (p) => p === "/creator/quizzes" || (p.startsWith("/creator/quizzes/") && !p.startsWith("/creator/quizzes/create") && !p.startsWith("/creator/quizzes/ai-generate")) },
       { label: "Create Quiz", href: "/creator/quizzes/create", icon: FilePlus2, match: (p) => p === "/creator/quizzes/create" || p === "/creator/quizzes/ai-generate" },
       { label: "Tests", href: "/creator/tests", icon: ClipboardList },
       { label: "Create Test", href: "/creator/tests/create", icon: NotebookPen },
@@ -209,9 +209,10 @@ export function CreatorSidebar({
   onNavigate?: () => void;
 }) {
   const showLabels = mobile || true;
-  const creator = CREATOR_PROFILE;
-  const avatarInitial = creator.displayName.charAt(0).toUpperCase();
-  const isVerified = creator.verificationStatus === "verified";
+  const user = useAuthStore((s) => s.user);
+  const displayName = user?.displayName || user?.username || "Creator";
+  const avatarInitial = displayName.charAt(0).toUpperCase();
+  const isVerified = false;
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -231,7 +232,7 @@ export function CreatorSidebar({
             )}
           </div>
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-[13px] font-bold text-text-primary">{creator.displayName}</p>
+            <p className="truncate text-[13px] font-bold text-text-primary">{displayName}</p>
             <p className="truncate text-[10px] font-medium text-emerald-500">Verified Creator</p>
           </div>
         </Link>

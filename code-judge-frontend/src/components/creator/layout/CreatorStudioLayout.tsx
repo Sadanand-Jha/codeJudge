@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2 } from "lucide-react";
 import { CreatorSidebar } from "./CreatorSidebar";
@@ -11,10 +11,28 @@ import { useAuthStore } from "@/store/authStore";
 
 export default function CreatorStudioLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  useEffect(() => {
+    if (hasHydrated && !isAuthenticated) {
+      router.replace("/login");
+    }
+  }, [hasHydrated, isAuthenticated, router]);
 
   if (!hasHydrated) {
+    return (
+      <AppLayout>
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="h-6 w-6 animate-spin text-accent" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!isAuthenticated) {
     return (
       <AppLayout>
         <div className="flex min-h-screen items-center justify-center bg-background">

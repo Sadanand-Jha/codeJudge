@@ -1,5 +1,7 @@
 import {
   saveQuizProblemFull,
+  getQuizProblems,
+  deleteQuizProblem,
 } from "@/services/quiz";
 import {
   type CreatorQuestion,
@@ -87,6 +89,20 @@ export async function syncQuizQuestions(
     if (saved && !q.serverId) {
       q.serverId = saved.id;
     }
+  }
+
+  // Delete problems that exist on the server but are no longer in the current list
+  try {
+    const serverProblems = await getQuizProblems(quizId);
+    const currentServerIds = new Set(questions.filter((q) => q.serverId).map((q) => Number(q.serverId)));
+    for (const sp of serverProblems) {
+      if (!currentServerIds.has(sp.id)) {
+        await deleteQuizProblem(String(sp.id));
+      }
+    }
+  } catch {
+    // Non-critical: log but don't fail the save
+    console.warn("Could not clean up deleted problems from server");
   }
 
   return questions.length;

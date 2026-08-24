@@ -214,12 +214,18 @@ export async function loadQuizForEdit(quizId: string): Promise<{
   quiz: Quiz & { subject_name?: string; exam_cat_name?: string };
   problems: QuizProblemWithOptions[];
 }> {
-  const [quiz, problems, subjects, exams] = await Promise.all([
+  const [quiz, problems] = await Promise.all([
     getQuizById(quizId),
-    getQuizProblems(quizId),
-    getAllSubjects(),
-    getAllExamCategories(),
+    getQuizProblems(quizId).catch(() => [] as QuizProblem[]),
   ]);
+
+  let subjects: { id: number; subject_name: string }[] = [];
+  let exams: { id: number; exam_cat: string }[] = [];
+  try {
+    [subjects, exams] = await Promise.all([getAllSubjects(), getAllExamCategories()]);
+  } catch {
+    // non-critical — continue without subject/exam names
+  }
 
   const subjectName = quiz.subject_id
     ? subjects.find((s) => s.id === quiz.subject_id)?.subject_name ?? ""

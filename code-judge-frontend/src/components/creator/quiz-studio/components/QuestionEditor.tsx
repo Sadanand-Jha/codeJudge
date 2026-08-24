@@ -14,7 +14,6 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
-  Sparkles,
   Check,
   ImageIcon,
   Clock,
@@ -24,8 +23,8 @@ import { cn } from "@/lib/helpers";
 import type { CreatorQuestion, CreatorOption, CreatorQuestionType } from "../types";
 import { useStudio } from "../StudioProvider";
 import { EditableContent, RichToolbar } from "./RichToolbar";
-import { AiAssistantPanel } from "./AiAssistantPanel";
 import { motion, AnimatePresence } from "framer-motion";
+import { getQuizDifficultyOptions } from "@/services/quiz";
 
 const TYPE_ICON: Record<CreatorQuestionType, React.ComponentType<{ className?: string }>> = {
   single_choice: CircleDot,
@@ -64,19 +63,29 @@ export function QuestionEditor() {
   const { state, updateQuestion, duplicateQuestion, removeQuestion } = useStudio();
   const q = state.questions.find((x) => x.id === state.activeQuestionId);
 
-  const [aiOpen, setAiOpen] = useState(false);
   const [showAfter, setShowAfter] = useState(false);
   const [afterTab, setAfterTab] = useState<"explanation" | "hint" | "solution">("explanation");
   const [showType, setShowType] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
+  const [showMarks, setShowMarks] = useState(false);
+  const [showNeg, setShowNeg] = useState(false);
+  const [showTime, setShowTime] = useState(false);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImageOption = useRef<string | null>(null);
   const [draggedOpt, setDraggedOpt] = useState<string | null>(null);
+  const [difficultyOptions, setDifficultyOptions] = useState<{ id: number; heading: string }[]>([]);
+  const fetchedDiffRef = useRef(false);
+
+  useEffect(() => {
+    if (fetchedDiffRef.current) return;
+    fetchedDiffRef.current = true;
+    getQuizDifficultyOptions().then(setDifficultyOptions).catch(() => {});
+  }, []);
 
   if (!q) {
     return (
       <div className="flex flex-1 items-center justify-center p-6">
-        <p className="text-sm text-zinc-500">Select a question to start editing.</p>
+        <p className="text-sm text-text-muted">Select a question to start editing.</p>
       </div>
     );
   }
@@ -147,22 +156,22 @@ export function QuestionEditor() {
   const activeIdx = state.questions.findIndex((x) => x.id === q.id);
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 bg-white">
+    <div className="flex flex-1 flex-col min-h-0 bg-card">
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleOptionImagePicked} />
 
-      <div className="shrink-0 border-b border-zinc-200 bg-white px-6 py-3">
+      <div className="shrink-0 border-b border-border bg-card px-6 py-3">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[15px] font-bold text-zinc-900">Question {String(activeIdx + 1).padStart(2, "0")}</h2>
+          <h2 className="text-[15px] font-bold text-text-primary">Question {String(activeIdx + 1).padStart(2, "0")}</h2>
           <div className="flex items-center gap-1.5">
             <div className="relative">
               <button
                 onClick={() => setShowType(!showType)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-card-hover"
               >
-                {TYPE_SHORT[q.type]} <ChevronDown className="h-3 w-3 text-zinc-400" />
+                {TYPE_SHORT[q.type]} <ChevronDown className="h-3 w-3 text-text-muted" />
               </button>
               {showType && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
+                <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
                   {(Object.keys(TYPE_SHORT) as CreatorQuestionType[]).map((t) => {
                     const Icon = TYPE_ICON[t];
                     const active = t === q.type;
@@ -173,11 +182,11 @@ export function QuestionEditor() {
                           update({ type: t } as any);
                           setShowType(false);
                         }}
-                        className={cn("flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-zinc-50", active && "bg-pink-50")}
+                        className={cn("flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-card-hover", active && "bg-pink-50 dark:bg-pink-500/10")}
                       >
-                        <Icon className={cn("h-4 w-4 mt-0.5", active ? "text-[#E91E63]" : "text-zinc-500")} />
+                        <Icon className={cn("h-4 w-4 mt-0.5", active ? "text-[#E91E63]" : "text-text-muted")} />
                         <div>
-                          <p className={cn("text-xs font-medium", active ? "text-[#E91E63]" : "text-zinc-900")}>
+                          <p className={cn("text-xs font-medium", active ? "text-[#E91E63]" : "text-text-primary")}>
                             {TYPE_SHORT[t]} — {TYPE_DESC[t]}
                           </p>
                         </div>
@@ -190,7 +199,7 @@ export function QuestionEditor() {
             </div>
             <button
               onClick={() => duplicateQuestion(q.id)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-muted hover:bg-card-hover"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" />
@@ -199,60 +208,131 @@ export function QuestionEditor() {
             </button>
             <button
               onClick={() => removeQuestion(q.id)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 hover:text-red-500"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-muted hover:bg-card-hover hover:text-red-500"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center divide-x divide-zinc-200 overflow-hidden rounded-lg border border-zinc-200 bg-white text-xs">
+        <div className="mt-3 flex flex-wrap items-center divide-x divide-border rounded-lg border border-border bg-card text-xs">
           <div className="relative flex items-center gap-1.5 px-3 py-2">
-            <span className="text-zinc-500">Difficulty</span>
-            <span className="h-2 w-2 rounded-full bg-amber-500" />
-            <button onClick={() => setShowDiff(!showDiff)} className="inline-flex items-center gap-1 font-medium text-zinc-900">
-              {q.difficulty} <ChevronDown className="h-3 w-3 text-zinc-400" />
+            <span className="text-text-muted">Difficulty</span>
+            <span className={cn("h-2 w-2 rounded-full", q.difficulty === "Easy" ? "bg-emerald-500" : q.difficulty === "Medium" ? "bg-amber-500" : q.difficulty === "Hard" ? "bg-orange-500" : "bg-rose-500")} />
+            <button onClick={() => setShowDiff(!showDiff)} className="inline-flex items-center gap-1 font-medium text-text-primary">
+              {q.difficulty} <ChevronDown className="h-3 w-3 text-text-muted" />
             </button>
             {showDiff && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-36 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
-                {(["Easy", "Medium", "Hard", "Expert"] as const).map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => {
-                      update({ difficulty: d });
-                      setShowDiff(false);
-                    }}
-                    className={cn("w-full px-3 py-2 text-left text-xs hover:bg-zinc-50", q.difficulty === d && "bg-zinc-900 text-white")}
-                  >
-                    {d}
-                  </button>
-                ))}
+              <div className="absolute left-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+                {difficultyOptions.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-text-muted">Loading…</div>
+                ) : (
+                  difficultyOptions.map((opt) => {
+                    const active = q.difficulty === opt.heading;
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => {
+                          update({ difficulty: opt.heading, difficultyId: opt.id } as any);
+                          setShowDiff(false);
+                        }}
+                        className={cn("flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-card-hover", active && "bg-pink-50 dark:bg-pink-500/10")}
+                      >
+                        <span className={cn("h-2.5 w-2.5 rounded-full", opt.heading === "Easy" ? "bg-emerald-500" : opt.heading === "Medium" ? "bg-amber-500" : opt.heading === "Hard" ? "bg-orange-500" : "bg-rose-500")} />
+                        <span className={cn("text-xs font-medium", active ? "text-[#E91E63]" : "text-text-primary")}>
+                          {opt.heading}
+                        </span>
+                        {active && <Check className="ml-auto h-4 w-4 text-[#E91E63]" />}
+                      </button>
+                    );
+                  })
+                )}
               </div>
             )}
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-2">
-            <span className="text-zinc-500">Marks</span>
-            <span className="font-medium text-zinc-900">{q.marks}</span>
-            <ChevronDown className="h-3 w-3 text-zinc-400" />
+          <div className="relative flex items-center gap-1.5 px-3 py-2">
+            <span className="text-text-muted">Marks</span>
+            <button onClick={() => { setShowMarks(!showMarks); setShowNeg(false); setShowTime(false); }} className="inline-flex items-center gap-1 font-medium text-text-primary">
+              {q.marks} <ChevronDown className="h-3 w-3 text-text-muted" />
+            </button>
+            {showMarks && (
+              <div className="absolute left-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+                <div className="p-2">
+                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Marks</p>
+                  <div className="mt-1 flex items-center gap-1">
+                    <button onClick={() => update({ marks: Math.max(0, q.marks - 1) })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">−</button>
+                    <input type="number" value={q.marks} onChange={(e) => update({ marks: Math.max(0, Number(e.target.value) || 0) })} className="h-7 flex-1 rounded-lg border border-border bg-input-bg px-2 text-center text-xs text-text-primary outline-none focus:border-pink-500/60" />
+                    <button onClick={() => update({ marks: q.marks + 1 })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">+</button>
+                  </div>
+                  <div className="mt-2 grid grid-cols-4 gap-1">
+                    {[1, 2, 4, 5, 10].map((v) => (
+                      <button key={v} onClick={() => { update({ marks: v }); setShowMarks(false); }} className={cn("rounded-lg px-2 py-1 text-[11px] font-medium transition-colors", q.marks === v ? "bg-[#E91E63] text-white" : "border border-border bg-card text-text-secondary hover:bg-card-hover")}>
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-2">
-            <span className="text-zinc-500">Negative</span>
-            <span className="font-medium text-zinc-900">{q.negativeMarks ?? 0}</span>
-            <ChevronDown className="h-3 w-3 text-zinc-400" />
+          <div className="relative flex items-center gap-1.5 px-3 py-2">
+            <span className="text-text-muted">Negative</span>
+            <button onClick={() => { setShowNeg(!showNeg); setShowMarks(false); setShowTime(false); }} className="inline-flex items-center gap-1 font-medium text-text-primary">
+              {q.negativeMarks ?? 0} <ChevronDown className="h-3 w-3 text-text-muted" />
+            </button>
+            {showNeg && (
+              <div className="absolute left-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+                <div className="p-2">
+                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Negative Marking</p>
+                  <div className="mt-1 flex items-center gap-1">
+                    <button onClick={() => update({ negativeMarks: Math.max(0, (q.negativeMarks ?? 0) - 0.25) })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">−</button>
+                    <input type="number" step="0.25" value={q.negativeMarks ?? 0} onChange={(e) => update({ negativeMarks: Math.max(0, Number(e.target.value) || 0) })} className="h-7 flex-1 rounded-lg border border-border bg-input-bg px-2 text-center text-xs text-text-primary outline-none focus:border-pink-500/60" />
+                    <button onClick={() => update({ negativeMarks: (q.negativeMarks ?? 0) + 0.25 })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">+</button>
+                  </div>
+                  <div className="mt-2 grid grid-cols-4 gap-1">
+                    {[0, 0.25, 0.5, 1].map((v) => (
+                      <button key={v} onClick={() => { update({ negativeMarks: v }); setShowNeg(false); }} className={cn("rounded-lg px-2 py-1 text-[11px] font-medium transition-colors", (q.negativeMarks ?? 0) === v ? "bg-[#E91E63] text-white" : "border border-border bg-card text-text-secondary hover:bg-card-hover")}>
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-2">
-            <span className="text-zinc-500">Time</span>
-            <span className="font-medium text-zinc-900">{q.expectedTime} min</span>
-            <ChevronDown className="h-3 w-3 text-zinc-400" />
+          <div className="relative flex items-center gap-1.5 px-3 py-2">
+            <span className="text-text-muted">Time</span>
+            <button onClick={() => { setShowTime(!showTime); setShowMarks(false); setShowNeg(false); }} className="inline-flex items-center gap-1 font-medium text-text-primary">
+              {q.expectedTime} min <ChevronDown className="h-3 w-3 text-text-muted" />
+            </button>
+            {showTime && (
+              <div className="absolute left-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+                <div className="p-2">
+                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Time (minutes)</p>
+                  <div className="mt-1 flex items-center gap-1">
+                    <button onClick={() => update({ expectedTime: Math.max(0, q.expectedTime - 1) })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">−</button>
+                    <input type="number" value={q.expectedTime} onChange={(e) => update({ expectedTime: Math.max(0, Number(e.target.value) || 0) })} className="h-7 flex-1 rounded-lg border border-border bg-input-bg px-2 text-center text-xs text-text-primary outline-none focus:border-pink-500/60" />
+                    <button onClick={() => update({ expectedTime: q.expectedTime + 1 })} className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover text-xs">+</button>
+                  </div>
+                  <div className="mt-2 grid grid-cols-4 gap-1">
+                    {[5, 10, 15, 30, 60].map((v) => (
+                      <button key={v} onClick={() => { update({ expectedTime: v }); setShowTime(false); }} className={cn("rounded-lg px-2 py-1 text-[11px] font-medium transition-colors", q.expectedTime === v ? "bg-[#E91E63] text-white" : "border border-border bg-card text-text-secondary hover:bg-card-hover")}>
+                        {v}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-        {(showType || showDiff) && <div className="fixed inset-0 z-40" onClick={() => { setShowType(false); setShowDiff(false); }} />}
+        {(showType || showDiff || showMarks || showNeg || showTime) && <div className="fixed inset-0 z-40" onClick={() => { setShowType(false); setShowDiff(false); setShowMarks(false); setShowNeg(false); setShowTime(false); }} />}
       </div>
 
       <div className="p-6">
         <div className="mx-auto w-full max-w-[720px] space-y-6">
           <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Question</label>
-            <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-text-muted">Question</label>
+            <div className="overflow-hidden rounded-2xl border border-border bg-card">
               <RichToolbar />
               <EditableContent
                 value={q.title}
@@ -266,8 +346,8 @@ export function QuestionEditor() {
           {isMcq ? (
             <div>
               <div className="flex items-center justify-between">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Answer Options</h3>
-                <span className="text-xs text-zinc-500">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Answer Options</h3>
+                <span className="text-xs text-text-muted">
                   {q.type === "single_choice" ? "Single answer" : q.type === "multiple_choice" ? "Multiple answers" : "True / False"}
                 </span>
               </div>
@@ -283,8 +363,8 @@ export function QuestionEditor() {
                       setDraggedOpt(null);
                     }}
                     className={cn(
-                      "group flex items-center gap-3 rounded-xl border px-3 py-3",
-                      o.isCorrect ? "border-emerald-200 bg-emerald-50/60" : "border-zinc-200 bg-white hover:border-zinc-300"
+                      "flex items-center gap-3 rounded-xl border px-3 py-3",
+                      o.isCorrect ? "border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-border bg-card hover:border-border"
                     )}
                   >
                     <button
@@ -295,29 +375,29 @@ export function QuestionEditor() {
                       }}
                       className={cn(
                         "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2",
-                        o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-zinc-300 bg-white"
+                        o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card"
                       )}
                     >
                       {o.isCorrect && <Check className="h-3.5 w-3.5" />}
                     </button>
-                    <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-zinc-200 bg-zinc-50 text-zinc-700")}>
+                    <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card-hover text-text-primary")}>
                       {o.label}
                     </span>
                     <input
                       value={o.content}
-                      onChange={(e) => update({ options: q.options.map((x) => (x.id === o.id ? { ...x, content: e.target.value } : x)) })}
+                      onChange={(e) => { if (e.target.value.length <= 250) update({ options: q.options.map((x) => (x.id === o.id ? { ...x, content: e.target.value } : x)) }); }}
                       placeholder={`Option ${o.label}`}
-                      className="flex-1 bg-transparent text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
+                      maxLength={250}
+                      className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
                     />
-                    {o.isCorrect && <span className="hidden text-xs font-medium text-emerald-700 sm:inline">Correct</span>}
-                    <div className="hidden items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 sm:flex">
-                      <button onClick={() => openImageAssistant(o.id)} className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100">
+                    <div className="flex shrink-0 items-center gap-0.5 sm:flex">
+                      <button onClick={() => openImageAssistant(o.id)} className="rounded p-1.5 text-text-muted hover:bg-card-hover">
                         <ImageIcon className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => removeOption(o.id)} className="rounded p-1.5 text-zinc-500 hover:bg-red-50 hover:text-red-600">
+                      <button onClick={() => removeOption(o.id)} className="rounded p-1.5 text-text-muted hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
-                      <span className="cursor-grab p-1.5 text-zinc-400">
+                      <span className="cursor-grab p-1.5 text-text-muted">
                         <GripVertical className="h-3.5 w-3.5" />
                       </span>
                     </div>
@@ -325,47 +405,40 @@ export function QuestionEditor() {
                   </div>
                 ))}
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-3">
                 <button
                   onClick={addOption}
                   disabled={q.options.length >= 6}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-300 bg-pink-50/50 py-2.5 text-xs font-medium text-[#E91E63] hover:bg-pink-50 disabled:opacity-40"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-300 dark:border-pink-400/30 bg-pink-50/50 dark:bg-pink-500/10 py-2.5 text-xs font-medium text-[#E91E63] hover:bg-pink-50 dark:hover:bg-pink-500/15 disabled:opacity-40"
                 >
                   + Add option
-                </button>
-                <button
-                  onClick={() => setAiOpen(true)}
-                  disabled={q.options.length >= 6}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-200 bg-white py-2.5 text-xs font-medium text-[#E91E63] hover:bg-pink-50 disabled:opacity-40"
-                >
-                  <Sparkles className="h-3.5 w-3.5" /> Add option with AI
                 </button>
               </div>
             </div>
           ) : (
             <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Correct Answer</label>
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-text-muted">Correct Answer</label>
               <input
                 value={String(q.correctAnswer ?? "")}
                 onChange={(e) => update({ correctAnswer: e.target.value as any })}
                 placeholder="Enter the correct answer"
-                className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm focus:border-zinc-300 focus:outline-none"
+                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:border-border focus:outline-none"
               />
             </div>
           )}
 
-          <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
-            <button onClick={() => setShowAfter(!showAfter)} className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-zinc-50">
-              <span className="text-xs font-medium text-zinc-700">After Answer <span className="text-zinc-500">(Explanation, Hint, Solution)</span></span>
-              {showAfter ? <ChevronUp className="h-4 w-4 text-zinc-500" /> : <ChevronDown className="h-4 w-4 text-zinc-500" />}
+          <div className="overflow-hidden rounded-2xl border border-border bg-card">
+            <button onClick={() => setShowAfter(!showAfter)} className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-card-hover">
+              <span className="text-xs font-medium text-text-primary">After Answer <span className="text-text-muted">(Explanation, Hint, Solution)</span></span>
+              {showAfter ? <ChevronUp className="h-4 w-4 text-text-muted" /> : <ChevronDown className="h-4 w-4 text-text-muted" />}
             </button>
             <AnimatePresence initial={false}>
               {showAfter && (
                 <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
-                  <div className="border-t border-zinc-200">
-                    <div className="flex gap-1 border-b border-zinc-100 p-2">
+                  <div className="border-t border-border">
+                    <div className="flex gap-1 border-b border-border p-2">
                       {(["explanation", "hint", "solution"] as const).map((t) => (
-                        <button key={t} onClick={() => setAfterTab(t)} className={cn("rounded-lg px-3 py-1.5 text-xs font-medium capitalize", afterTab === t ? "bg-zinc-900 text-white" : "text-zinc-600 hover:bg-zinc-100")}>
+                        <button key={t} onClick={() => setAfterTab(t)} className={cn("rounded-lg px-3 py-1.5 text-xs font-medium capitalize", afterTab === t ? "bg-pink-500 font-bold text-background" : "text-text-secondary hover:bg-card-hover")}>
                           {t}
                         </button>
                       ))}
@@ -377,7 +450,7 @@ export function QuestionEditor() {
                           onChange={(e) => update({ explanation: e.target.value })}
                           placeholder="Explain why the correct answer is right."
                           rows={3}
-                          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-300"
+                          className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:border-border"
                         />
                       )}
                       {afterTab === "hint" && (
@@ -386,7 +459,7 @@ export function QuestionEditor() {
                           onChange={(e) => update({ hint: e.target.value })}
                           placeholder="Optional hint"
                           rows={3}
-                          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-300"
+                          className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:border-border"
                         />
                       )}
                       {afterTab === "solution" && (
@@ -395,7 +468,7 @@ export function QuestionEditor() {
                           onChange={(e) => update({ solution: e.target.value })}
                           placeholder="Step-by-step solution"
                           rows={3}
-                          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm focus:outline-none focus:border-zinc-300"
+                          className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:border-border"
                         />
                       )}
                     </div>
@@ -404,17 +477,6 @@ export function QuestionEditor() {
               )}
             </AnimatePresence>
           </div>
-
-          <button
-            onClick={() => setAiOpen(!aiOpen)}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold",
-              aiOpen ? "border-violet-300 bg-violet-50 text-violet-700" : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
-            )}
-          >
-            <Sparkles className="h-3.5 w-3.5" /> AI Assistant
-          </button>
-          {aiOpen && <AiAssistantPanel question={q} onApplySuggestion={(s) => update({ [s.field]: s.text } as any)} />}
         </div>
       </div>
     </div>

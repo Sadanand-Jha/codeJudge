@@ -21,27 +21,27 @@ export function RichToolbar({ onCommand }: { onCommand?: () => void }) {
         onClick?.();
       }}
       title={title}
-      className="flex h-7 w-7 items-center justify-center rounded text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+      className="flex h-7 w-7 items-center justify-center rounded text-text-secondary hover:bg-card-hover hover:text-text-primary"
     >
       <Icon className="h-3.5 w-3.5" />
     </button>
   );
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b border-zinc-200 bg-white px-2 py-1.5">
+    <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-card px-2 py-1.5">
       <Btn icon={Bold} title="Bold" onClick={() => exec("bold")} />
       <Btn icon={Italic} title="Italic" onClick={() => exec("italic")} />
       <Btn icon={Underline} title="Underline" onClick={() => exec("underline")} />
       <Btn icon={Strikethrough} title="Strikethrough" onClick={() => exec("strikeThrough")} />
-      <span className="mx-1 h-4 w-px bg-zinc-200" />
+      <span className="mx-1 h-4 w-px bg-border" />
       <Btn icon={Code2} title="Code" onClick={() => exec("insertHTML", "<code>" + window.getSelection()?.toString() + "</code>")} />
-      <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("subscript"); }} title="Subscript" className="px-1 text-xs text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded">x₂</button>
-      <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("superscript"); }} title="Superscript" className="px-1 text-xs text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 rounded">x²</button>
-      <span className="mx-1 h-4 w-px bg-zinc-200" />
+      <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("subscript"); }} title="Subscript" className="px-1 text-xs text-text-secondary hover:bg-card-hover hover:text-text-primary rounded">x₂</button>
+      <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("superscript"); }} title="Superscript" className="px-1 text-xs text-text-secondary hover:bg-card-hover hover:text-text-primary rounded">x²</button>
+      <span className="mx-1 h-4 w-px bg-border" />
       <Btn icon={Link2} title="Link" onClick={() => { const url = window.prompt("Enter URL"); if (url) exec("createLink", url); }} />
       <Btn icon={ImageIcon} title="Image" onClick={insertImage} />
       <Btn icon={Sigma} title="Math" onClick={() => exec("insertHTML", "<span class='math'>Σ</span>")} />
       <Btn icon={Table} title="Table" onClick={() => exec("insertHTML", "<table class='border-collapse border border-zinc-300'><tr><td class='border border-zinc-300 px-3 py-1'></td><td class='border border-zinc-300 px-3 py-1'></td></tr><tr><td class='border border-zinc-300 px-3 py-1'></td><td class='border border-zinc-300 px-3 py-1'></td></tr></table>")} />
-      <span className="mx-1 h-4 w-px bg-zinc-200" />
+      <span className="mx-1 h-4 w-px bg-border" />
       <Btn icon={Undo2} title="Undo" onClick={() => exec("undo")} />
       <Btn icon={Redo2} title="Redo" onClick={() => exec("redo")} />
     </div>
@@ -87,7 +87,7 @@ export function EditableContent({
     <div
       ref={setRef}
       className={cn(
-        "w-full resize-none border-0 bg-transparent px-4 py-3 text-[15px] leading-relaxed text-zinc-900 placeholder:text-zinc-400 outline-none",
+        "w-full resize-none border-0 bg-transparent px-4 py-3 text-[15px] leading-relaxed text-text-primary placeholder:text-text-muted outline-none",
         minHeight
       )}
       data-placeholder={placeholder}

@@ -129,6 +129,7 @@ function mapBackendProblem(
     images: [],
     createdAt: p.created_at ?? new Date().toISOString(),
     updatedAt: p.updated_at ?? new Date().toISOString(),
+    serverId: p.id,
   };
 }
 
@@ -205,6 +206,7 @@ interface StudioContextValue {
   saveToServer: (opts?: { publish?: boolean }) => Promise<{ quizId: string; code: string }>;
   savingToServer: boolean;
   loading: boolean;
+  loadError: string | null;
   editMode: boolean;
   summary: {
     questionCount: number;
@@ -276,6 +278,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   });
 
   const [loading, setLoading] = useState(editMode && !!initialQuizId);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!editMode || !initialQuizId) return;
@@ -298,6 +301,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         }));
       } catch (err) {
         console.error("Failed to load quiz for editing:", err);
+        if (!cancelled) {
+          setLoadError(err instanceof Error ? err.message : "Quiz not found or access denied.");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -704,10 +710,11 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       saveToServer,
       savingToServer,
       loading,
+      loadError,
       editMode,
       summary,
     }),
-    [state, stepIndex, summary, savingToServer, loading, editMode, steps]
+    [state, stepIndex, summary, savingToServer, loading, loadError, editMode, steps]
   );
 
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;

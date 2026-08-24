@@ -52,7 +52,7 @@ interface SettingField {
 
 export function SettingsStep() {
   return (
-    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="flex flex-col bg-background">
     <div className="">
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
       <div className="rounded-xl border border-border bg-card p-5">

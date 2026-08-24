@@ -21,32 +21,32 @@ import { toast } from "@/lib/toast";
 
 const CREATE_CHOICES = [
   {
-    id: "scratch",
-    label: "From Scratch",
-    icon: FileText,
-    desc: "Start with an empty canvas and build manually.",
-    meta: "Full control",
-  },
-  {
     id: "ai",
     label: "AI Generate",
     icon: Sparkles,
+    desc: "Start with an empty canvas and build manually.",
+    meta: "AI ASSISTED",
+  },
+  {
+    id: "scratch",
+    label: "From Scratch",
+    icon: FileText,
     desc: "Generate questions from a topic, PDF, or document.",
-    meta: "AI assistance",
+    meta: "FULL CONTROL",
   },
   {
     id: "import",
-    label: "Import Existing Quiz",
+    label: "Import File",
     icon: Upload,
     desc: "Bring in a quiz from a file (ZIP, CSV, Excel, PDF).",
-    meta: "Bulk import",
+    meta: "BULK IMPORT",
   },
   {
     id: "duplicate",
-    label: "Duplicate Existing Quiz",
+    label: "Duplicate",
     icon: ListChecks,
     desc: "Copy a previous quiz and keep working on it.",
-    meta: "Reuse content",
+    meta: "REUSE CONTENT",
   },
 ] as const;
 
@@ -74,7 +74,7 @@ export function SetupStep() {
   const hasBasicInfo = info.title.trim().length >= 3;
 
   return (
-    <div className="flex flex-col bg-[#F8FAFC]">
+    <div className="flex flex-col bg-background">
     <div className="">
     <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-8">
       {/* Creation method choice — only on create, not edit */}
@@ -111,9 +111,9 @@ export function SetupStep() {
 
       {/* Basic information */}
       <div className="space-y-6">
-        <div className="-mx-4 -mt-6 bg-pink-400 px-4 pt-6 pb-0.5 sm:-mx-6 sm:-mt-8 sm:px-6 sm:pt-8 lg:-mx-8 lg:px-8">
-          <h3 className="text-center text-xl font-bold uppercase tracking-wider !text-white">
-            Quiz Information
+        <div className="border-b border-pink-500/20 pb-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-pink-500">
+            Basic Information
           </h3>
         </div>
 
@@ -126,7 +126,7 @@ export function SetupStep() {
               onChange={(e) => updateInfo({ title: e.target.value.slice(0, 100) })}
               maxLength={100}
               placeholder="e.g. JEE Main 2026 Mock Test 01"
-              className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+              className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
             />
             <p className="text-[11px] text-text-muted text-right">{info.title.length}/100</p>
           </div>
@@ -148,7 +148,7 @@ export function SetupStep() {
                     navigator.clipboard.writeText(info.code);
                     toast.success({ title: "Code copied", description: info.code });
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/20 bg-pink-500/5 px-3 py-2 text-xs font-medium text-pink-600 transition-colors duration-150 hover:bg-pink-500/10 hover:text-pink-700"
                 >
                   <Copy className="h-3.5 w-3.5" /> Copy
                 </button>
@@ -232,7 +232,7 @@ export function SetupStep() {
                 max={600}
                 value={info.duration || ""}
                 onChange={(e) => updateInfo({ duration: Number(e.target.value) })}
-                className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+                className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
               />
             </div>
           </div>
@@ -249,7 +249,7 @@ export function SetupStep() {
                 value={info.passingMarks || ""}
                 placeholder={`Default: ${Math.ceil((marks || 0) * 0.4)}`}
                 onChange={(e) => updateInfo({ passingMarks: Number(e.target.value) })}
-                className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+                className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
               />
             </div>
             <p className="text-[11px] text-text-muted">
@@ -268,7 +268,7 @@ export function SetupStep() {
               rows={2}
               maxLength={250}
               placeholder="A concise summary shown in listings."
-              className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+              className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
             />
             <p className="text-[11px] text-text-muted text-right">{info.shortDescription.length}/250</p>
           </div>
@@ -282,7 +282,7 @@ export function SetupStep() {
               rows={4}
               maxLength={5000}
               placeholder="Explain what the quiz covers, target audience, pattern..."
-              className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+              className="w-full rounded-lg border border-input-border bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
             />
             <p className="text-[11px] text-text-muted text-right">{info.fullDescription.length}/5000</p>
           </div>
@@ -316,15 +316,15 @@ function ChoiceCard({
       className={cn(
         "flex flex-col items-center gap-2 rounded-xl border p-4 text-center text-sm transition-all duration-150 ease-out hover:-translate-y-0.5",
         selected
-          ? "border-indigo-500/40 bg-indigo-500/6 text-indigo-600 dark:border-pink-400/70 dark:bg-pink-500/10 dark:text-pink-300"
-          : "border-border bg-card hover:border-border-hover hover:bg-card-hover"
+          ? "border-pink-500/40 bg-pink-500/5 text-pink-600 shadow-[0_0_0_1px_rgba(236,72,153,0.15)]"
+          : "border-border bg-card hover:border-pink-500/20 hover:bg-pink-500/[0.02]"
       )}
     >
       <div
         className={cn(
           "flex h-10 w-10 items-center justify-center rounded-xl",
           selected
-            ? "bg-indigo-500/12 text-indigo-500"
+            ? "bg-pink-500/10 text-pink-500"
             : "bg-card-hover/40 text-text-secondary"
         )}
       >
@@ -332,9 +332,9 @@ function ChoiceCard({
       </div>
       <span className="font-semibold text-text-primary">{label}</span>
       <p className="text-[11px] text-text-secondary">{desc}</p>
-      <Badge color="accent" className="mt-0.5">
+      <span className="mt-0.5 inline-flex items-center rounded-md border border-pink-500/20 bg-pink-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-pink-600">
         {meta}
-      </Badge>
+      </span>
     </button>
   );
 }
@@ -370,7 +370,7 @@ function DifficultySelect({
         "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold capitalize transition-all",
         selected
           ? cn("border-transparent text-white", color)
-          : "border-border bg-card-hover/40 text-text-secondary hover:text-text-primary"
+          : "border-border bg-card-hover/40 text-text-secondary hover:border-pink-500/20 hover:text-text-primary"
       )}
     >
       <span className={cn("h-2 w-2 rounded-full", selected ? "bg-white" : color)} />

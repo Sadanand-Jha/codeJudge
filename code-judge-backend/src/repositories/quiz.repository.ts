@@ -259,6 +259,37 @@ export class QuizRepository {
   }
 
   /**
+   * Get a single problem by its primary key (used for update/delete/duplicate auth checks)
+   */
+  async getQuizProblemById(problemId: number | string): Promise<any | null> {
+    const query = `
+      SELECT
+        qp.id,
+        qp.quiz_id,
+        qp.problem_statement,
+        qp.problem_description,
+        qp.quiz_problem_type,
+        qpt.name AS problem_type_name,
+        qp.question_number,
+        qp.explaination,
+        qp.hint,
+        qp.difficulty,
+        qp.reference_notes,
+        qp.internal_comments,
+        qd.heading AS difficulty_name,
+        qp.created_at,
+        qp.updated_at
+      FROM quiz_problems qp
+      LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
+      LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
+      WHERE qp.id = $1
+      LIMIT 1
+    `;
+    const result = await pool.query(query, [problemId]);
+    return result.rows.length ? result.rows[0] : null;
+  }
+
+  /**
    * Count problems for a quiz
    */
   async getQuizProblemCount(quizId: string): Promise<number> {
@@ -646,9 +677,20 @@ export class QuizRepository {
   }
 
   async deleteQuizProblem(problemId: number): Promise<boolean> {
-    const query = `DELETE FROM quiz_problems WHERE id = $1`;
-    const result = await pool.query(query, [problemId]);
-    return result.rowCount ? true : false;
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("DELETE FROM quiz_problem_options WHERE problem_id = $1", [problemId]);
+      await client.query("DELETE FROM quiz_student_response WHERE problem_id = $1", [problemId]);
+      const result = await client.query("DELETE FROM quiz_problems WHERE id = $1", [problemId]);
+      await client.query("COMMIT");
+      return (result.rowCount ?? 0) > 0;
+    } catch (e) {
+      await client.query("ROLLBACK");
+      throw e;
+    } finally {
+      client.release();
+    }
   }
 
   async duplicateQuizProblem(problemId: number): Promise<any> {

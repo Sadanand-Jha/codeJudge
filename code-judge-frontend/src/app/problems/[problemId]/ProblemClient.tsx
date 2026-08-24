@@ -38,6 +38,7 @@ import { Group, Panel, Separator, usePanelRef } from "react-resizable-panels";
 import { useProblemData } from "@/mocks/useProblemData";
 import { TabSkeleton, SubmissionRowSkeleton, DiscussionCardSkeleton } from "@/components/problem/ProblemSkeleton";
 import { useAuthStore } from "@/store/authStore";
+import { useUIStore } from "@/store/uiStore";
 import CodeAssistantPanel from "@/components/editor/CodeAssistantPanel";
 import { useAIEditorStore } from "@/store/aiEditorStore";
 import { useTheme } from "@/context/ThemeContext";
@@ -85,6 +86,16 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
 
   const { data, loading } = useProblemData(problem.problem_id);
   const currentUser = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const openAuthModal = useUIStore((s) => s.openAuthModal);
+
+  const requireAuth = useCallback((action: string, callback: () => void) => {
+    if (isAuthenticated) {
+      callback();
+    } else {
+      openAuthModal(window.location.pathname + window.location.search);
+    }
+  }, [isAuthenticated, openAuthModal]);
 
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<any>(null);
@@ -216,11 +227,17 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
 
             {/* Right: Run Code + Submit */}
             <div className="flex shrink-0 items-center gap-2.5">
-              <button className="problem-solve-btn flex h-9 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-[13px] font-semibold text-text-primary transition-all hover:border-border-hover hover:bg-card-hover focus-visible:ring-2 focus-visible:ring-accent/40">
+              <button
+                onClick={() => requireAuth("run-code", () => {})}
+                className="problem-solve-btn flex h-9 items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 text-[13px] font-semibold text-text-primary transition-all hover:border-border-hover hover:bg-card-hover focus-visible:ring-2 focus-visible:ring-accent/40"
+              >
                 <Play className="h-3.5 w-3.5" />
                 Run Code
               </button>
-              <button className="problem-solve-submit-btn flex h-9 items-center justify-center gap-2 rounded-xl border border-success/30 bg-success/10 px-5 text-[13px] font-bold text-white transition-all focus-visible:ring-2 focus-visible:ring-success/40">
+              <button
+                onClick={() => requireAuth("submit-code", () => {})}
+                className="problem-solve-submit-btn flex h-9 items-center justify-center gap-2 rounded-xl border border-success/30 bg-success/10 px-5 text-[13px] font-bold text-white transition-all focus-visible:ring-2 focus-visible:ring-success/40"
+              >
                 Submit
               </button>
             </div>
@@ -343,7 +360,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
         </div>
         <div className="flex shrink-0 items-center pl-2">
           <button
-            onClick={() => {
+            onClick={() => requireAuth("ai-chat", () => {
               useAIEditorStore.getState().requestAsk({
                 context: {
                   type: "current_file",
@@ -352,7 +369,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                   content: editorRef.current?.getModel?.()?.getValue?.() ?? "",
                 },
               });
-            }}
+            })}
             className="problem-ask-ai-btn flex h-7 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 px-3 text-[11px] font-bold text-white transition-all active:scale-[0.98]"
           >
             <Sparkles className="h-3 w-3 shrink-0" />
@@ -826,7 +843,10 @@ function ExamplesPanel({ samples }: { samples: SampleTest[] }) {
           </div>
         )}
         <div className="flex gap-2">
-          <button className="flex-1 px-3 py-1.5 rounded-md border border-[#7C3AED] bg-[#7C3AED]/10 text-[#7C3AED] text-xs font-medium hover:bg-[#7C3AED]/20 transition-all flex items-center justify-center gap-1.5">
+          <button
+            onClick={() => { const isAuth = useAuthStore.getState().isAuthenticated; if (!isAuth) { useUIStore.getState().openAuthModal(window.location.pathname); return; } }}
+            className="flex-1 px-3 py-1.5 rounded-md border border-[#7C3AED] bg-[#7C3AED]/10 text-[#7C3AED] text-xs font-medium hover:bg-[#7C3AED]/20 transition-all flex items-center justify-center gap-1.5"
+          >
             <Check className="w-3 h-3" />
             Run Sample
           </button>

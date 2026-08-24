@@ -41,6 +41,10 @@ export class QuizService {
     return this.repository.getQuizProblemCount(quizId);
   }
 
+  async getQuizProblemById(problemId: number | string): Promise<any | null> {
+    return this.repository.getQuizProblemById(problemId);
+  }
+
   async getQuizProblemOptions(problemId: string): Promise<any[]> {
     return this.repository.getQuizProblemOptions(problemId);
   }

@@ -171,7 +171,7 @@ export const quizProblemOptionSchema = z.object({
     .string()
     .trim()
     .min(1, "Option statement is required")
-    .max(1000, "Option statement must be at most 1000 characters"),
+    .max(250, "Option statement must be at most 250 characters"),
   optionDescription: z.string().trim().max(2000).optional(),
   isCorrect: z.boolean(),
 });
