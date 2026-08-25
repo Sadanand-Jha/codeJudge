@@ -102,7 +102,7 @@ export function AiAssistantPanel({
     <div data-sidebar="true" className="flex shrink-0 flex-col border-l border-border bg-card/50">
       <div className="flex items-center justify-between border-b border-border p-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-indigo-500" />
+          <Sparkles className="h-4 w-4 text-pink-500" />
           <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">
             AI Assistant
           </span>
@@ -127,10 +127,10 @@ export function AiAssistantPanel({
               type="button"
               onClick={() => run(a.id)}
               disabled={!!working}
-              className="w-full text-left rounded-xl border border-border p-2.5 text-left transition-colors hover:border-indigo-500/30 hover:bg-card-hover"
+              className="w-full text-left rounded-xl border border-border p-2.5 text-left transition-colors hover:border-pink-500/30 hover:bg-card-hover"
             >
               <div className="flex items-start gap-2">
-                <a.icon className="mt-0.5 h-4 w-4 text-indigo-500" />
+                <a.icon className="mt-0.5 h-4 w-4 text-pink-500" />
                 <div>
                   <p className="text-xs font-semibold text-text-primary">{a.label}</p>
                   <p className="text-[10px] text-text-secondary">{a.desc}</p>
@@ -141,14 +141,14 @@ export function AiAssistantPanel({
 
           {working && (
             <div className="flex items-center gap-2 rounded-xl border border-border p-3 text-xs text-text-secondary">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-pink-500" />
               Generating…
             </div>
           )}
 
           {suggestion && (
-            <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-3">
-              <p className="text-[10px] font-bold uppercase text-indigo-500">
+            <div className="rounded-xl border border-pink-500/30 bg-pink-500/5 p-3">
+              <p className="text-[10px] font-bold uppercase text-pink-500">
                 Suggested {suggestion.field}
               </p>
               <p className="mt-1 text-xs text-text-primary line-clamp-4">

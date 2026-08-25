@@ -246,8 +246,8 @@ export function AiGenerateModal({
           >
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
-                  <Sparkles className="h-4 w-4 text-violet-500" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/10">
+                  <Sparkles className="h-4 w-4 text-pink-500" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-text-primary">Generate with AI</h3>
@@ -278,7 +278,7 @@ export function AiGenerateModal({
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="mt-4 rounded-lg bg-violet-500 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-violet-600"
+                    className="mt-4 rounded-lg bg-pink-500 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-pink-600"
                   >
                     Done
                   </button>
@@ -286,7 +286,7 @@ export function AiGenerateModal({
               ) : generating ? (
                 <div className="space-y-4 py-4">
                   <div className="text-center">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-violet-500" />
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-pink-500" />
                     <p className="mt-3 text-sm font-semibold text-text-primary">
                       Analyzing your files...
                     </p>
@@ -296,7 +296,7 @@ export function AiGenerateModal({
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-border">
                     <motion.div
-                      className="h-full rounded-full bg-violet-500"
+                      className="h-full rounded-full bg-pink-500"
                       initial={{ width: 0 }}
                       animate={{ width: `${progress}%` }}
                       transition={{ duration: 0.4 }}
@@ -313,7 +313,7 @@ export function AiGenerateModal({
                       "cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors",
                       files.length > 0
                         ? "border-emerald-500/30 bg-emerald-500/[0.03]"
-                        : "border-border hover:border-violet-500/30 hover:bg-violet-500/[0.03]"
+                        : "border-border hover:border-pink-500/30 hover:bg-pink-500/[0.03]"
                     )}
                   >
                     <input
@@ -357,7 +357,7 @@ export function AiGenerateModal({
                             e.stopPropagation();
                             inputRef.current?.click();
                           }}
-                          className="mt-1 text-[11px] font-medium text-violet-500 hover:text-violet-600"
+                          className="mt-1 text-[11px] font-medium text-pink-500 hover:text-pink-600"
                         >
                           + Add more files
                         </button>
@@ -392,7 +392,7 @@ export function AiGenerateModal({
                     className={cn(
                       "mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all",
                       files.length > 0 && !error
-                        ? "bg-gradient-to-r from-violet-500 to-indigo-600 text-white shadow-lg shadow-violet-500/20 hover:brightness-110"
+                        ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-500/20 hover:brightness-110"
                         : "cursor-not-allowed bg-card-hover text-text-muted"
                     )}
                   >

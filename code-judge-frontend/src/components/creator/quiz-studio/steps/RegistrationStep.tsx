@@ -28,7 +28,7 @@ const uid = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
 const inputCls =
-  "w-full rounded-md border border-input-border bg-input-bg px-2.5 py-1.5 text-xs text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60";
+  "w-full rounded-md border border-input-border bg-input-bg px-2.5 py-1.5 text-xs text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60";
 
 export function RegistrationStep() {
   const { state, setState } = useStudio();
@@ -128,7 +128,7 @@ export function RegistrationStep() {
                 type="checkbox"
                 checked={reg.settings.collectAdditionalInfo}
                 onChange={(e) => updateSettings({ collectAdditionalInfo: e.target.checked })}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded accent-indigo-500"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded accent-pink-500"
               />
               <span>
                 <span className="block text-sm font-medium text-text-primary">
@@ -193,7 +193,7 @@ export function RegistrationStep() {
                   type="button"
                   onClick={() => setPickerOpen(!pickerOpen)}
                   aria-expanded={pickerOpen}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-900 transition-colors duration-150 hover:bg-indigo-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 px-3 py-1.5 text-xs font-semibold text-pink-900 transition-colors duration-150 hover:bg-pink-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add Registration Field
                   <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", pickerOpen && "rotate-180")} />
@@ -275,7 +275,7 @@ export function RegistrationStep() {
                         className={cn(
                           "rounded-lg border transition-colors duration-150",
                           expanded
-                            ? "border-indigo-500/40 bg-indigo-500/[0.04] dark:border-pink-400/50 dark:bg-pink-500/[0.07]"
+                            ? "border-pink-500/40 bg-pink-500/[0.04] dark:border-pink-400/50 dark:bg-pink-500/[0.07]"
                             : "border-border bg-background hover:border-border-hover"
                         )}
                       >
@@ -407,7 +407,7 @@ export function RegistrationStep() {
                                         options: [...(field.options ?? []), `Option ${(field.options?.length ?? 0) + 1}`],
                                       })
                                     }
-                                    className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-1 text-[10px] font-medium text-text-secondary transition-colors duration-150 hover:border-indigo-500/40 hover:text-text-primary"
+                                    className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-1 text-[10px] font-medium text-text-secondary transition-colors duration-150 hover:border-pink-500/40 hover:text-text-primary"
                                   >
                                     <Plus className="h-3 w-3" /> Add option
                                   </button>
@@ -601,7 +601,7 @@ export function RegistrationStep() {
               </div>
 
               <div className="mt-5 flex justify-end border-t border-border pt-4">
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-900 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 px-4 py-2 text-xs font-semibold text-pink-900 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200">
                   Continue →
                 </span>
               </div>

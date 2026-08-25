@@ -116,7 +116,7 @@ export function PublishStep({
               type="button"
               onClick={() => setConfirmOpen(true)}
               disabled={saving}
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 px-4 py-2 text-sm font-semibold transition-colors duration-150 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25 disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 text-pink-900 hover:bg-pink-100 px-4 py-2 text-sm font-semibold transition-colors duration-150 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25 disabled:opacity-60"
             >
               {saving ? (
                 <>
@@ -201,7 +201,7 @@ export function PublishStep({
                 type="button"
                 onClick={handlePublish}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-900 transition-colors duration-150 hover:bg-indigo-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 px-4 py-2 text-sm font-semibold text-pink-900 transition-colors duration-150 hover:bg-pink-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25 disabled:opacity-60"
               >
                 {saving ? (
                   <>
@@ -270,7 +270,7 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
           <button
             type="button"
             onClick={() => window.open(link, "_blank")}
-            className="rounded-lg border border-indigo-500/40 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 px-4 py-2 text-sm font-semibold transition-colors duration-150 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
+            className="rounded-lg border border-pink-500/40 bg-pink-50 text-pink-900 hover:bg-pink-100 px-4 py-2 text-sm font-semibold transition-colors duration-150 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
           >
             Open Quiz
           </button>

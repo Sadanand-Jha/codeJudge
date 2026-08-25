@@ -54,12 +54,12 @@ export function PricingStep() {
           className={cn(
             "flex flex-col gap-1 rounded-xl border p-5 text-left opacity-60",
             p.mode === "paid"
-              ? "border-indigo-500/40 bg-indigo-500/5 dark:border-pink-400/70 dark:bg-pink-500/10"
+              ? "border-pink-500/40 bg-pink-500/5 dark:border-pink-400/70 dark:bg-pink-500/10"
               : "border-border"
           )}
         >
           <div className="flex items-center justify-between">
-            <span className="text-base font-semibold text-indigo-600 dark:text-indigo-400">PAID</span>
+            <span className="text-base font-semibold text-pink-600 dark:text-pink-400">PAID</span>
             <span className="rounded-full border border-border bg-card-hover px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-text-muted">
               Coming soon
             </span>

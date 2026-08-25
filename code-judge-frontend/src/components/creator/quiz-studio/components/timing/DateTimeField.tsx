@@ -34,7 +34,7 @@ export function DateTimeField({
             "flex-1 rounded-lg border bg-input-bg px-3 py-2 text-sm text-text-primary outline-none transition-colors",
             error
               ? "border-rose-500/50"
-              : "border-input-border focus:border-indigo-500/60",
+              : "border-input-border focus:border-pink-500/60",
             disabled && "opacity-50 cursor-not-allowed"
           )}
         />
@@ -47,7 +47,7 @@ export function DateTimeField({
             "w-28 rounded-lg border bg-input-bg px-3 py-2 text-sm text-text-primary outline-none transition-colors",
             error
               ? "border-rose-500/50"
-              : "border-input-border focus:border-indigo-500/60",
+              : "border-input-border focus:border-pink-500/60",
             disabled && "opacity-50 cursor-not-allowed"
           )}
         />

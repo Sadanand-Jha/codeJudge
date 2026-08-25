@@ -42,7 +42,7 @@ export function DurationPicker({
             className={cn(
               "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
               value === min && !showCustom
-                ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                ? "border-pink-500/40 bg-pink-500/10 text-pink-600 dark:text-pink-400"
                 : "border-border bg-card text-text-secondary hover:bg-card-hover"
             )}
           >
@@ -55,7 +55,7 @@ export function DurationPicker({
           className={cn(
             "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
             showCustom
-              ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+              ? "border-pink-500/40 bg-pink-500/10 text-pink-600 dark:text-pink-400"
               : "border-border bg-card text-text-secondary hover:bg-card-hover"
           )}
         >
@@ -74,7 +74,7 @@ export function DurationPicker({
               const n = parseInt(e.target.value, 10);
               if (n > 0 && n <= max) onChange(n);
             }}
-            className="h-9 w-24 rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary outline-none focus:border-indigo-500/60"
+            className="h-9 w-24 rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary outline-none focus:border-pink-500/60"
           />
           <span className="text-xs text-text-secondary">minutes</span>
         </div>

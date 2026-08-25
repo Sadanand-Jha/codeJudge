@@ -16,9 +16,9 @@ export function PrimaryButton({
       type="button"
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-900 transition-colors duration-150",
-        "hover:bg-indigo-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
+        "inline-flex items-center justify-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 px-4 py-2 text-sm font-semibold text-pink-900 transition-colors duration-150",
+        "hover:bg-pink-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/40",
         "disabled:cursor-not-allowed disabled:opacity-50"
       )}
     >
@@ -40,7 +40,7 @@ export function SecondaryButton({
       className={cn(
         "inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-colors duration-150",
         "hover:bg-card-hover",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/30",
         "disabled:cursor-not-allowed disabled:opacity-50"
       )}
     >
@@ -65,7 +65,7 @@ export function GhostButton({
         subtle
           ? "text-text-secondary hover:bg-card-hover hover:text-text-primary"
           : "border border-border text-text-secondary hover:bg-card-hover hover:text-text-primary",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/30"
       )}
     >
       {Icon ? <Icon className="h-4 w-4" /> : null}
@@ -113,7 +113,7 @@ export function StepButton({
       onClick={onClick}
       className={cn(
         "relative flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors duration-150",
-        active && "border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+        active && "border-pink-500/40 bg-pink-500/10 text-pink-600 dark:text-pink-400",
         done && !active && "border-emerald-500/30 bg-emerald-500/[0.08] text-emerald-600 dark:text-emerald-400",
         !active && !done && "border-border text-text-secondary hover:text-text-primary"
       )}
@@ -122,7 +122,7 @@ export function StepButton({
         className={cn(
           "flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-semibold",
           active
-            ? "bg-indigo-300 text-white"
+            ? "bg-pink-300 text-white"
             : done
             ? "bg-emerald-500 text-white"
             : "bg-card-hover text-text-secondary"
@@ -137,7 +137,7 @@ export function StepButton({
 
 const fieldCls = cn(
   "w-full rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary placeholder-text-muted outline-none transition-colors duration-150",
-  "focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/10"
+  "focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
 );
 
 export function Input({
@@ -200,7 +200,7 @@ export function SwitchField({
         className={cn(
           "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors duration-150",
           checked
-            ? "border-indigo-400 bg-indigo-300 dark:border-indigo-300 dark:bg-indigo-300"
+            ? "border-pink-400 bg-pink-300 dark:border-pink-300 dark:bg-pink-300"
             : "border-border bg-border"
         )}
         aria-checked={checked}
@@ -265,7 +265,7 @@ export function Badge({
     success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
     rose: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-    accent: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+    accent: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
   };
   return (
     <span

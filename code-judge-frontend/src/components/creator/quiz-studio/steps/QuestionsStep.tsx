@@ -146,7 +146,7 @@ export function QuestionsStep() {
                   onClick={() => setAiOpen(true)}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-text-primary hover:bg-card-hover"
                 >
-                  <Sparkles className="h-4 w-4 text-violet-600" /> Generate with AI
+                  <Sparkles className="h-4 w-4 text-pink-600" /> Generate with AI
                 </button>
               </div>
             </div>

@@ -31,7 +31,7 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center gap-2 mb-4">
-        <User className="h-4 w-4 text-indigo-500" />
+        <User className="h-4 w-4 text-pink-500" />
         <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
           What participants will experience
         </h4>

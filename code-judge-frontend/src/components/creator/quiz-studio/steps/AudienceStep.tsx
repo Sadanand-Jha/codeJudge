@@ -10,6 +10,8 @@ import {
   Plus,
   Search,
   X,
+  BookOpen,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
@@ -96,6 +98,37 @@ export function AudienceStep() {
         </p>
       </div>
 
+      {/* Access modes tip */}
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="h-4 w-4 text-pink-500" />
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+            How audience &amp; access works
+          </h4>
+        </div>
+        <p className="text-xs text-text-secondary leading-relaxed mb-4">
+          Choose who can discover, register, and attempt your quiz. Each mode
+          offers a different level of visibility and restriction.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <AccessTip
+            icon={<Users className="h-3.5 w-3.5" />}
+            label="Public"
+            description="Anyone on the platform can find and attempt the quiz. Best for open contests, practice sets, and widespread assessments."
+          />
+          <AccessTip
+            icon={<Shield className="h-3.5 w-3.5" />}
+            label="Private"
+            description="Only people with the link or access code can attempt. Ideal for invite-only tests, interviews, and internal evaluations."
+          />
+          <AccessTip
+            icon={<BookOpen className="h-3.5 w-3.5" />}
+            label="Rooms"
+            description="Restricted to students in your selected rooms. Perfect for classroom quizzes, section-wise exams, and batch assessments."
+          />
+        </div>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-3">
         {MODE_OPTIONS.map((m) => (
           <label
@@ -103,7 +136,7 @@ export function AudienceStep() {
             className={cn(
               "flex flex-col gap-1 rounded-xl border p-4 text-left transition-all",
               a.mode === m.id
-                ? "border-indigo-500/40 bg-indigo-500/[0.06] dark:border-pink-400/70 dark:bg-pink-500/10"
+                ? "border-pink-500/40 bg-pink-500/[0.06] dark:border-pink-400/70 dark:bg-pink-500/10"
                 : "border-border hover:border-border-hover dark:hover:border-white/25"
             )}
           >
@@ -425,7 +458,7 @@ function AllStudentsPanel({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, username, roll number, or email…"
-          className="h-9 w-full rounded-lg border border-input-border bg-input-bg pl-8 pr-3 text-xs text-text-primary placeholder-text-muted outline-none focus:border-indigo-500/60"
+          className="h-9 w-full rounded-lg border border-input-border bg-input-bg pl-8 pr-3 text-xs text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60"
         />
         {query && (
           <button
@@ -480,7 +513,7 @@ function AllStudentsPanel({
                     }
                     updateAudience({ roomStudentSelections: next });
                   }}
-                  className="h-3.5 w-3.5 rounded accent-indigo-500"
+                  className="h-3.5 w-3.5 rounded accent-pink-500"
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium text-text-primary">
@@ -494,7 +527,7 @@ function AllStudentsPanel({
                   {student.roomNames.map((rn) => (
                     <span
                       key={rn}
-                      className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-medium text-indigo-600 dark:text-indigo-400"
+                      className="rounded bg-pink-500/10 px-1.5 py-0.5 text-[9px] font-medium text-pink-600 dark:text-pink-400"
                     >
                       {rn}
                     </span>
@@ -515,6 +548,28 @@ function AllStudentsPanel({
           })}
         </ul>
       )}
+    </div>
+  );
+}
+
+function AccessTip({
+  icon,
+  label,
+  description,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card-hover p-3">
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-pink-500">{icon}</span>
+        <p className="text-xs font-semibold text-text-primary">{label}</p>
+      </div>
+      <p className="text-[11px] text-text-secondary leading-relaxed">
+        {description}
+      </p>
     </div>
   );
 }

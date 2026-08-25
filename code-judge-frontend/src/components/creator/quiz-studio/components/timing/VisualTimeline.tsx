@@ -84,7 +84,7 @@ export function VisualTimeline({ state }: { state: TimingState }) {
               className={cn(
                 "flex h-7 w-7 items-center justify-center rounded-full border-2 text-[10px] font-bold transition-colors",
                 step.active
-                  ? "border-indigo-500 bg-indigo-500 text-white"
+                  ? "border-pink-500 bg-pink-500 text-white"
                   : step.done
                     ? "border-emerald-500 bg-emerald-500 text-white"
                     : "border-border bg-card text-text-muted"
@@ -100,7 +100,7 @@ export function VisualTimeline({ state }: { state: TimingState }) {
               className={cn(
                 "mt-1.5 text-[10px] font-semibold",
                 step.active
-                  ? "text-indigo-500"
+                  ? "text-pink-500"
                   : step.done
                     ? "text-emerald-500"
                     : "text-text-muted"

@@ -130,7 +130,7 @@ export function ManualMode({
             className={cn(
               "flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-card-hover cursor-pointer",
               manual.endBehavior === "manual"
-                ? "border-indigo-500/40"
+                ? "border-pink-500/40"
                 : "border-border"
             )}
           >
@@ -139,7 +139,7 @@ export function ManualMode({
               name="endBehavior"
               checked={manual.endBehavior === "manual"}
               onChange={() => onManualChange({ endBehavior: "manual" })}
-              className="accent-indigo-500"
+              className="accent-pink-500"
             />
             <div>
               <p className="text-sm font-medium text-text-primary">
@@ -155,7 +155,7 @@ export function ManualMode({
             className={cn(
               "flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-card-hover cursor-pointer",
               manual.endBehavior === "auto_duration"
-                ? "border-indigo-500/40"
+                ? "border-pink-500/40"
                 : "border-border"
             )}
           >
@@ -166,7 +166,7 @@ export function ManualMode({
               onChange={() =>
                 onManualChange({ endBehavior: "auto_duration" })
               }
-              className="accent-indigo-500"
+              className="accent-pink-500"
             />
             <div>
               <p className="text-sm font-medium text-text-primary">

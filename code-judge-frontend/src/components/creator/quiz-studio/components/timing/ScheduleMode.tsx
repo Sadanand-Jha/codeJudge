@@ -63,9 +63,9 @@ export function ScheduleMode({
         {schedule.startDate &&
           schedule.startTime &&
           !isPast(schedule.startDate, schedule.startTime) && (
-            <div className="flex items-center gap-2 rounded-lg border border-indigo-500/20 bg-indigo-500/[0.04] px-3 py-2">
-              <Info className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
-              <p className="text-[11px] text-indigo-600 dark:text-indigo-400">
+            <div className="flex items-center gap-2 rounded-lg border border-pink-500/20 bg-pink-500/[0.04] px-3 py-2">
+              <Info className="h-3.5 w-3.5 shrink-0 text-pink-500" />
+              <p className="text-[11px] text-pink-600 dark:text-pink-400">
                 Quiz will automatically become available at{" "}
                 {formatTime12(schedule.startTime)}. Participants can begin from
                 that time.
@@ -90,9 +90,9 @@ export function ScheduleMode({
         />
         {schedule.endDate ? (
           !endError && (
-            <div className="flex items-center gap-2 rounded-lg border border-indigo-500/20 bg-indigo-500/[0.04] px-3 py-2">
-              <Flag className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
-              <p className="text-[11px] text-indigo-600 dark:text-indigo-400">
+            <div className="flex items-center gap-2 rounded-lg border border-pink-500/20 bg-pink-500/[0.04] px-3 py-2">
+              <Flag className="h-3.5 w-3.5 shrink-0 text-pink-500" />
+              <p className="text-[11px] text-pink-600 dark:text-pink-400">
                 The quiz will stop accepting attempts at{" "}
                 {formatTime12(schedule.endTime)} on{" "}
                 {new Date(`${schedule.endDate}T00:00`).toLocaleDateString(

@@ -324,7 +324,7 @@ function ChoiceCard({
         className={cn(
           "flex h-10 w-10 items-center justify-center rounded-lg",
           selected
-            ? "bg-violet-50 dark:bg-pink-500/10 text-violet-600 dark:text-pink-500 border border-violet-100 dark:border-pink-500/20"
+            ? "bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-500 border border-pink-100 dark:border-pink-500/20"
             : "bg-gray-50 dark:bg-card-hover/40 text-gray-500 dark:text-text-secondary border border-gray-100 dark:border-transparent"
         )}
       >

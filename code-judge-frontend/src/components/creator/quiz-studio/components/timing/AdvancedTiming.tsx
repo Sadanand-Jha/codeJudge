@@ -70,7 +70,7 @@ export function AdvancedTiming({
                     className={cn(
                       "flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-card-hover cursor-pointer",
                       advanced.lateJoinCutoff === opt.value
-                        ? "border-indigo-500/40"
+                        ? "border-pink-500/40"
                         : "border-border"
                     )}
                   >
@@ -83,7 +83,7 @@ export function AdvancedTiming({
                           lateJoinCutoff: opt.value as LateJoinCutoff,
                         })
                       }
-                      className="accent-indigo-500"
+                      className="accent-pink-500"
                     />
                     <span className="text-sm text-text-primary">
                       {opt.label}
@@ -160,7 +160,7 @@ function SwitchRow({
           className={cn(
             "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
             checked
-              ? "border-indigo-400 bg-indigo-300"
+              ? "border-pink-400 bg-pink-300"
               : "border-border bg-border"
           )}
         >

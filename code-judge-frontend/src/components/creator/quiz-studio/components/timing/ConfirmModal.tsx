@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Play, Square, Zap, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
-type Variant = "emerald" | "indigo" | "rose";
+type Variant = "emerald" | "pink" | "rose";
 
 const VARIANTS: Record<
   Variant,
@@ -25,13 +25,13 @@ const VARIANTS: Record<
     button:
       "bg-gradient-to-r from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25 hover:brightness-110",
   },
-  indigo: {
+  pink: {
     icon: Zap,
-    tile: "from-violet-500 to-indigo-600",
-    halo: "bg-indigo-500/40",
-    topLine: "from-indigo-500 via-violet-400/80 to-transparent",
+    tile: "from-pink-500 to-pink-600",
+    halo: "bg-pink-500/40",
+    topLine: "from-pink-500 via-pink-400/80 to-transparent",
     button:
-      "bg-gradient-to-r from-violet-500 to-indigo-600 shadow-lg shadow-indigo-500/25 hover:brightness-110",
+      "bg-gradient-to-r from-pink-500 to-pink-600 shadow-lg shadow-pink-500/25 hover:brightness-110",
   },
   rose: {
     icon: Square,
@@ -51,7 +51,7 @@ export function ConfirmModal({
   description,
   details,
   confirmLabel,
-  confirmColor = "indigo",
+  confirmColor = "pink",
 }: {
   open: boolean;
   onClose: () => void;

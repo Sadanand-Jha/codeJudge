@@ -129,7 +129,7 @@ export function TimingSection() {
       {/* How quiz timing works */}
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 mb-3">
-          <Clock className="h-4 w-4 text-indigo-500" />
+          <Clock className="h-4 w-4 text-pink-500" />
           <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
             How quiz timing works
           </h4>
@@ -194,9 +194,9 @@ export function TimingSection() {
 
       {/* Dynamic explanation */}
       {mode === "schedule" && hasScheduleStart && (
-        <div className="flex items-start gap-2 rounded-lg border border-indigo-500/20 bg-indigo-500/[0.04] px-3 py-2.5">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500" />
-          <p className="text-[11px] leading-relaxed text-indigo-600 dark:text-indigo-400">
+        <div className="flex items-start gap-2 rounded-lg border border-pink-500/20 bg-pink-500/[0.04] px-3 py-2.5">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pink-500" />
+          <p className="text-[11px] leading-relaxed text-pink-600 dark:text-pink-400">
             Your quiz will automatically become available on{" "}
             <strong>
               {schedule.startDate &&
@@ -340,7 +340,7 @@ function TimingConcept({
   return (
     <div className="rounded-lg border border-border bg-card-hover p-3">
       <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-indigo-500">{icon}</span>
+        <span className="text-pink-500">{icon}</span>
         <p className="text-xs font-semibold text-text-primary">{label}</p>
       </div>
       <p className="text-[11px] text-text-secondary leading-relaxed">
@@ -372,7 +372,7 @@ function ModeCard({
       className={cn(
         "rounded-xl border p-4 text-left transition-all",
         active
-          ? "border-indigo-500/50 bg-indigo-500/[0.06] ring-1 ring-indigo-500/20"
+          ? "border-pink-500/50 bg-pink-500/[0.06] ring-1 ring-pink-500/20"
           : "border-border bg-card hover:bg-card-hover"
       )}
     >
@@ -380,7 +380,7 @@ function ModeCard({
         <div
           className={cn(
             "flex h-4 w-4 items-center justify-center rounded-full border-2",
-            active ? "border-indigo-500 bg-indigo-500" : "border-border"
+            active ? "border-pink-500 bg-pink-500" : "border-border"
           )}
         >
           {active && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
@@ -389,7 +389,7 @@ function ModeCard({
           className={cn(
             "text-sm font-semibold",
             active
-              ? "text-indigo-600 dark:text-indigo-400"
+              ? "text-pink-600 dark:text-pink-400"
               : "text-text-primary"
           )}
         >
