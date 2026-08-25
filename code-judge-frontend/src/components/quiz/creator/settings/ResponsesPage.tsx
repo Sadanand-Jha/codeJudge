@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -24,7 +25,7 @@ import {
 } from "lucide-react";
 import { SettingsCard, SettingsRow, Toggle } from "@/components/ui/settings";
 import { useToast } from "@/hooks/useToast";
-import { useQuizSettings } from "./QuizSettingsContext";
+import { QuizSettingsContext } from "./QuizSettingsContext";
 import { cn } from "@/lib/helpers";
 import { saveQuizDetails } from "@/utils/quizStorage";
 // import {
@@ -473,9 +474,14 @@ function formatPercent(p?: number | null): string {
   return `${Number(p).toFixed(1)}%`;
 }
 
-export default function ResponsesPage() {
+export default function ResponsesPage({ quizId: quizIdProp, quizName: quizNameProp }: { quizId?: string | number; quizName?: string } = {}) {
   const toast = useToast();
-  const { quizId, details, updateDetails } = useQuizSettings();
+  const ctx = React.useContext(QuizSettingsContext);
+  const quizId = quizIdProp ?? ctx?.quizId;
+  const details = quizIdProp
+    ? ({ name: quizNameProp ?? "", emailResults: false, leaderboard: false, leaderboardShowRank: false, leaderboardShowScore: false, leaderboardShowTime: false } as any)
+    : ctx?.details ?? ({} as any);
+  const updateDetails = ctx?.updateDetails ?? (() => {});
 
   const [data, setData] = useState<QuizResponsesData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -965,7 +971,8 @@ export default function ResponsesPage() {
         </div>
       </div>
 
-      {/* ===== Result & Email Settings ===== */}
+      {/* ===== Result & Email Settings (only when context available) ===== */}
+      {ctx && (
       <SettingsCard
         title="Result & Email Settings"
         description="How results, leaderboard and the admin report behave."
@@ -1033,6 +1040,7 @@ export default function ResponsesPage() {
           </div>
         </div>
       </SettingsCard>
+      )}
 
       {/* ===== Student Detail Modal ===== */}
       <AnimatePresence>

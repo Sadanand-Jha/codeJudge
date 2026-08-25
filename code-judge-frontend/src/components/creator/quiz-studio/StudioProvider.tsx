@@ -31,6 +31,7 @@ import {
   type CreatorQuestion,
   type CreatorQuestionType,
   type CreatorOption,
+  type GameMechanicsConfig,
   STEPS,
   DEFAULT_QUIZ_INFO,
   DEFAULT_SETTINGS,
@@ -38,10 +39,13 @@ import {
   DEFAULT_REGISTRATION,
   DEFAULT_PRICING,
   DEFAULT_BRANDING,
+  DEFAULT_GAME_MECHANICS_STATE,
   createEmptyQuestion,
 } from "./types";
+import { DEFAULT_GAME_MECHANICS } from "./types/gameMechanics";
 
 const STORAGE_KEY = "studio_quiz_draft";
+const GAME_MECHANICS_STORAGE_PREFIX = "studio_game_mechanics_";
 
 /** Sentinel error used when question validation blocks a save/navigation. */
 export const QUESTION_VALIDATION_FAILED = "QUESTION_VALIDATION_FAILED";
@@ -59,6 +63,7 @@ const BACKEND_TYPE_MAP: Record<number, CreatorQuestionType> = {
   6: "text",
   7: "paragraph",
   8: "code_output",
+  9: "match_following",
 };
 
 const DIFFICULTY_MAP: Record<string, CreatorQuestion["difficulty"]> = {
@@ -190,6 +195,7 @@ interface StudioContextValue {
   updateAudience: (p: Partial<StudioState["audience"]>) => void;
   updatePricing: (p: Partial<StudioState["pricing"]>) => void;
   updateBranding: (p: Partial<StudioState["branding"]>) => void;
+  updateGameMechanics: (patch: Partial<GameMechanicsConfig> | ((prev: GameMechanicsConfig) => GameMechanicsConfig)) => void;
   updateQuestion: (id: string, patch: Partial<CreatorQuestion>) => void;
   addQuestion: () => Promise<string>;
   importQuestions: (questions: CreatorQuestion[]) => void;
@@ -222,6 +228,12 @@ const StudioContext = createContext<StudioContextValue | null>(null);
 function initialState(): StudioState {
   const code = generateQuizCode();
   const first = createEmptyQuestion("q_1");
+  // Try hydrate gameMechanics from localStorage for new draft
+  let persistedGameMechanics: any = null;
+  try {
+    const raw = typeof window !== "undefined" ? localStorage.getItem(GAME_MECHANICS_STORAGE_PREFIX + code) : null;
+    if (raw) persistedGameMechanics = JSON.parse(raw);
+  } catch {}
   return {
   step: "setup",
   info: { ...DEFAULT_QUIZ_INFO, id: code, code },
@@ -236,6 +248,7 @@ function initialState(): StudioState {
   },
   pricing: { ...DEFAULT_PRICING },
   branding: { ...DEFAULT_BRANDING },
+  gameMechanics: persistedGameMechanics ? { ...JSON.parse(JSON.stringify(DEFAULT_GAME_MECHANICS)), ...persistedGameMechanics } : JSON.parse(JSON.stringify(DEFAULT_GAME_MECHANICS)),
   saveStatus: "idle",
   lastSaved: null,
   published: false,
@@ -267,6 +280,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         },
         pricing: { ...DEFAULT_PRICING },
         branding: { ...DEFAULT_BRANDING },
+        gameMechanics: JSON.parse(JSON.stringify(DEFAULT_GAME_MECHANICS)),
         saveStatus: "idle",
         lastSaved: null,
         published: false,
@@ -362,6 +376,11 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
     setState((s) => ({ ...s, pricing: { ...s.pricing, ...p } }));
   const updateBranding = (p: Partial<StudioState["branding"]>) =>
     setState((s) => ({ ...s, branding: { ...s.branding, ...p } }));
+  const updateGameMechanics = (patch: Partial<GameMechanicsConfig> | ((prev: GameMechanicsConfig) => GameMechanicsConfig)) =>
+    setState((s) => ({
+      ...s,
+      gameMechanics: typeof patch === "function" ? (patch as any)(s.gameMechanics) : ({ ...s.gameMechanics, ...patch } as GameMechanicsConfig),
+    }));
 
   const updateQuestion = (id: string, patch: Partial<CreatorQuestion>) =>
     setState((s) => ({
@@ -449,6 +468,24 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   const findIncompleteReason = (q: CreatorQuestion): string | null => {
     const titleText = q.title.replace(/<[^>]*>/g, "").trim();
     if (!titleText) return "it has no question text";
+    if (q.type === "match_following") {
+      const left = q.matchItems ?? [];
+      const right = q.matchMatches ?? [];
+      if (left.length < 2) return "needs at least 2 items in Column A";
+      if (right.length < 2) return "needs at least 2 matches in Column B";
+      const emptyLeft = left.findIndex((x) => !x.content.trim());
+      if (emptyLeft !== -1) return `Column A item ${emptyLeft + 1} is empty`;
+      const emptyRight = right.findIndex((x) => !x.content.trim());
+      if (emptyRight !== -1) return `Column B match ${String.fromCharCode(65 + emptyRight)} is empty`;
+      const mapping = q.matchMapping ?? {};
+      const unmapped = left.filter((l) => !mapping[l.id]);
+      if (unmapped.length > 0) return `${unmapped.length} item${unmapped.length > 1 ? "s" : ""} still need a correct match`;
+      // check mapping targets exist
+      for (const [k, v] of Object.entries(mapping)) {
+        if (!right.some((r) => r.id === v)) return "has a broken mapping (target missing)";
+      }
+      return null;
+    }
     if (isMcqType(q.type)) {
       const emptyIdx = q.options.findIndex((o) => !o.content.trim());
       if (emptyIdx !== -1) {
@@ -694,6 +731,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       updateAudience,
       updatePricing,
       updateBranding,
+      updateGameMechanics,
       updateQuestion,
       addQuestion,
       importQuestions,

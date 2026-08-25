@@ -4,12 +4,16 @@ import type {
   CreatorQuestionType,
   BloomLevel,
 } from "@/components/quiz/creator/types";
+import type { GameMechanicsConfig } from "./types/gameMechanics";
+import { DEFAULT_GAME_MECHANICS } from "./types/gameMechanics";
 
 export type { CreatorQuestion, CreatorOption, CreatorQuestionType, BloomLevel };
+export type { GameMechanicsConfig };
 
 export type StudioStepId =
   | "setup"
   | "questions"
+  | "gameMechanics"
   | "settings"
   | "audience"
   | "registration"
@@ -210,6 +214,7 @@ export interface StudioState {
   };
   pricing: StudioPricing;
   branding: StudioBranding;
+  gameMechanics: GameMechanicsConfig;
   saveStatus: "idle" | "saving" | "saved" | "unsaved";
   lastSaved: Date | string | null;
   published: boolean;
@@ -293,9 +298,12 @@ export const DEFAULT_BRANDING: StudioBranding = {
   completionThreshold: 60,
 };
 
+export const DEFAULT_GAME_MECHANICS_STATE = DEFAULT_GAME_MECHANICS;
+
 export const STEPS: Array<{ id: StudioStepId; label: string }> = [
   { id: "setup", label: "Setup" },
   { id: "questions", label: "Questions" },
+  { id: "gameMechanics", label: "Game Mechanics" },
   { id: "settings", label: "Settings" },
   { id: "audience", label: "Audience" },
   { id: "registration", label: "Registration" },
@@ -331,6 +339,69 @@ export const LANGUAGES = [
   { id: "kannada", label: "Kannada" },
   { id: "tamil", label: "Tamil" },
 ];
+
+export const createMatchQuestion = (id: string): CreatorQuestion => {
+  const li1 = `${id}_left_1`;
+  const li2 = `${id}_left_2`;
+  const li3 = `${id}_left_3`;
+  const li4 = `${id}_left_4`;
+  const ri1 = `${id}_right_1`;
+  const ri2 = `${id}_right_2`;
+  const ri3 = `${id}_right_3`;
+  const ri4 = `${id}_right_4`;
+  return {
+    id,
+    type: "match_following",
+    title: "Match each data structure with its primary use case.",
+    options: [
+      { id: `${id}_a`, label: "A", content: "", isCorrect: false },
+      { id: `${id}_b`, label: "B", content: "", isCorrect: false },
+    ],
+    correctAnswer: -1,
+    explanation: "",
+    hint: "",
+    marks: 1,
+    negativeMarks: 0,
+    difficulty: "Medium",
+    expectedTime: 2,
+    topic: "",
+    bloomLevel: "Understand",
+    tags: [],
+    visibility: "visible",
+    status: "draft",
+    required: true,
+    attachments: [],
+    images: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    serverId: undefined,
+    matchItems: [
+      { id: li1, content: "Stack" },
+      { id: li2, content: "Queue" },
+      { id: li3, content: "Hash Table" },
+      { id: li4, content: "Graph" },
+    ],
+    matchMatches: [
+      { id: ri1, content: "LIFO" },
+      { id: ri2, content: "FIFO" },
+      { id: ri3, content: "Key-value lookup" },
+      { id: ri4, content: "Connected relationships" },
+    ],
+    matchMapping: {
+      [li1]: ri1,
+      [li2]: ri2,
+      [li3]: ri3,
+      [li4]: ri4,
+    },
+    shuffleColumnA: true,
+    shuffleColumnB: true,
+    partialMarking: false,
+    negativeMarkingEnabled: false,
+    interactionMode: "both",
+    showCorrectAfterSubmit: true,
+    showExplanationAfterSubmit: true,
+  };
+};
 
 export const createEmptyQuestion = (id: string): CreatorQuestion => ({
   id,
@@ -375,4 +446,5 @@ export const QUESTION_TYPE_META: Array<{
   { id: "text", label: "Short Answer", description: "One-line text" },
   { id: "paragraph", label: "Long Answer", description: "Paragraph text" },
   { id: "code_output", label: "Coding", description: "Code with test cases" },
+  { id: "match_following", label: "Match the Following", description: "Connect pairs" },
 ];

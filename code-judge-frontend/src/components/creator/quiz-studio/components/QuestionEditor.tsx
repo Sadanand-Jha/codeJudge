@@ -23,6 +23,7 @@ import { cn } from "@/lib/helpers";
 import type { CreatorQuestion, CreatorOption, CreatorQuestionType } from "../types";
 import { useStudio } from "../StudioProvider";
 import { EditableContent, RichToolbar } from "./RichToolbar";
+import { MatchFollowingEditor } from "./MatchFollowingEditor";
 import { motion, AnimatePresence } from "framer-motion";
 import { getQuizDifficultyOptions } from "@/services/quiz";
 
@@ -35,6 +36,7 @@ const TYPE_ICON: Record<CreatorQuestionType, React.ComponentType<{ className?: s
   text: Type,
   paragraph: AlignLeft,
   code_output: Code2,
+  match_following: ListChecks,
 };
 
 const TYPE_SHORT: Record<CreatorQuestionType, string> = {
@@ -46,6 +48,7 @@ const TYPE_SHORT: Record<CreatorQuestionType, string> = {
   text: "Short",
   paragraph: "Long",
   code_output: "Code",
+  match_following: "Match",
 };
 
 const TYPE_DESC: Record<CreatorQuestionType, string> = {
@@ -57,6 +60,7 @@ const TYPE_DESC: Record<CreatorQuestionType, string> = {
   text: "Short Answer",
   paragraph: "Long Answer",
   code_output: "Coding",
+  match_following: "Match the Following",
 };
 
 export function QuestionEditor() {
@@ -152,6 +156,11 @@ export function QuestionEditor() {
 
   const activeIdx = state.questions.findIndex((x) => x.id === q.id);
 
+  // Premium Match the Following — full-bleed editor per spec
+  if (q.type === "match_following") {
+    return <MatchFollowingEditor />;
+  }
+
   return (
     <div className="flex flex-1 flex-col min-h-0 bg-card">
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleOptionImagePicked} />
@@ -172,13 +181,35 @@ export function QuestionEditor() {
                   {(Object.keys(TYPE_SHORT) as CreatorQuestionType[]).map((t) => {
                     const Icon = TYPE_ICON[t];
                     const active = t === q.type;
+                    const handlePick = () => {
+                      if (t === "match_following") {
+                        const base = q.id;
+                        update({
+                          type: t,
+                          matchItems: q.matchItems ?? [
+                            { id: `${base}_left_1`, content: "Stack" },
+                            { id: `${base}_left_2`, content: "Queue" },
+                            { id: `${base}_left_3`, content: "Hash Table" },
+                            { id: `${base}_left_4`, content: "Graph" },
+                          ],
+                          matchMatches: q.matchMatches ?? [
+                            { id: `${base}_right_1`, content: "LIFO" },
+                            { id: `${base}_right_2`, content: "FIFO" },
+                            { id: `${base}_right_3`, content: "Key-value lookup" },
+                            { id: `${base}_right_4`, content: "Connected relationships" },
+                          ],
+                          matchMapping: q.matchMapping ?? {},
+                          shuffleColumnA: q.shuffleColumnA ?? true,
+                          shuffleColumnB: q.shuffleColumnB ?? true,
+                          marks: q.marks ?? 1,
+                        } as any);
+                      } else update({ type: t } as any);
+                      setShowType(false);
+                    };
                     return (
                       <button
                         key={t}
-                        onClick={() => {
-                          update({ type: t } as any);
-                          setShowType(false);
-                        }}
+                        onClick={handlePick}
                         className={cn("flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-card-hover", active && "bg-pink-50 dark:bg-pink-500/10")}
                       >
                         <Icon className={cn("h-4 w-4 mt-0.5", active ? "text-[#E91E63]" : "text-text-muted")} />
@@ -438,6 +469,16 @@ export function QuestionEditor() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+
+          {/* Question-specific game mechanics are now managed at quiz level — see Game Mechanics page */}
+          <div className="rounded-xl border border-dashed border-border bg-card px-4 py-3 flex items-center justify-between">
+            <p className="text-xs text-text-muted">
+              <span className="font-medium text-text-primary">🎮 Game Mechanics</span> — lifelines & power-ups are now configured per-quiz.
+            </p>
+            <a href={state.serverQuizId ? `/creator/quizzes/${state.serverQuizId}/game-mechanics` : "#"} className="text-xs font-medium text-[#E91E63] hover:underline">
+              Open Game Mechanics →
+            </a>
           </div>
         </div>
       </div>

@@ -6,7 +6,8 @@ export type CreatorQuestionType =
   | "integer"
   | "text"
   | "paragraph"
-  | "code_output";
+  | "code_output"
+  | "match_following";
 
 export type QuestionStatus = "draft" | "complete" | "missing_answer";
 
@@ -22,6 +23,16 @@ export interface CreatorOption {
   imageUrl?: string;
   caption?: string;
 }
+
+export interface MatchItem {
+  id: string;
+  content: string;
+  imageUrl?: string;
+}
+
+export type MatchInteractionMode = "drag" | "click" | "both";
+
+import type { GameMechanicsConfig } from "@/components/creator/quiz-studio/types/gameMechanics";
 
 export interface CreatorAttachment {
   id: string;
@@ -54,6 +65,19 @@ export interface CreatorQuestion {
   createdAt: string;
   updatedAt: string;
   serverId?: number;
+  // ── Match the Following ──
+  matchItems?: MatchItem[];
+  matchMatches?: MatchItem[];
+  matchMapping?: Record<string, string>; // leftId -> rightId
+  shuffleColumnA?: boolean;
+  shuffleColumnB?: boolean;
+  partialMarking?: boolean;
+  negativeMarkingEnabled?: boolean;
+  interactionMode?: MatchInteractionMode;
+  showCorrectAfterSubmit?: boolean;
+  showExplanationAfterSubmit?: boolean;
+  // ── Game Mechanics (question-specific override) ──
+  gameMechanics?: GameMechanicsConfig;
 }
 
 export interface QuizCollaborator {
@@ -220,6 +244,7 @@ export const QUESTION_TYPE_LABELS: Record<CreatorQuestionType, string> = {
   text: "Short Answer",
   paragraph: "Long Answer",
   code_output: "Coding",
+  match_following: "Match the Following",
 };
 
 export const QUESTION_TYPE_ORDER: CreatorQuestionType[] = [
@@ -231,6 +256,7 @@ export const QUESTION_TYPE_ORDER: CreatorQuestionType[] = [
   "text",
   "paragraph",
   "code_output",
+  "match_following",
 ];
 
 export const DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard", "Expert"] as const;
@@ -287,6 +313,19 @@ export function createDefaultQuestion(id: string): CreatorQuestion {
 export function getQuestionStatus(q: CreatorQuestion): QuestionStatus {
   const hasTitle = q.title.trim().length > 0;
   if (!hasTitle) return "draft";
+
+  if (q.type === "match_following") {
+    const left = q.matchItems ?? [];
+    const right = q.matchMatches ?? [];
+    const mapping = q.matchMapping ?? {};
+    if (left.length < 2 || right.length < 2) return "missing_answer";
+    const hasEmptyLeft = left.some((x) => !x.content.trim());
+    const hasEmptyRight = right.some((x) => !x.content.trim());
+    if (hasEmptyLeft || hasEmptyRight) return "missing_answer";
+    const unmapped = left.filter((l) => !mapping[l.id]).length;
+    if (unmapped > 0) return "missing_answer";
+    return "complete";
+  }
 
   if (q.type === "single_choice" || q.type === "multiple_choice" || q.type === "true_false") {
     const hasOptions = q.options.length >= 2 && q.options.every((o) => o.content.trim() !== "");

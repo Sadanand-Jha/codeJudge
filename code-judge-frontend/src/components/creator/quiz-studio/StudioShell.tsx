@@ -101,7 +101,7 @@ export function StudioHeader() {
 
 export function StudioStepper() {
   const { state, goToStep, stepIndex, steps } = useStudio();
-  const labels = ["Setup", "Questions", "Settings", "Audience", "Registration", "Pricing", "Branding", "Review", "Publish"];
+  const labels = ["Setup", "Questions", "Game Mechanics", "Settings", "Audience", "Registration", "Pricing", "Branding", "Review", "Publish"];
   // map steps to labels if available, fallback to labels
   const display = steps.map((s, i) => ({ id: s.id, label: labels[i] ?? s.label }));
 

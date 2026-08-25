@@ -21,6 +21,7 @@ const TYPE_TO_NUMBER: Record<CreatorQuestionType, number> = {
   text: 6,
   paragraph: 7,
   code_output: 8,
+  match_following: 9,
 };
 
 const DIFFICULTY_TO_NUMBER: Record<CreatorQuestion["difficulty"], number> = {
@@ -52,23 +53,35 @@ export async function syncQuizQuestions(
   for (let i = 0; i < questions.length; i++) {
     const q = questions[i];
 
-    const options = isChoiceType(q)
-      ? q.options
-          .filter((o) => o.content.trim().length > 0)
-          .map((o) => ({
-            optionStatement: o.content,
-            optionDescription: o.caption,
-            isCorrect: o.isCorrect,
-          }))
-      : String(q.correctAnswer ?? "").trim()
-        ? [
-            {
-              optionStatement: String(q.correctAnswer),
-              optionDescription: undefined,
-              isCorrect: true,
-            },
-          ]
-        : [];
+    let options: { optionStatement: string; optionDescription?: string; isCorrect: boolean }[];
+    if (q.type === "match_following") {
+      const payload = {
+        matchItems: q.matchItems ?? [],
+        matchMatches: q.matchMatches ?? [],
+        matchMapping: q.matchMapping ?? {},
+        shuffleColumnA: q.shuffleColumnA ?? true,
+        shuffleColumnB: q.shuffleColumnB ?? true,
+      };
+      options = [{ optionStatement: JSON.stringify(payload), optionDescription: undefined, isCorrect: true }];
+    } else {
+      options = isChoiceType(q)
+        ? q.options
+            .filter((o) => o.content.trim().length > 0)
+            .map((o) => ({
+              optionStatement: o.content,
+              optionDescription: o.caption,
+              isCorrect: o.isCorrect,
+            }))
+        : String(q.correctAnswer ?? "").trim()
+          ? [
+              {
+                optionStatement: String(q.correctAnswer),
+                optionDescription: undefined,
+                isCorrect: true,
+              },
+            ]
+          : [];
+    }
 
     const saved = await saveQuizProblemFull({
       problemId: q.serverId || undefined,
@@ -156,6 +169,26 @@ export function validateProblemsForContinue(
         id: q.id,
         message: `Q${index}: the question text is empty.`,
       });
+      return;
+    }
+
+    if (q.type === "match_following") {
+      const left = q.matchItems ?? [];
+      const right = q.matchMatches ?? [];
+      if (left.length < 2 || right.length < 2) {
+        issues.push({ index, id: q.id, message: `Q${index}: needs at least 2 pairs.` });
+        return;
+      }
+      if (left.some((x) => !x.content.trim()) || right.some((x) => !x.content.trim())) {
+        issues.push({ index, id: q.id, message: `Q${index}: fill in all items and matches.` });
+        return;
+      }
+      const mapping = q.matchMapping ?? {};
+      const unmapped = left.filter((l) => !mapping[l.id]).length;
+      if (unmapped > 0) {
+        issues.push({ index, id: q.id, message: `Q${index}: ${unmapped} item(s) still need a correct match.` });
+        return;
+      }
       return;
     }
 

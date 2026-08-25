@@ -12,6 +12,7 @@ import {
   Check,
   Copy,
   Loader2,
+  BarChart3,
 } from "lucide-react";
 import { useStudio } from "../StudioProvider";
 import { toast } from "@/lib/toast";
@@ -310,6 +311,14 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
           >
             Go to Dashboard
           </button>
+          {state.serverQuizId && (
+            <a
+              href={`/quiz/${state.info.code}/settings/responses`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 text-pink-900 hover:bg-pink-100 px-4 py-2 text-sm font-semibold transition-colors duration-150 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
+            >
+              <BarChart3 className="h-4 w-4" /> View Responses
+            </a>
+          )}
         </div>
       </div>
     </div>

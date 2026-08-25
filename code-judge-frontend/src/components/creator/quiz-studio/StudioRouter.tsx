@@ -5,6 +5,7 @@ import { StudioProvider, useStudio } from "./StudioProvider";
 import { StudioShell } from "./StudioShell";
 import { SetupStep } from "./steps/SetupStep";
 import { QuestionsStep } from "./steps/QuestionsStep";
+import { GameMechanicsStep } from "./steps/GameMechanicsStep";
 import { SettingsStep } from "./steps/SettingsStep";
 import { AudienceStep } from "./steps/AudienceStep";
 import { RegistrationStep } from "./steps/RegistrationStep";
@@ -20,6 +21,8 @@ export function StudioRouter() {
       return <SetupStep />;
     case "questions":
       return <QuestionsStep />;
+    case "gameMechanics":
+      return <GameMechanicsStep />;
     case "settings":
       return <SettingsStep />;
     case "audience":
