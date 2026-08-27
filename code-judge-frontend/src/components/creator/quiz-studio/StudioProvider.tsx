@@ -58,12 +58,12 @@ const BACKEND_TYPE_MAP: Record<number, CreatorQuestionType> = {
   1: "single_choice",
   2: "multiple_choice",
   3: "true_false",
-  4: "fill_blanks",
+  4: "text",
   5: "integer",
-  6: "text",
+  6: "fill_blanks",
   7: "paragraph",
   8: "code_output",
-  9: "match_following",
+  12: "match_following",
 };
 
 const DIFFICULTY_MAP: Record<string, CreatorQuestion["difficulty"]> = {

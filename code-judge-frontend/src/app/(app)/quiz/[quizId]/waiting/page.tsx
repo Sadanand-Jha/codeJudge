@@ -30,9 +30,12 @@ import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/Waiting
 import { useTheme } from "@/context/ThemeContext";
 import { useToast } from "@/hooks/useToast";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
-import { getQuizCode, quizCodePath, getQuizByCode, type Quiz } from "@/services/quiz";
+import { getQuizCode, quizCodePath, type Quiz } from "@/services/quiz";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
+import dynamic from "next/dynamic";
+import { Sun, Moon, Globe } from "lucide-react";
+const LiveCampus = dynamic(() => import("@/components/quiz/live/live-campus/LiveCampus"), { ssr: false });
 
 function useRealtimeStartFlag(code: string, startedRef: { current: boolean }) {
   const [started, setStarted] = useState(false);
@@ -65,46 +68,44 @@ export default function WaitingRoomPage() {
   const isDark = theme === 'dark';
   const { isRegistered, getRegistration } = useQuizRegistrationStore();
 
-  if (!quizCode) notFound();
-
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function fetchQuiz() {
-      try {
-        setLoading(true);
-        const data = await getQuizByCode(quizCode);
-        if (!cancelled) {
-          setQuiz(data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError("Quiz not found");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+      setLoading(true);
+      // Skip backend — use mock data directly
+      if (!cancelled) {
+        setQuiz({
+          id: 0,
+          code: quizCode,
+          name: `Quiz ${quizCode}`,
+          description: "Waiting for quiz to start.",
+          subject: "General",
+          difficulty: "Medium",
+          duration: 30,
+          total_marks: 100,
+          total_questions: 10,
+          status: "live",
+          starttime: null,
+          endtime: null,
+          negative_marking: false,
+          shuffle_questions: false,
+          shuffle_options: false,
+          show_results_immediately: false,
+          leaderboard: true,
+          visibility: "private",
+          creator_name: "Quiz Creator",
+          created_at: new Date().toISOString(),
+          registration_required: false,
+        } as unknown as Quiz);
       }
+      setLoading(false);
     }
     fetchQuiz();
     return () => { cancelled = true; };
   }, [quizCode]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-ai-accent border-t-transparent" />
-      </div>
-    );
-  }
-
-  if (error || !quiz) {
-    notFound();
-  }
 
   const registration = getRegistration(quizCode);
   const registered = isRegistered(quizCode);
@@ -117,6 +118,20 @@ export default function WaitingRoomPage() {
   const [exitModalOpen, setExitModalOpen] = useState(false);
 
   const { hovered: hoveredParticipant, show: showHovered, armHide: armHideHover, cancelHide: cancelHideHover, hideNow: hideNowHover } = useAvatarHover();
+
+  if (!quizCode) notFound();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-ai-accent border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!quiz) {
+    notFound();
+  }
 
   return (
     <WaitingRoomThemeProvider>
@@ -186,9 +201,34 @@ function WaitingRoomPageInner({
   registered: boolean;
   registration: { studentName?: string; rollNumber?: string } | null;
 }) {
-  const { activeConfig } = useWaitingRoomTheme();
+  const { activeConfig, setTheme: setWaitingTheme, setStudentOverride } = useWaitingRoomTheme();
   const textPrimary = activeConfig.textPrimary;
   const textSecondary = activeConfig.textSecondary;
+  const { setTheme } = useTheme();
+  const [viewMode, setViewMode] = useState<"light"|"dark"|"real">("light");
+
+  useEffect(()=>{
+    try{
+      const key = `byteclash_waiting_view_mode_${quizCode}`;
+      const saved = localStorage.getItem(key) as "light"|"dark"|"real"|null;
+      if(saved==="light"|| saved==="dark"|| saved==="real"){
+        setViewMode(saved);
+        if(saved==="light"){ setTheme("light"); setWaitingTheme("ai-cloud"); setStudentOverride(undefined); }
+        if(saved==="dark"){ setTheme("dark"); setWaitingTheme("deep-space"); setStudentOverride(undefined); }
+        return;
+      }
+      setViewMode(isDark ? "dark" : "light");
+    }catch{}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[quizCode]);
+
+  const handleViewMode = (m:"light"|"dark"|"real")=>{
+    setViewMode(m);
+    try{ localStorage.setItem(`byteclash_waiting_view_mode_${quizCode}`, m);}catch{}
+    if(m==="light"){ setTheme("light"); setWaitingTheme("ai-cloud"); setStudentOverride(undefined); }
+    if(m==="dark"){ setTheme("dark"); setWaitingTheme("deep-space"); setStudentOverride(undefined); }
+    // real keeps current theme for LiveCampus isDark — ThemeBackground hidden in real mode
+  };
 
   const remainingTime = useMemo(() => {
     if (!quiz.starttime) return "Soon";
@@ -239,14 +279,15 @@ function WaitingRoomPageInner({
   ];
 
   return (
-    <WaitingRoomThemeProvider>
     <div className={`waiting-page h-screen flex flex-col overflow-hidden relative transition-all duration-350 ${
       isDark ? 'bg-[#050510]' : 'bg-[#FAFBFF]'
     }`}>
-      {/* Theme Background */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <ThemeBackground />
-      </div>
+      {/* Theme Background — hidden in Real World, visible in light/dark */}
+      {viewMode !== "real" && (
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <ThemeBackground />
+        </div>
+      )}
 
       {/* Full-screen roaming avatars - behind all UI */}
       <div className="fixed inset-0 z-[5] pointer-events-none">
@@ -301,6 +342,36 @@ function WaitingRoomPageInner({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* View Mode Toggle: Light / Dark / Real World */}
+          <div className={`hidden sm:flex items-center rounded-full border p-1 backdrop-blur-xl ${isDark ? "bg-white/[0.05] border-white/10" : "bg-black/[0.04] border-black/10"}`}>
+            <button
+              onClick={()=> handleViewMode("light")}
+              title="Light mode"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="light" ? "bg-white text-[#1a1a2e] shadow-sm border border-black/10" : isDark ? "text-white/60 hover:text-white" : "text-black/60 hover:text-black"}`}
+            >
+              <Sun className="w-3.5 h-3.5" /> Light
+            </button>
+            <button
+              onClick={()=> handleViewMode("dark")}
+              title="Dark mode"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="dark" ? "bg-[#111217] text-white shadow border border-white/10" : isDark ? "text-white/60 hover:text-white" : "text-black/60 hover:text-black"}`}
+            >
+              <Moon className="w-3.5 h-3.5" /> Dark
+            </button>
+            <button
+              onClick={()=> handleViewMode("real")}
+              title="Real World — Live Campus"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="real" ? "bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white shadow" : isDark ? "text-white/60 hover:text-white" : "text-black/60 hover:text-black"}`}
+            >
+              <Globe className="w-3.5 h-3.5" /> Real World
+            </button>
+          </div>
+          {/* Mobile compact toggle */}
+          <div className={`flex sm:hidden items-center rounded-full border p-1 backdrop-blur-xl ${isDark ? "bg-white/[0.05] border-white/10" : "bg-black/[0.04] border-black/10"}`}>
+            <button onClick={()=> handleViewMode("light")} className={`p-1.5 rounded-full ${viewMode==="light" ? "bg-white text-[#1a1a2e] shadow" : isDark ? "text-white/60" : "text-black/60"}`}><Sun className="w-3.5 h-3.5" /></button>
+            <button onClick={()=> handleViewMode("dark")} className={`p-1.5 rounded-full ${viewMode==="dark" ? "bg-[#111217] text-white shadow" : isDark ? "text-white/60" : "text-black/60"}`}><Moon className="w-3.5 h-3.5" /></button>
+            <button onClick={()=> handleViewMode("real")} className={`p-1.5 rounded-full ${viewMode==="real" ? "bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white shadow" : isDark ? "text-white/60" : "text-black/60"}`}><Globe className="w-3.5 h-3.5" /></button>
+          </div>
           {/* Participants Button */}
           <button
             onClick={() => setDrawerOpen(true)}
@@ -321,6 +392,12 @@ function WaitingRoomPageInner({
         </div>
       </div>
 
+      {viewMode==="real" ? (
+        <div className="relative z-20 flex-1 min-h-0">
+          <LiveCampus quizId={quizCode} quizName={quiz.name} startsIn={remainingTime} totalCapacity={40} />
+        </div>
+      ) : (
+        <>
       {/* Centered Header */}
       <div className="relative z-20 flex flex-col items-center text-center pt-6 pb-4 px-4">
         <motion.div
@@ -554,6 +631,8 @@ function WaitingRoomPageInner({
         {/* Countdown */}
         <CountdownCard targetAt={quiz.starttime ?? undefined} onStarted={handleStarted} />
       </div>
+        </>
+      )}
 
       {/* Exit Confirmation Modal */}
       <AnimatePresence>
@@ -626,6 +705,5 @@ function WaitingRoomPageInner({
         participants={participants}
       />
     </div>
-    </WaitingRoomThemeProvider>
   );
 }

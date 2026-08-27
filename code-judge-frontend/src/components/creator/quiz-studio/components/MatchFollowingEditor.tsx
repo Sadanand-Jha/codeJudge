@@ -36,6 +36,10 @@ import {
 import { cn } from "@/lib/helpers";
 import type { CreatorQuestion, MatchItem } from "@/components/quiz/creator/types";
 import { useStudio } from "../StudioProvider";
+
+const SELECTABLE_TYPES = [
+  "single_choice", "multiple_choice", "true_false", "fill_blanks", "text", "match_following",
+];
 import { EditableContent, RichToolbar } from "./RichToolbar";
 import { MatchingStudentPreview } from "./MatchingStudentPreview";
 
@@ -51,22 +55,22 @@ const TYPE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
   multiple_choice: ListChecks,
   true_false: ToggleRight,
   fill_blanks: FileText,
-  integer: Hash,
   text: Type,
+  match_following: ListChecks,
+  integer: Hash,
   paragraph: AlignLeft,
   code_output: Code2,
-  match_following: ListChecks,
 };
 const TYPE_SHORT: Record<string, string> = {
   single_choice: "MCQ",
   multiple_choice: "Multi",
   true_false: "T/F",
   fill_blanks: "Fill",
-  integer: "Int",
   text: "Short",
+  match_following: "Match",
+  integer: "Int",
   paragraph: "Long",
   code_output: "Code",
-  match_following: "Match",
 };
 const TYPE_DESC: Record<string, string> = {
   single_choice: "Single correct answer",
@@ -298,7 +302,7 @@ export function MatchFollowingEditor() {
               </button>
               {showType && (
                 <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
-                  {(Object.keys(TYPE_SHORT) as string[]).map((t) => {
+                  {SELECTABLE_TYPES.map((t) => {
                     const Icon = TYPE_ICON[t];
                     const active = t === q.type;
                     return (

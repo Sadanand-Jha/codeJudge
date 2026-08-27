@@ -27,16 +27,20 @@ import { MatchFollowingEditor } from "./MatchFollowingEditor";
 import { motion, AnimatePresence } from "framer-motion";
 import { getQuizDifficultyOptions } from "@/services/quiz";
 
+const SELECTABLE_TYPES: CreatorQuestionType[] = [
+  "single_choice", "multiple_choice", "true_false", "fill_blanks", "text", "match_following",
+];
+
 const TYPE_ICON: Record<CreatorQuestionType, React.ComponentType<{ className?: string }>> = {
   single_choice: CircleDot,
   multiple_choice: ListChecks,
   true_false: ToggleRight,
   fill_blanks: FileText,
-  integer: Hash,
   text: Type,
+  match_following: ListChecks,
+  integer: Hash,
   paragraph: AlignLeft,
   code_output: Code2,
-  match_following: ListChecks,
 };
 
 const TYPE_SHORT: Record<CreatorQuestionType, string> = {
@@ -44,11 +48,11 @@ const TYPE_SHORT: Record<CreatorQuestionType, string> = {
   multiple_choice: "Multi",
   true_false: "T/F",
   fill_blanks: "Fill",
-  integer: "Int",
   text: "Short",
+  match_following: "Match",
+  integer: "Int",
   paragraph: "Long",
   code_output: "Code",
-  match_following: "Match",
 };
 
 const TYPE_DESC: Record<CreatorQuestionType, string> = {
@@ -56,11 +60,11 @@ const TYPE_DESC: Record<CreatorQuestionType, string> = {
   multiple_choice: "Multiple correct answers",
   true_false: "True / False",
   fill_blanks: "Fill in the Blank",
-  integer: "Numerical",
   text: "Short Answer",
+  match_following: "Match the Following",
+  integer: "Numerical",
   paragraph: "Long Answer",
   code_output: "Coding",
-  match_following: "Match the Following",
 };
 
 export function QuestionEditor() {
@@ -178,7 +182,7 @@ export function QuestionEditor() {
               </button>
               {showType && (
                 <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
-                  {(Object.keys(TYPE_SHORT) as CreatorQuestionType[]).map((t) => {
+                  {SELECTABLE_TYPES.map((t) => {
                     const Icon = TYPE_ICON[t];
                     const active = t === q.type;
                     const handlePick = () => {

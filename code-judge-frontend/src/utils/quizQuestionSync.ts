@@ -16,12 +16,12 @@ const TYPE_TO_NUMBER: Record<CreatorQuestionType, number> = {
   single_choice: 1,
   multiple_choice: 2,
   true_false: 3,
-  fill_blanks: 4,
+  text: 4,
+  fill_blanks: 6,
+  match_following: 12,
   integer: 5,
-  text: 6,
   paragraph: 7,
   code_output: 8,
-  match_following: 9,
 };
 
 const DIFFICULTY_TO_NUMBER: Record<CreatorQuestion["difficulty"], number> = {

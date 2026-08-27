@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { JoinQuizModal } from "@/components/quiz/live/JoinQuizModal";
-import { joinQuiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 
@@ -12,18 +10,9 @@ export default function JoinQuizPage() {
   const [isOpen, setIsOpen] = useState(true);
 
   const handleJoin = async (code: string) => {
-    try {
-      const result = await joinQuiz({ code });
-      if (result?.quiz?.id) {
-        toast.success({ title: "Joined successfully", description: "Redirecting to quiz..." });
-        router.push(`/quiz/${result.quiz.id}/waiting`);
-      } else {
-        toast.error({ title: "Failed to join", description: "Invalid quiz code" });
-      }
-      setIsOpen(false);
-    } catch (error) {
-      toast.error({ title: "Error", description: "Failed to join quiz" });
-    }
+    toast.success({ title: "Joining quiz...", description: `Code: ${code}` });
+    setIsOpen(false);
+    router.push(`/quiz/${code}/waiting`);
   };
 
   const handleClose = () => {

@@ -109,7 +109,7 @@ interface QuizSettingsContextValue {
   cancelEnd: () => void;
 }
 
-const QuizSettingsContext = createContext<QuizSettingsContextValue | null>(null);
+export const QuizSettingsContext = createContext<QuizSettingsContextValue | null>(null);
 
 export function useQuizSettings(): QuizSettingsContextValue {
   const ctx = useContext(QuizSettingsContext);

@@ -442,9 +442,6 @@ export const QUESTION_TYPE_META: Array<{
   { id: "multiple_choice", label: "Multiple Choice", description: "One or more correct" },
   { id: "true_false", label: "True / False", description: "Boolean selector" },
   { id: "fill_blanks", label: "Fill in the Blank", description: "Blank(s) to fill" },
-  { id: "integer", label: "Integer / Number", description: "Numeric answer" },
   { id: "text", label: "Short Answer", description: "One-line text" },
-  { id: "paragraph", label: "Long Answer", description: "Paragraph text" },
-  { id: "code_output", label: "Coding", description: "Code with test cases" },
   { id: "match_following", label: "Match the Following", description: "Connect pairs" },
 ];

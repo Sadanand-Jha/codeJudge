@@ -240,11 +240,11 @@ export const QUESTION_TYPE_LABELS: Record<CreatorQuestionType, string> = {
   multiple_choice: "Multiple Select",
   true_false: "True / False",
   fill_blanks: "Fill Blank",
-  integer: "Integer",
   text: "Short Answer",
+  match_following: "Match the Following",
+  integer: "Integer",
   paragraph: "Long Answer",
   code_output: "Coding",
-  match_following: "Match the Following",
 };
 
 export const QUESTION_TYPE_ORDER: CreatorQuestionType[] = [
@@ -252,10 +252,7 @@ export const QUESTION_TYPE_ORDER: CreatorQuestionType[] = [
   "multiple_choice",
   "true_false",
   "fill_blanks",
-  "integer",
   "text",
-  "paragraph",
-  "code_output",
   "match_following",
 ];
 

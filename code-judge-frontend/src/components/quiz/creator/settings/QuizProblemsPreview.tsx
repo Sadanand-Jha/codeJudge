@@ -74,10 +74,7 @@ const QUESTION_TYPES: Array<{ id: CreatorQuestionType; label: string; short: str
   { id: "multiple_choice", label: "Multiple Select", short: "Multi", icon: ListChecks, desc: "Multiple correct answers" },
   { id: "true_false", label: "True / False", short: "T/F", icon: ToggleRight, desc: "Binary choice" },
   { id: "fill_blanks", label: "Fill in the Blank", short: "Fill", icon: FileText, desc: "Complete the sentence" },
-  { id: "integer", label: "Numerical", short: "Int", icon: Hash, desc: "Numeric answer" },
   { id: "text", label: "Short Answer", short: "Short", icon: Type, desc: "Brief text response" },
-  { id: "paragraph", label: "Long Answer", short: "Long", icon: AlignLeft, desc: "Detailed response" },
-  { id: "code_output", label: "Coding", short: "Code", icon: Code2, desc: "Code output" },
 ];
 
 const WIZARD_STEPS = ["Setup", "Questions", "Settings", "Audience", "Registration", "Pricing", "Branding", "Review", "Publish"];
