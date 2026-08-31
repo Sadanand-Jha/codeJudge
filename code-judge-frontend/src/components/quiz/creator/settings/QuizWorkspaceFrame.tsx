@@ -148,7 +148,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
   }, [inProblems]);
 
   const activeSection =
-    SETTINGS_SECTIONS.find((s) => pathname.endsWith(`/${s.href}`))?.id ?? "info";
+    SETTINGS_SECTIONS.find((s) => pathname.endsWith(`/${s.href}`))?.id ?? "responses";
   const settingsPath = (href: string) => `/quiz/${code}/settings/${href}`;
   const statusMeta = STATUS_META[derivedStatus] || STATUS_META.draft;
 
@@ -248,37 +248,6 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
             </Link>
           </div>
 
-          {/* ===== Questions — first item, opens the question builder on the right ===== */}
-          <p className="px-3 pb-3 pt-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-            Create
-          </p>
-          <div className="space-y-1">
-            <Link
-              {...itemProtect}
-              href={`/quiz/${code}/problems`}
-              className={cn(
-                "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-all duration-200",
-                inProblems
-                  ? "bg-pink-500/10 text-pink-500 shadow-[inset_0_0_0_1px_rgba(236,72,153,0.2)]"
-                  : "text-text-secondary hover:bg-pink-500/5 hover:text-text-primary"
-              )}
-            >
-              <ListChecks
-                className={cn(
-                  "h-5 w-5 shrink-0 transition-colors",
-                  inProblems ? "text-pink-500" : "text-text-muted group-hover:text-text-primary"
-                )}
-                strokeWidth={inProblems ? 2.2 : 2}
-              />
-              <span className={cn("font-medium", inProblems && "font-semibold")}>Questions</span>
-              {problems.length > 0 && (
-                <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500/15 px-1.5 text-[10px] font-bold text-pink-500">
-                  {problems.length}
-                </span>
-              )}
-            </Link>
-          </div>
-
           <p className="px-3 pb-3 pt-5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
             Settings
           </p>
@@ -286,8 +255,8 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
             {SETTINGS_SECTIONS.map((section) => {
               const Icon = section.icon;
               const isActive = activeSection === section.id;
-              const isPink = section.tone === "pink";
-              const isAudience = section.id === "audience";
+              const isPink = (section.tone as string) === "pink";
+              const isAudience = (section.id as string) === "audience";
               const audienceStatus = isAudience
                 ? getAudienceStatusLabel(details?.audience)
                 : null;
@@ -347,70 +316,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
             })}
           </div>
 
-          {/* ===== Quick action (Start Instantly) ===== */}
-          <div className="mt-8 rounded-xl border border-border bg-background p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-              Quick Action
-            </p>
-            <div className="mt-3">
-              {quizId && !isEnded ? (
-                isLive ? (
-                  <span className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 px-4 py-3 text-xs font-bold text-white opacity-90">
-                    <Square className="h-4 w-4" /> Live
-                  </span>
-                ) : (
-                  <button
-                    {...itemProtect}
-                    onClick={handleStartInstantly}
-                    disabled={starting}
-                    className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-4 py-3 text-xs font-bold text-white shadow-[0_4px_16px_rgba(16,185,129,0.25)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(16,185,129,0.4)] hover:brightness-105 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {starting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Zap className="h-4 w-4" />
-                    )}
-                    {starting ? "Checking..." : "Start Instantly"}
-                  </button>
-                )
-              ) : (
-                <span className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card-hover px-4 py-3 text-xs font-bold text-text-muted">
-                  {isEnded ? "Quiz Ended" : "Save to enable"}
-                </span>
-              )}
-            </div>
-            <p className="mt-2 text-[10px] font-medium leading-relaxed text-text-muted">
-              {isLive
-                ? "The quiz is live. Ending it stops further participation."
-                : isEnded
-                ? "This quiz has ended."
-                : "Starts the quiz now using your current saved settings."}
-            </p>
-            {startValidationError && (
-              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.07] p-2.5 text-[10px] font-medium leading-relaxed text-amber-500">
-                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
-                <span>{startValidationError}</span>
-              </div>
-            )}
-          </div>
 
-          {/* ===== Quiz status ===== */}
-          <div className="mt-4 rounded-xl border border-border bg-background p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-              Quiz Status
-            </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold",
-                  statusMeta.badge
-                )}
-              >
-                <span className={cn("h-1.5 w-1.5 rounded-full", statusMeta.dot)} />
-                {statusMeta.label}
-              </span>
-            </div>
-          </div>
         </nav>
       </motion.aside>
 

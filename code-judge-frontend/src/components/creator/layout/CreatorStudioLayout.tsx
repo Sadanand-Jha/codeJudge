@@ -93,7 +93,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
               pathname.startsWith("/creator/quizzes/") ||
               pathname === "/creator/quizzes/create" ||
               pathname === "/creator/quizzes/ai-generate"
-                ? "flex-1 flex flex-col min-h-0"
+                ? "flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden"
                 : "px-4 py-6 sm:px-6 lg:px-8 flex-1 overflow-y-auto"
             }
           >

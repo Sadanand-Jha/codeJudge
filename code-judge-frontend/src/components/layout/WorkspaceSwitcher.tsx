@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronDown, GraduationCap, Shapes, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { IS_DEMO_CREATOR } from "@/components/creator/workspace/mockData";
+import { isNestedQuizPath } from "@/lib/quizWorkspace";
 
 type Workspace = "student" | "studio";
 
@@ -23,7 +24,7 @@ export default function WorkspaceSwitcher() {
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
-  const workspace: Workspace = pathname.startsWith("/creator") ? "studio" : "student";
+  const workspace: Workspace = pathname.startsWith("/creator") || isNestedQuizPath(pathname) ? "studio" : "student";
   const canAccessStudio = IS_DEMO_CREATOR === true;
 
   useEffect(() => {

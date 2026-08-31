@@ -6,14 +6,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  BookOpen,
-  CalendarClock,
   Loader2,
   Save,
   Square,
-  Users,
-  UsersRound,
-  UserPlus,
   Zap,
   AlertTriangle,
   CheckCircle2,
@@ -27,11 +22,6 @@ import { cn } from "@/lib/helpers";
 import { saveQuizDetails } from "@/utils/quizStorage";
 
 export const SETTINGS_SECTIONS = [
-  { id: "info", label: "Quiz Info", icon: BookOpen, href: "info", tone: "pink" as const },
-  { id: "schedule", label: "Schedule", icon: CalendarClock, href: "schedule", tone: "blue" as const },
-  { id: "registration", label: "Registration", icon: Users, href: "registration", tone: "violet" as const },
-  { id: "audience", label: "Audience", icon: UsersRound, href: "audience", tone: "violet" as const },
-  { id: "collaborators", label: "Collaborators", icon: UserPlus, href: "collaborators", tone: "pink" as const },
   { id: "responses", label: "Responses", icon: BarChart3, href: "responses", tone: "blue" as const },
 ] as const;
 
@@ -96,7 +86,7 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
 
   const activeSection: SectionId =
     SETTINGS_SECTIONS.find((s) => pathname.endsWith(`/${s.href}`))?.id ??
-    (pathname.endsWith("/settings") ? "info" : "info");
+    (pathname.endsWith("/settings") ? "responses" : "responses");
 
   const statusMeta = STATUS_META[derivedStatus] || STATUS_META.draft;
 
@@ -234,7 +224,7 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
                   className={cn(
                     "flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200",
                     isActive
-                      ? section.tone === "pink"
+                      ? (section.tone as string) === "pink"
                         ? "bg-pink-500/10 text-pink-500"
                         : "bg-accent/10 text-accent"
                       : "text-text-secondary hover:bg-pink-500/5"

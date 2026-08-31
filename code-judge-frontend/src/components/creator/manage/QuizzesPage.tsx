@@ -94,6 +94,7 @@ const CARD_ACTIONS = [
   { label: "Duplicate", icon: Copy },
   { label: "Preview", icon: Eye },
   { label: "Analytics", icon: BarChart3 },
+  { label: "Responses", icon: ClipboardList },
 ] as const;
 
 export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
@@ -291,6 +292,14 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                             onClick={() => {
                               if (action.label === "Edit") {
                                 router.push(`/creator/quizzes/${q.id}/edit`);
+                              } else if (action.label === "Responses") {
+                                router.push(`/creator/quizzes/${q.id}/responses`);
+                              } else if (action.label === "Preview") {
+                                router.push(`/creator/quizzes/${q.id}/preview`);
+                              } else if (action.label === "Analytics") {
+                                router.push(`/creator/quizzes/${q.id}/analytics`);
+                              } else if (action.label === "Duplicate") {
+                                toast.success({ title: "Duplicate", description: "Use Edit → Clone from quiz settings." });
                               }
                             }}
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-text-secondary transition-colors hover:bg-card-hover hover:text-pink-500 dark:hover:text-ai-accent"

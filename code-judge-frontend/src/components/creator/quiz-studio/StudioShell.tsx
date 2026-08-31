@@ -33,7 +33,7 @@ export function StudioHeader() {
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-2 sm:gap-3 border-b border-border bg-background px-2 sm:px-4 min-w-0 overflow-hidden">
-      <button onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors">
+      <button onClick={() => router.push("/quiz")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors">
         <ArrowLeft className="h-4 w-4" />
       </button>
       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">

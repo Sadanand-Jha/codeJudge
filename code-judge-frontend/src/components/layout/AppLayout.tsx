@@ -34,7 +34,7 @@ import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
-import { isQuizProblemsPath } from "@/lib/quizWorkspace";
+import { isQuizProblemsPath, isNestedQuizPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
 import { Sidebar } from "@/components/ui/Sidebar";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
@@ -215,6 +215,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
   const pageTitle = (() => {
     if (isStudioRoute) return "Studio";
+    if (isNestedQuizPath(pathname)) return "Quiz Settings";
     if (pathname === PREPARATION_BASE) return "Preparation";
     const prepModule = getActivePreparationModule(pathname);
     if (prepModule) return `Preparation · ${prepModule.label}`;
@@ -619,7 +620,12 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
   setSidebarExpanded: (v: boolean) => void;
   collapseSidebar: () => void;
 }) {
-  const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+  const isQuizWorkspace = isNestedQuizPath(pathname);
+  // Join Quiz (/quiz) should not appear active while inside creator quiz workspace
+  // — otherwise it looks like we jumped to the Student section.
+  const isActive = (item.href === "/quiz" && isQuizWorkspace)
+    ? false
+    : pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
 
   // Routes that are protected for guests
   const protectedForGuests = ["/ai/chat", "/editor", "/analytics", "/settings", "/collections"];
