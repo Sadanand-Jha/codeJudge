@@ -38,7 +38,7 @@ import type { CreatorQuestion, MatchItem } from "@/components/quiz/creator/types
 import { useStudio } from "../StudioProvider";
 
 const SELECTABLE_TYPES = [
-  "single_choice", "multiple_choice", "true_false", "fill_blanks", "text", "match_following",
+  "single_choice", "multiple_choice", "true_false", "fill_blanks", "match_following",
 ];
 import { EditableContent, RichToolbar } from "./RichToolbar";
 import { MatchingStudentPreview } from "./MatchingStudentPreview";
@@ -133,8 +133,11 @@ export function MatchFollowingEditor() {
   const [showCreatorHelp, setShowCreatorHelp] = useState(true);
   const [showType, setShowType] = useState(false);
   const [draggedLeftId, setDraggedLeftId] = useState<string | null>(null);
+  const [draggedRightId, setDraggedRightId] = useState<string | null>(null);
   const [selectedLeftId, setSelectedLeftId] = useState<string | null>(null);
   const [connectHoverRight, setConnectHoverRight] = useState<string | null>(null);
+  const [dragOverLeftId, setDragOverLeftId] = useState<string | null>(null);
+  const [pendingType, setPendingType] = useState<string | null>(null);
   const [autoSaveState, setAutoSaveState] = useState<"saved" | "saving" | "unsaved">("saved");
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImg = useRef<{ col: "left" | "right"; id: string } | null>(null);
@@ -150,22 +153,43 @@ export function MatchFollowingEditor() {
     [q.id, updateQuestion]
   );
 
+  const hasDataToLose = (qq: CreatorQuestion) => {
+    const hasTitle = qq.title.replace(/<[^>]*>/g, "").trim().length > 0;
+    const hasMatch = (qq.matchItems?.some((m) => m.content.trim().length > 0) || qq.matchMatches?.some((m) => m.content.trim().length > 0));
+    const hasExplain = qq.explanation.trim().length > 0;
+    return hasTitle || !!hasMatch || !!hasExplain;
+  };
+
+  const doSwitchType = (t: string) => {
+    update({ type: t as any });
+    setShowType(false);
+    setPendingType(null);
+  };
+
+  const requestTypeChange = (t: string) => {
+    if (t === q.type) { setShowType(false); return; }
+    if (hasDataToLose(q)) setPendingType(t);
+    else doSwitchType(t);
+  };
+
   // Trigger unsaved indicator on any change via effect-like logic in update
   // Validation
   const validation = useMemo(() => {
     const errors: string[] = [];
     if (!q.title.replace(/<[^>]*>/g, "").trim()) errors.push("Question text cannot be empty.");
     if (left.length < 2 || right.length < 2) errors.push("Add at least 2 pairs.");
-    const unmapped = left.filter((l) => !mapping[l.id]).length;
-    if (unmapped > 0) errors.push(`${unmapped} item${unmapped > 1 ? "s" : ""} still need a correct match.`);
+    // Line-wise: same row = correct pair, check index fallback
+    const unmappedLineWise = left.filter((l, idx) => {
+      if (mapping[l.id]) return false;
+      return !right[idx]?.content?.trim();
+    }).length;
+    if (unmappedLineWise > 0) errors.push(`${unmappedLineWise} row${unmappedLineWise > 1 ? "s" : ""} need Column B on same line.`);
     // broken mappings
     for (const [k, v] of Object.entries(mapping)) {
       if (!right.some((r) => r.id === v)) errors.push("A mapping points to a deleted match — please remap.");
     }
     return errors;
   }, [q.title, left, right, mapping]);
-
-  const needsMappingWarn = left.filter((l) => !mapping[l.id]).length > 0;
 
   // Actions for items
   const updateLeft = (id: string, content: string) =>
@@ -174,14 +198,17 @@ export function MatchFollowingEditor() {
     update({ matchMatches: right.map((x) => (x.id === id ? { ...x, content } : x)) });
 
   const addLeft = () => {
-    if (left.length >= 10) return;
-    const newId = `${q.id}_left_${Date.now()}`;
-    update({ matchItems: [...left, { id: newId, content: "" }] });
+    // Dual-side: adding a row adds on both columns line-wise
+    if (left.length >= 10 || right.length >= 10) return;
+    const lid = `${q.id}_left_${Date.now()}`;
+    const rid = `${q.id}_right_${Date.now() + 1}`;
+    update({ matchItems: [...left, { id: lid, content: "" }], matchMatches: [...right, { id: rid, content: "" }] });
   };
   const addRight = () => {
-    if (right.length >= 10) return;
-    const newId = `${q.id}_right_${Date.now()}`;
-    update({ matchMatches: [...right, { id: newId, content: "" }] });
+    if (left.length >= 10 || right.length >= 10) return;
+    const lid = `${q.id}_left_${Date.now()}`;
+    const rid = `${q.id}_right_${Date.now() + 1}`;
+    update({ matchItems: [...left, { id: lid, content: "" }], matchMatches: [...right, { id: rid, content: "" }] });
   };
   const addPair = () => {
     if (left.length >= 10 || right.length >= 10) return;
@@ -194,18 +221,38 @@ export function MatchFollowingEditor() {
   };
 
   const removeLeftRow = (id: string) => {
-    if (left.length <= 2) return;
-    const nextLeft = left.filter((x) => x.id !== id);
-    const nextMap = { ...mapping };
-    delete nextMap[id];
-    update({ matchItems: nextLeft, matchMapping: nextMap });
+    // Line-wise: delete same row on both columns (as creator adds line-wise)
+    if (left.length <= 2 || right.length <= 2) return;
+    const idx = left.findIndex((x) => x.id === id);
+    if (idx === -1) return;
+    const rightIdToDelete = right[idx]?.id;
+    const nextLeft = left.filter((_, i) => i !== idx);
+    const nextRight = right.filter((_, i) => i !== idx);
+    const nextMap: Record<string, string> = {};
+    for (const [k, v] of Object.entries(mapping)) {
+      if (k === id) continue;
+      if (v === rightIdToDelete) continue;
+      // re-map keeping remaining ids; if mapping pointed to deleted right, it was already skipped
+      // if left index shifted, keep original id mapping — line-wise fallback handles index
+      nextMap[k] = v;
+    }
+    // If rightIdToDelete was mapped by some left, that left is already removed (if idx left) or will be orphaned — clean it
+    update({ matchItems: nextLeft, matchMatches: nextRight, matchMapping: nextMap });
   };
   const removeRightRow = (id: string) => {
-    if (right.length <= 2) return;
-    const nextRight = right.filter((x) => x.id !== id);
-    const nextMap = { ...mapping };
-    for (const k of Object.keys(nextMap)) if (nextMap[k] === id) delete nextMap[k];
-    update({ matchMatches: nextRight, matchMapping: nextMap });
+    if (left.length <= 2 || right.length <= 2) return;
+    const idx = right.findIndex((x) => x.id === id);
+    if (idx === -1) return;
+    const leftIdToDelete = left[idx]?.id;
+    const nextRight = right.filter((_, i) => i !== idx);
+    const nextLeft = left.filter((_, i) => i !== idx);
+    const nextMap: Record<string, string> = {};
+    for (const [k, v] of Object.entries(mapping)) {
+      if (k === leftIdToDelete) continue;
+      if (v === id) continue;
+      nextMap[k] = v;
+    }
+    update({ matchItems: nextLeft, matchMatches: nextRight, matchMapping: nextMap });
   };
 
   const reorderLeft = (fromId: string, toId: string) => {
@@ -278,7 +325,7 @@ export function MatchFollowingEditor() {
                 <h1 className="text-[15px] font-semibold tracking-tight text-text-primary leading-none">Match the Following</h1>
                 <span className="hidden sm:inline text-xs text-text-muted">· Q{String(activeIdx + 1).padStart(2, "0")}</span>
               </div>
-              <p className="mt-1 text-xs leading-none text-text-muted">Connect each item on the left with its correct match on the right.</p>
+              <p className="mt-1 text-xs leading-none text-text-muted">Add pairs line-wise — Column A row 1 matches Column B row 1. Students see Column B shuffled.</p>
             </div>
             <span className="hidden sm:inline-flex items-center rounded-full bg-card-hover border border-border px-2 py-0.5 text-[10px] font-semibold tracking-wide text-text-secondary">
               MATCH
@@ -286,12 +333,6 @@ export function MatchFollowingEditor() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            {/* autosave indicator */}
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-text-muted mr-1">
-              <span className={cn("h-1.5 w-1.5 rounded-full", autoSaveState === "saved" ? "bg-emerald-500" : autoSaveState === "saving" ? "bg-amber-500 animate-pulse" : "bg-amber-400")} />
-              {autoSaveState === "saving" ? "Saving…" : autoSaveState === "saved" ? "Saved" : "Unsaved changes"}
-            </span>
-
             {/* Type changer — same as problem builder page */}
             <div className="relative">
               <button
@@ -308,15 +349,7 @@ export function MatchFollowingEditor() {
                     return (
                       <button
                         key={t}
-                        onClick={() => {
-                          if (t === "match_following") {
-                            update({ type: t } as any);
-                          } else if (t !== q.type) {
-                            // keep match data but switch type — editor will unmount to generic
-                            update({ type: t } as any);
-                          }
-                          setShowType(false);
-                        }}
+                        onClick={() => requestTypeChange(t)}
                         className={cn("flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-card-hover", active && "bg-pink-50 dark:bg-pink-500/10")}
                       >
                         <Icon className={cn("h-4 w-4 mt-0.5", active ? "text-[#E91E63]" : "text-text-muted")} />
@@ -357,18 +390,19 @@ export function MatchFollowingEditor() {
       {/* ── Main scroll area ── */}
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-[880px] space-y-6 px-4 py-6 sm:px-6">
-          {/* Question prompt */}
+          {/* Question prompt — rich text editor for the problem statement */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Question</label>
               <span className="text-[11px] text-text-muted">Rich text · bold, italic, code, links, images</span>
             </div>
-            <div className="overflow-hidden rounded-2xl border border-border bg-background">
+            {/* bg-card (white) instead of bg-background (gray) for consistent look with QuestionEditor */}
+            <div className="overflow-hidden rounded-2xl border border-border bg-card">
               <RichToolbar />
               <EditableContent
                 value={q.title}
                 onChange={(html) => update({ title: html })}
-                placeholder="Match each data structure with its primary use case."
+                placeholder="Match the following"
                 minHeight="min-h-[96px]"
               />
             </div>
@@ -389,7 +423,7 @@ export function MatchFollowingEditor() {
                 <span className="rounded-full bg-card-hover border border-border px-2 py-0.5 text-[11px] font-medium text-text-secondary">{pairCount} pairs</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="hidden sm:inline text-xs text-text-muted">Drag to reorder · click to map</span>
+                <span className="hidden sm:inline text-xs text-text-muted">Line-wise pairs · Students see Column B shuffled</span>
                 <button
                   onClick={() => setShowCreatorHelp(!showCreatorHelp)}
                   className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium", showCreatorHelp ? "border-[#E91E63]/30 bg-[#E91E63]/10 text-[#E91E63]" : "border-border bg-card text-text-muted hover:bg-card-hover")}
@@ -414,25 +448,25 @@ export function MatchFollowingEditor() {
                         <Info className="h-3.5 w-3.5" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-text-primary">Creator guide — connect one-by-one (exactly like students will)</p>
-                        <p className="mt-0.5 text-[11px] text-text-muted">Connect each left item one-by-one with its right match. Students will follow the same 2-step click process.</p>
+                        <p className="text-xs font-semibold text-text-primary">Just add columns line-wise — same row = correct pair</p>
+                        <p className="mt-0.5 text-[11px] text-text-muted">Creator: type Column A and Column B on the <b className="text-text-primary">same line</b>. That line is the correct answer. Students will see Column B in <b className="text-text-primary">random order</b> and must recreate the lines.</p>
                         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                           <div className="rounded-xl border border-border bg-card px-3 py-2.5">
-                            <p className="flex items-center gap-1.5 text-[11px] font-bold text-text-primary"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E91E63] text-white text-[11px]">1</span> Add items</p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-text-muted">Type 2–10 items in <b className="text-text-primary">Column A</b> and matches in <b className="text-text-primary">Column B</b>. Use <Plus className="inline h-3 w-3" /> Add Item.</p>
+                            <p className="flex items-center gap-1.5 text-[11px] font-bold text-text-primary"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E91E63] text-white text-[11px]">1</span> Add line-wise</p>
+                            <p className="mt-1 text-[11px] leading-relaxed text-text-muted">Row <b className="text-text-primary">01</b>: type <b className="text-text-primary">A1</b> and its correct <b className="text-text-primary">B1</b> on the same line. Row 02: A2 ↔ B2, etc. Use <Plus className="inline h-3 w-3" /> Add Pair or add per column.</p>
                           </div>
                           <div className="rounded-xl border border-[#E91E63]/30 bg-[#E91E63]/10 px-3 py-2.5">
-                            <p className="flex items-center gap-1.5 text-[11px] font-bold text-[#E91E63]"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E91E63] text-white text-[11px]">2</span> Connect one-by-one <ArrowRight className="h-3 w-3" /></p>
+                            <p className="flex items-center gap-1.5 text-[11px] font-bold text-[#E91E63]"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E91E63] text-white text-[11px]">2</span> Correct = front <ArrowRight className="h-3 w-3" /></p>
                             <p className="mt-1 text-[11px] leading-relaxed text-text-muted">
-                              <span className="inline-flex items-center gap-1 font-medium text-text-primary"><MousePointer2 className="h-3 w-3 text-[#E91E63]" /> Click</span> any left card — it turns <span className="text-[#E91E63] font-medium">pink</span>. Then <span className="inline-flex items-center gap-1 font-medium text-text-primary"><MousePointer2 className="h-3 w-3 text-[#E91E63]" /> Click</span> its right match — pink dot connects. Or <span className="inline-flex items-center gap-1 font-medium"><Hand className="h-3 w-3" /> drag</span> left → drop on right.
+                              Example: A: <b>France</b> front-of <b>Paris</b>, A: <b>Japan</b> front-of <b>Tokyo</b>. No extra click needed — same line <span className="text-[#E91E63] font-medium">is the answer</span>. Mapping below just mirrors the lines.
                             </p>
                           </div>
                           <div className="rounded-xl border border-border bg-card px-3 py-2.5">
-                            <p className="flex items-center gap-1.5 text-[11px] font-bold text-text-primary"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white text-[11px]">3</span> Verify mapping</p>
-                            <p className="mt-1 text-[11px] leading-relaxed text-text-muted">Check <b className="text-text-primary">Correct Matches</b> below — every <span className="inline-flex h-2 w-2 rounded-full bg-amber-500 align-middle" /> amber needs a link. Use dropdown to fix, <Link2 className="inline h-3 w-3 text-[#E91E63]" /> = linked.</p>
+                            <p className="flex items-center gap-1.5 text-[11px] font-bold text-text-primary"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white text-[11px]">3</span> Students see shuffled</p>
+                            <p className="mt-1 text-[11px] leading-relaxed text-text-muted">Creator view stays line-wise. Student view shuffles <b className="text-text-primary">Column B</b> (and optionally A). Check <b className="text-text-primary">Correct Matches</b> below — amber means that row has no front match.</p>
                           </div>
                         </div>
-                        <p className="mt-2.5 flex items-center gap-1.5 text-[11px] text-text-muted"><Lightbulb className="h-3 w-3 text-amber-500" /> <span>Pink border = selected, Pink dot = connected, Emerald = mapped, Amber = needs mapping. Delete auto-removes its link.</span></p>
+                        <p className="mt-2.5 flex items-center gap-1.5 text-[11px] text-text-muted"><Lightbulb className="h-3 w-3 text-amber-500" /> <span>Tip: Keep pairs on the same line number. If you reorder, re-check Correct Matches. <Shuffle className="inline h-3 w-3" /> shuffle toggles do not break the line-wise answer.</span></p>
                       </div>
                       <button onClick={() => setShowCreatorHelp(false)} className="shrink-0 rounded-lg p-1 text-text-muted hover:bg-card-hover">
                         <X className="h-3.5 w-3.5" />
@@ -474,21 +508,16 @@ export function MatchFollowingEditor() {
                       return (
                         <div
                           key={item.id}
-                          draggable
-                          onDragStart={() => { setDraggedLeftId(item.id); setSelectedLeftId(item.id); }}
-                          onDragEnd={() => setDraggedLeftId(null)}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => { e.preventDefault(); const from = draggedLeftId; if (from && from !== item.id) reorderLeft(from, item.id); }}
                           onClick={() => setSelectedLeftId(item.id)}
                           className={cn(
-                            "group flex items-center gap-2 rounded-xl border px-2.5 py-2.5 transition-all duration-200",
-                            isSelected ? "border-[#E91E63]/30 bg-[#E91E63]/[0.06] shadow-[0_0_0_2px_rgba(233,30,99,0.08)]" : isMapped ? "border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-500/5" : "border-border bg-card hover:border-border"
+                            "group flex items-center gap-2 rounded-xl border px-2.5 py-2.5 transition-all duration-200 cursor-pointer",
+                            isSelected ? "border-[#E91E63]/30 bg-[#E91E63]/[0.06] shadow-[0_0_0_2px_rgba(233,30,99,0.08)]" : "border-border bg-card hover:border-border"
                           )}
                         >
-                          <span className="flex cursor-grab items-center text-text-muted hover:text-text-secondary">
-                            <GripVertical className="h-3.5 w-3.5" />
+                          <span className="flex items-center text-text-muted">
+                            <GripVertical className="h-3.5 w-3.5 opacity-30" />
                           </span>
-                          <span className={cn("flex h-6 min-w-7 items-center justify-center rounded-lg border text-[11px] font-bold tabular-nums", isMapped ? "border-emerald-500 bg-emerald-500 text-white" : isSelected ? "border-[#E91E63] bg-[#E91E63] text-white animate-pulse" : "border-border bg-card-hover text-text-primary")}>
+                          <span className={cn("flex h-6 min-w-7 items-center justify-center rounded-lg border text-[11px] font-bold tabular-nums", isSelected ? "border-[#E91E63] bg-[#E91E63] text-white animate-pulse" : "border-border bg-card-hover text-text-primary")}>
                             {pad(idx)}
                           </span>
                           <input
@@ -514,8 +543,10 @@ export function MatchFollowingEditor() {
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
-                          {/* pink connection dot */}
-                          <span className={cn("h-2 w-2 shrink-0 rounded-full transition-all", isMapped ? "bg-[#E91E63] shadow-[0_0_6px_rgba(233,30,99,0.6)] animate-pulse" : isSelected ? "bg-[#E91E63]/60" : "bg-border")} />
+                          {/* arrow indicator — same row maps to Column B */}
+                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#E91E63]/40" />
+                          {/* connection dot - no green, just pink when selected else neutral */}
+                          <span className={cn("h-2 w-2 shrink-0 rounded-full transition-all", isSelected ? "bg-[#E91E63]/60" : "bg-border")} />
                         </div>
                       );
                     })}
@@ -530,10 +561,10 @@ export function MatchFollowingEditor() {
                   <AnimatePresence>
                     {selectedLeftId ? (
                       <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="mt-2 flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-[#E91E63]">
-                        <MousePointer2 className="h-3 w-3" /> Left selected — now click any card in Column B to link (one-by-one)
+                        <MousePointer2 className="h-3 w-3" /> Row selected — correct answer is Column B on the same line
                       </motion.p>
                     ) : (
-                      <p className="mt-2 text-center text-[11px] text-text-muted">Click a left card first, then its right match — one pair at a time</p>
+                      <p className="mt-2 text-center text-[11px] text-text-muted">Tip: Keep pairs on the same row number — Row 01 A ↔ Row 01 B is the correct pair for students (B will be shuffled)</p>
                     )}
                   </AnimatePresence>
                 </div>
@@ -552,34 +583,27 @@ export function MatchFollowingEditor() {
                       const isTarget = Object.values(mapping).includes(item.id);
                       const isDropHover = connectHoverRight === item.id;
                       const isMapped = isTarget;
-                      const isAwaiting = !!selectedLeftId && !isMapped;
                       return (
                         <div
                           key={item.id}
-                          draggable
-                          onDragStart={(e) => e.preventDefault()}
-                          onDragOver={(e) => { e.preventDefault(); setConnectHoverRight(item.id); }}
-                          onDragLeave={() => setConnectHoverRight(null)}
-                          onDrop={(e) => { e.preventDefault(); setConnectHoverRight(null); handleDropMapping(item.id); }}
                           onClick={() => {
                             if (selectedLeftId) handleDropMapping(item.id);
-                            else if (draggedLeftId) handleDropMapping(item.id);
                           }}
                           className={cn(
-                            "group flex items-center gap-2 rounded-xl border px-2.5 py-2.5 transition-all duration-200",
-                            isDropHover ? "border-[#E91E63] bg-[#E91E63]/10 scale-[1.01] shadow-[0_0_0_3px_rgba(233,30,99,0.12)]" : isMapped ? "border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-500/5" : isAwaiting ? "border-[#E91E63]/40 bg-[#E91E63]/[0.05] hover:border-[#E91E63] animate-pulse" : "border-border bg-card hover:border-border"
+                            "group flex items-center gap-2 rounded-xl border px-2.5 py-2.5 transition-all duration-200 cursor-pointer",
+                            isDropHover ? "border-[#E91E63] bg-[#E91E63]/10 scale-[1.01] shadow-[0_0_0_3px_rgba(233,30,99,0.12)]" : "border-border bg-card hover:border-border"
                           )}
                         >
-                          <span className="flex cursor-grab items-center text-text-muted">
-                            <GripVertical className="h-3.5 w-3.5" />
+                          <span className="flex items-center text-text-muted">
+                            <GripVertical className="h-3.5 w-3.5 opacity-30" />
                           </span>
-                          <span className={cn("flex h-6 min-w-7 items-center justify-center rounded-lg border text-[11px] font-bold", isMapped ? "border-emerald-500 bg-emerald-500 text-white" : isAwaiting ? "border-[#E91E63] bg-[#E91E63] text-white animate-pulse" : "border-border bg-card-hover text-text-primary")}>
+                          <span className={cn("flex h-6 min-w-7 items-center justify-center rounded-lg border text-[11px] font-bold", "border-border bg-card-hover text-text-primary")}>
                             {ALPHA[idx] ?? String(idx + 1)}
                           </span>
                           <input
                             value={item.content}
                             onChange={(e) => updateRight(item.id, e.target.value)}
-                            placeholder={isAwaiting ? `Click to link →` : `Match ${ALPHA[idx] ?? idx + 1}`}
+                            placeholder={`Match ${ALPHA[idx] ?? idx + 1}`}
                             className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
                             onClick={(e) => e.stopPropagation()}
                           />
@@ -598,7 +622,7 @@ export function MatchFollowingEditor() {
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
-                          <span className={cn("h-2 w-2 shrink-0 rounded-full", isMapped ? "bg-emerald-500" : "bg-border")} />
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-border" />
                         </div>
                       );
                     })}
@@ -613,102 +637,6 @@ export function MatchFollowingEditor() {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Correct Answer Mapping */}
-          {!isEmpty && (
-            <div className="overflow-hidden rounded-2xl border border-border bg-background">
-              <div className="px-4 py-3 sm:px-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-text-primary">Correct Matches</h3>
-                  <span className={cn("text-xs font-medium", Object.keys(mapping).length === left.length ? "text-emerald-600" : "text-amber-600")}>{Object.keys(mapping).length} / {left.length} mapped</span>
-                </div>
-                <p className="mt-1 text-xs text-text-muted">Verify one-by-one pairing — each left row needs exactly one right match. <b className="text-text-primary">Click left → click right</b> above, or pick via dropdown here. Pink = linked, amber = pending.</p>
-              </div>
-
-              <div className="border-t border-border">
-                {/* header row */}
-                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 bg-card px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
-                  <span>Item</span>
-                  <span className="text-center">→</span>
-                  <span>Correct Match</span>
-                </div>
-
-                <div className="divide-y divide-border">
-                  {left.map((l, idx) => {
-                    const mapped = mapping[l.id];
-                    const isUnmapped = !mapped;
-                    return (
-                      <div key={l.id} className={cn("grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2.5", isUnmapped && "bg-amber-50/50 dark:bg-amber-500/5")}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-card-hover border border-border text-[11px] font-bold text-text-primary">{pad(idx)}</span>
-                          <span className="truncate text-sm font-medium text-text-primary">{l.content || <span className="text-text-muted italic">Empty</span>}</span>
-                          {isUnmapped && <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />}
-                        </div>
-                        <div className="flex justify-center">
-                          {mapped ? (
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#E91E63] text-white shadow-[0_0_8px_rgba(233,30,99,0.4)]">
-                              <Link2 className="h-3 w-3" />
-                            </span>
-                          ) : (
-                            <span className="h-px w-6 bg-border" />
-                          )}
-                        </div>
-                        <div className="relative">
-                          <select
-                            value={mapped ?? ""}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              if (!v) {
-                                const nm = { ...mapping }; delete nm[l.id]; update({ matchMapping: nm });
-                              } else update({ matchMapping: { ...mapping, [l.id]: v } });
-                            }}
-                            className="h-8 w-full rounded-lg border border-border bg-card px-2 pr-7 text-xs text-text-primary focus:outline-none focus:border-[#E91E63]/40"
-                          >
-                            <option value="">Select match…</option>
-                            {right.map((r, i) => (
-                              <option key={r.id} value={r.id}>{ALPHA[i]} · {r.content || "Empty"}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {needsMappingWarn && (
-                  <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-500/10 px-4 py-2.5 text-xs text-amber-700 dark:text-amber-400 border-t border-amber-200/50">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    <span>⚠️ {left.filter((l) => !mapping[l.id]).length} item(s) still need a correct match.</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Matching Behaviour */}
-          <div className="overflow-hidden rounded-2xl border border-border bg-background">
-            <div className="px-4 py-3 sm:px-5 border-b border-border flex items-center gap-2">
-              <Shuffle className="h-3.5 w-3.5 text-text-muted" />
-              <h3 className="text-sm font-semibold text-text-primary">Matching Behaviour</h3>
-            </div>
-            <div className="divide-y divide-border">
-              <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-5">
-                <div>
-                  <p className="text-sm font-medium text-text-primary">Shuffle Column B</p>
-                  <p className="text-xs text-text-muted">Randomize the right-side options for students.</p>
-                </div>
-                <Toggle enabled={!!q.shuffleColumnB} onToggle={() => update({ shuffleColumnB: !q.shuffleColumnB })} />
-              </div>
-              <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-5">
-                <div>
-                  <p className="text-sm font-medium text-text-primary">Shuffle Column A</p>
-                  <p className="text-xs text-text-muted">Randomize the left-side items for students.</p>
-                </div>
-                <Toggle enabled={!!q.shuffleColumnA} onToggle={() => update({ shuffleColumnA: !q.shuffleColumnA })} />
-              </div>
-            </div>
-            <p className="px-4 py-2.5 text-[11px] leading-relaxed text-text-muted bg-card">Correct mapping remains intact even when options are shuffled for students.</p>
           </div>
 
           {/* Preview button prominent */}
@@ -802,31 +730,19 @@ export function MatchFollowingEditor() {
                       )}
                     </div>
 
-                    {/* Student Interaction */}
+                    {/* Student Interaction — tap only (drag removed) */}
                     <div>
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted">Student Interaction</h4>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {[
-                          { id: "drag", label: "Drag & drop" },
-                          { id: "click", label: "Click to match" },
-                          { id: "both", label: "Both" },
-                        ].map((opt) => {
-                          const active = (q.interactionMode ?? "both") === opt.id;
-                          return (
-                            <button
-                              key={opt.id}
-                              onClick={() => update({ interactionMode: opt.id as any })}
-                              className={cn(
-                                "rounded-xl border px-4 py-2 text-xs font-medium transition-colors",
-                                active ? "border-[#E91E63] bg-[#E91E63] text-white" : "border-border bg-card text-text-secondary hover:bg-card-hover"
-                              )}
-                            >
-                              {opt.label}
-                            </button>
-                          );
-                        })}
+                        <button
+                          onClick={() => update({ interactionMode: "click" as any })}
+                          className="rounded-xl border px-4 py-2 text-xs font-medium border-[#E91E63] bg-[#E91E63] text-white"
+                        >
+                          Tap to pair
+                        </button>
+                        <span className="inline-flex items-center px-3 py-1 text-[11px] text-text-muted">Tap Column A → Tap Column B (same row = correct, B shuffled for students)</span>
                       </div>
-                      <p className="mt-2 text-[11px] text-text-muted">Default: Both — students can drag or click to connect.</p>
+                      <p className="mt-2 text-[11px] text-text-muted">Students tap to pair — no drag. Blue highlight only when all pairs correctly matched.</p>
                     </div>
 
                     {/* Feedback */}
@@ -861,22 +777,33 @@ export function MatchFollowingEditor() {
             </AnimatePresence>
           </div>
 
-          {/* Question-specific game mechanics moved to dedicated Game Mechanics page */}
-          <div className="rounded-xl border border-dashed border-border bg-card px-4 py-3 flex items-center justify-between">
-            <p className="text-xs text-text-muted">
-              <span className="font-medium text-text-primary">🎮 Game Mechanics</span> — lifelines & power-ups are now quiz-wide.
-            </p>
-            <a href={state.serverQuizId ? `/creator/quizzes/${state.serverQuizId}/game-mechanics` : "#"} className="text-xs font-medium text-[#E91E63] hover:underline">
-              Configure →
-            </a>
-          </div>
-
           <p className="text-center text-[11px] text-text-muted">Question {activeIdx + 1} · {pairCount} pairs · Marks {q.marks} · {q.difficulty}</p>
         </div>
       </div>
 
       {/* Student preview */}
       <MatchingStudentPreview open={previewOpen} onClose={() => setPreviewOpen(false)} question={q} />
+      {pendingType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setPendingType(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/20">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-text-primary">Change question type?</h3>
+                <p className="mt-1 text-xs leading-relaxed text-text-muted">
+                  You have written data for <span className="font-semibold text-text-primary">Match</span>. Switching to <span className="font-semibold text-[#E91E63]">{pendingType?.replace("_", " ")}</span> will remove existing matching pairs / correct answer. <span className="font-medium">Kyoki phir options type etc mei dikkat ho jayega.</span>
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setPendingType(null)} className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium hover:bg-card-hover">Cancel</button>
+              <button type="button" onClick={() => doSwitchType(pendingType)} className="rounded-lg bg-[#E91E63] px-4 py-2 text-xs font-semibold text-white hover:bg-[#D81B60]">Continue, remove data</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

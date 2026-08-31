@@ -286,4 +286,28 @@ export class QuizService {
   async getQuizParticipants(quizId: string | number): Promise<any[]> {
     return this.repository.getQuizParticipants(Number(quizId));
   }
+
+  async getQuizGameConfig(quizId: number): Promise<any> {
+    return this.repository.getQuizGameConfig(quizId);
+  }
+
+  async upsertQuizGameConfig(
+    quizId: number,
+    data: {
+      enabled: boolean;
+      movementEnabled: boolean;
+      movementSpeed: number;
+      lives: number;
+      pointsEnabled: boolean;
+      powerupsEnabled: boolean;
+      respawnEnabled: boolean;
+      damageEnabled: boolean;
+    }
+  ): Promise<any> {
+    return this.repository.upsertQuizGameConfig(quizId, data);
+  }
+
+  getDefaultGameConfig(quizId: number): any {
+    return this.repository.getDefaultGameConfig(quizId);
+  }
 }

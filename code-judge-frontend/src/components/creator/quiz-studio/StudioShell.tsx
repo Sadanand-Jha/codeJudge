@@ -32,11 +32,11 @@ export function StudioHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background px-4">
-      <button onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors">
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 sm:gap-3 border-b border-border bg-background px-2 sm:px-4 min-w-0 overflow-hidden">
+      <button onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors">
         <ArrowLeft className="h-4 w-4" />
       </button>
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
         {editing ? (
           <input
             autoFocus
@@ -47,34 +47,34 @@ export function StudioHeader() {
               if (e.key === "Enter") commit();
               if (e.key === "Escape") setEditing(false);
             }}
-            className="min-w-[160px] rounded border border-border bg-input-bg px-2 py-1 text-sm font-semibold text-text-primary outline-none"
+            className="min-w-[120px] max-w-[40vw] sm:min-w-[160px] rounded border border-border bg-input-bg px-2 py-1 text-sm font-semibold text-text-primary outline-none flex-1"
           />
         ) : (
-          <button onClick={() => setEditing(true)} className="truncate text-left font-['Inter'] text-sm font-semibold text-text-primary">
+          <button onClick={() => setEditing(true)} className="truncate text-left font-['Inter'] text-sm font-semibold text-text-primary min-w-0 max-w-[36vw] sm:max-w-none">
             {label}
           </button>
         )}
-        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
+        <span className="inline-flex shrink-0 items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 sm:px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
           DRAFT
         </span>
       </div>
 
-      <div className="hidden items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 sm:flex ml-3 border-l border-border pl-3">
+      <div className="hidden items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 sm:flex ml-1 sm:ml-3 border-l border-border pl-2 sm:pl-3 shrink-0">
         {status === "saving" ? (
           <span className="flex items-center gap-1 text-text-muted"><Loader2 className="h-3 w-3 animate-spin" />Saving…</span>
         ) : status === "saved" && lastSaved ? (
           <>
             <Check className="h-3.5 w-3.5" />
-            <span>Saved</span>
+            <span className="hidden lg:inline">Saved</span>
           </>
         ) : null}
       </div>
 
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
         {state.step === "questions" && (
-          <div className="hidden items-center gap-2 sm:flex">
-            <span className="font-['Inter'] text-xs font-medium text-text-secondary">{topCounter}</span>
-            <div className="h-1.5 w-20 overflow-hidden rounded-full bg-border">
+          <div className="hidden items-center gap-2 lg:flex">
+            <span className="font-['Inter'] text-xs font-medium text-text-secondary whitespace-nowrap">{topCounter}</span>
+            <div className="h-1.5 w-16 xl:w-20 overflow-hidden rounded-full bg-border">
               <div className="h-full bg-[#E91E63] rounded-full transition-all" style={{ width: `${Math.max(8, Math.min(100, progress))}%` }} />
             </div>
           </div>
@@ -106,9 +106,9 @@ export function StudioStepper() {
   const display = steps.map((s, i) => ({ id: s.id, label: labels[i] ?? s.label }));
 
   return (
-    <div className="shrink-0 border-b border-border bg-background">
+    <div className="shrink-0 border-b border-border bg-background overflow-hidden">
       <nav
-        className="flex items-center justify-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex items-center gap-2 overflow-x-auto px-2 sm:px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x"
         aria-label="Quiz creation steps"
       >
         {display.map((step, i) => {
@@ -302,7 +302,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   }, [title]);
 
   return (
-    <div data-studio="true" className="flex flex-1 min-h-0 flex-col bg-background text-foreground font-['Inter']">
+    <div data-studio="true" className="flex flex-1 min-h-0 flex-col bg-background text-foreground font-['Inter'] min-w-0 overflow-hidden">
       <StudioHeader />
       <StudioStepper />
       <AnimatePresence mode="wait">
@@ -312,10 +312,10 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          className="flex-1 min-h-0 flex flex-col bg-background"
+          className="flex-1 min-h-0 flex flex-col bg-background min-w-0 overflow-hidden"
         >
           <div
-            className="mx-auto flex flex-1 min-h-0 w-full max-w-[1600px] flex-col overflow-y-auto p-3"
+            className="mx-auto flex flex-1 min-h-0 w-full max-w-[1600px] flex-col overflow-y-auto overflow-x-hidden p-2 sm:p-3 min-w-0"
           >
             {children}
           </div>

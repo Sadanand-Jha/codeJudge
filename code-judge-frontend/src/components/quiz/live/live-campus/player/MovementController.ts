@@ -1,6 +1,7 @@
 "use client";
 import { Direction, AnimState, PLAYER_SPEED } from "../types";
 import { slideMove } from "../world/CollisionSystem";
+import type { QuizGameConfig } from "@/services/quiz";
 
 export interface MovementState {
   x:number; y:number; dir:Direction; anim:AnimState; moving:boolean;
@@ -10,11 +11,34 @@ export class MovementController {
   private keys = new Set<string>();
   private lastSent = 0;
   private sendThrottleMs = 85; // ~12 Hz
+  // Game config is the source of truth — do NOT hardcode MOVEMENT_SPEED here.
+  private gameConfig: QuizGameConfig | null = null;
   constructor(
     private getPos: ()=>{x:number,y:number},
     private setPos: (x:number,y:number,dir:Direction,anim:AnimState)=>void,
     private onSend: (payload:{x:number,y:number,dir:Direction,anim:AnimState})=>void,
-  ){}
+    config?: QuizGameConfig | null,
+  ){
+    if (config) this.gameConfig = config;
+  }
+
+  setGameConfig(cfg: QuizGameConfig | null) {
+    this.gameConfig = cfg;
+  }
+
+  private get effectiveSpeed(): number {
+    if (this.gameConfig) {
+      if (!this.gameConfig.movementEnabled) return 0;
+      // movementSpeed is 5 by default -> 220 px/s (PLAYER_SPEED). Scale linearly.
+      return (this.gameConfig.movementSpeed / 5) * PLAYER_SPEED;
+    }
+    return PLAYER_SPEED;
+  }
+
+  private get movementAllowed(): boolean {
+    if (this.gameConfig && !this.gameConfig.movementEnabled) return false;
+    return true;
+  }
 
   attach(){
     const onDown = (e:KeyboardEvent)=>{
@@ -60,6 +84,13 @@ export class MovementController {
 
   update(dt:number){
     const pos = this.getPos();
+    // If movement is disabled via persisted config, ignore input
+    if (!this.movementAllowed) {
+      const cur = pos as any;
+      const dir = (cur.dir as Direction) || "down";
+      this.setPos(pos.x, pos.y, dir, "idle");
+      return {x:pos.x, y:pos.y, dir, anim:"idle" as AnimState, moving:false};
+    }
     let dx=0, dy=0;
     if (this.keys.has("up")||this.keys.has("joy-up")) dy -=1;
     if (this.keys.has("down")||this.keys.has("joy-down")) dy +=1;
@@ -78,8 +109,9 @@ export class MovementController {
       const cur = pos as any;
       dir = (cur.dir as Direction) || "down";
     }
-    let nx = pos.x + dx * PLAYER_SPEED * dt;
-    let ny = pos.y + dy * PLAYER_SPEED * dt;
+    const speed = this.effectiveSpeed;
+    let nx = pos.x + dx * speed * dt;
+    let ny = pos.y + dy * speed * dt;
     if (moving){
       const res = slideMove(pos.x, pos.y, nx - pos.x, ny - pos.y);
       nx = res.x; ny = res.y;

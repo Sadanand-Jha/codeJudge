@@ -173,7 +173,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                       let labelBorder = "border-border";
 
                       if (isAnswered) {
-                        if (isThisCorrect) {
+                        if (isSelected && isThisCorrect) {
                           borderColor = "border-emerald-400";
                           bgColor = "bg-emerald-50 dark:bg-emerald-500/10";
                           labelColor = "text-emerald-600 dark:text-emerald-400";
@@ -211,12 +211,12 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                               labelBorder,
                               labelColor
                             )}>
-                              {isAnswered && isThisCorrect ? <CheckCircle2 className="h-4 w-4" /> :
+                              {isAnswered && isSelected && isThisCorrect ? <CheckCircle2 className="h-4 w-4" /> :
                                isAnswered && isSelected && !isThisCorrect ? <XCircle className="h-4 w-4" /> :
                                optionLabels[idx]}
                             </span>
                             <span className="text-sm sm:text-base text-text-primary">{opt.content}</span>
-                            {isAnswered && isThisCorrect && (
+                            {isAnswered && isSelected && isThisCorrect && (
                               <span className="ml-auto shrink-0 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                                 Correct! Well done! 🎉
                               </span>
@@ -280,6 +280,39 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                       placeholder="Enter expected output..."
                       className="w-full resize-none bg-transparent text-sm font-mono text-text-muted placeholder:text-text-muted focus:outline-none"
                     />
+                  </div>
+                )}
+
+                {/* Matching — show Column A and Column B side by side so the creator
+                    can verify the pairs. Students will see Column B shuffled. */}
+                {q.type === "match_following" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Column A · Items</p>
+                      <div className="space-y-2">
+                        {(q.matchItems ?? []).map((item, idx) => (
+                          <div key={item.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-border bg-card-hover text-[11px] font-bold text-text-primary">
+                              {String(idx + 1).padStart(2, "0")}
+                            </span>
+                            <span className="text-sm text-text-primary">{item.content || <span className="text-text-muted italic">Empty</span>}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Column B · Matches</p>
+                      <div className="space-y-2">
+                        {(q.matchMatches ?? []).map((item, idx) => (
+                          <div key={item.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-border bg-card-hover text-[11px] font-bold text-text-primary">
+                              {["A","B","C","D","E","F","G","H","I","J"][idx] ?? String(idx + 1)}
+                            </span>
+                            <span className="text-sm text-text-primary">{item.content || <span className="text-text-muted italic">Empty</span>}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

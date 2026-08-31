@@ -392,13 +392,13 @@ function WaitingRoomPageInner({
         </div>
       </div>
 
-      {viewMode==="real" ? (
-        <div className="relative z-20 flex-1 min-h-0">
-          <LiveCampus quizId={quizCode} quizName={quiz.name} startsIn={remainingTime} totalCapacity={40} />
-        </div>
-      ) : (
+      {/* Top-down is present everywhere: LiveCampus is always mounted behind, mechanics 0 when disabled still shows world */}
+      <div className="relative z-20 flex-1 min-h-0">
+        <LiveCampus quizId={quizCode} quizName={quiz.name} startsIn={remainingTime} totalCapacity={40} />
+      </div>
+      {viewMode!=="real" && (
         <>
-      {/* Centered Header */}
+      {/* Centered Header (overlay on top of LiveCampus when not in real mode) */}
       <div className="relative z-20 flex flex-col items-center text-center pt-6 pb-4 px-4">
         <motion.div
           initial={{ opacity: 0, y: -10 }}

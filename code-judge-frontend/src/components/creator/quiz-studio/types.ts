@@ -352,7 +352,7 @@ export const createMatchQuestion = (id: string): CreatorQuestion => {
   return {
     id,
     type: "match_following",
-    title: "Match each data structure with its primary use case.",
+    title: "Match the following",
     options: [
       { id: `${id}_a`, label: "A", content: "", isCorrect: false },
       { id: `${id}_b`, label: "B", content: "", isCorrect: false },
@@ -376,23 +376,18 @@ export const createMatchQuestion = (id: string): CreatorQuestion => {
     updatedAt: new Date().toISOString(),
     serverId: undefined,
     matchItems: [
-      { id: li1, content: "Stack" },
-      { id: li2, content: "Queue" },
-      { id: li3, content: "Hash Table" },
-      { id: li4, content: "Graph" },
+      { id: li1, content: "" },
+      { id: li2, content: "" },
+      { id: li3, content: "" },
+      { id: li4, content: "" },
     ],
     matchMatches: [
-      { id: ri1, content: "LIFO" },
-      { id: ri2, content: "FIFO" },
-      { id: ri3, content: "Key-value lookup" },
-      { id: ri4, content: "Connected relationships" },
+      { id: ri1, content: "" },
+      { id: ri2, content: "" },
+      { id: ri3, content: "" },
+      { id: ri4, content: "" },
     ],
-    matchMapping: {
-      [li1]: ri1,
-      [li2]: ri2,
-      [li3]: ri3,
-      [li4]: ri4,
-    },
+    matchMapping: {},
     shuffleColumnA: true,
     shuffleColumnB: true,
     partialMarking: false,
@@ -442,6 +437,6 @@ export const QUESTION_TYPE_META: Array<{
   { id: "multiple_choice", label: "Multiple Choice", description: "One or more correct" },
   { id: "true_false", label: "True / False", description: "Boolean selector" },
   { id: "fill_blanks", label: "Fill in the Blank", description: "Blank(s) to fill" },
-  { id: "text", label: "Short Answer", description: "One-line text" },
+  // short answer (text) removed for now — keep type in backend but hide in creator
   { id: "match_following", label: "Match the Following", description: "Connect pairs" },
 ];

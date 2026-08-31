@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
-import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, cloneQuizSchema, joinQuizSchema } from "../../../middleware/validate.ts";
+import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema } from "../../../middleware/validate.ts";
 import {
   getAllQuizzes,
   getQuizById,
@@ -46,6 +46,8 @@ import {
   getQuizParticipantsController,
   generateQuizCodeEndpoint,
   saveQuizProblemFull,
+  getQuizGameConfig,
+  upsertQuizGameConfig,
 } from "../../../controllers/quiz.controller.ts";
 const router = Router();
 
@@ -94,6 +96,13 @@ router.get("/collaborations", getMyCollaborations);
 
 // PATCH /api/v1/user/quiz/collaborator-requests/:quizId — accept/reject an incoming request (recipient only)
 router.patch("/collaborator-requests/:quizId", respondToCollaboratorRequest);
+
+// ==================== GAME CONFIG (persisted via quiz_game_config) ====================
+// Must be defined before the generic /:quizId handler for clarity
+// GET /api/v1/user/quiz/:quizId/game-config — get persisted game config or defaults
+router.get("/:quizId/game-config", getQuizGameConfig);
+// PUT /api/v1/user/quiz/:quizId/game-config — upsert (only owner/collaborator)
+router.put("/:quizId/game-config", validate(quizGameConfigSchema), upsertQuizGameConfig);
 
 // GET /api/v1/user/quiz/:quizId — get a single quiz
 router.get("/:quizId", getQuizById);

@@ -2167,3 +2167,113 @@ export const getQuizParticipantsController = async (req: Request, res: Response)
     });
   }
 };
+
+// ==================== QUIZ GAME CONFIG ====================
+
+/**
+ * GET /api/v1/user/quiz/:quizId/game-config
+ * Also served at /api/quizzes/:quizId/game-config
+ * Returns persisted game config or defaults if none exists.
+ * Auth required; follows existing quiz access rules (quiz must exist).
+ */
+export const getQuizGameConfig = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+    // Read follows existing quiz access rules — any authenticated user who can view the quiz may read config.
+    // Owner/collaborator check not required for reads, but quiz existence + auth is mandatory.
+    const config = await quizService.getQuizGameConfig(Number(quizId));
+    res.status(200).json({ success: true, data: config });
+  } catch (error) {
+    console.error("Error fetching quiz game config:", error);
+    res.status(500).json({ success: false, message: "Internal server error while fetching game config" });
+  }
+};
+
+/**
+ * PUT /api/v1/user/quiz/:quizId/game-config
+ * Upsert with validation. Only quiz owner / accepted collaborator may write.
+ */
+export const upsertQuizGameConfig = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+    const isOwner = quiz.createdby === Number(userId);
+    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), Number(quizId));
+    if (!isOwner && !isCollaborator) {
+      res.status(403).json({ success: false, message: "You are not authorized to update this quiz configuration" });
+      return;
+    }
+
+    const {
+      enabled,
+      movementEnabled,
+      movementSpeed,
+      lives,
+      pointsEnabled,
+      powerupsEnabled,
+      respawnEnabled,
+      damageEnabled,
+    } = req.body;
+
+    // Strict type validation (middleware also validates via zod, double-check for direct calls)
+    if (
+      typeof enabled !== "boolean" ||
+      typeof movementEnabled !== "boolean" ||
+      typeof pointsEnabled !== "boolean" ||
+      typeof powerupsEnabled !== "boolean" ||
+      typeof respawnEnabled !== "boolean" ||
+      typeof damageEnabled !== "boolean"
+    ) {
+      res.status(400).json({ success: false, message: "Boolean fields must be booleans" });
+      return;
+    }
+    if (typeof movementSpeed !== "number" || !Number.isInteger(movementSpeed) || movementSpeed <= 0) {
+      res.status(400).json({ success: false, message: "movementSpeed must be an integer > 0" });
+      return;
+    }
+    if (typeof lives !== "number" || !Number.isInteger(lives) || lives < 0) {
+      res.status(400).json({ success: false, message: "lives must be an integer >= 0" });
+      return;
+    }
+
+    const config = await quizService.upsertQuizGameConfig(Number(quizId), {
+      enabled,
+      movementEnabled,
+      movementSpeed,
+      lives,
+      pointsEnabled,
+      powerupsEnabled,
+      respawnEnabled,
+      damageEnabled,
+    });
+
+    res.status(200).json({ success: true, data: config });
+  } catch (error: any) {
+    // DB constraint violations should not leak internals
+    if (error?.code === "23514") {
+      res.status(400).json({ success: false, message: "Invalid game config values" });
+      return;
+    }
+    console.error("Error upserting quiz game config:", error);
+    res.status(500).json({ success: false, message: "Internal server error while saving game config" });
+  }
+};

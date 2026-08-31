@@ -23,7 +23,7 @@ import {
   type Quiz,
   type QuizProblemWithOptions,
 } from "@/services/quiz";
-import { syncQuizQuestions } from "@/utils/quizQuestionSync";
+import { syncQuizQuestions, computeChangedQuestions, buildQuestionSnapshot } from "@/utils/quizQuestionSync";
 import { useRoomStore } from "@/store/roomStore";
 import {
   type StudioState,
@@ -42,7 +42,7 @@ import {
   DEFAULT_GAME_MECHANICS_STATE,
   createEmptyQuestion,
 } from "./types";
-import { DEFAULT_GAME_MECHANICS } from "./types/gameMechanics";
+import { DEFAULT_GAME_MECHANICS, normalizeGameMechanics, zeroAllMechanics } from "./types/gameMechanics";
 
 const STORAGE_KEY = "studio_quiz_draft";
 const GAME_MECHANICS_STORAGE_PREFIX = "studio_game_mechanics_";
@@ -54,6 +54,12 @@ export function isQuestionValidationError(err: unknown): boolean {
   return err instanceof Error && err.message === QUESTION_VALIDATION_FAILED;
 }
 
+/**
+ * Reverse mapping: backend numeric type IDs → frontend string types.
+ * Used when loading a quiz from the server to convert `quiz_problem_type`
+ * back to the `CreatorQuestionType` union used by the editor.
+ * Must stay in sync with TYPE_TO_NUMBER in quizQuestionSync.ts.
+ */
 const BACKEND_TYPE_MAP: Record<number, CreatorQuestionType> = {
   1: "single_choice",
   2: "multiple_choice",
@@ -85,8 +91,80 @@ function mapBackendProblem(
 
   let options: CreatorOption[];
   let correctAnswer: string | number | number[];
+  let matchItems: any = undefined;
+  let matchMatches: any = undefined;
+  let matchMapping: any = undefined;
 
-  if (isChoiceType && p.options && p.options.length > 0) {
+  if (type === "match_following") {
+    // New storage: per-pair rows where option_statement = Column A, matching_target = Column B (type 12)
+    // Fallback: old storage where a single option holds JSON payload
+    const opts = p.options ?? [];
+    // Try legacy JSON decode
+    if (opts.length === 1 && typeof opts[0]?.option_statement === "string") {
+      const raw = opts[0].option_statement.trim();
+      if (raw.startsWith("{") && raw.includes("matchItems")) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed.matchItems && parsed.matchMatches) {
+            matchItems = parsed.matchItems;
+            matchMatches = parsed.matchMatches;
+            matchMapping = parsed.matchMapping ?? {};
+          }
+        } catch {}
+      }
+    }
+    if (!matchItems) {
+      // New per-pair rows
+      if (opts.length > 0 && opts.some((o: any) => (o as any).matching_target != null || (o as any).matchingTarget != null)) {
+        matchItems = opts.map((o: any, i: number) => ({
+          id: `server_${p.id}_left_${i}_${o.id}`,
+          content: o.option_statement ?? "",
+          imageUrl: undefined,
+        }));
+        matchMatches = opts.map((o: any, i: number) => ({
+          id: `server_${p.id}_right_${i}_${o.id}`,
+          content: (o as any).matching_target ?? (o as any).matchingTarget ?? o.option_description ?? "",
+          imageUrl: undefined,
+        }));
+        matchMapping = {};
+        matchItems.forEach((l: any, i: number) => {
+          const r = matchMatches[i];
+          if (r) matchMapping[l.id] = r.id;
+        });
+      } else if (opts.length > 0) {
+        // No matching_target yet — treat as left only (right empty) for migration
+        matchItems = opts.map((o: any, i: number) => ({
+          id: `server_${p.id}_left_${i}_${o.id}`,
+          content: o.option_statement ?? "",
+        }));
+        matchMatches = opts.map((o: any, i: number) => ({
+          id: `server_${p.id}_right_${i}_${o.id}`,
+          content: o.option_description ?? "",
+        }));
+        matchMapping = {};
+        matchItems.forEach((l: any, i: number) => {
+          if (matchMatches[i]) matchMapping[l.id] = matchMatches[i].id;
+        });
+      }
+    }
+    // Fallback defaults if still empty
+    if (!matchItems || matchItems.length === 0) {
+      matchItems = [
+        { id: `server_${p.id}_left_0`, content: "" },
+        { id: `server_${p.id}_left_1`, content: "" },
+      ];
+      matchMatches = [
+        { id: `server_${p.id}_right_0`, content: "" },
+        { id: `server_${p.id}_right_1`, content: "" },
+      ];
+      matchMapping = {};
+    }
+    options = [
+      { id: `${p.id}_a`, label: "A", content: "", isCorrect: false },
+      { id: `${p.id}_b`, label: "B", content: "", isCorrect: false },
+    ];
+    correctAnswer = -1 as any;
+  } else if (isChoiceType && p.options && p.options.length > 0) {
     options = p.options.map((o, i) => ({
       id: String(o.id),
       label: String.fromCharCode(65 + i),
@@ -100,6 +178,18 @@ function mapBackendProblem(
         : correctOpts[0]
         ? correctOpts[0].id
         : -1;
+  } else if (type === "fill_blanks") {
+    // For type 6, correct answers are stored in matching_target column
+    const opts = p.options ?? [];
+    // Collect all matching_target values; fallback to option_statement for legacy rows
+    const targets = opts
+      .map((o: any) => (o.matching_target ?? o.matchingTarget ?? o.option_statement ?? "").toString().trim())
+      .filter(Boolean);
+    const answer = targets.length > 1 ? targets.join(", ") : targets[0] ?? opts[0]?.option_statement ?? "";
+    correctAnswer = answer;
+    options = [
+      { id: `${p.id}_answer`, label: "A", content: answer, isCorrect: true },
+    ];
   } else {
     const answer = p.options?.[0]?.option_statement ?? "";
     correctAnswer = answer;
@@ -112,7 +202,7 @@ function mapBackendProblem(
   const diffKey =
     diffName.charAt(0).toUpperCase() + diffName.slice(1).toLowerCase();
 
-  return {
+  const base: any = {
     id: `server_${p.id}`,
     type,
     title: p.problem_statement ?? "",
@@ -136,6 +226,14 @@ function mapBackendProblem(
     updatedAt: p.updated_at ?? new Date().toISOString(),
     serverId: p.id,
   };
+  if (type === "match_following" && matchItems) {
+    base.matchItems = matchItems;
+    base.matchMatches = matchMatches;
+    base.matchMapping = matchMapping;
+    base.shuffleColumnA = true;
+    base.shuffleColumnB = true;
+  }
+  return base;
 }
 
 function mapQuizToStudioInfo(quiz: Quiz & { subject_name?: string; exam_cat_name?: string }): StudioState["info"] {
@@ -196,6 +294,7 @@ interface StudioContextValue {
   updatePricing: (p: Partial<StudioState["pricing"]>) => void;
   updateBranding: (p: Partial<StudioState["branding"]>) => void;
   updateGameMechanics: (patch: Partial<GameMechanicsConfig> | ((prev: GameMechanicsConfig) => GameMechanicsConfig)) => void;
+  setGameMechanicsEnabled: (enabled: boolean) => void;
   updateQuestion: (id: string, patch: Partial<CreatorQuestion>) => void;
   addQuestion: () => Promise<string>;
   importQuestions: (questions: CreatorQuestion[]) => void;
@@ -211,6 +310,8 @@ interface StudioContextValue {
   publish: () => void;
   saveToServer: (opts?: { publish?: boolean }) => Promise<{ quizId: string; code: string }>;
   savingToServer: boolean;
+  /** Progress of the current save: { saved, total } while saving, null otherwise */
+  saveProgress: { saved: number; total: number } | null;
   loading: boolean;
   loadError: string | null;
   editMode: boolean;
@@ -294,6 +395,13 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   const [loading, setLoading] = useState(editMode && !!initialQuizId);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  /**
+   * Snapshot of question content hashes captured when questions are loaded from
+   * the server. Used on save to diff against current state — only questions whose
+   * content has actually changed (or are newly added) get sent to the backend.
+   */
+  const snapshotRef = useRef<Map<string, string>>(new Map());
+
   useEffect(() => {
     if (!editMode || !initialQuizId) return;
     let cancelled = false;
@@ -304,6 +412,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         const info = mapQuizToStudioInfo(quiz);
         const settings = mapQuizToStudioSettings(quiz);
         const questions = problems.map((p, i) => mapBackendProblem(p, i));
+        // Capture content hashes for change detection on future saves
+        snapshotRef.current = buildQuestionSnapshot(questions);
         setState((s) => ({
           ...s,
           info: { ...DEFAULT_QUIZ_INFO, ...info },
@@ -377,9 +487,18 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   const updateBranding = (p: Partial<StudioState["branding"]>) =>
     setState((s) => ({ ...s, branding: { ...s.branding, ...p } }));
   const updateGameMechanics = (patch: Partial<GameMechanicsConfig> | ((prev: GameMechanicsConfig) => GameMechanicsConfig)) =>
+    setState((s) => {
+      const raw = typeof patch === "function" ? (patch as any)(s.gameMechanics) : ({ ...s.gameMechanics, ...patch } as GameMechanicsConfig);
+      return { ...s, gameMechanics: normalizeGameMechanics(raw) };
+    });
+
+  // Connection: top-down and game mechanics are linked.
+  // If game mechanics are all disabled, their uses are already 0 via normalize.
+  // If top-down is disabled, mechanics must be zeroed. Expose helper for panels.
+  const setGameMechanicsEnabled = (enabled: boolean) =>
     setState((s) => ({
       ...s,
-      gameMechanics: typeof patch === "function" ? (patch as any)(s.gameMechanics) : ({ ...s.gameMechanics, ...patch } as GameMechanicsConfig),
+      gameMechanics: enabled ? normalizeGameMechanics(s.gameMechanics) : zeroAllMechanics(s.gameMechanics),
     }));
 
   const updateQuestion = (id: string, patch: Partial<CreatorQuestion>) =>
@@ -478,8 +597,12 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       const emptyRight = right.findIndex((x) => !x.content.trim());
       if (emptyRight !== -1) return `Column B match ${String.fromCharCode(65 + emptyRight)} is empty`;
       const mapping = q.matchMapping ?? {};
-      const unmapped = left.filter((l) => !mapping[l.id]);
-      if (unmapped.length > 0) return `${unmapped.length} item${unmapped.length > 1 ? "s" : ""} still need a correct match`;
+      // Line-wise: same row = correct pair, so allow index fallback (students see B shuffled)
+      const unmappedLineWise = left.filter((l, idx) => {
+        if (mapping[l.id]) return false;
+        return !right[idx]?.content?.trim();
+      });
+      if (unmappedLineWise.length > 0) return `${unmappedLineWise.length} row${unmappedLineWise.length > 1 ? "s" : ""} need matching Column B on same line`;
       // check mapping targets exist
       for (const [k, v] of Object.entries(mapping)) {
         if (!right.some((r) => r.id === v)) return "has a broken mapping (target missing)";
@@ -604,6 +727,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
     setState((s) => ({ ...s, published: true }));
 
   const [savingToServer, setSavingToServer] = useState(false);
+  const [saveProgress, setSaveProgress] = useState<{ saved: number; total: number } | null>(null);
 
   const saveToServer = async (
     opts?: { publish?: boolean; setupOnly?: boolean }
@@ -618,6 +742,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       throw new Error(QUESTION_VALIDATION_FAILED);
     }
     setSavingToServer(true);
+    setSaveProgress(null);
     try {
       const payload = {
         name: state.info.title.trim(),
@@ -668,7 +793,23 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       }
 
       if (!opts?.setupOnly) {
-        await syncQuizQuestions(quizId, state.questions);
+        // Diff against snapshot: build set of question IDs that actually changed
+        const changed = computeChangedQuestions(state.questions, snapshotRef.current);
+        const changedIds = changed.length > 0
+          ? new Set(changed.map((q) => q.id))
+          : null;
+
+        // Only call backend if something actually changed
+        if (changedIds && changedIds.size > 0) {
+          // Show progress: "Saving 3/10 problems..."
+          setSaveProgress({ saved: 0, total: changedIds.size });
+          // Pass full list (needed for delete sweep) but only upsert changed questions
+          await syncQuizQuestions(quizId, state.questions, changedIds, (saved, total) => {
+            setSaveProgress({ saved, total });
+          });
+        }
+        // Update snapshot so subsequent saves only diff against the new baseline
+        snapshotRef.current = buildQuestionSnapshot(state.questions);
 
         // Build the unique participant set — union of allowed room members and
         // individually invited emails, deduped by email.
@@ -719,6 +860,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       return { quizId, code: state.info.code };
     } finally {
       setSavingToServer(false);
+      setSaveProgress(null);
     }
   };
 
@@ -732,6 +874,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       updatePricing,
       updateBranding,
       updateGameMechanics,
+      setGameMechanicsEnabled,
       updateQuestion,
       addQuestion,
       importQuestions,
@@ -747,12 +890,13 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       publish,
       saveToServer,
       savingToServer,
+      saveProgress,
       loading,
       loadError,
       editMode,
       summary,
     }),
-    [state, stepIndex, summary, savingToServer, loading, loadError, editMode, steps]
+    [state, stepIndex, summary, savingToServer, saveProgress, loading, loadError, editMode, steps]
   );
 
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;

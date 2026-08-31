@@ -18,6 +18,7 @@ import {
   ImageIcon,
   Clock,
   GripVertical,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import type { CreatorQuestion, CreatorOption, CreatorQuestionType } from "../types";
@@ -28,7 +29,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getQuizDifficultyOptions } from "@/services/quiz";
 
 const SELECTABLE_TYPES: CreatorQuestionType[] = [
-  "single_choice", "multiple_choice", "true_false", "fill_blanks", "text", "match_following",
+  "single_choice", "multiple_choice", "true_false", "fill_blanks", "match_following",
 ];
 
 const TYPE_ICON: Record<CreatorQuestionType, React.ComponentType<{ className?: string }>> = {
@@ -75,6 +76,7 @@ export function QuestionEditor() {
   const [afterTab, setAfterTab] = useState<"explanation" | "hint" | "solution">("explanation");
   const [showType, setShowType] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
+  const [pendingType, setPendingType] = useState<CreatorQuestionType | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImageOption = useRef<string | null>(null);
   const [draggedOpt, setDraggedOpt] = useState<string | null>(null);
@@ -86,6 +88,58 @@ export function QuestionEditor() {
     fetchedDiffRef.current = true;
     getQuizDifficultyOptions().then(setDifficultyOptions).catch(() => {});
   }, []);
+
+  const hasDataToLose = (qq: CreatorQuestion) => {
+    const hasTitle = qq.title.replace(/<[^>]*>/g, "").trim().length > 0;
+    const hasOptions = qq.options.some((o) => o.content.trim().length > 0 || o.isCorrect);
+    const hasAnswer = String(qq.correctAnswer ?? "").trim().length > 0 && String(qq.correctAnswer) !== "-1";
+    const hasMatch = (qq.matchItems?.some((m) => m.content.trim().length > 0) || qq.matchMatches?.some((m) => m.content.trim().length > 0) || (qq.matchMapping && Object.keys(qq.matchMapping).length > 0));
+    const hasExplain = qq.explanation.trim().length > 0 || qq.hint.trim().length > 0 || (qq.solution && qq.solution.trim().length > 0);
+    return hasTitle || hasOptions || hasAnswer || !!hasMatch || !!hasExplain;
+  };
+
+  const doSwitchType = (t: CreatorQuestionType) => {
+    if (t === "match_following") {
+      const base = q!.id;
+      update({
+        type: t,
+        matchItems: q!.matchItems ?? [
+          { id: `${base}_left_1`, content: "" },
+          { id: `${base}_left_2`, content: "" },
+          { id: `${base}_left_3`, content: "" },
+          { id: `${base}_left_4`, content: "" },
+        ],
+        matchMatches: q!.matchMatches ?? [
+          { id: `${base}_right_1`, content: "" },
+          { id: `${base}_right_2`, content: "" },
+          { id: `${base}_right_3`, content: "" },
+          { id: `${base}_right_4`, content: "" },
+        ],
+        matchMapping: {},
+        shuffleColumnA: q!.shuffleColumnA ?? true,
+        shuffleColumnB: q!.shuffleColumnB ?? true,
+        marks: q!.marks ?? 1,
+      } as any);
+    } else if (t === "true_false") {
+      update({
+        type: t,
+        options: [
+          { id: `${q!.id}_tf_true`, label: "A", content: "True", isCorrect: true },
+          { id: `${q!.id}_tf_false`, label: "B", content: "False", isCorrect: false },
+        ],
+      } as any);
+    } else update({ type: t } as any);
+    setShowType(false);
+  };
+
+  const requestTypeChange = (t: CreatorQuestionType) => {
+    if (t === q!.type) { setShowType(false); return; }
+    if (q && hasDataToLose(q)) {
+      setPendingType(t);
+    } else {
+      doSwitchType(t);
+    }
+  };
 
   if (!q) {
     return (
@@ -169,10 +223,10 @@ export function QuestionEditor() {
     <div className="flex flex-1 flex-col min-h-0 bg-card">
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleOptionImagePicked} />
 
-      <div className="shrink-0 border-b border-border bg-card px-6 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[15px] font-bold text-text-primary">Question {String(activeIdx + 1).padStart(2, "0")}</h2>
-          <div className="flex items-center gap-1.5">
+      <div className="shrink-0 border-b border-border bg-card px-3 sm:px-6 py-3">
+        <div className="flex items-center justify-between gap-2 sm:gap-3 min-w-0">
+          <h2 className="text-[14px] sm:text-[15px] font-bold text-text-primary shrink-0">Question {String(activeIdx + 1).padStart(2, "0")}</h2>
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <div className="relative">
               <button
                 onClick={() => setShowType(!showType)}
@@ -185,31 +239,7 @@ export function QuestionEditor() {
                   {SELECTABLE_TYPES.map((t) => {
                     const Icon = TYPE_ICON[t];
                     const active = t === q.type;
-                    const handlePick = () => {
-                      if (t === "match_following") {
-                        const base = q.id;
-                        update({
-                          type: t,
-                          matchItems: q.matchItems ?? [
-                            { id: `${base}_left_1`, content: "Stack" },
-                            { id: `${base}_left_2`, content: "Queue" },
-                            { id: `${base}_left_3`, content: "Hash Table" },
-                            { id: `${base}_left_4`, content: "Graph" },
-                          ],
-                          matchMatches: q.matchMatches ?? [
-                            { id: `${base}_right_1`, content: "LIFO" },
-                            { id: `${base}_right_2`, content: "FIFO" },
-                            { id: `${base}_right_3`, content: "Key-value lookup" },
-                            { id: `${base}_right_4`, content: "Connected relationships" },
-                          ],
-                          matchMapping: q.matchMapping ?? {},
-                          shuffleColumnA: q.shuffleColumnA ?? true,
-                          shuffleColumnB: q.shuffleColumnB ?? true,
-                          marks: q.marks ?? 1,
-                        } as any);
-                      } else update({ type: t } as any);
-                      setShowType(false);
-                    };
+                    const handlePick = () => requestTypeChange(t);
                     return (
                       <button
                         key={t}
@@ -246,7 +276,7 @@ export function QuestionEditor() {
             </button>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center divide-x divide-border rounded-lg border border-border bg-card text-xs">
+        <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap items-stretch rounded-lg border border-border bg-card text-xs overflow-hidden divide-y divide-border sm:divide-y-0 sm:divide-x">
           <div className="relative flex items-center gap-1.5 px-3 py-2">
             <span className="text-text-muted">Difficulty</span>
             <span className={cn("h-2 w-2 rounded-full", q.difficulty === "Easy" ? "bg-emerald-500" : q.difficulty === "Medium" ? "bg-amber-500" : q.difficulty === "Hard" ? "bg-orange-500" : "bg-rose-500")} />
@@ -325,8 +355,8 @@ export function QuestionEditor() {
         {(showType || showDiff) && <div className="fixed inset-0 z-40" onClick={() => { setShowType(false); setShowDiff(false); }} />}
       </div>
 
-      <div className="p-6">
-        <div className="mx-auto w-full max-w-[720px] space-y-6">
+      <div className="p-3 sm:p-6">
+        <div className="mx-auto w-full max-w-[720px] space-y-4 sm:space-y-6 min-w-0">
           <div>
             <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-text-muted">Question</label>
             <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -349,68 +379,92 @@ export function QuestionEditor() {
                 </span>
               </div>
               <div className="mt-3 space-y-2">
-                {q.options.map((o) => (
-                  <div
-                    key={o.id}
-                    draggable
-                    onDragStart={() => setDraggedOpt(o.id)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
-                      if (draggedOpt && draggedOpt !== o.id) reorderOptions(draggedOpt, o.id);
-                      setDraggedOpt(null);
-                    }}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl border px-3 py-3",
-                      o.isCorrect ? "border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-border bg-card hover:border-border"
-                    )}
-                  >
-                    <button
-                      onClick={() => {
-                        const isSingle = q.type === "single_choice" || q.type === "true_false";
-                        if (isSingle) update({ options: q.options.map((x) => ({ ...x, isCorrect: x.id === o.id })) });
-                        else update({ options: q.options.map((x) => (x.id === o.id ? { ...x, isCorrect: !x.isCorrect } : x)) });
+                {q.options.map((o) => {
+                  if (q.type === "true_false") {
+                    return (
+                      <button
+                        key={o.id}
+                        onClick={() => setCorrect(o.id)}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-xl border px-3 py-3",
+                          o.isCorrect ? "border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-border bg-card hover:border-border"
+                        )}
+                      >
+                        <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card")}>
+                          {o.isCorrect && <Check className="h-3.5 w-3.5" />}
+                        </span>
+                        <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card-hover text-text-primary")}>
+                          {o.label}
+                        </span>
+                        <span className="text-sm text-text-primary">{o.content}</span>
+                      </button>
+                    );
+                  }
+                  return (
+                    <div
+                      key={o.id}
+                      draggable
+                      onDragStart={() => setDraggedOpt(o.id)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => {
+                        if (draggedOpt && draggedOpt !== o.id) reorderOptions(draggedOpt, o.id);
+                        setDraggedOpt(null);
                       }}
                       className={cn(
-                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2",
-                        o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card"
+                        "flex items-center gap-3 rounded-xl border px-3 py-3",
+                        o.isCorrect ? "border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-border bg-card hover:border-border"
                       )}
                     >
-                      {o.isCorrect && <Check className="h-3.5 w-3.5" />}
-                    </button>
-                    <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card-hover text-text-primary")}>
-                      {o.label}
-                    </span>
-                    <input
-                      value={o.content}
-                      onChange={(e) => { if (e.target.value.length <= 250) update({ options: q.options.map((x) => (x.id === o.id ? { ...x, content: e.target.value } : x)) }); }}
-                      placeholder={`Option ${o.label}`}
-                      maxLength={250}
-                      className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
-                    />
-                    <div className="flex shrink-0 items-center gap-0.5 sm:flex">
-                      <button onClick={() => openImageAssistant(o.id)} className="rounded p-1.5 text-text-muted hover:bg-card-hover">
-                        <ImageIcon className="h-3.5 w-3.5" />
+                      <button
+                        onClick={() => {
+                          const isSingle = q.type === "single_choice";
+                          if (isSingle) update({ options: q.options.map((x) => ({ ...x, isCorrect: x.id === o.id })) });
+                          else update({ options: q.options.map((x) => (x.id === o.id ? { ...x, isCorrect: !x.isCorrect } : x)) });
+                        }}
+                        className={cn(
+                          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2",
+                          o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card"
+                        )}
+                      >
+                        {o.isCorrect && <Check className="h-3.5 w-3.5" />}
                       </button>
-                      <button onClick={() => removeOption(o.id)} className="rounded p-1.5 text-text-muted hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="cursor-grab p-1.5 text-text-muted">
-                        <GripVertical className="h-3.5 w-3.5" />
+                      <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card-hover text-text-primary")}>
+                        {o.label}
                       </span>
+                      <input
+                        value={o.content}
+                        onChange={(e) => { if (e.target.value.length <= 250) update({ options: q.options.map((x) => (x.id === o.id ? { ...x, content: e.target.value } : x)) }); }}
+                        placeholder={`Option ${o.label}`}
+                        maxLength={250}
+                        className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
+                      />
+                      <div className="flex shrink-0 items-center gap-0.5 sm:flex">
+                        <button onClick={() => openImageAssistant(o.id)} className="rounded p-1.5 text-text-muted hover:bg-card-hover">
+                          <ImageIcon className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => removeOption(o.id)} className="rounded p-1.5 text-text-muted hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="cursor-grab p-1.5 text-text-muted">
+                          <GripVertical className="h-3.5 w-3.5" />
+                        </span>
+                      </div>
+                      {o.imageUrl && <img src={o.imageUrl} alt="" className="h-8 w-8 rounded object-cover border" />}
                     </div>
-                    {o.imageUrl && <img src={o.imageUrl} alt="" className="h-8 w-8 rounded object-cover border" />}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-              <div className="mt-3">
-                <button
-                  onClick={addOption}
-                  disabled={q.options.length >= 6}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-300 dark:border-pink-400/30 bg-pink-50/50 dark:bg-pink-500/10 py-2.5 text-xs font-medium text-[#E91E63] hover:bg-pink-50 dark:hover:bg-pink-500/15 disabled:opacity-40"
-                >
-                  + Add option
-                </button>
-              </div>
+              {q.type !== "true_false" && (
+                <div className="mt-3">
+                  <button
+                    onClick={addOption}
+                    disabled={q.options.length >= 6}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-300 dark:border-pink-400/30 bg-pink-50/50 dark:bg-pink-500/10 py-2.5 text-xs font-medium text-[#E91E63] hover:bg-pink-50 dark:hover:bg-pink-500/15 disabled:opacity-40"
+                  >
+                    + Add option
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div>
@@ -474,18 +528,29 @@ export function QuestionEditor() {
               )}
             </AnimatePresence>
           </div>
-
-          {/* Question-specific game mechanics are now managed at quiz level — see Game Mechanics page */}
-          <div className="rounded-xl border border-dashed border-border bg-card px-4 py-3 flex items-center justify-between">
-            <p className="text-xs text-text-muted">
-              <span className="font-medium text-text-primary">🎮 Game Mechanics</span> — lifelines & power-ups are now configured per-quiz.
-            </p>
-            <a href={state.serverQuizId ? `/creator/quizzes/${state.serverQuizId}/game-mechanics` : "#"} className="text-xs font-medium text-[#E91E63] hover:underline">
-              Open Game Mechanics →
-            </a>
-          </div>
         </div>
       </div>
+      {pendingType && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setPendingType(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/20">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-text-primary">Change question type?</h3>
+                <p className="mt-1 text-xs leading-relaxed text-text-muted">
+                  You have written data for <span className="font-semibold text-text-primary">{q.type === "single_choice" ? "MCQ" : (q.type as string).replace("_", " ")}</span>. Switching to <span className="font-semibold text-[#E91E63]">{pendingType === "single_choice" ? "MCQ" : (pendingType as string)?.replace("_", " ")}</span> will remove existing options / matching pairs / correct answer. <span className="font-medium">Kyoki phir options type etc mei dikkat ho jayega.</span> This cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={() => setPendingType(null)} className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium text-text-primary hover:bg-card-hover">Cancel</button>
+              <button type="button" onClick={() => { doSwitchType(pendingType); setPendingType(null); }} className="rounded-lg bg-[#E91E63] px-4 py-2 text-xs font-semibold text-white hover:bg-[#D81B60]">Continue, remove data</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

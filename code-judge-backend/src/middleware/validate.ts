@@ -208,3 +208,18 @@ export const cloneQuizSchema = z.object({
     .min(16, "Quiz code must be at least 16 characters")
     .max(64, "Quiz code must be at most 64 characters"),
 });
+
+/**
+ * Schema for quiz game config upsert.
+ * Mirrors DB constraints: movementSpeed > 0, lives >= 0, booleans must be booleans.
+ */
+export const quizGameConfigSchema = z.object({
+  enabled: z.boolean({ invalid_type_error: "enabled must be a boolean" }),
+  movementEnabled: z.boolean({ invalid_type_error: "movementEnabled must be a boolean" }),
+  movementSpeed: z.number().int().positive("movementSpeed must be > 0"),
+  lives: z.number().int().min(0, "lives must be >= 0"),
+  pointsEnabled: z.boolean({ invalid_type_error: "pointsEnabled must be a boolean" }),
+  powerupsEnabled: z.boolean({ invalid_type_error: "powerupsEnabled must be a boolean" }),
+  respawnEnabled: z.boolean({ invalid_type_error: "respawnEnabled must be a boolean" }),
+  damageEnabled: z.boolean({ invalid_type_error: "damageEnabled must be a boolean" }),
+});

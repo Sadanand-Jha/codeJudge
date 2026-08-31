@@ -252,7 +252,6 @@ export const QUESTION_TYPE_ORDER: CreatorQuestionType[] = [
   "multiple_choice",
   "true_false",
   "fill_blanks",
-  "text",
   "match_following",
 ];
 

@@ -56,6 +56,16 @@ export function MatchingStudentPreview({
   // Note: use effect would be ideal but we do inline check via keyed render
   const pairCount = Object.keys(pairs).length;
   const total = left.length;
+  // Correct mapping for line-wise fallback
+  const getCorrectRightId = (leftId: string) => {
+    if (question.matchMapping && question.matchMapping[leftId]) return question.matchMapping[leftId];
+    const idx = left.findIndex((l) => l.id === leftId);
+    return rightOrig[idx]?.id ?? null;
+  };
+  const correctPairsCount = left.filter((l) => pairs[l.id] && pairs[l.id] === getCorrectRightId(l.id)).length;
+  const allCorrect = pairCount === total && correctPairsCount === total && total > 0;
+  const totalMarks = question.marks ?? 1;
+  const earnedMarks = question.partialMarking ? Math.round((correctPairsCount / Math.max(1,total)) * totalMarks) : (allCorrect ? totalMarks : 0);
 
   const handleSelectLeft = (id: string) => {
     if (pairs[id]) {
@@ -145,8 +155,8 @@ export function MatchingStudentPreview({
           </div>
           <div className="mt-3 flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-text-primary">
-              <span className={cn("h-2 w-2 rounded-full", pairCount === total ? "bg-emerald-500" : "bg-amber-500")} />
-              {pairCount} / {total} matched
+              <span className={cn("h-2 w-2 rounded-full", allCorrect ? "bg-blue-500" : "bg-amber-500")} />
+              {allCorrect ? `${total} / ${total} correct` : `${pairCount} / ${total} matched`} <span className="opacity-60">·</span> <span className={cn(allCorrect ? "text-blue-600" : "text-amber-600")}>{earnedMarks} / {totalMarks} marks</span>
             </span>
             <button onClick={clearAll} disabled={pairCount === 0} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-card-hover disabled:opacity-40">
               <Trash2 className="h-3.5 w-3.5" /> Clear All
@@ -167,8 +177,7 @@ export function MatchingStudentPreview({
                 <span className={cn("text-xs font-medium", selectedLeft ? "text-[#E91E63]" : "text-text-muted")}>Click its match on the right</span>
               </div>
               <span className="inline-flex items-center gap-1.5 text-[11px] text-text-muted">
-                {question.interactionMode !== "click" && <><Hand className="h-3 w-3" /> or drag</>}
-                {question.interactionMode !== "drag" && <><MousePointer2 className="h-3 w-3 ml-1" /> click</>}
+                <><MousePointer2 className="h-3 w-3" /> tap to pair</>
               </span>
             </div>
             <AnimatePresence mode="wait">
@@ -178,7 +187,7 @@ export function MatchingStudentPreview({
                 </motion.p>
               ) : (
                 <motion.p key="step2" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="mt-2 text-center text-xs font-medium text-[#E91E63]">
-                  Now click its match in Column B — or drag the left card onto the right one
+                  Now tap its match in Column B on the same line
                 </motion.p>
               )}
             </AnimatePresence>
@@ -197,18 +206,17 @@ export function MatchingStudentPreview({
                   const paired = pairedRightId ? rightOrig.find((r) => r.id === pairedRightId) : null;
                   const isSelected = selectedLeft === item.id;
                   const isPaired = !!pairedRightId;
+                  const showGreen = isPaired;
                   const isJustPaired = justPaired === item.id;
+                  const showJustGreen = isJustPaired;
                   return (
                     <div
                       key={item.id}
-                      draggable={question.interactionMode !== "click"}
-                      onDragStart={() => setDragLeft(item.id)}
-                      onDragEnd={() => setDragLeft(null)}
                       onClick={() => handleSelectLeft(item.id)}
                       className={cn(
                         "group relative flex items-center gap-2 rounded-xl border px-3 py-3 cursor-pointer transition-all duration-150",
-                        isJustPaired && "border-emerald-400 bg-emerald-500/10 scale-[1.02]",
-                        !isJustPaired && isSelected ? "border-[#E91E63] bg-[#E91E63]/10 shadow-[0_0_0_3px_rgba(233,30,99,0.12)] scale-[1.01]" : isPaired ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-500/10" : !selectedLeft ? "border-[#E91E63]/30 bg-background hover:border-[#E91E63]/50 shadow-[0_0_0_2px_rgba(233,30,99,0.06)]" : "border-border bg-background hover:border-[#E91E63]/30 hover:bg-[#E91E63]/[0.03]"
+                        showJustGreen && "border-blue-400 bg-blue-500/10 scale-[1.02]",
+                        !showJustGreen && isSelected ? "border-[#E91E63] bg-[#E91E63]/10 shadow-[0_0_0_3px_rgba(233,30,99,0.12)] scale-[1.01]" : showGreen ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/60 dark:bg-blue-500/10" : !selectedLeft ? "border-[#E91E63]/30 bg-background hover:border-[#E91E63]/50 shadow-[0_0_0_2px_rgba(233,30,99,0.06)]" : "border-border bg-background hover:border-[#E91E63]/30 hover:bg-[#E91E63]/[0.03]"
                       )}
                     >
                       <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[11px] font-bold", isSelected ? "bg-[#E91E63] text-white border-[#E91E63]" : "bg-card-hover border-border text-text-primary")}>
@@ -216,12 +224,13 @@ export function MatchingStudentPreview({
                       </span>
                       <span className="flex-1 text-sm font-medium text-text-primary">{item.content}</span>
                       {isPaired && paired && (
-                        <span className="hidden sm:inline-flex max-w-[110px] truncate rounded-full bg-emerald-500 px-2 py-0.5 text-[11px] font-medium text-white">
+                        <span className={cn("hidden sm:inline-flex max-w-[110px] truncate rounded-full px-2 py-0.5 text-[11px] font-medium", showGreen ? "bg-blue-500 text-white" : "bg-card border border-border text-text-muted")}>
                           → {paired.content}
                         </span>
                       )}
-                      {isPaired && !isJustPaired && <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" />}
-                      {isJustPaired && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white"><Check className="h-3 w-3" /></span>}
+                      {isPaired && !isJustPaired && <span className={cn("h-2 w-2 shrink-0 rounded-full", showGreen ? "bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.6)]" : "bg-border")} />}
+                      {isJustPaired && showJustGreen && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white"><Check className="h-3 w-3" /></span>}
+                      {isJustPaired && !showJustGreen && <span className="h-2 w-2 shrink-0 rounded-full bg-border" />}
                       {!isPaired && isSelected && <span className="h-2 w-2 shrink-0 rounded-full bg-[#E91E63] animate-pulse" />}
                       {!isPaired && !selectedLeft && !isSelected && <span className="h-2 w-2 shrink-0 rounded-full bg-[#E91E63]/40 animate-pulse" />}
                       <GripVertical className="hidden sm:block h-3.5 w-3.5 text-text-muted opacity-0 group-hover:opacity-100" />
@@ -241,18 +250,18 @@ export function MatchingStudentPreview({
                 {right.map((item, idx) => {
                   const pairedLeftId = Object.keys(pairs).find((k) => pairs[k] === item.id);
                   const isPaired = !!pairedLeftId;
+                  const showGreen = isPaired;
                   const isSelectable = !!selectedLeft && !isPaired;
                   const isJustTarget = justPaired && pairs[justPaired] === item.id;
+                  const showJustGreen = isJustTarget;
                   return (
                     <div
                       key={item.id}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => handleDrop(item.id)}
                       onClick={() => handleSelectRight(item.id)}
                       className={cn(
                         "group flex items-center gap-2 rounded-xl border px-3 py-3 cursor-pointer transition-all duration-150",
-                        isJustTarget ? "border-emerald-400 bg-emerald-500/10 scale-[1.02]" :
-                        isPaired ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-500/10" :
+                        showJustGreen ? "border-blue-400 bg-blue-500/10 scale-[1.02]" :
+                        showGreen ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/60 dark:bg-blue-500/10" :
                         isSelectable ? "border-[#E91E63] bg-[#E91E63]/[0.05] shadow-[0_0_0_3px_rgba(233,30,99,0.10)] animate-pulse" : "border-border bg-background hover:border-[#E91E63]/30"
                       )}
                     >
@@ -260,9 +269,11 @@ export function MatchingStudentPreview({
                         {ALPHA[rightOrig.findIndex((r) => r.id === item.id)] ?? String(idx + 1)}
                       </span>
                       <span className="flex-1 text-sm text-text-primary">{item.content}</span>
-                      {isPaired && !isJustTarget && <Check className="h-3.5 w-3.5 text-emerald-600" />}
-                      {isJustTarget && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white"><Check className="h-3 w-3" /></span>}
-                      <span className={cn("h-2 w-2 shrink-0 rounded-full", isPaired ? "bg-emerald-500" : isSelectable ? "bg-[#E91E63]" : "bg-border")} />
+                      {isPaired && !isJustTarget && showGreen && <Check className="h-3.5 w-3.5 text-blue-600" />}
+                      {isPaired && !isJustTarget && !showGreen && <span className="h-2 w-2 rounded-full bg-border" />}
+                      {showJustGreen && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white"><Check className="h-3 w-3" /></span>}
+                      {isJustTarget && !showJustGreen && <span className="h-2 w-2 rounded-full bg-border" />}
+                      <span className={cn("h-2 w-2 shrink-0 rounded-full", showGreen ? "bg-blue-500" : isSelectable ? "bg-[#E91E63]" : "bg-border")} />
                     </div>
                   );
                 })}
@@ -270,22 +281,24 @@ export function MatchingStudentPreview({
             </div>
           </div>
 
-          {/* Status banner — always visible now */}
-          <div className={cn("mt-6 rounded-xl border px-4 py-3 text-center", pairCount === total ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10" : "border-dashed border-[#E91E63]/20 bg-[#E91E63]/[0.03]")}>
+          {/* Status banner — green only when all correct */}
+          <div className={cn("mt-6 rounded-xl border px-4 py-3 text-center", allCorrect ? "border-blue-200 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10" : "border-dashed border-[#E91E63]/20 bg-[#E91E63]/[0.03]")}>
             <p className="text-xs text-text-muted">
-              {pairCount === total ? (
-                <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
-                  <Check className="h-3.5 w-3.5" /> All {total} matched — review then submit. Click any pair to change it.
+              {allCorrect ? (
+                <span className="inline-flex items-center gap-1.5 font-medium text-blue-600 dark:text-blue-400">
+                  <Check className="h-3.5 w-3.5" /> All {total} correctly matched — review then submit. Click any pair to change it.
                 </span>
               ) : pairCount === 0 ? (
                 <>Click one-by-one: <b className="text-text-primary">left → right</b>. Each left item pairs with exactly one right item.</>
+              ) : pairCount === total && !allCorrect ? (
+                <span className="text-amber-600 dark:text-amber-400">All paired but not all correct — check line-wise pairs.</span>
               ) : (
                 <>{pairCount} / {total} paired — keep going: click next left item, then its right match.</>
               )}
             </p>
           </div>
 
-          <p className="mt-4 text-center text-[11px] text-text-muted">Correctness not revealed until submission • {question.interactionMode === "both" ? "Click or drag" : question.interactionMode === "drag" ? "Drag to connect" : "Click to pair"} • Click paired card to unpair</p>
+          <p className="mt-4 text-center text-[11px] text-text-muted">Correctness not revealed until submission • Tap to pair • Tap paired card to unpair</p>
         </div>
 
         {/* Footer */}

@@ -1,3 +1,18 @@
+/**
+ * Question Builder — How it works (creator flow, dev guide)
+ * ------------------------------------------------------------------
+ * 1. Pick question type (MCQ / Match / Fill blanks etc.) from header dropdown
+ * 2. Write question stem in the center editor (rich text allowed)
+ * 3. Add options/items LINE-WISE — Column A row 1 ↔ Column B row 1 is the
+ *    correct pair for Match; for MCQ click the circle to mark correct
+ * 4. For Match: just keep pairs on same line number; Column B will be
+ *    shuffled for students (see MatchFollowingEditor line-wise logic)
+ * 5. For Fill blanks: type correct answer(s) → stored in matching_target (type 6)
+ * 6. Adjust Marks / Difficulty / Time in right Properties (LiveRail - text-center)
+ * 7. Click Save, then 👁 Preview as student, finally Continue
+ * ------------------------------------------------------------------
+ * Note: UI banner removed — this comment is the single source of truth in code.
+ */
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
@@ -20,10 +35,11 @@ function hashState(questions: CreatorQuestion[], info: { title: string; shortDes
 }
 
 export function QuestionsStep() {
-  const { state, addQuestion, importQuestions, saveToServer } = useStudio();
+  const { state, addQuestion, importQuestions, saveToServer, saveProgress } = useStudio();
   const [aiOpen, setAiOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [rightOpen, setRightOpen] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [studentPreviewOpen, setStudentPreviewOpen] = useState(false);
@@ -99,31 +115,42 @@ export function QuestionsStep() {
 
   return (
     <>
-      <div className="flex min-h-0 flex-col gap-3 bg-background lg:flex-1 lg:min-h-0 lg:flex-row lg:overflow-hidden">
-        {sidebarOpen && <div className="fixed inset-0 z-40 lg:hidden bg-black/20" onClick={() => setSidebarOpen(false)} />}
+      <div className="flex min-h-0 flex-col gap-3 bg-background xl:flex-1 xl:min-h-0 xl:flex-row xl:overflow-hidden min-w-0">
+        {sidebarOpen && <div className="fixed inset-0 z-40 xl:hidden bg-black/20" onClick={() => setSidebarOpen(false)} />}
+        {/* Right drawer overlay */}
+        {rightOpen && <div className="fixed inset-0 z-40 xl:hidden bg-black/20" onClick={() => setRightOpen(false)} />}
 
         <aside
           className={`
-            fixed inset-y-0 left-0 z-50 flex w-[280px] shrink-0 flex-col border border-border bg-card rounded-xl transition-transform duration-200 lg:static lg:z-auto lg:flex overflow-visible
-            ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+            fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] shrink-0 flex-col border border-border bg-card rounded-xl transition-transform duration-200 xl:static xl:z-auto xl:flex overflow-visible
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"}
           `}
         >
-          <QuestionList onAiGenerate={() => setAiOpen(true)} onDownloadPdf={() => setPdfModalOpen(true)} onSave={handleSave} saving={saving} hasChanges={hasChanges} onToggleSidebar={() => setSidebarOpen(false)} />
+          <QuestionList onAiGenerate={() => setAiOpen(true)} onDownloadPdf={() => setPdfModalOpen(true)} onSave={handleSave} saving={saving} hasChanges={hasChanges} saveProgress={saveProgress} onToggleSidebar={() => setSidebarOpen(false)} />
         </aside>
 
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-card rounded-xl border border-border">
-          <div className="flex items-center justify-between border-b border-border bg-background px-4 py-2 lg:hidden">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden bg-card rounded-xl border border-border">
+          <div className="flex items-center justify-between border-b border-border bg-background px-3 sm:px-4 py-2 xl:hidden gap-2">
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-card-hover"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-card-hover shrink-0"
             >
               <ListChecks className="h-3.5 w-3.5" />
-              Questions ({state.questions.length})
+              <span className="hidden xs:inline">Questions</span> ({state.questions.length})
             </button>
-            <span className="text-xs text-text-muted">
-              {state.questions.length > 0 ? `${state.questions.filter((q) => q.title.trim()).length} / ${state.questions.length} complete` : ""}
-            </span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="hidden sm:inline text-xs text-text-muted truncate">
+                {state.questions.length > 0 ? `${state.questions.filter((q) => q.title.trim()).length} / ${state.questions.length} complete` : ""}
+              </span>
+              <button
+                type="button"
+                onClick={() => setRightOpen(true)}
+                className="xl:hidden inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-card-hover shrink-0"
+              >
+                Properties
+              </button>
+            </div>
           </div>
 
           {state.questions.length === 0 || !state.activeQuestionId ? (
@@ -155,9 +182,25 @@ export function QuestionsStep() {
           )}
         </main>
 
-        <div className={`${rightCollapsed ? "w-10" : "w-[340px]"} hidden shrink-0 lg:flex`}>
+        <div className={`${rightCollapsed ? "w-10" : "w-[340px]"} hidden shrink-0 xl:flex`}>
           <LiveRail onDownloadPdf={() => setPdfModalOpen(true)} onStudentPreview={() => setStudentPreviewOpen(true)} collapsed={rightCollapsed} onToggle={() => setRightCollapsed(!rightCollapsed)} />
         </div>
+
+        {/* Mobile/tablet drawer for Properties */}
+        {rightOpen && (
+          <div className="fixed inset-0 z-50 xl:hidden flex justify-end">
+            <div className="absolute inset-0 bg-black/20" onClick={() => setRightOpen(false)} />
+            <div className="relative w-[340px] max-w-[92vw] h-full bg-card border-l border-border rounded-l-xl overflow-hidden flex flex-col shadow-2xl">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+                <span className="text-xs font-semibold">Properties</span>
+                <button onClick={() => setRightOpen(false)} className="rounded p-1.5 hover:bg-card-hover text-text-muted">✕</button>
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <LiveRail onDownloadPdf={() => { setRightOpen(false); setPdfModalOpen(true); }} onStudentPreview={() => { setRightOpen(false); setStudentPreviewOpen(true); }} collapsed={false} onToggle={() => {}} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <AiGenerateModal open={aiOpen} onClose={() => setAiOpen(false)} onQuestionsAdded={handleAiQuestions} />

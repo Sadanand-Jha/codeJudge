@@ -51,26 +51,32 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 function UsesSelect({ value, onChange, disabled }: { value: UsesValue; onChange: (v: UsesValue) => void; disabled?: boolean }) {
-  const opts: UsesValue[] = [1, 2, 3, "unlimited"];
+  const numValue = typeof value === "number" ? value : 1;
+  const [local, setLocal] = useState(String(numValue));
   return (
-    <div className="flex items-center gap-1">
-      {opts.map((o) => {
-        const active = value === o;
-        return (
-          <button
-            key={String(o)}
-            disabled={disabled}
-            onClick={() => onChange(o)}
-            className={cn(
-              "min-w-7 rounded-full px-2 py-1 text-[11px] font-medium border transition-colors",
-              active ? "bg-[#E91E63] text-white border-[#E91E63]" : "bg-card border-border text-text-muted hover:bg-card-hover",
-              disabled && "opacity-40 cursor-not-allowed"
-            )}
-          >
-            {o === "unlimited" ? "∞" : `×${o}`}
-          </button>
-        );
-      })}
+    <div className="flex items-center gap-1.5">
+      <input
+        data-uses-input="true"
+        type="number"
+        min={1}
+        max={99}
+        value={typeof value === "number" ? String(value) : local}
+        onChange={(e) => {
+          const v = e.target.value;
+          setLocal(v);
+          if (v === "") return;
+          const num = Math.max(1, Math.min(99, Number(v) || 1));
+          if (!isNaN(num)) onChange(num as UsesValue);
+        }}
+        disabled={disabled}
+        placeholder="1"
+        className={cn(
+          "h-7 w-16 rounded-full border bg-background px-3 text-center text-xs font-medium focus:outline-none focus:border-[#E91E63]/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+          "border-border text-text-primary",
+          disabled && "opacity-40 cursor-not-allowed"
+        )}
+      />
+      <span className="text-[11px] text-text-muted">times per test</span>
     </div>
   );
 }
@@ -114,10 +120,15 @@ function MechanicCard({
   const m: any = (config as any)[id];
   const enabled = m?.enabled ?? false;
 
-  // helper to patch
+  // helper to patch — when disabling, force uses to 0; when enabling from 0, restore to 1
   const patch = (patchObj: any) => {
     const next = JSON.parse(JSON.stringify(config)) as GameMechanicsConfig;
-    (next as any)[id] = { ...(next as any)[id], ...patchObj };
+    const merged = { ...(next as any)[id], ...patchObj };
+    if ("enabled" in patchObj) {
+      if (patchObj.enabled === false) merged.uses = 0;
+      else if (patchObj.enabled === true && (merged.uses === 0 || merged.uses == null)) merged.uses = 1;
+    }
+    (next as any)[id] = merged;
     onChange(next);
   };
 
@@ -418,7 +429,24 @@ export function GameMechanicsPanel({
           ) : (
             <p className="mt-1 text-xs text-text-muted">No mechanics enabled — enable cards below.</p>
           )}
-          <p className="mt-1.5 text-[11px] text-text-muted">Example: DSA Championship · 20 Questions · ⏱ 15 min · {summary.join(" · ") || "Enable powers below"} · 🏆 Live Leaderboard</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px] text-text-muted">
+            <span className="whitespace-nowrap">Example:</span>
+            <span className="whitespace-nowrap">DSA Championship</span><span className="opacity-60">·</span>
+            <span className="whitespace-nowrap">20 Questions</span><span className="opacity-60">·</span>
+            <span className="whitespace-nowrap">⏱ 15 min</span><span className="opacity-60">·</span>
+            {summary.length > 0 ? (
+              summary.map((s, i) => (
+                <span key={s} className="contents">
+                  <span className="whitespace-nowrap">{s}</span>
+                  {i < summary.length - 1 && <span className="opacity-60">·</span>}
+                </span>
+              ))
+            ) : (
+              <span className="whitespace-nowrap">Enable powers below</span>
+            )}
+            <span className="opacity-60">·</span>
+            <span className="whitespace-nowrap">🏆 Live Leaderboard</span>
+          </div>
         </div>
       </div>
 

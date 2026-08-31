@@ -15,18 +15,39 @@ import { getAvatarUrlById } from "@/config/dicebear";
 import { useAuthStore } from "@/store/authStore";
 import { getInterior, interiorSlide } from "./world/interiorsData";
 import { slideMove, wouldCollide } from "./world/CollisionSystem";
+import { useQuizGameConfig } from "@/hooks/useQuizGameConfig";
+import type { QuizGameConfig } from "@/services/quiz";
 
 interface Props {
   quizId: string;
   quizName: string;
   startsIn: string;
   totalCapacity?: number;
+  /** Optional pre-loaded config — if not provided, LiveCampus will fetch it (loading state required). */
+  gameConfig?: QuizGameConfig | null;
 }
 
-export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=100 }: Props){
+export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=100, gameConfig: propConfig }: Props){
   const { theme } = useTheme();
   const isDark = theme==="dark";
   const user = useAuthStore(s=> s.user);
+  // Load persisted game config before initializing the game (live quiz: Quiz -> QuizGameConfig -> Live Game).
+  // Do not start with stale/default if backend request is still pending.
+  const numericQuizId = (() => {
+    const n = Number(quizId);
+    return Number.isFinite(n) && String(n) === String(quizId).trim() ? String(n) : null;
+  })();
+  const fetched = useQuizGameConfig(numericQuizId ?? undefined);
+  // If quizId is a code (non-numeric) we cannot fetch by id; treat as no persisted config and use defaults locally.
+  const hasNumericId = numericQuizId !== null;
+  const fallbackForCode: QuizGameConfig | null = !hasNumericId && !propConfig
+    ? { quizId: 0, enabled: true, movementEnabled: true, movementSpeed: 5, lives: 3, pointsEnabled: true, powerupsEnabled: false, respawnEnabled: true, damageEnabled: false }
+    : null;
+  const effectiveConfig: QuizGameConfig | null = propConfig ?? (hasNumericId ? fetched.config : fallbackForCode);
+  const configLoading = !propConfig && hasNumericId && fetched.loading;
+  const configError = !propConfig && hasNumericId ? fetched.error : null;
+  const gameCfgRef = useRef<QuizGameConfig | null>(effectiveConfig);
+  useEffect(() => { gameCfgRef.current = effectiveConfig; }, [effectiveConfig]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const camRef = useRef<Camera | null>(null);
@@ -98,6 +119,13 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
     }, 280);
   }, []);
 
+  /**
+   * Exit the current building and place the player on the campus outside the door.
+   * Detects which wall the door is on (top/bottom/left/right) and positions the
+   * player outside the building's collidable rect with enough clearance to avoid
+   * getting stuck. Previously used a fixed Y offset which caused players to spawn
+   * inside the building for non-bottom doors (CodingLab, Lounge, QuizHall).
+   */
   const exitBuilding = useCallback(()=>{
     const cur = locationRef.current as any;
     if(cur.type!=="building") return;
@@ -141,7 +169,10 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
     }, 280);
   }, []);
 
+  // If config is still loading, do not initialize the game with potentially incorrect mechanics.
+  // Wait for the fetch to complete; show loading outside.
   useEffect(()=>{
+    if (configLoading) return;
     const canvas = canvasRef.current;
     if(!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -221,6 +252,9 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
       }
     }));
 
+    // Persisted game config is the source of truth — never use hardcoded PLAYER_SPEED alone.
+    // Game behavior is driven by the saved configuration
+    const cfg = gameCfgRef.current;
     const movement = new MovementController(
       ()=> {
         const l = playersRef.current.get(localIdRef.current)!;
@@ -235,8 +269,11 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
       (payload)=> {
         const loc = locationRef.current;
         adapter.sendMovement({...payload, location: loc} as any);
-      }
+      },
+      cfg
     );
+    // keep movement's config in sync if fetched later (e.g. after initial render)
+    if (cfg) movement.setGameConfig(cfg);
     movementRef.current = movement;
     const detachKeys = movement.attach();
 
@@ -264,7 +301,14 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
           const len=Math.hypot(dx,dy); dx/=len; dy/=len;
           if(Math.abs(dx)>Math.abs(dy)) dir=dx>0?"right":"left"; else dir=dy>0?"down":"up";
         }
-        const speed = 200;
+        // Use persisted movementSpeed for interiors too (mirrors campus calculation)
+        const interiorCfg = gameCfgRef.current;
+        if (interiorCfg && !interiorCfg.movementEnabled) {
+          localP.anim = "idle" as any;
+          return {x: localP.x, y: localP.y, dir: localP.dir, anim:"idle" as any, moving:false} as any;
+        }
+        const interiorBase = 200;
+        const speed = interiorCfg ? (interiorCfg.movementSpeed / 5) * interiorBase : interiorBase;
         let nx = localP.x + dx*speed*dt;
         let ny = localP.y + dy*speed*dt;
         if(moving){
@@ -290,6 +334,12 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
     const onKeyE = (e:KeyboardEvent)=>{
       const k = e.key.toLowerCase();
       if(k==="r"){
+        // Respect persisted respawnEnabled — if false, R does nothing
+        if (gameCfgRef.current && !gameCfgRef.current.respawnEnabled) {
+          setWaveToast("Respawn disabled by game config");
+          setTimeout(()=> setWaveToast(null), 1500);
+          return;
+        }
         // unstuck: teleport to spawn / campus center
         const loc = locationRef.current;
         const localP = playersRef.current.get(localIdRef.current);
@@ -308,6 +358,12 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
         }
         return;
       }
+      /**
+       * Spacebar jump — emergency unstuck mechanic for campus mode.
+       * Only activates when the player is currently inside a collision (stuck).
+       * Teleports the player 120px in the direction they're facing. If the jump
+       * position is also blocked, falls back to rescuing them to the campus plaza.
+       */
       if(k===" "){
         const loc = locationRef.current;
         const localP = playersRef.current.get(localIdRef.current);
@@ -524,11 +580,46 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
 
   useEffect(()=>{ canvasRef.current?.focus(); }, [location]);
 
+  // Keep movement controller in sync when config finishes loading (avoids stale defaults)
+  useEffect(() => {
+    if (movementRef.current && effectiveConfig) {
+      movementRef.current.setGameConfig(effectiveConfig);
+    }
+  }, [effectiveConfig]);
+
   const handleJoy = (dir:string|null, active:boolean)=>{
     movementRef.current?.setJoystick(dir as any, active);
   };
 
   const locLabel = location.type==="campus" ? "📍 Campus" : `📍 ${getInterior((location as any).buildingId).label}`;
+
+  // Do not start game with stale config; show loading/error states
+  if (configLoading) {
+    return (
+      <div className="relative w-full h-[calc(100vh-56px)] flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#E91E63] border-t-transparent" />
+          <p className="text-sm text-text-muted">Loading game configuration…</p>
+          <p className="text-xs text-text-muted">Quiz → QuizGameConfig → Live Game</p>
+        </div>
+      </div>
+    );
+  }
+  if (configError) {
+    return (
+      <div className="relative w-full h-[calc(100vh-56px)] flex items-center justify-center bg-background p-6">
+        <div className="max-w-md rounded-2xl border border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 p-6 text-center">
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">Unable to load game configuration</p>
+          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">{configError}</p>
+          <p className="mt-2 text-[11px] text-text-muted">The game cannot start with potentially incorrect mechanics. Please retry.</p>
+          <button onClick={() => fetched.refetch()} className="mt-3 rounded-xl bg-[#E91E63] px-4 py-2 text-xs font-semibold text-white">Retry</button>
+        </div>
+      </div>
+    );
+  }
+  // If game is explicitly disabled via config, show disabled state (but still allow campus as waiting room)
+  const gameDisabled = effectiveConfig?.enabled === false && numericQuizId !== null;
+  // Note: enabled=false means TopDown game is disabled; we still show campus as waiting room but indicate disabled.
 
   // compute all campus players for minimap (mapTick forces refresh)
   void mapTick;
@@ -563,6 +654,21 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
         <div className={`rounded-full border px-3 py-1 text-xs font-bold backdrop-blur-xl ${isDark? "bg-black/40 border-white/10 text-white":"bg-white/85 border-black/10 text-[#1a1a2e]"}`}>{locLabel}</div>
         {location.type!=="building" && <span className={`rounded-full border px-2.5 py-1 text-[10px] font-medium backdrop-blur-xl ${isDark? "bg-black/30 border-white/10 text-white/70":"bg-white/70 border-black/10 text-black/60"}`}>Stuck? Press <span className="font-bold text-[#EC4899]">Space</span> to jump</span>}
       </div>
+      {/* Persisted game config HUD — demonstrates that TopDown uses DB values, not hardcoded constants */}
+      {effectiveConfig && (
+        <div className="absolute left-3 top-[94px] z-20 pointer-events-none flex flex-wrap items-center gap-1.5 max-w-[72%]">
+          <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold backdrop-blur-xl ${effectiveConfig.movementEnabled ? "bg-emerald-500/90 text-white border-emerald-500" : "bg-red-500/90 text-white border-red-500"}`}>
+            {effectiveConfig.movementEnabled ? `Movement · ${effectiveConfig.movementSpeed}` : "Movement OFF"}
+          </span>
+          <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold backdrop-blur-xl ${isDark ? "bg-black/40 border-white/10 text-white" : "bg-white/85 border-black/10 text-[#1a1a2e]"}`}>
+            Lives {effectiveConfig.lives} {effectiveConfig.respawnEnabled ? "↻" : "×"}
+          </span>
+          {effectiveConfig.pointsEnabled && <span className="rounded-full bg-amber-500/90 text-white border border-amber-500 px-2.5 py-1 text-[10px] font-bold backdrop-blur-xl">Points</span>}
+          {effectiveConfig.powerupsEnabled && <span className="rounded-full bg-violet-500/90 text-white border border-violet-500 px-2.5 py-1 text-[10px] font-bold backdrop-blur-xl">Power-ups</span>}
+          {effectiveConfig.damageEnabled && <span className="rounded-full bg-red-600/90 text-white border border-red-600 px-2.5 py-1 text-[10px] font-bold backdrop-blur-xl">Damage</span>}
+          {gameDisabled && <span className="rounded-full bg-zinc-500/90 text-white border border-zinc-500 px-2.5 py-1 text-[10px] font-bold backdrop-blur-xl">Game Disabled</span>}
+        </div>
+      )}
       {/* transition fade */}
       {transition>0 && <div className="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm transition-opacity duration-300" style={{opacity: transition}} />}
 

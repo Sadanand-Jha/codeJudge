@@ -130,6 +130,7 @@ export interface QuizProblemOption {
   problem_id: number;
   option_statement: string;
   option_description: string | null;
+  matching_target?: string | null;
   iscorrect: boolean;
   created_at: string | null;
   updated_at: string | null;
@@ -459,6 +460,7 @@ export interface QuizProblemCreate {
 export interface QuizProblemOptionCreate {
   optionStatement: string;
   optionDescription?: string;
+  matchingTarget?: string | null;
   isCorrect: boolean;
 }
 
@@ -528,7 +530,7 @@ export interface QuizProblemSaveFull {
   internalComments?: string;
   marks?: number;
   negativeMarks?: number;
-  options?: QuizProblemOptionCreate[];
+  options?: Array<QuizProblemOptionCreate & { matchingTarget?: string | null; matching_target?: string | null }>;
 }
 
 /**
@@ -1105,5 +1107,63 @@ export interface StudentResponseDetail {
  */
 export async function getStudentResponseDetail(quizId: string, userId: string | number): Promise<StudentResponseDetail> {
   const response = await apiClient.get<StudentResponseDetail>(`/v1/user/quiz/${quizId}/responses/${userId}`);
+  return response.data;
+}
+
+// ─────────────────────────────────────────
+// Quiz Game Config API (PostgreSQL → Prisma → Backend → API → Frontend → TopDown)
+// ─────────────────────────────────────────
+
+export interface QuizGameConfig {
+  quizId: number;
+  enabled: boolean;
+  movementEnabled: boolean;
+  movementSpeed: number;
+  lives: number;
+  pointsEnabled: boolean;
+  powerupsEnabled: boolean;
+  respawnEnabled: boolean;
+  damageEnabled: boolean;
+}
+
+export const DEFAULT_QUIZ_GAME_CONFIG: Omit<QuizGameConfig, "quizId"> = {
+  enabled: true,
+  movementEnabled: true,
+  movementSpeed: 5,
+  lives: 3,
+  pointsEnabled: true,
+  powerupsEnabled: false,
+  respawnEnabled: true,
+  damageEnabled: false,
+};
+
+/**
+ * GET /api/v1/user/quiz/:quizId/game-config
+ * Also aliased at /api/quizzes/:quizId/game-config
+ * Returns persisted config or defaults.
+ */
+export async function getQuizGameConfig(quizId: string | number): Promise<QuizGameConfig> {
+  const response = await apiClient.get<QuizGameConfig>(`/v1/user/quiz/${quizId}/game-config`);
+  return response.data;
+}
+
+/**
+ * PUT /api/v1/user/quiz/:quizId/game-config
+ * Upsert — only owner/collaborator may write. Validates on backend.
+ */
+export async function updateQuizGameConfig(
+  quizId: string | number,
+  config: QuizGameConfig
+): Promise<QuizGameConfig> {
+  const response = await apiClient.put<QuizGameConfig>(`/v1/user/quiz/${quizId}/game-config`, {
+    enabled: config.enabled,
+    movementEnabled: config.movementEnabled,
+    movementSpeed: config.movementSpeed,
+    lives: config.lives,
+    pointsEnabled: config.pointsEnabled,
+    powerupsEnabled: config.powerupsEnabled,
+    respawnEnabled: config.respawnEnabled,
+    damageEnabled: config.damageEnabled,
+  });
   return response.data;
 }

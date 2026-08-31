@@ -308,6 +308,7 @@ export class QuizRepository {
         qpo.problem_id,
         qpo.option_statement,
         qpo.option_description,
+        qpo.matching_target,
         qpo.iscorrect,
         qpo.created_at,
         qpo.updated_at
@@ -499,17 +500,19 @@ export class QuizRepository {
     problemId: number;
     optionStatement: string;
     optionDescription?: string;
+    matchingTarget?: string | null;
     isCorrect: boolean;
   }): Promise<any> {
     const query = `
-      INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, iscorrect, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const result = await pool.query(query, [
       data.problemId,
       data.optionStatement,
       data.optionDescription || null,
+      (data as any).matchingTarget ?? (data as any).matching_target ?? null,
       data.isCorrect,
     ]);
     return result.rows[0];
@@ -623,9 +626,9 @@ export class QuizRepository {
         const options = await client.query("SELECT * FROM quiz_problem_options WHERE problem_id = $1", [problem.id]);
         for (const option of options.rows) {
           await client.query(
-            `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, iscorrect, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-            [newProblemId, option.option_statement, option.option_description, option.iscorrect]
+            `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect]
           );
         }
       }
@@ -714,9 +717,9 @@ export class QuizRepository {
     const options = await pool.query("SELECT * FROM quiz_problem_options WHERE problem_id = $1", [problemId]);
     for (const option of options.rows) {
       await pool.query(
-        `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, iscorrect, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-        [newProblemId, option.option_statement, option.option_description, option.iscorrect]
+        `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+        [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect]
       );
     }
 
@@ -740,6 +743,8 @@ export class QuizRepository {
     options?: Array<{
       optionStatement: string;
       optionDescription?: string;
+      matchingTarget?: string | null;
+      matching_target?: string | null;
       isCorrect: boolean;
     }>;
   }): Promise<any> {
@@ -774,6 +779,9 @@ export class QuizRepository {
             values.push(value);
           }
         }
+
+        console.log(fields)
+        console.log(paramCount)
 
         if (fields.length > 0) {
           paramCount++;
@@ -816,10 +824,13 @@ export class QuizRepository {
       if (data.options && problem) {
         await client.query("DELETE FROM quiz_problem_options WHERE problem_id = $1", [problem.id]);
         for (const opt of data.options) {
+          const matchingTarget = (opt as any).matchingTarget ?? (opt as any).matching_target ?? null;
+          // When quiz_problem_type is 12 (match_following) or 6 (fill_blanks), store in matching_target
+          const isTargetType = data.quizProblemType === 12 || data.quizProblemType === 6;
           await client.query(
-            `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, iscorrect, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-            [problem.id, opt.optionStatement, opt.optionDescription || null, opt.isCorrect]
+            `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            [problem.id, opt.optionStatement, opt.optionDescription || null, isTargetType ? matchingTarget : (matchingTarget ?? null), opt.isCorrect]
           );
         }
       }
@@ -1675,5 +1686,94 @@ export class QuizRepository {
     `;
     const result = await pool.query(query, [quizId]);
     return result.rows;
+  }
+
+  // ==================== QUIZ GAME CONFIG ====================
+
+  /**
+   * Default game config — single source of truth for DB defaults.
+   * Mirrors SQL defaults in quiz_game_config.
+   */
+  getDefaultGameConfig(quizId: number) {
+    return {
+      quizId,
+      enabled: true,
+      movementEnabled: true,
+      movementSpeed: 5,
+      lives: 3,
+      pointsEnabled: true,
+      powerupsEnabled: false,
+      respawnEnabled: true,
+      damageEnabled: false,
+    };
+  }
+
+  private mapGameConfigRow(row: any) {
+    return {
+      quizId: row.quiz_id,
+      enabled: row.enabled,
+      movementEnabled: row.movement_enabled,
+      movementSpeed: row.movement_speed,
+      lives: row.lives,
+      pointsEnabled: row.points_enabled,
+      powerupsEnabled: row.powerups_enabled,
+      respawnEnabled: row.respawn_enabled,
+      damageEnabled: row.damage_enabled,
+    };
+  }
+
+  async getQuizGameConfig(quizId: number): Promise<any> {
+    const result = await pool.query(`SELECT * FROM quiz_game_config WHERE quiz_id = $1 LIMIT 1`, [quizId]);
+    if (result.rows.length === 0) {
+      // Return default without persisting — do not create row until PUT
+      return this.getDefaultGameConfig(quizId);
+    }
+    return this.mapGameConfigRow(result.rows[0]);
+  }
+
+  async upsertQuizGameConfig(
+    quizId: number,
+    data: {
+      enabled: boolean;
+      movementEnabled: boolean;
+      movementSpeed: number;
+      lives: number;
+      pointsEnabled: boolean;
+      powerupsEnabled: boolean;
+      respawnEnabled: boolean;
+      damageEnabled: boolean;
+    }
+  ): Promise<any> {
+    // Use INSERT ... ON CONFLICT to avoid race conditions for UNIQUE quiz_id
+    const query = `
+      INSERT INTO quiz_game_config (
+        quiz_id, enabled, movement_enabled, movement_speed, lives,
+        points_enabled, powerups_enabled, respawn_enabled, damage_enabled,
+        created_at, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT (quiz_id) DO UPDATE SET
+        enabled = EXCLUDED.enabled,
+        movement_enabled = EXCLUDED.movement_enabled,
+        movement_speed = EXCLUDED.movement_speed,
+        lives = EXCLUDED.lives,
+        points_enabled = EXCLUDED.points_enabled,
+        powerups_enabled = EXCLUDED.powerups_enabled,
+        respawn_enabled = EXCLUDED.respawn_enabled,
+        damage_enabled = EXCLUDED.damage_enabled,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `;
+    const result = await pool.query(query, [
+      quizId,
+      data.enabled,
+      data.movementEnabled,
+      data.movementSpeed,
+      data.lives,
+      data.pointsEnabled,
+      data.powerupsEnabled,
+      data.respawnEnabled,
+      data.damageEnabled,
+    ]);
+    return this.mapGameConfigRow(result.rows[0]);
   }
 }

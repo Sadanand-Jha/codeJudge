@@ -102,24 +102,60 @@ export interface GameMechanicsConfig {
 }
 
 export const DEFAULT_GAME_MECHANICS: GameMechanicsConfig = {
-  fiftyFifty: { enabled: false, uses: 1 },
-  audiencePoll: { enabled: false, uses: 1, showPercentages: true, showResponseCount: true, aiFallback: false },
+  fiftyFifty: { enabled: false, uses: 0 },
+  audiencePoll: { enabled: false, uses: 0, showPercentages: true, showResponseCount: true, aiFallback: false },
   hint: {
     enabled: false,
-    uses: 2,
+    uses: 0,
     hints: [{ id: "h1", content: "Think about the operation used to remove the most recently inserted element.", penalty: 0 }],
   },
-  skip: { enabled: false, uses: 1, penalty: 0 },
-  extraTime: { enabled: false, uses: 1, seconds: 30 },
-  doublePoints: { enabled: false, uses: 1 },
-  freezeTimer: { enabled: false, uses: 1, duration: 10 },
-  eliminateOne: { enabled: false, uses: 1 },
-  streakBonus: { enabled: false, uses: 1, bonusPoints: 5 },
-  speedBonus: { enabled: false, uses: 1, thresholdSeconds: 30 },
-  secondChance: { enabled: false, uses: 1 },
+  skip: { enabled: false, uses: 0, penalty: 0 },
+  extraTime: { enabled: false, uses: 0, seconds: 30 },
+  doublePoints: { enabled: false, uses: 0 },
+  freezeTimer: { enabled: false, uses: 0, duration: 10 },
+  eliminateOne: { enabled: false, uses: 0 },
+  streakBonus: { enabled: false, uses: 0, bonusPoints: 5 },
+  speedBonus: { enabled: false, uses: 0, thresholdSeconds: 30 },
+  secondChance: { enabled: false, uses: 0 },
   decayingPoints: { enabled: false, decayPerSecond: 1, minPoints: 1 },
   usageRules: { sharedAcrossQuiz: true },
 };
+
+// When mechanics are turned off, all uses must be 0 (no lifelines/power-ups).
+// When a mechanic is re-enabled, its uses default to 1 if it was 0.
+export function normalizeMechanicUses<T extends { enabled: boolean; uses: UsesValue }>(m: T): T {
+  if (!m.enabled && m.uses !== 0) return { ...m, uses: 0 as UsesValue };
+  if (m.enabled && m.uses === 0) return { ...m, uses: 1 as UsesValue };
+  return m;
+}
+
+export function normalizeGameMechanics(cfg: GameMechanicsConfig): GameMechanicsConfig {
+  const next = JSON.parse(JSON.stringify(cfg)) as GameMechanicsConfig;
+  (Object.keys(next) as MechanicId[]).forEach((id) => {
+    const v: any = (next as any)[id];
+    if (v && typeof v.enabled === "boolean" && "uses" in v) {
+      (next as any)[id] = normalizeMechanicUses(v);
+    }
+  });
+  return next;
+}
+
+export function zeroAllMechanics(cfg: GameMechanicsConfig): GameMechanicsConfig {
+  const next = JSON.parse(JSON.stringify(cfg)) as GameMechanicsConfig;
+  (Object.keys(next) as MechanicId[]).forEach((id) => {
+    const v: any = (next as any)[id];
+    if (v && typeof v.enabled === "boolean") v.enabled = false;
+    if (v && "uses" in v) v.uses = 0;
+  });
+  return next;
+}
+
+export function isAnyMechanicEnabled(cfg: GameMechanicsConfig): boolean {
+  return (Object.keys(cfg) as (keyof GameMechanicsConfig)[]).some((k) => {
+    const v: any = (cfg as any)[k];
+    return v && v.enabled === true;
+  });
+}
 
 export const MECHANIC_META: Record<MechanicId, { label: string; short: string; description: string; icon: string }> = {
   fiftyFifty: { label: "50:50", short: "50:50", description: "Remove two incorrect options and leave two possible answers.", icon: "split" },

@@ -7,12 +7,30 @@ import { toast } from "@/lib/toast";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { useStudio } from "../StudioProvider";
 
+/**
+ * Strips HTML tags and decodes common HTML entities (&nbsp;, &amp;, etc.)
+ * from the rich-text title so it displays cleanly as plain text in the list.
+ * Without this, entities like &nbsp; would show as literal text.
+ */
+function decodeHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+}
+
 export function QuestionList({
   onAiGenerate,
   onDownloadPdf,
   onSave,
   saving,
   hasChanges,
+  saveProgress,
   onToggleSidebar,
 }: {
   onAiGenerate?: () => void;
@@ -20,6 +38,7 @@ export function QuestionList({
   onSave?: () => void;
   saving?: boolean;
   hasChanges?: boolean;
+  saveProgress?: { saved: number; total: number } | null;
   onToggleSidebar?: () => void;
 }) {
   const { state, reorderQuestions, duplicateQuestion, removeQuestion, setActiveQuestion, addQuestion } = useStudio();
@@ -53,7 +72,7 @@ export function QuestionList({
   const visible = state.questions.filter((q) => {
     const term = search.toLowerCase();
     if (!term) return true;
-    return q.title.toLowerCase().includes(term) || q.tags.some((t) => t.toLowerCase().includes(term));
+    return decodeHtml(q.title).toLowerCase().includes(term) || q.tags.some((t) => t.toLowerCase().includes(term));
   });
 
   const handleDragStart = (id: string) => setDraggedId(id);
@@ -135,10 +154,10 @@ export function QuestionList({
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className={cn("line-clamp-1 text-[13px] leading-tight", active ? "font-semibold text-text-primary" : "font-medium text-text-primary")}>
-                        {(q.title.replace(/<[^>]*>/g, "").trim() || "Untitled question").slice(0, 48)}
+                        {(decodeHtml(q.title) || "Untitled question").slice(0, 48)}
                       </p>
                       <p className="truncate text-[11px] text-text-muted">
-                        {(q.type === "single_choice" ? "MCQ" : q.type === "multiple_choice" ? "Multi" : q.type === "true_false" ? "T/F" : q.type.replace("_", " "))} · {q.difficulty} · {q.marks} marks
+                        {(q.type === "single_choice" ? "MCQ" : q.type === "multiple_choice" ? "Multi" : q.type === "true_false" ? "T/F" : q.type === "match_following" ? "Match" : q.type.replace("_", " "))} · {q.difficulty} · {q.marks} marks
                       </p>
                     </div>
                     <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", status === "complete" ? "bg-emerald-500" : status === "missing_answer" ? "bg-amber-400" : "bg-border")} />
@@ -199,7 +218,9 @@ export function QuestionList({
               : "border-border bg-card text-text-muted cursor-not-allowed opacity-50"
           )}
         >
-          {saving ? "Saving…" : "Save Changes"}
+          {saving
+            ? (saveProgress ? `Saving ${saveProgress.saved}/${saveProgress.total}…` : "Saving…")
+            : "Save Changes"}
         </button>
         <div className="mt-3 flex items-start gap-2 rounded-lg bg-background p-2.5 text-xs text-text-secondary">
           <span className="mt-0.5">💡</span>

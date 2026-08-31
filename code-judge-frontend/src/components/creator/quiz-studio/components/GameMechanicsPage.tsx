@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Gamepad2, Eye, Trophy, Timer, ShieldCheck, Users, Save, Check } from "lucide-react";
+import { Gamepad2, Eye, Trophy, Timer, ShieldCheck, Users, Save, Check, ChevronDown, ChevronRight } from "lucide-react";
 import { useStudio } from "../StudioProvider";
 import { GameMechanicsPanel } from "./GameMechanicsPanel";
-import { getEnabledMechanicsSummary, isMechanicAvailable } from "../types/gameMechanics";
+import { getEnabledMechanicsSummary, isMechanicAvailable, MECHANIC_META, type MechanicId } from "../types/gameMechanics";
 import { cn } from "@/lib/helpers";
+import type { CreatorQuestionType } from "../types";
 
 export function GameMechanicsPage() {
-  const { state, updateGameMechanics, saveToServer, savingToServer } = useStudio();
+  const { state, updateGameMechanics, saveToServer, savingToServer, saveProgress } = useStudio();
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
@@ -101,7 +102,7 @@ export function GameMechanicsPage() {
           <div className="flex shrink-0 items-center gap-2 self-start">
             <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-text-muted">
               {saveStatus === "saving" ? (
-                <><span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" /> Saving...</>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />{saveProgress ? "Saving " + saveProgress.saved + "/" + saveProgress.total + "…" : "Saving..."}</span>
               ) : saveStatus === "saved" ? (
                 <><Check className="h-3.5 w-3.5 text-emerald-500" /> Saved</>
               ) : (
@@ -158,11 +159,83 @@ export function GameMechanicsPage() {
               })}
             </div>
           </div>
+
+          {/* Per-question-type mechanics preview */}
+          {state.questions.length > 0 && (() => {
+            const lifelines: MechanicId[] = ["fiftyFifty", "audiencePoll", "hint", "skip", "extraTime", "eliminateOne"];
+            const powerUps: MechanicId[] = ["doublePoints", "freezeTimer", "streakBonus", "speedBonus", "secondChance", "decayingPoints"];
+            const allMechanics = [...lifelines, ...powerUps];
+            const enabledMechanics = allMechanics.filter((mid) => (state.gameMechanics as any)[mid]?.enabled);
+            const qTypes = useMemo(() => {
+              const map = new Map<CreatorQuestionType, number>();
+              state.questions.forEach((q) => map.set(q.type, (map.get(q.type) ?? 0) + 1));
+              return Array.from(map.entries());
+            }, [state.questions]);
+
+            const TYPE_LABEL: Record<string, string> = {
+              single_choice: "MCQ",
+              multiple_choice: "Multi",
+              true_false: "True/False",
+              match_following: "Match the Following",
+              fill_blanks: "Fill Blanks",
+              text: "Text",
+              integer: "Integer",
+              paragraph: "Paragraph",
+              code_output: "Code Output",
+            };
+
+            return (
+              <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Eye className="h-4 w-4 text-[#E91E63]" />
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted">Per-Question Mechanics Preview</h4>
+                </div>
+                <p className="text-xs text-text-muted mb-4">How each enabled mechanic applies to your question types at runtime.</p>
+
+                <div className="space-y-3">
+                  {qTypes.map(([qType, count]) => (
+                    <div key={qType} className="rounded-xl border border-border overflow-hidden">
+                      <div className="flex items-center justify-between bg-background px-3 py-2.5 border-b border-border">
+                        <span className="text-sm font-semibold text-text-primary">{TYPE_LABEL[qType] ?? qType} <span className="text-text-muted font-normal">×{count}</span></span>
+                      </div>
+                      {enabledMechanics.length === 0 ? (
+                        <p className="px-3 py-2 text-xs text-text-muted">No mechanics enabled.</p>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 p-2.5">
+                          {enabledMechanics.map((mid) => {
+                            const result = isMechanicAvailable(mid, qType, hasTimer);
+                            return (
+                              <div
+                                key={mid}
+                                className={cn(
+                                  "rounded-lg border px-2 py-1.5 text-center",
+                                  result.available
+                                    ? "border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10"
+                                    : "border-red-500/20 bg-red-50 dark:bg-red-500/10"
+                                )}
+                              >
+                                <p className={cn("text-[11px] font-semibold", result.available ? "text-emerald-700 dark:text-emerald-400" : "text-red-600 dark:text-red-400")}>
+                                  {MECHANIC_META[mid]?.short ?? mid}
+                                </p>
+                                <p className="text-[10px] text-text-muted mt-0.5 leading-tight">
+                                  {result.available ? "Active" : (result.reason?.split("(")[0]?.trim() ?? "N/A")}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Game Rules Summary — right rail */}
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-2xl border border-border bg-background sticky top-4">
+        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <div className="overflow-hidden rounded-2xl border border-border bg-background">
             <div className="bg-card px-4 py-3 border-b border-border">
               <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
                 <Trophy className="h-4 w-4 text-amber-500" /> Game Rules
@@ -206,7 +279,16 @@ export function GameMechanicsPage() {
 
               <div className="rounded-xl border border-dashed border-border bg-card p-3">
                 <p className="text-xs font-medium text-text-primary">Example</p>
-                <p className="mt-1 text-xs text-text-muted">DSA Championship · 20 Questions · ⏱ 15 min · 50:50 ×2 · Audience ×1 · Hint ×3 · Skip ×1 · 2× Points ×1</p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-1 text-xs text-text-muted">
+                  <span className="whitespace-nowrap">DSA Championship</span><span className="opacity-60">·</span>
+                  <span className="whitespace-nowrap">20 Questions</span><span className="opacity-60">·</span>
+                  <span className="whitespace-nowrap">⏱ 15 min</span><span className="opacity-60">·</span>
+                  <span className="whitespace-nowrap">50:50 ×2</span><span className="opacity-60">·</span>
+                  <span className="whitespace-nowrap">Audience ×1</span><span className="opacity-60">·</span>
+                  <span className="whitespace-nowrap">Hint ×3</span><span className="opacity-60">·</span>
+                  <span className="whitespace-nowrap">Skip ×1</span><span className="opacity-60">·</span>
+                  <span className="whitespace-nowrap">2× Points ×1</span>
+                </div>
               </div>
             </div>
           </div>
