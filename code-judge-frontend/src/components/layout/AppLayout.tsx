@@ -158,6 +158,8 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   // workspace, so on /creator routes we hide the student sidebar entirely and
   // only Studio's navigation is visible.
   const isStudioRoute = pathname.startsWith("/creator");
+  const isQuizWorkspace = isNestedQuizPath(pathname);
+  const homeHref = isStudioRoute || isQuizWorkspace ? "/creator/quizzes" : "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   // Account dropdown state lives here (not inside ProfileMenu) so the
@@ -299,7 +301,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         >
         {/* Logo */}
         <div className={cn("shrink-0 py-4 flex items-center", showLabels ? "px-6 justify-start" : "px-0 justify-center")}>
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href={homeHref} className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center shrink-0">
               <Code2 className="w-4 h-4 text-accent-foreground" />
             </div>
@@ -400,7 +402,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             </button>
 
             {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
-            <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="ByteClash home">
+            <Link href={homeHref} className="flex items-center gap-2 shrink-0" aria-label="ByteClash home">
               <span className="hidden sm:block text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
             </Link>
 
@@ -429,7 +431,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         ) : null}
 
         {/* ===== PAGE CONTENT ===== */}
-        <main className={cn("flex-1", isStudioRoute && "min-h-0 flex flex-col overflow-hidden")}>{children}</main>
+        <main className={cn("flex-1", isStudioRoute && "min-h-0 flex flex-col")}>{children}</main>
       </div>
 
       <LogoutConfirmModal

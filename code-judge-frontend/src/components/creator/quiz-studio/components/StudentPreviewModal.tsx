@@ -99,7 +99,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+        className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
       >
         {/* Header */}
         <div className="shrink-0 border-b border-border bg-background">

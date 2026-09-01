@@ -83,9 +83,9 @@ const TABS: ReadonlyArray<{ id: TabId; label: string }> = [
 type TabId = "all" | "live" | "draft" | "scheduled" | "completed";
 
 const STATUS_META: Record<QuizStatus, { label: string; tone: StatusTone }> = {
-  live: { label: "Live", tone: "emerald" },
+  live: { label: "Live", tone: "pink" },
   draft: { label: "Draft", tone: "amber" },
-  scheduled: { label: "Scheduled", tone: "violet" },
+  scheduled: { label: "Scheduled", tone: "pink" },
   completed: { label: "Completed", tone: "slate" },
 };
 
@@ -237,18 +237,18 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.02, duration: 0.3 }}
-                    className="flex flex-col rounded-2xl border border-border bg-card p-4 transition-colors duration-200 hover:border-border-hover sm:p-5"
+                    className="group/card flex flex-col rounded-2xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(17,24,39,0.04),0_4px_16px_rgba(17,24,39,0.03)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.25)] transition-all duration-200 hover:border-[#EC4899]/20 hover:shadow-[0_4px_20px_rgba(236,72,153,0.08)] dark:hover:border-[#EC4899]/20 sm:p-5"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="truncate text-sm font-semibold text-text-primary">{q.title}</h3>
+                        <h3 className="truncate text-sm font-semibold tracking-tight text-text-primary">{q.title}</h3>
                         <button
                           type="button"
                           onClick={() => {
                             navigator.clipboard.writeText(q.code);
                             toast.success({ title: "Code copied", description: q.code });
                           }}
-                          className="mt-0.5 font-mono text-[11px] text-text-muted transition-colors hover:text-text-primary"
+                          className="mt-0.5 font-mono text-[11px] font-medium text-text-muted transition-colors hover:text-[#EC4899]"
                         >
                           {q.code}
                         </button>
@@ -266,12 +266,12 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                     {engaged && (
                       <div className="mt-4">
                         <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-text-muted">Completion</span>
+                          <span className="font-medium text-text-muted">Completion</span>
                           <span className="font-bold text-text-primary tabular-nums">{q.completionRate}%</span>
                         </div>
-                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-card-hover">
+                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border/60">
                           <div
-                            className="h-full rounded-full bg-gradient-to-r from-pink-500 to-violet-600"
+                            className="h-full rounded-full bg-[#EC4899]"
                             style={{ width: `${q.completionRate}%` }}
                           />
                         </div>
@@ -302,7 +302,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                                 toast.success({ title: "Duplicate", description: "Use Edit → Clone from quiz settings." });
                               }
                             }}
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-text-secondary transition-colors hover:bg-card-hover hover:text-pink-500 dark:hover:text-ai-accent"
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-text-secondary transition-colors hover:bg-[#FDF2F8] dark:hover:bg-[#EC4899]/10 hover:text-[#EC4899]"
                           >
                             <Icon className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline">{action.label}</span>
@@ -312,7 +312,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(q)}
-                        className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-danger/80 transition-colors hover:bg-danger/10 hover:text-danger"
+                        className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-[#F87171] dark:text-red-400 transition-colors hover:bg-[#FEF2F2] dark:hover:bg-red-500/10 hover:text-[#EF4444] dark:hover:text-red-400"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         <span className="hidden sm:inline">Delete</span>
@@ -399,9 +399,9 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
 
 function MiniStat({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
-      <p className="flex items-center gap-1 text-[10px] text-text-muted">
-        <Icon className="h-3 w-3" />
+    <div className="rounded-xl border border-border bg-card px-3 py-2 transition-colors group-hover/card:border-[#EC4899]/15">
+      <p className="flex items-center gap-1 text-[10px] font-medium tracking-wide text-text-muted">
+        <Icon className="h-3 w-3 text-text-muted group-hover/card:text-[#EC4899] transition-colors" />
         {label}
       </p>
       <p className="mt-0.5 truncate text-[13px] font-bold text-text-primary tabular-nums">{value}</p>
@@ -411,7 +411,7 @@ function MiniStat({ label, value, icon: Icon }: { label: string; value: string; 
 
 function Stars({ rating }: { rating: number }) {
   if (rating <= 0) {
-    return <span className="text-[11px] text-text-muted">No ratings yet</span>;
+    return <span className="text-[11px] font-medium text-text-muted">No ratings yet</span>;
   }
   return (
     <span className="inline-flex items-center gap-0.5">
@@ -428,7 +428,7 @@ function Stars({ rating }: { rating: number }) {
 
 function QuizCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(17,24,39,0.04)] sm:p-5">
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="mt-2 h-3 w-1/2" />
       <div className="mt-4 grid grid-cols-2 gap-2">

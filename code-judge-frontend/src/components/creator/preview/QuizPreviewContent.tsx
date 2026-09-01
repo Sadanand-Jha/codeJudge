@@ -1,345 +1,443 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
+  ArrowLeft,
   Clock,
-  ChevronLeft,
-  ChevronRight,
-  Flag,
-  Send,
-  CheckCircle,
-  CheckCircle2,
-  XCircle,
-  HelpCircle,
   BookOpen,
   Target,
-  Award,
   Users,
-  ArrowLeft,
   Eye,
-  Pencil,
+  X,
+  Moon,
+  Share2,
+  Bookmark,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { PageHeader, StatCard, Panel, EmptyState, ErrorState, BillButton, StatusBadge } from "@/components/creator/billing/ui";
-import { getQuizById, getQuizProblems, type QuizProblem } from "@/services/quiz";
+import ExamModeShell from "@/components/quiz/exam/ExamModeShell";
 
-// ---------- Full student attempt preview (what student sees during quiz) ----------
-function StudentAttemptPreview({ quiz, problems }: { quiz: any; problems: QuizProblem[] }) {
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
-  const [timeLeft, setTimeLeft] = useState((quiz.duration ?? 30) * 60);
-  const [showSubmit, setShowSubmit] = useState(false);
-  const [showResult, setShowResult] = useState(false);
+const DUMMY_QUIZ = {
+  name: "Sample Quiz – Preview",
+  code: "PREVIEW1234567890",
+  duration: 30,
+  total_marks: 100,
+  passing_marks: 40,
+  status: "Published",
+  questions: 3,
+  attempts: 1,
+  visibility: "Public",
+  negative: "-0.25",
+};
 
-  // ticking preview timer (paused when showing result)
+const QUESTIONS = [
+  {
+    id: 1,
+    q: "What does HTML stand for?",
+    options: [
+      { label: "A", text: "HyperText Markup Language", correct: true },
+      { label: "B", text: "HighText Machine Language", correct: false },
+      { label: "C", text: "HyperTool Multi Language", correct: false },
+      { label: "D", text: "HyperText Markdown Language", correct: false },
+    ],
+    marks: 10,
+    difficulty: "Easy",
+    explanation: "HyperText Markup Language is the standard markup language for creating web pages.",
+  },
+  {
+    id: 2,
+    q: "Which CSS property controls text size?",
+    options: [
+      { label: "A", text: "font-size", correct: true },
+      { label: "B", text: "text-size", correct: false },
+      { label: "C", text: "font-style", correct: false },
+      { label: "D", text: "text-style", correct: false },
+    ],
+    marks: 10,
+    difficulty: "Easy",
+    explanation: "font-size controls the size of text.",
+  },
+  {
+    id: 3,
+    q: "Explain the difference between let and var in JavaScript.",
+    options: [],
+    marks: 10,
+    difficulty: "Medium",
+    explanation: "let is block-scoped, var is function-scoped.",
+  },
+];
+
+const MECHANICS = [
+  { icon: "◐", title: "50–50", desc: "Eliminate 2 wrong options", left: "2 left" },
+  { icon: "◑", title: "Extra Time", desc: "+5 minutes", left: "1 left" },
+  { icon: "💡", title: "Hint", desc: "Get a smart hint", left: "2 left" },
+  { icon: "⏭", title: "Skip Question", desc: "Skip and come back later", left: "2 left" },
+  { icon: "🛡", title: "Shield", desc: "Protect from negative marking", left: "1 left" },
+  { icon: "⚡", title: "Double Score", desc: "Next correct answer = 2x", left: "1 left" },
+  { icon: "❤", title: "Extra Life", desc: "Get 1 extra life", left: "1 left" },
+];
+
+export default function QuizPreviewContent({ quizId }: { quizId: string }) {
+  const [current, setCurrent] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [marked, setMarked] = useState<Record<number, boolean>>({});
+  const [selectedMechanic, setSelectedMechanic] = useState<number | null>(null);
+  const [usedMechanics, setUsedMechanics] = useState<Record<number, boolean>>({});
+  const [timeLeft, setTimeLeft] = useState(DUMMY_QUIZ.duration * 60);
+  const q = QUESTIONS[current];
+
+  // Live countdown
   useEffect(() => {
-    if (showResult) return;
-    const t = setInterval(() => setTimeLeft((v) => Math.max(0, v - 1)), 1000);
-    return () => clearInterval(t);
-  }, [showResult]);
-
-  const current = problems[currentIdx] as any;
-  const progress = ((currentIdx + 1) / Math.max(1, problems.length)) * 100;
-  const attempted = Object.keys(answers).length;
-  const unanswered = problems.length - attempted;
-
-  const handleSelect = (value: any) => {
-    if (!current) return;
-    setAnswers((p) => ({ ...p, [current.id]: value }));
-  };
-
-  const handleSubmit = () => {
-    setShowSubmit(false);
-    setShowResult(true);
-  };
-
-  if (problems.length === 0) {
-    return (
-      <Panel title="Live Preview — Student View" subtitle="This is exactly what a student sees during the attempt.">
-        <EmptyState title="No questions yet" description="Add questions in the editor to preview the attempt." />
-      </Panel>
-    );
-  }
-
-  if (showResult) {
-    // simple preview result (client-side)
-    let correct = 0;
-    problems.forEach((p: any) => {
-      const ans = answers[p.id];
-      if (ans == null) return;
-      const correctOpt = (p.options || []).find((o: any) => o.iscorrect);
-      if (correctOpt && ans === correctOpt.id) correct++;
-      else if (correctOpt && String(ans) === String(correctOpt.option_statement)) correct++;
-    });
-    return (
-      <Panel title="Preview Result" subtitle="Client-side preview — real scoring happens on the server.">
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-6 text-center">
-          <CheckCircle className="mx-auto h-10 w-10 text-emerald-500" />
-          <h3 className="mt-3 text-lg font-bold">Preview Submitted</h3>
-          <p className="mt-1 text-sm text-text-secondary">
-            {correct} / {problems.length} correct in preview
-          </p>
-          <div className="mt-4 flex justify-center gap-2">
-            <BillButton variant="ghost" onClick={() => setShowResult(false)}>
-              Back to Preview
-            </BillButton>
-            <BillButton onClick={() => setAnswers({})}>Reset Answers</BillButton>
-          </div>
-        </div>
-      </Panel>
-    );
-  }
+    const timer = setInterval(() => {
+      setTimeLeft((t) => (t > 0 ? t - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
-      {/* Preview banner */}
-      <div className="flex items-center justify-between gap-2 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-        <span className="flex items-center gap-1.5">
-          <Eye className="h-3.5 w-3.5" /> Preview Mode — Student View (no data is saved)
-        </span>
-        <span className="hidden sm:inline">Anti-copy & watermark active for real attempts</span>
-      </div>
-
-      {/* Header like real attempt */}
-      <div className="border-b border-border bg-[#0B0C0F]">
-        <div className="flex items-center justify-between gap-2 px-4 py-3">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">{quiz.name}</p>
-            <p className="text-xs text-white/60">
-              Q {currentIdx + 1} of {problems.length} · {attempted} answered
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5 text-xs font-mono font-semibold text-white">
-              <Clock className="h-3.5 w-3.5 text-amber-400" />
-              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
+    <div className="flex h-[100dvh] h-[100svh] w-full flex-col overflow-hidden bg-background text-text-primary sm:min-h-screen sm:h-auto sm:overflow-visible" style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+      {/* Top bar — compact on mobile */}
+      <div className="flex h-[clamp(2.5rem,7dvh,3rem)] shrink-0 items-center justify-between border-b border-border bg-card/90 px-[clamp(0.5rem,2vw,1rem)] backdrop-blur sm:px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-gradient-to-br from-violet-600 to-pink-600">
+              <span className="text-xs font-bold text-white">{"</>"}</span>
+            </div>
+            <span className="text-sm font-bold tracking-tight">
+              Code<span className="text-pink-500">Judge</span>
             </span>
-            <button
-              onClick={() => setShowSubmit(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-500 hover:bg-emerald-500/20"
-            >
-              <Send className="h-3.5 w-3.5" /> Submit
-            </button>
           </div>
         </div>
-        <div className="h-1 bg-white/10">
-          <motion.div className="h-full bg-pink-500" animate={{ width: `${progress}%` }} transition={{ duration: 0.25 }} />
+        <div className="hidden sm:flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs">
+          <span className="flex items-center gap-1.5 rounded-full bg-pink-500/10 px-2 py-0.5 text-[11px] font-semibold text-pink-600 dark:text-pink-400">
+            <Eye className="h-3 w-3" /> Preview Mode
+          </span>
+          <span className="text-text-muted">You are viewing as a student. No data is saved.</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="hidden sm:flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card">
+            <Moon className="h-3.5 w-3.5" />
+          </button>
+          <Link href={`/creator/quizzes/${quizId}/edit`} className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-card-hover">
+            <Share2 className="h-3.5 w-3.5" /> Share Quiz
+          </Link>
+          <Link href="/creator/quizzes" className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card hover:bg-card-hover">
+            <X className="h-3.5 w-3.5" />
+          </Link>
         </div>
       </div>
 
-      {/* Question */}
-      <div className="p-4 sm:p-5">
-        <div className="rounded-2xl border border-border bg-background p-4">
-          <div className="flex items-center gap-2 text-xs text-text-muted">
-            <span>Q{currentIdx + 1}</span>
-            <span className="rounded-full bg-pink-500/10 px-2 py-0.5 text-[10px] font-bold text-pink-500">{current?.quiz_problem_type || "MCQ"}</span>
-            {current?.difficulty_name && <span className="rounded-full border border-border px-2 py-0.5 text-[10px]">{current.difficulty_name}</span>}
-          </div>
-          <h3 className="mt-2 text-sm font-semibold leading-relaxed text-text-primary">{current?.problem_statement || "Question"}</h3>
-          {current?.problem_description && <p className="mt-1 text-xs text-text-secondary">{current.problem_description}</p>}
+      <div className="flex items-center justify-center gap-1 bg-amber-500/10 px-2 py-0.5 text-[9px] font-medium text-amber-600/80 dark:text-amber-400/70">
+        <span className="h-1 w-1 rounded-full bg-amber-500/60 animate-pulse" />
+        Tab switching &amp; window changes are monitored during exam
+      </div>
 
-          <div className="mt-4 grid gap-2">
-            {(current?.options || []).map((o: any, oi: number) => {
-              const isSelected = answers[current.id] === o.id || answers[current.id] === oi;
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain pb-[env(safe-area-inset-bottom)] sm:overflow-visible sm:pb-0">
+      {/* Title + banner — backend banner folder (image only here, not whole page) */}
+      <div className="relative overflow-hidden border-b border-white/10">
+        <div className="absolute inset-0">
+          <img src="/images/quiz/banner/light.png" alt="" className="h-full w-full object-cover block dark:hidden" />
+          <img src="/images/quiz/banner/dark.png" alt="" className="h-full w-full object-cover hidden dark:block" />
+          <div className="absolute inset-0 bg-white/65 dark:bg-black/55 backdrop-blur-[0.5px]" />
+        </div>
+        <div className="relative px-3 py-3 sm:px-6 sm:py-5">
+          <Link href="/creator/quizzes" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-semibold hover:bg-card-hover sm:px-3 sm:py-1.5 sm:text-xs">
+            <ArrowLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Back to Studio
+          </Link>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:mt-3 sm:gap-2">
+            <h1 className="text-sm font-bold leading-tight sm:text-[clamp(1.125rem,4vw,1.5rem)]">{DUMMY_QUIZ.name}</h1>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 sm:px-2 sm:text-[11px]">
+              <span className="h-1 w-1 rounded-full bg-emerald-500 sm:h-1.5 sm:w-1.5" /> Published
+            </span>
+          </div>
+          <p className="mt-0.5 text-[11px] text-gray-600 dark:text-white/70 sm:mt-1 sm:text-xs">
+            {DUMMY_QUIZ.questions} Q &nbsp;•&nbsp; {DUMMY_QUIZ.duration} min &nbsp;•&nbsp; {DUMMY_QUIZ.total_marks} Marks
+          </p>
+
+          <div className="mt-3 hidden grid-cols-2 gap-2 sm:mt-4 sm:grid sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              { label: "Questions", value: "3", sub: "Total", icon: BookOpen },
+              { label: "Duration", value: "30 min", sub: "Time Limit", icon: Clock },
+              { label: "Total Marks", value: "100", sub: "Pass Marks: 40", icon: Target },
+              { label: "Visibility", value: "Public", sub: "Medium", icon: Users },
+              { label: "Attempts", value: "1", sub: "Allowed", icon: Users },
+              { label: "Negative Marking", value: "−0.25", sub: "Per wrong answer", icon: Target },
+            ].map((s) => (
+              <div key={s.label} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500/10 text-pink-600 dark:text-pink-400">
+                  <s.icon className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider text-text-muted">{s.label}</p>
+                  <p className="text-sm font-bold">{s.value}</p>
+                  <p className="text-[10px] text-text-muted">{s.sub}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main 3 col — wrapped in reusable ExamMode for fullscreen + violation handling */}
+      <ExamModeShell quizName={DUMMY_QUIZ.name} progressLabel={`Q ${current + 1} / ${QUESTIONS.length}`} timeLeft={timeLeft} maxViolations={3} onExitPreview={() => {}}>
+        <div className="mx-auto flex h-full min-h-0 max-w-[1400px] flex-col gap-[clamp(0.5rem,0.8dvh,0.75rem)] overflow-hidden p-[clamp(0.5rem,1.5vw,1rem)] sm:grid sm:h-auto sm:min-h-0 sm:max-h-none sm:grid-cols-[260px_1fr_300px] sm:gap-4 sm:p-4 sm:overflow-visible">
+        {/* Left — hidden on mobile, visible on desktop */}
+        <div className="hidden min-h-0 flex-col space-y-2 overflow-y-auto overscroll-contain rounded-xl sm:order-1 sm:flex sm:max-h-none sm:overflow-visible sm:space-y-3">
+          <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
+            <h3 className="flex items-center gap-1.5 text-[11px] font-bold sm:text-xs">
+              <span className="text-pink-500">◈</span> Game Mechanics
+            </h3>
+            <p className="mt-0.5 hidden text-[10px] text-text-muted sm:block">Use strategically to boost your score!</p>
+            <div className="mt-2 grid grid-cols-2 gap-1.5 sm:mt-3 sm:gap-2 sm:grid-cols-1">
+              {MECHANICS.map((m) => (
+                <div key={m.title} className="flex items-center gap-1.5 rounded-lg border border-border bg-card-hover/50 px-1.5 py-1.5 sm:gap-2 sm:px-2 sm:py-2">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-card text-[11px] sm:h-7 sm:w-7 sm:text-xs">{m.icon}</div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold sm:text-xs">{m.title}</p>
+                    <p className="hidden text-[10px] text-text-muted sm:block">{m.desc}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-card px-1 py-0.5 text-[9px] font-bold border border-border sm:px-1.5 sm:text-[10px]">{m.left}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="hidden rounded-xl border border-border bg-card p-2 sm:block sm:p-3">
+            <h4 className="flex items-center gap-1.5 text-xs font-bold">Quiz Rules</h4>
+            <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-text-muted">
+              <li>• Answer all questions before time runs out.</li>
+              <li>• Negative marking is applicable.</li>
+              <li>• Game mechanics can help you maximize your score.</li>
+              <li>• All the best! ✦</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Center — mobile first, viewport-aware */}
+        <div className="order-1 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-pink-500/20 bg-card p-2.5 sm:order-2 sm:p-4 sm:min-h-0 sm:overflow-visible sm:flex-none">
+          {/* Progress + Navigator — mobile only, at top */}
+          <div className="mb-2 shrink-0 space-y-1.5 sm:hidden">
+            {/* Progress bar */}
+            <div className="flex items-center gap-2">
+              <div className="h-1 flex-1 overflow-hidden rounded-full bg-border">
+                <div className="h-full rounded-full bg-pink-500 transition-all" style={{ width: `${(Object.keys(answers).length / QUESTIONS.length) * 100}%` }} />
+              </div>
+              <span className="text-[10px] font-bold text-text-muted">{Object.keys(answers).length}/{QUESTIONS.length}</span>
+            </div>
+            {/* Navigator dots */}
+            <div className="flex items-center gap-1.5">
+              {QUESTIONS.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrent(i)}
+                  className={cn("flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold", i === current ? "bg-pink-500 text-white" : answers[QUESTIONS[i].id] ? "bg-emerald-500 text-white" : "border border-border bg-card text-text-muted")}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center justify-between">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-600 sm:px-2 sm:text-[10px]">{q.difficulty}</span>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-bold text-violet-600 sm:px-2 sm:py-1 sm:text-[11px]">{q.marks} Marks</span>
+              <Bookmark className="h-3.5 w-3.5 text-text-muted sm:h-4 sm:w-4" />
+            </div>
+          </div>
+
+          <h2 className="mt-2.5 shrink-0 text-[clamp(0.8125rem,3.2vw,1rem)] font-semibold leading-snug break-words sm:mt-4">{q.q}</h2>
+
+          <div className="flex-1 min-h-0 mt-2 space-y-1.5 overflow-y-auto overscroll-contain pr-1 sm:mt-4 sm:flex-none sm:min-h-0 sm:max-h-[45dvh] sm:space-y-2 sm:overflow-visible sm:pr-0">
+            {q.options.map((o) => {
+              const active = answers[q.id] === o.label;
               return (
                 <button
-                  key={o.id ?? oi}
-                  onClick={() => handleSelect(o.id)}
-                  className={cn("flex items-center gap-3 rounded-xl border px-3 py-3 text-left text-sm transition-all", isSelected ? "border-pink-500 bg-pink-500/10" : "border-border bg-card hover:border-pink-500/30")}
+                  key={o.label}
+                  onClick={() => setAnswers((p) => ({ ...p, [q.id]: o.label }))}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2.5 text-left text-sm transition-colors sm:gap-3 sm:px-3 sm:py-3",
+                    active ? "border-pink-500 bg-pink-500/10" : "border-border bg-card hover:border-pink-500/30"
+                  )}
                 >
-                  <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold", isSelected ? "border-pink-500 bg-pink-500 text-white" : "border-border text-text-muted")}>
-                    {String.fromCharCode(65 + oi)}
+                  <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold sm:h-7 sm:w-7 sm:text-xs", active ? "bg-pink-500 text-white" : "bg-card border border-border")}>
+                    {o.label}
                   </span>
-                  <span className="flex-1">{o.option_statement}</span>
-                  {isSelected && <CheckCircle2 className="h-4 w-4 text-pink-500" />}
+                  <span className="flex-1 text-xs sm:text-sm">{o.text}</span>
                 </button>
               );
             })}
-            {(!current?.options || current.options.length === 0) && (
-              <div className="rounded-xl border border-dashed border-border p-3">
-                <p className="text-xs text-text-muted">Free-text / numeric answer — student types the answer.</p>
-                <input
-                  placeholder="Type your answer..."
-                  value={answers[current?.id] ?? ""}
-                  onChange={(e) => handleSelect(e.target.value)}
-                  className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:border-pink-500"
-                />
-              </div>
-            )}
-          </div>
 
-          {(current?.explaination || current?.hint) && (
-            <div className="mt-3 hidden gap-2 sm:grid sm:grid-cols-2">
-              {current?.explaination && <div className="rounded-lg bg-violet-500/10 p-2.5 text-xs"><b className="text-violet-500">Explanation</b><p className="mt-1 text-text-secondary">{current.explaination}</p></div>}
-              {current?.hint && <div className="rounded-lg bg-amber-500/10 p-2.5 text-xs"><b className="text-amber-500">Hint</b><p className="mt-1 text-text-secondary">{current.hint}</p></div>}
+            <div className="mt-2 rounded-xl border border-violet-500/20 bg-violet-500/10 p-2.5 dark:bg-[#1e1a3a] sm:mt-4 sm:p-3">
+              <p className="text-[11px] font-bold text-violet-600 dark:text-violet-300 sm:text-xs">Explanation</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-text-muted sm:text-xs">{q.explanation}</p>
             </div>
-          )}
-        </div>
-
-        {/* Nav */}
-        <div className="mt-4 flex items-center justify-between">
-          <button onClick={() => setCurrentIdx((i) => Math.max(0, i - 1))} disabled={currentIdx === 0} className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-xs font-medium disabled:opacity-40">
-            <ChevronLeft className="h-3.5 w-3.5" /> Previous
-          </button>
-          <div className="flex items-center gap-1">
-            {problems.map((_, i) => (
-              <button key={i} onClick={() => setCurrentIdx(i)} className={cn("h-2 w-2 rounded-full", i === currentIdx ? "bg-pink-500" : answers[(problems as any)[i].id] != null ? "bg-emerald-500" : "bg-border")} />
-            ))}
           </div>
-          <button onClick={() => setCurrentIdx((i) => Math.min(problems.length - 1, i + 1))} disabled={currentIdx === problems.length - 1} className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-xs font-medium disabled:opacity-40">
-            Next <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        <div className="mt-3 flex items-center justify-between text-[11px] text-text-muted">
-          <span>{attempted} answered · {unanswered} unanswered</span>
-          <button onClick={() => setShowSubmit(true)} className="font-semibold text-pink-500 hover:underline">
-            Submit preview →
-          </button>
-        </div>
-      </div>
 
-      {/* Submit modal */}
-      <AnimatePresence>
-        {showSubmit && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowSubmit(false)}>
-            <motion.div initial={{ scale: 0.96, y: 8 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 8 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
-              <h3 className="flex items-center gap-2 text-sm font-bold">
-                <HelpCircle className="h-4 w-4 text-amber-500" /> Submit preview?
-              </h3>
-              <p className="mt-1 text-xs text-text-secondary">This is a preview — nothing is saved to the server.</p>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="rounded-xl bg-card-hover p-3">
-                  <p className="font-bold">{problems.length}</p>
-                  <p className="text-[10px] text-text-muted">Total</p>
-                </div>
-                <div className="rounded-xl bg-emerald-500/10 p-3">
-                  <p className="font-bold text-emerald-600">{attempted}</p>
-                  <p className="text-[10px] text-text-muted">Attempted</p>
-                </div>
-                <div className="rounded-xl bg-amber-500/10 p-3">
-                  <p className="font-bold text-amber-600">{unanswered}</p>
-                  <p className="text-[10px] text-text-muted">Unanswered</p>
-                </div>
-              </div>
-              <div className="mt-5 flex gap-2">
-                <button onClick={() => setShowSubmit(false)} className="flex-1 rounded-xl border border-border py-2.5 text-xs font-semibold">
-                  Continue
+          <div className="shrink-0 border-t border-border pt-2 pb-[env(safe-area-inset-bottom)] sm:mt-4 sm:pt-4 sm:pb-4">
+            <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+              <div className="flex gap-1.5 sm:gap-2">
+                <button onClick={() => setCurrent((c) => Math.max(0, c - 1))} disabled={current === 0} className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] font-semibold hover:bg-card-hover disabled:opacity-40 sm:px-3 sm:py-2 sm:text-xs">
+                  <ChevronLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Previous
                 </button>
-                <button onClick={handleSubmit} className="flex-1 rounded-xl bg-pink-500 py-2.5 text-xs font-bold text-white">
-                  Submit preview
+                <button onClick={() => setMarked((m) => ({ ...m, [q.id]: !m[q.id] }))} className={cn("inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold sm:px-3 sm:py-2 sm:text-xs", marked[q.id] ? "border-amber-500 bg-amber-500 text-white" : "border-border bg-card hover:bg-card-hover")}>
+                  <Bookmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Mark for Review</span><span className="sm:hidden">Mark</span>
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-export default function QuizPreviewContent({ quizId }: { quizId: string }) {
-  const [quiz, setQuiz] = useState<any>(null);
-  const [problems, setProblems] = useState<QuizProblem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [q, p] = await Promise.all([getQuizById(quizId), getQuizProblems(quizId)]);
-      setQuiz(q);
-      setProblems(p);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || "Failed to load quiz");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quizId]);
-
-  if (loading) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-        <div className="h-24 animate-pulse rounded-2xl bg-white/[0.06]" />
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-2xl bg-white/[0.06]" />
-          ))}
-        </div>
-        <div className="h-[520px] animate-pulse rounded-2xl bg-white/[0.06]" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <ErrorState message={error} onRetry={load} />
-      </div>
-    );
-  }
-
-  if (!quiz) {
-    return (
-      <div className="p-4 sm:p-6 lg:p-8">
-        <EmptyState title="Quiz not found" description="This quiz does not exist or you don't have access." />
-      </div>
-    );
-  }
-
-  const statusTone = quiz.status === "published" || quiz.status === "live" ? "emerald" : quiz.status === "draft" ? "amber" : "slate";
-
-  return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <PageHeader
-        title={quiz.name}
-        subtitle={`Code: ${quiz.code} · ${problems.length} questions · ${quiz.duration ?? 0} min`}
-        badge={<StatusBadge label={quiz.status || "draft"} tone={statusTone as any} dot />}
-        actions={
-          <div className="flex items-center gap-2">
-            <BillButton variant="ghost" icon={<ArrowLeft className="h-4 w-4" />} href="/creator/quizzes">
-              Back
-            </BillButton>
-            <BillButton icon={<Pencil className="h-4 w-4" />} href={`/creator/quizzes/${quizId}/edit`}>
-              Edit Quiz
-            </BillButton>
-          </div>
-        }
-      />
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Questions" value={problems.length} display={String(problems.length)} accent="primary" icon={<BookOpen className="h-3.5 w-3.5" />} hint="total" />
-        <StatCard label="Duration" value={quiz.duration ?? 0} display={`${quiz.duration ?? 0} min`} accent="warning" icon={<Clock className="h-3.5 w-3.5" />} hint="time limit" />
-        <StatCard label="Total Marks" value={quiz.total_marks ?? 0} display={String(quiz.total_marks ?? 0)} accent="info" icon={<Target className="h-3.5 w-3.5" />} hint={`pass ${quiz.passing_marks ?? 0}`} />
-        <StatCard label="Visibility" value={1} display={quiz.visibility_name || quiz.visibility || "—"} accent="success" icon={<Users className="h-3.5 w-3.5" />} hint={quiz.difficulty_name || ""} />
-      </div>
-
-      {/* Full student attempt preview */}
-      <StudentAttemptPreview quiz={quiz} problems={problems} />
-
-      <Panel title="Assessment Settings" subtitle="How this quiz behaves for students">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {[
-            { label: "Shuffle Questions", value: quiz.shuffle_questions ? "Yes" : "No" },
-            { label: "Shuffle Options", value: quiz.shuffle_options ? "Yes" : "No" },
-            { label: "Show Results", value: quiz.show_results_immediately ? "Immediate" : "After end" },
-            { label: "Negative Marking", value: quiz.negative_marking ? "On" : "Off" },
-            { label: "Leaderboard", value: quiz.leaderboard ? "Enabled" : "Disabled" },
-            { label: "Status", value: quiz.status || "draft" },
-          ].map((s) => (
-            <div key={s.label} className="rounded-xl border border-border bg-card-hover p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">{s.label}</p>
-              <p className="mt-1 text-sm font-semibold text-text-primary">{s.value}</p>
+              <button onClick={() => setCurrent((c) => Math.min(QUESTIONS.length - 1, c + 1))} disabled={current === QUESTIONS.length - 1} className="inline-flex items-center gap-1 rounded-lg bg-pink-500 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-pink-600 disabled:opacity-40 sm:px-4 sm:py-2 sm:text-xs">
+                Next <ChevronRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              </button>
             </div>
+          </div>
+        </div>
+
+        {/* Mechanic icons — mobile only, between question and sidebar */}
+        <div className="order-2 flex shrink-0 items-center gap-1 overflow-x-auto overscroll-contain rounded-xl border border-border bg-card px-2 py-1.5 sm:order-none sm:hidden">
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-pink-500" />
+          {MECHANICS.map((m, i) => (
+            <button
+              key={m.title}
+              onClick={() => setSelectedMechanic(i)}
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-sm transition-colors",
+                usedMechanics[i]
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-500"
+                  : "border-border bg-card hover:border-pink-500/40 hover:bg-pink-500/5"
+              )}
+              title={m.title}
+            >
+              {m.icon}
+            </button>
           ))}
         </div>
-      </Panel>
+
+        {/* Right — compact, not pushing viewport */}
+        <div className="order-3 flex min-h-0 shrink-0 flex-col space-y-1.5 overflow-y-auto overscroll-contain rounded-xl sm:order-3 sm:max-h-none sm:space-y-3 sm:overflow-visible">
+          {/* Timer — hidden on mobile (shown in ExamModeShell header) */}
+          <div className="hidden rounded-xl border border-border bg-card p-4 sm:block">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="flex items-center gap-1.5 text-xs font-bold">
+                  <Clock className="h-3.5 w-3.5 text-amber-500" /> Time Left
+                </p>
+                <p className={cn("mt-1 font-mono text-xl font-bold", timeLeft <= 60 ? "text-red-500" : timeLeft <= 300 ? "text-amber-500" : "")}>{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}</p>
+              </div>
+              <div className="relative h-14 w-14">
+                <div className="absolute inset-0 rounded-full border-[3px] border-border" />
+                <div className="absolute inset-0 rounded-full border-[3px] border-pink-500" style={{ clipPath: `inset(0 0 0 ${100 - (timeLeft / (DUMMY_QUIZ.duration * 60)) * 100}%)` }} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="h-2 w-2 rounded-full bg-pink-500" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress — compact on mobile */}
+          <div className="hidden rounded-xl border border-border bg-card p-2 sm:block sm:p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold sm:text-xs">Progress</p>
+              <p className="text-[10px] text-text-muted sm:text-xs">{Object.keys(answers).length}/{QUESTIONS.length}</p>
+            </div>
+            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-border">
+              <div className="h-full rounded-full bg-pink-500 transition-all" style={{ width: `${(Object.keys(answers).length / QUESTIONS.length) * 100}%` }} />
+            </div>
+          </div>
+
+          {/* Question Navigator — compact */}
+          <div className="hidden rounded-xl border border-border bg-card p-2 sm:block sm:p-3">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold sm:text-xs">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-pink-500/15 text-pink-500 sm:h-5 sm:w-5">○</span> Navigator
+            </p>
+            <div className="mt-2 grid grid-cols-3 gap-1.5 sm:mt-3 sm:gap-2">
+              {QUESTIONS.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrent(i)}
+                  className={cn("flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-bold sm:h-9 sm:w-9 sm:rounded-xl sm:text-sm", i === current ? "bg-pink-500 text-white" : answers[QUESTIONS[i].id] ? "bg-emerald-500 text-white" : "border border-border bg-card text-text-muted")}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 hidden space-y-1 text-[10px] sm:mt-3 sm:space-y-1.5 sm:text-[11px]">
+              <p className="flex items-center gap-1.5 text-text-muted">
+                <span className="h-2 w-2 rounded-full bg-border" /> Not Visited
+              </p>
+              <p className="flex items-center gap-1.5 text-text-muted">
+                <span className="h-2 w-2 rounded-full bg-blue-500" /> Visited
+              </p>
+              <p className="flex items-center gap-1.5 text-text-muted">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Answered
+              </p>
+              <p className="flex items-center gap-1.5 text-text-muted">
+                <span className="h-2 w-2 bg-amber-500" /> Marked
+              </p>
+            </div>
+          </div>
+
+          <button className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-pink-500 bg-pink-500/10 py-2.5 text-xs font-bold text-pink-600 hover:bg-pink-500 hover:text-white dark:text-pink-400 sm:py-3 sm:text-sm">
+            <span className="h-3.5 w-3.5 sm:h-4 sm:w-4">↗</span> Submit Quiz
+          </button>
+          <p className="hidden text-center text-[11px] text-text-muted sm:block">You can review before submitting</p>
+        </div>
+      </div>
+      </ExamModeShell>
+      </div>
+
+      {/* Mechanic Detail Modal */}
+      {selectedMechanic !== null && (
+        <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50 backdrop-blur-[2px] sm:items-center sm:p-4" onClick={() => setSelectedMechanic(null)}>
+          <div
+            className="w-full max-w-sm rounded-t-2xl border border-border bg-card p-4 shadow-2xl sm:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-500/10 text-xl">
+                  {MECHANICS[selectedMechanic].icon}
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">{MECHANICS[selectedMechanic].title}</h3>
+                  <p className="text-[11px] text-text-muted">{MECHANICS[selectedMechanic].desc}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedMechanic(null)} className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card hover:bg-card-hover">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-background p-3">
+              <div>
+                <p className="text-[11px] text-text-muted">Uses remaining</p>
+                <p className="text-lg font-bold">{MECHANICS[selectedMechanic].left}</p>
+              </div>
+              {usedMechanics[selectedMechanic] && (
+                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600">Used</span>
+              )}
+            </div>
+
+            <button
+              onClick={() => {
+                setUsedMechanics((u) => ({ ...u, [selectedMechanic]: true }));
+                setSelectedMechanic(null);
+              }}
+              disabled={usedMechanics[selectedMechanic]}
+              className={cn(
+                "mt-4 w-full rounded-xl py-2.5 text-sm font-bold transition-colors",
+                usedMechanics[selectedMechanic]
+                  ? "cursor-not-allowed border border-border bg-card text-text-muted"
+                  : "bg-pink-500 text-white hover:bg-pink-600 shadow-[0_4px_16px_rgba(236,72,153,0.3)]"
+              )}
+            >
+              {usedMechanics[selectedMechanic] ? "Already Used" : "Use Now"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

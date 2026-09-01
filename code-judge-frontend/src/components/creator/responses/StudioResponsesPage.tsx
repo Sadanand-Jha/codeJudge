@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
+  ArrowLeft,
   Award,
   BarChart3,
   CheckCircle2,
@@ -184,6 +185,9 @@ export default function StudioResponsesPage({ quizId }: { quizId?: string | numb
 
   return (
     <div className="space-y-6 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      <BillButton variant="ghost" icon={<ArrowLeft className="h-4 w-4" />} href="/creator/quizzes">
+        Back
+      </BillButton>
       <PageHeader title="Responses" subtitle={quizName} actions={
         <div className="flex flex-wrap items-center gap-2">
           <BillButton variant="ghost" icon={<Download className="h-4 w-4" />} onClick={downloadResultsCsv}>Download Results</BillButton>
@@ -219,8 +223,8 @@ export default function StudioResponsesPage({ quizId }: { quizId?: string | numb
 
       {/* Table */}
       <Panel noPadding>
-        <div className="max-h-[70vh] overflow-auto">
-          <table className="w-full min-w-[900px] border-collapse text-left">
+        <div className="max-h-[60vh] sm:max-h-[70vh] overflow-auto">
+          <table className="w-full min-w-[700px] sm:min-w-[900px] border-collapse text-left">
             <thead className="sticky top-0 z-10 bg-card">
               <tr className="border-b border-border text-[10px] uppercase tracking-wider text-text-muted">
                 <th className="px-4 py-3">Rank</th><th className="px-4 py-3">Roll No.</th><th className="px-4 py-3">Student</th><th className="px-4 py-3">User ID</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Marks</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3 text-right">%</th><th className="px-4 py-3 text-right">Time</th><th className="px-4 py-3">Submitted</th>

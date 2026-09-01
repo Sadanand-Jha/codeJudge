@@ -55,15 +55,15 @@ interface BillButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const buttonStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-r from-pink-500 to-violet-600 text-white font-bold shadow-[0_4px_16px_rgba(236,72,153,0.28)] hover:shadow-[0_8px_24px_rgba(236,72,153,0.38)] hover:brightness-105",
+    "bg-[#EC4899] text-white font-semibold shadow-[0_2px_8px_rgba(236,72,153,0.18)] hover:bg-[#DB2777] hover:shadow-[0_4px_14px_rgba(236,72,153,0.25)]",
   ghost:
-    "border border-border bg-card text-text-primary font-semibold hover:border-pink-500/30 hover:text-pink-500 dark:hover:border-ai-accent/40 dark:hover:text-ai-accent",
+    "border border-border bg-card text-text-primary font-semibold hover:border-[#EC4899]/30 hover:text-[#EC4899] dark:hover:border-ai-accent/40 dark:hover:text-ai-accent",
   outline:
-    "border border-pink-500/40 bg-pink-500/5 text-pink-600 dark:text-ai-accent font-semibold hover:bg-pink-500/10 dark:hover:bg-ai-accent/10",
+    "border border-[#EC4899]/30 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-[#DB2777] dark:text-[#F9A8D4] font-semibold hover:bg-[#FCE7F3] dark:hover:bg-[#EC4899]/15 hover:border-[#EC4899]/40",
   danger:
-    "border border-danger/30 bg-danger/10 text-danger font-bold hover:bg-danger/20 hover:shadow-[0_0_16px_rgba(239,68,68,0.25)]",
+    "border border-danger/20 bg-danger/[0.06] text-danger font-semibold hover:bg-danger/10",
   subtle:
-    "bg-transparent text-text-secondary font-medium hover:bg-white/[0.04] hover:text-text-primary",
+    "bg-transparent text-text-secondary font-medium hover:bg-[#FDF2F8] dark:hover:bg-white/[0.04] hover:text-text-primary",
 };
 
 export function BillButton({
@@ -202,7 +202,7 @@ export function Panel({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-border bg-card transition-colors duration-200 hover:border-border-hover",
+        "rounded-2xl border border-border bg-card shadow-[0_1px_3px_rgba(17,24,39,0.04),0_4px_12px_rgba(17,24,39,0.03)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.25)] transition-colors duration-200 hover:border-border",
         className
       )}
     >
@@ -223,14 +223,14 @@ export function Panel({
 }
 
 /* ============================================================
-   StatCard — premium, subtle, no giant icons
-   ============================================================ */
+    StatCard — premium white+pink, subtle accents
+    ============================================================ */
 const ACCENT_DOT: Record<string, string> = {
-  primary: "bg-violet-500",
-  success: "bg-emerald-500",
-  warning: "bg-amber-500",
-  gold: "bg-amber-400",
-  info: "bg-sky-500",
+  primary: "bg-[#EC4899]",
+  success: "bg-[#DB2777]",
+  warning: "bg-[#EC4899]",
+  gold: "bg-[#EC4899]",
+  info: "bg-[#DB2777]",
 };
 
 export function StatCard({
@@ -255,19 +255,23 @@ export function StatCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 transition-all duration-200 hover:border-border-hover"
+      className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-[0_1px_3px_rgba(17,24,39,0.04),0_4px_12px_rgba(17,24,39,0.03)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.25)] transition-all duration-200 hover:border-[#EC4899]/15 hover:shadow-[0_4px_16px_rgba(17,24,39,0.06)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
     >
-      <span className={cn("absolute left-0 top-0 h-full w-[3px]", ACCENT_DOT[accent])} />
+      <span className={cn("absolute left-0 top-0 h-full w-[3px] rounded-full", ACCENT_DOT[accent])} />
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{label}</p>
-        {icon && <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.04] text-text-secondary">{icon}</div>}
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">{label}</p>
+        {icon && (
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#FCE7F3] dark:border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-text-muted group-hover:text-[#EC4899] transition-colors">
+            {icon}
+          </div>
+        )}
       </div>
-      <p className="mt-2.5 text-[26px] font-bold leading-none tracking-tight text-text-primary tabular-nums">
+      <p className="mt-2.5 text-[26px] font-extrabold leading-none tracking-tight text-text-primary tabular-nums">
         {display ?? formatINR(value)}
       </p>
-      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         {typeof delta === "number" && <DeltaPill pct={delta} />}
-        {hint && <span className="text-[11px] text-text-muted">{hint}</span>}
+        {hint && <span className="text-[11px] font-medium text-text-muted">{hint}</span>}
       </div>
     </motion.div>
   );
@@ -276,15 +280,16 @@ export function StatCard({
 /* ============================================================
    StatusBadge — subtle colored pill
    ============================================================ */
-export type StatusTone = "emerald" | "amber" | "rose" | "violet" | "sky" | "slate";
+export type StatusTone = "emerald" | "amber" | "rose" | "violet" | "sky" | "slate" | "pink";
 
 export const STATUS_TONES: Record<StatusTone, string> = {
-  emerald: "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-  amber: "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-300",
-  rose: "border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-300",
-  violet: "border-violet-500/25 bg-violet-500/10 text-violet-600 dark:text-violet-300",
-  sky: "border-sky-500/25 bg-sky-500/10 text-sky-600 dark:text-sky-300",
-  slate: "border-border bg-white/[0.04] text-text-secondary",
+  emerald: "border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/10",
+  amber: "border-amber-500/20 bg-amber-500/[0.08] text-amber-700 dark:text-amber-300 dark:bg-amber-500/10",
+  rose: "border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/12 text-[#DB2777] dark:text-[#F9A8D4]",
+  violet: "border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-[#EC4899] dark:text-[#F9A8D4]",
+  sky: "border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-[#EC4899] dark:text-[#F9A8D4]",
+  slate: "border-border bg-muted dark:bg-white/[0.04] text-text-muted",
+  pink: "border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-[#EC4899] dark:text-[#F9A8D4]",
 };
 
 export function StatusBadge({ label, tone = "slate", dot, className }: { label: string; tone?: StatusTone; dot?: boolean; className?: string }) {
@@ -332,22 +337,22 @@ export function SegmentedControl<T extends string>({
 }) {
   const layoutId = useId();
   return (
-    <div className={cn("inline-flex items-center gap-0.5 rounded-xl border border-border bg-card-hover p-0.5", className)}>
+    <div className={cn("inline-flex items-center gap-0.5 rounded-xl border border-border bg-muted dark:bg-white/[0.04] p-0.5", className)}>
       {options.map((opt) => (
         <button
           key={opt.id}
           type="button"
           onClick={() => onChange(opt.id)}
           className={cn(
-            "relative rounded-lg font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+            "relative rounded-lg font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#EC4899]/20",
             size === "sm" ? "px-2.5 py-1 text-[11px]" : "px-3.5 py-1.5 text-xs",
-            value === opt.id ? "text-text-primary" : "text-text-secondary hover:text-text-primary"
+            value === opt.id ? "text-text-primary" : "text-text-muted hover:text-[#EC4899]"
           )}
         >
           {value === opt.id && (
             <motion.span
               layoutId={layoutId}
-              className="absolute inset-0 rounded-lg bg-white shadow-sm ring-1 ring-border dark:bg-ai-hover dark:ring-ai-border"
+              className="absolute inset-0 rounded-lg bg-card shadow-[0_1px_2px_rgba(17,24,39,0.06)] ring-1 ring-border"
               transition={{ type: "spring", stiffness: 500, damping: 35 }}
             />
           )}
