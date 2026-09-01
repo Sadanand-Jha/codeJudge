@@ -26,7 +26,6 @@ ByteClash is a monorepo containing two applications:
 - 🎭 **Avatar System** — 20 DiceBear avatars with instant preview and secure backend validation
 - 🌗 **Dark Theme** — Glassmorphism UI with smooth animations and premium developer aesthetic
 - 🔄 **Real-time Caching** — Redis-based caching and session management
-- 🕷️ **Problem Scraper** — Automated problem scraping from Codeforces using Playwright
 
 ---
 
@@ -37,7 +36,7 @@ ByteClash is a monorepo containing two applications:
 | **Framework** | Next.js 16 (App Router, Turbopack) | Express.js |
 | **Language** | TypeScript | TypeScript |
 | **Runtime** | Node.js ≥ 18 | Node.js ≥ 18 |
-| **Database** | — | PostgreSQL + Prisma ORM |
+| **Database** | — | PostgreSQL |
 | **Cache** | — | Redis (ioredis) |
 | **Auth** | JWT (Zustand) | JWT + bcrypt + OTP |
 | **Styling** | Tailwind CSS | — |
@@ -47,7 +46,6 @@ ByteClash is a monorepo containing two applications:
 | **Code Execution** | — | Judge0 CE API |
 | **AI** | — | OpenAI API |
 | **Email** | — | Nodemailer |
-| **Scraper** | — | Playwright |
 | **Icons** | Lucide React | — |
 | **Math** | KaTeX | — |
 | **Avatars** | DiceBear Adventurer | DiceBear Adventurer |
@@ -81,12 +79,6 @@ npm install
 # Set up environment variables
 cp .env.example .env
 # Edit .env with your database, Redis, Judge0, and API keys
-
-# Generate Prisma client
-npx prisma generate
-
-# Run database migrations
-npx prisma migrate dev
 
 # Start development server
 npm run dev
@@ -193,14 +185,10 @@ byteclash/
 │   │   ├── services/             # Business logic
 │   │   ├── middleware/           # Auth, validation, error handling
 │   │   ├── models/               # Data models
-│   │   ├── prisma/               # Prisma client
 │   │   ├── repositories/         # Data access layer
-│   │   ├── scraper/              # Problem scraper (Playwright)
 │   │   ├── ai/                   # AI service (OpenAI)
 │   │   ├── utils/                # Utilities
 │   │   └── types/                # TypeScript types
-│   ├── prisma/
-│   │   └── schema.prisma         # Database schema
 │   └── package.json
 │
 ├── shared/                       # Shared constants (avatars)
@@ -272,7 +260,6 @@ byteclash/
 ### Supported Subjects
 - 📚 **Academics** — Math, Physics, OS, DBMS, Networks, AI, ML
 - 💻 **Programming** — C, C++, Java, Python
-- 🏆 **Competitive** — Codeforces, CodeChef, AtCoder
 - 📝 **Placement** — Aptitude, Reasoning, Verbal
 - 🏢 **Company** — Google, Microsoft, Amazon
 - 📜 **Certifications** — AWS, Azure, Docker
@@ -318,8 +305,6 @@ byteclash/
 - ✨ Soft shadows & premium developer aesthetic
 - 🎬 Smooth animations & hover effects
 
-**Inspired by**: GitHub, Linear, Vercel, LeetCode Premium, Notion
-
 ---
 
 ## 🤝 Contributing
@@ -344,9 +329,9 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 **Your Name**
 
-- GitHub: [@your-username](https://github.com/your-username)
-- LinkedIn: [Your LinkedIn](https://linkedin.com/in/your-profile)
-- Email: your.email@example.com
+- GitHub: [@Sadanand-Jha](https://github.com/Sadanand-Jha)
+- LinkedIn: [@Sadanand-Jha](https://linkedin.com/in/sadanand-jha)
+- Email: coder.sadanand.dseu@gmail.com
 
 ---
 
