@@ -6,9 +6,16 @@ import {
   loginController,
   meController,
   logoutController,
+  checkUsernameController,
 } from '../controllers/auth.controller.js';
 
 const router = Router();
+
+/**
+ * GET /api/auth/check-username?username=xxx
+ * Returns whether the username is available
+ */
+router.get('/check-username', checkUsernameController);
 
 /**
  * POST /api/auth/send-otp

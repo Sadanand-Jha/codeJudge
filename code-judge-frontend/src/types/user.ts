@@ -1,6 +1,5 @@
 export interface UserInfo {
   id: string;
-  adminId: string;
   username: string;
   email: string;
   firstName: string | null;
@@ -40,7 +39,6 @@ export interface UserInfo {
 
 export interface UserProfile {
   id: string;
-  adminid: string;
   username: string;
   email: string;
   role: string;

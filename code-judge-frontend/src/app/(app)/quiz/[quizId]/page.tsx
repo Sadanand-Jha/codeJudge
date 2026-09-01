@@ -174,7 +174,7 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
             </div>
             <div>
               <span className="text-xs text-muted-foreground">Last Updated</span>
-              <p className="font-medium text-white">{new Date(quiz.createdAt).toLocaleDateString()}</p>
+              <p className="font-medium text-white">{new Date(quiz.createdAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</p>
             </div>
           </div>
 
@@ -259,10 +259,10 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
               </div>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <button className="px-3 h-8 rounded-lg border border-border-hover bg-[#0B0D12] text-xs font-medium text-white hover:border-border-hover">
+              <button type="button" onClick={() => alert("Follow coming soon")} className="px-3 h-8 rounded-lg border border-border-hover bg-[#0B0D12] text-xs font-medium text-white hover:border-border-hover">
                 Follow
               </button>
-              <button className="px-3 h-8 rounded-lg border border-border-hover bg-[#0B0D12] text-xs font-medium text-white hover:border-border-hover">
+              <button type="button" onClick={() => alert("Profile page coming soon")} className="px-3 h-8 rounded-lg border border-border-hover bg-[#0B0D12] text-xs font-medium text-white hover:border-border-hover">
                 View Profile
               </button>
             </div>

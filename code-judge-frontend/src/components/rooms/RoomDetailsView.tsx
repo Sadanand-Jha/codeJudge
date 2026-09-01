@@ -21,14 +21,17 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { STUDENTS_PER_PAGE } from "@/lib/constants";
 import { useRoomStore, getOwnedRooms, countRoomQuizUsage } from "@/store/roomStore";
 import { useAuthStore } from "@/store/authStore";
 import { timeAgo, isWithinWindow } from "@/lib/formatters";
 import { exportStudentsToFile } from "@/utils/excelImport";
 import { useToast } from "@/hooks/useToast";
-import { RoomStudent } from "@/types/room";
+import { Room, RoomStudent } from "@/types/room";
 import { getAvatarUrlById } from "@/config/dicebear";
+import { updateMemberStatus, updateRoomPatch, removeMember } from "@/services/rooms";
 import RoomMenu, { RoomMenuItem } from "@/components/quiz/creator/settings/audience/RoomMenu";
+import SortDropdown from "@/components/ui/SortDropdown";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
 import DeleteRoomModal from "./DeleteRoomModal";
@@ -55,6 +58,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const toast = useToast();
   const rooms = useRoomStore((s) => s.rooms);
   const hydrate = useRoomStore((s) => s.hydrate);
+  const setRooms = useRoomStore((s) => s.setRooms);
   const addStudents = useRoomStore((s) => s.addStudents);
   const updateStudent = useRoomStore((s) => s.updateStudent);
   const removeStudents = useRoomStore((s) => s.removeStudents);
@@ -63,11 +67,13 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const duplicateRoom = useRoomStore((s) => s.duplicateRoom);
   const deleteRoom = useRoomStore((s) => s.deleteRoom);
   const { user } = useAuthStore();
+  const [backendLoading, setBackendLoading] = useState(false);
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<StudentFilter>("all");
   const [sort, setSort] = useState<StudentSort>("default");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
   const [addOpen, setAddOpen] = useState(false);
   const [addTab, setAddTab] = useState<"manual" | "import">("manual");
   const [duplicateOpen, setDuplicateOpen] = useState(false);
@@ -79,6 +85,60 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Fetch room details with members from backend on going to room page — calls GET /my-rooms/:id and populates students
+  useEffect(() => {
+    if (!roomId || !/^\d+$/.test(roomId)) return;
+    setBackendLoading(true);
+    import("@/services/rooms")
+      .then(({ getRoom }) =>
+        getRoom(roomId)
+          .then((res: unknown) => {
+            const data = (res as { data?: Record<string, unknown> })?.data ?? (res as Record<string, unknown>);
+            if (!data || !data.id) return;
+            const members = (data.members as unknown[]) ?? [];
+            const mappedStudents: RoomStudent[] = members.map((m: unknown) => {
+              const mm = m as Record<string, unknown>;
+              const userObj = (mm.user as Record<string, unknown>) ?? mm;
+              const username = String((userObj.username as string) ?? (mm.username as string) ?? "");
+              return {
+                id: String(userObj.id ?? mm.userId ?? mm.membershipId ?? Math.random()),
+                name: String((userObj.displayName as string) ?? (userObj.username as string) ?? username ?? "Unknown"),
+                rollNumber: username,
+                username: username.toLowerCase(),
+                active: (mm.statusName as string) === "ACTIVE" || mm.status === 1 || mm.status === "ACTIVE",
+                avatarId: Number(userObj.avatarId ?? 1),
+                avatarUrl: (userObj.avatarUrl as string) ?? null,
+                addedAt: String((mm.joinedAt as string) ?? new Date().toISOString()),
+              };
+            });
+            const current = useRoomStore.getState().rooms;
+            const exists = current.find((r) => String(r.id) === String(roomId));
+            if (exists) {
+              const updated = current.map((r) =>
+                String(r.id) === String(roomId) ? { ...r, students: mappedStudents, memberCount: mappedStudents.length, updatedAt: String((data.updated_at as string) ?? r.updatedAt) } : r
+              );
+              setRooms(updated as Room[]);
+            } else {
+              const newRoom: Room = {
+                id: String(data.id),
+                name: String((data.name as string) ?? "Room"),
+                description: (data.description as string) ?? undefined,
+                ownerId: String((data.owner_id as string | number) ?? user?.id ?? ""),
+                createdAt: String((data.created_at as string) ?? new Date().toISOString()),
+                updatedAt: String((data.updated_at as string) ?? new Date().toISOString()),
+                archived: !(data.is_active as boolean),
+                students: mappedStudents,
+                memberCount: mappedStudents.length,
+              };
+              setRooms([...current, newRoom]);
+            }
+          })
+          .catch(() => {})
+          .finally(() => setBackendLoading(false))
+      )
+      .catch(() => setBackendLoading(false));
+  }, [roomId, setRooms, user?.id]);
 
   const ownedRooms = useMemo(() => getOwnedRooms(rooms, user?.id), [rooms, user]);
   const room = ownedRooms.find((r) => r.id === roomId);
@@ -110,7 +170,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       if (filter === "recent" && !(s.addedAt && isWithinWindow(s.addedAt, RECENT_WINDOW_MS)))
         return false;
       if (filter === "issues" && !hasStudentIssue(s)) return false;
-      if (q && !`${s.name} ${s.rollNumber} ${s.email}`.toLowerCase().includes(q)) return false;
+      if (q && !`${s.name} ${s.rollNumber} ${s.username ?? s.email ?? ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
     list = [...list].sort((a, b) => {
@@ -121,25 +181,48 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       }
       return 0;
     });
-    return list;
+        return list;
   }, [room, filter, query, sort]);
 
-  if (!room) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
-        <Users className="mx-auto h-8 w-8 text-text-muted" />
-        <h2 className="mt-3 text-lg font-bold text-text-primary">Room not found</h2>
-        <p className="mt-1 text-sm text-text-secondary">This room may have been deleted.</p>
-        <Link
-          href={basePath}
-          className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Rooms
-        </Link>
-      </div>
-    );
-  }
+  // Reset to first page whenever the filter, search, or sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, query, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / STUDENTS_PER_PAGE));
+  const paginatedStudents = useMemo(
+    () => filteredStudents.slice((currentPage - 1) * STUDENTS_PER_PAGE, currentPage * STUDENTS_PER_PAGE),
+    [filteredStudents, currentPage]
+  );
+    if (backendLoading) {
+      return (
+        <div className="flex min-h-[60vh] items-center justify-center px-4">
+          <div className="rounded-2xl border border-border bg-card px-8 py-12 text-center shadow-lg">
+            <Users className="mx-auto h-12 w-12 animate-pulse text-pink-500" />
+            <h2 className="mt-5 text-lg font-bold text-text-primary">Loading room…</h2>
+            <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-text-secondary">
+              Fetching students from the backend. This will only take a moment.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    if (!room) {
+      return (
+        <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
+          <Users className="mx-auto h-8 w-8 text-text-muted" />
+          <h2 className="mt-3 text-lg font-bold text-text-primary">Room not found</h2>
+          <p className="mt-1 text-sm text-text-secondary">This room may have been deleted.</p>
+          <Link
+            href={basePath}
+            className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to Rooms
+          </Link>
+        </div>
+      );
+    }
 
   const toggleSelected = (id: string) => {
     setSelected((prev) => {
@@ -167,14 +250,23 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const handleExport = () => {
     exportStudentsToFile(
       room.name.replace(/[^\w\s-]/g, ""),
-      room.students.map((s) => ({ name: s.name, rollNumber: s.rollNumber, email: s.email }))
+      room.students.map((s) => ({ name: s.name, rollNumber: s.rollNumber, username: s.username ?? s.email?.split("@")[0] ?? "" }))
     );
     toast.success({ title: "Export started", description: `${room.students.length} students exported.` });
   };
 
-  const handleRemoveSelected = () => {
+  const isBackendRoom = /^\d+$/.test(room.id);
+
+  const handleRemoveSelected = async () => {
     const ids = [...selected];
     if (ids.length === 0) return;
+    if (isBackendRoom) {
+      for (const sid of ids) {
+        const stu = room.students.find((s) => s.id === sid);
+        const identifier = stu?.username ?? sid;
+        try { await removeMember(room.id, identifier); } catch {}
+      }
+    }
     removeStudents(room.id, ids);
     setSelected(new Set());
     toast.success({ title: "Students removed", description: `${ids.length} student${ids.length !== 1 ? "s" : ""} removed from ${room.name}.` });
@@ -187,7 +279,11 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       label: room.archived ? "Restore Room" : "Archive Room",
       icon: room.archived ? ArchiveRestore : Archive,
       destructive: !room.archived,
-      onClick: () => {
+      onClick: async () => {
+        // Sync to backend first if backend room
+        if (isBackendRoom) {
+          try { await updateRoomPatch(room.id, { archived: !room.archived }); } catch {}
+        }
         if (room.archived) {
           unarchiveRoom(room.id);
           toast.success({ title: "Room restored", description: "The room is active again." });
@@ -220,21 +316,21 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       </div>
 
       {/* Header */}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 ring-1 ring-inset ring-pink-500/20">
-            <Users className="h-6 w-6" />
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 ring-1 ring-inset ring-pink-500/20">
+            <Users className="h-5 w-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-text-primary">{room.name}</h1>
+              <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">{room.name}</h1>
               {room.archived && (
                 <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[9px] font-bold text-warning">
                   Archived
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-sm text-text-secondary">
+            <p className="mt-0.5 text-xs text-text-secondary sm:text-sm">
               {room.description || "Student group"}
               <span className="mx-1.5 text-text-muted">·</span>
               Updated {timeAgo(room.updatedAt)}
@@ -244,7 +340,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleExport}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover"
+            className="flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover sm:h-9 sm:px-3.5"
           >
             <Download className="h-3.5 w-3.5" />
             Export
@@ -254,7 +350,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               setAddTab("import");
               setAddOpen(true);
             }}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover"
+            className="flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover sm:h-9 sm:px-3.5"
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
             Import
@@ -264,7 +360,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               setAddTab("manual");
               setAddOpen(true);
             }}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3.5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
+            className="flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] sm:h-9 sm:px-3.5"
           >
             <UserRoundPlus className="h-3.5 w-3.5" />
             Add Students
@@ -274,7 +370,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
 
       {/* Stats */}
       {stats && (
-        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {(
             [
               { label: "Total Students", value: stats.total, icon: Users, tint: "text-pink-500 bg-pink-500/10" },
@@ -283,11 +379,11 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               { label: "Needs Attention", value: stats.issues, icon: AlertTriangle, tint: "text-warning bg-warning/10" },
             ] as Array<{ label: string; value: number; icon: typeof Users; tint: string }>
           ).map((s) => (
-            <div key={s.label} className="rounded-xl border border-border bg-card p-4">
-              <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", s.tint)}>
-                <s.icon className="h-4 w-4" />
+            <div key={s.label} className="rounded-lg border border-border bg-card p-3.5">
+              <div className={cn("flex h-7 w-7 items-center justify-center rounded-md", s.tint)}>
+                <s.icon className="h-3.5 w-3.5" />
               </div>
-              <p className="mt-3 text-2xl font-bold tabular-nums text-text-primary">{s.value}</p>
+              <p className="mt-2 text-xl font-bold tabular-nums text-text-primary">{s.value}</p>
               <p className="mt-0.5 text-[11px] font-medium text-text-muted">{s.label}</p>
             </div>
           ))}
@@ -295,7 +391,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       )}
 
       {/* Toolbar */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="relative w-full max-w-xs">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input
@@ -326,16 +422,16 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               </button>
             ))}
           </div>
-          <select
+          <SortDropdown
+            options={[
+              { id: "default", label: "Default Order" },
+              { id: "recent", label: "Recently Added" },
+              { id: "name", label: "Name A–Z" },
+            ]}
             value={sort}
-            onChange={(e) => setSort(e.target.value as StudentSort)}
-            className="h-9 rounded-lg border border-input-border bg-input-bg px-2.5 text-[11px] font-semibold text-text-primary focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
-            aria-label="Sort students"
-          >
-            <option value="default">Default Order</option>
-            <option value="recent">Recently Added</option>
-            <option value="name">Name A–Z</option>
-          </select>
+            onChange={(v) => setSort(v as StudentSort)}
+            ariaLabel="Sort students"
+          />
         </div>
       </div>
 
@@ -346,7 +442,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-pink-500/25 bg-pink-500/[0.06] px-3.5 py-2.5"
+            className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-pink-500/25 bg-pink-500/[0.06] px-3 py-2"
           >
             <p className="text-xs font-semibold text-text-primary">
               <span className="tabular-nums">{selected.size}</span> selected
@@ -372,7 +468,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       </AnimatePresence>
 
       {/* Student table */}
-      <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card">
+      <div className="mt-3 overflow-hidden rounded-xl border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <p className="text-xs font-bold text-text-primary">Students</p>
           <p className="text-xs text-text-muted">
@@ -381,7 +477,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
         </div>
 
         {room.students.length === 0 ? (
-          <div className="px-6 py-14 text-center">
+          <div className="px-6 py-10 text-center">
             <Users className="mx-auto h-7 w-7 text-text-muted" />
             <p className="mt-3 text-sm font-semibold text-text-primary">No students yet</p>
             <p className="mt-1 text-xs text-text-muted">
@@ -411,7 +507,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             </div>
           </div>
         ) : filteredStudents.length === 0 ? (
-          <div className="px-6 py-12 text-center">
+          <div className="px-6 py-8 text-center">
             <Search className="mx-auto h-6 w-6 text-text-muted" />
             <p className="mt-2 text-sm font-semibold text-text-primary">No students match</p>
             <p className="mt-1 text-xs text-text-muted">Try a different search or filter.</p>
@@ -436,7 +532,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                 </th>
                 <th className="px-2 py-2.5">Student</th>
                 <th className="hidden px-2 py-2.5 md:table-cell">Roll</th>
-                <th className="hidden px-2 py-2.5 lg:table-cell">Email</th>
+                <th className="hidden px-2 py-2.5 lg:table-cell">Username</th>
                 <th className="hidden px-2 py-2.5 sm:table-cell">Added</th>
                 <th className="px-2 py-2.5 text-right">Status</th>
               </tr>
@@ -467,7 +563,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                     <td className="px-2 py-3">
                       <div className="flex items-center gap-2.5">
                         <img
-                          src={getAvatarUrlById(student.avatarId)}
+                          src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
                           alt=""
                           className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-border"
                         />
@@ -488,7 +584,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                       {student.rollNumber}
                     </td>
                     <td className="hidden px-2 py-3 text-xs text-text-secondary lg:table-cell">
-                      {student.email}
+                      @{(student.username ?? student.email?.split("@")[0] ?? "").toLowerCase() || "—"}
                     </td>
                     <td className="hidden px-2 py-3 text-xs text-text-muted sm:table-cell">
                       {student.addedAt ? timeAgo(student.addedAt) : "—"}
@@ -522,6 +618,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
         existing={room.students}
         roomName={room.name}
         initialTab={addTab}
+        roomId={room.id}
         viewStudentsHref={`${basePath}/${room.id}`}
         onAdd={(students) => {
           addStudents(room.id, students);
@@ -558,13 +655,16 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
         }}
       />
 
-      {/* Edit student */}
+      {/* Edit student — status synced to backend */}
       <EditStudentModal
         open={Boolean(editingStudent)}
         onClose={() => setEditingStudent(null)}
         student={editingStudent}
-        onSave={(patch) => {
+        onSave={async (patch) => {
           if (editingStudent) {
+            if (isBackendRoom && patch.active !== undefined) {
+              try { await updateMemberStatus(room.id, editingStudent.username ?? editingStudent.id, patch.active); } catch {}
+            }
             updateStudent(room.id, editingStudent.id, patch);
             toast.success({ title: "Student updated", description: "Changes have been saved." });
           }
@@ -602,7 +702,10 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    if (isBackendRoom) {
+                      try { await removeMember(room.id, removingStudent.username ?? removingStudent.id); } catch {}
+                    }
                     removeStudents(room.id, [removingStudent.id]);
                     setRemovingStudent(null);
                     toast.success({ title: "Student removed", description: `${removingStudent.name} was removed from ${room.name}.` });
@@ -636,7 +739,12 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   );
 }
 
+function getUsername(student: RoomStudent): string {
+  return (student.username ?? student.email?.split("@")[0] ?? "").trim();
+}
+
 function hasStudentIssue(student: RoomStudent): boolean {
-  const validEmail = student.email.trim() === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(student.email.trim());
-  return !student.active || !student.rollNumber.trim() || !validEmail;
+  const username = getUsername(student);
+  const validUsername = username !== "" && /^[a-zA-Z0-9._-]{2,30}$/.test(username);
+  return !student.active || !student.rollNumber.trim() || !validUsername;
 }

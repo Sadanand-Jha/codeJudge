@@ -46,7 +46,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
                 Back to Quizzes
               </Link>
               <h1 className="text-2xl font-bold text-white">{quiz.title} - Results</h1>
-              <p className="text-sm text-muted-foreground mt-1">Completed on {new Date().toLocaleDateString()}</p>
+              <p className="text-sm text-muted-foreground mt-1">Completed on {new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</p>
             </div>
             <div className="text-right">
               <p className="text-3xl font-bold text-white">{percentage}%</p>
@@ -211,9 +211,9 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
           <Link href="/quiz" className="flex-1 h-10 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:border-white/20 transition-colors text-center">
             Back to Dashboard
           </Link>
-          <button className="flex-1 h-10 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors">
+          <Link href={`/quiz/${quizId}/attempt`} className="flex-1 h-10 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 text-sm font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors flex items-center justify-center">
             Try Again
-          </button>
+          </Link>
         </div>
       </div>
     </div>

@@ -85,6 +85,18 @@ export async function unfollowUser(userId: string): Promise<void> {
   await apiClient.delete(`/v1/user/follow/${encodeURIComponent(userId)}`);
 }
 
+/**
+ * GET /v1/user/follow/search?username=xxx
+ * Search for a user by exact username for the follow system.
+ */
+export async function searchUserForFollow(username: string): Promise<ProfileUser> {
+  const res = await apiClient.get<{ success: boolean; data: unknown }>("/v1/user/follow/search", {
+    params: { username },
+  });
+  const data = (res.data as { data?: unknown })?.data ?? res.data;
+  return toProfileUser(data);
+}
+
 /* =============================================
    Profile activity feed
    ---------------------------------------------
@@ -123,7 +135,7 @@ export function timeAgo(date: string | Date | null | undefined): string {
   if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
   const months = Math.floor(days / 30);
   if (months < 12) return `${months} month${months === 1 ? "" : "s"} ago`;
-  return new Date(date).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  return new Date(date).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", year: "numeric" });
 }
 
 export function groupLabel(date: string | Date): string {
@@ -134,10 +146,10 @@ export function groupLabel(date: string | Date): string {
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) {
-    return d.toLocaleDateString("en-US", { weekday: "long" });
+    return d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", weekday: "long" });
   }
   if (d.getFullYear() === now.getFullYear()) {
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", day: "numeric" });
   }
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", day: "numeric", year: "numeric" });
 }

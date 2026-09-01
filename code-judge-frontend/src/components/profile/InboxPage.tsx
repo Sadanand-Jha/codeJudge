@@ -128,7 +128,7 @@ export default function InboxPage() {
           ? "You accepted this invitation and are now a collaborator."
           : "You declined this invitation.",
       timeLabel: r.created_at
-        ? new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+        ? new Date(r.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "short", day: "numeric" })
         : "",
       unread: r.status === "pending",
       status: r.status as RequestStatus,

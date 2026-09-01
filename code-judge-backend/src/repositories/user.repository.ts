@@ -20,6 +20,14 @@ export class userRepository {
         return result.rows.length > 0;
     }
 
+    async checkUsernameExists(username: string): Promise<boolean> {
+        const query = `
+            SELECT 1 FROM users WHERE username = $1 LIMIT 1
+        `;
+        const result = await pool.query(query, [username]);
+        return result.rows.length > 0;
+    }
+
     async getUserByEmail(email: string): Promise<any> {
         const query = `
             SELECT * FROM users WHERE email = $1 LIMIT 1
@@ -30,11 +38,10 @@ export class userRepository {
 
     async getUserProfileById(userId: string): Promise<any> {
         const query = `
-            SELECT 
-                u.id, 
-                u.AdminId, 
-                u.Username, 
-                u.Email, 
+            SELECT
+                u.id,
+                u.Username,
+                u.Email,
                 u.display_name, 
                 u.Role_ID, 
                 r.name AS role_name,
@@ -52,14 +59,9 @@ export class userRepository {
     }
 
     async getUserInfo(userId: string): Promise<any> {
-        // Fetch user with preferences in a single query
-        // Note: The current users table schema only includes: id, AdminId, Username, Email, Password, Role, IsActive, LastLogin, CreatedAt, UpdatedAt
-        // Additional profile fields (first_name, last_name, mobile, avatar_url, bio, rating, max_rating, is_verified)
-        // and foreign keys (country_id, state_id, college_id, company_id) would need to be added to the schema
         const query = `
             SELECT
                 u.id,
-                u.AdminId,
                 u.Username as username,
                 u.Email as email,
                 u.role_id as role,
@@ -139,7 +141,6 @@ export class userRepository {
 
         return {
             id: user.id,
-            adminId: user.adminid,
             username: user.username,
             email: user.email,
             role: user.role_name || null,
@@ -166,19 +167,11 @@ export class userRepository {
     }
 
     async createUser(email: string, password: string, username: string): Promise<any> {
-        // Get the current maximum AdminId and increment by 1
-        const maxQuery = `
-            SELECT COALESCE(MAX(CAST(AdminId AS INTEGER)), 0) AS max_admin_id
-            FROM users
-        `;
-        const maxResult = await pool.query(maxQuery);
-        const nextAdminId = String((maxResult.rows[0].max_admin_id || 0) + 1);
-
         const query = `
-            INSERT INTO users (AdminId, Username, Email, Password)
-            VALUES ($1, $2, $3, $4) RETURNING *
+            INSERT INTO users (Username, Email, Password, role_id, avatar_id)
+            VALUES ($1, $2, $3, 1, 85) RETURNING *
         `;
-        const result = await pool.query(query, [nextAdminId, username, email, password]);
+        const result = await pool.query(query, [username, email, password]);
         return result.rows[0];
     }
 }

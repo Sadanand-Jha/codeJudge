@@ -128,6 +128,74 @@ export const getQuizByCode = async (req: Request, res: Response) => {
 };
 
 /**
+ * GET /api/v1/user/quiz/my-quizzes
+ * Get quizzes created by the authenticated user.
+ */
+export const getMyCreatedQuizzes = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const {
+      page = "1",
+      limit = "10",
+      search = "",
+      status,
+      visibility,
+      sortBy = "created_at",
+      sortOrder = "DESC",
+    } = req.query;
+
+    const result = await quizService.getAllQuizzes({
+      page: Number(page),
+      limit: Number(limit),
+      search: search as string,
+      status: status as string,
+      visibility: visibility ? Number(visibility) : undefined,
+      sortBy: sortBy as string,
+      sortOrder: sortOrder as string,
+      userId: Number(userId),
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result.quizzes,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total: result.total,
+        totalPages: Math.ceil(result.total / Number(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching my quizzes:", error);
+    res.status(500).json({ success: false, message: "Internal server error while fetching my quizzes" });
+  }
+};
+
+/**
+ * GET /api/v1/user/quiz/generate-code
+ * Generate a unique 16-character alphabetic quiz code.
+ */
+export const generateQuizCodeEndpoint = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+    const code = await quizService.generateUniqueCode();
+    res.status(200).json({ success: true, data: { code } });
+  } catch (error) {
+    console.error("Error generating quiz code:", error);
+    res.status(500).json({ success: false, message: "Internal server error while generating quiz code" });
+  }
+};
+
+/**
  * POST /api/v1/user/quiz
  * Create a new quiz from the creator settings form.
  */
@@ -170,7 +238,11 @@ export const createQuiz = async (req: Request, res: Response) => {
     const code = body.code || generateQuizCode();
     const visibilityId =
       typeof body.visibility === "number" ? body.visibility : null;
-    const difficultyId = await resolveDifficultyId(body.difficulty);
+    const difficultyId = body.difficultyId
+      ? Number(body.difficultyId)
+      : await resolveDifficultyId(body.difficulty);
+    const subjectId = typeof body.subjectId === "number" ? body.subjectId : null;
+    const examId = typeof body.examId === "number" ? body.examId : null;
 
     const calculatedTotal =
       body.totalMarks ??
@@ -181,82 +253,32 @@ export const createQuiz = async (req: Request, res: Response) => {
         ? Math.ceil((calculatedTotal * body.passingPercentage) / 100)
         : 0);
 
-    // DISCONNECTED FROM BACKEND - Example mock response for a quiz with children participants
-    // const quiz = await quizService.createQuiz({
-    //   name: body.name,
-    //   code,
-    //   createdby: Number(userId),
-    //   starttime: body.starttime ? new Date(body.starttime) : undefined,
-    //   endtime: body.endtime ? new Date(body.endtime) : undefined,
-    //   visibility: visibilityId ?? undefined,
-    //   difficulty: difficultyId ?? undefined,
-    //   totalMarks: calculatedTotal,
-    //   passingMarks: calculatedPassing,
-    //   shuffleQuestions: body.randomizeQuestions,
-    //   shuffleOptions: body.randomizeOptions,
-    //   showResultsImmediately: body.showResultImmediately,
-    //   negativeMarking: body.negativeMarking,
-    //   leaderboard: true,
-    //   status: "draft",
-    // });
-
-    // MOCK RESPONSE EXAMPLE - How it would look with children participants
-    const mockQuiz = {
-      id: 1,
-      name: body.name || "Sample Quiz for Kids",
-      code: code,
+    const quiz = await quizService.createQuiz({
+      name: body.name,
+      code,
       createdby: Number(userId),
-      starttime: body.starttime ? new Date(body.starttime) : new Date(Date.now() + 3600000),
-      endtime: body.endtime ? new Date(body.endtime) : new Date(Date.now() + 7200000),
-      visibility: visibilityId ?? 1,
-      difficulty: difficultyId ?? 1,
-      totalMarks: calculatedTotal || 50,
-      passingMarks: calculatedPassing || 25,
-      shuffleQuestions: body.randomizeQuestions || false,
-      shuffleOptions: body.randomizeOptions || false,
-      showResultsImmediately: body.showResultImmediately || false,
-      negativeMarking: body.negativeMarking || false,
+      starttime: body.starttime ? new Date(body.starttime) : undefined,
+      visibility: visibilityId ?? undefined,
+      difficulty: difficultyId ?? undefined,
+      subjectId: subjectId ?? undefined,
+      examId: examId ?? undefined,
+      duration: body.timeLimit ?? undefined,
+      totalMarks: calculatedTotal,
+      passingMarks: calculatedPassing,
+      shuffleQuestions: body.randomizeQuestions,
+      shuffleOptions: body.randomizeOptions,
+      showResultsImmediately: body.showResultsImmediately,
+      negativeMarking: body.negativeMarking,
       leaderboard: true,
-      status: "published",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      // Example: Children who participated
-      participants: [
-        { id: 101, username: "alice_smith", fullName: "Alice Smith", age: 8, rollno: "KIDS-001" },
-        { id: 102, username: "bob_jones", fullName: "Bob Jones", age: 9, rollno: "KIDS-002" },
-        { id: 103, username: "charlie_brown", fullName: "Charlie Brown", age: 7, rollno: "KIDS-003" },
-        { id: 104, username: "diana_prince", fullName: "Diana Prince", age: 8, rollno: "KIDS-004" },
-        { id: 105, username: "ethan_hunt", fullName: "Ethan Hunt", age: 9, rollno: "KIDS-005" }
-      ],
-      // Example: Results after participation
-      results: [
-        { userId: 101, score: 48, percentage: 96, correctAnswers: 48, wrongAnswers: 2, skippedQuestions: 0, rank: 1, completedAt: "2026-01-15T10:30:00Z" },
-        { userId: 102, score: 42, percentage: 84, correctAnswers: 42, wrongAnswers: 8, skippedQuestions: 0, rank: 2, completedAt: "2026-01-15T10:35:00Z" },
-        { userId: 103, score: 38, percentage: 76, correctAnswers: 38, wrongAnswers: 10, skippedQuestions: 2, rank: 3, completedAt: "2026-01-15T10:40:00Z" },
-        { userId: 104, score: 35, percentage: 70, correctAnswers: 35, wrongAnswers: 12, skippedQuestions: 3, rank: 4, completedAt: "2026-01-15T10:42:00Z" },
-        { userId: 105, score: 28, percentage: 56, correctAnswers: 28, wrongAnswers: 15, skippedQuestions: 7, rank: 5, completedAt: "2026-01-15T10:45:00Z" }
-      ],
-      // Example: Question-wise analytics
-      analytics: {
-        totalParticipants: 5,
-        averageScore: 38.2,
-        highestScore: 48,
-        lowestScore: 28,
-        passRate: 80,
-        questionStats: [
-          { questionId: 1, correctCount: 5, wrongCount: 0, skipCount: 0, difficulty: "easy" },
-          { questionId: 2, correctCount: 4, wrongCount: 1, skipCount: 0, difficulty: "easy" },
-          { questionId: 3, correctCount: 3, wrongCount: 2, skipCount: 0, difficulty: "medium" },
-          { questionId: 4, correctCount: 2, wrongCount: 2, skipCount: 1, difficulty: "medium" },
-          { questionId: 5, correctCount: 1, wrongCount: 3, skipCount: 1, difficulty: "hard" }
-        ]
-      }
-    };
+      status: "draft",
+    });
+
+
 
     res.status(201).json({
       success: true,
-      message: "Quiz created successfully (MOCK - Backend disconnected)",
-      data: mockQuiz,
+      message: "Quiz created successfully",
+      data: quiz,
     });
   } catch (error) {
     console.error("Error creating quiz:", error);
@@ -282,6 +304,21 @@ export const getQuizVisibilityOptions = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching quiz visibility options",
+    });
+  }
+};
+
+export const getQuizDifficultyOptions = async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, heading FROM quiz_difficulty ORDER BY id ASC"
+    );
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching quiz difficulty options:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching quiz difficulty options",
     });
   }
 };
@@ -546,6 +583,16 @@ export const addQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
+    const MAX_PROBLEMS = 25;
+    const problemCount = await quizService.getQuizProblemCount(String(quizId));
+    if (problemCount >= MAX_PROBLEMS) {
+      res.status(400).json({
+        success: false,
+        message: `A quiz can have at most ${MAX_PROBLEMS} problems`,
+      });
+      return;
+    }
+
     const problem = await quizService.createQuizProblem({
       ...body,
       quizId: Number(quizId),
@@ -583,8 +630,7 @@ export const updateQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
-    const problem = await quizService.getQuizProblems(String(problemId));
-    const target = Array.isArray(problem) ? problem[0] : null;
+    const target = await quizService.getQuizProblemById(problemId);
 
     if (!target) {
       res.status(404).json({
@@ -620,6 +666,92 @@ export const updateQuizProblem = async (req: Request, res: Response) => {
 };
 
 /**
+ * POST /api/v1/user/quiz/problems/save-full
+ * Save a quiz problem with all its options in a single transaction (upsert)
+ */
+export const saveQuizProblemFull = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const body = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+      return;
+    }
+
+    const quizId = body.quizId;
+    if (!quizId) {
+      res.status(400).json({
+        success: false,
+        message: "quizId is required",
+      });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(String(quizId));
+    if (!quiz) {
+      res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+      return;
+    }
+
+    if (quiz.createdby !== Number(userId)) {
+      res.status(403).json({
+        success: false,
+        message: "You are not authorized to save questions for this quiz",
+      });
+      return;
+    }
+
+    const MAX_PROBLEMS = 25;
+    if (!body.problemId) {
+      const problemCount = await quizService.getQuizProblemCount(String(quizId));
+      if (problemCount >= MAX_PROBLEMS) {
+        res.status(400).json({
+          success: false,
+          message: `A quiz can have at most ${MAX_PROBLEMS} problems`,
+        });
+        return;
+      }
+    }
+
+    const result = await quizService.saveQuizProblemFull({
+      problemId: body.problemId || undefined,
+      quizId: Number(quizId),
+      problemStatement: body.problemStatement,
+      problemDescription: body.problemDescription,
+      quizProblemType: body.quizProblemType,
+      questionNumber: body.questionNumber,
+      explanation: body.explanation,
+      hint: body.hint,
+      difficulty: body.difficulty,
+      referenceNotes: body.referenceNotes,
+      internalComments: body.internalComments,
+      marks: body.marks,
+      negativeMarks: body.negativeMarks,
+      options: body.options || [],
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Question saved successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error saving quiz problem:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while saving question",
+    });
+  }
+};
+
+/**
  * DELETE /api/v1/user/quiz/problems/:problemId
  * Delete a quiz question
  */
@@ -636,8 +768,7 @@ export const deleteQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
-    const problems = await quizService.getQuizProblems(problemId);
-    const target = Array.isArray(problems) ? problems[0] : null;
+    const target = await quizService.getQuizProblemById(problemId);
 
     if (!target) {
       res.status(404).json({
@@ -696,8 +827,7 @@ export const duplicateQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
-    const problems = await quizService.getQuizProblems(problemId);
-    const target = Array.isArray(problems) ? problems[0] : null;
+    const target = await quizService.getQuizProblemById(problemId);
 
     if (!target) {
       res.status(404).json({
@@ -809,8 +939,7 @@ export const addQuizProblemOption = async (req: Request, res: Response) => {
       return;
     }
 
-    const problems = await quizService.getQuizProblems(problemId);
-    const target = Array.isArray(problems) ? problems[0] : null;
+    const target = await quizService.getQuizProblemById(problemId);
 
     if (!target) {
       res.status(404).json({
@@ -1509,6 +1638,9 @@ export const getQuizProblemsController = async (req: Request, res: Response) => 
     const { quizId } = req.params;
     const problems = await quizService.getQuizProblems(quizId);
 
+    console.log("k6 testing................................")
+
+
     const problemsWithOptions = await Promise.all(
       problems.map(async (problem: any) => {
         const options = await quizService.getQuizProblemOptions(String(problem.id));
@@ -1613,6 +1745,23 @@ export const getAllSubjects = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching subjects",
+    });
+  }
+}
+
+export const getAllExamCategories = async (req: Request, res: Response) => {
+  try {
+    const { search = "" } = req.query;
+    const examCategories = await quizService.getAllExamCategories(search as string);
+    res.status(200).json({
+      success: true,
+      data: examCategories,
+    });
+  } catch (error) {
+    console.error("Error fetching exam categories:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching exam categories",
     });
   }
 }
@@ -1970,5 +2119,161 @@ export const getStudentResponseDetail = async (req: Request, res: Response) => {
       success: false,
       message: "Internal server error while fetching student response detail",
     });
+  }
+};
+// ==================== QUIZ PARTICIPANTS (audience allow-list) ====================
+
+/**
+ * PUT /api/v1/user/quiz/:quizId/participants
+ * Body: { participants: [{ email, name?, rollNumber?, source?, roomId?, allowed? }] }
+ * Replaces the full participant list for the quiz.
+ */
+export const setQuizParticipants = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const participants = req.body?.participants;
+
+    if (!Array.isArray(participants)) {
+      return res.status(400).json({
+        success: false,
+        message: "participants must be an array",
+      });
+    }
+
+    const saved = await quizService.replaceQuizParticipants(Number(quizId), participants);
+    res.status(200).json({ success: true, data: { saved } });
+  } catch (error) {
+    console.error("Error saving quiz participants:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while saving quiz participants",
+    });
+  }
+};
+
+/**
+ * GET /api/v1/user/quiz/:quizId/participants
+ */
+export const getQuizParticipantsController = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const participants = await quizService.getQuizParticipants(quizId);
+    res.status(200).json({ success: true, data: participants });
+  } catch (error) {
+    console.error("Error fetching quiz participants:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching quiz participants",
+    });
+  }
+};
+
+// ==================== QUIZ GAME CONFIG ====================
+
+/**
+ * GET /api/v1/user/quiz/:quizId/game-config
+ * Also served at /api/quizzes/:quizId/game-config
+ * Returns persisted game config or defaults if none exists.
+ * Auth required; follows existing quiz access rules (quiz must exist).
+ */
+export const getQuizGameConfig = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+    // Read follows existing quiz access rules — any authenticated user who can view the quiz may read config.
+    // Owner/collaborator check not required for reads, but quiz existence + auth is mandatory.
+    const config = await quizService.getQuizGameConfig(Number(quizId));
+    res.status(200).json({ success: true, data: config });
+  } catch (error) {
+    console.error("Error fetching quiz game config:", error);
+    res.status(500).json({ success: false, message: "Internal server error while fetching game config" });
+  }
+};
+
+/**
+ * PUT /api/v1/user/quiz/:quizId/game-config
+ * Upsert with validation. Only quiz owner / accepted collaborator may write.
+ */
+export const upsertQuizGameConfig = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+    const isOwner = quiz.createdby === Number(userId);
+    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), Number(quizId));
+    if (!isOwner && !isCollaborator) {
+      res.status(403).json({ success: false, message: "You are not authorized to update this quiz configuration" });
+      return;
+    }
+
+    const {
+      enabled,
+      movementEnabled,
+      movementSpeed,
+      lives,
+      pointsEnabled,
+      powerupsEnabled,
+      respawnEnabled,
+      damageEnabled,
+    } = req.body;
+
+    // Strict type validation (middleware also validates via zod, double-check for direct calls)
+    if (
+      typeof enabled !== "boolean" ||
+      typeof movementEnabled !== "boolean" ||
+      typeof pointsEnabled !== "boolean" ||
+      typeof powerupsEnabled !== "boolean" ||
+      typeof respawnEnabled !== "boolean" ||
+      typeof damageEnabled !== "boolean"
+    ) {
+      res.status(400).json({ success: false, message: "Boolean fields must be booleans" });
+      return;
+    }
+    if (typeof movementSpeed !== "number" || !Number.isInteger(movementSpeed) || movementSpeed <= 0) {
+      res.status(400).json({ success: false, message: "movementSpeed must be an integer > 0" });
+      return;
+    }
+    if (typeof lives !== "number" || !Number.isInteger(lives) || lives < 0) {
+      res.status(400).json({ success: false, message: "lives must be an integer >= 0" });
+      return;
+    }
+
+    const config = await quizService.upsertQuizGameConfig(Number(quizId), {
+      enabled,
+      movementEnabled,
+      movementSpeed,
+      lives,
+      pointsEnabled,
+      powerupsEnabled,
+      respawnEnabled,
+      damageEnabled,
+    });
+
+    res.status(200).json({ success: true, data: config });
+  } catch (error: any) {
+    // DB constraint violations should not leak internals
+    if (error?.code === "23514") {
+      res.status(400).json({ success: false, message: "Invalid game config values" });
+      return;
+    }
+    console.error("Error upserting quiz game config:", error);
+    res.status(500).json({ success: false, message: "Internal server error while saving game config" });
   }
 };

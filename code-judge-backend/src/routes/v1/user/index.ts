@@ -7,7 +7,7 @@ import { userRegister, forgetPassword, profile, lookupUser } from "../../../cont
 import { getTimezones } from "../../../controllers/timezone.controller.ts";
 import { authenticate } from "../../../middleware/auth.ts";
 import { updateAvatar } from "../../../controllers/avatar.controller.ts";
-import { getAllSubjects } from "../../../controllers/quiz.controller.ts";
+import { getAllSubjects, getAllExamCategories } from "../../../controllers/quiz.controller.ts";
 import {
   getCountries,
   getStatesByCountry,
@@ -15,6 +15,9 @@ import {
   updateUserLocation,
 } from "../../../controllers/profile.controller.ts";
 import aiRoutes from "./ai.routes.ts";
+import roomRoutes from "../room.routes.ts";
+import followRoutes from "../follow.routes.ts";
+import { listRooms } from "../../../controllers/room.controller.ts";
 
 
 const router = Router();
@@ -26,6 +29,8 @@ router.use("/editor", editorRoutes);
 router.use("/contest", contestRoutes);
 router.use("/quiz", quizRoutes);
 router.use("/ai", aiRoutes);
+router.use("/rooms", roomRoutes);
+router.use("/follow", followRoutes);
 
 
 
@@ -49,12 +54,16 @@ router.patch("/avatar", authenticate, updateAvatar);
 
 // ===================== SUBJECTS ==========
 router.get("/quiz-subjects", getAllSubjects)
+router.get("/quiz-exam-categories", getAllExamCategories)
 
 // ===================== TIMEZONES ==========
 router.get("/timezones", authenticate, getTimezones);
 
 // ===================== USER LOOKUP (for collaborators) ==========
 router.get("/users/:userId", authenticate, lookupUser);
+
+// ===================== ROOMS MY-ROOMS ALIAS (frontend expects /my-rooms) ==========
+router.get("/my-rooms", authenticate, listRooms);
 
 
 

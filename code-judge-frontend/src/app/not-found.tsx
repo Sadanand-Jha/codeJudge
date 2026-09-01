@@ -1,7 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Code2, Trophy, FileText, Lightbulb, MessageSquare, Home } from "lucide-react";
 
 export default function NotFound() {
+  const pathname = usePathname() || "";
+  const isStudioContext =
+    pathname.startsWith("/creator") ||
+    pathname.startsWith("/quiz/") ||
+    pathname.includes("/quizzes/");
+  const homeHref = isStudioContext ? "/creator/quizzes" : "/";
+  const homeLabel = isStudioContext ? "Back to Quizzes" : "Back to Home";
   const links = [
     { icon: Code2, label: "Problemset", href: "/problems" },
     { icon: Trophy, label: "Contests", href: "/contests" },
@@ -38,11 +48,11 @@ export default function NotFound() {
           })}
         </div>
         <Link
-          href="/"
+          href={homeHref}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-accent hover:shadow-[0_0_12px_rgba(37,99,235,0.3)] transition-all"
         >
           <Home className="w-3.5 h-3.5" />
-          Back to Home
+          {homeLabel}
         </Link>
       </div>
     </div>

@@ -92,12 +92,14 @@ const PRODUCTS: Record<ProductId, ProductTab> = {
  * The three sibling products (Problems / Tests / Contests) shown as a shared
  * navigation strip on every hub page — the active product is highlighted with
  * its own accent color. `order` lets each hub keep its preferred ordering.
+ * `active` may be omitted for hubs that orchestrate all three without being
+ * one of them (e.g. Preparation).
  */
 export function ProductTabs({
   active,
   order = ["problems", "tests", "contests"],
 }: {
-  active: ProductId;
+  active?: ProductId;
   order?: ProductId[];
 }) {
   return (

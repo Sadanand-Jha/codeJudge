@@ -12,7 +12,7 @@ const userRepo = new userRepository();
  * following the existing project pattern. Prisma is not used in this project.
  *
  * Database schema notes:
- * - The users table currently has: id, AdminId, Username, Email, Password, Role, IsActive, LastLogin, CreatedAt, UpdatedAt
+ * - The users table currently has: id, Username, Email, Password, Role, IsActive, LastLogin, CreatedAt, UpdatedAt
  * - Foreign key columns (country_id, state_id, college_id, company_id) are NOT present in the current schema
  * - User preferences are stored in the user_preferences table
  *

@@ -83,7 +83,7 @@ export function validate(schema: z.ZodSchema) {
  * Validates:
  * - name: required, 3-100 chars
  * - code: required, min 16 chars
- * - starttime/endtime: optional ISO date strings
+ * - starttime: optional ISO date strings
  * - visibility/difficulty: optional positive integers
  * - totalMarks/passingMarks: optional non-negative numbers
  * - shuffleQuestions/shuffleOptions/showResultsImmediately/negativeMarking/leaderboard: optional booleans
@@ -99,10 +99,17 @@ export const quizSchema = z.object({
     .trim()
     .min(16, "Quiz code must be at least 16 characters")
     .max(64, "Quiz code must be at most 64 characters"),
-  starttime: z.string().optional(),
-  endtime: z.string().optional(),
+  description: z.string().max(250, "Short description must be at most 250 characters").optional(),
+  fullDescription: z.string().max(5000, "Detailed description must be at most 5000 characters").optional(),
+  starttime: z.string().nullable().optional(),
+  endtime: z.string().nullable().optional(),
+
   visibility: z.number().int().positive().optional(),
   difficulty: z.union([z.string(), z.number().int().positive()]).optional(),
+  difficultyId: z.number().int().positive().optional(),
+  subjectId: z.number().int().positive().optional(),
+  examId: z.number().int().positive().optional(),
+  duration: z.number().int().positive().optional(),
   totalMarks: z.number().nonnegative().optional(),
   passingMarks: z.number().nonnegative().optional(),
   shuffleQuestions: z.boolean().optional(),
@@ -164,7 +171,7 @@ export const quizProblemOptionSchema = z.object({
     .string()
     .trim()
     .min(1, "Option statement is required")
-    .max(1000, "Option statement must be at most 1000 characters"),
+    .max(250, "Option statement must be at most 250 characters"),
   optionDescription: z.string().trim().max(2000).optional(),
   isCorrect: z.boolean(),
 });
@@ -200,4 +207,19 @@ export const cloneQuizSchema = z.object({
     .trim()
     .min(16, "Quiz code must be at least 16 characters")
     .max(64, "Quiz code must be at most 64 characters"),
+});
+
+/**
+ * Schema for quiz game config upsert.
+ * Mirrors DB constraints: movementSpeed > 0, lives >= 0, booleans must be booleans.
+ */
+export const quizGameConfigSchema = z.object({
+  enabled: z.boolean({ invalid_type_error: "enabled must be a boolean" }),
+  movementEnabled: z.boolean({ invalid_type_error: "movementEnabled must be a boolean" }),
+  movementSpeed: z.number().int().positive("movementSpeed must be > 0"),
+  lives: z.number().int().min(0, "lives must be >= 0"),
+  pointsEnabled: z.boolean({ invalid_type_error: "pointsEnabled must be a boolean" }),
+  powerupsEnabled: z.boolean({ invalid_type_error: "powerupsEnabled must be a boolean" }),
+  respawnEnabled: z.boolean({ invalid_type_error: "respawnEnabled must be a boolean" }),
+  damageEnabled: z.boolean({ invalid_type_error: "damageEnabled must be a boolean" }),
 });

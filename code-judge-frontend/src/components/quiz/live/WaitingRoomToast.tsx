@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import type { LiveParticipant } from "@/types/liveAssessment";
-import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
+import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
 
 interface ToastData {
   id: string;
@@ -40,10 +40,7 @@ export function WaitingRoomToast() {
      <div className="fixed top-20 right-4 z-[9999] flex flex-col gap-2 pointer-events-none toast-waiting-room">
        <AnimatePresence>
          {toasts.map((toast) => {
-           const displayAvatarUrl =
-             toast.participant.avatarUrl && getPredefinedAvatarByUrl(toast.participant.avatarUrl)
-               ? toast.participant.avatarUrl
-               : DEFAULT_AVATAR_URL;
+            const displayAvatarUrl = toast.participant.avatarUrl || DEFAULT_AVATAR_URL;
            return (
              <motion.div
              key={toast.id}

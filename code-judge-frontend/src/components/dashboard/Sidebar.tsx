@@ -8,7 +8,6 @@ import {
   FileCode,
   ListMusic,
   TrendingUp,
-  Award,
   MessageSquare,
   Settings,
 } from "lucide-react";
@@ -21,14 +20,13 @@ const menuItems = [
   { label: "Submissions", icon: FileCode, href: "/submissions" },
   { label: "Playlists", icon: ListMusic, href: "/playlists" },
   { label: "Ratings", icon: TrendingUp, href: "/ratings" },
-  { label: "Achievements", icon: Award, href: "/achievements" },
   { label: "Discussions", icon: MessageSquare, href: "/discussions" },
   { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
 export default function Sidebar() {
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-background border-r border-border flex flex-col z-50">
+    <aside data-sidebar="true" className="fixed left-0 top-0 h-screen w-64 bg-background border-r border-border flex flex-col z-50">
       {/* Logo */}
       <div className="px-6 py-6">
         <Link href="/" className="flex items-center gap-2.5">

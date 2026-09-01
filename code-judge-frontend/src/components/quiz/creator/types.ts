@@ -6,7 +6,8 @@ export type CreatorQuestionType =
   | "integer"
   | "text"
   | "paragraph"
-  | "code_output";
+  | "code_output"
+  | "match_following";
 
 export type QuestionStatus = "draft" | "complete" | "missing_answer";
 
@@ -23,6 +24,16 @@ export interface CreatorOption {
   caption?: string;
 }
 
+export interface MatchItem {
+  id: string;
+  content: string;
+  imageUrl?: string;
+}
+
+export type MatchInteractionMode = "drag" | "click" | "both";
+
+import type { GameMechanicsConfig } from "@/components/creator/quiz-studio/types/gameMechanics";
+
 export interface CreatorAttachment {
   id: string;
   type: "image" | "pdf" | "audio" | "video";
@@ -38,6 +49,7 @@ export interface CreatorQuestion {
   correctAnswer: string | number | number[];
   explanation: string;
   hint: string;
+  solution?: string;
   marks: number;
   negativeMarks: number;
   difficulty: "Easy" | "Medium" | "Hard" | "Expert";
@@ -52,6 +64,20 @@ export interface CreatorQuestion {
   images: Array<{ id: string; url: string; caption?: string }>;
   createdAt: string;
   updatedAt: string;
+  serverId?: number;
+  // ── Match the Following ──
+  matchItems?: MatchItem[];
+  matchMatches?: MatchItem[];
+  matchMapping?: Record<string, string>; // leftId -> rightId
+  shuffleColumnA?: boolean;
+  shuffleColumnB?: boolean;
+  partialMarking?: boolean;
+  negativeMarkingEnabled?: boolean;
+  interactionMode?: MatchInteractionMode;
+  showCorrectAfterSubmit?: boolean;
+  showExplanationAfterSubmit?: boolean;
+  // ── Game Mechanics (question-specific override) ──
+  gameMechanics?: GameMechanicsConfig;
 }
 
 export interface QuizCollaborator {
@@ -72,9 +98,13 @@ export interface AudienceStudent {
   id: string;
   name: string;
   rollNumber: string;
-  email: string;
+  username?: string;
+  /** @deprecated legacy email — kept for backwards compatibility */
+  email?: string;
   /** Avatar id (1-7) for the predefined local avatars. */
   avatarId: number;
+  /** Avatar URL from DB — if present, use this instead of avatarId fallback. */
+  avatarUrl?: string | null;
 }
 
 /**
@@ -152,6 +182,12 @@ export interface QuizDetails {
   resultVisibility: "immediate" | "after_end" | "manual";
   collaborators: QuizCollaborator[];
   audience: QuizAudience;
+
+  // Availability & Scheduling
+  availabilityMode: "immediate" | "scheduled";
+  availabilityStart: string;
+  availabilityEnd: string;
+  availabilityEndBehavior: "auto_submit" | "allow_finish" | "stop_immediately";
 }
 
 export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
@@ -191,6 +227,12 @@ export const DEFAULT_QUIZ_DETAILS: QuizDetails = {
   resultVisibility: "immediate",
   collaborators: [],
   audience: { ...DEFAULT_QUIZ_AUDIENCE },
+
+  // Availability & Scheduling
+  availabilityMode: "immediate",
+  availabilityStart: "",
+  availabilityEnd: "",
+  availabilityEndBehavior: "auto_submit",
 };
 
 export const QUESTION_TYPE_LABELS: Record<CreatorQuestionType, string> = {
@@ -198,8 +240,9 @@ export const QUESTION_TYPE_LABELS: Record<CreatorQuestionType, string> = {
   multiple_choice: "Multiple Select",
   true_false: "True / False",
   fill_blanks: "Fill Blank",
-  integer: "Integer",
   text: "Short Answer",
+  match_following: "Match the Following",
+  integer: "Integer",
   paragraph: "Long Answer",
   code_output: "Coding",
 };
@@ -209,10 +252,7 @@ export const QUESTION_TYPE_ORDER: CreatorQuestionType[] = [
   "multiple_choice",
   "true_false",
   "fill_blanks",
-  "integer",
-  "text",
-  "paragraph",
-  "code_output",
+  "match_following",
 ];
 
 export const DIFFICULTY_OPTIONS = ["Easy", "Medium", "Hard", "Expert"] as const;
@@ -246,9 +286,10 @@ export function createDefaultQuestion(id: string): CreatorQuestion {
       { id: `opt_${timestamp}_d`, label: "D", content: "", isCorrect: false },
     ],
     correctAnswer: -1,
-    explanation: "",
-    hint: "",
-    marks: 10,
+  explanation: "",
+  hint: "",
+  solution: "",
+  marks: 10,
     negativeMarks: 0,
     difficulty: "Medium",
     expectedTime: 2,
@@ -268,6 +309,19 @@ export function createDefaultQuestion(id: string): CreatorQuestion {
 export function getQuestionStatus(q: CreatorQuestion): QuestionStatus {
   const hasTitle = q.title.trim().length > 0;
   if (!hasTitle) return "draft";
+
+  if (q.type === "match_following") {
+    const left = q.matchItems ?? [];
+    const right = q.matchMatches ?? [];
+    const mapping = q.matchMapping ?? {};
+    if (left.length < 2 || right.length < 2) return "missing_answer";
+    const hasEmptyLeft = left.some((x) => !x.content.trim());
+    const hasEmptyRight = right.some((x) => !x.content.trim());
+    if (hasEmptyLeft || hasEmptyRight) return "missing_answer";
+    const unmapped = left.filter((l) => !mapping[l.id]).length;
+    if (unmapped > 0) return "missing_answer";
+    return "complete";
+  }
 
   if (q.type === "single_choice" || q.type === "multiple_choice" || q.type === "true_false") {
     const hasOptions = q.options.length >= 2 && q.options.every((o) => o.content.trim() !== "");

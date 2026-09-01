@@ -74,6 +74,7 @@ export default function Navbar() {
                   await logout();
                   useAuthStore.getState().logout();
                   toast.success("Logged out successfully");
+                  window.location.reload();
                 }}
                 className="flex items-center gap-1 hover:text-danger transition-colors"
               >

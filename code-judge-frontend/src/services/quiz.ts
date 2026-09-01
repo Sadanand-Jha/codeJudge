@@ -13,6 +13,20 @@ export interface Quiz {
   createdby: number;
   starttime: string | null;
   endtime: string | null;
+  visibility: number | null;
+  visibility_name: string | null;
+  difficulty: number | null;
+  difficulty_name: string | null;
+  subject_id: number | null;
+  exam_cat: number | null;
+  duration: number | null;
+  total_marks: number | null;
+  passing_marks: number | null;
+  shuffle_questions: boolean | null;
+  shuffle_options: boolean | null;
+  show_results_immediately: boolean | null;
+  negative_marking: boolean | null;
+  leaderboard: boolean | null;
   status: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -101,6 +115,11 @@ export interface QuizProblem {
   problem_description: string | null;
   quiz_problem_type: number | null;
   problem_type_name: string | null;
+  question_number: number | null;
+  explaination: string | null;
+  hint: string | null;
+  difficulty: number | null;
+  difficulty_name: string | null;
   created_at: string | null;
   updated_at: string | null;
   options: QuizProblemOption[];
@@ -111,6 +130,7 @@ export interface QuizProblemOption {
   problem_id: number;
   option_statement: string;
   option_description: string | null;
+  matching_target?: string | null;
   iscorrect: boolean;
   created_at: string | null;
   updated_at: string | null;
@@ -140,6 +160,11 @@ export interface QuizSubject {
   subject_name: string;
 }
 
+export interface QuizExamCategory {
+  id: number;
+  exam_cat: string;
+}
+
 /**
  * Get all quiz subjects
  * GET /api/v1/user/quiz/quiz-subjects
@@ -147,6 +172,16 @@ export interface QuizSubject {
 export async function getAllSubjects(search?: string, signal?: AbortSignal): Promise<QuizSubject[]> {
   const params = search ? { search } : undefined;
   const response = await apiClient.get<QuizSubject[]>("/v1/user/quiz-subjects", { params, signal });
+  return response.data;
+}
+
+/**
+ * Get all quiz exam categories
+ * GET /api/v1/user/quiz/quiz-exam-categories
+ */
+export async function getAllExamCategories(search?: string, signal?: AbortSignal): Promise<QuizExamCategory[]> {
+  const params = search ? { search } : undefined;
+  const response = await apiClient.get<QuizExamCategory[]>("/v1/user/quiz-exam-categories", { params, signal });
   return response.data;
 }
 
@@ -166,6 +201,44 @@ export async function getQuizById(quizId: string): Promise<Quiz> {
 export async function getQuizByCode(code: string): Promise<Quiz> {
   const response = await apiClient.get<Quiz>(`/v1/user/quiz/code/${code}`);
   return response.data;
+}
+
+export interface QuizProblemWithOptions extends QuizProblem {
+  options: QuizProblemOption[];
+}
+
+/**
+ * Load a quiz and its problems for editing in the studio.
+ * Returns quiz metadata + resolved subject/exam names + problems.
+ */
+export async function loadQuizForEdit(quizId: string): Promise<{
+  quiz: Quiz & { subject_name?: string; exam_cat_name?: string };
+  problems: QuizProblemWithOptions[];
+}> {
+  const [quiz, problems] = await Promise.all([
+    getQuizById(quizId),
+    getQuizProblems(quizId).catch(() => [] as QuizProblem[]),
+  ]);
+
+  let subjects: { id: number; subject_name: string }[] = [];
+  let exams: { id: number; exam_cat: string }[] = [];
+  try {
+    [subjects, exams] = await Promise.all([getAllSubjects(), getAllExamCategories()]);
+  } catch {
+    // non-critical — continue without subject/exam names
+  }
+
+  const subjectName = quiz.subject_id
+    ? subjects.find((s) => s.id === quiz.subject_id)?.subject_name ?? ""
+    : "";
+  const examName = quiz.exam_cat
+    ? exams.find((e) => e.id === quiz.exam_cat)?.exam_cat ?? ""
+    : "";
+
+  return {
+    quiz: { ...quiz, subject_name: subjectName, exam_cat_name: examName },
+    problems: problems as QuizProblemWithOptions[],
+  };
 }
 
 /**
@@ -246,6 +319,23 @@ export async function getOldQuizzes(params: {
 }
 
 /**
+ * Generate a unique 16-character alphabetic quiz code
+ * GET /api/v1/user/quiz/generate-code
+ */
+export async function generateQuizCode(): Promise<string> {
+  const response = await apiClient.get<{ success: boolean; data: { code: string } }>("/v1/user/quiz/generate-code");
+  return response.data.data.code;
+}
+
+/**
+ * GET /api/v1/user/quiz/difficulty-options
+ */
+export async function getQuizDifficultyOptions(): Promise<{ id: number; heading: string }[]> {
+  const response = await apiClient.get("/v1/user/quiz/difficulty-options");
+  return response.data as { id: number; heading: string }[];
+}
+
+/**
  * Create a new quiz from the creator settings form
  * POST /api/v1/user/quiz
  */
@@ -261,10 +351,13 @@ export async function createQuiz(data: CreateQuizPayload): Promise<Quiz> {
 export async function updateQuiz(quizId: string, data: Partial<{
   name: string;
   code: string;
-  starttime: string;
-  endtime: string;
+  starttime: string | null;
+  endtime: string | null;
   visibility: number;
   difficulty: number;
+  subjectId: number;
+  examId: number;
+  duration: number;
   totalMarks: number;
   passingMarks: number;
   shuffleQuestions: boolean;
@@ -307,24 +400,67 @@ export async function updateQuizStatus(quizId: string, status: "published" | "un
 }
 
 // ─────────────────────────────────────────
+// Quiz Participants (audience allow-list)
+// ─────────────────────────────────────────
+
+export interface QuizParticipantInput {
+  email: string;
+  name?: string | null;
+  rollNumber?: string | null;
+  source?: "room" | "individual";
+  roomId?: number | string | null;
+  allowed?: boolean;
+}
+
+export interface QuizParticipant {
+  id: number;
+  quiz_id: number;
+  email: string;
+  name: string | null;
+  roll_number: string | null;
+  source: "room" | "individual";
+  room_id: number | null;
+  allowed: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+/** Replace the full participant list for a quiz. */
+export async function setQuizParticipants(quizId: string, participants: QuizParticipantInput[]): Promise<{ saved: number }> {
+  const response = await apiClient.put<{ success: boolean; data: { saved: number } }>(
+    `/v1/user/quiz/${quizId}/participants`,
+    { participants }
+  );
+  return response.data.data;
+}
+
+export async function getQuizParticipants(quizId: string): Promise<QuizParticipant[]> {
+  const response = await apiClient.get<{ success: boolean; data: QuizParticipant[] }>(
+    `/v1/user/quiz/${quizId}/participants`
+  );
+  return response.data.data;
+}
+
+// ─────────────────────────────────────────
 // Quiz Question Management API
 // ─────────────────────────────────────────
 
 export interface QuizProblemCreate {
-  problem_statement: string;
-  problem_description?: string;
-  quiz_problem_type?: number;
-  question_number?: number;
+  problemStatement: string;
+  problemDescription?: string;
+  quizProblemType?: number;
+  questionNumber?: number;
   explanation?: string;
   hint?: string;
   difficulty?: number;
-  reference_notes?: string;
-  internal_comments?: string;
+  referenceNotes?: string;
+  internalComments?: string;
 }
 
 export interface QuizProblemOptionCreate {
-  option_statement: string;
-  option_description?: string;
+  optionStatement: string;
+  optionDescription?: string;
+  matchingTarget?: string | null;
   isCorrect: boolean;
 }
 
@@ -377,6 +513,32 @@ export async function reorderQuizProblems(quizId: string, problemIds: number[]):
  */
 export async function addQuizProblemOption(problemId: string, data: QuizProblemOptionCreate): Promise<QuizProblemOption> {
   const response = await apiClient.post<QuizProblemOption>(`/v1/user/quiz/problems/${problemId}/options`, data);
+  return response.data;
+}
+
+export interface QuizProblemSaveFull {
+  problemId?: number;
+  quizId: number;
+  problemStatement: string;
+  problemDescription?: string;
+  quizProblemType?: number;
+  questionNumber?: number;
+  explanation?: string;
+  hint?: string;
+  difficulty?: number;
+  referenceNotes?: string;
+  internalComments?: string;
+  marks?: number;
+  negativeMarks?: number;
+  options?: Array<QuizProblemOptionCreate & { matchingTarget?: string | null; matching_target?: string | null }>;
+}
+
+/**
+ * Save a quiz problem with all its options in a single transaction (upsert)
+ * POST /api/v1/user/quiz/problems/save-full
+ */
+export async function saveQuizProblemFull(data: QuizProblemSaveFull): Promise<QuizProblem> {
+  const response = await apiClient.post<QuizProblem>('/v1/user/quiz/problems/save-full', data);
   return response.data;
 }
 
@@ -945,5 +1107,63 @@ export interface StudentResponseDetail {
  */
 export async function getStudentResponseDetail(quizId: string, userId: string | number): Promise<StudentResponseDetail> {
   const response = await apiClient.get<StudentResponseDetail>(`/v1/user/quiz/${quizId}/responses/${userId}`);
+  return response.data;
+}
+
+// ─────────────────────────────────────────
+// Quiz Game Config API (PostgreSQL → Prisma → Backend → API → Frontend → TopDown)
+// ─────────────────────────────────────────
+
+export interface QuizGameConfig {
+  quizId: number;
+  enabled: boolean;
+  movementEnabled: boolean;
+  movementSpeed: number;
+  lives: number;
+  pointsEnabled: boolean;
+  powerupsEnabled: boolean;
+  respawnEnabled: boolean;
+  damageEnabled: boolean;
+}
+
+export const DEFAULT_QUIZ_GAME_CONFIG: Omit<QuizGameConfig, "quizId"> = {
+  enabled: true,
+  movementEnabled: true,
+  movementSpeed: 5,
+  lives: 3,
+  pointsEnabled: true,
+  powerupsEnabled: false,
+  respawnEnabled: true,
+  damageEnabled: false,
+};
+
+/**
+ * GET /api/v1/user/quiz/:quizId/game-config
+ * Also aliased at /api/quizzes/:quizId/game-config
+ * Returns persisted config or defaults.
+ */
+export async function getQuizGameConfig(quizId: string | number): Promise<QuizGameConfig> {
+  const response = await apiClient.get<QuizGameConfig>(`/v1/user/quiz/${quizId}/game-config`);
+  return response.data;
+}
+
+/**
+ * PUT /api/v1/user/quiz/:quizId/game-config
+ * Upsert — only owner/collaborator may write. Validates on backend.
+ */
+export async function updateQuizGameConfig(
+  quizId: string | number,
+  config: QuizGameConfig
+): Promise<QuizGameConfig> {
+  const response = await apiClient.put<QuizGameConfig>(`/v1/user/quiz/${quizId}/game-config`, {
+    enabled: config.enabled,
+    movementEnabled: config.movementEnabled,
+    movementSpeed: config.movementSpeed,
+    lives: config.lives,
+    pointsEnabled: config.pointsEnabled,
+    powerupsEnabled: config.powerupsEnabled,
+    respawnEnabled: config.respawnEnabled,
+    damageEnabled: config.damageEnabled,
+  });
   return response.data;
 }

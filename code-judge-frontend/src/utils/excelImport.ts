@@ -2,11 +2,8 @@ import * as XLSX from "xlsx";
 import { normalizeHeader, parseCsvLine } from "./studentCsv";
 
 /**
- * Excel / CSV student import helpers.
- *
- * The import workflow is guided: the teacher first sees the required schema,
- * uploads a file, confirms the column mapping, reviews validation, then
- * imports. Nothing is imported silently — every row is classified first.
+ * Excel / CSV student import helpers — username-only mode.
+ * Only Username is required; Name/Roll are optional and derived from username if missing.
  */
 
 export interface ExcelSheetData {
@@ -18,15 +15,15 @@ export interface ExcelSheetData {
 export interface ColumnMapping {
   name: string | null;
   roll: string | null;
-  email: string | null;
+  username: string | null;
 }
 
-const REQUIRED_COLUMNS = ["Name", "Roll Number", "Email ID"] as const;
+const REQUIRED_COLUMNS = ["Username"] as const;
 
 const KEYWORDS: Record<ColumnKey, string[]> = {
   name: ["name", "student", "full name"],
   roll: ["roll", "reg", "enrollment", "id"],
-  email: ["email"],
+  username: ["username", "user", "handle"],
 };
 
 export type ColumnKey = keyof ColumnMapping;
@@ -52,12 +49,13 @@ export function detectColumnMapping(headers: string[]): ColumnMapping {
   return {
     name: pickHeader(headers, KEYWORDS.name),
     roll: pickHeader(headers, KEYWORDS.roll),
-    email: pickHeader(headers, KEYWORDS.email),
+    username: pickHeader(headers, KEYWORDS.username),
   };
 }
 
 export function missingColumns(mapping: ColumnMapping): ColumnKey[] {
-  return (Object.keys(KEYWORDS) as ColumnKey[]).filter((k) => !mapping[k]);
+  // Only username is truly required — name/roll are optional (derived)
+  return !mapping.username ? ["username"] : [];
 }
 
 /**
@@ -99,26 +97,26 @@ function matrixToSheet(matrix: unknown[][], sheetName: string): ExcelSheetData {
   return { sheetName, headers, rows };
 }
 
-/** Extract a name/roll/email row per data row using the confirmed mapping. */
+/** Extract a name/roll/username row per data row using the confirmed mapping. */
 export function extractRows(
   data: ExcelSheetData,
   mapping: ColumnMapping
-): Array<{ name: string; rollNumber: string; email: string }> {
+): Array<{ name: string; rollNumber: string; username: string }> {
   const colIndex = (name: string | null) => (name ? data.headers.indexOf(name) : -1);
   const iName = colIndex(mapping.name);
   const iRoll = colIndex(mapping.roll);
-  const iEmail = colIndex(mapping.email);
+  const iUsername = colIndex(mapping.username);
   return data.rows.map((row) => ({
     name: iName >= 0 ? row[iName] ?? "" : "",
     rollNumber: iRoll >= 0 ? row[iRoll] ?? "" : "",
-    email: iEmail >= 0 ? row[iEmail] ?? "" : "",
+    username: iUsername >= 0 ? row[iUsername] ?? "" : "",
   }));
 }
 
 export interface ImportedStudentRow {
   name: string;
   rollNumber: string;
-  email: string;
+  username: string;
   status: "ready" | "attention" | "duplicate";
   issue?: string;
 }
@@ -130,52 +128,46 @@ export interface Classification {
   duplicate: ImportedStudentRow[];
 }
 
-const VALID_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const VALID_USERNAME = /^[a-zA-Z0-9._-]{2,30}$/;
 
 /**
- * Classify every imported row. Checks required fields, email validity and
- * duplicates (within the file and against students already in the room).
+ * Classify every imported row. Only username is required; name/roll are
+ * derived from username if missing. Checks username validity and duplicates.
  */
 export function classifyImportedRows(
-  raw: Array<{ name: string; rollNumber: string; email: string }>,
+  raw: Array<{ name: string; rollNumber: string; username: string }>,
   existingRolls: string[]
 ): Classification {
   const existing = new Set(existingRolls.map((r) => r.toLowerCase()));
-  const seenRoll = new Set<string>();
-  const seenEmail = new Set<string>();
+  const seenUsername = new Set<string>();
   const rows: ImportedStudentRow[] = [];
 
   for (const r of raw) {
-    const name = r.name?.trim() ?? "";
-    const roll = r.rollNumber?.trim() ?? "";
-    const email = r.email?.trim().toLowerCase() ?? "";
+    const username = r.username?.trim().toLowerCase() ?? "";
+    // Derive name/roll from username if not provided — keeps RoomStudent valid
+    const name = r.name?.trim() || username;
+    const roll = r.rollNumber?.trim() || username;
     let status: ImportedStudentRow["status"] = "ready";
     let issue: string | undefined;
 
-    if (!name) {
+    if (!username) {
       status = "attention";
-      issue = "Missing Name";
-    } else if (!roll) {
+      issue = "Missing Username";
+    } else if (!VALID_USERNAME.test(username)) {
       status = "attention";
-      issue = "Missing Roll Number";
-    } else if (existing.has(roll.toLowerCase())) {
+      issue = "Invalid Username";
+    } else if (seenUsername.has(username)) {
+      status = "duplicate";
+      issue = "Duplicate Username";
+    } else if (existing.has(username)) {
+      // If existing Roll is username (username-only mode) treat as duplicate
       status = "duplicate";
       issue = "Already in this room";
-    } else if (seenRoll.has(roll.toLowerCase())) {
-      status = "duplicate";
-      issue = "Duplicate Roll Number";
-    } else if (email && !VALID_EMAIL.test(email)) {
-      status = "attention";
-      issue = "Invalid Email";
-    } else if (email && seenEmail.has(email)) {
-      status = "duplicate";
-      issue = "Duplicate Email";
     }
 
-    if (roll) seenRoll.add(roll.toLowerCase());
-    if (email && VALID_EMAIL.test(email)) seenEmail.add(email);
+    if (username && VALID_USERNAME.test(username)) seenUsername.add(username);
 
-    rows.push({ name, rollNumber: roll, email, status, issue });
+    rows.push({ name, rollNumber: roll, username, status, issue });
   }
 
   return {
@@ -186,35 +178,34 @@ export function classifyImportedRows(
   };
 }
 
-/** Download a preformatted .xlsx template with a Students + Instructions sheet. */
+/** Download a preformatted .xlsx template — username-only. */
 export function downloadExcelTemplate(): void {
   const wb = XLSX.utils.book_new();
 
   const students = XLSX.utils.aoa_to_sheet([
-    ["Name", "Roll Number", "Email ID"],
-    ["Rahul Kumar", "23CSE1042", "rahul@gmail.com"],
-    ["Priya Singh", "23CSE1043", "priya@gmail.com"],
-    ["Aman Sharma", "23CSE1044", "aman@gmail.com"],
-    ["", "", ""],
-    ["", "", ""],
+    ["Username"],
+    ["rahul.kumar42"],
+    ["priya.singh43"],
+    ["aman.sharma44"],
+    [""],
+    [""],
   ]);
-  students["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 30 }];
+  students["!cols"] = [{ wch: 30 }];
   XLSX.utils.book_append_sheet(wb, students, "Students");
 
   const instructions = XLSX.utils.aoa_to_sheet([
     ["Excel Import — Instructions"],
     [""],
-    ["Your Excel file must contain these 3 columns:"],
-    ["1. Name — Student's full name (e.g. Rahul Kumar)"],
-    ["2. Roll Number — Student's unique college/school roll number (e.g. 23CSE1042)"],
-    ["3. Email ID — Student's valid email address (e.g. rahul@gmail.com)"],
+    ["Your Excel file must contain a Username column."],
+    ["Username — Student's unique username (e.g. rahul.kumar42)"],
+    ["Optional: Name, Roll Number will be derived from username if omitted."],
     [""],
     ["Rules:"],
-    ["• The first row must contain the column names."],
-    ["• Each subsequent row represents one student."],
+    ["• The first row must contain the column name 'Username'."],
+    ["• Each subsequent row represents one student (one username)."],
     ["• Do not merge cells. Keep one student per row."],
-    ["• Roll numbers should be unique within the room."],
-    ["• Email addresses should be valid."],
+    ["• Usernames should be 2-30 chars: letters, numbers, ., _, -."],
+    ["• Duplicates (already in room or repeated in file) are skipped."],
     ["• Avoid completely empty rows."],
   ]);
   instructions["!cols"] = [{ wch: 72 }];
@@ -224,19 +215,18 @@ export function downloadExcelTemplate(): void {
 }
 
 /**
- * Export a room's students to a .xlsx file for backup/sharing. Each row is one
- * student (Name | Roll Number | Email ID).
+ * Export a room's students — username-only for privacy.
  */
 export function exportStudentsToFile(
   fileName: string,
-  students: Array<{ name: string; rollNumber: string; email: string }>
+  students: Array<{ name: string; rollNumber: string; username: string }>
 ): void {
   const wb = XLSX.utils.book_new();
   const sheet = XLSX.utils.aoa_to_sheet([
-    ["Name", "Roll Number", "Email ID"],
-    ...students.map((s) => [s.name, s.rollNumber, s.email]),
+    ["Username"],
+    ...students.map((s) => [s.username]),
   ]);
-  sheet["!cols"] = [{ wch: 22 }, { wch: 16 }, { wch: 30 }];
+  sheet["!cols"] = [{ wch: 30 }];
   XLSX.utils.book_append_sheet(wb, sheet, "Students");
   XLSX.writeFile(wb, fileName.endsWith(".xlsx") ? fileName : `${fileName}.xlsx`);
 }

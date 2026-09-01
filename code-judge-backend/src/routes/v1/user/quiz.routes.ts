@@ -1,7 +1,6 @@
 import { Router } from "express";
-import type { Request, Response } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
-import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, cloneQuizSchema, joinQuizSchema } from "../../../middleware/validate.ts";
+import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema } from "../../../middleware/validate.ts";
 import {
   getAllQuizzes,
   getQuizById,
@@ -9,6 +8,7 @@ import {
   getQuizProblemsController,
   registerForQuiz,
   getMyQuizzes,
+  getMyCreatedQuizzes,
   createQuiz,
   updateQuiz,
   deleteQuiz,
@@ -33,6 +33,7 @@ import {
   retryQuizResultsEmail,
   getAllSubjects,
   getQuizVisibilityOptions,
+  getQuizDifficultyOptions,
   sendCollaboratorRequest,
   getQuizCollaborators,
   getMyCollaborations,
@@ -40,12 +41,14 @@ import {
   respondToCollaboratorRequest,
   removeQuizCollaborator,
   getQuizResponses,
-  getStudentResponseDetail
+  getStudentResponseDetail,
+  setQuizParticipants,
+  getQuizParticipantsController,
+  generateQuizCodeEndpoint,
+  saveQuizProblemFull,
+  getQuizGameConfig,
+  upsertQuizGameConfig,
 } from "../../../controllers/quiz.controller.ts";
-import { QuizService } from "../../../services/database/quiz.service.ts";
-
-const quizService = new QuizService();
-
 const router = Router();
 
 // All quiz routes require authentication
@@ -71,63 +74,19 @@ router.get("/old-quizzes", getPreviousQuizzes);
  * GET /api/v1/user/quiz/my-quizzes
  * Get quizzes created by the authenticated user
  */
-router.get("/my-quizzes", async (req: Request, res: Response) => {
-  try {
-    const userId = req.user?.userId;
-
-    if (!userId) {
-      res.status(401).json({
-        success: false,
-        message: "Unauthorized access",
-      });
-      return;
-    }
-
-    const {
-      page = "1",
-      limit = "10",
-      search = "",
-      status,
-      visibility,
-      sortBy = "created_at",
-      sortOrder = "DESC",
-    } = req.query;
-
-    const result = await quizService.getAllQuizzes({
-      page: Number(page),
-      limit: Number(limit),
-      search: search as string,
-      status: status as string,
-      visibility: visibility ? Number(visibility) : undefined,
-      sortBy: sortBy as string,
-      sortOrder: sortOrder as string,
-      userId: Number(userId),
-    });
-
-    res.status(200).json({
-      success: true,
-      data: result.quizzes,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total: result.total,
-        totalPages: Math.ceil(result.total / Number(limit)),
-      },
-    });
-  } catch (error) {
-    console.error("Error fetching my quizzes:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error while fetching my quizzes",
-    });
-  }
-});
+router.get("/my-quizzes", getMyCreatedQuizzes);
 
 // GET /api/v1/user/quiz/code/:code — get a quiz by its code
 router.get("/code/:code", getQuizByCode);
 
 // GET /api/v1/user/quiz/visibility-options — get visibility options from quiz_visibility table
 router.get("/visibility-options", getQuizVisibilityOptions);
+
+// GET /api/v1/user/quiz/difficulty-options — get difficulty options from quiz_difficulty table
+router.get("/difficulty-options", getQuizDifficultyOptions);
+
+// GET /api/v1/user/quiz/generate-code — generate a unique 16-char quiz code
+router.get("/generate-code", generateQuizCodeEndpoint);
 
 // GET /api/v1/user/quiz/collaborator-requests/incoming — get the user's incoming collaborator requests
 router.get("/collaborator-requests/incoming", getIncomingCollaboratorRequests);
@@ -137,6 +96,13 @@ router.get("/collaborations", getMyCollaborations);
 
 // PATCH /api/v1/user/quiz/collaborator-requests/:quizId — accept/reject an incoming request (recipient only)
 router.patch("/collaborator-requests/:quizId", respondToCollaboratorRequest);
+
+// ==================== GAME CONFIG (persisted via quiz_game_config) ====================
+// Must be defined before the generic /:quizId handler for clarity
+// GET /api/v1/user/quiz/:quizId/game-config — get persisted game config or defaults
+router.get("/:quizId/game-config", getQuizGameConfig);
+// PUT /api/v1/user/quiz/:quizId/game-config — upsert (only owner/collaborator)
+router.put("/:quizId/game-config", validate(quizGameConfigSchema), upsertQuizGameConfig);
 
 // GET /api/v1/user/quiz/:quizId — get a single quiz
 router.get("/:quizId", getQuizById);
@@ -160,6 +126,9 @@ router.get("/:quizId/problems", getQuizProblemsController);
 
 // POST /api/v1/user/quiz/:quizId/problems — add a question
 router.post("/:quizId/problems", validate(quizProblemSchema), addQuizProblem);
+
+// POST /api/v1/user/quiz/problems/save-full — save a question with its options in one transaction
+router.post("/problems/save-full", saveQuizProblemFull);
 
 // PUT /api/v1/user/quiz/problems/:problemId — update a question
 router.put("/problems/:problemId", validate(quizProblemSchema), updateQuizProblem);
@@ -234,6 +203,11 @@ router.get("/:quizId/responses", getQuizResponses);
 
 // GET /api/v1/user/quiz/:quizId/responses/:userId — single student detail (owner/collaborator)
 router.get("/:quizId/responses/:userId", getStudentResponseDetail);
+
+// GET /api/v1/user/quiz/:quizId/participants — audience allow-list (owner/collaborator)
+router.get("/:quizId/participants", getQuizParticipantsController);
+// PUT /api/v1/user/quiz/:quizId/participants — replace the participant list
+router.put("/:quizId/participants", setQuizParticipants);
 
 // ==================== JOIN QUIZ ====================
 

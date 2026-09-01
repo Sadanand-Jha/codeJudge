@@ -14,7 +14,7 @@ import {
   Bookmark,
   BarChart3,
   Gift,
-  Plus,
+  UserPlus,
   Search,
   Filter,
   LayoutGrid,
@@ -36,7 +36,6 @@ import {
   CheckCircle2,
   Circle,
   Timer,
-  UserPlus,
   Eye,
 } from "lucide-react";
 import { QuizLandingCards } from "@/components/quiz/live/QuizLandingCards";
@@ -223,15 +222,15 @@ function QuizDashboardContent() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-text-primary">Ready to test yourself?</p>
-                    <p className="text-[10px] text-text-secondary mb-2">Create or join an assessment</p>
-                    <Link href="/quiz/create">
+                    <p className="text-[10px] text-text-secondary mb-2">Join a live assessment or practice below</p>
+                    <Link href="#join-quiz">
                       <motion.button
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.98 }}
                         className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] text-xs font-bold text-white hover:shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all flex items-center gap-2"
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                        Create New Quiz
+                        <UserPlus className="w-3.5 h-3.5" />
+                        Join a Quiz
                       </motion.button>
                     </Link>
                   </div>

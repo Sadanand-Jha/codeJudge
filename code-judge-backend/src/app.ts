@@ -32,11 +32,23 @@ const { Pool } = pg;
 
 dns.setDefaultResultOrder("ipv4first");
 
+// Force Asia/Kolkata everywhere: JS Date formatting + Postgres session timezone,
+// so created_at / updated_at are stored & returned in IST.
+process.env.TZ = "Asia/Kolkata";
+
 
 export const pool = new Pool({
   ssl: {
     rejectUnauthorized: false // <-- Yahan add karna hai
   }});
+
+// Set the session timezone for every new pooled connection so NOW(),
+// created_at and updated_at use Asia/Kolkata (IST, UTC+05:30).
+pool.on("connect", (client) => {
+  client.query("SET TIME ZONE 'Asia/Kolkata'").catch((err) =>
+    console.error("Failed to set session timezone:", err.message)
+  );
+});
 
 // export const pool = new Pool({
 //   connectionString: process.env.DATABASE_URL,
