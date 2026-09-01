@@ -31,6 +31,11 @@ const TRACKING_TABLE = 'schema_migration';
 // ──────────────────────────────────────────────
 const pool = new Pool();
 
+// Session timezone → Asia/Kolkata so NOW()/timestamps use IST on every connection
+pool.on("connect", (client) => {
+  client.query("SET TIME ZONE 'Asia/Kolkata'").catch(() => {});
+});
+
 // ──────────────────────────────────────────────
 // 2. Tracking table management
 // ──────────────────────────────────────────────

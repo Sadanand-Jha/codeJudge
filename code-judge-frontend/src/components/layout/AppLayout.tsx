@@ -8,33 +8,35 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Code2,
-  Award,
-  TrendingUp,
-  MessageSquare,
   Settings,
-  Bookmark,
   Menu,
-  Search,
   Flame,
-  Route,
-  Users,
   LogOut,
   BookOpen,
   Briefcase,
   Sparkles,
-  ClipboardList,
   ClipboardCheck,
-  Crown,
+  Trophy,
   Loader2,
+  ChevronDown,
+  User,
+  Waypoints,
+  Repeat,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
+import {
+  getActivePreparationModule,
+  PREPARATION_BASE,
+} from "@/config/preparation";
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
-import { isQuizProblemsPath } from "@/lib/quizWorkspace";
+import { isQuizProblemsPath, isNestedQuizPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
+import { Sidebar } from "@/components/ui/Sidebar";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import { ChatProvider } from "@/context/ChatContext";
 import AuthModal from "@/components/modals/AuthModal";
@@ -97,47 +99,49 @@ type NavItemData = {
 
 // Navigation is grouped so the rail can separate logical sections with a
 // subtle divider instead of collapsing into one unbroken list.
+//
+// Information architecture:
+//   HOME        → feed / dashboard
+//   TESTS       → assessments (Tests, Contests, Problems)
+//   PREPARATION → one primary entity; its sections live in a dedicated
+//                 workspace sidebar inside /preparation/* (like Profile)
+//   ACCOUNT     → Profile, Purchases, Settings
 const navGroups: { label: string; items: NavItemData[] }[] = [
   {
-    label: "Overview",
-    items: [
-      { label: "Dashboard", icon: LayoutDashboard, href: "/" },
-      { label: "Assessment", icon: ClipboardList, href: "/quiz" },
-    ],
+    label: "MAIN",
+    items: [{ label: "Home", icon: LayoutDashboard, href: "/" }],
+  },
+{
+      label: "TESTS",
+      items: [
+        { label: "Tests", icon: ClipboardCheck, href: "/tests" },
+        { label: "Contests", icon: Trophy, href: "/contests" },
+        { label: "Problems", icon: Code2, href: "/problems" },
+        { label: "Join Quiz", icon: UserPlus, href: "/quiz" },
+      ],
+    },
+  {
+    label: "PREPARATION",
+    items: [{ label: "Preparation", icon: Waypoints, href: "/preparation" }],
   },
   {
-    label: "Practice",
-    items: [
-      { label: "Tests", icon: ClipboardCheck, href: "/tests" },
-      { label: "Interview", icon: Briefcase, href: "/interview" },
-      { label: "Leaderboard", icon: Award, href: "/leaderboard" },
-      { label: "Roadmaps", icon: Route, href: "/roadmaps" },
-      { label: "Collections", icon: Bookmark, href: "/collections" },
-      { label: "Achievements", icon: TrendingUp, href: "/achievements" },
-    ],
+    label: "TOOLS",
+    items: [{ label: "Editor", icon: BookOpen, href: "/editor" }],
   },
   {
-    label: "Community",
-    items: [{ label: "Discussions", icon: MessageSquare, href: "/discussions" }],
-  },
-  {
-    label: "Tools",
+    label: "ACCOUNT",
     items: [
-      { label: "AI Chat", icon: Sparkles, href: "/ai/chat" },
-      { label: "Editor", icon: BookOpen, href: "/editor" },
-      { label: "Analytics", icon: Users, href: "/analytics" },
-    ],
-  },
-  {
-    label: "System",
-    items: [
-      { label: "Upgrade", icon: Crown, href: "/pricing" },
+      { label: "Profile", icon: User, href: "/profile" },
       { label: "Settings", icon: Settings, href: "/settings" },
     ],
   },
 ];
 
-const navItems = navGroups.flatMap((group) => group.items);
+// Flat list (longest href first) used for page-title resolution and for
+// guest-protection checks.
+const navItems: NavItemData[] = navGroups
+  .flatMap((group) => group.items)
+  .sort((a, b) => b.href.length - a.href.length);
 
 function isEditorPath(pathname: string): boolean {
   return pathname === "/editor";
@@ -148,10 +152,20 @@ function isFullscreenRoute(pathname: string): boolean {
   return pathname.includes("/waiting") || pathname.startsWith("/tests/attempt");
 }
 
-function AppLayoutContent({ children }: { children: React.ReactNode }) {
+function AppLayoutContent({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
   const pathname = usePathname();
+  // Creator Studio has its own dedicated layout + navigation. It is a separate
+  // workspace, so on /creator routes we hide the student sidebar entirely and
+  // only Studio's navigation is visible.
+  const isStudioRoute = pathname.startsWith("/creator");
+  const isQuizWorkspace = isNestedQuizPath(pathname);
+  const homeHref = isStudioRoute || isQuizWorkspace ? "/creator/quizzes" : "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  // Account dropdown state lives here (not inside ProfileMenu) so the
+  // sidebar's collapse handlers can close it — the card must never float
+  // over a collapsed rail.
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const authModalOpen = useUIStore((s) => s.authModalOpen);
   const authModalRedirect = useUIStore((s) => s.authModalRedirect);
   const closeAuthModal = useUIStore((s) => s.closeAuthModal);
@@ -178,6 +192,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const collapseSidebar = useCallback(() => {
     suppressHoverRef.current = true;
     setSidebarExpanded(false);
+    setAccountMenuOpen(false);
   }, []);
 
   // The AI assistant is only relevant inside the quiz creator's problem
@@ -200,9 +215,17 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const pageTitle =
-    navItems.find((n) => pathname === n.href || (n.href !== "/" && pathname.startsWith(n.href)))?.label ||
-    "ByteClash";
+  const pageTitle = (() => {
+    if (isStudioRoute) return "Studio";
+    if (isNestedQuizPath(pathname)) return "Quiz Settings";
+    if (pathname === PREPARATION_BASE) return "Preparation";
+    const prepModule = getActivePreparationModule(pathname);
+    if (prepModule) return `Preparation · ${prepModule.label}`;
+    return (
+      navItems.find((n) => (n.href === "/" ? pathname === "/" : pathname.startsWith(n.href)))?.label ||
+      "ByteClash"
+    );
+  })();
 
   const handleAuthRequired = (redirectUrl?: string) => {
     openAuthModal(redirectUrl);
@@ -236,7 +259,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     <div
       className="min-h-screen w-full min-w-0 bg-ai-bg flex"
       data-ai-scope
-      style={{ "--rail-w": sidebarExpanded ? "16rem" : "3.75rem" } as CSSProperties}
+      style={{ "--rail-w": isStudioRoute ? "0rem" : mobileMenuOpen || sidebarExpanded ? "16rem" : "3.75rem" } as CSSProperties}
     >
       {/* Mobile overlay */}
       <AnimatePresence>
@@ -246,32 +269,39 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 z-40 lg:hidden"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setAccountMenuOpen(false);
+            }}
           />
         )}
       </AnimatePresence>
 
-      {/* ===== SIDEBAR ===== */}
-      <aside
-        onMouseEnter={() => {
-          suppressHoverRef.current = false;
-          setSidebarExpanded(true);
-        }}
-        onMouseLeave={() => setSidebarExpanded(false)}
-        onDragStart={(e) => e.preventDefault()}
-        onContextMenu={(e) => e.preventDefault()}
-        onCopy={(e) => e.preventDefault()}
-        onCut={(e) => e.preventDefault()}
+      {/* ===== SIDEBAR (hidden inside Creator Studio — it has its own nav) ===== */}
+      {!isStudioRoute && (
+      <Sidebar
+        dataSidebar="true"
         className={cn(
-          "fixed left-0 top-0 h-screen bg-ai-sidebar border-r border-ai-border flex flex-col z-50 select-none overflow-hidden",
+          "fixed left-0 top-0 h-screen bg-ai-sidebar border-r border-ai-border flex flex-col z-50 overflow-hidden",
           "transition-[width,transform] duration-200 ease-out",
           "w-[var(--rail-w)]",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
+        <div
+          onMouseEnter={() => {
+            suppressHoverRef.current = false;
+            setSidebarExpanded(true);
+          }}
+          onMouseLeave={() => {
+            setSidebarExpanded(false);
+            setAccountMenuOpen(false);
+          }}
+          className="flex flex-col h-full"
+        >
         {/* Logo */}
         <div className={cn("shrink-0 py-4 flex items-center", showLabels ? "px-6 justify-start" : "px-0 justify-center")}>
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href={homeHref} className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center shrink-0">
               <Code2 className="w-4 h-4 text-accent-foreground" />
             </div>
@@ -298,7 +328,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
                   showLabels={showLabels}
                   setSidebarExpanded={setSidebarExpanded}
                   collapseSidebar={collapseSidebar}
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setAccountMenuOpen(false);
+                  }}
                 />
               ))}
             </div>
@@ -307,66 +340,50 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Bottom: Account + Collapse */}
         <div className="border-t border-ai-border p-2 space-y-1">
-          {isAuthenticated ? (
-            <div
-              className={cn(
-                "flex items-center gap-3 rounded-lg transition-colors duration-150",
-                showLabels ? "justify-start px-3 py-2 bg-ai-accent-soft" : "justify-center py-2.5"
-              )}
-            >
-              <Flame className="w-5 h-5 text-warning shrink-0" />
-              {showLabels && <span className="text-xs font-medium text-ai-text whitespace-nowrap">12 Day Streak</span>}
+          {!isAuthenticated && showLabels && (
+            <div className="px-3 py-2 rounded-lg bg-ai-accent-soft border border-ai-accent/20">
+              <div className="text-[10px] text-ai-text-sec mb-1">{"You're browsing as a guest"}</div>
+              <button
+                onClick={() => handleAuthRequired(pathname + window.location.search)}
+                className="text-[10px] font-semibold text-ai-accent hover:text-ai-accent-hover transition-colors"
+              >
+                Sign in to unlock all features →
+              </button>
             </div>
-          ) : (
-            showLabels && (
-              <div className="px-3 py-2 rounded-lg bg-ai-accent-soft border border-ai-accent/20">
-                <div className="text-[10px] text-ai-text-sec mb-1">{"You're browsing as a guest"}</div>
-                <button
-                  onClick={() => handleAuthRequired(pathname + window.location.search)}
-                  className="text-[10px] font-semibold text-ai-accent hover:text-ai-accent-hover transition-colors"
-                >
-                  Sign in to unlock all features →
-                </button>
-              </div>
-            )
           )}
 
-          <Link
-            href="/profile"
-            className={cn(
-              "flex items-center gap-3 rounded-lg transition-colors duration-150 hover:bg-ai-hover",
-              showLabels ? "justify-start px-3 py-2" : "justify-center py-2.5"
-            )}
-            title={showLabels ? undefined : "Account"}
-            aria-label={showLabels ? undefined : "Account"}
-          >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-accent-foreground shrink-0">
-              {savedAvatar ? (
-                <img src={savedAvatar.url} alt={savedAvatar.label} className="h-full w-full object-cover rounded-full" />
-              ) : (
-                (user?.username || "U").charAt(0).toUpperCase()
-              )}
-            </div>
-            {showLabels && (
-              <span className="text-xs font-medium text-ai-text truncate">{user?.username || "Guest"}</span>
-            )}
-          </Link>
+          <ProfileMenu
+            showLabels={showLabels}
+            sidebarExpanded={sidebarExpanded}
+            setSidebarExpanded={setSidebarExpanded}
+            open={accountMenuOpen}
+            onOpenChange={setAccountMenuOpen}
+            isAuthenticated={isAuthenticated}
+            username={user?.username || "Guest"}
+            avatar={savedAvatar}
+            onAuthRequired={() => handleAuthRequired(pathname + window.location.search)}
+          />
 
           {showLabels && (
             <div className="px-3 text-[9px] text-ai-text-mut">ByteClash v1.0.0</div>
           )}
         </div>
-      </aside>
+      </div>
+      </Sidebar>
+      )}
 
       {/* ===== MAIN CONTENT ===== */}
       <div
         className={cn(
-          "flex-1 w-0 min-w-0 flex flex-col min-h-screen transition-[margin] duration-200 ease-out",
-          "lg:ml-[var(--rail-w)]"
+          "flex-1 w-0 min-w-0 flex flex-col transition-[margin] duration-200 ease-out",
+          isStudioRoute ? "h-screen overflow-hidden" : "min-h-screen",
+          !isStudioRoute && "lg:ml-[var(--rail-w)]"
         )}
       >
         {/* ===== TOP HEADER ===== */}
-        {!isEditorPath(pathname) && (
+        {header ? (
+          header
+        ) : !isEditorPath(pathname) ? (
         <header
           onDragStart={(e) => e.preventDefault()}
           onContextMenu={(e) => e.preventDefault()}
@@ -385,7 +402,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             </button>
 
             {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
-            <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="ByteClash home">
+            <Link href={homeHref} className="flex items-center gap-2 shrink-0" aria-label="ByteClash home">
               <span className="hidden sm:block text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
             </Link>
 
@@ -411,10 +428,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             {/* Right actions */}
             <NavbarRightActions />
           </header>
-        )}
+        ) : null}
 
         {/* ===== PAGE CONTENT ===== */}
-        <main className="flex-1">{children}</main>
+        <main className={cn("flex-1", isStudioRoute && "min-h-0 flex flex-col")}>{children}</main>
       </div>
 
       <LogoutConfirmModal
@@ -458,6 +475,141 @@ function NavIcon({ Icon, isActive, showDot }: { Icon: LucideIcon; isActive: bool
   );
 }
 
+// Student account menu — student-only.
+function ProfileMenu({ showLabels, sidebarExpanded, setSidebarExpanded, open, onOpenChange, isAuthenticated, username, avatar, onAuthRequired }: {
+  showLabels: boolean;
+  sidebarExpanded: boolean;
+  setSidebarExpanded: (v: boolean) => void;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  isAuthenticated: boolean;
+  username: string;
+  avatar: { url: string; label: string } | null;
+  onAuthRequired: () => void;
+}) {
+  const requestLogout = useUIStore((s) => s.requestLogout);
+  const openAuthModal = useUIStore((s) => s.openAuthModal);
+  const setOpen = onOpenChange;
+
+  // Sign the current session out and immediately surface the auth modal so
+  // the user can sign in with a different account.
+  const handleSwitchAccount = async () => {
+    setOpen(false);
+    try {
+      await logout();
+    } catch {
+      // Backend call failed — clear the local session anyway so the
+      // switch never leaves the user stuck on the old account.
+    }
+    useAuthStore.getState().logout();
+    toast.success("Signed out — sign in with another account");
+    openAuthModal("/");
+  };
+
+  const handleTrigger = () => {
+    if (!isAuthenticated) {
+      onAuthRequired();
+      return;
+    }
+    // Collapsed rail: the first click expands the sidebar (opening the menu
+    // here would render a clipped card); only expand it and let the user
+    // click again to open the account menu.
+    if (!sidebarExpanded) {
+      setSidebarExpanded(true);
+      return;
+    }
+    setOpen(!open);
+  };
+
+  return (
+    <div className="relative" onMouseLeave={() => setOpen(false)}>
+      <button
+        type="button"
+        onClick={handleTrigger}
+        title={showLabels ? undefined : "Account"}
+        aria-label={showLabels ? undefined : "Account"}
+        aria-expanded={open}
+        className={cn(
+          "flex items-center gap-3 rounded-lg transition-colors duration-150 hover:bg-ai-hover",
+          showLabels ? "justify-start px-3 py-2 w-full" : "justify-center py-2.5 w-full"
+        )}
+      >
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-accent-foreground shrink-0">
+          {avatar ? (
+            <img src={avatar.url} alt={avatar.label} className="h-full w-full object-cover rounded-full" />
+          ) : (
+            (username || "U").charAt(0).toUpperCase()
+          )}
+        </div>
+        {showLabels && (
+          <>
+            <span className="text-xs font-medium text-ai-text truncate">{username}</span>
+            <ChevronDown className={cn("h-3.5 w-3.5 text-ai-text-mut shrink-0 transition-transform", open && "rotate-180")} />
+          </>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: -6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              className="absolute bottom-full left-0 z-50 w-60 pt-2"
+            >
+              {/* pt-2 above acts as a hover bridge so moving the cursor from
+                  the trigger into the card never fires onMouseLeave. */}
+              <div className="overflow-hidden rounded-xl border border-ai-border bg-ai-sidebar p-1.5 shadow-2xl shadow-black/30">
+              <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] text-xs font-bold text-accent-foreground shrink-0">
+                  {avatar ? (
+                    <img src={avatar.url} alt={avatar.label} className="h-full w-full object-cover rounded-full" />
+                  ) : (
+                    (username || "U").charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0 leading-tight">
+                  <p className="truncate text-xs font-semibold text-ai-text">{username}</p>
+                  <p className="text-[9px] text-ai-text-mut">Student account</p>
+                </div>
+              </div>
+
+              <div className="my-1 h-px bg-ai-border" />
+
+              {/* Navigation lives in the sidebar rail — this menu only handles
+                  account-level actions: switching accounts and logging out. */}
+              <button
+                type="button"
+                onClick={handleSwitchAccount}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-ai-text-sec transition-colors hover:bg-ai-hover hover:text-ai-text"
+              >
+                <Repeat className="h-3.5 w-3.5 shrink-0" />
+                Switch account
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  requestLogout();
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger/10"
+              >
+                <LogOut className="h-3.5 w-3.5 shrink-0" />
+                Log out
+              </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // Standard nav link — same pill, spacing and active state for every item so the
 // rail reads as one unified navigation system.
 function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels, setSidebarExpanded, collapseSidebar }: {
@@ -470,7 +622,12 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
   setSidebarExpanded: (v: boolean) => void;
   collapseSidebar: () => void;
 }) {
-  const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+  const isQuizWorkspace = isNestedQuizPath(pathname);
+  // Join Quiz (/quiz) should not appear active while inside creator quiz workspace
+  // — otherwise it looks like we jumped to the Student section.
+  const isActive = (item.href === "/quiz" && isQuizWorkspace)
+    ? false
+    : pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
 
   // Routes that are protected for guests
   const protectedForGuests = ["/ai/chat", "/editor", "/analytics", "/settings", "/collections"];
@@ -518,11 +675,11 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
 }
 
 // Main AppLayout with providers
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
   return (
     <ChatProvider>
       <GuestModeProvider>
-        <AppLayoutContent>{children}</AppLayoutContent>
+        <AppLayoutContent header={header}>{children}</AppLayoutContent>
       </GuestModeProvider>
     </ChatProvider>
   );

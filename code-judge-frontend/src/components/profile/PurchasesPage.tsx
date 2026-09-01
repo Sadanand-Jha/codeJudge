@@ -58,9 +58,9 @@ const SORTS: { value: SortKey; label: string }[] = [
 ];
 
 const formatDate = (ts: number) =>
-  new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  new Date(ts).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
 
-const fmt = (n: number) => new Date(n).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+const fmt = (n: number) => new Date(n).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" });
 
 function StatusChip({ status, item }: { status: PurchaseStatus; item: PurchasedItem }) {
   const days = itemDaysRemaining(item);

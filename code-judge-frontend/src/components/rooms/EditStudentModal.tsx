@@ -10,16 +10,16 @@ interface EditStudentModalProps {
   open: boolean;
   onClose: () => void;
   student: RoomStudent | null;
-  onSave: (patch: Partial<Pick<RoomStudent, "name" | "rollNumber" | "email" | "active">>) => void;
+  onSave: (patch: Partial<Pick<RoomStudent, "name" | "rollNumber" | "username" | "active">>) => void;
 }
 
 /**
- * Edit a student's details (name / roll number / email / active state).
+ * Edit a student's details (name / roll number / username / active state).
  */
 export default function EditStudentModal({ open, onClose, student, onSave }: EditStudentModalProps) {
   const [name, setName] = useState("");
   const [roll, setRoll] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [active, setActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +29,7 @@ export default function EditStudentModal({ open, onClose, student, onSave }: Edi
     setSeededFor(student.id);
     setName(student.name);
     setRoll(student.rollNumber);
-    setEmail(student.email);
+    setUsername(student.username ?? (student as unknown as { email?: string }).email?.split("@")[0] ?? "");
     setActive(student.active);
     setError(null);
   }
@@ -47,11 +47,7 @@ export default function EditStudentModal({ open, onClose, student, onSave }: Edi
       setError("Roll number is required.");
       return;
     }
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-    onSave({ name, rollNumber: roll, email, active });
+    onSave({ name, rollNumber: roll, active });
     onClose();
   };
 
@@ -101,13 +97,13 @@ export default function EditStudentModal({ open, onClose, student, onSave }: Edi
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-text-primary">Email ID</label>
+          <label className="mb-1.5 block text-xs font-semibold text-text-primary">Username</label>
           <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="rahul@example.com"
-            className="h-10 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
+            value={username}
+            disabled
+            className="h-10 w-full rounded-xl border border-border bg-card-hover/60 px-3.5 text-sm text-text-muted cursor-not-allowed"
           />
+          <p className="mt-1 text-[11px] text-text-muted">Username cannot be changed.</p>
         </div>
         <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-card px-3.5 py-2.5">
           <span className="text-xs font-semibold text-text-primary">Active</span>

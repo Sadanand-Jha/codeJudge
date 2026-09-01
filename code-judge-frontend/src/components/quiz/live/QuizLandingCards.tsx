@@ -119,13 +119,13 @@ export function QuizLandingCards() {
             onClick={() => setJoinOpen(true)}
           />
         </div>
-        <Link href="/quiz/create" className="block h-full">
+        <Link href="/quiz" className="block h-full">
           <LandingCard
-            icon="✨"
-            title="Create Quiz"
-            description="Design a new assessment, add questions, set timing and publish."
+            icon="📝"
+            title="Explore Quizzes"
+            description="Browse and practice quizzes from creators across ByteClash."
             gradient="from-[#8B5CF6] to-[#A855F7]"
-            href="/quiz/create"
+            href="/quiz"
           />
         </Link>
       </section>

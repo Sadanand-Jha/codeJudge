@@ -1904,7 +1904,7 @@ function PricingPageContent() {
           </div>
 
           {/* ===== Desktop sticky summary ===== */}
-          <aside className="sticky top-24 hidden lg:block">
+          <aside data-sidebar="true" className="sticky top-24 hidden lg:block">
             <PriceSummary
               items={selectedItems}
               displayTotal={displayTotal}

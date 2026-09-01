@@ -29,8 +29,20 @@ export class QuizService {
     return this.repository.getQuizByCode(code);
   }
 
+  async generateUniqueCode(): Promise<string> {
+    return this.repository.generateUniqueCode();
+  }
+
   async getQuizProblems(quizId: string): Promise<any[]> {
     return this.repository.getQuizProblems(quizId);
+  }
+
+  async getQuizProblemCount(quizId: string): Promise<number> {
+    return this.repository.getQuizProblemCount(quizId);
+  }
+
+  async getQuizProblemById(problemId: number | string): Promise<any | null> {
+    return this.repository.getQuizProblemById(problemId);
   }
 
   async getQuizProblemOptions(problemId: string): Promise<any[]> {
@@ -54,9 +66,11 @@ export class QuizService {
     code: string;
     createdby: number;
     starttime?: Date;
-    endtime?: Date;
     visibility?: number;
     difficulty?: number;
+    subjectId?: number;
+    examId?: number;
+    duration?: number;
     totalMarks?: number;
     passingMarks?: number;
     shuffleQuestions?: boolean;
@@ -107,6 +121,10 @@ export class QuizService {
 
   async updateQuizProblem(problemId: number, data: any): Promise<any> {
     return this.repository.updateQuizProblem(problemId, data);
+  }
+
+  async saveQuizProblemFull(data: any): Promise<any> {
+    return this.repository.saveQuizProblemFull(data);
   }
 
   async deleteQuizProblem(problemId: number): Promise<boolean> {
@@ -189,6 +207,10 @@ export class QuizService {
     return this.repository.getAllSubjects(search);
   }
 
+  async getAllExamCategories(search?: string): Promise<any[]> {
+    return this.repository.getAllExamCategories(search);
+  }
+
   async isAcceptedCollaborator(userId: number, quizId: number): Promise<boolean> {
     return this.repository.isAcceptedCollaborator(userId, quizId);
   }
@@ -243,5 +265,49 @@ export class QuizService {
 
   async getStudentQuestionReview(attemptId: number): Promise<any[]> {
     return this.repository.getStudentQuestionReview(attemptId);
+  }
+
+  // ==================== QUIZ PARTICIPANTS (audience allow-list) ====================
+
+  async replaceQuizParticipants(
+    quizId: number,
+    participants: Array<{
+      email: string;
+      name?: string | null;
+      rollNumber?: string | null;
+      source?: "room" | "individual";
+      roomId?: number | null;
+      allowed?: boolean;
+    }>
+  ): Promise<number> {
+    return this.repository.replaceQuizParticipants(quizId, participants);
+  }
+
+  async getQuizParticipants(quizId: string | number): Promise<any[]> {
+    return this.repository.getQuizParticipants(Number(quizId));
+  }
+
+  async getQuizGameConfig(quizId: number): Promise<any> {
+    return this.repository.getQuizGameConfig(quizId);
+  }
+
+  async upsertQuizGameConfig(
+    quizId: number,
+    data: {
+      enabled: boolean;
+      movementEnabled: boolean;
+      movementSpeed: number;
+      lives: number;
+      pointsEnabled: boolean;
+      powerupsEnabled: boolean;
+      respawnEnabled: boolean;
+      damageEnabled: boolean;
+    }
+  ): Promise<any> {
+    return this.repository.upsertQuizGameConfig(quizId, data);
+  }
+
+  getDefaultGameConfig(quizId: number): any {
+    return this.repository.getDefaultGameConfig(quizId);
   }
 }

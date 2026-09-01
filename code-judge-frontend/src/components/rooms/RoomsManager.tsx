@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
+  AlertTriangle,
   Archive,
   ArchiveRestore,
   Copy,
   Download,
   Eye,
   FileSpreadsheet,
+  Loader2,
   Plus,
   Search,
   Settings2,
@@ -17,12 +19,14 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { MAX_ROOMS_PER_CREATOR } from "@/lib/constants";
 import { useRoomStore, getOwnedRooms } from "@/store/roomStore";
 import { useAuthStore } from "@/store/authStore";
 import { timeAgo, isWithinWindow } from "@/lib/formatters";
 import { exportStudentsToFile } from "@/utils/excelImport";
 import { useToast } from "@/hooks/useToast";
 import RoomMenu, { RoomMenuItem } from "@/components/quiz/creator/settings/audience/RoomMenu";
+import SortDropdown from "@/components/ui/SortDropdown";
 import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateRoomModal";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
@@ -60,6 +64,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   const toast = useToast();
   const rooms = useRoomStore((s) => s.rooms);
   const hydrate = useRoomStore((s) => s.hydrate);
+  const setRooms = useRoomStore((s) => s.setRooms);
   const archiveRoom = useRoomStore((s) => s.archiveRoom);
   const unarchiveRoom = useRoomStore((s) => s.unarchiveRoom);
   const duplicateRoom = useRoomStore((s) => s.duplicateRoom);
@@ -77,17 +82,29 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   const [duplicateTarget, setDuplicateTarget] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [addTarget, setAddTarget] = useState<{ roomId: string; tab: "manual" | "import" } | null>(null);
+  const [loadingRooms, setLoadingRooms] = useState(true);
 
   useEffect(() => {
     hydrate();
-  }, [hydrate]);
+    // Fetch rooms from backend on going to rooms page — calls GET /my-rooms
+    setLoadingRooms(true);
+    import("@/services/rooms").then(({ fetchMyRooms }) => {
+      fetchMyRooms()
+        .then((backendRooms) => {
+          // Only overwrite if backend returned data; keeps local fallback
+          if (Array.isArray(backendRooms)) setRooms(backendRooms);
+        })
+        .catch(() => {})
+        .finally(() => setLoadingRooms(false));
+    }).catch(() => setLoadingRooms(false));
+  }, [hydrate, setRooms]);
 
   // Only rooms owned by the authenticated admin.
   const ownedRooms = useMemo(() => getOwnedRooms(rooms, user?.id), [rooms, user]);
 
   const stats = useMemo(() => {
     const active = ownedRooms.filter((r) => !r.archived);
-    const students = ownedRooms.reduce((sum, r) => sum + r.students.length, 0);
+    const students = ownedRooms.reduce((sum, r) => sum + (r.memberCount ?? r.students.length), 0);
     return {
       rooms: ownedRooms.length,
       students,
@@ -123,7 +140,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
     if (!room) return;
     exportStudentsToFile(
       room.name.replace(/[^\w\s-]/g, ""),
-      room.students.map((s) => ({ name: s.name, rollNumber: s.rollNumber, email: s.email }))
+      room.students.map((s) => ({ name: s.name, rollNumber: s.rollNumber, username: s.username ?? (s as unknown as { email?: string }).email?.split("@")[0] ?? "" }))
     );
     toast.success({ title: "Export started", description: `${room.students.length} students exported.` });
   };
@@ -191,30 +208,61 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
     },
   ];
 
+  // Full-page loading screen while rooms & students are fetched from the backend
+  if (loadingRooms) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <div className="rounded-2xl border border-border bg-card px-8 py-12 text-center shadow-lg">
+          <div className="relative mx-auto h-14 w-14">
+            <Loader2 className="h-14 w-14 animate-spin text-pink-500" />
+          </div>
+          <h2 className="mt-5 text-lg font-bold text-text-primary">Loading your rooms…</h2>
+          <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-text-secondary">
+            Fetching students from the backend. This will only take a moment.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto w-full max-w-[80%] px-6 py-10 lg:px-8 xl:px-10">
+    <div className="mx-auto w-full max-w-7xl">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-text-primary">My Rooms</h1>
-          <p className="mt-2 text-sm text-text-secondary">
+          <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">My Rooms</h1>
+          <p className="mt-1.5 text-sm text-text-secondary sm:mt-2">
             Create and manage student groups that you can reuse across your quizzes.
           </p>
         </div>
-        <button
+                <button
           onClick={() => {
             setCreateTab("manual");
             setCreateOpen(true);
           }}
-          className="flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 text-sm font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
+          disabled={ownedRooms.length >= MAX_ROOMS_PER_CREATOR}
+          title={
+            ownedRooms.length >= MAX_ROOMS_PER_CREATOR
+              ? `You can have at most ${MAX_ROOMS_PER_CREATOR} rooms`
+              : "Create a new room"
+          }
+          className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] sm:h-11 sm:px-4 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus className="h-4 w-4" />
           Create Room
         </button>
       </div>
 
+      {/* Room limit hint */}
+      {ownedRooms.length >= MAX_ROOMS_PER_CREATOR && (
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-warning">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          You&apos;ve reached the maximum of {MAX_ROOMS_PER_CREATOR} rooms. Remove or archive a room to create a new one.
+        </p>
+      )}
+
       {/* Room Overview stats */}
-      <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 lg:grid-cols-4 lg:gap-4">
         {(
           [
             { label: "Rooms", value: stats.rooms, icon: Users, tint: "text-pink-500 bg-pink-500/10" },
@@ -223,35 +271,35 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
             { label: "Archived", value: stats.archived, icon: ArchiveRestore, tint: "text-text-muted bg-white/[0.04]" },
           ] as Array<{ label: string; value: number; icon: typeof Users; tint: string }>
         ).map((s) => (
-          <div key={s.label} className="rounded-2xl border border-border bg-card p-6">
-            <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", s.tint)}>
-              <s.icon className="h-5 w-5" />
+          <div key={s.label} className="rounded-xl border border-border bg-card p-3.5 sm:p-4">
+            <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg sm:h-9 sm:w-9", s.tint)}>
+              <s.icon className="h-4 w-4 sm:h-4 sm:w-4" />
             </div>
-            <p className="mt-5 text-3xl font-bold tabular-nums text-text-primary">{s.value}</p>
-            <p className="mt-1 text-xs font-medium text-text-muted">{s.label}</p>
+            <p className="mt-2.5 text-xl font-bold tabular-nums text-text-primary sm:text-2xl">{s.value}</p>
+            <p className="mt-0.5 text-[11px] font-medium text-text-muted sm:text-xs">{s.label}</p>
           </div>
         ))}
       </div>
 
       {/* Search + filters + sort */}
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
-        <div className="relative w-full max-w-[340px]">
+      <div className="mt-4 flex flex-col gap-3 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="relative w-full sm:max-w-[340px]">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search rooms..."
-            className="h-12 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
+            className="h-10 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10 sm:h-12"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1.5">
+        <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap sm:gap-3">
+          <div className="flex shrink-0 items-center gap-1 rounded-xl border border-border bg-card p-1">
             {FILTERS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setFilter(tab.id)}
                 className={cn(
-                  "whitespace-nowrap rounded-lg px-4 py-2.5 text-xs font-semibold transition-colors",
+                  "whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors sm:px-4 sm:py-2.5 sm:text-xs",
                   filter === tab.id ? "bg-pink-500/10 text-pink-500" : "text-text-muted hover:text-text-primary"
                 )}
               >
@@ -259,36 +307,30 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
               </button>
             ))}
           </div>
-          <select
+          <SortDropdown
+            options={SORTS.map((s) => ({ id: s.id, label: s.label }))}
             value={sort}
-            onChange={(e) => setSort(e.target.value as SortKey)}
-            className="h-12 rounded-xl border border-input-border bg-input-bg px-3.5 text-xs font-semibold text-text-primary focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
-            aria-label="Sort rooms"
-          >
-            {SORTS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setSort(v as SortKey)}
+            ariaLabel="Sort rooms"
+          />
         </div>
       </div>
 
       {/* Cards */}
-      <div className="mt-8">
+      <div className="mt-4 sm:mt-5">
         {ownedRooms.length === 0 ? (
           <EmptyRooms onCreate={() => setCreateOpen(true)} onImport={() => {
             setCreateTab("import");
             setCreateOpen(true);
           }} />
         ) : filtered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
+          <div className="rounded-xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
             <Search className="mx-auto h-6 w-6 text-text-muted" />
             <p className="mt-3 text-sm font-semibold text-text-primary">No rooms found</p>
             <p className="mt-1 text-xs text-text-muted">Try a different search or filter.</p>
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
             {filtered.map((room) => (
               <motion.div
                 key={room.id}
@@ -296,19 +338,19 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
-                  "flex min-h-[220px] flex-col rounded-2xl border p-6 transition-all duration-200",
+                  "flex flex-col rounded-xl border p-3.5 transition-all duration-200 sm:p-4",
                   room.archived
                     ? "border-border bg-card/50 opacity-70"
                     : "border-border bg-card shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 hover:border-pink-500/30 hover:shadow-[0_10px_28px_rgba(236,72,153,0.09)]"
                 )}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 ring-1 ring-inset ring-pink-500/15">
-                    <Users className="h-[22px] w-[22px]" />
+                <div className="flex items-start justify-between gap-2 sm:gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 ring-1 ring-inset ring-pink-500/15 sm:h-10 sm:w-10">
+                    <Users className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                   </div>
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     {room.archived && (
-                      <span className="rounded-full border border-warning/30 bg-warning/10 px-3 py-1 text-[10px] font-bold text-warning">
+                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[9px] font-bold text-warning sm:px-2.5 sm:py-0.5 sm:text-[10px]">
                         Archived
                       </span>
                     )}
@@ -316,32 +358,32 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                   </div>
                 </div>
 
-                <div className="mt-5 flex min-w-0 flex-1 flex-col justify-center">
+                <div className="mt-3 flex min-w-0 flex-col">
                   <Link
                     href={`${basePath}/${room.id}`}
-                    className="block truncate text-base font-bold text-text-primary transition-colors hover:text-pink-500"
+                    className="block truncate text-sm font-bold text-text-primary transition-colors hover:text-pink-500 sm:text-[15px]"
                   >
                     {room.name}
                   </Link>
-                  <p className="mt-1.5 truncate text-xs text-text-secondary">
-                    {room.description || `${room.students.length} students`}
+                  <p className="mt-0.5 truncate text-[11px] text-text-secondary sm:text-xs">
+                    {room.description || `${room.memberCount ?? room.students.length} students`}
                   </p>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between border-t border-border pt-4 text-[11px] text-text-muted">
+                <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-[10px] text-text-muted sm:text-[11px]">
                   <span className="flex items-center gap-1.5">
-                    <Users className="h-3.5 w-3.5" />
-                    <span className="font-bold text-text-primary tabular-nums">{room.students.length}</span>{" "}
-                    student{room.students.length !== 1 ? "s" : ""}
+                    <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    <span className="font-bold text-text-primary tabular-nums">{room.memberCount ?? room.students.length}</span>{" "}
+                    student{(room.memberCount ?? room.students.length) !== 1 ? "s" : ""}
                   </span>
                   <span>{timeAgo(room.updatedAt)}</span>
                 </div>
 
                 <Link
                   href={`${basePath}/${room.id}`}
-                  className="mt-5 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-card text-xs font-semibold text-text-primary transition-colors hover:border-pink-500/30 hover:text-pink-500"
+                  className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-card text-[11px] font-semibold text-text-primary transition-colors hover:border-pink-500/30 hover:text-pink-500 sm:text-xs"
                 >
-                  <Eye className="h-3.5 w-3.5" />
+                  <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                   View Students
                 </Link>
               </motion.div>
@@ -371,6 +413,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
           existing={addRoomTarget.students}
           roomName={addRoomTarget.name}
           initialTab={addTarget?.tab ?? "manual"}
+          roomId={addRoomTarget.id}
           viewStudentsHref={`${basePath}/${addRoomTarget.id}`}
           onAdd={(students) => {
             addStudents(addRoomTarget.id, students);
@@ -454,7 +497,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
 
 function EmptyRooms({ onCreate, onImport }: { onCreate: () => void; onImport: () => void }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
+    <div className="rounded-xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 ring-1 ring-inset ring-pink-500/20">
         <Users className="h-7 w-7" />
       </div>

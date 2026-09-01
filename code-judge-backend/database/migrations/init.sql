@@ -154,7 +154,6 @@ CREATE TABLE IF NOT EXISTS problem_tags (
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    adminid VARCHAR NOT NULL,
     username VARCHAR NOT NULL,
     email VARCHAR NOT NULL,
     password VARCHAR,
@@ -217,6 +216,19 @@ CREATE TABLE IF NOT EXISTS quiz (
     createdby INTEGER NOT NULL,
     starttime TIMESTAMP,
     endtime TIMESTAMP,
+    visibility INTEGER,
+    total_marks INTEGER,
+    passing_marks INTEGER,
+    difficulty INTEGER,
+    shuffle_questions BOOLEAN,
+    shuffle_options BOOLEAN,
+    show_results_immediately BOOLEAN,
+    negative_marking BOOLEAN,
+    leaderboard BOOLEAN,
+    duration INTEGER,
+    exam_cat INTEGER,
+    quiz_status INTEGER,
+    subject_id INTEGER,
     created_at TIMESTAMP,
     updated_at TIMESTAMP
 );
@@ -509,6 +521,12 @@ CREATE TABLE IF NOT EXISTS quiz_difficulty (
     heading VARCHAR
 );
 
+INSERT INTO quiz_difficulty (heading) VALUES ('Easy'), ('Medium'), ('Hard'), ('Expert')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO quiz_difficulty (heading) VALUES ('Easy'), ('Medium'), ('Hard'), ('Expert')
+ON CONFLICT DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS quiz_visibility (
     id SERIAL PRIMARY KEY,
     heading VARCHAR,
@@ -555,19 +573,6 @@ ALTER TABLE quiz_attempts ADD CONSTRAINT fk_quiz_attempts_quiz FOREIGN KEY (quiz
 -- ==========================================
 -- Missing Columns for Existing Tables
 -- ==========================================
-
--- Append missing columns to `quiz` table
-ALTER TABLE quiz 
-ADD COLUMN IF NOT EXISTS visibility INTEGER,
-ADD COLUMN IF NOT EXISTS total_marks INTEGER,
-ADD COLUMN IF NOT EXISTS passing_marks INTEGER,
-ADD COLUMN IF NOT EXISTS difficulty INTEGER,
-ADD COLUMN IF NOT EXISTS shuffle_questions BOOLEAN,
-ADD COLUMN IF NOT EXISTS shuffle_options BOOLEAN,
-ADD COLUMN IF NOT EXISTS Show_Results_Immediately BOOLEAN,
-ADD COLUMN IF NOT EXISTS negative_marking BOOLEAN,
-ADD COLUMN IF NOT EXISTS leaderboard BOOLEAN,
-ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'draft';
 
 -- Append missing columns to `quiz_problems` table
 ALTER TABLE quiz_problems 
@@ -660,3 +665,10 @@ VALUES
     (5, 'IST', 'Indian Standard Time', '+05:30', 5.50),
     (6, 'JST', 'Japan Standard Time', '+09:00', 9.00),
     (7, 'AEST', 'Australian Eastern Standard Time', '+10:00', 10.00);
+
+alter table quiz_problems
+add column negative_marks integer;
+
+alter table quiz_problems
+add column marks integer;
+

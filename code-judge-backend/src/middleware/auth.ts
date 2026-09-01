@@ -8,7 +8,6 @@ declare global {
     interface Request {
       user?: {
         userId: string;
-        adminId: string;
         email: string;
       };
     }
@@ -22,8 +21,8 @@ declare global {
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.cookies?.session_token || req.headers.authorization?.replace(/^Bearer\s+/i, "");
-    console.log(req.cookies)
-    console.log('Authenticating request. Token:', token);
+    // console.log(req.cookies)
+    // console.log('Authenticating request. Token:', token);
 
     if (!token) {
       res.status(401).json({
@@ -49,14 +48,12 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const jwtSecret = process.env.JWT_SECRET || "your-fallback-secret-key-change-in-production";
     const decoded = jwt.verify(token, jwtSecret) as {
       userId: string;
-      adminId: string;
       email: string;
     };
 
     // Attach user info to request
     req.user = {
       userId: decoded.userId,
-      adminId: decoded.adminId,
       email: decoded.email,
     };
 

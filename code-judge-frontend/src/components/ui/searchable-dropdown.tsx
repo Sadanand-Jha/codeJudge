@@ -364,10 +364,10 @@ export function SearchableDropdown({
           aria-invalid={!!error}
           aria-describedby={ariaDescribedBy}
           className={cn(
-            "w-full h-11 rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary placeholder-text-muted transition-all duration-200",
+            "w-full h-11 rounded-xl border border-input-border bg-input-bg text-sm text-text-primary placeholder-text-muted transition-all duration-200",
             "focus:outline-none focus:border-accent focus:shadow-[0_0_0_3px_var(--input-focus-ring)]",
             "disabled:cursor-not-allowed disabled:opacity-50",
-            icon ? "pl-10" : "pl-4",
+            "pl-10",
             "pr-10",
           )}
         />

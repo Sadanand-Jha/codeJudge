@@ -268,9 +268,9 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
             </div>
             <nav className="space-y-1">
               <NavItem icon={BookOpen} label="Overview" href={`/quiz/${quizCode}`} />
-              <NavItem icon={Users} label="Participants" href={`/quiz/${quizCode}/participants`} />
+              <NavItem icon={Users} label="Dashboard" href={`/quiz/${quizCode}/dashboard`} />
               <NavItem icon={Trophy} label="Leaderboard" href={`/quiz/${quizCode}/leaderboard`} />
-              <NavItem icon={BarChart3} label="Analytics" href={`/quiz/${quizCode}/analytics`} />
+              <NavItem icon={BarChart3} label="Settings" href={`/quiz/${quizCode}/settings`} />
             </nav>
           </div>
         </div>
@@ -335,9 +335,9 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       <InfoItem icon={GraduationCap} label="Subject" value="Computer Science" />
                       <InfoItem icon={Target} label="Topic" value="Data Structures & Algorithms" />
                       <InfoItem icon={Star} label="Difficulty" value="Medium" />
-                      <InfoItem icon={Calendar} label="Created On" value={new Date(quiz.created_at || Date.now()).toLocaleDateString()} />
-                      <InfoItem icon={Clock} label="Start Time" value={quiz.starttime ? new Date(quiz.starttime).toLocaleString() : "TBD"} />
-                      <InfoItem icon={Clock} label="End Time" value={quiz.endtime ? new Date(quiz.endtime).toLocaleString() : "TBD"} />
+                      <InfoItem icon={Calendar} label="Created On" value={new Date(quiz.created_at || Date.now()).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })} />
+                      <InfoItem icon={Clock} label="Start Time" value={quiz.starttime ? new Date(quiz.starttime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "TBD"} />
+                      <InfoItem icon={Clock} label="End Time" value={quiz.endtime ? new Date(quiz.endtime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "TBD"} />
                       <InfoItem icon={Timer} label="Duration" value={quizDuration} />
                       <InfoItem icon={Globe} label="Visibility" value="Public" />
                       <InfoItem icon={Lock} label="Language" value="English" />

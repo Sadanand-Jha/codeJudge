@@ -746,12 +746,12 @@ export function layoutQuestionPaper(input: PaperInput, date: string, time: strin
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export function footerDateTime(d = new Date()): { date: string; time: string } {
-  const date = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-  let h = d.getHours();
-  const m = d.getMinutes();
-  const ampm = h >= 12 ? "PM" : "AM";
-  h = h % 12 || 12;
-  const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
+  const options = { timeZone: "Asia/Kolkata" } as const;
+  const day = Number(d.toLocaleDateString("en-IN", { ...options, day: "numeric" }));
+  const month = d.toLocaleDateString("en-IN", { ...options, month: "short" });
+  const year = Number(d.toLocaleDateString("en-IN", { ...options, year: "numeric" }));
+  const date = `${day} ${month} ${year}`;
+  const time = d.toLocaleTimeString("en-IN", { ...options, hour: "2-digit", minute: "2-digit", hour12: true });
   return { date, time };
 }
 

@@ -1,12 +1,14 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Check, Mail, Pencil, Trash2, Users, X } from "lucide-react";
+import { ArrowRight, AtSign, Check, Pencil, Trash2, Users, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { Room, RoomStudent } from "@/types/room";
 import { getStudentRooms } from "@/store/roomStore";
 import { getAvatarUrlById } from "@/config/dicebear";
+import { fetchRoomsForStudent } from "@/services/rooms";
 
 interface StudentDetailsPanelProps {
   student: RoomStudent | null;
@@ -28,7 +30,22 @@ export default function StudentDetailsPanel({
   onEdit,
   onRemove,
 }: StudentDetailsPanelProps) {
-  const roomsForStudent = student ? getStudentRooms(rooms, student.rollNumber) : [];
+  const [backendRooms, setBackendRooms] = useState<Room[] | null>(null);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+
+  useEffect(() => {
+    const username = student?.username ?? student?.rollNumber;
+    if (!username) { setBackendRooms(null); return; }
+    setLoadingRooms(true);
+    fetchRoomsForStudent(username)
+      .then(setBackendRooms)
+      .catch(() => setBackendRooms([]))
+      .finally(() => setLoadingRooms(false));
+  }, [student?.username, student?.rollNumber]);
+
+  // Prefer backend rooms (owner is creator) — fallback to local getStudentRooms for offline/mock
+  const localRooms = student ? getStudentRooms(rooms, student.rollNumber) : [];
+  const roomsForStudent = backendRooms !== null ? backendRooms : localRooms;
 
   return (
     <AnimatePresence>
@@ -63,10 +80,10 @@ export default function StudentDetailsPanel({
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-5">
-              {/* Identity */}
+              {/* Identity — avatar from backend */}
               <div className="flex items-center gap-3.5">
                 <img
-                  src={getAvatarUrlById(student.avatarId)}
+                  src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
                   alt=""
                   className="h-14 w-14 rounded-full object-cover ring-2 ring-border"
                 />
@@ -96,10 +113,10 @@ export default function StudentDetailsPanel({
                 </div>
                 <div className="rounded-xl border border-border bg-card p-3.5">
                   <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                    <Mail className="h-3 w-3" />
-                    Email
+                    <AtSign className="h-3 w-3" />
+                    Username
                   </p>
-                  <p className="mt-1 truncate text-sm text-text-primary">{student.email}</p>
+                  <p className="mt-1 truncate text-sm text-text-primary">@{student.username ?? student.email?.split("@")[0] ?? "—"}</p>
                 </div>
               </div>
 
@@ -110,13 +127,14 @@ export default function StudentDetailsPanel({
                   Rooms
                 </p>
                 <div className="mt-2 space-y-1.5">
-                  {roomsForStudent.length === 0 && (
-                    <p className="text-xs text-text-muted">This student is not in any room.</p>
+                  {loadingRooms && <p className="text-xs text-text-muted">Loading rooms where admin is creator…</p>}
+                  {!loadingRooms && roomsForStudent.length === 0 && (
+                    <p className="text-xs text-text-muted">This student is not in any room where you are admin.</p>
                   )}
                   {roomsForStudent.map((room) => (
                     <Link
                       key={room.id}
-                      href={`/profile/rooms/${room.id}`}
+                      href={`/creator/rooms/${room.id}`}
                       onClick={onClose}
                       className="group flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 transition-colors hover:border-border-hover"
                     >
@@ -128,7 +146,7 @@ export default function StudentDetailsPanel({
                           {room.name}
                         </span>
                         <span className="block text-[10px] text-text-muted">
-                          {room.students.length} student{room.students.length !== 1 ? "s" : ""}
+                          {(room.memberCount ?? room.students.length)} student{(room.memberCount ?? room.students.length) !== 1 ? "s" : ""}
                           {room.archived ? " · Archived" : ""}
                         </span>
                       </span>

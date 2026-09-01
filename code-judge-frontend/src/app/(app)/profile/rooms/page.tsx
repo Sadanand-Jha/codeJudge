@@ -1,7 +1,5 @@
-import RoomsManager from "@/components/rooms/RoomsManager";
-
-export const metadata = { title: "Rooms · ByteClash" };
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <RoomsManager />;
+  redirect("/creator/rooms");
 }

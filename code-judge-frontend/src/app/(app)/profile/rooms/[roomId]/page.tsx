@@ -1,8 +1,6 @@
-import RoomDetailsView from "@/components/rooms/RoomDetailsView";
-
-export const metadata = { title: "Room · ByteClash" };
+import { redirect } from "next/navigation";
 
 export default async function Page({ params }: { params: Promise<{ roomId: string }> }) {
   const { roomId } = await params;
-  return <RoomDetailsView roomId={roomId} />;
+  redirect(`/creator/rooms/${roomId}`);
 }

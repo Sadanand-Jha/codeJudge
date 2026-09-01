@@ -51,7 +51,8 @@ function ContestRegisterContent({ params }: { params: { contestId: string } }) {
 
   const formatDate = (starttime: string | null) => {
     if (!starttime) return "TBD";
-    return new Date(starttime).toLocaleString("en-US", {
+    return new Date(starttime).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
       month: "short",
       day: "numeric",
       year: "numeric",

@@ -11,7 +11,6 @@ const PROTECTED_ROUTES = [
   "/analytics",
   "/settings",
   "/bookmarks",
-  "/history",
   "/submissions",
   "/ai/chat",
   "/ai/feedback",

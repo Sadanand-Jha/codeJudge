@@ -47,6 +47,7 @@ interface QuizSettingsPageProps {
    ============================================= */
 const SECTIONS = [
   { id: "info", label: "Quiz Info", icon: BookOpen, tone: "pink" },
+  { id: "availability", label: "Availability", icon: Calendar, tone: "amber" },
   { id: "registration", label: "Registration", icon: Users, tone: "violet" },
   { id: "responses", label: "Responses", icon: BarChart3, tone: "blue" },
 ] as const;
@@ -55,6 +56,7 @@ type SectionId = (typeof SECTIONS)[number]["id"];
 
 const SECTION_ICON_TONES: Record<SectionId, string> = {
   info: "bg-pink-500/10 text-pink-500",
+  availability: "bg-amber-500/10 text-amber-500",
   registration: "bg-violet-500/10 text-violet-500",
   responses: "bg-blue-500/10 text-blue-500",
 };
@@ -325,12 +327,33 @@ export default function QuizSettingsPage({
     }
   };
 
+  /* ---- End mode ---- */
+  const selectNoFixedEnd = () => update({ availabilityEnd: "" });
+
+  const selectScheduledEnd = () => {
+    if (details.availabilityEnd) return;
+    const base = details.availabilityStart
+      ? new Date(details.availabilityStart)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const end = new Date(base.getTime() + 60 * 60 * 1000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const local = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    update({ availabilityEnd: local });
+  };
+
   /* ---- Validation ---- */
   const registrationEndInvalid = Boolean(
     details.registrationEnabled &&
     details.registrationStart &&
     details.registrationEnd &&
     details.registrationEnd < details.registrationStart
+  );
+
+  const availabilityEndInvalid = Boolean(
+    details.availabilityMode === "scheduled" &&
+    details.availabilityStart &&
+    details.availabilityEnd &&
+    details.availabilityEnd <= details.availabilityStart
   );
 
   const errors = useMemo(() => {
@@ -342,23 +365,34 @@ export default function QuizSettingsPage({
       if (!details.registrationEnd) e.registrationEnd = "Registration end time is required.";
       if (registrationEndInvalid) e.registrationEnd = "Registration end cannot be before start.";
     }
+    if (details.availabilityMode === "scheduled") {
+      if (!details.availabilityStart) e.availabilityStart = "Start date/time is required for scheduled quizzes.";
+      if (!details.availabilityEnd) e.availabilityEnd = "End date/time is required for scheduled quizzes (or select 'No Fixed End').";
+      if (availabilityEndInvalid) e.availabilityEnd = "End date/time cannot be before or equal to start.";
+    }
     if (details.timeLimit <= 0) e.timeLimit = "Duration must be greater than 0.";
     return e;
-  }, [details, registrationEndInvalid]);
+  }, [details, registrationEndInvalid, availabilityEndInvalid]);
 
   /* ---- Progress for sidebar status ---- */
   const progress = useMemo(() => {
     let score = 0;
-    if (details.name.trim()) score += 20;
-    if (details.subject.trim()) score += 20;
+    if (details.name.trim()) score += 15;
+    if (details.subject.trim()) score += 15;
     if (details.visibility) score += 10;
     if (details.tags.length > 0) score += 5;
     if (details.timeLimit > 0) score += 10;
-    if (details.registrationEnabled) {
-      if (details.registrationStart) score += 8;
-      if (details.registrationEnd) score += 7;
+    if (details.availabilityMode === "scheduled") {
+      if (details.availabilityStart) score += 5;
+      if (details.availabilityEnd) score += 5;
     } else {
-      score += 15;
+      score += 10;
+    }
+    if (details.registrationEnabled) {
+      if (details.registrationStart) score += 5;
+      if (details.registrationEnd) score += 5;
+    } else {
+      score += 10;
     }
     if (details.resultVisibility) score += 5;
     return Math.min(100, score);
@@ -388,7 +422,11 @@ export default function QuizSettingsPage({
   const handleContinue = async () => {
     setAttempted(true);
     if (Object.keys(errors).length > 0) {
-      const firstSection = details.registrationEnabled ? "registration" : "info";
+      const firstSection = Object.keys(errors).some((k) => k.startsWith("registration"))
+        ? "registration"
+        : Object.keys(errors).some((k) => k.startsWith("availability"))
+          ? "availability"
+          : "info";
       scrollToSection(firstSection);
       toast.error({
         title: "Missing information",
@@ -413,8 +451,8 @@ export default function QuizSettingsPage({
         difficulty: details.difficulty,
         visibility: details.visibilityId ?? undefined,
         timeLimit: details.timeLimit,
-        starttime: details.startDate || undefined,
-        endtime: details.endDate || undefined,
+        starttime: details.availabilityStart || undefined,
+        endtime: details.availabilityEnd || undefined,
         timeZone: details.timeZone,
         randomizeQuestions: details.randomizeQuestions,
         randomizeOptions: details.randomizeOptions,
@@ -517,7 +555,7 @@ export default function QuizSettingsPage({
   return (
     <div className="flex min-h-screen bg-background">
       {/* ===== Settings Sidebar ===== */}
-      <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
+      <aside data-sidebar="true" className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
         <nav className="settings-scroll h-full overflow-y-auto p-4">
           <p className="px-3 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
             Quiz Settings
@@ -666,17 +704,17 @@ export default function QuizSettingsPage({
               <button
                 onClick={handleContinue}
                 disabled={savingToServer}
-                className="group flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(124,58,237,0.3)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(236,72,153,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="group flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-4 text-xs font-bold !text-white shadow-[0_4px_16px_rgba(124,58,237,0.3)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(236,72,153,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {savingToServer ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" /> Saving Quiz...
                   </>
                 ) : (
-                  <>
+                  <div className="flex items-center gap-1.5">
                     Save &amp; Continue
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </>
+                  </div>
                 )}
               </button>
             </div>
@@ -830,6 +868,275 @@ export default function QuizSettingsPage({
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+              </div>
+            </SettingsCard>
+          </div>
+
+          {/* ===== AVAILABILITY ===== */}
+          <div id="availability" ref={(el) => { sectionRefs.current["availability"] = el; }} className="scroll-mt-32">
+            <SettingsCard
+              title="Availability"
+              description="When students can access and attempt this quiz"
+              icon={<Calendar className="h-5 w-5" />}
+              iconClassName={SECTION_ICON_TONES.availability}
+            >
+              <div className="space-y-6">
+                {/* Availability Mode Selector */}
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <div className="mb-2 flex items-center gap-2">
+                    <label className="text-sm font-medium text-text-primary">Availability Mode</label>
+                    <span className="ml-auto text-xs text-text-muted">
+                      {details.availabilityMode === "immediate" ? "Quiz opens immediately after publishing" : "Quiz opens at a scheduled time"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => update({ availabilityMode: "immediate" })}
+                      className={cn(
+                        "relative flex flex-col items-center justify-center gap-3 rounded-xl border p-5 text-left transition-all duration-200",
+                        details.availabilityMode === "immediate"
+                          ? "border-amber-500 bg-amber-500/10 shadow-[0_0_0_3px_var(--input-focus-ring)]"
+                          : "border-input-border bg-input-bg hover:border-border-hover"
+                      )}
+                    >
+                      <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", details.availabilityMode === "immediate" ? "bg-amber-500 text-white" : "bg-white/5 text-text-muted")}>
+                        <Zap className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className={cn("font-semibold", details.availabilityMode === "immediate" ? "text-amber-500" : "text-text-primary")}>
+                          Start Immediately
+                        </p>
+                        <p className="mt-1 text-xs text-text-muted">
+                          Quiz opens right after publishing
+                        </p>
+                      </div>
+                      {details.availabilityMode === "immediate" && (
+                        <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => update({ availabilityMode: "scheduled" })}
+                      className={cn(
+                        "relative flex flex-col items-center justify-center gap-3 rounded-xl border p-5 text-left transition-all duration-200",
+                        details.availabilityMode === "scheduled"
+                          ? "border-amber-500 bg-amber-500/10 shadow-[0_0_0_3px_var(--input-focus-ring)]"
+                          : "border-input-border bg-input-bg hover:border-border-hover"
+                      )}
+                    >
+                      <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", details.availabilityMode === "scheduled" ? "bg-amber-500 text-white" : "bg-white/5 text-text-muted")}>
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className={cn("font-semibold", details.availabilityMode === "scheduled" ? "text-amber-500" : "text-text-primary")}>
+                          Schedule
+                        </p>
+                        <p className="mt-1 text-xs text-text-muted">
+                          Set specific start and end times
+                        </p>
+                      </div>
+                      {details.availabilityMode === "scheduled" && (
+                        <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Start Configuration */}
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="text-sm font-medium text-text-primary">
+                      {details.availabilityMode === "immediate" ? "Start" : "Start Date & Time"}
+                    </label>
+                    <span className="text-xs text-text-muted">
+                      {details.availabilityMode === "immediate"
+                        ? "Immediately after publishing"
+                        : "When the quiz becomes available"}
+                    </span>
+                  </div>
+                  {details.availabilityMode === "scheduled" ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <DateTimeField
+                        label="Start Date"
+                        value={details.availabilityStart.split("T")[0]}
+                        onChange={(v) => update({ availabilityStart: `${v}T${details.availabilityStart.split("T")[1] || "00:00"}` })}
+                        required
+                      />
+                      <DateTimeField
+                        label="Start Time"
+                        value={details.availabilityStart.split("T")[1]?.slice(0, 5) || ""}
+                        onChange={(v) => update({ availabilityStart: `${details.availabilityStart.split("T")[0]}T${v}:00` })}
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-sm text-text-secondary">
+                      The quiz will be available immediately after you publish it.
+                    </p>
+                  )}
+                </div>
+
+                {/* End Configuration */}
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="text-sm font-medium text-text-primary">End</label>
+                    <span className="text-xs text-text-muted">When the quiz stops accepting attempts</span>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <label className={cn("relative flex items-center gap-2 rounded-xl border p-4 cursor-pointer transition-all", details.availabilityEnd ? "border-amber-500 bg-amber-500/5" : "border-input-border bg-input-bg hover:border-border-hover")}>
+                        <input
+                          type="radio"
+                          name="endMode"
+                          checked={!details.availabilityEnd}
+                          onChange={() => update({ availabilityEnd: "" })}
+                          className="sr-only"
+                        />
+                        <div className="flex flex-col items-center gap-1.5">
+                          <span className={cn("flex h-10 w-10 items-center justify-center rounded-lg", !details.availabilityEnd ? "bg-amber-500 text-white" : "bg-white/5 text-text-muted")}>
+                            <Square className="h-5 w-5" />
+                          </span>
+                          <span className={cn("font-medium", !details.availabilityEnd ? "text-amber-500" : "text-text-secondary")}>
+                            No Fixed End
+                          </span>
+                          <span className="text-[10px] text-text-muted">Quiz stays open until manually closed</span>
+                        </div>
+                      </label>
+                      <label className={cn("relative flex items-center gap-2 rounded-xl border p-4 cursor-pointer transition-all", details.availabilityEnd ? "border-amber-500 bg-amber-500/5" : "border-input-border bg-input-bg hover:border-border-hover")}>
+                        <input
+                          type="radio"
+                          name="endMode"
+                          checked={!!details.availabilityEnd}
+                          onChange={selectScheduledEnd}
+                          className="sr-only"
+                        />
+                        <div className="flex flex-col items-center gap-1.5 flex-1">
+                          <span className={cn("flex h-10 w-10 items-center justify-center rounded-lg", details.availabilityEnd ? "bg-amber-500 text-white" : "bg-white/5 text-text-muted")}>
+                            <Calendar className="h-5 w-5" />
+                          </span>
+                          <span className={cn("font-medium", details.availabilityEnd ? "text-amber-500" : "text-text-secondary")}>
+                            Schedule End
+                          </span>
+                          <span className="text-[10px] text-text-muted">Quiz closes automatically</span>
+                        </div>
+                      </label>
+                    </div>
+
+                    {details.availabilityEnd && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        transition={{ duration: 0.25 }}
+                        className="grid gap-4 sm:grid-cols-2"
+                      >
+                        <DateTimeField
+                          label="End Date"
+                          value={details.availabilityEnd.split("T")[0]}
+                          onChange={(v) => update({ availabilityEnd: `${v}T${details.availabilityEnd.split("T")[1] || "23:59"}` })}
+                          required
+                          error={(attempted && errors.availabilityEnd) || undefined}
+                        />
+                        <DateTimeField
+                          label="End Time"
+                          value={details.availabilityEnd.split("T")[1]?.slice(0, 5) || ""}
+                          onChange={(v) => update({ availabilityEnd: `${details.availabilityEnd.split("T")[0]}T${v}:00` })}
+                          required
+                          error={(attempted && errors.availabilityEnd) || undefined}
+                        />
+                      </motion.div>
+                    )}
+                  </div>
+                </div>
+
+                {/* When Quiz Availability Ends */}
+                <div className="rounded-2xl border border-border bg-card p-5">
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="text-sm font-medium text-text-primary">When Quiz Availability Ends</label>
+                    <span className="text-xs text-text-muted">Behavior for active attempts at closing time</span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    {[
+                      { id: "auto_submit", label: "Auto-Submit", desc: "Automatically submit all active attempts", icon: Zap },
+                      { id: "allow_finish", label: "Allow to Finish", desc: "Let active attempts complete normally", icon: CheckCircle2 },
+                      { id: "stop_immediately", label: "Stop Immediately", desc: "End attempts instantly without saving", icon: AlertTriangle },
+                    ].map((opt) => (
+                      <label
+                        key={opt.id}
+                        className={cn(
+                          "relative flex flex-col items-center gap-2 rounded-xl border p-4 cursor-pointer transition-all",
+                          details.availabilityEndBehavior === opt.id
+                            ? "border-amber-500 bg-amber-500/10 shadow-[0_0_0_3px_var(--input-focus-ring)]"
+                            : "border-input-border bg-input-bg hover:border-border-hover"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="endBehavior"
+                          checked={details.availabilityEndBehavior === opt.id}
+                          onChange={() => update({ availabilityEndBehavior: opt.id as "auto_submit" | "allow_finish" | "stop_immediately" })}
+                          className="sr-only"
+                        />
+                        <opt.icon className={cn("h-6 w-6", details.availabilityEndBehavior === opt.id ? "text-amber-500" : "text-text-muted")} />
+                        <span className={cn("font-medium text-sm", details.availabilityEndBehavior === opt.id ? "text-amber-500" : "text-text-primary")}>
+                          {opt.label}
+                        </span>
+                        <span className="text-[10px] text-text-muted text-center">{opt.desc}</span>
+                        {details.availabilityEndBehavior === opt.id && (
+                          <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white">
+                            <Check className="h-3 w-3" />
+                          </span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Live Summary */}
+                {(details.availabilityMode === "scheduled" || details.availabilityEnd) && (
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                    <div className="flex items-start gap-3">
+                      <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-amber-500">
+                          {details.availabilityMode === "scheduled" ? "Scheduled Availability" : "Availability Window"}
+                        </p>
+                        <p className="mt-1 text-sm text-text-secondary">
+                          {details.availabilityMode === "scheduled"
+                            ? `Students can attempt from ${details.availabilityStart ? new Date(details.availabilityStart).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "scheduled start"} to ${details.availabilityEnd ? new Date(details.availabilityEnd).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "no fixed end"}`
+                            : `Quiz opens immediately after publishing${details.availabilityEnd ? ` and ends ${new Date(details.availabilityEnd).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}` : " with no fixed end"}`
+                          }
+                          <span className="ml-2 text-[10px] font-medium text-amber-500">({details.timeZone})</span>
+                        </p>
+                        <p className="mt-2 text-[10px] text-text-muted">
+                          Attempt duration: {details.timeLimit} minutes. At closing: {details.availabilityEndBehavior === "auto_submit" ? "auto-submit" : details.availabilityEndBehavior === "allow_finish" ? "allow to finish" : "stop immediately"}.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Timezone */}
+                <div className="mt-6">
+                  <SettingsSelect
+                    label="Timezone"
+                    value={details.timeZone}
+                    onChange={(v) => update({ timeZone: v })}
+                    options={timezoneOptions}
+                    searchable
+                  />
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-text-secondary">
+                    <Globe className="h-3.5 w-3.5 shrink-0 text-violet-500" />
+                    All quiz times are displayed in your selected timezone.
+                    <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-500">
+                      {details.timeZone || "Select a timezone"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1058,7 +1365,7 @@ export default function QuizSettingsPage({
               <button
                 onClick={handleContinue}
                 disabled={savingToServer}
-                className="group flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(124,58,237,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="group flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-5 text-xs font-bold !text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(124,58,237,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {savingToServer ? (
                   <>

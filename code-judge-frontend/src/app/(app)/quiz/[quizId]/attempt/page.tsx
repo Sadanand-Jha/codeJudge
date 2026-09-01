@@ -310,7 +310,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     if (!quizProgress) return '';
     const username = registration?.studentName || 'Student';
     const rollNumber = registration?.rollNumber || 'R001';
-    const timestamp = new Date().toLocaleString('en-IN');
+    const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
     return `${username} | ${rollNumber} | ${quizCode} | ${timestamp}`;
   }, [quizProgress, quizCode, registration]);
 

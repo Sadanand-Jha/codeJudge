@@ -4,6 +4,11 @@ const { Pool } = pg;
 
 const pool = new Pool();
 
+// Session timezone → Asia/Kolkata so NOW()/timestamps use IST on every connection
+pool.on("connect", (client) => {
+  client.query("SET TIME ZONE 'Asia/Kolkata'").catch(() => {});
+});
+
 export async function testConnection() {
   try {
     const res = await pool.query('SELECT NOW() AS current_time');

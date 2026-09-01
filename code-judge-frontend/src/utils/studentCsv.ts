@@ -3,17 +3,14 @@ import { RoomStudent } from "@/types/room";
 /**
  * Parse a student CSV/Excel export into rows.
  *
- * Supported header names (case-insensitive, trimmed):
- *   name | student name | full name | first name + last name
- *   roll | roll number | roll no | rollno | registration number
- *   email | email address
- *
- * Returns valid rows plus rows that failed validation (for preview display).
+ * Add-students now only requires `username` — name/roll are optional and will
+ * be derived from the username if missing. This enforces the "username-only"
+ * rule for room membership.
  */
 export interface CsvRow {
   name: string;
   rollNumber: string;
-  email: string;
+  username: string;
 }
 
 export interface CsvParseResult {
@@ -61,8 +58,8 @@ function isHeader(name: string, keys: string[]): boolean {
   return keys.some((k) => n === k || n.startsWith(`${k} `) || n.includes(k));
 }
 
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+function isValidUsername(username: string): boolean {
+  return /^[a-zA-Z0-9._-]{2,30}$/.test(username);
 }
 
 export function parseStudentCsv(text: string): CsvParseResult {
@@ -75,7 +72,7 @@ export function parseStudentCsv(text: string): CsvParseResult {
 
   const colName = header.findIndex((h) => isHeader(h, ["name", "student", "full name"]));
   const colRoll = header.findIndex((h) => isHeader(h, ["roll", "reg", "enrollment"]));
-  const colEmail = header.findIndex((h) => isHeader(h, ["email"]));
+  const colUsername = header.findIndex((h) => isHeader(h, ["username", "user"]));
 
   const rows: CsvRow[] = [];
   const errors: string[] = [];
@@ -83,18 +80,21 @@ export function parseStudentCsv(text: string): CsvParseResult {
 
   dataLines.forEach((line, idx) => {
     const cells = parseCsvLine(line);
-    const name = colName >= 0 ? cells[colName] ?? "" : "";
-    const roll = colRoll >= 0 ? cells[colRoll] ?? "" : "";
-    const email = colEmail >= 0 ? cells[colEmail] ?? "" : "";
+    const rawName = colName >= 0 ? cells[colName] ?? "" : "";
+    const rawRoll = colRoll >= 0 ? cells[colRoll] ?? "" : "";
+    const username = colUsername >= 0 ? cells[colUsername] ?? "" : "";
 
-    if (!name || !roll) {
+    if (!username) {
       skipped++;
       return;
     }
-    if (email && !isValidEmail(email)) {
-      errors.push(`Row ${idx + 1}: invalid email "${email}" for ${name}.`);
+    if (!isValidUsername(username)) {
+      errors.push(`Row ${idx + 1}: invalid username "${username}".`);
     }
-    rows.push({ name, rollNumber: roll, email: email.toLowerCase() });
+    // Derive name/roll from username if missing — keeps RoomStudent valid
+    const name = rawName || username;
+    const rollNumber = rawRoll || username;
+    rows.push({ name, rollNumber, username: username.toLowerCase() });
   });
 
   return { rows, errors, skipped };
@@ -103,9 +103,9 @@ export function parseStudentCsv(text: string): CsvParseResult {
 /** Convert parsed rows into RoomStudent drafts (no ids yet). */
 export function rowsToStudents(rows: CsvRow[], startId = 0): Omit<RoomStudent, "id">[] {
   return rows.map((row, i) => ({
-    name: row.name,
-    rollNumber: row.rollNumber,
-    email: row.email,
+    name: row.name || row.username,
+    rollNumber: row.rollNumber || row.username,
+    username: row.username,
     active: true,
     avatarId: ((startId + i) % 7) + 1,
   }));

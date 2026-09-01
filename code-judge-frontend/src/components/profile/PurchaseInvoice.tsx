@@ -103,6 +103,7 @@ export default function PurchaseInvoice() {
                     <span className="text-xs text-text-secondary">Invoice date</span>
                     <span className="ml-auto text-sm font-medium text-text-primary">
                       {new Date(order.date).toLocaleDateString("en-IN", {
+                        timeZone: "Asia/Kolkata",
                         day: "numeric",
                         month: "long",
                         year: "numeric",
@@ -218,12 +219,12 @@ export default function PurchaseInvoice() {
                     {order.status}
                   </span>
                   <span className="text-xs text-text-secondary">
-                    Paid via {order.method} on {new Date(order.date).toLocaleDateString("en-IN")}
+                    Paid via {order.method} on {new Date(order.date).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
                   </span>
                 </div>
                 {items[0]?.expiresAt && (
                   <span className="text-xs text-text-secondary">
-                    Access valid until {new Date(items[0].expiresAt).toLocaleDateString("en-IN")}
+                    Access valid until {new Date(items[0].expiresAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}
                   </span>
                 )}
               </div>

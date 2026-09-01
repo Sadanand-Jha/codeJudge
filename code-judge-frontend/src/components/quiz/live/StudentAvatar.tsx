@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useState, useMemo } from "react";
 import type { LiveParticipant } from "@/types/liveAssessment";
-import { DEFAULT_AVATAR_URL, getPredefinedAvatarByUrl } from "@/config/dicebear";
+import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
 
 interface StudentAvatarProps {
   participant: LiveParticipant;
@@ -33,10 +33,7 @@ export function StudentAvatar({
 }: StudentAvatarProps) {
   const [hovered, setHovered] = useState(false);
   const dims = SIZE_MAP[size];
-  const displayAvatarUrl =
-    participant.avatarUrl && getPredefinedAvatarByUrl(participant.avatarUrl)
-      ? participant.avatarUrl
-      : DEFAULT_AVATAR_URL;
+  const displayAvatarUrl = participant.avatarUrl || DEFAULT_AVATAR_URL;
 
   // Breathing animation - subtle scale
   const breathAnim = useMemo(() => {
