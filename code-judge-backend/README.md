@@ -1,6 +1,6 @@
-# byteclash Backend
+# ByteClash Backend
 
-A robust backend service for the byteclash platform, handling code execution, submissions, and problem management.
+A robust backend service for the ByteClash platform, handling code execution, submissions, and problem management.
 
 ## Features
 
@@ -15,7 +15,7 @@ A robust backend service for the byteclash platform, handling code execution, su
 
 - **Runtime**: Node.js with TypeScript
 - **Framework**: Express.js
-- **Database**: PostgreSQL with Prisma ORM
+- **Database**: PostgreSQL
 - **Cache**: Redis (ioredis)
 - **Code Execution**: Judge0 CE API
 - **Authentication**: JWT with bcrypt
@@ -40,21 +40,6 @@ A robust backend service for the byteclash platform, handling code execution, su
    ```
 4. Update environment variables in `.env`
 
-## Database Setup
-
-Generate Prisma client and run migrations:
-
-```bash
-npm run prisma:generate
-npm run prisma:migrate
-```
-
-Open Prisma Studio to view data:
-
-```bash
-npm run prisma:studio
-```
-
 ## Development
 
 Start the development server:
@@ -63,7 +48,7 @@ Start the development server:
 npm run dev
 ```
 
-The server will start at `http://localhost:3000`.
+The server will start at `http://localhost:8000`.
 
 ## Build
 
@@ -82,7 +67,7 @@ npm run start
 ## Project Structure
 
 ```
-backend/
+code-judge-backend/
 ├── src/
 │   ├── app.ts                  # Express app setup
 │   ├── server.ts               # Server entry point
@@ -112,16 +97,13 @@ backend/
 │   │   ├── errorHandler.ts
 │   │   └── validate.ts
 │   ├── models/                  # Data models
-│   ├── prisma/                  # Prisma client
-│   │   └── client.ts
+│   ├── repositories/            # Data access layer
 │   ├── utils/                   # Utility functions
 │   │   ├── logger.ts
 │   │   ├── response.ts
 │   │   └── constants.ts
 │   └── types/                   # TypeScript types
 │       └── index.ts
-├── prisma/
-│   └── schema.prisma            # Database schema
 ├── package.json
 ├── tsconfig.json
 └── README.md

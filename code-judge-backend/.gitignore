@@ -13,6 +13,8 @@ lerna-debug.log*
 debug_error*
 debug_cf*
 redis-stable
+src/scraper/
+dist/scraper/
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json

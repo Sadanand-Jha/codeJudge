@@ -88,7 +88,7 @@ Response JSON:
       "space_limit": "256 MB",
       "memory_limit_mb": 256,
       "tags": ["math"],
-      "source": "Codeforces",
+      "source": "Platform",
       "contest_id": "4",
       "problem_index": "A"
     },
@@ -119,8 +119,8 @@ ProblemsList.tsx (CLIENT COMPONENT)
         ┌──────┬────────────────────┬────────┬──────────┬────────┬──────┐
         │  ID  │       Title        │ Rating │   Tags   │ Source │ View │
         ├──────┼────────────────────┼────────┼──────────┼────────┼──────┤
-        │ 4A   │ 4A — Watermelon    │  800   │  math    │ CF     │ View │
-        │ 71A  │ 71A — Way Too Long │  800   │ strings  │ CF     │ View │
+        │ 4A   │ 4A — Watermelon    │  800   │  math    │ PLT    │ View │
+        │ 71A  │ 71A — Way Too Long │  800   │ strings  │ PLT    │ View │
         └──────┴────────────────────┴────────┴──────────┴────────┴──────┘
         │
         └── Each row links to /problems/{problem.problem_id}
@@ -227,7 +227,7 @@ Response JSON:
     "output_specification": "<p>Print...</p>",
     "constraints": "<p>1 ≤ w ≤ 100</p>",
     "notes": null,
-    "source": "Codeforces",
+    "source": "Platform",
     "contest_id": "4",
     "problem_index": "A",
     "tags": ["math", "brute force"],
@@ -265,7 +265,7 @@ ProblemClient.tsx (CLIENT COMPONENT)
     │   │     contestId={problem.contest_id}      // "4"
     │   │     problemIndex={problem.problem_index} // "A"
     │   │     rating={problem.rating}              // 800
-    │   │     source={problem.source}              // "Codeforces"
+    │   │     source={problem.source}              // "Platform"
     │   │     problemId={problem.problem_id}       // "4A"
     │   │   />
     │   │   └── Renders: "4A — Watermelon" + rating badge + source + ID
@@ -295,7 +295,7 @@ ProblemClient.tsx (CLIENT COMPONENT)
               timeLimitMs={problem.time_limit_ms}        // 1000
               memoryLimitMb={problem.memory_limit_mb}    // 256
               contestId={problem.contest_id}             // "4"
-              source={problem.source}                    // "Codeforces"
+              source={problem.source}                    // "Platform"
               problemId={problem.problem_id}             // "4A"
               tags={problem.tags}                        // ["math", "brute force"]
             />
@@ -303,7 +303,7 @@ ProblemClient.tsx (CLIENT COMPONENT)
             ├── InfoRow: Time Limit → formatTime(1000) = "1.0 s"
             ├── InfoRow: Memory Limit → formatMemory(256) = "256 MB"
             ├── InfoRow: Contest → "4"
-            ├── InfoRow: Source → "Codeforces"
+            ├── InfoRow: Source → "Platform"
             ├── InfoRow: Problem ID → "4A" (mono)
             └── Tags section: TagBadge for each tag
 
