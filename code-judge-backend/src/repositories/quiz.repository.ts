@@ -1938,4 +1938,81 @@ export class QuizRepository {
     ]);
     return this.mapGameConfigRow(result.rows[0]);
   }
+
+  // ==================== GAME MECHANICS (lifelines/powerups per quiz) ====================
+
+  async getAllGameMechanics(): Promise<any[]> {
+    const result = await pool.query(`SELECT * FROM game_mechanics WHERE enabled = TRUE ORDER BY id`);
+    return result.rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      code: row.code,
+      description: row.description,
+      icon: row.icon,
+      mechanicType: row.mechanic_type,
+      defaultQuantity: row.default_quantity,
+      enabled: row.enabled,
+    }));
+  }
+
+  async getQuizGameMechanics(quizId: number): Promise<any[]> {
+    const result = await pool.query(
+      `SELECT qgm.*, gm.name, gm.code, gm.description, gm.icon, gm.mechanic_type, gm.default_quantity
+       FROM quiz_game_mechanics qgm
+       JOIN game_mechanics gm ON gm.id = qgm.mechanic_id
+       WHERE qgm.quiz_id = $1
+       ORDER BY gm.id`,
+      [quizId]
+    );
+    return result.rows.map((row) => ({
+      id: row.id,
+      quizId: row.quiz_id,
+      mechanicId: row.mechanic_id,
+      name: row.name,
+      code: row.code,
+      description: row.description,
+      icon: row.icon,
+      mechanicType: row.mechanic_type,
+      enabled: row.enabled,
+      quantity: row.quantity,
+    }));
+  }
+
+  async upsertQuizGameMechanics(
+    quizId: number,
+    mechanics: { mechanicCode: string; enabled: boolean; quantity: number }[]
+  ): Promise<any[]> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Delete existing mechanics for this quiz
+      await client.query("DELETE FROM quiz_game_mechanics WHERE quiz_id = $1", [quizId]);
+
+      // Insert new mechanics
+      for (const m of mechanics) {
+        // Look up mechanic_id from code
+        const mechResult = await client.query(
+          "SELECT id FROM game_mechanics WHERE code = $1",
+          [m.mechanicCode]
+        );
+        if (mechResult.rows.length === 0) continue;
+
+        await client.query(
+          `INSERT INTO quiz_game_mechanics (quiz_id, mechanic_id, enabled, quantity, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          [quizId, mechResult.rows[0].id, m.enabled, m.quantity]
+        );
+      }
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    return this.getQuizGameMechanics(quizId);
+  }
 }

@@ -223,3 +223,11 @@ export const quizGameConfigSchema = z.object({
   respawnEnabled: z.boolean({ invalid_type_error: "respawnEnabled must be a boolean" }),
   damageEnabled: z.boolean({ invalid_type_error: "damageEnabled must be a boolean" }),
 });
+
+export const quizGameMechanicsSchema = z.object({
+  mechanics: z.array(z.object({
+    mechanicCode: z.string().min(1, "mechanicCode is required"),
+    enabled: z.boolean({ invalid_type_error: "enabled must be a boolean" }),
+    quantity: z.number().int().min(0, "quantity must be >= 0"),
+  })),
+});

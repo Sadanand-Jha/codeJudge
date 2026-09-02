@@ -27,7 +27,7 @@ import {
   BookOpen as BookOpenIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { getQuizById, getQuizProblems } from "@/services/quiz";
+import { getQuizById, getQuizProblems, getQuizGameMechanics, type QuizGameMechanic } from "@/services/quiz";
 import type { Quiz, QuizProblem } from "@/services/quiz";
 import ExamModeShell from "@/components/quiz/exam/ExamModeShell";
 
@@ -83,15 +83,27 @@ function decodeHtml(str: string): string {
   }
 }
 
-const MECHANICS = [
-  { icon: "50:50", title: "50 - 50", desc: "Eliminate 2 wrong options", left: "2 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  { icon: "⏰", title: "Extra Time", desc: "+5 minutes", left: "1 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  { icon: "💡", title: "Hint", desc: "Get a smart hint", left: "2 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  { icon: "⏭", title: "Skip Question", desc: "Skip and come back later", left: "2 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  { icon: "🛡", title: "Shield", desc: "Protect from negative marking", left: "1 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  { icon: "2x", title: "Double Score", desc: "Next correct answer = 2x", left: "1 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  { icon: "❤", title: "Extra Life", desc: "Get 1 extra life", left: "1 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-];
+/* ── Mechanic Icon/Color Map ── */
+const MECHANIC_META: Record<string, { icon: string; title: string; desc: string; color: string }> = {
+  FIFTY_FIFTY: { icon: "50:50", title: "50 - 50", desc: "Eliminate 2 wrong options", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  EXTRA_TIME: { icon: "⏰", title: "Extra Time", desc: "+5 minutes", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  HINT: { icon: "💡", title: "Hint", desc: "Get a smart hint", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  SKIP_QUESTION: { icon: "⏭", title: "Skip Question", desc: "Skip and come back later", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  SHIELD: { icon: "🛡", title: "Shield", desc: "Protect from negative marking", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  DOUBLE_SCORE: { icon: "2x", title: "Double Score", desc: "Next correct answer = 2x", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  EXTRA_LIFE: { icon: "❤", title: "Extra Life", desc: "Get 1 extra life", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+};
+
+interface DisplayMechanic {
+  code: string;
+  icon: string;
+  title: string;
+  desc: string;
+  left: string;
+  color: string;
+  enabled: boolean;
+  quantity: number;
+}
 
 /* ── Component ── */
 
@@ -107,6 +119,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
   const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<PreviewQuestion[]>([]);
+  const [mechanics, setMechanics] = useState<DisplayMechanic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [explanationOpen, setExplanationOpen] = useState(false);
@@ -185,6 +198,46 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
         setQuestions(mapped);
         const dur = (quizData.duration ?? 30) * 60;
         setTimeLeft(dur);
+
+        // Fetch game mechanics from backend
+        try {
+          const dbMechanics = await getQuizGameMechanics(quizId);
+          if (!cancelled && dbMechanics.length > 0) {
+            setMechanics(
+              dbMechanics
+                .filter((m) => m.enabled)
+                .map((m) => {
+                  const meta = MECHANIC_META[m.code] ?? { icon: "⚙", title: m.name, desc: m.description ?? "", color: "bg-pink-50 border border-pink-200 text-pink-600" };
+                  return {
+                    code: m.code,
+                    icon: meta.icon,
+                    title: meta.title,
+                    desc: meta.desc,
+                    left: `${m.quantity} left`,
+                    color: meta.color,
+                    enabled: m.enabled,
+                    quantity: m.quantity,
+                  };
+                })
+            );
+          } else if (!cancelled) {
+            // Fallback to defaults if no mechanics saved
+            setMechanics(
+              Object.entries(MECHANIC_META).map(([code, meta]) => ({
+                code,
+                icon: meta.icon,
+                title: meta.title,
+                desc: meta.desc,
+                left: "0 left",
+                color: meta.color,
+                enabled: false,
+                quantity: 0,
+              }))
+            );
+          }
+        } catch {
+          // Non-critical — show defaults
+        }
       } catch (err) {
         if (!cancelled) setError("Failed to load quiz preview. Please try again.");
         console.error("Quiz preview fetch error:", err);
@@ -261,7 +314,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
             </div>
             <p className="text-xs text-gray-400 mb-4 leading-tight shrink-0">Use lifelines strategically to maximize your score.</p>
             <div className="space-y-3 flex-1 flex flex-col justify-between py-1 overflow-hidden">
-              {MECHANICS.map((m, i) => (
+              {mechanics.map((m, i) => (
                 <button
                   key={m.title}
                   onClick={() => setSelectedMechanic(i)}
@@ -378,7 +431,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
           {/* Mobile mechanics */}
           <div className="lg:hidden mt-3 flex items-center gap-2 overflow-x-auto p-2 bg-white border border-gray-200 rounded-xl">
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-pink-500 ml-1" />
-            {MECHANICS.map((m, i) => (
+            {mechanics.map((m, i) => (
               <button key={m.title} onClick={() => setSelectedMechanic(i)} className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs", usedMechanics[i] ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-gray-200 bg-white")}>
                 {m.icon}
               </button>
@@ -482,10 +535,10 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
           <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl text-base font-bold", MECHANICS[selectedMechanic].color)}>{MECHANICS[selectedMechanic].icon}</div>
+                <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl text-base font-bold", mechanics[selectedMechanic].color)}>{mechanics[selectedMechanic].icon}</div>
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900">{MECHANICS[selectedMechanic].title}</h3>
-                  <p className="text-[11px] text-gray-400">{MECHANICS[selectedMechanic].desc}</p>
+                  <h3 className="text-sm font-bold text-gray-900">{mechanics[selectedMechanic].title}</h3>
+                  <p className="text-[11px] text-gray-400">{mechanics[selectedMechanic].desc}</p>
                 </div>
               </div>
               <button onClick={() => setSelectedMechanic(null)} className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400">
@@ -495,7 +548,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
             <div className="mt-4 flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-3">
               <div>
                 <p className="text-[10px] text-gray-400 uppercase tracking-wider">Uses remaining</p>
-                <p className="text-lg font-bold text-gray-900">{MECHANICS[selectedMechanic].left}</p>
+                <p className="text-lg font-bold text-gray-900">{mechanics[selectedMechanic].left}</p>
               </div>
               {usedMechanics[selectedMechanic] && selectedMechanic !== 0 && <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600">Used</span>}
               {selectedMechanic === 0 && fiftyFiftyMap[q?.id] && <span className="rounded-full bg-pink-100 px-2.5 py-0.5 text-[10px] font-bold text-pink-600">Active on Q{current + 1}</span>}

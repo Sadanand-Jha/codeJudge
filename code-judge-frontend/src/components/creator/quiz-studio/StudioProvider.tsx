@@ -19,6 +19,7 @@ import {
   updateQuizStatus,
   setQuizParticipants,
   loadQuizForEdit,
+  updateQuizGameMechanics,
   type QuizParticipantInput,
   type Quiz,
   type QuizProblemWithOptions,
@@ -850,6 +851,28 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         }
 
         await setQuizParticipants(quizId, [...byEmail.values()]);
+
+        // Save game mechanics to backend
+        try {
+          const gm = state.gameMechanics;
+          const mechanicMap: Record<string, { enabled: boolean; quantity: number }> = {
+            FIFTY_FIFTY: { enabled: gm.fiftyFifty.enabled, quantity: typeof gm.fiftyFifty.uses === "number" ? gm.fiftyFifty.uses : 2 },
+            EXTRA_TIME: { enabled: gm.extraTime.enabled, quantity: typeof gm.extraTime.uses === "number" ? gm.extraTime.uses : 1 },
+            HINT: { enabled: gm.hint.enabled, quantity: typeof gm.hint.uses === "number" ? gm.hint.uses : 2 },
+            SKIP_QUESTION: { enabled: gm.skip.enabled, quantity: typeof gm.skip.uses === "number" ? gm.skip.uses : 2 },
+            SHIELD: { enabled: gm.eliminateOne?.enabled ?? false, quantity: typeof gm.eliminateOne?.uses === "number" ? gm.eliminateOne.uses : 1 },
+            DOUBLE_SCORE: { enabled: gm.doublePoints.enabled, quantity: typeof gm.doublePoints.uses === "number" ? gm.doublePoints.uses : 1 },
+            EXTRA_LIFE: { enabled: gm.secondChance?.enabled ?? false, quantity: typeof gm.secondChance?.uses === "number" ? gm.secondChance.uses : 1 },
+          };
+          const mechanicsPayload = Object.entries(mechanicMap).map(([mechanicCode, { enabled, quantity }]) => ({
+            mechanicCode,
+            enabled,
+            quantity,
+          }));
+          await updateQuizGameMechanics(quizId, mechanicsPayload);
+        } catch (mechanicsErr) {
+          console.warn("Failed to save game mechanics (non-critical):", mechanicsErr);
+        }
       }
 
       if (opts?.publish) {

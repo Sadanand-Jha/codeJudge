@@ -187,3 +187,98 @@ VALUES
     'LIFE',
     1
 );
+
+CREATE TABLE quiz_attempt (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    quiz_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+
+    attempt_number INTEGER NOT NULL,
+
+    started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    submitted_at TIMESTAMP,
+
+    status VARCHAR(30) NOT NULL DEFAULT 'IN_PROGRESS',
+
+    total_marks NUMERIC(10, 2) DEFAULT 0,
+    marks_obtained NUMERIC(10, 2) DEFAULT 0,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_user_quiz_attempt
+        UNIQUE (user_id, quiz_id, attempt_number),
+
+    CONSTRAINT fk_attempt_quiz
+        FOREIGN KEY (quiz_id)
+        REFERENCES quiz(id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE quiz_student_response (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    attempt_id INTEGER NOT NULL,
+    problem_id INTEGER NOT NULL,
+
+    -- Generic answer storage for different question types
+    answer JSONB,
+
+    -- Evaluation
+    is_attempted BOOLEAN NOT NULL DEFAULT FALSE,
+
+    -- Time tracking
+    time_spent_seconds INTEGER NOT NULL DEFAULT 0,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_response_attempt
+        FOREIGN KEY (attempt_id)
+        REFERENCES quiz_attempt(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_response_problem
+        FOREIGN KEY (problem_id)
+        REFERENCES quiz_problems(id)
+        ON DELETE RESTRICT,
+
+    -- One response for a problem within one attempt
+    CONSTRAINT uq_attempt_problem
+        UNIQUE (attempt_id, problem_id)
+);
+
+CREATE TABLE quiz_student_response_mechanics (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    user_id INTEGER NOT NULL,
+    problem_id INTEGER NOT NULL,
+    mechanic_id INTEGER NOT NULL,
+
+    usage_count INTEGER NOT NULL DEFAULT 1,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_response_mechanics_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_response_mechanics_problem
+        FOREIGN KEY (problem_id)
+        REFERENCES problem(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_response_mechanics_mechanic
+        FOREIGN KEY (mechanic_id)
+        REFERENCES game_mechanics(id)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT chk_usage_count
+        CHECK (usage_count >= 0),
+
+    CONSTRAINT uq_user_problem_mechanic
+        UNIQUE (user_id, problem_id, mechanic_id)
+);

@@ -2277,3 +2277,77 @@ export const upsertQuizGameConfig = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Internal server error while saving game config" });
   }
 };
+
+// ==================== GAME MECHANICS (lifelines/powerups per quiz) ====================
+
+export const getAllGameMechanics = async (req: Request, res: Response) => {
+  try {
+    const mechanics = await quizService.getAllGameMechanics();
+    res.status(200).json({ success: true, data: mechanics });
+  } catch (error) {
+    console.error("Error fetching all game mechanics:", error);
+    res.status(500).json({ success: false, message: "Internal server error while fetching game mechanics" });
+  }
+};
+
+export const getQuizGameMechanics = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+    const mechanics = await quizService.getQuizGameMechanics(Number(quizId));
+    res.status(200).json({ success: true, data: mechanics });
+  } catch (error) {
+    console.error("Error fetching quiz game mechanics:", error);
+    res.status(500).json({ success: false, message: "Internal server error while fetching quiz game mechanics" });
+  }
+};
+
+export const upsertQuizGameMechanics = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+    const isOwner = quiz.createdby === Number(userId);
+    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), Number(quizId));
+    if (!isOwner && !isCollaborator) {
+      res.status(403).json({ success: false, message: "You are not authorized to update this quiz's game mechanics" });
+      return;
+    }
+
+    const { mechanics } = req.body;
+    if (!Array.isArray(mechanics)) {
+      res.status(400).json({ success: false, message: "mechanics must be an array" });
+      return;
+    }
+
+    for (const m of mechanics) {
+      if (typeof m.mechanicCode !== "string" || typeof m.enabled !== "boolean" || typeof m.quantity !== "number") {
+        res.status(400).json({ success: false, message: "Each mechanic must have mechanicCode (string), enabled (boolean), quantity (number)" });
+        return;
+      }
+    }
+
+    const result = await quizService.upsertQuizGameMechanics(Number(quizId), mechanics);
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error("Error upserting quiz game mechanics:", error);
+    res.status(500).json({ success: false, message: "Internal server error while saving quiz game mechanics" });
+  }
+};

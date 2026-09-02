@@ -310,4 +310,21 @@ export class QuizService {
   getDefaultGameConfig(quizId: number): any {
     return this.repository.getDefaultGameConfig(quizId);
   }
+
+  // ==================== GAME MECHANICS (lifelines/powerups per quiz) ====================
+
+  async getAllGameMechanics(): Promise<any[]> {
+    return this.repository.getAllGameMechanics();
+  }
+
+  async getQuizGameMechanics(quizId: number): Promise<any[]> {
+    return this.repository.getQuizGameMechanics(quizId);
+  }
+
+  async upsertQuizGameMechanics(
+    quizId: number,
+    mechanics: { mechanicCode: string; enabled: boolean; quantity: number }[]
+  ): Promise<any[]> {
+    return this.repository.upsertQuizGameMechanics(quizId, mechanics);
+  }
 }

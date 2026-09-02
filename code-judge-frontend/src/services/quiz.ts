@@ -1167,3 +1167,59 @@ export async function updateQuizGameConfig(
   });
   return response.data;
 }
+
+// ==================== GAME MECHANICS (lifelines/powerups per quiz) ====================
+
+export interface GameMechanicType {
+  id: number;
+  name: string;
+  code: string;
+  description: string;
+  icon: string;
+  mechanicType: string;
+  defaultQuantity: number;
+  enabled: boolean;
+}
+
+export interface QuizGameMechanic {
+  id: number;
+  quizId: number;
+  mechanicId: number;
+  name: string;
+  code: string;
+  description: string;
+  icon: string;
+  mechanicType: string;
+  enabled: boolean;
+  quantity: number;
+}
+
+/**
+ * GET /api/v1/user/quiz/game-mechanics
+ * Returns all available game mechanic types from DB.
+ */
+export async function getAllGameMechanics(): Promise<GameMechanicType[]> {
+  const response = await apiClient.get<GameMechanicType[]>("/v1/user/quiz/game-mechanics");
+  return response.data;
+}
+
+/**
+ * GET /api/v1/user/quiz/:quizId/game-mechanics
+ * Returns game mechanics configured for a specific quiz.
+ */
+export async function getQuizGameMechanics(quizId: string | number): Promise<QuizGameMechanic[]> {
+  const response = await apiClient.get<QuizGameMechanic[]>(`/v1/user/quiz/${quizId}/game-mechanics`);
+  return response.data;
+}
+
+/**
+ * PUT /api/v1/user/quiz/:quizId/game-mechanics
+ * Upsert game mechanics for a quiz. Replaces all existing mechanics.
+ */
+export async function updateQuizGameMechanics(
+  quizId: string | number,
+  mechanics: { mechanicCode: string; enabled: boolean; quantity: number }[]
+): Promise<QuizGameMechanic[]> {
+  const response = await apiClient.put<QuizGameMechanic[]>(`/v1/user/quiz/${quizId}/game-mechanics`, { mechanics });
+  return response.data;
+}

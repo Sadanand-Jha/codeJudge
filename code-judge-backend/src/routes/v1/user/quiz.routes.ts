@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
-import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema } from "../../../middleware/validate.ts";
+import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema, quizGameMechanicsSchema } from "../../../middleware/validate.ts";
 import {
   getAllQuizzes,
   getQuizById,
@@ -48,6 +48,9 @@ import {
   saveQuizProblemFull,
   getQuizGameConfig,
   upsertQuizGameConfig,
+  getAllGameMechanics,
+  getQuizGameMechanics,
+  upsertQuizGameMechanics,
 } from "../../../controllers/quiz.controller.ts";
 const router = Router();
 
@@ -103,6 +106,14 @@ router.patch("/collaborator-requests/:quizId", respondToCollaboratorRequest);
 router.get("/:quizId/game-config", getQuizGameConfig);
 // PUT /api/v1/user/quiz/:quizId/game-config — upsert (only owner/collaborator)
 router.put("/:quizId/game-config", validate(quizGameConfigSchema), upsertQuizGameConfig);
+
+// ==================== GAME MECHANICS (lifelines/powerups per quiz) ====================
+// GET /api/v1/user/quiz/game-mechanics — get all available game mechanic types
+router.get("/game-mechanics", getAllGameMechanics);
+// GET /api/v1/user/quiz/:quizId/game-mechanics — get mechanics configured for a quiz
+router.get("/:quizId/game-mechanics", getQuizGameMechanics);
+// PUT /api/v1/user/quiz/:quizId/game-mechanics — upsert mechanics for a quiz
+router.put("/:quizId/game-mechanics", validate(quizGameMechanicsSchema), upsertQuizGameMechanics);
 
 // GET /api/v1/user/quiz/:quizId — get a single quiz
 router.get("/:quizId", getQuizById);
