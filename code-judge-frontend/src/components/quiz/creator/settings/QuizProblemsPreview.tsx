@@ -475,7 +475,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
                   <div className="flex items-start gap-2">
                     <span className={`text-[11px] font-bold tabular-nums mt-0.5 ${isActive ? "text-violet-600" : "text-zinc-400"}`}>{String(realIdx + 1).padStart(2, "0")}</span>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-[13px] leading-tight line-clamp-1 ${isActive ? "font-semibold text-zinc-900" : "font-medium text-zinc-700"}`}>{q.title?.trim() || "Untitled question"}</p>
+                      <p className={`text-[13px] leading-tight line-clamp-1 ${isActive ? "font-semibold text-zinc-900" : "font-medium text-zinc-700"}`} dangerouslySetInnerHTML={{ __html: q.title?.trim() || "Untitled question" }} />
                       <p className="text-[11px] text-zinc-500 truncate">
                         {QUESTION_TYPES.find((t) => t.id === q.type)?.short || q.type} · {q.difficulty} · {q.marks} marks
                       </p>

@@ -79,38 +79,111 @@ CREATE TABLE quiz_participants (
 alter table quiz_problem_options
 add column matching_target varchar(250)
 
-CREATE TABLE quiz_game_config (
+CREATE TABLE game_mechanics (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
-    quiz_id INTEGER NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) NOT NULL UNIQUE,
 
-    -- Game enabled — default TRUE so top-down is present everywhere
+    description TEXT,
+
+    icon VARCHAR(100),
+
+    mechanic_type VARCHAR(50) NOT NULL,
+
+    default_quantity INTEGER NOT NULL DEFAULT 1,
+
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
 
-    -- Player movement
-    movement_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    movement_speed INTEGER NOT NULL DEFAULT 5,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
-    -- Player mechanics
-    lives INTEGER NOT NULL DEFAULT 3,
-    points_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    powerups_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+CREATE TABLE quiz_game_mechanics (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
-    -- Gameplay
-    respawn_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    damage_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    quiz_id INTEGER NOT NULL,
+    mechanic_id INTEGER NOT NULL,
+
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    quantity INTEGER NOT NULL DEFAULT 1,
 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_quiz_game_config_quiz
+    CONSTRAINT fk_quiz_game_mechanics_quiz
         FOREIGN KEY (quiz_id)
         REFERENCES quiz(id)
         ON DELETE CASCADE,
 
-    CONSTRAINT check_movement_speed
-        CHECK (movement_speed > 0),
+    CONSTRAINT fk_quiz_game_mechanics_mechanic
+        FOREIGN KEY (mechanic_id)
+        REFERENCES game_mechanics(id)
+        ON DELETE CASCADE,
 
-    CONSTRAINT check_lives
-        CHECK (lives >= 0)
+    CONSTRAINT uq_quiz_game_mechanic
+        UNIQUE (quiz_id, mechanic_id),
+
+    CONSTRAINT chk_quantity
+        CHECK (quantity >= 0)
+);
+
+INSERT INTO game_mechanics
+    (name, code, description, icon, mechanic_type, default_quantity)
+VALUES
+(
+    '50-50',
+    'FIFTY_FIFTY',
+    'Eliminate two incorrect options',
+    'fifty-fifty',
+    'LIFELINE',
+    2
+),
+(
+    'Extra Time',
+    'EXTRA_TIME',
+    'Add 5 additional minutes to the quiz',
+    'clock-plus',
+    'TIME',
+    1
+),
+(
+    'Hint',
+    'HINT',
+    'Get a smart hint for the current question',
+    'lightbulb',
+    'LIFELINE',
+    2
+),
+(
+    'Skip Question',
+    'SKIP_QUESTION',
+    'Skip the current question and come back later',
+    'skip-forward',
+    'NAVIGATION',
+    2
+),
+(
+    'Shield',
+    'SHIELD',
+    'Protect the next answer from negative marking',
+    'shield',
+    'PROTECTION',
+    1
+),
+(
+    'Double Score',
+    'DOUBLE_SCORE',
+    'The next correct answer awards 2x points',
+    'zap',
+    'SCORE',
+    1
+),
+(
+    'Extra Life',
+    'EXTRA_LIFE',
+    'Get one additional life',
+    'heart',
+    'LIFE',
+    1
 );

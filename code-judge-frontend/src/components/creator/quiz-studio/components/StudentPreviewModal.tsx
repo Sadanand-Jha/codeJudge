@@ -215,7 +215,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                                isAnswered && isSelected && !isThisCorrect ? <XCircle className="h-4 w-4" /> :
                                optionLabels[idx]}
                             </span>
-                            <span className="text-sm sm:text-base text-text-primary">{opt.content}</span>
+                            <span className="text-sm sm:text-base text-text-primary" dangerouslySetInnerHTML={{ __html: opt.content }} />
                             {isAnswered && isSelected && isThisCorrect && (
                               <span className="ml-auto shrink-0 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                                 Correct! Well done! 🎉

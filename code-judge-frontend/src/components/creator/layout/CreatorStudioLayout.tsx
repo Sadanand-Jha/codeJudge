@@ -42,6 +42,18 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
     );
   }
 
+  const isPreview = pathname.includes("/preview");
+
+  if (isPreview) {
+    return (
+      <div className="flex flex-1 min-h-0 bg-background h-full">
+        <main className="flex-1 min-h-0 h-full">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <AppLayout header={<CreatorNavbar onMobileMenuToggle={() => setDrawerOpen(true)} />}>
       <div className="flex flex-1 min-h-0 bg-background">

@@ -14,6 +14,8 @@ interface ExamModeShellProps {
   maxViolations?: number;
   onExitPreview: () => void;
   onTerminate?: () => void;
+  autoEnter?: boolean;
+  fullWidth?: boolean;
   children: React.ReactNode;
 }
 
@@ -24,6 +26,8 @@ export default function ExamModeShell({
   maxViolations = 3,
   onExitPreview,
   onTerminate,
+  autoEnter = false,
+  fullWidth = false,
   children,
 }: ExamModeShellProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -185,6 +189,13 @@ export default function ExamModeShell({
     };
   }, []);
 
+  // Auto-enter exam mode on mount (for preview)
+  useEffect(() => {
+    if (autoEnter && !examActive && !terminated) {
+      enterExamMode();
+    }
+  }, [autoEnter, examActive, terminated, enterExamMode]);
+
   // If examActive, render as fullscreen overlay; otherwise show entry screen
   if (!examActive) {
     return (
@@ -244,11 +255,10 @@ export default function ExamModeShell({
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-white/[0.06] px-2.5 py-1 text-xs font-mono font-semibold text-gray-900 dark:text-white">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-white/[0.06] px-2.5 py-1 text-xs font-mono font-semibold text-gray-900 dark:text-white">
             <Clock className="h-3.5 w-3.5 text-amber-400" /> {formatTime(timeLeft)}
           </span>
-          <span className={cn("font-mono text-[11px] font-bold sm:text-xs", timeLeft <= 60 ? "text-red-500" : timeLeft <= 300 ? "text-amber-500" : "text-gray-900 dark:text-white")}>{formatTime(timeLeft)}</span>
-          <span className="hidden md:inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[11px] font-semibold text-amber-400">
+          <span className="hidden md:inline-flex items-center gap-1 rounded-full border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] font-semibold text-red-400">
             Violation {violations} / {maxViolations}
           </span>
           <button onClick={exitExamMode} className="rounded-lg border border-gray-300 dark:border-white/15 bg-white dark:bg-white/[0.06] px-2 py-1 text-[11px] font-semibold text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-white/[0.10] sm:px-3 sm:py-1.5 sm:text-xs">
@@ -267,10 +277,10 @@ export default function ExamModeShell({
             transition={{ duration: 0.2 }}
             className="shrink-0 overflow-hidden"
           >
-            <div className="flex items-center justify-center gap-1.5 bg-amber-500/15 px-3 py-1.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+            <div className="flex items-center justify-center gap-1.5 bg-red-500/15 px-3 py-1.5 text-[11px] font-semibold text-red-600 dark:text-red-400">
               <AlertTriangle className="h-3 w-3 shrink-0" />
               <span className="truncate">{warning}</span>
-              <span className="ml-1 shrink-0 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold">⚠ {violations}/{maxViolations}</span>
+              <span className="ml-1 shrink-0 rounded-full bg-red-500/20 px-1.5 py-0.5 text-[9px] font-bold">⚠ {violations}/{maxViolations}</span>
             </div>
           </motion.div>
         )}
@@ -283,8 +293,8 @@ export default function ExamModeShell({
       </div>
 
       {/* Content - viewport-based on mobile, scrollable on desktop */}
-      <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden bg-gray-50 dark:bg-[#0A0A0F] p-0 sm:block sm:overflow-y-auto sm:overflow-x-hidden sm:p-4", activeViolation && "blur-[6px] pointer-events-none select-none")}>
-        <div className="mx-auto h-full min-h-0 w-full max-w-6xl sm:h-auto sm:block">{children}</div>
+      <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden bg-gray-50 dark:bg-[#0A0A0F] p-0 sm:block sm:overflow-y-auto sm:overflow-x-hidden sm:p-0", activeViolation && "blur-[6px] pointer-events-none select-none")}>
+        <div className={cn("mx-auto h-full min-h-0 w-full sm:h-full sm:block", fullWidth ? "" : "max-w-[1600px]")}>{children}</div>
       </div>
 
       {/* Violation modal */}
@@ -302,13 +312,13 @@ export default function ExamModeShell({
               exit={{ scale: 0.96, y: 8, opacity: 0 }}
               className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#14141f] p-6 shadow-2xl"
             >
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/15 text-amber-500">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-500/15 text-red-500">
                 <AlertTriangle className="h-6 w-6" />
               </div>
               <h3 className="mt-4 text-center text-base font-bold text-gray-900 dark:text-white">{activeViolation.title}</h3>
               <p className="mt-1 text-center text-sm text-gray-500 dark:text-white/70">{activeViolation.desc}</p>
               <div className="mx-auto mt-3 inline-flex w-full justify-center">
-                <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-400">Violation {violations} of {maxViolations}</span>
+                <span className="rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs font-bold text-red-400">Violation {violations} of {maxViolations}</span>
               </div>
               <p className="mt-3 text-center text-xs text-gray-500 dark:text-white/50">Your progress is preserved. Return to continue.</p>
               <button
@@ -323,19 +333,31 @@ export default function ExamModeShell({
         )}
       </AnimatePresence>
 
-      {/* Terminated modal */}
+      {/* Terminated modal — Maximum violations reached (matches preview image) */}
       <AnimatePresence>
         {terminated && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 p-4">
-            <motion.div initial={{ scale: 0.96 }} animate={{ scale: 1 }} className="w-full max-w-md rounded-2xl border border-red-500/20 bg-white dark:bg-[#1a0f0f] p-6 text-center shadow-2xl">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-500/15 text-red-500">
-                <X className="h-6 w-6" />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.96, y: 8, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.96, y: 8, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full max-w-[380px] rounded-[20px] border border-pink-500/10 dark:border-pink-500/20 bg-white dark:bg-[#14141f] p-8 text-center shadow-[0_20px_60px_rgba(236,72,153,0.18)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+            >
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-pink-500/10 dark:bg-pink-500/15">
+                <X className="h-5 w-5 text-pink-500 dark:text-pink-400 stroke-[2.5]" />
               </div>
-              <h3 className="mt-4 text-base font-bold text-gray-900 dark:text-white">Maximum violations reached</h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-white/70">This preview session has been terminated after {maxViolations} violations.</p>
-              <button onClick={exitExamMode} className="mt-5 w-full rounded-xl border border-white/15 bg-white py-2.5 text-sm font-bold text-black hover:bg-white/90">
+              <h3 className="mt-4 text-[15px] font-bold tracking-tight text-gray-900 dark:text-white">Maximum violations reached</h3>
+              <p className="mt-1.5 text-[13px] leading-5 text-gray-500 dark:text-white/70">This preview session has been terminated after {maxViolations} violations.</p>
+              <button onClick={exitExamMode} className="mt-6 w-full rounded-xl bg-pink-500 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(236,72,153,0.35)] hover:bg-pink-600 transition-colors">
                 Exit Preview
               </button>
+              <p className="mt-2 text-[11px] text-pink-500/60 dark:text-pink-400/60">Preview ended due to policy violation</p>
             </motion.div>
           </motion.div>
         )}

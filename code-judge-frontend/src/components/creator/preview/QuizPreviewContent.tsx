@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Clock,
@@ -10,86 +11,193 @@ import {
   Users,
   Eye,
   X,
-  Moon,
-  Share2,
   Bookmark,
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Loader2,
+  AlertCircle,
+  Send,
+  Trophy,
+  Timer,
+  Copy,
+  Flag,
+  ChevronUp,
+  ChevronDown,
+  BookOpen as BookOpenIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { getQuizById, getQuizProblems } from "@/services/quiz";
+import type { Quiz, QuizProblem } from "@/services/quiz";
 import ExamModeShell from "@/components/quiz/exam/ExamModeShell";
 
-const DUMMY_QUIZ = {
-  name: "Sample Quiz – Preview",
-  code: "PREVIEW1234567890",
-  duration: 30,
-  total_marks: 100,
-  passing_marks: 40,
-  status: "Published",
-  questions: 3,
-  attempts: 1,
-  visibility: "Public",
-  negative: "-0.25",
+/* ── Types ── */
+
+type QuestionType =
+  | "single_choice"
+  | "multiple_choice"
+  | "true_false"
+  | "fill_blanks"
+  | "text"
+  | "integer"
+  | "paragraph"
+  | "match_following";
+
+interface PreviewQuestion {
+  id: number;
+  q: string;
+  type: QuestionType;
+  options: { label: string; text: string; correct: boolean }[];
+  marks: number;
+  difficulty: string;
+  explanation: string;
+  questionNumber: number;
+}
+
+/* ── Constants ── */
+
+const TYPE_MAP: Record<number, QuestionType> = {
+  1: "single_choice",
+  2: "multiple_choice",
+  3: "true_false",
+  4: "text",
+  5: "integer",
+  6: "fill_blanks",
+  7: "paragraph",
+  12: "match_following",
 };
 
-const QUESTIONS = [
-  {
-    id: 1,
-    q: "What does HTML stand for?",
-    options: [
-      { label: "A", text: "HyperText Markup Language", correct: true },
-      { label: "B", text: "HighText Machine Language", correct: false },
-      { label: "C", text: "HyperTool Multi Language", correct: false },
-      { label: "D", text: "HyperText Markdown Language", correct: false },
-    ],
-    marks: 10,
-    difficulty: "Easy",
-    explanation: "HyperText Markup Language is the standard markup language for creating web pages.",
-  },
-  {
-    id: 2,
-    q: "Which CSS property controls text size?",
-    options: [
-      { label: "A", text: "font-size", correct: true },
-      { label: "B", text: "text-size", correct: false },
-      { label: "C", text: "font-style", correct: false },
-      { label: "D", text: "text-style", correct: false },
-    ],
-    marks: 10,
-    difficulty: "Easy",
-    explanation: "font-size controls the size of text.",
-  },
-  {
-    id: 3,
-    q: "Explain the difference between let and var in JavaScript.",
-    options: [],
-    marks: 10,
-    difficulty: "Medium",
-    explanation: "let is block-scoped, var is function-scoped.",
-  },
-];
+function isChoiceType(type: QuestionType): boolean {
+  return type === "single_choice" || type === "multiple_choice" || type === "true_false";
+}
+
+function decodeHtml(str: string): string {
+  if (!str) return "";
+  if (typeof document === "undefined") return str;
+  try {
+    const txt = document.createElement("textarea");
+    txt.innerHTML = str;
+    return txt.value;
+  } catch {
+    return str;
+  }
+}
 
 const MECHANICS = [
-  { icon: "◐", title: "50–50", desc: "Eliminate 2 wrong options", left: "2 left" },
-  { icon: "◑", title: "Extra Time", desc: "+5 minutes", left: "1 left" },
-  { icon: "💡", title: "Hint", desc: "Get a smart hint", left: "2 left" },
-  { icon: "⏭", title: "Skip Question", desc: "Skip and come back later", left: "2 left" },
-  { icon: "🛡", title: "Shield", desc: "Protect from negative marking", left: "1 left" },
-  { icon: "⚡", title: "Double Score", desc: "Next correct answer = 2x", left: "1 left" },
-  { icon: "❤", title: "Extra Life", desc: "Get 1 extra life", left: "1 left" },
+  { icon: "50:50", title: "50 - 50", desc: "Eliminate 2 wrong options", left: "2 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  { icon: "⏰", title: "Extra Time", desc: "+5 minutes", left: "1 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  { icon: "💡", title: "Hint", desc: "Get a smart hint", left: "2 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  { icon: "⏭", title: "Skip Question", desc: "Skip and come back later", left: "2 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  { icon: "🛡", title: "Shield", desc: "Protect from negative marking", left: "1 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  { icon: "2x", title: "Double Score", desc: "Next correct answer = 2x", left: "1 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  { icon: "❤", title: "Extra Life", desc: "Get 1 extra life", left: "1 left", color: "bg-pink-50 border border-pink-200 text-pink-600" },
 ];
 
+/* ── Component ── */
+
 export default function QuizPreviewContent({ quizId }: { quizId: string }) {
+  const router = useRouter();
+  const onExitPreview = useCallback(() => router.push("/creator/quizzes"), [router]);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [marked, setMarked] = useState<Record<number, boolean>>({});
   const [selectedMechanic, setSelectedMechanic] = useState<number | null>(null);
   const [usedMechanics, setUsedMechanics] = useState<Record<number, boolean>>({});
-  const [timeLeft, setTimeLeft] = useState(DUMMY_QUIZ.duration * 60);
-  const q = QUESTIONS[current];
+  const [fiftyFiftyMap, setFiftyFiftyMap] = useState<Record<number, string[]>>({});
+  const [timeLeft, setTimeLeft] = useState(30 * 60);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [questions, setQuestions] = useState<PreviewQuestion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [explanationOpen, setExplanationOpen] = useState(false);
 
-  // Live countdown
+  /* Fetch quiz + problems */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [quizData, problemsData] = await Promise.all([
+          getQuizById(quizId),
+          getQuizProblems(quizId).catch(() => [] as QuizProblem[]),
+        ]);
+        if (cancelled) return;
+        setQuiz(quizData);
+        let mapped = problemsData.map((p, idx) => ({
+          id: p.id,
+          q: decodeHtml(p.problem_statement),
+          type: TYPE_MAP[p.quiz_problem_type ?? 1] ?? "single_choice",
+          options: p.options.map((o, oi) => ({
+            label: String.fromCharCode(65 + oi),
+            text: decodeHtml(o.option_statement),
+            correct: o.iscorrect,
+          })),
+          marks: (p as QuizProblem & { marks?: number }).marks ?? 10,
+          difficulty: p.difficulty_name ?? "Medium",
+          explanation: decodeHtml(p.explaination ?? ""),
+          questionNumber: p.question_number ?? idx + 1,
+        }));
+        if (mapped.length === 0) {
+          mapped = [
+            {
+              id: 1,
+              q: "What does HTML stand for?",
+              type: "single_choice",
+              options: [
+                { label: "A", text: "HyperText Markup Language", correct: true },
+                { label: "B", text: "HighText Machine Language", correct: false },
+                { label: "C", text: "HyperTool Multi Language", correct: false },
+                { label: "D", text: "HyperText Markdown Language", correct: false },
+              ],
+              marks: 10,
+              difficulty: "Easy",
+              explanation: "HyperText Markup Language is the standard markup language for creating web pages.",
+              questionNumber: 1,
+            },
+            {
+              id: 2,
+              q: "Which CSS property controls text size?",
+              type: "single_choice",
+              options: [
+                { label: "A", text: "font-size", correct: true },
+                { label: "B", text: "text-size", correct: false },
+                { label: "C", text: "font-style", correct: false },
+                { label: "D", text: "text-style", correct: false },
+              ],
+              marks: 10,
+              difficulty: "Easy",
+              explanation: "font-size controls the size of text.",
+              questionNumber: 2,
+            },
+            {
+              id: 3,
+              q: "Explain the difference between let and var in JavaScript.",
+              type: "single_choice",
+              options: [],
+              marks: 10,
+              difficulty: "Medium",
+              explanation: "let is block-scoped, var is function-scoped.",
+              questionNumber: 3,
+            },
+          ];
+        }
+        setQuestions(mapped);
+        const dur = (quizData.duration ?? 30) * 60;
+        setTimeLeft(dur);
+      } catch (err) {
+        if (!cancelled) setError("Failed to load quiz preview. Please try again.");
+        console.error("Quiz preview fetch error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [quizId]);
+
+  /* Live countdown */
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((t) => (t > 0 ? t - 1 : 0));
@@ -97,347 +205,342 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
     return () => clearInterval(timer);
   }, []);
 
+  const totalMarks = useMemo(() => questions.reduce((s, q) => s + q.marks, 0), [questions]);
+  const durationSec = (quiz?.duration ?? 30) * 60;
+  const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")} : ${(s % 60).toString().padStart(2, "0")}`;
+  const timerProgress = durationSec > 0 ? (timeLeft / durationSec) * 100 : 0;
+
+  const getNavigatorClass = (question: PreviewQuestion, idx: number) => {
+    if (idx === current) return "bg-pink-500 text-white shadow-sm";
+    if (marked[question.id]) return "bg-amber-500 text-white";
+    if (answers[question.id]) return "bg-emerald-500 text-white";
+    return "bg-white text-gray-500 border border-gray-200 hover:border-gray-300";
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-[100dvh] w-full flex-col items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
+        <p className="mt-3 text-sm text-gray-400">Loading quiz preview...</p>
+      </div>
+    );
+  }
+
+  if (error || !quiz) {
+    return (
+      <div className="flex h-[100dvh] w-full flex-col items-center justify-center bg-white">
+        <AlertCircle className="h-8 w-8 text-red-500" />
+        <p className="mt-3 text-sm text-red-500">{error ?? "Quiz not found."}</p>
+        <Link href="/creator/quizzes" className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100">
+          <ArrowLeft className="h-3 w-3" /> Back to Studio
+        </Link>
+      </div>
+    );
+  }
+
+  const q = questions[current];
+
   return (
-    <div className="flex h-[100dvh] h-[100svh] w-full flex-col overflow-hidden bg-background text-text-primary sm:min-h-screen sm:h-auto sm:overflow-visible" style={{ paddingTop: "env(safe-area-inset-top)", paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)", paddingBottom: "env(safe-area-inset-bottom)" }}>
-      {/* Top bar — compact on mobile */}
-      <div className="flex h-[clamp(2.5rem,7dvh,3rem)] shrink-0 items-center justify-between border-b border-border bg-card/90 px-[clamp(0.5rem,2vw,1rem)] backdrop-blur sm:px-4" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-gradient-to-br from-violet-600 to-pink-600">
-              <span className="text-xs font-bold text-white">{"</>"}</span>
+    <ExamModeShell
+      quizName={quiz.name}
+      progressLabel={`${current + 1} / ${questions.length}`}
+      timeLeft={timeLeft}
+      onExitPreview={onExitPreview}
+      autoEnter
+      fullWidth
+    >
+      <div className="flex h-full w-full flex-col overflow-hidden bg-[#f5f7fb] text-gray-900">
+      {/* ── MAIN GRID ── */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[clamp(350px,27.5vw,450px)_minmax(0,1fr)_clamp(325px,27.5vw,425px)] gap-3 p-3 overflow-hidden">
+        {/* LEFT */}
+        <aside className="hidden lg:flex flex-col gap-3 min-h-0 overflow-hidden order-1">
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex flex-col flex-1 min-h-0">
+            <div className="flex items-center gap-2 mb-2 shrink-0">
+              <span className="text-pink-500 text-base">◆</span>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Game Mechanics</h3>
             </div>
-            <span className="text-sm font-bold tracking-tight">
-              Code<span className="text-pink-500">Judge</span>
-            </span>
-          </div>
-        </div>
-        <div className="hidden sm:flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs">
-          <span className="flex items-center gap-1.5 rounded-full bg-pink-500/10 px-2 py-0.5 text-[11px] font-semibold text-pink-600 dark:text-pink-400">
-            <Eye className="h-3 w-3" /> Preview Mode
-          </span>
-          <span className="text-text-muted">You are viewing as a student. No data is saved.</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="hidden sm:flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card">
-            <Moon className="h-3.5 w-3.5" />
-          </button>
-          <Link href={`/creator/quizzes/${quizId}/edit`} className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold hover:bg-card-hover">
-            <Share2 className="h-3.5 w-3.5" /> Share Quiz
-          </Link>
-          <Link href="/creator/quizzes" className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card hover:bg-card-hover">
-            <X className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-center gap-1 bg-amber-500/10 px-2 py-0.5 text-[9px] font-medium text-amber-600/80 dark:text-amber-400/70">
-        <span className="h-1 w-1 rounded-full bg-amber-500/60 animate-pulse" />
-        Tab switching &amp; window changes are monitored during exam
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain pb-[env(safe-area-inset-bottom)] sm:overflow-visible sm:pb-0">
-      {/* Title + banner — backend banner folder (image only here, not whole page) */}
-      <div className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0">
-          <img src="/images/quiz/banner/light.png" alt="" className="h-full w-full object-cover block dark:hidden" />
-          <img src="/images/quiz/banner/dark.png" alt="" className="h-full w-full object-cover hidden dark:block" />
-          <div className="absolute inset-0 bg-white/65 dark:bg-black/55 backdrop-blur-[0.5px]" />
-        </div>
-        <div className="relative px-3 py-3 sm:px-6 sm:py-5">
-          <Link href="/creator/quizzes" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-semibold hover:bg-card-hover sm:px-3 sm:py-1.5 sm:text-xs">
-            <ArrowLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Back to Studio
-          </Link>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:mt-3 sm:gap-2">
-            <h1 className="text-sm font-bold leading-tight sm:text-[clamp(1.125rem,4vw,1.5rem)]">{DUMMY_QUIZ.name}</h1>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 sm:px-2 sm:text-[11px]">
-              <span className="h-1 w-1 rounded-full bg-emerald-500 sm:h-1.5 sm:w-1.5" /> Published
-            </span>
-          </div>
-          <p className="mt-0.5 text-[11px] text-gray-600 dark:text-white/70 sm:mt-1 sm:text-xs">
-            {DUMMY_QUIZ.questions} Q &nbsp;•&nbsp; {DUMMY_QUIZ.duration} min &nbsp;•&nbsp; {DUMMY_QUIZ.total_marks} Marks
-          </p>
-
-          <div className="mt-3 hidden grid-cols-2 gap-2 sm:mt-4 sm:grid sm:grid-cols-3 lg:grid-cols-6">
-            {[
-              { label: "Questions", value: "3", sub: "Total", icon: BookOpen },
-              { label: "Duration", value: "30 min", sub: "Time Limit", icon: Clock },
-              { label: "Total Marks", value: "100", sub: "Pass Marks: 40", icon: Target },
-              { label: "Visibility", value: "Public", sub: "Medium", icon: Users },
-              { label: "Attempts", value: "1", sub: "Allowed", icon: Users },
-              { label: "Negative Marking", value: "−0.25", sub: "Per wrong answer", icon: Target },
-            ].map((s) => (
-              <div key={s.label} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500/10 text-pink-600 dark:text-pink-400">
-                  <s.icon className="h-3.5 w-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-wider text-text-muted">{s.label}</p>
-                  <p className="text-sm font-bold">{s.value}</p>
-                  <p className="text-[10px] text-text-muted">{s.sub}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Main 3 col — wrapped in reusable ExamMode for fullscreen + violation handling */}
-      <ExamModeShell quizName={DUMMY_QUIZ.name} progressLabel={`Q ${current + 1} / ${QUESTIONS.length}`} timeLeft={timeLeft} maxViolations={3} onExitPreview={() => {}}>
-        <div className="mx-auto flex h-full min-h-0 max-w-[1400px] flex-col gap-[clamp(0.5rem,0.8dvh,0.75rem)] overflow-hidden p-[clamp(0.5rem,1.5vw,1rem)] sm:grid sm:h-auto sm:min-h-0 sm:max-h-none sm:grid-cols-[260px_1fr_300px] sm:gap-4 sm:p-4 sm:overflow-visible">
-        {/* Left — hidden on mobile, visible on desktop */}
-        <div className="hidden min-h-0 flex-col space-y-2 overflow-y-auto overscroll-contain rounded-xl sm:order-1 sm:flex sm:max-h-none sm:overflow-visible sm:space-y-3">
-          <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
-            <h3 className="flex items-center gap-1.5 text-[11px] font-bold sm:text-xs">
-              <span className="text-pink-500">◈</span> Game Mechanics
-            </h3>
-            <p className="mt-0.5 hidden text-[10px] text-text-muted sm:block">Use strategically to boost your score!</p>
-            <div className="mt-2 grid grid-cols-2 gap-1.5 sm:mt-3 sm:gap-2 sm:grid-cols-1">
-              {MECHANICS.map((m) => (
-                <div key={m.title} className="flex items-center gap-1.5 rounded-lg border border-border bg-card-hover/50 px-1.5 py-1.5 sm:gap-2 sm:px-2 sm:py-2">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-card text-[11px] sm:h-7 sm:w-7 sm:text-xs">{m.icon}</div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold sm:text-xs">{m.title}</p>
-                    <p className="hidden text-[10px] text-text-muted sm:block">{m.desc}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-card px-1 py-0.5 text-[9px] font-bold border border-border sm:px-1.5 sm:text-[10px]">{m.left}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="hidden rounded-xl border border-border bg-card p-2 sm:block sm:p-3">
-            <h4 className="flex items-center gap-1.5 text-xs font-bold">Quiz Rules</h4>
-            <ul className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-text-muted">
-              <li>• Answer all questions before time runs out.</li>
-              <li>• Negative marking is applicable.</li>
-              <li>• Game mechanics can help you maximize your score.</li>
-              <li>• All the best! ✦</li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Center — mobile first, viewport-aware */}
-        <div className="order-1 flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-pink-500/20 bg-card p-2.5 sm:order-2 sm:p-4 sm:min-h-0 sm:overflow-visible sm:flex-none">
-          {/* Progress + Navigator — mobile only, at top */}
-          <div className="mb-2 shrink-0 space-y-1.5 sm:hidden">
-            {/* Progress bar */}
-            <div className="flex items-center gap-2">
-              <div className="h-1 flex-1 overflow-hidden rounded-full bg-border">
-                <div className="h-full rounded-full bg-pink-500 transition-all" style={{ width: `${(Object.keys(answers).length / QUESTIONS.length) * 100}%` }} />
-              </div>
-              <span className="text-[10px] font-bold text-text-muted">{Object.keys(answers).length}/{QUESTIONS.length}</span>
-            </div>
-            {/* Navigator dots */}
-            <div className="flex items-center gap-1.5">
-              {QUESTIONS.map((_, i) => (
+            <p className="text-xs text-gray-400 mb-4 leading-tight shrink-0">Use lifelines strategically to maximize your score.</p>
+            <div className="space-y-3 flex-1 flex flex-col justify-between py-1 overflow-hidden">
+              {MECHANICS.map((m, i) => (
                 <button
-                  key={i}
-                  onClick={() => setCurrent(i)}
-                  className={cn("flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold", i === current ? "bg-pink-500 text-white" : answers[QUESTIONS[i].id] ? "bg-emerald-500 text-white" : "border border-border bg-card text-text-muted")}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex shrink-0 items-center justify-between">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-600 sm:px-2 sm:text-[10px]">{q.difficulty}</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-bold text-violet-600 sm:px-2 sm:py-1 sm:text-[11px]">{q.marks} Marks</span>
-              <Bookmark className="h-3.5 w-3.5 text-text-muted sm:h-4 sm:w-4" />
-            </div>
-          </div>
-
-          <h2 className="mt-2.5 shrink-0 text-[clamp(0.8125rem,3.2vw,1rem)] font-semibold leading-snug break-words sm:mt-4">{q.q}</h2>
-
-          <div className="flex-1 min-h-0 mt-2 space-y-1.5 overflow-y-auto overscroll-contain pr-1 sm:mt-4 sm:flex-none sm:min-h-0 sm:max-h-[45dvh] sm:space-y-2 sm:overflow-visible sm:pr-0">
-            {q.options.map((o) => {
-              const active = answers[q.id] === o.label;
-              return (
-                <button
-                  key={o.label}
-                  onClick={() => setAnswers((p) => ({ ...p, [q.id]: o.label }))}
+                  key={m.title}
+                  onClick={() => setSelectedMechanic(i)}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2.5 text-left text-sm transition-colors sm:gap-3 sm:px-3 sm:py-3",
-                    active ? "border-pink-500 bg-pink-500/10" : "border-border bg-card hover:border-pink-500/30"
+                    "w-full flex items-center gap-3 rounded-xl border px-4 py-4 text-left transition-all",
+                    usedMechanics[i] && i !== 0
+                      ? "border-emerald-200 bg-emerald-50"
+                      : fiftyFiftyMap[questions[current]?.id || -1] && i === 0
+                      ? "border-pink-300 bg-pink-50"
+                      : "border-gray-200 bg-white hover:border-pink-200 hover:bg-pink-50/50"
                   )}
                 >
-                  <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold sm:h-7 sm:w-7 sm:text-xs", active ? "bg-pink-500 text-white" : "bg-card border border-border")}>
-                    {o.label}
-                  </span>
-                  <span className="flex-1 text-xs sm:text-sm">{o.text}</span>
+                  <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-base font-bold", m.color)}>{m.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 leading-none">{m.title}</p>
+                    <p className="text-xs text-gray-400 leading-tight truncate">{m.desc}</p>
+                  </div>
+                  <span className={cn("shrink-0 rounded-full px-3 py-1 text-xs font-bold", usedMechanics[i] ? "bg-emerald-100 text-emerald-600" : "bg-pink-100 text-pink-600")}>{m.left}</span>
                 </button>
-              );
-            })}
-
-            <div className="mt-2 rounded-xl border border-violet-500/20 bg-violet-500/10 p-2.5 dark:bg-[#1e1a3a] sm:mt-4 sm:p-3">
-              <p className="text-[11px] font-bold text-violet-600 dark:text-violet-300 sm:text-xs">Explanation</p>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-text-muted sm:text-xs">{q.explanation}</p>
+              ))}
             </div>
           </div>
-
-          <div className="shrink-0 border-t border-border pt-2 pb-[env(safe-area-inset-bottom)] sm:mt-4 sm:pt-4 sm:pb-4">
-            <div className="flex items-center justify-between gap-1.5 sm:gap-2">
-              <div className="flex gap-1.5 sm:gap-2">
-                <button onClick={() => setCurrent((c) => Math.max(0, c - 1))} disabled={current === 0} className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] font-semibold hover:bg-card-hover disabled:opacity-40 sm:px-3 sm:py-2 sm:text-xs">
-                  <ChevronLeft className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Previous
-                </button>
-                <button onClick={() => setMarked((m) => ({ ...m, [q.id]: !m[q.id] }))} className={cn("inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold sm:px-3 sm:py-2 sm:text-xs", marked[q.id] ? "border-amber-500 bg-amber-500 text-white" : "border-border bg-card hover:bg-card-hover")}>
-                  <Bookmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> <span className="hidden sm:inline">Mark for Review</span><span className="sm:hidden">Mark</span>
-                </button>
-              </div>
-              <button onClick={() => setCurrent((c) => Math.min(QUESTIONS.length - 1, c + 1))} disabled={current === QUESTIONS.length - 1} className="inline-flex items-center gap-1 rounded-lg bg-pink-500 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-pink-600 disabled:opacity-40 sm:px-4 sm:py-2 sm:text-xs">
-                Next <ChevronRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              </button>
-            </div>
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 shrink-0">
+            <h4 className="text-xs font-bold text-gray-900 mb-2">Quiz Rules</h4>
+            <ul className="space-y-1.5">
+              {["Answer all questions before time runs out.", "Negative marking is applicable.", "Game mechanics can help you maximize your score.", "All the best! ✦"].map((rule) => (
+                <li key={rule} className="flex items-start gap-2 text-[11px] text-gray-500 leading-relaxed">
+                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500" />
+                  {rule}
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
+        </aside>
 
-        {/* Mechanic icons — mobile only, between question and sidebar */}
-        <div className="order-2 flex shrink-0 items-center gap-1 overflow-x-auto overscroll-contain rounded-xl border border-border bg-card px-2 py-1.5 sm:order-none sm:hidden">
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-pink-500" />
-          {MECHANICS.map((m, i) => (
-            <button
-              key={m.title}
-              onClick={() => setSelectedMechanic(i)}
-              className={cn(
-                "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-sm transition-colors",
-                usedMechanics[i]
-                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-500"
-                  : "border-border bg-card hover:border-pink-500/40 hover:bg-pink-500/5"
-              )}
-              title={m.title}
-            >
-              {m.icon}
-            </button>
-          ))}
-        </div>
-
-        {/* Right — compact, not pushing viewport */}
-        <div className="order-3 flex min-h-0 shrink-0 flex-col space-y-1.5 overflow-y-auto overscroll-contain rounded-xl sm:order-3 sm:max-h-none sm:space-y-3 sm:overflow-visible">
-          {/* Timer — hidden on mobile (shown in ExamModeShell header) */}
-          <div className="hidden rounded-xl border border-border bg-card p-4 sm:block">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="flex items-center gap-1.5 text-xs font-bold">
-                  <Clock className="h-3.5 w-3.5 text-amber-500" /> Time Left
-                </p>
-                <p className={cn("mt-1 font-mono text-xl font-bold", timeLeft <= 60 ? "text-red-500" : timeLeft <= 300 ? "text-amber-500" : "")}>{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}</p>
-              </div>
-              <div className="relative h-14 w-14">
-                <div className="absolute inset-0 rounded-full border-[3px] border-border" />
-                <div className="absolute inset-0 rounded-full border-[3px] border-pink-500" style={{ clipPath: `inset(0 0 0 ${100 - (timeLeft / (DUMMY_QUIZ.duration * 60)) * 100}%)` }} />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="h-2 w-2 rounded-full bg-pink-500" />
+        {/* CENTER */}
+        <main className="flex flex-col min-h-0 order-1 lg:order-2 overflow-hidden">
+          <div className="flex-1 min-h-0 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden p-5">
+            {q && (
+              <>
+                <div className="flex items-center justify-between shrink-0">
+                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-[11px] font-bold text-emerald-600">{q.difficulty}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-pink-50 border border-pink-200 px-3 py-1 text-[11px] font-bold text-pink-600">{q.marks} Marks</span>
+                    <button className="text-gray-300 hover:text-pink-500 transition-colors">
+                      <Bookmark className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+                <h2 className="text-[18px] lg:text-[20px] font-semibold text-gray-900 mt-4 leading-snug" dangerouslySetInnerHTML={{ __html: q.q || "Untitled question" }} />
+                <div className="mt-4 space-y-2 flex-1 min-h-0 overflow-y-auto pr-1">
+                  {fiftyFiftyMap[q.id] && (
+                    <div className="flex items-center gap-1.5 rounded-lg border border-pink-200 bg-pink-50 px-3 py-2 text-[11px] font-medium text-pink-600">
+                      <span className="text-xs">◐</span> 50–50 active — 2 options shown (preview only)
+                    </div>
+                  )}
+                  {isChoiceType(q.type) ? (
+                    (() => {
+                      const visibleOptions = fiftyFiftyMap[q.id] ? q.options.filter((o) => fiftyFiftyMap[q.id].includes(o.label)) : q.options;
+                      return visibleOptions.map((o) => {
+                        const active = answers[q.id] === o.label;
+                        return (
+                          <button
+                            key={o.label}
+                            onClick={() => setAnswers((p) => ({ ...p, [q.id]: o.label }))}
+                            className={cn(
+                              "w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all min-h-[56px]",
+                              active ? "border-pink-300 bg-pink-50 shadow-[0_0_0_2px_rgba(236,72,153,0.08)]" : "border-gray-200 bg-white hover:border-pink-200 hover:bg-pink-50/30"
+                            )}
+                          >
+                            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold border", active ? "bg-pink-500 text-white border-pink-500" : "bg-pink-50 text-pink-600 border-pink-200")}>{o.label}</span>
+                            <span className="flex-1 text-sm text-gray-700" dangerouslySetInnerHTML={{ __html: o.text }} />
+                          </button>
+                        );
+                      });
+                    })()
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-400 font-medium">Type your answer below:</p>
+                      <input type="text" value={answers[q.id] ?? ""} onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))} placeholder="Enter your answer..." className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-300 focus:border-pink-300 focus:outline-none focus:ring-2 focus:ring-pink-100" />
+                    </div>
+                  )}
+                  <div className="rounded-xl border border-pink-200 bg-pink-50/40 overflow-hidden mt-2">
+                    <button onClick={() => setExplanationOpen((o) => !o)} className="flex w-full items-center gap-2 px-4 py-3 text-left h-[46px]">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white border border-pink-200 text-pink-600">
+                        <BookOpenIcon className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="flex-1 text-sm font-medium text-gray-900">Explanation</span>
+                      {explanationOpen ? <ChevronUp className="h-4 w-4 text-pink-400" /> : <ChevronDown className="h-4 w-4 text-pink-300" />}
+                    </button>
+                    {explanationOpen && (
+                      <div className="border-t border-pink-200 px-4 py-3 bg-white max-h-[120px] overflow-y-auto">
+                        <p className="text-sm text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: q.explanation }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-4 mt-auto border-t border-gray-100 shrink-0">
+                  <div className="flex gap-3">
+                    <button onClick={() => setCurrent((c) => Math.max(0, c - 1))} disabled={current === 0} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-30">
+                      <ChevronLeft className="h-5 w-5" /> Previous
+                    </button>
+                    <button onClick={() => setMarked((m) => ({ ...m, [q.id]: !m[q.id] }))} className={cn("inline-flex items-center gap-2 rounded-lg border px-6 py-3 text-sm font-semibold", marked[q.id] ? "border-amber-300 bg-amber-50 text-amber-600" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50")}>
+                      <Eye className="h-5 w-5" /> Mark for Review
+                    </button>
+                  </div>
+                  <button onClick={() => setCurrent((c) => Math.min(questions.length - 1, c + 1))} disabled={current === questions.length - 1} className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 px-7 py-3 text-sm font-bold text-white shadow-md disabled:opacity-30">
+                    Next <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          {/* Mobile mechanics */}
+          <div className="lg:hidden mt-3 flex items-center gap-2 overflow-x-auto p-2 bg-white border border-gray-200 rounded-xl">
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-pink-500 ml-1" />
+            {MECHANICS.map((m, i) => (
+              <button key={m.title} onClick={() => setSelectedMechanic(i)} className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs", usedMechanics[i] ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-gray-200 bg-white")}>
+                {m.icon}
+              </button>
+            ))}
+          </div>
+        </main>
+
+        {/* RIGHT */}
+        <aside className="hidden lg:flex flex-col gap-3 min-h-0 overflow-hidden order-3">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 h-[92px] shrink-0 flex items-center justify-between">
+            <div>
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                <Timer className="h-3.5 w-3.5" /> Time Left
+              </p>
+              <p className="mt-1 font-mono text-2xl font-bold text-pink-600">{formatTime(timeLeft)}</p>
+            </div>
+            <div className="relative h-16 w-16 shrink-0">
+              <svg className="h-16 w-16 -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="#fce7f3" strokeWidth="4" />
+                <circle cx="32" cy="32" r="28" fill="none" stroke="url(#timerGrad)" strokeWidth="4" strokeDasharray={`${2 * Math.PI * 28}`} strokeDashoffset={`${2 * Math.PI * 28 * (1 - timerProgress / 100)}`} strokeLinecap="round" />
+                <defs>
+                  <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#ec4899" />
+                    <stop offset="100%" stopColor="#f43f5e" />
+                  </linearGradient>
+                </defs>
+              </svg>
             </div>
           </div>
-
-          {/* Progress — compact on mobile */}
-          <div className="hidden rounded-xl border border-border bg-card p-2 sm:block sm:p-3">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 h-[68px] shrink-0">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold sm:text-xs">Progress</p>
-              <p className="text-[10px] text-text-muted sm:text-xs">{Object.keys(answers).length}/{QUESTIONS.length}</p>
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Progress</p>
+              <p className="text-xs text-gray-500">
+                {Object.keys(answers).length} / {questions.length}
+              </p>
             </div>
-            <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-border">
-              <div className="h-full rounded-full bg-pink-500 transition-all" style={{ width: `${(Object.keys(answers).length / QUESTIONS.length) * 100}%` }} />
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
+              <div className="h-full rounded-full bg-gradient-to-r from-pink-500 to-rose-500 transition-all" style={{ width: `${questions.length ? (Object.keys(answers).length / questions.length) * 100 : 0}%` }} />
             </div>
           </div>
-
-          {/* Question Navigator — compact */}
-          <div className="hidden rounded-xl border border-border bg-card p-2 sm:block sm:p-3">
-            <p className="flex items-center gap-1.5 text-[11px] font-bold sm:text-xs">
-              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-pink-500/15 text-pink-500 sm:h-5 sm:w-5">○</span> Navigator
+          <div className="rounded-xl border border-gray-200 bg-white p-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider shrink-0">
+              <span className="h-2 w-2 rounded-full bg-pink-500" /> Question Navigator
             </p>
-            <div className="mt-2 grid grid-cols-3 gap-1.5 sm:mt-3 sm:gap-2">
-              {QUESTIONS.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrent(i)}
-                  className={cn("flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-bold sm:h-9 sm:w-9 sm:rounded-xl sm:text-sm", i === current ? "bg-pink-500 text-white" : answers[QUESTIONS[i].id] ? "bg-emerald-500 text-white" : "border border-border bg-card text-text-muted")}
-                >
+            <div className="mt-3 grid grid-cols-5 gap-1.5">
+              {questions.map((question, i) => (
+                <button key={i} onClick={() => setCurrent(i)} className={cn("flex h-9 w-full items-center justify-center rounded-lg text-xs font-bold", getNavigatorClass(question, i))}>
                   {i + 1}
                 </button>
               ))}
             </div>
-            <div className="mt-2 hidden space-y-1 text-[10px] sm:mt-3 sm:space-y-1.5 sm:text-[11px]">
-              <p className="flex items-center gap-1.5 text-text-muted">
-                <span className="h-2 w-2 rounded-full bg-border" /> Not Visited
+            <div className="mt-3 grid grid-cols-2 gap-1.5 text-[10px] shrink-0">
+              <p className="flex items-center gap-1.5 text-gray-500">
+                <span className="h-2 w-2 rounded-full bg-pink-500" /> Current
               </p>
-              <p className="flex items-center gap-1.5 text-text-muted">
-                <span className="h-2 w-2 rounded-full bg-blue-500" /> Visited
-              </p>
-              <p className="flex items-center gap-1.5 text-text-muted">
+              <p className="flex items-center gap-1.5 text-gray-500">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" /> Answered
               </p>
-              <p className="flex items-center gap-1.5 text-text-muted">
-                <span className="h-2 w-2 bg-amber-500" /> Marked
+              <p className="flex items-center gap-1.5 text-gray-500">
+                <span className="h-2 w-2 rounded-full bg-gray-200 border border-gray-300" /> Not Answered
+              </p>
+              <p className="flex items-center gap-1.5 text-gray-500">
+                <span className="h-2 w-2 rounded-full bg-amber-500" /> Marked
               </p>
             </div>
           </div>
+          <Link href="/creator/quizzes" className="rounded-xl border border-pink-200 overflow-hidden bg-white shrink-0 block hover:shadow-md transition-shadow">
+            <img src="/images/quiz/banner/preview_submit.png" alt="Preview Mode" className="w-full h-auto object-cover" />
+          </Link>
+        </aside>
+      </div>
 
-          <button className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-pink-500 bg-pink-500/10 py-2.5 text-xs font-bold text-pink-600 hover:bg-pink-500 hover:text-white dark:text-pink-400 sm:py-3 sm:text-sm">
-            <span className="h-3.5 w-3.5 sm:h-4 sm:w-4">↗</span> Submit Quiz
-          </button>
-          <p className="hidden text-center text-[11px] text-text-muted sm:block">You can review before submitting</p>
+      {/* ── FOOTER 46px ── */}
+      <footer className="h-[46px] shrink-0 flex items-center justify-between border-t border-gray-200 bg-white px-4 gap-2">
+        <div className="flex items-center gap-4 lg:gap-6 text-[11px] text-gray-400 overflow-hidden">
+          <span className="flex items-center gap-1.5 whitespace-nowrap">
+            Quiz ID: <span className="font-mono text-gray-600">{quiz.code}</span>
+            <Copy className="h-3 w-3 cursor-pointer text-gray-300 hover:text-gray-500" />
+          </span>
+          <span className="hidden sm:flex items-center gap-1.5 whitespace-nowrap">
+            <Target className="h-3 w-3 text-pink-500" /> Total Marks: <span className="text-gray-700 font-semibold">{totalMarks}</span>
+          </span>
+          <span className="hidden md:flex items-center gap-1.5 whitespace-nowrap">
+            <Target className="h-3 w-3 text-pink-500" /> Passing Marks: <span className="text-gray-700 font-semibold">{quiz.passing_marks ?? "—"}</span>
+          </span>
+          <span className="hidden lg:flex items-center gap-1.5 whitespace-nowrap">
+            <Target className="h-3 w-3 text-pink-500" /> Negative Marking: <span className={quiz.negative_marking ? "text-red-500 font-semibold" : "text-gray-700"}>{quiz.negative_marking ? "Yes (-1)" : "No"}</span>
+          </span>
+          <span className="hidden xl:flex items-center gap-1.5 whitespace-nowrap">
+            <Users className="h-3 w-3 text-pink-500" /> Attempts Allowed: <span className="text-gray-700 font-semibold">1</span>
+          </span>
         </div>
-      </div>
-      </ExamModeShell>
-      </div>
+        <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 shrink-0">
+          <Flag className="h-3 w-3" /> Report an Issue
+        </button>
+      </footer>
 
-      {/* Mechanic Detail Modal */}
+      {/* ── Mechanic Modal ── */}
       {selectedMechanic !== null && (
-        <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/50 backdrop-blur-[2px] sm:items-center sm:p-4" onClick={() => setSelectedMechanic(null)}>
-          <div
-            className="w-full max-w-sm rounded-t-2xl border border-border bg-card p-4 shadow-2xl sm:rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/20 backdrop-blur-sm p-4" onClick={() => setSelectedMechanic(null)}>
+          <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-500/10 text-xl">
-                  {MECHANICS[selectedMechanic].icon}
-                </div>
+              <div className="flex items-center gap-3">
+                <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl text-base font-bold", MECHANICS[selectedMechanic].color)}>{MECHANICS[selectedMechanic].icon}</div>
                 <div>
-                  <h3 className="text-sm font-bold">{MECHANICS[selectedMechanic].title}</h3>
-                  <p className="text-[11px] text-text-muted">{MECHANICS[selectedMechanic].desc}</p>
+                  <h3 className="text-sm font-bold text-gray-900">{MECHANICS[selectedMechanic].title}</h3>
+                  <p className="text-[11px] text-gray-400">{MECHANICS[selectedMechanic].desc}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedMechanic(null)} className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card hover:bg-card-hover">
+              <button onClick={() => setSelectedMechanic(null)} className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
-
-            <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-background p-3">
+            <div className="mt-4 flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-3">
               <div>
-                <p className="text-[11px] text-text-muted">Uses remaining</p>
-                <p className="text-lg font-bold">{MECHANICS[selectedMechanic].left}</p>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Uses remaining</p>
+                <p className="text-lg font-bold text-gray-900">{MECHANICS[selectedMechanic].left}</p>
               </div>
-              {usedMechanics[selectedMechanic] && (
-                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600">Used</span>
-              )}
+              {usedMechanics[selectedMechanic] && selectedMechanic !== 0 && <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600">Used</span>}
+              {selectedMechanic === 0 && fiftyFiftyMap[q?.id] && <span className="rounded-full bg-pink-100 px-2.5 py-0.5 text-[10px] font-bold text-pink-600">Active on Q{current + 1}</span>}
             </div>
-
+            {selectedMechanic === 0 && q && q.type !== "single_choice" && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-700">50–50 only works on MCQ (single choice). Current is {q.type.replace("_", " ")}.</p>}
+            {selectedMechanic === 0 && q && q.type === "single_choice" && q.options.length < 3 && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-700">Not enough options for 50–50.</p>}
             <button
               onClick={() => {
-                setUsedMechanics((u) => ({ ...u, [selectedMechanic]: true }));
+                if (selectedMechanic === 0) {
+                  const cur = questions[current];
+                  if (!cur || cur.type !== "single_choice") return;
+                  if (cur.options.length < 3) return;
+                  if (fiftyFiftyMap[cur.id]) {
+                    setSelectedMechanic(null);
+                    return;
+                  }
+                  const correct = cur.options.filter((o) => o.correct);
+                  const incorrect = cur.options.filter((o) => !o.correct);
+                  if (correct.length !== 1 || incorrect.length === 0) return;
+                  const randomIncorrect = incorrect[Math.floor(Math.random() * incorrect.length)];
+                  const keep = [correct[0].label, randomIncorrect.label].sort();
+                  setFiftyFiftyMap((prev) => ({ ...prev, [cur.id]: keep }));
+                  setAnswers((prev) => {
+                    const ans = prev[cur.id];
+                    if (ans && !keep.includes(ans)) {
+                      const { [cur.id]: _, ...rest } = prev;
+                      return rest;
+                    }
+                    return prev;
+                  });
+                  setUsedMechanics((u) => ({ ...u, [0]: Object.keys(fiftyFiftyMap).length + 1 >= 2 }));
+                } else {
+                  setUsedMechanics((u) => ({ ...u, [selectedMechanic!]: true }));
+                }
                 setSelectedMechanic(null);
               }}
-              disabled={usedMechanics[selectedMechanic]}
-              className={cn(
-                "mt-4 w-full rounded-xl py-2.5 text-sm font-bold transition-colors",
-                usedMechanics[selectedMechanic]
-                  ? "cursor-not-allowed border border-border bg-card text-text-muted"
-                  : "bg-pink-500 text-white hover:bg-pink-600 shadow-[0_4px_16px_rgba(236,72,153,0.3)]"
-              )}
+              disabled={selectedMechanic !== 0 ? !!usedMechanics[selectedMechanic!] : !q || q.type !== "single_choice" || q.options.length < 3 || !!fiftyFiftyMap[q.id] || Object.keys(fiftyFiftyMap).length >= 2}
+              className={cn("mt-4 w-full rounded-xl py-2.5 text-sm font-bold", (selectedMechanic !== 0 ? !!usedMechanics[selectedMechanic!] : !q || q.type !== "single_choice" || q.options.length < 3 || !!fiftyFiftyMap[q.id] || Object.keys(fiftyFiftyMap).length >= 2) ? "cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400" : "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg")}
             >
-              {usedMechanics[selectedMechanic] ? "Already Used" : "Use Now"}
+              {selectedMechanic === 0 ? (fiftyFiftyMap[q?.id] ? "Already applied to this question" : Object.keys(fiftyFiftyMap).length >= 2 ? "No uses left" : "Use 50–50 (preview only)") : usedMechanics[selectedMechanic!] ? "Already Used" : "Use Now"}
             </button>
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </ExamModeShell>
   );
 }

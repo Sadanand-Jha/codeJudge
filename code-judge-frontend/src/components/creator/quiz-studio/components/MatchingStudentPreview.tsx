@@ -222,7 +222,7 @@ export function MatchingStudentPreview({
                       <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[11px] font-bold", isSelected ? "bg-[#E91E63] text-white border-[#E91E63]" : "bg-card-hover border-border text-text-primary")}>
                         {String(idx + 1).padStart(2, "0")}
                       </span>
-                      <span className="flex-1 text-sm font-medium text-text-primary">{item.content}</span>
+                      <span className="flex-1 text-sm font-medium text-text-primary" dangerouslySetInnerHTML={{ __html: item.content }} />
                       {isPaired && paired && (
                         <span className={cn("hidden sm:inline-flex max-w-[110px] truncate rounded-full px-2 py-0.5 text-[11px] font-medium", showGreen ? "bg-blue-500 text-white" : "bg-card border border-border text-text-muted")}>
                           → {paired.content}
@@ -268,7 +268,7 @@ export function MatchingStudentPreview({
                       <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[11px] font-bold", isSelectable ? "bg-[#E91E63] text-white border-[#E91E63]" : "bg-card-hover border-border text-text-primary")}>
                         {ALPHA[rightOrig.findIndex((r) => r.id === item.id)] ?? String(idx + 1)}
                       </span>
-                      <span className="flex-1 text-sm text-text-primary">{item.content}</span>
+                      <span className="flex-1 text-sm text-text-primary" dangerouslySetInnerHTML={{ __html: item.content }} />
                       {isPaired && !isJustTarget && showGreen && <Check className="h-3.5 w-3.5 text-blue-600" />}
                       {isPaired && !isJustTarget && !showGreen && <span className="h-2 w-2 rounded-full bg-border" />}
                       {showJustGreen && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white"><Check className="h-3 w-3" /></span>}
