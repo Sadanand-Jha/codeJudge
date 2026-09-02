@@ -1,3 +1,6 @@
+// Marksheet generation. Creates an Excel workbook (via ExcelJS) containing quiz
+// results sorted by roll number, with headers, per-student rows, and a summary
+// statistics sheet.
 import ExcelJS from "exceljs";
 import { pool } from "../app.ts";
 
@@ -49,7 +52,7 @@ export async function generateMarksheet(quizId: number): Promise<MarksheetResult
       u.last_name,
       c.name as college_name,
       qr.rollno
-    FROM quiz_attempts qa
+    FROM quiz_attempt qa
     JOIN users u ON u.id = qa.user_id
     LEFT JOIN college c ON c.id = u.college_id
     LEFT JOIN quiz_registration qr ON qr.user_id = qa.user_id AND qr.quiz_id = qa.quiz_id

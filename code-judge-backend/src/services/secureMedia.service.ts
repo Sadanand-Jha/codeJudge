@@ -1,3 +1,5 @@
+// Secure media encryption/decryption service. Encrypts image data using AES-256-GCM
+// for at-rest protection and provides decrypt functionality for serving.
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';

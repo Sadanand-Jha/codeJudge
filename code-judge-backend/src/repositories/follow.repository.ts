@@ -1,3 +1,5 @@
+// Follow data access layer. SQL queries for following/unfollowing users, checking
+// follow status, listing followers/following with pagination, and searching users.
 import { pool } from "../app.ts";
 
 export class FollowRepository {

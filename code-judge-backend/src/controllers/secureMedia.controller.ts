@@ -1,3 +1,5 @@
+// Secure media controller. Serves AES-256-GCM encrypted images from a secure directory
+// as application/octet-stream to prevent browser media inspection.
 import type { Request, Response } from "express";
 import { SecureMediaService } from "../services/secureMedia.service.ts";
 

@@ -1,3 +1,5 @@
+// Auth routes. Defines endpoints for /api/auth/check-username, /api/auth/send-otp,
+// /api/auth/verify-otp, /api/auth/register, /api/auth/login, /api/auth/me, /api/auth/logout.
 import { Router } from 'express';
 import {
   sendOtpController,

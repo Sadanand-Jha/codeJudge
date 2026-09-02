@@ -1,7 +1,20 @@
+// Quiz result generation orchestrator. Evaluates all student answers (objective
+// + subjective/AI), computes scores with marks/negative marking, generates the
+// marksheet, and optionally sends it via email.
 import { pool } from "../app.ts";
 import { generateMarksheet } from "./marksheet.service.ts";
 import { sendMarksheetEmail } from "./email.service.ts";
 import logger from "../utils/logger.ts";
+import {
+  parseStudentAnswer,
+  evaluateObjectiveAnswer,
+  evaluateSubjectiveAnswer,
+  isObjectiveQuestion,
+  requiresAIEvaluation,
+  type ProblemOption,
+  type ProblemMeta,
+  type StudentAnswer,
+} from "../quiz-evaluation.ts";
 
 export interface GenerateResultsOptions {
   force?: boolean;
@@ -22,7 +35,7 @@ export interface GenerateResultsResponse {
 export class ResultGenerationService {
   async hasGeneratedResults(quizId: number): Promise<boolean> {
     const query = `
-      SELECT 1 FROM quiz_attempts
+      SELECT 1 FROM quiz_attempt
       WHERE quiz_id = $1 AND status = 'completed' AND rank IS NOT NULL
       LIMIT 1
     `;
@@ -53,7 +66,7 @@ export class ResultGenerationService {
     const submissionsResult = await pool.query(
       `SELECT qa.id AS attempt_id, qa.user_id, qa.quiz_id, qa.total_questions,
               qa.time_taken, qa.completed_at, qa.status
-       FROM quiz_attempts qa
+       FROM quiz_attempt qa
        WHERE qa.quiz_id = $1 AND qa.status = 'completed'
        ORDER BY qa.completed_at ASC`,
       [quizId]
@@ -61,7 +74,8 @@ export class ResultGenerationService {
     const submissions = submissionsResult.rows;
 
     const problemsResult = await pool.query(
-      `SELECT qp.id, qp.quiz_id, qp.question_number
+      `SELECT qp.id, qp.quiz_id, qp.question_number, qp.quiz_problem_type,
+              qp.marks, qp.negative_marks
        FROM quiz_problems qp
        WHERE qp.quiz_id = $1
        ORDER BY qp.question_number ASC`,
@@ -70,7 +84,8 @@ export class ResultGenerationService {
     const problems = problemsResult.rows;
 
     const optionsResult = await pool.query(
-      `SELECT qpo.id, qpo.problem_id, qpo.iscorrect
+      `SELECT qpo.id, qpo.problem_id, qpo.option_statement, qpo.option_description,
+              qpo.iscorrect, qpo.matching_target
        FROM quiz_problem_options qpo
        JOIN quiz_problems qp ON qp.id = qpo.problem_id
        WHERE qp.quiz_id = $1`,
@@ -88,19 +103,20 @@ export class ResultGenerationService {
     }
 
     const responsesResult = await pool.query(
-      `SELECT qsr.user_id, qsr.problem_id, qsr.option
+      `SELECT qa.user_id, qsr.problem_id, qsr.answer
        FROM quiz_student_response qsr
+       JOIN quiz_attempt qa ON qa.id = qsr.attempt_id
        WHERE qsr.problem_id = ANY($1::int[])`,
       [problemIds]
     );
     const responses = responsesResult.rows;
 
-    const responsesByUser = new Map<number, Map<number, string | null>>();
+    const responsesByUser = new Map<number, Map<number, unknown>>();
     for (const response of responses) {
       if (!responsesByUser.has(response.user_id)) {
         responsesByUser.set(response.user_id, new Map());
       }
-      responsesByUser.get(response.user_id)!.set(response.problem_id, response.option);
+      responsesByUser.get(response.user_id)!.set(response.problem_id, response.answer);
     }
 
     const evaluatedResults: Array<{
@@ -123,24 +139,55 @@ export class ResultGenerationService {
       let skippedQuestions = problems.length;
 
       for (const problem of problems) {
-        const selectedOptionId = userResponses.get(problem.id);
-        if (selectedOptionId === undefined || selectedOptionId === null) {
+        const rawAnswer = userResponses.get(problem.id);
+        if (rawAnswer === undefined || rawAnswer === null) {
           continue;
         }
 
         const problemOptions = optionsByProblem.get(problem.id) || [];
-        const selectedOption = problemOptions.find((o: any) => String(o.id) === String(selectedOptionId));
+        const problemMeta: ProblemMeta = {
+          id: problem.id,
+          quiz_id: problem.quiz_id,
+          quiz_problem_type: problem.quiz_problem_type,
+          marks: problem.marks,
+          negative_marks: problem.negative_marks,
+        };
 
-        if (selectedOption) {
+        // Parse the answer using the centralized parser
+        const parseResult = parseStudentAnswer(
+          problem.quiz_problem_type,
+          rawAnswer
+        );
+
+        if (!parseResult.success) {
+          // Invalid answer format - count as wrong
           skippedQuestions--;
-          if (selectedOption.iscorrect) {
+          wrongAnswers++;
+          continue;
+        }
+
+        skippedQuestions--;
+
+        // Evaluate based on question type
+        if (isObjectiveQuestion(problem.quiz_problem_type)) {
+          const evalResult = evaluateObjectiveAnswer(
+            parseResult.parsed,
+            problemOptions as ProblemOption[],
+            problemMeta
+          );
+          score += evalResult.score;
+          if (evalResult.isCorrect) {
             correctAnswers++;
-            score += 1;
           } else {
             wrongAnswers++;
           }
+        } else if (requiresAIEvaluation(problem.quiz_problem_type)) {
+          // For subjective questions, we'll skip AI evaluation in batch mode
+          // and mark as needing manual review
+          // AI evaluation can be triggered separately per-question
+          wrongAnswers++;
         } else {
-          skippedQuestions--;
+          // Unknown question type - skip
           wrongAnswers++;
         }
       }
@@ -207,7 +254,7 @@ export class ResultGenerationService {
       for (const result of evaluatedResults) {
         const rank = ranks.get(result.attemptId) || 0;
         await client.query(
-          `UPDATE quiz_attempts
+          `UPDATE quiz_attempt
            SET score = $1, percentage = $2, correct_answers = $3,
                wrong_answers = $4, skipped_questions = $5, rank = $6,
                updated_at = CURRENT_TIMESTAMP

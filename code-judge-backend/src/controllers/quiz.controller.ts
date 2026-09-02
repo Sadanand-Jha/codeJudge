@@ -1,3 +1,6 @@
+// Quiz controller (largest controller). Full quiz lifecycle — CRUD for quizzes,
+// problem management, options, attempts, submissions, game config, collaboration
+// invites, result generation, and student-facing quiz endpoints.
 import type { Request, Response } from "express";
 import { pool } from "../app.ts";
 import { QuizService } from "../services/database/quiz.service.ts";
@@ -1056,7 +1059,7 @@ export const saveQuizResponse = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { attemptId } = req.params;
-    const { problemId, option, textAnswer, timeTaken } = req.body;
+    const { problemId, answer, option, textAnswer, timeTaken } = req.body;
 
     if (!userId) {
       res.status(401).json({
@@ -1075,8 +1078,9 @@ export const saveQuizResponse = async (req: Request, res: Response) => {
     }
 
     const response = await quizService.saveStudentResponse({
-      userId: Number(userId),
+      attemptId: Number(attemptId),
       problemId: Number(problemId),
+      answer,
       option,
       textAnswer,
       timeTaken,

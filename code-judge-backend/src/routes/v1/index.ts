@@ -1,3 +1,5 @@
+// V1 API namespace router. Mounts admin routes, user routes, and avatar/secure-media
+// endpoints under /api/v1.
 import { Router } from "express";
 
 import adminRoutes from "./admin/index.ts"

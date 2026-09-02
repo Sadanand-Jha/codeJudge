@@ -194,21 +194,16 @@ CREATE TABLE quiz_attempt (
     quiz_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
 
-    attempt_number INTEGER NOT NULL,
-
     started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     submitted_at TIMESTAMP,
 
     status VARCHAR(30) NOT NULL DEFAULT 'IN_PROGRESS',
 
-    total_marks NUMERIC(10, 2) DEFAULT 0,
-    marks_obtained NUMERIC(10, 2) DEFAULT 0,
-
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT uq_user_quiz_attempt
-        UNIQUE (user_id, quiz_id, attempt_number),
+        UNIQUE (user_id, quiz_id),
 
     CONSTRAINT fk_attempt_quiz
         FOREIGN KEY (quiz_id)
@@ -268,7 +263,7 @@ CREATE TABLE quiz_student_response_mechanics (
 
     CONSTRAINT fk_response_mechanics_problem
         FOREIGN KEY (problem_id)
-        REFERENCES problem(id)
+        REFERENCES quiz_problems(id)
         ON DELETE CASCADE,
 
     CONSTRAINT fk_response_mechanics_mechanic
@@ -282,3 +277,34 @@ CREATE TABLE quiz_student_response_mechanics (
     CONSTRAINT uq_user_problem_mechanic
         UNIQUE (user_id, problem_id, mechanic_id)
 );
+
+INSERT INTO public.game_mechanics
+    (name, code, description, icon, mechanic_type, default_quantity, enabled)
+VALUES
+    ('Audience Poll', 'AUDIENCE_POLL',
+     'Let students see how other participants answered.',
+     'users', 'LIFELINE', 1, TRUE),
+
+    ('Eliminate 1', 'ELIMINATE_ONE',
+     'Remove one incorrect option.',
+     'minus-circle', 'LIFELINE', 1, TRUE),
+
+    ('Freeze Time', 'FREEZE_TIME',
+     'Pause the countdown temporarily while the student thinks.',
+     'snowflake', 'POWER_UP', 1, TRUE),
+
+    ('Streak Bonus', 'STREAK_BONUS',
+     'Bonus points for consecutive correct answers.',
+     'flame', 'POWER_UP', 1, TRUE),
+
+    ('Speed Bonus', 'SPEED_BONUS',
+     'Extra points for fast correct answers.',
+     'gauge', 'POWER_UP', 1, TRUE),
+
+    ('Second Chance', 'SECOND_CHANCE',
+     'Allow a retry after a wrong answer.',
+     'rotate-ccw', 'POWER_UP', 1, TRUE),
+
+    ('Decaying Points', 'DECAYING_POINTS',
+     'Points on each question decrease over time — answer fast for maximum marks.',
+     'timer-off', 'POWER_UP', 1, TRUE);

@@ -1,3 +1,6 @@
+// Quiz data access layer (largest repository). Comprehensive SQL for quizzes,
+// problems, options, attempts, responses, game config, collaborators, subjects,
+// exam categories, and more.
 import { pool } from "../app.ts";
 
 export class QuizRepository {
@@ -104,7 +107,7 @@ export class QuizRepository {
         qd.heading AS difficulty_name,
         COUNT(DISTINCT qr.id) AS participants,
         COUNT(DISTINCT qp.id) AS total_questions,
-        COALESCE(AVG(CASE WHEN qsr.option IS NOT NULL THEN 1 ELSE 0 END), 0) AS completion_rate
+        COALESCE(AVG(CASE WHEN qsr.answer IS NOT NULL THEN 1 ELSE 0 END), 0) AS completion_rate
       FROM quiz q
       LEFT JOIN users u ON u.id = q.createdby
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
@@ -112,7 +115,8 @@ export class QuizRepository {
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
       LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
       LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
-      LEFT JOIN quiz_student_response qsr ON qsr.user_id = qr.user_id AND qsr.problem_id = qp.id
+      LEFT JOIN quiz_attempt qa_attempt ON qa_attempt.quiz_id = q.id AND qa_attempt.user_id = qr.user_id
+      LEFT JOIN quiz_student_response qsr ON qsr.attempt_id = qa_attempt.id AND qsr.problem_id = qp.id
       ${whereClause}
       GROUP BY q.id, u.username, qv.heading, qd.heading, qs.name
       ORDER BY q.${safeSortBy} ${safeSortOrder}
@@ -383,7 +387,7 @@ export class QuizRepository {
       JOIN quiz q ON q.id = qr.quiz_id
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      LEFT JOIN quiz_attempts qa ON qa.quiz_id = q.id AND qa.user_id = qr.user_id
+      LEFT JOIN quiz_attempt qa ON qa.quiz_id = q.id AND qa.user_id = qr.user_id
       WHERE qr.user_id = $1
       ORDER BY q.starttime DESC
     `;
@@ -866,7 +870,7 @@ export class QuizRepository {
 
   async getQuizAttempt(userId: number, quizId: number): Promise<any | null> {
     const query = `
-      SELECT * FROM quiz_attempts
+      SELECT * FROM quiz_attempt
       WHERE user_id = $1 AND quiz_id = $2
       ORDER BY created_at DESC
       LIMIT 1
@@ -881,7 +885,7 @@ export class QuizRepository {
     totalQuestions: number;
   }): Promise<any> {
     const query = `
-      INSERT INTO quiz_attempts (user_id, quiz_id, total_questions, status, created_at, updated_at)
+      INSERT INTO quiz_attempt (user_id, quiz_id, total_questions, status, created_at, updated_at)
       VALUES ($1, $2, $3, 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
@@ -913,7 +917,7 @@ export class QuizRepository {
     values.push(attemptId);
 
     const query = `
-      UPDATE quiz_attempts
+      UPDATE quiz_attempt
       SET ${fields.join(", ")} = CURRENT_TIMESTAMP
       WHERE id = $${paramCount}
       RETURNING *
@@ -924,20 +928,43 @@ export class QuizRepository {
   }
 
   async saveStudentResponse(data: {
-    userId: number;
+    attemptId: number;
     problemId: number;
+    answer?: unknown;
     option?: string;
     textAnswer?: string;
     timeTaken?: number;
   }): Promise<any> {
+    // Build the answer JSONB from the provided data
+    let answerJsonb: unknown = data.answer;
+
+    // Legacy support: if answer is not provided but option/textAnswer is, build it
+    if (answerJsonb === undefined || answerJsonb === null) {
+      if (data.option !== undefined && data.option !== null) {
+        // Legacy option ID format - store as MCQ answer
+        const numId = Number(data.option);
+        if (!isNaN(numId) && numId > 0) {
+          answerJsonb = { type: "MCQ", selectedOptionId: numId };
+        } else {
+          answerJsonb = data.option;
+        }
+      } else if (data.textAnswer !== undefined && data.textAnswer !== null) {
+        answerJsonb = { type: "TEXT", text: data.textAnswer };
+      }
+    }
+
     const query = `
-      INSERT INTO quiz_student_response (user_id, problem_id, option, created_at, updated_at)
-      VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      ON CONFLICT (user_id, problem_id) DO UPDATE
-      SET option = $3, updated_at = CURRENT_TIMESTAMP
+      INSERT INTO quiz_student_response (attempt_id, problem_id, answer, is_attempted, created_at, updated_at)
+      VALUES ($1, $2, $3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT (attempt_id, problem_id) DO UPDATE
+      SET answer = $3, is_attempted = true, updated_at = CURRENT_TIMESTAMP
       RETURNING *
     `;
-    const result = await pool.query(query, [data.userId, data.problemId, data.option || null]);
+    const result = await pool.query(query, [
+      data.attemptId,
+      data.problemId,
+      answerJsonb ? JSON.stringify(answerJsonb) : null,
+    ]);
     return result.rows[0];
   }
 
@@ -945,8 +972,9 @@ export class QuizRepository {
     const query = `
       SELECT qsr.*, qp.problem_statement, qp.quiz_problem_type, qp.question_number
       FROM quiz_student_response qsr
+      JOIN quiz_attempt qa ON qa.id = qsr.attempt_id
       JOIN quiz_problems qp ON qp.id = qsr.problem_id
-      WHERE qsr.user_id = $1 AND qp.quiz_id = $2
+      WHERE qa.user_id = $1 AND qp.quiz_id = $2
       ORDER BY qp.question_number ASC
     `;
     const result = await pool.query(query, [userId, quizId]);
@@ -972,7 +1000,7 @@ export class QuizRepository {
         qa.correct_answers,
         qa.wrong_answers,
         qa.skipped_questions
-      FROM quiz_attempts qa
+      FROM quiz_attempt qa
       JOIN users u ON u.id = qa.user_id
       LEFT JOIN avatar a ON a.id = u.avatar_id
       LEFT JOIN college c ON c.id = u.college_id
@@ -1008,7 +1036,7 @@ export class QuizRepository {
         MAX(qa.time_taken) AS slowest_time,
         COUNT(DISTINCT qr.id) AS total_registrations,
         COUNT(DISTINCT CASE WHEN qa.score >= $2 THEN qa.id END) AS passed_count
-      FROM quiz_attempts qa
+      FROM quiz_attempt qa
       LEFT JOIN quiz_registration qr ON qr.quiz_id = $1
       WHERE qa.quiz_id = $1
     `;
@@ -1019,7 +1047,7 @@ export class QuizRepository {
     const scoreDistQuery = `
       SELECT bucket, COUNT(*)::int as count FROM (
         SELECT WIDTH_BUCKET(LEAST(GREATEST(qa.percentage,0),100), 0, 100, 10) as bucket
-        FROM quiz_attempts qa WHERE qa.quiz_id=$1 AND qa.status='completed' AND qa.percentage IS NOT NULL
+        FROM quiz_attempt qa WHERE qa.quiz_id=$1 AND qa.status='completed' AND qa.percentage IS NOT NULL
       ) t GROUP BY bucket ORDER BY bucket
     `;
     let scoreDistribution: any[] = [];
@@ -1028,7 +1056,7 @@ export class QuizRepository {
     // --- Score vs time scatter (sample 300) ---
     let scoreVsTime: any[] = [];
     try {
-      const r = await pool.query(`SELECT qa.score, qa.percentage, qa.time_taken, qa.user_id, u.username FROM quiz_attempts qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 AND qa.status='completed' AND qa.time_taken IS NOT NULL AND qa.score IS NOT NULL ORDER BY qa.completed_at DESC LIMIT 300`, [quizId]);
+      const r = await pool.query(`SELECT qa.score, qa.percentage, qa.time_taken, qa.user_id, u.username FROM quiz_attempt qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 AND qa.status='completed' AND qa.time_taken IS NOT NULL AND qa.score IS NOT NULL ORDER BY qa.completed_at DESC LIMIT 300`, [quizId]);
       scoreVsTime = r.rows.map((row:any)=>({ x: row.time_taken, y: row.score, percentage: row.percentage, username: row.username, user_id: row.user_id }));
     } catch {}
 
@@ -1042,8 +1070,8 @@ export class QuizRepository {
         qp.difficulty,
         qd.heading AS difficulty_name,
         COUNT(DISTINCT qsr.id) AS total_responses,
-        COUNT(DISTINCT CASE WHEN COALESCE(qsr.is_correct, (qpo.iscorrect AND qsr.option IS NOT NULL)) THEN qsr.id END) AS correct_responses,
-        COUNT(DISTINCT CASE WHEN qsr.is_correct = false OR (qsr.is_correct IS NULL AND qsr.option IS NOT NULL AND COALESCE(qpo.iscorrect,false)=false) THEN qsr.id END) AS incorrect_responses,
+        COUNT(DISTINCT CASE WHEN COALESCE(qsr.is_correct, (qpo.iscorrect AND qsr.answer IS NOT NULL)) THEN qsr.id END) AS correct_responses,
+        COUNT(DISTINCT CASE WHEN qsr.is_correct = false OR (qsr.is_correct IS NULL AND qsr.answer IS NOT NULL AND COALESCE(qpo.iscorrect,false)=false) THEN qsr.id END) AS incorrect_responses,
         COUNT(DISTINCT CASE WHEN qsr.id IS NULL THEN NULL ELSE null END) AS skipped_placeholder,
         AVG(qsr.time_spent_ms) AS avg_time_ms,
         PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY qsr.time_spent_ms) AS median_time_ms,
@@ -1052,13 +1080,13 @@ export class QuizRepository {
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
       LEFT JOIN quiz_student_response qsr ON qsr.problem_id = qp.id
-      LEFT JOIN quiz_problem_options qpo ON qpo.id::text = qsr.option AND qpo.iscorrect = true
+      LEFT JOIN quiz_problem_options qpo ON qpo.id::text = qsr.answer::text AND qpo.iscorrect = true
       WHERE qp.quiz_id = $1
       GROUP BY qp.id, qpt.name, qd.heading
       ORDER BY qp.question_number ASC
     `;
     let questionStats: any[] = [];
-    try { const r = await pool.query(questionStatsQuery, [quizId]); questionStats = r.rows; } catch { const r2 = await pool.query(`SELECT qp.id, qp.question_number, qp.problem_statement, qpt.name AS problem_type, qp.difficulty, qd.heading AS difficulty_name, COUNT(DISTINCT qsr.user_id) AS total_responses, 0 as correct_responses FROM quiz_problems qp LEFT JOIN quiz_problem_type qpt ON qpt.id=qp.quiz_problem_type LEFT JOIN quiz_difficulty qd ON qd.id=qp.difficulty LEFT JOIN quiz_student_response qsr ON qsr.problem_id=qp.id WHERE qp.quiz_id=$1 GROUP BY qp.id,qpt.name,qd.heading ORDER BY qp.question_number`, [quizId]); questionStats = r2.rows; }
+    try { const r = await pool.query(questionStatsQuery, [quizId]); questionStats = r.rows; } catch { const r2 = await pool.query(`SELECT qp.id, qp.question_number, qp.problem_statement, qpt.name AS problem_type, qp.difficulty, qd.heading AS difficulty_name, COUNT(DISTINCT qsr.id) AS total_responses, 0 as correct_responses FROM quiz_problems qp LEFT JOIN quiz_problem_type qpt ON qpt.id=qp.quiz_problem_type LEFT JOIN quiz_difficulty qd ON qd.id=qp.difficulty LEFT JOIN quiz_student_response qsr ON qsr.problem_id=qp.id WHERE qp.quiz_id=$1 GROUP BY qp.id,qpt.name,qd.heading ORDER BY qp.question_number`, [quizId]); questionStats = r2.rows; }
 
     // Enrich question stats with skipped (total_attempts - responses) and derived fields
     const totalAttemptsNum = parseInt(s.total_attempts) || 0;
@@ -1092,12 +1120,12 @@ export class QuizRepository {
       const r = await pool.query(`
         SELECT qd.heading as difficulty_name, qd.id as difficulty,
                COUNT(DISTINCT qsr.id) as responses, 
-               COUNT(DISTINCT CASE WHEN COALESCE(qsr.is_correct, (qpo.iscorrect AND qsr.option IS NOT NULL)) THEN qsr.id END) as correct,
+               COUNT(DISTINCT CASE WHEN COALESCE(qsr.is_correct, (qpo.iscorrect AND qsr.answer IS NOT NULL)) THEN qsr.id END) as correct,
                AVG(qsr.time_spent_ms) as avg_time
         FROM quiz_problems qp
         LEFT JOIN quiz_difficulty qd ON qd.id=qp.difficulty
         LEFT JOIN quiz_student_response qsr ON qsr.problem_id=qp.id
-        LEFT JOIN quiz_problem_options qpo ON qpo.id::text = qsr.option
+        LEFT JOIN quiz_problem_options qpo ON qpo.id::text = qsr.answer::text
         WHERE qp.quiz_id=$1 GROUP BY qd.heading, qd.id ORDER BY qd.id
       `, [quizId]);
       difficultyStats = r.rows.map((r:any)=>({...r, accuracy: r.responses>0 ? (r.correct/r.responses*100) : 0}));
@@ -1135,7 +1163,7 @@ export class QuizRepository {
     // --- Student leaderboard (top 50) for analytics table ---
     let students: any[] = [];
     try {
-      const r = await pool.query(`SELECT qa.id as attempt_id, qa.user_id, u.username, u.email, qa.score, qa.percentage, qa.correct_answers, qa.wrong_answers, qa.skipped_questions, qa.time_taken, qa.rank, qa.status, qa.completed_at FROM quiz_attempts qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC LIMIT 50`, [quizId]);
+      const r = await pool.query(`SELECT qa.id as attempt_id, qa.user_id, u.username, u.email, qa.score, qa.percentage, qa.correct_answers, qa.wrong_answers, qa.skipped_questions, qa.time_taken, qa.rank, qa.status, qa.completed_at FROM quiz_attempt qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC LIMIT 50`, [quizId]);
       students = r.rows;
     } catch {}
 
@@ -1234,7 +1262,7 @@ export class QuizRepository {
     }
 
     const existingAttempt = await pool.query(
-      "SELECT * FROM quiz_attempts WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress'",
+      "SELECT * FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress'",
       [userId, quizId]
     );
     if (existingAttempt.rows.length > 0) {
@@ -1284,7 +1312,7 @@ export class QuizRepository {
 
     const whereClause = conditions.join(" AND ");
 
-    const countQuery = `SELECT COUNT(*) FROM quiz_attempts qa JOIN quiz q ON q.id = qa.quiz_id WHERE ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) FROM quiz_attempt qa JOIN quiz q ON q.id = qa.quiz_id WHERE ${whereClause}`;
     const countResult = await pool.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].count);
 
@@ -1315,7 +1343,7 @@ export class QuizRepository {
         qa.correct_answers,
         qa.wrong_answers,
         qa.skipped_questions
-      FROM quiz_attempts qa
+      FROM quiz_attempt qa
       JOIN quiz q ON q.id = qa.quiz_id
       WHERE ${whereClause}
       ORDER BY qa.${safeSortBy} ${safeSortOrder}
@@ -1329,7 +1357,7 @@ export class QuizRepository {
   async getQuizResult(attemptId: number, userId: number): Promise<any | null> {
     const query = `
       SELECT qa.*, q.name, q.code, q.total_marks, q.passing_marks
-      FROM quiz_attempts qa
+      FROM quiz_attempt qa
       JOIN quiz q ON q.id = qa.quiz_id
       WHERE qa.id = $1 AND qa.user_id = $2
     `;
@@ -1348,11 +1376,11 @@ export class QuizRepository {
         qp.hint,
         qpt.name AS problem_type,
         qpo.option_statement AS correct_answer,
-        qsr.option AS selected_option,
+        qsr.answer AS selected_option,
         qsr.created_at AS answered_at
-      FROM quiz_attempts qa
+      FROM quiz_attempt qa
       JOIN quiz_problems qp ON qp.quiz_id = qa.quiz_id
-      LEFT JOIN quiz_student_response qsr ON qsr.user_id = qa.user_id AND qsr.problem_id = qp.id
+      LEFT JOIN quiz_student_response qsr ON qsr.attempt_id = qa.id AND qsr.problem_id = qp.id
       LEFT JOIN quiz_problem_options qpo ON qpo.problem_id = qp.id AND qpo.iscorrect = true
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       WHERE qa.id = $1 AND qa.user_id = $2
@@ -1680,7 +1708,7 @@ export class QuizRepository {
         qa.skipped_questions
       FROM quiz_registration qr
       JOIN users u ON u.id = qr.user_id
-      LEFT JOIN quiz_attempts qa ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
+      LEFT JOIN quiz_attempt qa ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
       WHERE qr.quiz_id = $1 AND qr.is_registered = true
       ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC NULLS LAST, u.first_name ASC
     `;
@@ -1696,7 +1724,7 @@ export class QuizRepository {
          MAX(qa.score) AS highest_score,
          MIN(qa.score) AS lowest_score
        FROM quiz_registration qr
-       LEFT JOIN quiz_attempts qa ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
+       LEFT JOIN quiz_attempt qa ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
        WHERE qr.quiz_id = $1 AND qr.is_registered = true`,
       [quizId]
     );
@@ -1740,7 +1768,7 @@ export class QuizRepository {
         u.first_name,
         u.last_name,
         u.email
-      FROM quiz_attempts qa
+      FROM quiz_attempt qa
       JOIN users u ON u.id = qa.user_id
       WHERE qa.quiz_id = $1 AND qa.user_id = $2
       ORDER BY qa.created_at DESC
@@ -1764,21 +1792,23 @@ export class QuizRepository {
         qp.explaination,
         qpt.name AS problem_type,
         correct.option_statement AS correct_answer,
-        qsr.option AS selected_option,
+        qsr.answer AS raw_answer,
+        qsr.answer->>'selectedOptionId' AS selected_option_id,
         selected.option_statement AS selected_statement,
         qsr.created_at AS answered_at,
         CASE
-          WHEN qsr.option IS NULL THEN 'unanswered'
+          WHEN qsr.answer IS NULL THEN 'unanswered'
+          WHEN qsr.answer->>'selectedOptionId' IS NULL THEN 'unanswered'
           WHEN selected.id IS NULL THEN 'unanswered'
           WHEN selected.iscorrect THEN 'correct'
           ELSE 'wrong'
         END AS status
       FROM quiz_problems qp
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
-      LEFT JOIN quiz_student_response qsr ON qsr.problem_id = qp.id
+      LEFT JOIN quiz_student_response qsr ON qsr.problem_id = qp.id AND qsr.attempt_id = $1
       LEFT JOIN quiz_problem_options correct ON correct.problem_id = qp.id AND correct.iscorrect = true
-      LEFT JOIN quiz_problem_options selected ON selected.id = qsr.option::int
-      WHERE qp.quiz_id = (SELECT quiz_id FROM quiz_attempts WHERE id = $1)
+      LEFT JOIN quiz_problem_options selected ON selected.id = (qsr.answer->>'selectedOptionId')::int
+      WHERE qp.quiz_id = (SELECT quiz_id FROM quiz_attempt WHERE id = $1)
       ORDER BY qp.question_number ASC
     `;
     const result = await pool.query(query, [attemptId]);

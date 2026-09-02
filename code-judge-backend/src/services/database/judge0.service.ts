@@ -1,3 +1,5 @@
+// Judge0 API client. Creates a pre-configured Axios instance pointing at
+// localhost:2358 for code execution requests.
 import axios from "axios";
 
 const judge0 = axios.create({

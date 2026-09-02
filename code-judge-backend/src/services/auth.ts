@@ -1,3 +1,6 @@
+// Core authentication business logic. Email validation, OTP generation/verification
+// with rate limiting, JWT session creation, bcrypt password hashing, and user
+// registration flow.
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt, { type SignOptions } from 'jsonwebtoken';

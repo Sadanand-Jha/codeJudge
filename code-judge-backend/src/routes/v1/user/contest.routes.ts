@@ -1,3 +1,5 @@
+// Contest routes. Authenticated endpoints for listing, viewing, and registering
+// for coding contests under /api/v1/user/contest.
 import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
 import {

@@ -1,3 +1,5 @@
+// Follow routes. Authenticated endpoints for searching users, listing followers/following,
+// and follow/unfollow actions under /api/v1/user/follow.
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.ts";
 import {

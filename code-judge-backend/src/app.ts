@@ -1,3 +1,6 @@
+// Main Express application setup. Configures middleware (CORS, Helmet, Morgan,
+// cookie-parser), creates the PostgreSQL connection pool, and mounts all API
+// routes under /api. Exports the configured Express app and the DB pool.
 import 'dotenv/config';
 import express from "express";
 import cors from "cors";

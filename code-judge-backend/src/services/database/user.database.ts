@@ -1,3 +1,5 @@
+// User business logic layer. Delegates to userRepository for user lookups, existence
+// checks, registration, profile updates, and avatar management.
 import { userRepository } from '../../repositories/user.repository.ts';
 
 export class UserService {

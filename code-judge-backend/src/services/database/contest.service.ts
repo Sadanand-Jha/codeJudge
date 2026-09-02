@@ -1,3 +1,5 @@
+// Contest business logic layer. Delegates to ContestRepository for listing, fetching,
+// checking registration, and registering users for contests.
 import { ContestRepository } from "../../repositories/contest.repository.ts";
 
 export class ContestService {

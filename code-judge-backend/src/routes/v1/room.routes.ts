@@ -1,3 +1,5 @@
+// Room routes. Authenticated endpoints for creating, listing, and managing rooms
+// and their members under /api/v1/user/rooms.
 import { Router } from "express";
 import { authenticate } from "../../middleware/auth.ts";
 import { createRoom, listRooms, getRoom, searchUser, searchUsers, addMember, removeMember, updateMemberStatus, updateRoom, getRoomsForStudent } from "../../controllers/room.controller.ts";

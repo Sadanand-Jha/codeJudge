@@ -1,3 +1,5 @@
+// Authentication controller. Handles OTP sending/verification, user registration,
+// login (JWT + Redis session), logout, the /me endpoint, and username availability.
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";

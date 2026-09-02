@@ -1,3 +1,5 @@
+// User registration/profile controller. Handles new user registration (after OTP verification),
+// password reset, profile update, and user lookup by username.
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { pool } from "../app.ts";

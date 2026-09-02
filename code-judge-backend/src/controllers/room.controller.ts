@@ -1,3 +1,5 @@
+// Room (study room / group) controller. Create rooms, list rooms, search users,
+// manage room members (add/remove/status), and update room settings.
 import type { Request, Response } from "express";
 import { RoomRepository } from "../repositories/room.repository.ts";
 

@@ -1,3 +1,5 @@
+// Social follow controller. Handles follow/unfollow users, get followers/following lists,
+// and search users for follow operations.
 import type { Request, Response } from "express";
 import { FollowRepository } from "../repositories/follow.repository.ts";
 

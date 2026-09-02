@@ -1,3 +1,5 @@
+// Marksheet email service. Sends a formatted email to the quiz creator with the
+// generated marksheet Excel file as an attachment and quiz statistics.
 import nodemailer from "nodemailer";
 import logger from "../utils/logger.ts";
 

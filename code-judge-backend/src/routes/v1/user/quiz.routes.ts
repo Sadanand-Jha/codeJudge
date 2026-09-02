@@ -1,3 +1,5 @@
+// Quiz routes (most complex router). Full CRUD for quizzes, problems, options, attempts,
+// submissions, game config, collaboration, and result generation under /api/v1/user/quiz.
 import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
 import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema, quizGameMechanicsSchema } from "../../../middleware/validate.ts";

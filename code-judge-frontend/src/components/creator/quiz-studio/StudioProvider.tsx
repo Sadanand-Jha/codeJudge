@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -310,6 +311,7 @@ interface StudioContextValue {
   prevStep: () => void;
   publish: () => void;
   saveToServer: (opts?: { publish?: boolean }) => Promise<{ quizId: string; code: string }>;
+  saveGameMechanicsOnly: () => Promise<void>;
   savingToServer: boolean;
   /** Progress of the current save: { saved, total } while saving, null otherwise */
   saveProgress: { saved: number; total: number } | null;
@@ -857,12 +859,17 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           const gm = state.gameMechanics;
           const mechanicMap: Record<string, { enabled: boolean; quantity: number }> = {
             FIFTY_FIFTY: { enabled: gm.fiftyFifty.enabled, quantity: typeof gm.fiftyFifty.uses === "number" ? gm.fiftyFifty.uses : 2 },
-            EXTRA_TIME: { enabled: gm.extraTime.enabled, quantity: typeof gm.extraTime.uses === "number" ? gm.extraTime.uses : 1 },
+            AUDIENCE_POLL: { enabled: gm.audiencePoll?.enabled ?? false, quantity: typeof gm.audiencePoll?.uses === "number" ? gm.audiencePoll.uses : 1 },
             HINT: { enabled: gm.hint.enabled, quantity: typeof gm.hint.uses === "number" ? gm.hint.uses : 2 },
             SKIP_QUESTION: { enabled: gm.skip.enabled, quantity: typeof gm.skip.uses === "number" ? gm.skip.uses : 2 },
-            SHIELD: { enabled: gm.eliminateOne?.enabled ?? false, quantity: typeof gm.eliminateOne?.uses === "number" ? gm.eliminateOne.uses : 1 },
+            EXTRA_TIME: { enabled: gm.extraTime.enabled, quantity: typeof gm.extraTime.uses === "number" ? gm.extraTime.uses : 1 },
+            ELIMINATE_ONE: { enabled: gm.eliminateOne?.enabled ?? false, quantity: typeof gm.eliminateOne?.uses === "number" ? gm.eliminateOne.uses : 1 },
             DOUBLE_SCORE: { enabled: gm.doublePoints.enabled, quantity: typeof gm.doublePoints.uses === "number" ? gm.doublePoints.uses : 1 },
-            EXTRA_LIFE: { enabled: gm.secondChance?.enabled ?? false, quantity: typeof gm.secondChance?.uses === "number" ? gm.secondChance.uses : 1 },
+            FREEZE_TIME: { enabled: gm.freezeTimer?.enabled ?? false, quantity: typeof gm.freezeTimer?.uses === "number" ? gm.freezeTimer.uses : 1 },
+            STREAK_BONUS: { enabled: gm.streakBonus?.enabled ?? false, quantity: typeof gm.streakBonus?.uses === "number" ? gm.streakBonus.uses : 1 },
+            SPEED_BONUS: { enabled: gm.speedBonus?.enabled ?? false, quantity: typeof gm.speedBonus?.uses === "number" ? gm.speedBonus.uses : 1 },
+            SECOND_CHANCE: { enabled: gm.secondChance?.enabled ?? false, quantity: typeof gm.secondChance?.uses === "number" ? gm.secondChance.uses : 1 },
+            DECAYING_POINTS: { enabled: gm.decayingPoints?.enabled ?? false, quantity: 1 },
           };
           const mechanicsPayload = Object.entries(mechanicMap).map(([mechanicCode, { enabled, quantity }]) => ({
             mechanicCode,
@@ -886,6 +893,38 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       setSaveProgress(null);
     }
   };
+
+  const saveGameMechanicsOnly = useCallback(async () => {
+    const quizId = state.serverQuizId;
+    if (!quizId) throw new Error("Quiz not saved yet — save the quiz first");
+
+    setSavingToServer(true);
+    try {
+      const gm = state.gameMechanics;
+      const mechanicMap: Record<string, { enabled: boolean; quantity: number }> = {
+        FIFTY_FIFTY: { enabled: gm.fiftyFifty.enabled, quantity: typeof gm.fiftyFifty.uses === "number" ? gm.fiftyFifty.uses : 2 },
+        AUDIENCE_POLL: { enabled: gm.audiencePoll?.enabled ?? false, quantity: typeof gm.audiencePoll?.uses === "number" ? gm.audiencePoll.uses : 1 },
+        HINT: { enabled: gm.hint.enabled, quantity: typeof gm.hint.uses === "number" ? gm.hint.uses : 2 },
+        SKIP_QUESTION: { enabled: gm.skip.enabled, quantity: typeof gm.skip.uses === "number" ? gm.skip.uses : 2 },
+        EXTRA_TIME: { enabled: gm.extraTime.enabled, quantity: typeof gm.extraTime.uses === "number" ? gm.extraTime.uses : 1 },
+        ELIMINATE_ONE: { enabled: gm.eliminateOne?.enabled ?? false, quantity: typeof gm.eliminateOne?.uses === "number" ? gm.eliminateOne.uses : 1 },
+        DOUBLE_SCORE: { enabled: gm.doublePoints.enabled, quantity: typeof gm.doublePoints.uses === "number" ? gm.doublePoints.uses : 1 },
+        FREEZE_TIME: { enabled: gm.freezeTimer?.enabled ?? false, quantity: typeof gm.freezeTimer?.uses === "number" ? gm.freezeTimer.uses : 1 },
+        STREAK_BONUS: { enabled: gm.streakBonus?.enabled ?? false, quantity: typeof gm.streakBonus?.uses === "number" ? gm.streakBonus.uses : 1 },
+        SPEED_BONUS: { enabled: gm.speedBonus?.enabled ?? false, quantity: typeof gm.speedBonus?.uses === "number" ? gm.speedBonus.uses : 1 },
+        SECOND_CHANCE: { enabled: gm.secondChance?.enabled ?? false, quantity: typeof gm.secondChance?.uses === "number" ? gm.secondChance.uses : 1 },
+        DECAYING_POINTS: { enabled: gm.decayingPoints?.enabled ?? false, quantity: 1 },
+      };
+      const mechanicsPayload = Object.entries(mechanicMap).map(([mechanicCode, { enabled, quantity }]) => ({
+        mechanicCode,
+        enabled,
+        quantity,
+      }));
+      await updateQuizGameMechanics(quizId, mechanicsPayload);
+    } finally {
+      setSavingToServer(false);
+    }
+  }, [state.serverQuizId, state.gameMechanics]);
 
   const value: StudioContextValue = useMemo(
     () => ({
@@ -912,6 +951,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       prevStep,
       publish,
       saveToServer,
+      saveGameMechanicsOnly,
       savingToServer,
       saveProgress,
       loading,

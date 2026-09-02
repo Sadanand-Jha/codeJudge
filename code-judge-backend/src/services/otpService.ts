@@ -1,3 +1,5 @@
+// OTP service. Generates OTPs, stores them in Redis with a 5-minute TTL, and
+// triggers email delivery via the email service.
 import generateOtp from "./otpGenerator.js";
 import { sendEmail } from "./email.js";
 import redisClient from "../config/redis.js";

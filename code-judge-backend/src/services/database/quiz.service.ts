@@ -1,3 +1,5 @@
+// Quiz business logic layer. Delegates to QuizRepository for all quiz CRUD, problem
+// management, attempt tracking, game config, collaboration, and more.
 import { QuizRepository } from "../../repositories/quiz.repository.ts";
 
 export class QuizService {
@@ -156,8 +158,9 @@ export class QuizService {
   }
 
   async saveStudentResponse(data: {
-    userId: number;
+    attemptId: number;
     problemId: number;
+    answer?: unknown;
     option?: string;
     textAnswer?: string;
     timeTaken?: number;

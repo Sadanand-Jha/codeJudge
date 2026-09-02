@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Gamepad2, Eye, Trophy, Timer, ShieldCheck, Users, Save, Check, ChevronDown, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { Gamepad2, Eye, Trophy, Timer, ShieldCheck, Users, Save, Check, ChevronDown, ChevronRight, ArrowLeft } from "lucide-react";
 import { useStudio } from "../StudioProvider";
 import { GameMechanicsPanel } from "./GameMechanicsPanel";
 import { getEnabledMechanicsSummary, isMechanicAvailable, MECHANIC_META, type MechanicId } from "../types/gameMechanics";
@@ -9,7 +10,7 @@ import { cn } from "@/lib/helpers";
 import type { CreatorQuestionType } from "../types";
 
 export function GameMechanicsPage() {
-  const { state, updateGameMechanics, saveToServer, savingToServer, saveProgress } = useStudio();
+  const { state, updateGameMechanics, saveGameMechanicsOnly, savingToServer, saveProgress } = useStudio();
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
@@ -57,7 +58,7 @@ export function GameMechanicsPage() {
     setSaving(true);
     setSaveStatus("saving");
     try {
-      await saveToServer();
+      await saveGameMechanicsOnly();
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     } catch {
@@ -76,6 +77,12 @@ export function GameMechanicsPage() {
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex gap-3 min-w-0">
+            <Link
+              href="/creator/quizzes"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E91E63] text-white shadow-[0_4px_12px_rgba(233,30,99,0.25)]">
               <Gamepad2 className="h-5 w-5" />
             </span>

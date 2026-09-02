@@ -1,3 +1,5 @@
+// General-purpose email sender using Nodemailer. Configures SMTP transport from
+// env vars and provides a sendEmail() utility function.
 import nodemailer from 'nodemailer';
 import logger from '../utils/logger.js';
 

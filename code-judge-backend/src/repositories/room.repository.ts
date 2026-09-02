@@ -1,3 +1,5 @@
+// Room data access layer. SQL queries for creating/listing rooms, managing members
+// (add/remove/status), searching users, and generating unique room codes.
 import { pool } from "../app.ts";
 import crypto from "crypto";
 

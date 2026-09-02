@@ -1,3 +1,5 @@
+// User sub-router. Aggregates editor, contest, quiz, AI, room, and follow sub-routes,
+// plus user registration, profile, password, timezone, avatar, and info endpoints.
 import {Router} from "express";
 import editorRoutes from "./editor.routes.ts";
 import contestRoutes from "./contest.routes.ts";

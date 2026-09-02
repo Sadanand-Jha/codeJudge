@@ -1,3 +1,5 @@
+// Contest controller. Provides CRUD operations for coding contests — list all, get by ID,
+// get contest problems, register for contest, and get user's registered contests.
 import type { Request, Response } from "express";
 import { ContestService } from "../services/database/contest.service.ts";
 

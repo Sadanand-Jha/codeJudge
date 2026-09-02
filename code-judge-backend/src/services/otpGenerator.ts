@@ -1,3 +1,5 @@
+// OTP generator utility. Wraps the otp-generator library to produce configurable
+// numeric OTP codes (default 6 digits).
 import otpGenerator from "otp-generator";
 
 const generateOtp = (
