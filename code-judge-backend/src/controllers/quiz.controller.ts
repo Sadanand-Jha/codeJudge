@@ -87,12 +87,52 @@ export const getQuizById = async (req: Request, res: Response) => {
       return;
     }
 
+    const { code: _code, ...publicQuiz } = quiz as { code?: string } & Record<string, unknown>;
+
+    res.status(200).json({
+      success: true,
+      data: publicQuiz,
+    });
+  } catch (error) {
+    console.error("Error fetching quiz:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching quiz",
+    });
+  }
+};
+
+/**
+ * GET /api/v1/admin/quiz/:quizId
+ * Get a single quiz by ID, but only if the authenticated creator owns it.
+ */
+export const getAdminQuizById = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const quiz = await quizService.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+      return;
+    }
+
+    const userId = req.user?.userId ? Number(req.user.userId) : null;
+    if (!userId || quiz.createdby !== userId) {
+      res.status(403).json({
+        success: false,
+        message: "You can only access your own quiz",
+      });
+      return;
+    }
+
     res.status(200).json({
       success: true,
       data: quiz,
     });
   } catch (error) {
-    console.error("Error fetching quiz:", error);
+    console.error("Error fetching admin quiz:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching quiz",
@@ -117,9 +157,11 @@ export const getQuizByCode = async (req: Request, res: Response) => {
       return;
     }
 
+    const { code: _code, ...publicQuiz } = quiz as { code?: string } & Record<string, unknown>;
+
     res.status(200).json({
       success: true,
-      data: quiz,
+      data: publicQuiz,
     });
   } catch (error) {
     console.error("Error fetching quiz by code:", error);
@@ -1633,6 +1675,22 @@ export const getQuizAnalytics = async (req: Request, res: Response) => {
 
 // ==================== QUIZ PROBLEMS & OPTIONS ====================
 
+const attachQuizProblemOptions = async (quizId: string, includeCorrectAnswers: boolean) => {
+  const problems = await quizService.getQuizProblems(quizId);
+
+  return Promise.all(
+    problems.map(async (problem: any) => {
+      const options = await quizService.getQuizProblemOptions(String(problem.id));
+      return {
+        ...problem,
+        options: includeCorrectAnswers
+          ? options
+          : options.map(({ iscorrect, ...option }: any) => option),
+      };
+    })
+  );
+};
+
 /**
  * GET /api/v1/user/quiz/:quizId/problems
  * Get all problems for a quiz
@@ -1640,17 +1698,7 @@ export const getQuizAnalytics = async (req: Request, res: Response) => {
 export const getQuizProblemsController = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
-    const problems = await quizService.getQuizProblems(quizId);
-
-    console.log("k6 testing................................")
-
-
-    const problemsWithOptions = await Promise.all(
-      problems.map(async (problem: any) => {
-        const options = await quizService.getQuizProblemOptions(String(problem.id));
-        return { ...problem, options };
-      })
-    );
+    const problemsWithOptions = await attachQuizProblemOptions(quizId, true);
 
     res.status(200).json({
       success: true,
@@ -1658,6 +1706,29 @@ export const getQuizProblemsController = async (req: Request, res: Response) => 
     });
   } catch (error) {
     console.error("Error fetching quiz problems:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching quiz problems",
+    });
+  }
+};
+
+/**
+ * GET /api/v1/user/quiz/:quizId/problems/public
+ * Get quiz problems without exposing correct answers
+ */
+export const getQuizProblemsPublicController = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    
+    const problemsWithOptions = await attachQuizProblemOptions(quizId, false);
+
+    res.status(200).json({
+      success: true,
+      data: problemsWithOptions,
+    });
+  } catch (error) {
+    console.error("Error fetching public quiz problems:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching quiz problems",

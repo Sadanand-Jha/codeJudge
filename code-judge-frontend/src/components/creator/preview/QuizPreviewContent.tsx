@@ -27,8 +27,8 @@ import {
   BookOpen as BookOpenIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { getQuizById, getQuizProblems, getQuizGameMechanics, type QuizGameMechanic } from "@/services/quiz";
-import type { Quiz, QuizProblem } from "@/services/quiz";
+import { getAdminQuizById, getQuizProblemsPublic, getQuizGameMechanics, type QuizGameMechanic } from "@/services/quiz";
+import type { Quiz, PublicQuizProblem } from "@/services/quiz";
 import ExamModeShell from "@/components/quiz/exam/ExamModeShell";
 
 /* ── Types ── */
@@ -123,6 +123,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [explanationOpen, setExplanationOpen] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
 
   /* Fetch quiz + problems */
   useEffect(() => {
@@ -132,69 +133,25 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
         setLoading(true);
         setError(null);
         const [quizData, problemsData] = await Promise.all([
-          getQuizById(quizId),
-          getQuizProblems(quizId).catch(() => [] as QuizProblem[]),
+          getAdminQuizById(quizId),
+          getQuizProblemsPublic(quizId),
         ]);
         if (cancelled) return;
         setQuiz(quizData);
-        let mapped = problemsData.map((p, idx) => ({
+        const mapped = problemsData.map((p, idx) => ({
           id: p.id,
           q: decodeHtml(p.problem_statement),
           type: TYPE_MAP[p.quiz_problem_type ?? 1] ?? "single_choice",
           options: p.options.map((o, oi) => ({
             label: String.fromCharCode(65 + oi),
             text: decodeHtml(o.option_statement),
-            correct: o.iscorrect,
+            correct: false,
           })),
-          marks: (p as QuizProblem & { marks?: number }).marks ?? 10,
+          marks: (p as PublicQuizProblem & { marks?: number }).marks ?? 10,
           difficulty: p.difficulty_name ?? "Medium",
           explanation: decodeHtml(p.explaination ?? ""),
           questionNumber: p.question_number ?? idx + 1,
         }));
-        if (mapped.length === 0) {
-          mapped = [
-            {
-              id: 1,
-              q: "What does HTML stand for?",
-              type: "single_choice",
-              options: [
-                { label: "A", text: "HyperText Markup Language", correct: true },
-                { label: "B", text: "HighText Machine Language", correct: false },
-                { label: "C", text: "HyperTool Multi Language", correct: false },
-                { label: "D", text: "HyperText Markdown Language", correct: false },
-              ],
-              marks: 10,
-              difficulty: "Easy",
-              explanation: "HyperText Markup Language is the standard markup language for creating web pages.",
-              questionNumber: 1,
-            },
-            {
-              id: 2,
-              q: "Which CSS property controls text size?",
-              type: "single_choice",
-              options: [
-                { label: "A", text: "font-size", correct: true },
-                { label: "B", text: "text-size", correct: false },
-                { label: "C", text: "font-style", correct: false },
-                { label: "D", text: "text-style", correct: false },
-              ],
-              marks: 10,
-              difficulty: "Easy",
-              explanation: "font-size controls the size of text.",
-              questionNumber: 2,
-            },
-            {
-              id: 3,
-              q: "Explain the difference between let and var in JavaScript.",
-              type: "single_choice",
-              options: [],
-              marks: 10,
-              difficulty: "Medium",
-              explanation: "let is block-scoped, var is function-scoped.",
-              questionNumber: 3,
-            },
-          ];
-        }
         setQuestions(mapped);
         const dur = (quizData.duration ?? 30) * 60;
         setTimeLeft(dur);
@@ -421,9 +378,15 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
                       <Eye className="h-5 w-5" /> Mark for Review
                     </button>
                   </div>
-                  <button onClick={() => setCurrent((c) => Math.min(questions.length - 1, c + 1))} disabled={current === questions.length - 1} className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 px-7 py-3 text-sm font-bold text-white shadow-md disabled:opacity-30">
-                    Next <ChevronRight className="h-5 w-5" />
-                  </button>
+                  {current === questions.length - 1 ? (
+                    <button onClick={() => setShowSubmitModal(true)} className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-7 py-3 text-sm font-bold text-white shadow-md hover:shadow-lg">
+                      <Send className="h-5 w-5" /> Submit Quiz
+                    </button>
+                  ) : (
+                    <button onClick={() => setCurrent((c) => Math.min(questions.length - 1, c + 1))} className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 px-7 py-3 text-sm font-bold text-white shadow-md">
+                      Next <ChevronRight className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               </>
             )}
@@ -566,10 +529,20 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
                     return;
                   }
                   const correct = cur.options.filter((o) => o.correct);
-                  const incorrect = cur.options.filter((o) => !o.correct);
-                  if (correct.length !== 1 || incorrect.length === 0) return;
-                  const randomIncorrect = incorrect[Math.floor(Math.random() * incorrect.length)];
-                  const keep = [correct[0].label, randomIncorrect.label].sort();
+                  let keep: string[] = [];
+                  if (correct.length === 1) {
+                    const incorrect = cur.options.filter((o) => !o.correct);
+                    if (incorrect.length === 0) return;
+                    const randomIncorrect = incorrect[Math.floor(Math.random() * incorrect.length)];
+                    keep = [correct[0].label, randomIncorrect.label].sort();
+                  } else {
+                    if (cur.options.length < 2) return;
+                    keep = [...cur.options]
+                      .sort(() => Math.random() - 0.5)
+                      .slice(0, 2)
+                      .map((o) => o.label)
+                      .sort();
+                  }
                   setFiftyFiftyMap((prev) => ({ ...prev, [cur.id]: keep }));
                   setAnswers((prev) => {
                     const ans = prev[cur.id];
@@ -590,6 +563,27 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
             >
               {selectedMechanic === 0 ? (fiftyFiftyMap[q?.id] ? "Already applied to this question" : Object.keys(fiftyFiftyMap).length >= 2 ? "No uses left" : "Use 50–50 (preview only)") : usedMechanics[selectedMechanic!] ? "Already Used" : "Use Now"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {showSubmitModal && (
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/50 p-4" onClick={() => setShowSubmitModal(false)}>
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+              <Send className="h-6 w-6" />
+            </div>
+            <h3 className="text-center text-lg font-bold text-gray-900">Submit quiz?</h3>
+            <p className="mt-1 text-center text-sm text-gray-500">This preview will end and return you to the quizzes list.</p>
+
+            <div className="mt-5 flex items-center gap-3">
+              <button onClick={() => setShowSubmitModal(false)} className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+                Continue Preview
+              </button>
+              <button onClick={onExitPreview} className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-sm font-bold text-white shadow-md hover:shadow-lg">
+                Submit Quiz
+              </button>
+            </div>
           </div>
         </div>
       )}

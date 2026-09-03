@@ -283,36 +283,21 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                   </div>
                 )}
 
-                {/* Matching — show Column A and Column B side by side so the creator
-                    can verify the pairs. Students will see Column B shuffled. */}
+                {/* Matching preview — show the prompt and Column A only; keep Column B hidden. */}
                 {q.type === "match_following" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Column A · Items</p>
-                      <div className="space-y-2">
-                        {(q.matchItems ?? []).map((item, idx) => (
-                          <div key={item.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-border bg-card-hover text-[11px] font-bold text-text-primary">
-                              {String(idx + 1).padStart(2, "0")}
-                            </span>
-                            <span className="text-sm text-text-primary">{item.content || <span className="text-text-muted italic">Empty</span>}</span>
-                          </div>
-                        ))}
-                      </div>
+                  <div>
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Column A · Items</p>
+                    <div className="space-y-2">
+                      {(q.matchItems ?? []).map((item, idx) => (
+                        <div key={item.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-border bg-card-hover text-[11px] font-bold text-text-primary">
+                            {String(idx + 1).padStart(2, "0")}
+                          </span>
+                          <span className="text-sm text-text-primary">{item.content || <span className="text-text-muted italic">Empty</span>}</span>
+                        </div>
+                      ))}
                     </div>
-                    <div>
-                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Column B · Matches</p>
-                      <div className="space-y-2">
-                        {(q.matchMatches ?? []).map((item, idx) => (
-                          <div key={item.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-border bg-card-hover text-[11px] font-bold text-text-primary">
-                              {["A","B","C","D","E","F","G","H","I","J"][idx] ?? String(idx + 1)}
-                            </span>
-                            <span className="text-sm text-text-primary">{item.content || <span className="text-text-muted italic">Empty</span>}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <p className="mt-3 text-[11px] text-text-muted">Matching targets are hidden in preview.</p>
                   </div>
                 )}
               </div>

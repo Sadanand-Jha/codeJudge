@@ -7,7 +7,7 @@ import {
   getAllQuizzes,
   getQuizById,
   getQuizByCode,
-  getQuizProblemsController,
+  getQuizProblemsPublicController,
   registerForQuiz,
   getMyQuizzes,
   getMyCreatedQuizzes,
@@ -134,8 +134,8 @@ router.patch("/:quizId/status", validate(quizStatusSchema), updateQuizStatus);
 
 // ==================== QUESTION MANAGEMENT ====================
 
-// GET /api/v1/user/quiz/:quizId/problems — get quiz problems
-router.get("/:quizId/problems", getQuizProblemsController);
+// GET /api/v1/user/quiz/:quizId/problems/public — get quiz problems without correct answers
+router.get("/:quizId/problems/public", getQuizProblemsPublicController);
 
 // POST /api/v1/user/quiz/:quizId/problems — add a question
 router.post("/:quizId/problems", validate(quizProblemSchema), addQuizProblem);

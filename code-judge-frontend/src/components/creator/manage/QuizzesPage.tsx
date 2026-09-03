@@ -18,6 +18,7 @@ import {
   HelpCircle,
   Radio,
 } from "lucide-react";
+import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
 import { useData } from "@/lib/hooks/useData";
 import {
   PageHeader,
@@ -242,16 +243,10 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h3 className="truncate text-sm font-semibold tracking-tight text-text-primary">{q.title}</h3>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(q.code);
-                            toast.success({ title: "Code copied", description: q.code });
-                          }}
-                          className="mt-0.5 font-mono text-[11px] font-medium text-text-muted transition-colors hover:text-[#EC4899]"
-                        >
-                          {q.code}
-                        </button>
+                        <MaskedCopyCode
+                          code={q.code}
+                          className="mt-0.5 inline-flex items-center gap-2 rounded-md border border-transparent px-0 py-0 text-left font-mono text-[11px] font-medium text-text-muted transition-colors hover:text-[#EC4899]"
+                        />
                       </div>
                       <StatusBadge label={meta.label} tone={meta.tone} dot />
                     </div>
@@ -329,7 +324,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
       {/* Delete confirmation */}
       {deleteTarget && (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-80 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onClick={() => !deleting && setDeleteTarget(null)}
         >
           <div
@@ -353,7 +348,15 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               <dl className="divide-y divide-border rounded-lg border border-border">
                 {[
                   { label: "Quiz", value: deleteTarget.title || "Untitled Quiz" },
-                  { label: "Code", value: deleteTarget.code },
+                  {
+                    label: "Code",
+                    value: (
+                      <MaskedCopyCode
+                        code={deleteTarget.code}
+                        className="inline-flex h-7 items-center gap-2 rounded-md border border-transparent px-0 py-0 text-left font-mono text-[11px] font-medium text-text-muted transition-colors hover:text-[#EC4899]"
+                      />
+                    ),
+                  },
                   { label: "Subject", value: deleteTarget.subject },
                   { label: "Questions", value: String(deleteTarget.questions) },
                   { label: "Status", value: STATUS_META[deleteTarget.status]?.label ?? deleteTarget.status },
@@ -433,7 +436,7 @@ function QuizCardSkeleton() {
       <Skeleton className="mt-2 h-3 w-1/2" />
       <div className="mt-4 grid grid-cols-2 gap-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-[52px] w-full" />
+          <Skeleton key={i} className="h-13 w-full" />
         ))}
       </div>
       <Skeleton className="mt-4 h-3 w-full" />

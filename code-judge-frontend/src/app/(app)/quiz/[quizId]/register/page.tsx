@@ -331,7 +331,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     </p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <InfoItem icon={Hash} label="Quiz Code" value={quiz.code} mono />
+                      <InfoItem icon={Hash} label="Quiz Code" value={quizCode} mono />
                       <InfoItem icon={GraduationCap} label="Subject" value="Computer Science" />
                       <InfoItem icon={Target} label="Topic" value="Data Structures & Algorithms" />
                       <InfoItem icon={Star} label="Difficulty" value="Medium" />
@@ -491,7 +491,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     >
                       <h3 className="text-sm font-bold text-white mb-4">Quiz Details</h3>
                       <div className="space-y-2.5">
-                        <DetailRow label="Quiz Code" value={quiz.code} />
+                        <DetailRow label="Quiz Code" value={quizCode} />
                         <DetailRow label="Duration" value={quizDuration} />
                         <DetailRow label="Questions" value={totalQuestions.toString()} />
                         <DetailRow label="Total Marks" value={totalMarks.toString()} />

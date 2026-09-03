@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useState } from "react";
 import {
   Send,
@@ -10,12 +11,12 @@ import {
   IndianRupee,
   Calendar,
   Check,
-  Copy,
   Loader2,
   BarChart3,
 } from "lucide-react";
 import { useStudio } from "../StudioProvider";
 import { toast } from "@/lib/toast";
+import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
 
 export function PublishStep({
   onPublish,
@@ -48,7 +49,7 @@ export function PublishStep({
     }
   };
 
-  const rows = [
+  const rows: Array<{ label: string; value: ReactNode }> = [
     { label: "Title", value: state.info.title || "Untitled Quiz" },
     { label: "Questions", value: summary.questionCount + " · " + summary.totalMarks + " marks" },
     { label: "Duration", value: state.info.duration + " min" },
@@ -103,16 +104,10 @@ export function PublishStep({
           </dl>
 
           <div className="mt-6 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(state.info.code);
-                toast.success({ title: "Code copied", description: state.info.code });
-              }}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
-            >
-              <Copy className="h-3.5 w-3.5" /> {state.info.code}
-            </button>
+            <MaskedCopyCode
+              code={state.info.code}
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
+            />
             <button
               type="button"
               onClick={() => setConfirmOpen(true)}
@@ -136,7 +131,7 @@ export function PublishStep({
       {/* Publish confirmation */}
       {confirmOpen && (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-80 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
           onClick={() => !saving && setConfirmOpen(false)}
         >
           <div
@@ -164,7 +159,15 @@ export function PublishStep({
               <dl className="divide-y divide-border rounded-lg border border-border">
                 {[
                   { label: "Quiz", value: state.info.title || "Untitled Quiz" },
-                  { label: "Code", value: state.info.code },
+                  {
+                    label: "Code",
+                    value: (
+                      <MaskedCopyCode
+                        code={state.info.code}
+                        className="inline-flex h-7 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-[11px] font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
+                      />
+                    ),
+                  },
                   { label: "Questions", value: `${summary.questionCount} · ${summary.totalMarks} marks` },
                   { label: "Duration", value: `${state.info.duration} min` },
                   {

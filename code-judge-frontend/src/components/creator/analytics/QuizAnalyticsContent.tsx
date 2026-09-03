@@ -42,7 +42,7 @@ import {
   BillButton,
   SegmentedControl,
 } from "@/components/creator/billing/ui";
-import { getQuizAnalytics, getQuizById, type QuizAnalytics, type Quiz } from "@/services/quiz";
+import { getQuizAnalytics, getAdminQuizById, type QuizAnalytics, type Quiz } from "@/services/quiz";
 import { MiniBarChart } from "./charts";
 
 function formatTime(sec: number | null | undefined): string {
@@ -94,7 +94,7 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const [q, a] = await Promise.all([getQuizById(quizId), getQuizAnalytics(quizId)]);
+      const [q, a] = await Promise.all([getAdminQuizById(quizId), getQuizAnalytics(quizId)]);
       setQuiz(q as any);
       setData(a as any);
     } catch (e: any) {

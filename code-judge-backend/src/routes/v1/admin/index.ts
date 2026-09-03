@@ -1,6 +1,9 @@
-// Admin routes placeholder. Currently an empty router with no endpoints defined.
-import {Router} from "express";
+// Admin routes. Creator-facing APIs are mounted under /api/v1/admin.
+import { Router } from "express";
+import quizRoutes from "./quiz.routes.ts";
 
 const router = Router();
+
+router.use("/quiz", quizRoutes);
 
 export default router;

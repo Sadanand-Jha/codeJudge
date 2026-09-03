@@ -41,10 +41,10 @@ export interface QuizVisibilityOption {
 
 /**
  * Get visibility options from the `quiz_visibility` DB table
- * GET /api/v1/user/quiz/visibility-options
+ * GET /api/v1/admin/quiz/visibility-options
  */
 export async function getQuizVisibilityOptions(): Promise<QuizVisibilityOption[]> {
-  const response = await apiClient.get<QuizVisibilityOption[]>("/v1/user/quiz/visibility-options");
+  const response = await apiClient.get<QuizVisibilityOption[]>("/v1/admin/quiz/visibility-options");
   return response.data;
 }
 
@@ -136,6 +136,14 @@ export interface QuizProblemOption {
   updated_at: string | null;
 }
 
+export interface PublicQuizProblemOption extends Omit<QuizProblemOption, "iscorrect"> {
+  iscorrect?: never;
+}
+
+export interface PublicQuizProblem extends Omit<QuizProblem, "options"> {
+  options: PublicQuizProblemOption[];
+}
+
 export interface QuizRegistration {
   id: number;
   user_id: number;
@@ -148,10 +156,10 @@ export interface QuizRegistration {
 
 /**
  * Get all quizzes
- * GET /api/v1/user/quiz
+ * GET /api/v1/admin/quiz
  */
 export async function getAllQuizzes(): Promise<Quiz[]> {
-  const response = await apiClient.get<Quiz[]>("/v1/user/quiz");
+  const response = await apiClient.get<Quiz[]>("/v1/admin/quiz");
   return response.data;
 }
 
@@ -167,21 +175,21 @@ export interface QuizExamCategory {
 
 /**
  * Get all quiz subjects
- * GET /api/v1/user/quiz/quiz-subjects
+ * GET /api/v1/admin/quiz/subjects
  */
 export async function getAllSubjects(search?: string, signal?: AbortSignal): Promise<QuizSubject[]> {
   const params = search ? { search } : undefined;
-  const response = await apiClient.get<QuizSubject[]>("/v1/user/quiz-subjects", { params, signal });
+  const response = await apiClient.get<QuizSubject[]>("/v1/admin/quiz/subjects", { params, signal });
   return response.data;
 }
 
 /**
  * Get all quiz exam categories
- * GET /api/v1/user/quiz/quiz-exam-categories
+ * GET /api/v1/admin/quiz/exam-categories
  */
 export async function getAllExamCategories(search?: string, signal?: AbortSignal): Promise<QuizExamCategory[]> {
   const params = search ? { search } : undefined;
-  const response = await apiClient.get<QuizExamCategory[]>("/v1/user/quiz-exam-categories", { params, signal });
+  const response = await apiClient.get<QuizExamCategory[]>("/v1/admin/quiz/exam-categories", { params, signal });
   return response.data;
 }
 
@@ -191,6 +199,15 @@ export async function getAllExamCategories(search?: string, signal?: AbortSignal
  */
 export async function getQuizById(quizId: string): Promise<Quiz> {
   const response = await apiClient.get<Quiz>(`/v1/user/quiz/${quizId}`);
+  return response.data;
+}
+
+/**
+ * Get a single quiz by ID from the admin route.
+ * GET /api/v1/admin/quiz/:quizId
+ */
+export async function getAdminQuizById(quizId: string): Promise<Quiz> {
+  const response = await apiClient.get<Quiz>(`/v1/admin/quiz/${quizId}`);
   return response.data;
 }
 
@@ -243,10 +260,19 @@ export async function loadQuizForEdit(quizId: string): Promise<{
 
 /**
  * Get all problems for a quiz
- * GET /api/v1/user/quiz/:quizId/problems
+ * GET /api/v1/admin/quiz/:quizId/problems
  */
 export async function getQuizProblems(quizId: string): Promise<QuizProblem[]> {
-  const response = await apiClient.get<QuizProblem[]>(`/v1/user/quiz/${quizId}/problems`);
+  const response = await apiClient.get<QuizProblem[]>(`/v1/admin/quiz/${quizId}/problems`);
+  return response.data;
+}
+
+/**
+ * Get quiz problems without correct answers
+ * GET /api/v1/admin/quiz/:quizId/problems/public
+ */
+export async function getQuizProblemsPublic(quizId: string): Promise<PublicQuizProblem[]> {
+  const response = await apiClient.get<PublicQuizProblem[]>(`/v1/admin/quiz/${quizId}/problems/public`);
   return response.data;
 }
 
@@ -320,33 +346,33 @@ export async function getOldQuizzes(params: {
 
 /**
  * Generate a unique 16-character alphabetic quiz code
- * GET /api/v1/user/quiz/generate-code
+ * GET /api/v1/admin/quiz/generate-code
  */
 export async function generateQuizCode(): Promise<string> {
-  const response = await apiClient.get<{ success: boolean; data: { code: string } }>("/v1/user/quiz/generate-code");
+  const response = await apiClient.get<{ success: boolean; data: { code: string } }>("/v1/admin/quiz/generate-code");
   return response.data.data.code;
 }
 
 /**
- * GET /api/v1/user/quiz/difficulty-options
+ * GET /api/v1/admin/quiz/difficulty-options
  */
 export async function getQuizDifficultyOptions(): Promise<{ id: number; heading: string }[]> {
-  const response = await apiClient.get("/v1/user/quiz/difficulty-options");
+  const response = await apiClient.get("/v1/admin/quiz/difficulty-options");
   return response.data as { id: number; heading: string }[];
 }
 
 /**
  * Create a new quiz from the creator settings form
- * POST /api/v1/user/quiz
+ * POST /api/v1/admin/quiz
  */
 export async function createQuiz(data: CreateQuizPayload): Promise<Quiz> {
-  const response = await apiClient.post<Quiz>("/v1/user/quiz", data);
+  const response = await apiClient.post<Quiz>("/v1/admin/quiz", data);
   return response.data;
 }
 
 /**
  * Update a quiz
- * PUT /api/v1/user/quiz/:quizId
+ * PUT /api/v1/admin/quiz/:quizId
  */
 export async function updateQuiz(quizId: string, data: Partial<{
   name: string;
@@ -366,36 +392,36 @@ export async function updateQuiz(quizId: string, data: Partial<{
   negativeMarking: boolean;
   leaderboard: boolean;
 }>): Promise<Quiz> {
-  const response = await apiClient.put<Quiz>(`/v1/user/quiz/${quizId}`, data);
+  const response = await apiClient.put<Quiz>(`/v1/admin/quiz/${quizId}`, data);
   return response.data;
 }
 
 /**
  * Delete a quiz
- * DELETE /api/v1/user/quiz/:quizId
+ * DELETE /api/v1/admin/quiz/:quizId
  */
 export async function deleteQuiz(quizId: string): Promise<void> {
-  await apiClient.delete(`/v1/user/quiz/${quizId}`);
+  await apiClient.delete(`/v1/admin/quiz/${quizId}`);
 }
 
 /**
  * Clone a quiz
- * POST /api/v1/user/quiz/:quizId/clone
+ * POST /api/v1/admin/quiz/:quizId/clone
  */
 export async function cloneQuiz(quizId: string, data: {
   name: string;
   code: string;
 }): Promise<Quiz> {
-  const response = await apiClient.post<Quiz>(`/v1/user/quiz/${quizId}/clone`, data);
+  const response = await apiClient.post<Quiz>(`/v1/admin/quiz/${quizId}/clone`, data);
   return response.data;
 }
 
 /**
  * Update quiz status (publish/unpublish/draft/archive)
- * PATCH /api/v1/user/quiz/:quizId/status
+ * PATCH /api/v1/admin/quiz/:quizId/status
  */
 export async function updateQuizStatus(quizId: string, status: "published" | "unpublished" | "draft" | "archived"): Promise<Quiz> {
-  const response = await apiClient.patch<Quiz>(`/v1/user/quiz/${quizId}/status`, { status });
+  const response = await apiClient.patch<Quiz>(`/v1/admin/quiz/${quizId}/status`, { status });
   return response.data;
 }
 
@@ -428,7 +454,7 @@ export interface QuizParticipant {
 /** Replace the full participant list for a quiz. */
 export async function setQuizParticipants(quizId: string, participants: QuizParticipantInput[]): Promise<{ saved: number }> {
   const response = await apiClient.put<{ success: boolean; data: { saved: number } }>(
-    `/v1/user/quiz/${quizId}/participants`,
+    `/v1/admin/quiz/${quizId}/participants`,
     { participants }
   );
   return response.data.data;
@@ -436,7 +462,7 @@ export async function setQuizParticipants(quizId: string, participants: QuizPart
 
 export async function getQuizParticipants(quizId: string): Promise<QuizParticipant[]> {
   const response = await apiClient.get<{ success: boolean; data: QuizParticipant[] }>(
-    `/v1/user/quiz/${quizId}/participants`
+    `/v1/admin/quiz/${quizId}/participants`
   );
   return response.data.data;
 }
@@ -466,53 +492,53 @@ export interface QuizProblemOptionCreate {
 
 /**
  * Add a question to a quiz
- * POST /api/v1/user/quiz/:quizId/problems
+ * POST /api/v1/admin/quiz/:quizId/problems
  */
 export async function addQuizProblem(quizId: string, data: QuizProblemCreate): Promise<QuizProblem> {
-  const response = await apiClient.post<QuizProblem>(`/v1/user/quiz/${quizId}/problems`, data);
+  const response = await apiClient.post<QuizProblem>(`/v1/admin/quiz/${quizId}/problems`, data);
   return response.data;
 }
 
 /**
  * Update a quiz question
- * PUT /api/v1/user/quiz/problems/:problemId
+ * PUT /api/v1/admin/quiz/problems/:problemId
  */
 export async function updateQuizProblem(problemId: string, data: QuizProblemCreate): Promise<QuizProblem> {
-  const response = await apiClient.put<QuizProblem>(`/v1/user/quiz/problems/${problemId}`, data);
+  const response = await apiClient.put<QuizProblem>(`/v1/admin/quiz/problems/${problemId}`, data);
   return response.data;
 }
 
 /**
  * Delete a quiz question
- * DELETE /api/v1/user/quiz/problems/:problemId
+ * DELETE /api/v1/admin/quiz/problems/:problemId
  */
 export async function deleteQuizProblem(problemId: string): Promise<void> {
-  await apiClient.delete(`/v1/user/quiz/problems/${problemId}`);
+  await apiClient.delete(`/v1/admin/quiz/problems/${problemId}`);
 }
 
 /**
  * Duplicate a quiz question
- * POST /api/v1/user/quiz/problems/:problemId/duplicate
+ * POST /api/v1/admin/quiz/problems/:problemId/duplicate
  */
 export async function duplicateQuizProblem(problemId: string): Promise<QuizProblem> {
-  const response = await apiClient.post<QuizProblem>(`/v1/user/quiz/problems/${problemId}/duplicate`, {});
+  const response = await apiClient.post<QuizProblem>(`/v1/admin/quiz/problems/${problemId}/duplicate`, {});
   return response.data;
 }
 
 /**
  * Reorder quiz questions
- * PUT /api/v1/user/quiz/:quizId/reorder
+ * PUT /api/v1/admin/quiz/:quizId/reorder
  */
 export async function reorderQuizProblems(quizId: string, problemIds: number[]): Promise<void> {
-  await apiClient.put(`/v1/user/quiz/${quizId}/reorder`, { problemIds });
+  await apiClient.put(`/v1/admin/quiz/${quizId}/reorder`, { problemIds });
 }
 
 /**
  * Add an option to a quiz question
- * POST /api/v1/user/quiz/problems/:problemId/options
+ * POST /api/v1/admin/quiz/problems/:problemId/options
  */
 export async function addQuizProblemOption(problemId: string, data: QuizProblemOptionCreate): Promise<QuizProblemOption> {
-  const response = await apiClient.post<QuizProblemOption>(`/v1/user/quiz/problems/${problemId}/options`, data);
+  const response = await apiClient.post<QuizProblemOption>(`/v1/admin/quiz/problems/${problemId}/options`, data);
   return response.data;
 }
 
@@ -535,10 +561,10 @@ export interface QuizProblemSaveFull {
 
 /**
  * Save a quiz problem with all its options in a single transaction (upsert)
- * POST /api/v1/user/quiz/problems/save-full
+ * POST /api/v1/admin/quiz/problems/save-full
  */
 export async function saveQuizProblemFull(data: QuizProblemSaveFull): Promise<QuizProblem> {
-  const response = await apiClient.post<QuizProblem>('/v1/user/quiz/problems/save-full', data);
+  const response = await apiClient.post<QuizProblem>('/v1/admin/quiz/problems/save-full', data);
   return response.data;
 }
 
@@ -690,10 +716,10 @@ export interface QuizAnalytics {
 
 /**
  * Get quiz analytics
- * GET /api/v1/user/quiz/:quizId/analytics
+ * GET /api/v1/admin/quiz/:quizId/analytics
  */
 export async function getQuizAnalytics(quizId: string): Promise<QuizAnalytics> {
-  const response = await apiClient.get<QuizAnalytics>(`/v1/user/quiz/${quizId}/analytics`);
+  const response = await apiClient.get<QuizAnalytics>(`/v1/admin/quiz/${quizId}/analytics`);
   return response.data;
 }
 
@@ -915,28 +941,28 @@ export interface QuizCollaboratorsResponse {
 
 /**
  * Send a collaborator request for a quiz (owner only). The user is NOT added until they accept.
- * POST /api/v1/user/quiz/:quizId/collaborators/request
+ * POST /api/v1/admin/quiz/:quizId/collaborators/request
  */
 export async function sendCollaboratorRequest(quizId: string, userId: string | number): Promise<CollaboratorRequest> {
-  const response = await apiClient.post<CollaboratorRequest>(`/v1/user/quiz/${quizId}/collaborators/request`, { userId });
+  const response = await apiClient.post<CollaboratorRequest>(`/v1/admin/quiz/${quizId}/collaborators/request`, { userId });
   return response.data;
 }
 
 /**
  * Get all collaborator requests for a quiz (owner/collaborator view).
- * GET /api/v1/user/quiz/:quizId/collaborators
+ * GET /api/v1/admin/quiz/:quizId/collaborators
  */
 export async function getQuizCollaborators(quizId: string): Promise<QuizCollaboratorsResponse> {
-  const response = await apiClient.get<QuizCollaboratorsResponse>(`/v1/user/quiz/${quizId}/collaborators`);
+  const response = await apiClient.get<QuizCollaboratorsResponse>(`/v1/admin/quiz/${quizId}/collaborators`);
   return response.data;
 }
 
 /**
  * Remove a collaborator or cancel a request (owner only).
- * DELETE /api/v1/user/quiz/:quizId/collaborators/:targetUserId
+ * DELETE /api/v1/admin/quiz/:quizId/collaborators/:targetUserId
  */
 export async function removeQuizCollaborator(quizId: string, targetUserId: string | number): Promise<void> {
-  await apiClient.delete(`/v1/user/quiz/${quizId}/collaborators/${targetUserId}`);
+  await apiClient.delete(`/v1/admin/quiz/${quizId}/collaborators/${targetUserId}`);
 }
 
 /** A single user that appears as a collaborator on a quiz. */
@@ -1138,24 +1164,24 @@ export const DEFAULT_QUIZ_GAME_CONFIG: Omit<QuizGameConfig, "quizId"> = {
 };
 
 /**
- * GET /api/v1/user/quiz/:quizId/game-config
+ * GET /api/v1/admin/quiz/:quizId/game-config
  * Also aliased at /api/quizzes/:quizId/game-config
  * Returns persisted config or defaults.
  */
 export async function getQuizGameConfig(quizId: string | number): Promise<QuizGameConfig> {
-  const response = await apiClient.get<QuizGameConfig>(`/v1/user/quiz/${quizId}/game-config`);
+  const response = await apiClient.get<QuizGameConfig>(`/v1/admin/quiz/${quizId}/game-config`);
   return response.data;
 }
 
 /**
- * PUT /api/v1/user/quiz/:quizId/game-config
+ * PUT /api/v1/admin/quiz/:quizId/game-config
  * Upsert — only owner/collaborator may write. Validates on backend.
  */
 export async function updateQuizGameConfig(
   quizId: string | number,
   config: QuizGameConfig
 ): Promise<QuizGameConfig> {
-  const response = await apiClient.put<QuizGameConfig>(`/v1/user/quiz/${quizId}/game-config`, {
+  const response = await apiClient.put<QuizGameConfig>(`/v1/admin/quiz/${quizId}/game-config`, {
     enabled: config.enabled,
     movementEnabled: config.movementEnabled,
     movementSpeed: config.movementSpeed,
@@ -1195,31 +1221,31 @@ export interface QuizGameMechanic {
 }
 
 /**
- * GET /api/v1/user/quiz/game-mechanics
+ * GET /api/v1/admin/quiz/game-mechanics
  * Returns all available game mechanic types from DB.
  */
 export async function getAllGameMechanics(): Promise<GameMechanicType[]> {
-  const response = await apiClient.get<GameMechanicType[]>("/v1/user/quiz/game-mechanics");
+  const response = await apiClient.get<GameMechanicType[]>("/v1/admin/quiz/game-mechanics");
   return response.data;
 }
 
 /**
- * GET /api/v1/user/quiz/:quizId/game-mechanics
+ * GET /api/v1/admin/quiz/:quizId/game-mechanics
  * Returns game mechanics configured for a specific quiz.
  */
 export async function getQuizGameMechanics(quizId: string | number): Promise<QuizGameMechanic[]> {
-  const response = await apiClient.get<QuizGameMechanic[]>(`/v1/user/quiz/${quizId}/game-mechanics`);
+  const response = await apiClient.get<QuizGameMechanic[]>(`/v1/admin/quiz/${quizId}/game-mechanics`);
   return response.data;
 }
 
 /**
- * PUT /api/v1/user/quiz/:quizId/game-mechanics
+ * PUT /api/v1/admin/quiz/:quizId/game-mechanics
  * Upsert game mechanics for a quiz. Replaces all existing mechanics.
  */
 export async function updateQuizGameMechanics(
   quizId: string | number,
   mechanics: { mechanicCode: string; enabled: boolean; quantity: number }[]
 ): Promise<QuizGameMechanic[]> {
-  const response = await apiClient.put<QuizGameMechanic[]>(`/v1/user/quiz/${quizId}/game-mechanics`, { mechanics });
+  const response = await apiClient.put<QuizGameMechanic[]>(`/v1/admin/quiz/${quizId}/game-mechanics`, { mechanics });
   return response.data;
 }

@@ -10,14 +10,13 @@ import {
   Clock,
   ListChecks,
   Award,
-  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { Badge } from "../primitives";
 import { SearchableDropdown } from "@/components/ui";
 import { getAllSubjects, getAllExamCategories, generateQuizCode as fetchQuizCode, getQuizDifficultyOptions } from "@/services/quiz";
-import { toast } from "@/lib/toast";
+import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
 
 const CREATE_CHOICES = [
   {
@@ -134,26 +133,10 @@ export function SetupStep() {
           {/* Code + Copy */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-text-secondary">Quiz Code</label>
-            <div className="flex gap-2">
-              <input
-                value={info.code}
-                readOnly
-                placeholder="Auto-generated"
-                className="h-10 flex-1 rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg px-3.5 font-mono text-sm tracking-wider text-text-primary placeholder-text-muted outline-none"
-              />
-              {info.code && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(info.code);
-                    toast.success({ title: "Code copied", description: info.code });
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/20 bg-pink-500/5 px-3 py-2 text-xs font-medium text-pink-600 transition-colors duration-150 hover:bg-pink-500/10 hover:text-pink-700"
-                >
-                  <Copy className="h-3.5 w-3.5" /> Copy
-                </button>
-              )}
-            </div>
+            <MaskedCopyCode
+              code={info.code}
+              className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg px-3.5 text-left transition-colors duration-150 hover:border-pink-500/40 hover:bg-pink-500/5"
+            />
           </div>
 
           {/* Subject */}
@@ -419,7 +402,7 @@ function TagInput({
           }
         }}
         placeholder="Type and press Enter…"
-        className="h-8 min-w-[140px] flex-1 border-none bg-transparent text-xs text-text-primary placeholder-text-muted outline-none"
+        className="h-8 min-w-35 flex-1 border-none bg-transparent text-xs text-text-primary placeholder-text-muted outline-none"
       />
     </div>
   );
