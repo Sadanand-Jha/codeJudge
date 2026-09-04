@@ -261,7 +261,7 @@ export function QuizSettingsProvider({
     try {
       saveQuizDetails(details);
       await updateQuiz(String(quiz.id), { name: details.name });
-      await updateQuizStatus(String(quiz.id), "published");
+      await updateQuizStatus(String(quiz.id), "live");
       await refresh();
       setConfirmingStart(false);
       toast.success({
@@ -293,7 +293,7 @@ export function QuizSettingsProvider({
     if (!quiz?.id) return;
     setActionBusy(true);
     try {
-      await updateQuizStatus(String(quiz.id), "archived");
+      await updateQuizStatus(String(quiz.id), "ended");
       await refresh();
       setConfirmingEnd(false);
       toast.success({

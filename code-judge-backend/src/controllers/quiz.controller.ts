@@ -545,11 +545,11 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
       return;
     }
 
-    const validStatuses = ["published", "unpublished", "draft", "archived"];
+    const validStatuses = ["scheduled", "live", "ended"];
     if (!status || !validStatuses.includes(status)) {
       res.status(400).json({
         success: false,
-        message: "Invalid status. Must be one of: published, unpublished, draft, archived",
+        message: "Invalid status. Must be one of: scheduled, live, ended",
       });
       return;
     }
@@ -573,9 +573,7 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
       return;
     }
 
-    const normalizedStatus = status === "unpublished" ? "draft" : status;
-
-    const updatedQuiz = await quizService.updateQuiz(Number(quizId), { status: normalizedStatus });
+    const updatedQuiz = await quizService.updateQuiz(Number(quizId), { status });
 
     res.status(200).json({
       success: true,
@@ -1308,6 +1306,15 @@ export const registerForQuiz = async (req: Request, res: Response) => {
       res.status(400).json({
         success: false,
         message: "quizId is required",
+      });
+      return;
+    }
+
+    const quizCheck = await quizService.checkQuizAccessForRegistration(quizId);
+    if (!quizCheck.allowed) {
+      res.status(403).json({
+        success: false,
+        message: quizCheck.reason,
       });
       return;
     }

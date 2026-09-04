@@ -431,13 +431,13 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
     }
 
     const { quizId } = req.params;
-    const { status } = req.body;
+    const { status, sessionDuration, endBehavior } = req.body;
 
-    const validStatuses = ["published", "unpublished", "draft", "archived"];
+    const validStatuses = ["scheduled", "live", "ended"];
     if (!status || !validStatuses.includes(status)) {
       res.status(400).json({
         success: false,
-        message: "Invalid status. Must be one of: published, unpublished, draft, archived",
+        message: "Invalid status. Must be one of: scheduled, live, ended",
       });
       return;
     }
@@ -448,10 +448,25 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
       return;
     }
 
-    const normalizedStatus = status === "unpublished" ? "draft" : status;
-    const updatedQuiz = await quizService.updateQuiz(Number(quizId), { status: normalizedStatus });
+    console.log(`Updating quiz ${quizId} status to ${status} by user ${userId}`);
 
-    res.status(200).json({ success: true, message: `Quiz ${status} successfully`, data: updatedQuiz });
+    const updateData: Record<string, any> = { status };
+
+    if (status === "live") {
+      updateData.starttime = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+      if (endBehavior === "auto_duration" && typeof sessionDuration === "number" && sessionDuration > 0) {
+        const endTime = new Date(Date.now() + sessionDuration * 60 * 1000);
+        updateData.endtime = endTime.toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+      } else {
+        updateData.endtime = null;
+      }
+    } else if (status === "ended") {
+      updateData.endtime = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+    }
+
+    const updatedQuiz = await quizService.updateQuiz(Number(quizId), updateData);
+
+    res.status(200).json({ success: true, message: `Quiz status updated to ${status}`, data: updatedQuiz });
   } catch (error) {
     console.error("Error updating quiz status:", error);
     res.status(500).json({ success: false, message: "Internal server error while updating quiz status" });

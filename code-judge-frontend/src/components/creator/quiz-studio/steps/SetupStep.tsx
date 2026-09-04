@@ -222,15 +222,30 @@ export function SetupStep() {
                 max={marks || undefined}
                 value={info.passingMarks || ""}
                 placeholder={`Default: ${Math.ceil((marks || 0) * 0.4)}`}
-                onChange={(e) => updateInfo({ passingMarks: Number(e.target.value) })}
-                className="h-10 w-full rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (val > (marks || 0)) return;
+                  updateInfo({ passingMarks: val });
+                }}
+                className={cn(
+                  "h-10 w-full rounded-lg border bg-[#F8FAFC] dark:bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:ring-2 focus:ring-pink-500/10",
+                  info.passingMarks > (marks || 0)
+                    ? "border-red-400 dark:border-red-500 focus:border-red-500/60"
+                    : "border-gray-200 dark:border-input-border focus:border-pink-500/60"
+                )}
               />
             </div>
-            <p className="text-[11px] text-text-muted">
-              {info.passingMarks
-                ? `${info.passingMarks} / ${marks || 0} marks`
-                : `Defaults to 40% (${Math.ceil((marks || 0) * 0.4)} marks) if left empty`}
-            </p>
+            {info.passingMarks > (marks || 0) ? (
+              <p className="text-[11px] text-red-500">
+                Passing marks cannot exceed total marks ({marks || 0})
+              </p>
+            ) : (
+              <p className="text-[11px] text-text-muted">
+                {info.passingMarks
+                  ? `${info.passingMarks} / ${marks || 0} marks`
+                  : `Defaults to 40% (${Math.ceil((marks || 0) * 0.4)} marks) if left empty`}
+              </p>
+            )}
           </div>
 
           {/* Short Description */}

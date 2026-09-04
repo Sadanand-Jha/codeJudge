@@ -26,8 +26,7 @@ export function ScheduleMode({
 }) {
   const [startNowOpen, setStartNowOpen] = useState(false);
 
-  const isScheduled =
-    manualStatus === "draft" || manualStatus === "scheduled";
+  const isScheduled = manualStatus === "scheduled";
   const isLive = manualStatus === "live";
   const isEnded = manualStatus === "ended";
   const locked = isLive || isEnded;

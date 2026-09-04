@@ -45,22 +45,10 @@ export function VisualTimeline({ state }: { state: TimingState }) {
     }
     return [
       {
-        label: "Ready",
-        time: "",
-        active: manual.status === "ready",
-        done: manual.status === "live" || manual.status === "ended",
-      },
-      {
-        label: "Started",
+        label: "Live",
         time: manual.startedAt
           ? formatTime12(toTimeString(new Date(manual.startedAt)))
-          : "\u2014",
-        active: manual.status === "live",
-        done: manual.status === "live" || manual.status === "ended",
-      },
-      {
-        label: "Live",
-        time: "",
+          : "",
         active: manual.status === "live",
         done: manual.status === "ended",
       },
@@ -68,7 +56,7 @@ export function VisualTimeline({ state }: { state: TimingState }) {
         label: "Ended",
         time: manual.endedAt
           ? formatTime12(toTimeString(new Date(manual.endedAt)))
-          : "\u2014",
+          : "",
         active: false,
         done: manual.status === "ended",
       },
@@ -108,7 +96,7 @@ export function VisualTimeline({ state }: { state: TimingState }) {
             >
               {step.label}
             </p>
-            {step.time && step.time !== "\u2014" && (
+            {step.time && (
               <p className="text-[9px] text-text-muted">{step.time}</p>
             )}
           </div>

@@ -11,11 +11,11 @@ CREATE TABLE quiz_status (
 
 INSERT INTO quiz_status (id, name, description)
 VALUES
-    (1, 'DRAFT', 'Quiz is being created or edited and is not yet published'),
+
     (2, 'SCHEDULED', 'Quiz is published and scheduled to start at a future time'),
     (3, 'LIVE', 'Quiz is currently active and accepting attempts'),
     (4, 'ENDED', 'Quiz has reached its end time'),
-    (5, 'CLOSED', 'Quiz has been manually closed by the creator');
+
 
 
 ALTER TABLE quiz

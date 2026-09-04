@@ -125,7 +125,7 @@ export const quizUpdateSchema = quizSchema.omit({ code: true }).strict();
  * Schema for quiz status updates.
  */
 export const quizStatusSchema = z.object({
-  status: z.enum(["published", "unpublished", "draft", "archived"]),
+  status: z.enum(["scheduled", "live", "ended"]),
 });
 
 /**

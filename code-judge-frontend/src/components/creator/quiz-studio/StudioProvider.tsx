@@ -776,6 +776,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
     if (state.info.title.trim().length < 3) {
       throw new Error("Quiz title is required before saving");
     }
+    if (summary.totalMarks > 0 && state.info.passingMarks > summary.totalMarks) {
+      throw new Error("Passing marks cannot exceed total marks");
+    }
     // Validate the problems before persisting anything. setupOnly only creates
     // the quiz shell (no questions involved yet), so skip validation there.
     if (!opts?.setupOnly && !validateAllQuestions()) {
@@ -797,6 +800,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         timeLimit: state.info.duration || undefined,
         starttime: state.info.startDate || undefined,
         endtime: state.info.endDate || undefined,
+        status: state.info.startDate ? "scheduled" : "live",
 
         randomizeQuestions: state.settings.randomizeQuestions,
         randomizeOptions: state.settings.randomizeOptions,
@@ -835,6 +839,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
             name: payload.name,
             starttime: payload.starttime,
             endtime: payload.endtime,
+            status: payload.status,
             subjectId: payload.subjectId,
             examId: payload.examId,
             difficulty: payload.difficultyId,
@@ -947,7 +952,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       }
 
       if (opts?.publish) {
-        await updateQuizStatus(quizId, "published");
+        await updateQuizStatus(quizId, state.info.startDate ? "scheduled" : "live");
       }
 
       setState((s) => ({ ...s, serverQuizId: quizId }));

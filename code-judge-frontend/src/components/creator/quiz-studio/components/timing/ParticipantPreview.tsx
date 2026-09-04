@@ -16,15 +16,11 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
           )
         : null;
 
-  const participantStart = quizStart ? "2:12 PM" : null;
+  const participantStart = quizStart ? "When they join" : null;
 
-  const attemptEndMinutes = participantDuration;
-  const attemptEndHour = 14;
-  const attemptEndMin = 12 + attemptEndMinutes;
-  const attemptEnd =
-    attemptEndMinutes <= 60
-      ? `${attemptEndHour}:${String(attemptEndMin).padStart(2, "0")} PM`
-      : "3:12 PM";
+  const attemptEnd = participantStart
+    ? `${participantDuration} min after they start`
+    : null;
 
   const sessionEnd = null;
 

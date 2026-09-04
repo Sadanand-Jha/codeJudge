@@ -4,11 +4,8 @@ export type TimingMode = "schedule" | "manual";
 export type QuizLifecycle =
   | "draft"
   | "scheduled"
-  | "ready"
   | "live"
-  | "ending_soon"
-  | "ended"
-  | "completed";
+  | "ended";
 export type LateJoinCutoff = "15min_before" | "at_end";
 export type EndBehavior = "manual" | "auto_duration";
 
@@ -78,9 +75,6 @@ export const LIFECYCLE_META: Record<
 > = {
   draft: { label: "Draft", color: "neutral" },
   scheduled: { label: "Scheduled", color: "accent" },
-  ready: { label: "Ready", color: "success" },
   live: { label: "Live", color: "success" },
-  ending_soon: { label: "Ending Soon", color: "warning" },
   ended: { label: "Ended", color: "rose" },
-  completed: { label: "Completed", color: "neutral" },
 };

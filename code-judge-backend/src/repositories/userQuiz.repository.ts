@@ -189,7 +189,8 @@ export class UserQuizRepository {
     );
     if (!quiz.rows.length) return { allowed: false, reason: "Quiz not found" };
     const q = quiz.rows[0];
-    if (q.status?.toLowerCase() === "draft") return { allowed: false, reason: "Quiz is not published" };
+    const status = q.status?.toLowerCase();
+    if (status === "ended") return { allowed: false, reason: "Quiz has ended" };
     const now = new Date();
     if (q.starttime && new Date(q.starttime) > now) return { allowed: false, reason: "Quiz has not started yet" };
     if (q.endtime && new Date(q.endtime) < now) return { allowed: false, reason: "Quiz has ended" };
@@ -405,7 +406,7 @@ export class UserQuizRepository {
       FROM quiz q
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.id = $1 AND qs.name = 'published'
+      WHERE q.id = $1 AND qs.name IN ('scheduled', 'live')
     `, [quizId]);
     return result.rows.length > 0 ? result.rows[0] : null;
   }

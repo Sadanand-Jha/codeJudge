@@ -33,6 +33,7 @@ function combineDateTime(date: string, time: string, fallbackTime: string) {
 
 export function TimingSection() {
   const { state, updateInfo } = useStudio();
+  const quizId = state.serverQuizId ?? undefined;
 
   const [mode, setMode] = useState<TimingMode>("manual");
   const [schedule, setSchedule] = useState<ScheduleConfig>(DEFAULT_SCHEDULE);
@@ -106,7 +107,7 @@ export function TimingSection() {
           : "",
       });
     } else {
-      setManual((prev) => ({ ...prev, status: "draft" }));
+      setManual((prev) => ({ ...prev, status: "live" }));
       // Manual mode has no fixed window — drop any stale scheduled values.
       updateInfo({ startDate: "", endDate: "" });
     }
@@ -177,7 +178,7 @@ export function TimingSection() {
           example={
             schedule.startDate && schedule.startTime
               ? `Starts: ${formatTime12(schedule.startTime)}`
-              : "Starts: 10:00 AM"
+              : "Starts: —"
           }
         />
         <ModeCard
@@ -213,7 +214,7 @@ export function TimingSection() {
         </div>
       )}
 
-      {mode === "manual" && (manual.status === "draft" || manual.status === "ready") && (
+      {mode === "manual" && manual.status === "live" && (
         <div className="flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.04] px-3 py-2.5">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
           <p className="text-[11px] leading-relaxed text-emerald-600 dark:text-emerald-400">
@@ -236,6 +237,7 @@ export function TimingSection() {
           manual={manual}
           onManualChange={handleManualChange}
           participantDuration={participantDuration}
+          quizId={quizId}
         />
       )}
 

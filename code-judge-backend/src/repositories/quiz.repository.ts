@@ -529,6 +529,16 @@ export class QuizRepository {
     const values: any[] = [];
     let paramCount = 0;
 
+    if (data.status) {
+      const statusResult = await pool.query(
+        "SELECT id FROM quiz_status WHERE LOWER(name) = LOWER($1) LIMIT 1", [data.status]
+      );
+      if (statusResult.rows.length > 0) {
+        data.quiz_status = statusResult.rows[0].id;
+      }
+      delete data.status;
+    }
+
     const updateableFields = [
       "name", "code", "starttime", "endtime", "visibility", "difficulty",
       "subject_id", "exam_cat", "duration", "total_marks", "passing_marks", "shuffle_questions", "shuffle_options",
@@ -1240,10 +1250,8 @@ export class QuizRepository {
     }
 
     const q = quiz.rows[0];
-
-    if (q.status?.toLowerCase() === 'draft') {
-      return { allowed: false, reason: "Quiz is not published" };
-    }
+    const status = q.status?.toLowerCase();
+    if (status === "ended") return { allowed: false, reason: "Quiz has ended" };
 
     const now = new Date();
     if (q.starttime && new Date(q.starttime) > now) {
@@ -1272,13 +1280,28 @@ export class QuizRepository {
     return { allowed: true };
   }
 
+  async checkQuizAccessForRegistration(quizId: string): Promise<{ allowed: boolean; reason?: string }> {
+    const quiz = await pool.query(
+      `SELECT q.*, qs.name AS status FROM quiz q LEFT JOIN quiz_status qs ON qs.id = q.quiz_status WHERE q.id = $1`,
+      [quizId]
+    );
+    if (!quiz.rows.length) return { allowed: false, reason: "Quiz not found" };
+    const q = quiz.rows[0];
+    const status = q.status?.toLowerCase();
+    if (status === "ended") return { allowed: false, reason: "Quiz has ended" };
+    const now = new Date();
+    if (q.starttime && new Date(q.starttime) > now) return { allowed: false, reason: "Quiz has not started yet" };
+    if (q.endtime && new Date(q.endtime) < now) return { allowed: false, reason: "Quiz has ended" };
+    return { allowed: true };
+  }
+
   async getQuizByIdForAttempt(quizId: number): Promise<any | null> {
     const query = `
       SELECT q.*, qv.heading AS visibility_name, qs.name AS status
       FROM quiz q
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.id = $1 AND qs.name = 'published'
+      WHERE q.id = $1 AND qs.name IN ('scheduled', 'live')
     `;
     const result = await pool.query(query, [quizId]);
     return result.rows.length > 0 ? result.rows[0] : null;

@@ -189,6 +189,16 @@ export class AdminQuizRepository {
     const values: any[] = [];
     let paramCount = 0;
 
+    if (data.status) {
+      const statusResult = await pool.query(
+        "SELECT id FROM quiz_status WHERE LOWER(name) = LOWER($1) LIMIT 1", [data.status]
+      );
+      if (statusResult.rows.length > 0) {
+        data.quiz_status = statusResult.rows[0].id;
+      }
+      delete data.status;
+    }
+
     const updateableFields = [
       "name", "starttime", "endtime", "visibility", "difficulty",
       "subject_id", "exam_cat", "duration", "total_marks", "passing_marks",

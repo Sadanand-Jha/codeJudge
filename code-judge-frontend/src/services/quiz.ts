@@ -389,6 +389,7 @@ export async function updateQuiz(quizId: string, data: Partial<{
   name: string;
   starttime: string | null;
   endtime: string | null;
+  status: string;
   visibility: number;
   difficulty: number;
   subjectId: number;
@@ -427,11 +428,15 @@ export async function cloneQuiz(quizId: string, data: {
 }
 
 /**
- * Update quiz status (publish/unpublish/draft/archive)
+ * Update quiz status
  * PATCH /api/v1/admin/quiz/:quizId/status
  */
-export async function updateQuizStatus(quizId: string, status: "published" | "unpublished" | "draft" | "archived"): Promise<Quiz> {
-  const response = await apiClient.patch<Quiz>(`/v1/admin/quiz/${quizId}/status`, { status });
+export async function updateQuizStatus(
+  quizId: string,
+  status: "scheduled" | "live" | "ended",
+  options?: { sessionDuration?: number; endBehavior?: "manual" | "auto_duration" }
+): Promise<Quiz> {
+  const response = await apiClient.patch<Quiz>(`/v1/admin/quiz/${quizId}/status`, { status, ...options });
   return response.data;
 }
 

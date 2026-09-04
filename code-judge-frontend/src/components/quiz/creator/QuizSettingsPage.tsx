@@ -497,8 +497,8 @@ export default function QuizSettingsPage({
     if (!quizId) return;
     setActionBusy(true);
     try {
-      const updated = await updateQuizStatus(String(quizId), "published");
-      setLiveStatus(updated?.status ?? "published");
+      const updated = await updateQuizStatus(String(quizId), "live");
+      setLiveStatus(updated?.status ?? "live");
       if (updated) {
         if (updated.starttime) setLiveStartTime(updated.starttime);
         if (updated.endtime) setLiveEndTime(updated.endtime);
@@ -523,8 +523,8 @@ export default function QuizSettingsPage({
     if (!quizId) return;
     setActionBusy(true);
     try {
-      const updated = await updateQuizStatus(String(quizId), "archived");
-      setLiveStatus(updated?.status ?? "archived");
+      const updated = await updateQuizStatus(String(quizId), "ended");
+      setLiveStatus(updated?.status ?? "ended");
       setConfirmingEnd(false);
       toast.success({
         title: "Quiz ended",

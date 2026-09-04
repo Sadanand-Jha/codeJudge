@@ -183,7 +183,11 @@ export function StudioFooter() {
   };
 
   const canContinue = () => {
-    if (state.step === "setup") return state.info.title.trim().length >= 3;
+    if (state.step === "setup") {
+      if (state.info.title.trim().length < 3) return false;
+      if (summary.totalMarks > 0 && state.info.passingMarks > summary.totalMarks) return false;
+      return true;
+    }
     if (state.step === "questions") return summary.validQuestions > 0;
     return true;
   };
