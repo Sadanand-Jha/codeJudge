@@ -53,7 +53,7 @@ import {
   getAllGameMechanics,
   getQuizGameMechanics,
   upsertQuizGameMechanics,
-} from "../../../controllers/quiz.controller.ts";
+} from "../../../controllers/adminQuizController.ts";
 
 const router = Router();
 
