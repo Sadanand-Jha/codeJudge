@@ -311,7 +311,6 @@ interface StudioContextValue {
   prevStep: () => void;
   publish: () => void;
   saveToServer: (opts?: { publish?: boolean }) => Promise<{ quizId: string; code: string }>;
-  saveGameMechanicsOnly: () => Promise<void>;
   savingToServer: boolean;
   /** Progress of the current save: { saved, total } while saving, null otherwise */
   saveProgress: { saved: number; total: number } | null;
@@ -417,6 +416,27 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         const questions = problems.map((p, i) => mapBackendProblem(p, i));
         // Capture content hashes for change detection on future saves
         snapshotRef.current = buildQuestionSnapshot(questions);
+        const quizSnapshot = JSON.stringify({
+          title: info.title,
+          shortDescription: info.shortDescription,
+          fullDescription: info.fullDescription,
+          subjectId: info.subjectId,
+          examId: info.examId,
+          difficultyId: info.difficultyId,
+          duration: info.duration,
+          passingMarks: info.passingMarks,
+          startDate: info.startDate,
+          endDate: info.endDate,
+          tags: info.tags,
+          settings: {
+            randomizeQuestions: settings.randomizeQuestions,
+            randomizeOptions: settings.randomizeOptions,
+            showResultsImmediately: settings.showResultsImmediately,
+            negativeMarking: settings.negativeMarking,
+          },
+        });
+        quizSnapshotRef.current = quizSnapshot;
+        gameMechanicsSnapshotRef.current = JSON.stringify(DEFAULT_GAME_MECHANICS);
         setState((s) => ({
           ...s,
           info: { ...DEFAULT_QUIZ_INFO, ...info },
@@ -442,6 +462,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialMount = useRef(true);
+  const quizSnapshotRef = useRef<string>("");
+  const audienceSnapshotRef = useRef<string>("");
+  const gameMechanicsSnapshotRef = useRef<string>("");
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -685,7 +708,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       // incomplete question blocks the save and we stay on this step.
       if (!validateAllQuestions()) return;
       try {
-        await saveToServer();
+        await saveToServer({ skipParticipants: true });
       } catch (err) {
         if (!isQuestionValidationError(err)) {
           toast.error({
@@ -694,6 +717,20 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           });
         }
         return;
+      }
+    } else if (state.step === "gameMechanics") {
+      const currentGmSnapshot = JSON.stringify(state.gameMechanics);
+      if (currentGmSnapshot !== gameMechanicsSnapshotRef.current) {
+        try {
+          await saveGameMechanicsOnly();
+          gameMechanicsSnapshotRef.current = currentGmSnapshot;
+        } catch (err) {
+          toast.error({
+            title: "Could not save game mechanics",
+            description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+          });
+          return;
+        }
       }
     } else if (state.step !== "publish") {
       if (!validateAllQuestions()) return;
@@ -733,7 +770,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   const [saveProgress, setSaveProgress] = useState<{ saved: number; total: number } | null>(null);
 
   const saveToServer = async (
-    opts?: { publish?: boolean; setupOnly?: boolean }
+    opts?: { publish?: boolean; setupOnly?: boolean; skipParticipants?: boolean }
   ): Promise<{ quizId: string; code: string }> => {
     if (savingToServer) throw new Error("Save already in progress");
     if (state.info.title.trim().length < 3) {
@@ -774,22 +811,43 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
 
       let quizId = state.serverQuizId || null;
       if (quizId) {
-        await updateQuiz(quizId, {
-          name: payload.name,
-          code: payload.code,
-          starttime: payload.starttime,
-          endtime: payload.endtime,
-          subjectId: payload.subjectId,
-          examId: payload.examId,
-          difficulty: payload.difficultyId,
-          duration: payload.timeLimit,
-          shuffleQuestions: payload.randomizeQuestions,
-          shuffleOptions: payload.randomizeOptions,
-          showResultsImmediately: payload.showResultsImmediately,
-          negativeMarking: payload.negativeMarking,
-          totalMarks: payload.totalMarks,
-          passingMarks: payload.passingMarks,
+        const currentSnapshot = JSON.stringify({
+          title: state.info.title,
+          shortDescription: state.info.shortDescription,
+          fullDescription: state.info.fullDescription,
+          subjectId: state.info.subjectId,
+          examId: state.info.examId,
+          difficultyId: state.info.difficultyId,
+          duration: state.info.duration,
+          passingMarks: state.info.passingMarks,
+          startDate: state.info.startDate,
+          endDate: state.info.endDate,
+          tags: state.info.tags,
+          settings: {
+            randomizeQuestions: state.settings.randomizeQuestions,
+            randomizeOptions: state.settings.randomizeOptions,
+            showResultsImmediately: state.settings.showResultsImmediately,
+            negativeMarking: state.settings.negativeMarking,
+          },
         });
+        if (currentSnapshot !== quizSnapshotRef.current) {
+          await updateQuiz(quizId, {
+            name: payload.name,
+            starttime: payload.starttime,
+            endtime: payload.endtime,
+            subjectId: payload.subjectId,
+            examId: payload.examId,
+            difficulty: payload.difficultyId,
+            duration: payload.timeLimit,
+            shuffleQuestions: payload.randomizeQuestions,
+            shuffleOptions: payload.randomizeOptions,
+            showResultsImmediately: payload.showResultsImmediately,
+            negativeMarking: payload.negativeMarking,
+            totalMarks: payload.totalMarks,
+            passingMarks: payload.passingMarks,
+          });
+          quizSnapshotRef.current = currentSnapshot;
+        }
       } else {
         const quiz = await createQuiz(payload);
         quizId = String(quiz.id);
@@ -814,6 +872,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         // Update snapshot so subsequent saves only diff against the new baseline
         snapshotRef.current = buildQuestionSnapshot(state.questions);
 
+        if (!opts?.skipParticipants) {
         // Build the unique participant set — union of allowed room members and
         // individually invited emails, deduped by email.
         const audience = state.audience;
@@ -852,7 +911,12 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           }
         }
 
-        await setQuizParticipants(quizId, [...byEmail.values()]);
+        const currentAudienceSnapshot = JSON.stringify([...byEmail.values()]);
+        if (currentAudienceSnapshot !== audienceSnapshotRef.current) {
+          await setQuizParticipants(quizId, [...byEmail.values()]);
+          audienceSnapshotRef.current = currentAudienceSnapshot;
+        }
+        } // skipParticipants
 
         // Save game mechanics to backend
         try {
@@ -951,7 +1015,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       prevStep,
       publish,
       saveToServer,
-      saveGameMechanicsOnly,
       savingToServer,
       saveProgress,
       loading,

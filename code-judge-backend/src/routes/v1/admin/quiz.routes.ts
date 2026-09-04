@@ -4,6 +4,7 @@ import { authenticate } from "../../../middleware/auth.ts";
 import {
   validate,
   quizSchema,
+  quizUpdateSchema,
   quizStatusSchema,
   quizProblemSchema,
   quizProblemOptionSchema,
@@ -27,7 +28,6 @@ import {
   cloneQuiz,
   updateQuizStatus,
   getQuizProblemsController,
-  getQuizProblemsPublicController,
   addQuizProblem,
   updateQuizProblem,
   deleteQuizProblem,
@@ -38,12 +38,6 @@ import {
   getQuizAnalytics,
   generateQuizResults,
   retryQuizResultsEmail,
-  sendCollaboratorRequest,
-  getQuizCollaborators,
-  getMyCollaborations,
-  getIncomingCollaboratorRequests,
-  respondToCollaboratorRequest,
-  removeQuizCollaborator,
   getQuizResponses,
   getStudentResponseDetail,
   setQuizParticipants,
@@ -53,6 +47,7 @@ import {
   getAllGameMechanics,
   getQuizGameMechanics,
   upsertQuizGameMechanics,
+  copyQuizCode,
 } from "../../../controllers/adminQuizController.ts";
 
 const router = Router();
@@ -69,11 +64,15 @@ router.get("/visibility-options", getQuizVisibilityOptions);
 router.get("/difficulty-options", getQuizDifficultyOptions);
 router.get("/generate-code", generateQuizCodeEndpoint);
 
+// ==================== COPY QUIZ CODE ====================
+
+router.post("/:quizId/copy-code", copyQuizCode);
+
 // ==================== QUIZ CRUD ====================
 
-router.get("/:quizId", getAdminQuizById); // checked
+router.get("/:quizId", getAdminQuizById);
 router.post("/", validate(quizSchema), createQuiz);
-router.put("/:quizId", validate(quizSchema), updateQuiz);
+router.put("/:quizId", validate(quizUpdateSchema), updateQuiz);
 router.delete("/:quizId", deleteQuiz);
 router.patch("/:quizId/status", validate(quizStatusSchema), updateQuizStatus);
 router.post("/:quizId/clone", validate(cloneQuizSchema), cloneQuiz);
@@ -81,7 +80,6 @@ router.post("/:quizId/clone", validate(cloneQuizSchema), cloneQuiz);
 // ==================== QUESTION MANAGEMENT ====================
 
 router.get("/:quizId/problems", getQuizProblemsController);
-router.get("/:quizId/problems/public", getQuizProblemsPublicController);
 router.post("/:quizId/problems", validate(quizProblemSchema), addQuizProblem);
 router.post("/problems/save-full", saveQuizProblemFull);
 router.put("/problems/:problemId", validate(quizProblemSchema), updateQuizProblem);
@@ -90,22 +88,13 @@ router.post("/problems/:problemId/duplicate", duplicateQuizProblem);
 router.put("/:quizId/reorder", validate(reorderQuizProblemsSchema), reorderQuizProblems);
 router.post("/problems/:problemId/options", validate(quizProblemOptionSchema), addQuizProblemOption);
 
-// ==================== GAME + ACCESS CONFIG ====================
+// ==================== GAME CONFIG ====================
 
 router.get("/:quizId/game-config", getQuizGameConfig);
 router.put("/:quizId/game-config", validate(quizGameConfigSchema), upsertQuizGameConfig);
 router.get("/game-mechanics", getAllGameMechanics);
 router.get("/:quizId/game-mechanics", getQuizGameMechanics);
 router.put("/:quizId/game-mechanics", validate(quizGameMechanicsSchema), upsertQuizGameMechanics);
-
-// ==================== COLLABORATORS ====================
-
-router.post("/:quizId/collaborators/request", sendCollaboratorRequest);
-router.get("/:quizId/collaborators", getQuizCollaborators);
-router.delete("/:quizId/collaborators/:targetUserId", removeQuizCollaborator);
-router.get("/collaborations", getMyCollaborations);
-router.get("/collaborator-requests/incoming", getIncomingCollaboratorRequests);
-router.patch("/collaborator-requests/:quizId", respondToCollaboratorRequest);
 
 // ==================== RESPONSES + PARTICIPANTS ====================
 

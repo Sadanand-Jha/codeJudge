@@ -119,6 +119,8 @@ export const quizSchema = z.object({
   leaderboard: z.boolean().optional(),
 });
 
+export const quizUpdateSchema = quizSchema.omit({ code: true }).strict();
+
 /**
  * Schema for quiz status updates.
  */

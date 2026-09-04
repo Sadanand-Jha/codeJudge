@@ -15,8 +15,8 @@ import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { Badge } from "../primitives";
 import { SearchableDropdown } from "@/components/ui";
-import { getAllSubjects, getAllExamCategories, generateQuizCode as fetchQuizCode, getQuizDifficultyOptions } from "@/services/quiz";
-import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
+import { getAllSubjects, getAllExamCategories, generateQuizCode as fetchQuizCode } from "@/services/quiz";
+import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 
 const CREATE_CHOICES = [
   {
@@ -59,7 +59,7 @@ export function SetupStep() {
   const info = state.info;
   const marks = summary.totalMarks;
   const fetchedRef = useRef(false);
-  const [difficultyOptions, setDifficultyOptions] = useState<{ id: number; heading: string }[]>([]);
+  const { difficultyOptions, fetchAll } = useQuizReferenceStore();
 
   useEffect(() => {
     if (fetchedRef.current) return;
@@ -67,7 +67,7 @@ export function SetupStep() {
     if (!editMode) {
       fetchQuizCode().then((code) => updateInfo({ code })).catch(() => {});
     }
-    getQuizDifficultyOptions().then(setDifficultyOptions).catch(() => {});
+    fetchAll();
   }, [editMode]);
 
   const hasBasicInfo = info.title.trim().length >= 3;
@@ -128,15 +128,6 @@ export function SetupStep() {
               className="h-10 w-full rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
             />
             <p className="text-[11px] text-text-muted text-right">{info.title.length}/100</p>
-          </div>
-
-          {/* Code + Copy */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-text-secondary">Quiz Code</label>
-            <MaskedCopyCode
-              code={info.code}
-              className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg px-3.5 text-left transition-colors duration-150 hover:border-pink-500/40 hover:bg-pink-500/5"
-            />
           </div>
 
           {/* Subject */}

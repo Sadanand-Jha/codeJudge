@@ -354,6 +354,17 @@ export async function generateQuizCode(): Promise<string> {
 }
 
 /**
+ * Copy quiz code to clipboard (backend-verified)
+ * POST /api/v1/admin/quiz/:quizId/copy-code
+ */
+export async function copyQuizCode(quizId: string): Promise<string> {
+  const response = await apiClient.post<{ success: boolean; data: { code: string } }>(
+    `/v1/admin/quiz/${quizId}/copy-code`
+  );
+  return response.data.data.code;
+}
+
+/**
  * GET /api/v1/admin/quiz/difficulty-options
  */
 export async function getQuizDifficultyOptions(): Promise<{ id: number; heading: string }[]> {
@@ -376,7 +387,6 @@ export async function createQuiz(data: CreateQuizPayload): Promise<Quiz> {
  */
 export async function updateQuiz(quizId: string, data: Partial<{
   name: string;
-  code: string;
   starttime: string | null;
   endtime: string | null;
   visibility: number;

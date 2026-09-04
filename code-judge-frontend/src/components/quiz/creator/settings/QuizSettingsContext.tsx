@@ -260,7 +260,7 @@ export function QuizSettingsProvider({
     setActionBusy(true);
     try {
       saveQuizDetails(details);
-      await updateQuiz(String(quiz.id), { name: details.name, code });
+      await updateQuiz(String(quiz.id), { name: details.name });
       await updateQuizStatus(String(quiz.id), "published");
       await refresh();
       setConfirmingStart(false);
