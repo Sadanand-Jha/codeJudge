@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { getAdminQuizById, getQuizProblemsPublic, getQuizGameMechanics, type QuizGameMechanic } from "@/services/quiz";
-import type { Quiz, PublicQuizProblem } from "@/services/quiz";
+import type { QuizBasic, PublicQuizProblem } from "@/services/quiz";
 import ExamModeShell from "@/components/quiz/exam/ExamModeShell";
 
 /* ── Types ── */
@@ -117,7 +117,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
   const [usedMechanics, setUsedMechanics] = useState<Record<number, boolean>>({});
   const [fiftyFiftyMap, setFiftyFiftyMap] = useState<Record<number, string[]>>({});
   const [timeLeft, setTimeLeft] = useState(30 * 60);
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [quiz, setQuiz] = useState<QuizBasic | null>(null);
   const [questions, setQuestions] = useState<PreviewQuestion[]>([]);
   const [mechanics, setMechanics] = useState<DisplayMechanic[]>([]);
   const [loading, setLoading] = useState(true);

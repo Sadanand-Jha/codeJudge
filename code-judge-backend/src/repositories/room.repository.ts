@@ -31,7 +31,8 @@ export class RoomRepository {
 
   async getRoomsByOwner(ownerId: string) {
     const result = await pool.query(
-      `SELECT qr.*, COALESCE(cnt.member_count,0)::int as member_count
+      `SELECT qr.id, qr.owner_id, qr.name, qr.description, qr.visibility, qr.is_active, qr.created_at, qr.updated_at,
+              COALESCE(cnt.member_count,0)::int as member_count
        FROM quiz_rooms qr
        LEFT JOIN (SELECT room_id, COUNT(*) as member_count FROM room_members GROUP BY room_id) cnt ON cnt.room_id = qr.id
        WHERE qr.owner_id = $1
@@ -49,7 +50,7 @@ export class RoomRepository {
       whereOwner = "AND qr.owner_id = $2";
     }
     const result = await pool.query(
-      `SELECT qr.* FROM quiz_rooms qr WHERE qr.id::text = $1 ${whereOwner} LIMIT 1`,
+      `SELECT qr.id, qr.owner_id, qr.name, qr.description, qr.visibility, qr.is_active, qr.created_at, qr.updated_at FROM quiz_rooms qr WHERE qr.id::text = $1 ${whereOwner} LIMIT 1`,
       params
     );
     return result.rows[0] || null;
@@ -58,7 +59,7 @@ export class RoomRepository {
   async getRoomMembers(roomId: string) {
     const result = await pool.query(
       `SELECT rm.id as membership_id, rm.room_id, rm.user_id, rm.status, rm.joined_at,
-              u.id, u.username, u.email, u.first_name, u.last_name, u.display_name, u.avatar_id,
+              u.id, u.username, u.first_name, u.last_name, u.display_name, u.avatar_id,
               a.url as avatar_url, s.name as status_name
        FROM room_members rm
        JOIN users u ON rm.user_id = u.id
@@ -78,7 +79,6 @@ export class RoomRepository {
       user: {
         id: String(r.id),
         username: r.username,
-        email: r.email,
         firstName: r.first_name,
         lastName: r.last_name,
         displayName: r.display_name,
@@ -90,7 +90,7 @@ export class RoomRepository {
 
   async findUserByUsername(username: string) {
     const result = await pool.query(
-      `SELECT u.id, u.username, u.email, u.first_name, u.last_name, u.display_name, u.avatar_id, a.url as avatar_url
+      `SELECT u.id, u.username, u.first_name, u.last_name, u.display_name, u.avatar_id, a.url as avatar_url
        FROM users u LEFT JOIN avatar a ON u.avatar_id = a.id
        WHERE LOWER(u.username) = LOWER($1) LIMIT 1`,
       [username.trim()]
@@ -100,7 +100,6 @@ export class RoomRepository {
     return {
       id: String(r.id),
       username: r.username,
-      email: r.email,
       firstName: r.first_name,
       lastName: r.last_name,
       displayName: r.display_name,
@@ -214,7 +213,8 @@ export class RoomRepository {
 
   async getRoomsForStudent(ownerId: string, username: string) {
     const result = await pool.query(
-      `SELECT qr.*, COALESCE(cnt.member_count,0)::int as member_count
+      `SELECT qr.id, qr.owner_id, qr.name, qr.description, qr.visibility, qr.is_active, qr.created_at, qr.updated_at,
+              COALESCE(cnt.member_count,0)::int as member_count
        FROM quiz_rooms qr
        JOIN room_members rm ON rm.room_id = qr.id
        JOIN users u ON rm.user_id = u.id

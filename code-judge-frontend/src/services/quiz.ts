@@ -154,12 +154,22 @@ export interface QuizRegistration {
   updated_at: string | null;
 }
 
+export interface QuizListItem {
+  id: number;
+  name: string;
+  code: string;
+  status: string | null;
+  starttime: string | null;
+  endtime: string | null;
+  creator_name: string | null;
+}
+
 /**
  * Get all quizzes
  * GET /api/v1/admin/quiz
  */
-export async function getAllQuizzes(): Promise<Quiz[]> {
-  const response = await apiClient.get<Quiz[]>("/v1/admin/quiz");
+export async function getAllQuizzes(): Promise<QuizListItem[]> {
+  const response = await apiClient.get<QuizListItem[]>("/v1/admin/quiz");
   return response.data;
 }
 
@@ -193,12 +203,37 @@ export async function getAllExamCategories(search?: string, signal?: AbortSignal
   return response.data;
 }
 
+export interface QuizBasic {
+  id: number;
+  name: string;
+  code: string;
+  createdby: number;
+  starttime: string | null;
+  endtime: string | null;
+  visibility: number | null;
+  difficulty: number | null;
+  subject_id: number | null;
+  exam_cat: number | null;
+  duration: number | null;
+  total_marks: number | null;
+  passing_marks: number | null;
+  shuffle_questions: boolean | null;
+  shuffle_options: boolean | null;
+  show_results_immediately: boolean | null;
+  negative_marking: boolean | null;
+  leaderboard: boolean | null;
+  status: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  creator_name: string | null;
+}
+
 /**
  * Get a single quiz by ID
  * GET /api/v1/user/quiz/:quizId
  */
-export async function getQuizById(quizId: string): Promise<Quiz> {
-  const response = await apiClient.get<Quiz>(`/v1/user/quiz/${quizId}`);
+export async function getQuizById(quizId: string): Promise<QuizBasic> {
+  const response = await apiClient.get<QuizBasic>(`/v1/user/quiz/${quizId}`);
   return response.data;
 }
 
@@ -206,8 +241,8 @@ export async function getQuizById(quizId: string): Promise<Quiz> {
  * Get a single quiz by ID from the admin route.
  * GET /api/v1/admin/quiz/:quizId
  */
-export async function getAdminQuizById(quizId: string): Promise<Quiz> {
-  const response = await apiClient.get<Quiz>(`/v1/admin/quiz/${quizId}`);
+export async function getAdminQuizById(quizId: string): Promise<QuizBasic> {
+  const response = await apiClient.get<QuizBasic>(`/v1/admin/quiz/${quizId}`);
   return response.data;
 }
 
@@ -215,8 +250,8 @@ export async function getAdminQuizById(quizId: string): Promise<Quiz> {
  * Get a quiz by its code
  * GET /api/v1/user/quiz/code/:code
  */
-export async function getQuizByCode(code: string): Promise<Quiz> {
-  const response = await apiClient.get<Quiz>(`/v1/user/quiz/code/${code}`);
+export async function getQuizByCode(code: string): Promise<QuizBasic> {
+  const response = await apiClient.get<QuizBasic>(`/v1/user/quiz/code/${code}`);
   return response.data;
 }
 
@@ -229,7 +264,7 @@ export interface QuizProblemWithOptions extends QuizProblem {
  * Returns quiz metadata + resolved subject/exam names + problems.
  */
 export async function loadQuizForEdit(quizId: string): Promise<{
-  quiz: Quiz & { subject_name?: string; exam_cat_name?: string };
+  quiz: QuizBasic & { subject_name?: string; exam_cat_name?: string };
   problems: QuizProblemWithOptions[];
 }> {
   const [quiz, problems] = await Promise.all([
@@ -258,12 +293,21 @@ export async function loadQuizForEdit(quizId: string): Promise<{
   };
 }
 
+export interface QuizProblemListItem {
+  id: number;
+  problem_statement: string;
+  quiz_problem_type: number | null;
+  question_number: number | null;
+  difficulty: number | null;
+  options: QuizProblemOption[];
+}
+
 /**
  * Get all problems for a quiz
  * GET /api/v1/admin/quiz/:quizId/problems
  */
-export async function getQuizProblems(quizId: string): Promise<QuizProblem[]> {
-  const response = await apiClient.get<QuizProblem[]>(`/v1/admin/quiz/${quizId}/problems`);
+export async function getQuizProblems(quizId: string): Promise<QuizProblemListItem[]> {
+  const response = await apiClient.get<QuizProblemListItem[]>(`/v1/admin/quiz/${quizId}/problems`);
   return response.data;
 }
 
@@ -402,9 +446,8 @@ export async function updateQuiz(quizId: string, data: Partial<{
   showResultsImmediately: boolean;
   negativeMarking: boolean;
   leaderboard: boolean;
-}>): Promise<Quiz> {
-  const response = await apiClient.put<Quiz>(`/v1/admin/quiz/${quizId}`, data);
-  return response.data;
+}>): Promise<void> {
+  await apiClient.put(`/v1/admin/quiz/${quizId}`, data);
 }
 
 /**
@@ -415,16 +458,19 @@ export async function deleteQuiz(quizId: string): Promise<void> {
   await apiClient.delete(`/v1/admin/quiz/${quizId}`);
 }
 
-/**
- * Clone a quiz
- * POST /api/v1/admin/quiz/:quizId/clone
- */
-export async function cloneQuiz(quizId: string, data: {
-  name: string;
-  code: string;
-}): Promise<Quiz> {
-  const response = await apiClient.post<Quiz>(`/v1/admin/quiz/${quizId}/clone`, data);
-  return response.data;
+export interface QuizStatusResponse {
+  id: number;
+  status: string | null;
+  starttime: string | null;
+  endtime: string | null;
+}
+
+/** Map numeric quiz_status from backend to a string status. */
+function mapQuizStatus(raw: unknown): string | null {
+  if (typeof raw === "string") return raw;
+  if (typeof raw !== "number") return null;
+  const map: Record<number, string> = { 1: "draft", 2: "scheduled", 3: "live", 4: "ended" };
+  return map[raw] ?? null;
 }
 
 /**
@@ -435,9 +481,16 @@ export async function updateQuizStatus(
   quizId: string,
   status: "scheduled" | "live" | "ended",
   options?: { sessionDuration?: number; endBehavior?: "manual" | "auto_duration" }
-): Promise<Quiz> {
-  const response = await apiClient.patch<Quiz>(`/v1/admin/quiz/${quizId}/status`, { status, ...options });
-  return response.data;
+): Promise<QuizStatusResponse> {
+  const response = await apiClient.patch(`/v1/admin/quiz/${quizId}/status`, { status, ...options });
+  const raw = response.data as Record<string, unknown>;
+  const d = (raw.data ?? raw) as Record<string, unknown>;
+  return {
+    id: Number(d.id),
+    status: mapQuizStatus(d.quiz_status) ?? mapQuizStatus(d.status),
+    starttime: (d.starttime as string | null) ?? null,
+    endtime: (d.endtime as string | null) ?? null,
+  };
 }
 
 // ─────────────────────────────────────────
@@ -448,7 +501,7 @@ export interface QuizParticipantInput {
   email: string;
   name?: string | null;
   rollNumber?: string | null;
-  source?: "room" | "individual";
+  source?: number;
   roomId?: number | string | null;
   allowed?: boolean;
 }
@@ -459,7 +512,7 @@ export interface QuizParticipant {
   email: string;
   name: string | null;
   roll_number: string | null;
-  source: "room" | "individual";
+  source: number;
   room_id: number | null;
   allowed: boolean;
   created_at: string | null;
@@ -467,19 +520,11 @@ export interface QuizParticipant {
 }
 
 /** Replace the full participant list for a quiz. */
-export async function setQuizParticipants(quizId: string, participants: QuizParticipantInput[]): Promise<{ saved: number }> {
-  const response = await apiClient.put<{ success: boolean; data: { saved: number } }>(
+export async function setQuizParticipants(quizId: string, participants: QuizParticipantInput[]): Promise<void> {
+  await apiClient.put(
     `/v1/admin/quiz/${quizId}/participants`,
     { participants }
   );
-  return response.data.data;
-}
-
-export async function getQuizParticipants(quizId: string): Promise<QuizParticipant[]> {
-  const response = await apiClient.get<{ success: boolean; data: QuizParticipant[] }>(
-    `/v1/admin/quiz/${quizId}/participants`
-  );
-  return response.data.data;
 }
 
 // ─────────────────────────────────────────
@@ -506,24 +551,6 @@ export interface QuizProblemOptionCreate {
 }
 
 /**
- * Add a question to a quiz
- * POST /api/v1/admin/quiz/:quizId/problems
- */
-export async function addQuizProblem(quizId: string, data: QuizProblemCreate): Promise<QuizProblem> {
-  const response = await apiClient.post<QuizProblem>(`/v1/admin/quiz/${quizId}/problems`, data);
-  return response.data;
-}
-
-/**
- * Update a quiz question
- * PUT /api/v1/admin/quiz/problems/:problemId
- */
-export async function updateQuizProblem(problemId: string, data: QuizProblemCreate): Promise<QuizProblem> {
-  const response = await apiClient.put<QuizProblem>(`/v1/admin/quiz/problems/${problemId}`, data);
-  return response.data;
-}
-
-/**
  * Delete a quiz question
  * DELETE /api/v1/admin/quiz/problems/:problemId
  */
@@ -532,29 +559,11 @@ export async function deleteQuizProblem(problemId: string): Promise<void> {
 }
 
 /**
- * Duplicate a quiz question
- * POST /api/v1/admin/quiz/problems/:problemId/duplicate
- */
-export async function duplicateQuizProblem(problemId: string): Promise<QuizProblem> {
-  const response = await apiClient.post<QuizProblem>(`/v1/admin/quiz/problems/${problemId}/duplicate`, {});
-  return response.data;
-}
-
-/**
  * Reorder quiz questions
  * PUT /api/v1/admin/quiz/:quizId/reorder
  */
 export async function reorderQuizProblems(quizId: string, problemIds: number[]): Promise<void> {
   await apiClient.put(`/v1/admin/quiz/${quizId}/reorder`, { problemIds });
-}
-
-/**
- * Add an option to a quiz question
- * POST /api/v1/admin/quiz/problems/:problemId/options
- */
-export async function addQuizProblemOption(problemId: string, data: QuizProblemOptionCreate): Promise<QuizProblemOption> {
-  const response = await apiClient.post<QuizProblemOption>(`/v1/admin/quiz/problems/${problemId}/options`, data);
-  return response.data;
 }
 
 export interface QuizProblemSaveFull {
@@ -578,8 +587,8 @@ export interface QuizProblemSaveFull {
  * Save a quiz problem with all its options in a single transaction (upsert)
  * POST /api/v1/admin/quiz/problems/save-full
  */
-export async function saveQuizProblemFull(data: QuizProblemSaveFull): Promise<QuizProblem> {
-  const response = await apiClient.post<QuizProblem>('/v1/admin/quiz/problems/save-full', data);
+export async function saveQuizProblemFull(data: QuizProblemSaveFull): Promise<{ id: number }> {
+  const response = await apiClient.post<{ id: number }>('/v1/admin/quiz/problems/save-full', data);
   return response.data;
 }
 
@@ -727,6 +736,16 @@ export interface QuestionAnalytics {
 export interface QuizAnalytics {
   stats: QuizAnalyticsStats;
   question_stats: QuestionAnalytics[];
+  score_distribution: unknown;
+  score_vs_time: unknown;
+  funnel: unknown;
+  students: unknown;
+  insights: unknown;
+  game: unknown;
+  fifty_fifty_by_question: unknown;
+  powerup_timeline: unknown;
+  lives_distribution: unknown;
+  difficulty_stats: unknown;
 }
 
 /**
@@ -884,13 +903,10 @@ export async function updateQuizLeaderboardSettings(quizId: string, settings: Pa
 // ─────────────────────────────────────────
 
 export interface GenerateResultsResponse {
-  resultsGenerated: boolean;
   emailSent: boolean;
   emailError?: string;
   stats: {
-    totalSubmissions: number;
     evaluated: number;
-    leaderboardUpdated: boolean;
   };
 }
 
@@ -937,14 +953,11 @@ export interface CollaboratorRequest {
 export interface IncomingCollaboratorRequest {
   id: number;
   quiz_id: number;
-  user_id: string | number;
-  invited_by: string | number;
-  status: CollaboratorRequestStatus;
-  created_at: string | null;
-  updated_at: string | null;
   quiz_name: string;
   quiz_code: string;
+  status: CollaboratorRequestStatus;
   inviter_username: string | null;
+  created_at: string | null;
 }
 
 export interface QuizCollaboratorsResponse {
@@ -952,24 +965,6 @@ export interface QuizCollaboratorsResponse {
   collaborators: CollaboratorRequest[];
   pending: CollaboratorRequest[];
   rejected: CollaboratorRequest[];
-}
-
-/**
- * Send a collaborator request for a quiz (owner only). The user is NOT added until they accept.
- * POST /api/v1/admin/quiz/:quizId/collaborators/request
- */
-export async function sendCollaboratorRequest(quizId: string, userId: string | number): Promise<CollaboratorRequest> {
-  const response = await apiClient.post<CollaboratorRequest>(`/v1/admin/quiz/${quizId}/collaborators/request`, { userId });
-  return response.data;
-}
-
-/**
- * Get all collaborator requests for a quiz (owner/collaborator view).
- * GET /api/v1/admin/quiz/:quizId/collaborators
- */
-export async function getQuizCollaborators(quizId: string): Promise<QuizCollaboratorsResponse> {
-  const response = await apiClient.get<QuizCollaboratorsResponse>(`/v1/admin/quiz/${quizId}/collaborators`);
-  return response.data;
 }
 
 /**
@@ -1014,7 +1009,6 @@ export interface CollaborationProject {
   accepted_at: string | null;
   collaborators: CollaborationUser[];
   total_questions: number;
-  participants: number;
 }
 
 /**
@@ -1042,8 +1036,8 @@ export async function getIncomingCollaboratorRequests(): Promise<IncomingCollabo
 export async function respondToCollaboratorRequest(
   quizId: string,
   status: "accepted" | "rejected"
-): Promise<CollaboratorRequest> {
-  const response = await apiClient.patch<CollaboratorRequest>(`/v1/user/quiz/collaborator-requests/${quizId}`, { status });
+): Promise<{ status: string }> {
+  const response = await apiClient.patch<{ status: string }>(`/v1/user/quiz/collaborator-requests/${quizId}`, { status });
   return response.data;
 }
 
@@ -1054,52 +1048,17 @@ export async function respondToCollaboratorRequest(
 export interface QuizResponseStudent {
   user_id: number;
   rollno: string | null;
-  is_registered: boolean;
-  registered_at: string | null;
   username: string | null;
   first_name: string | null;
   last_name: string | null;
-  email: string | null;
-  attempt_id: number | null;
-  score: number | null;
-  percentage: number | null;
-  rank: number | null;
-  attempt_status: string | null;
-  completed_at: string | null;
-  time_taken: number | null;
-  total_questions: number | null;
-  correct_answers: number | null;
-  wrong_answers: number | null;
-  skipped_questions: number | null;
-}
-
-export interface QuizResponsesSummary {
-  total: number;
-  submitted: number;
-  not_submitted: number;
-  average_score: number;
-  highest_score: number | null;
-  lowest_score: number | null;
-  total_marks: number;
 }
 
 export interface QuizResponsesData {
-  quiz: {
-    id: number;
-    name: string;
-    code: string;
-    total_marks: number;
-    passing_marks: number;
-    status: string | null;
-    starttime: string | null;
-    endtime: string | null;
-  };
   students: QuizResponseStudent[];
-  summary: QuizResponsesSummary;
 }
 
 /**
- * Get the complete student response dashboard for a quiz (owner/collaborator only).
+ * Get students for a quiz.
  * GET /api/v1/user/quiz/:quizId/responses
  */
 export async function getQuizResponses(quizId: string): Promise<QuizResponsesData> {
@@ -1235,21 +1194,20 @@ export interface QuizGameMechanic {
   quantity: number;
 }
 
-/**
- * GET /api/v1/admin/quiz/game-mechanics
- * Returns all available game mechanic types from DB.
- */
-export async function getAllGameMechanics(): Promise<GameMechanicType[]> {
-  const response = await apiClient.get<GameMechanicType[]>("/v1/admin/quiz/game-mechanics");
-  return response.data;
+export interface QuizGameMechanicItem {
+  code: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  quantity: number;
 }
 
 /**
  * GET /api/v1/admin/quiz/:quizId/game-mechanics
  * Returns game mechanics configured for a specific quiz.
  */
-export async function getQuizGameMechanics(quizId: string | number): Promise<QuizGameMechanic[]> {
-  const response = await apiClient.get<QuizGameMechanic[]>(`/v1/admin/quiz/${quizId}/game-mechanics`);
+export async function getQuizGameMechanics(quizId: string | number): Promise<QuizGameMechanicItem[]> {
+  const response = await apiClient.get<QuizGameMechanicItem[]>(`/v1/admin/quiz/${quizId}/game-mechanics`);
   return response.data;
 }
 
@@ -1260,7 +1218,6 @@ export async function getQuizGameMechanics(quizId: string | number): Promise<Qui
 export async function updateQuizGameMechanics(
   quizId: string | number,
   mechanics: { mechanicCode: string; enabled: boolean; quantity: number }[]
-): Promise<QuizGameMechanic[]> {
-  const response = await apiClient.put<QuizGameMechanic[]>(`/v1/admin/quiz/${quizId}/game-mechanics`, { mechanics });
-  return response.data;
+): Promise<void> {
+  await apiClient.put(`/v1/admin/quiz/${quizId}/game-mechanics`, { mechanics });
 }

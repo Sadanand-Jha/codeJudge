@@ -535,7 +535,7 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { quizId } = req.params;
-    const { status } = req.body;
+    const { status, sessionDuration, endBehavior } = req.body;
 
     if (!userId) {
       res.status(401).json({
@@ -573,7 +573,20 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
       return;
     }
 
-    const updatedQuiz = await quizService.updateQuiz(Number(quizId), { status });
+    const updateData: Record<string, any> = { status };
+    if (status === "live") {
+      updateData.starttime = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+      if (endBehavior === "auto_duration" && typeof sessionDuration === "number" && sessionDuration > 0) {
+        const endTime = new Date(Date.now() + sessionDuration * 60 * 1000);
+        updateData.endtime = endTime.toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+      } else {
+        updateData.endtime = null;
+      }
+    } else if (status === "ended") {
+      updateData.endtime = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
+    }
+
+    const updatedQuiz = await quizService.updateQuiz(Number(quizId), updateData);
 
     res.status(200).json({
       success: true,

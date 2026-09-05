@@ -116,7 +116,7 @@ export default function StudentDetailsPanel({
                     <AtSign className="h-3 w-3" />
                     Username
                   </p>
-                  <p className="mt-1 truncate text-sm text-text-primary">@{student.username ?? student.email?.split("@")[0] ?? "—"}</p>
+                  <p className="mt-1 truncate text-sm text-text-primary">@{student.username ?? "—"}</p>
                 </div>
               </div>
 

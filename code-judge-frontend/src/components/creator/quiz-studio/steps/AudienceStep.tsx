@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Users,
   Upload,
   ClipboardList,
-  Copy,
-  RefreshCw,
   Plus,
   Search,
   X,
@@ -14,10 +13,10 @@ import {
   Shield,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { getAvatarUrlById } from "@/config/dicebear";
 import { useStudio } from "../StudioProvider";
 import { toast } from "@/lib/toast";
 import { useRoomStore, getEligibleCount } from "@/store/roomStore";
-import { generateQuizCode } from "@/utils/quizCode";
 import SelectRoomsModal from "@/components/quiz/creator/settings/audience/SelectRoomsModal";
 import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateRoomModal";
 
@@ -26,8 +25,6 @@ const MODE_OPTIONS: Array<{ id: "public" | "private" | "classroom"; label: strin
   { id: "private", label: "Private", desc: "Only people with the link can attempt." },
   { id: "classroom", label: "Rooms", desc: "Restricted to students in your selected rooms." },
 ];
-
-const SAMPLE_CSV = "Name,Roll Number,Email\nAnanya Sharma,001,ananya@example.com\nRohan Mehta,002,rohan@example.com\n";
 
 export function AudienceStep() {
   const { state, updateAudience } = useStudio();
@@ -43,6 +40,55 @@ export function AudienceStep() {
     () => rooms.filter((r) => roomIds.includes(r.id) && !r.archived),
     [rooms, roomIds]
   );
+
+  const setRooms = useRoomStore((s) => s.setRooms);
+  const fetchingRef = useRef(new Set<string>());
+
+  const selectedRoomIdsKey = roomIds.join(",");
+
+  useEffect(() => {
+    if (!selectedRoomIdsKey) return;
+    const ids = selectedRoomIdsKey.split(",").filter(Boolean);
+    for (const rid of ids) {
+      const room = rooms.find((r) => r.id === rid);
+      if (!room) continue;
+      if (room.students.length > 0) continue;
+      if ((room.memberCount ?? 0) <= 0) continue;
+      if (fetchingRef.current.has(rid)) continue;
+      fetchingRef.current.add(rid);
+      import("@/services/rooms").then(({ getRoom }) => {
+        getRoom(rid)
+          .then((res: unknown) => {
+            const payload = (res as Record<string, unknown>) ?? {};
+            const members = (payload.members ?? []) as Array<Record<string, unknown>>;
+            const mapped = members.map((mm) => {
+              const u = (mm.user as Record<string, unknown>) ?? mm;
+              const username = String((u.username as string) ?? "");
+              return {
+                id: String(u.id ?? mm.userId ?? Math.random()),
+                name: String((u.displayName as string) ?? username),
+                rollNumber: username,
+                username: username.toLowerCase(),
+                active: (mm.statusName as string) === "ACTIVE" || mm.status === 1,
+                avatarId: Number(u.avatarId ?? 1),
+                avatarUrl: (u.avatarUrl as string) ?? null,
+              };
+            });
+            const current = useRoomStore.getState().rooms;
+            const updated = current.map((r) =>
+              String(r.id) === String(rid)
+                ? { ...r, students: mapped as unknown as typeof r.students }
+                : r
+            );
+            setRooms(updated as never);
+          })
+          .catch(() => {
+            fetchingRef.current.delete(rid);
+          });
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoomIdsKey, rooms, setRooms]);
   const eligibleCount = useMemo(() => getEligibleCount(rooms, roomIds), [rooms, roomIds]);
 
   /** Students of a room allowed to attempt — defaults to every active member. */
@@ -77,13 +123,6 @@ export function AudienceStep() {
     });
   };
 
-  const regenerateCode = () =>
-    updateAudience({ accessCode: generateQuizCode() });
-  const copyCode = () => {
-    navigator.clipboard.writeText(a.accessCode);
-    toast.success({ title: "Code copied", description: a.accessCode });
-  };
-
   const removeRoom = (roomId: string) =>
     updateAudience({ roomIds: a.roomIds.filter((id) => id !== roomId) });
 
@@ -91,15 +130,24 @@ export function AudienceStep() {
     <div className="flex flex-col bg-background">
     <div className="">
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <h2 className="text-lg font-semibold text-text-primary">Audience & Access</h2>
         <p className="mt-1 text-xs text-text-secondary">
           Control who can register and attempt your quiz.
         </p>
-      </div>
+      </motion.div>
 
       {/* Access modes tip */}
-      <div className="rounded-xl border border-border bg-card p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.08 }}
+        className="rounded-xl border border-border bg-card p-5"
+      >
         <div className="flex items-center gap-2 mb-3">
           <Users className="h-4 w-4 text-pink-500" />
           <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
@@ -127,9 +175,14 @@ export function AudienceStep() {
             description="Restricted to students in your selected rooms. Perfect for classroom quizzes, section-wise exams, and batch assessments."
           />
         </div>
-      </div>
+      </motion.div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.15 }}
+        className="grid gap-3 sm:grid-cols-3"
+      >
         {MODE_OPTIONS.map((m) => (
           <label
             key={m.id}
@@ -151,36 +204,7 @@ export function AudienceStep() {
             <span className="text-xs text-text-secondary">{m.desc}</span>
           </label>
         ))}
-      </div>
-
-      {(a.mode === "classroom" || a.mode === "private") && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-            Access Code
-          </h3>
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center gap-1 rounded-lg border border-input-border bg-input-bg px-3 py-1.5 text-sm font-mono tracking-widest text-text-primary">
-              {a.accessCode || "——"}
-            </div>
-            <button
-              type="button"
-              onClick={regenerateCode}
-              className="rounded-lg border border-border p-1.5 text-text-secondary hover:text-text-primary"
-              title="Regenerate code"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={copyCode}
-              className="rounded-lg border border-border p-1.5 text-text-secondary hover:text-text-primary"
-              title="Copy code"
-            >
-              <Copy className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      </motion.div>
 
       {a.mode === "classroom" && (
         <div className="rounded-xl border border-border bg-card p-5 space-y-4">
@@ -330,9 +354,9 @@ export function AudienceStep() {
 /* ─── Unified Student Panel ─────────────────────────────────────────────── */
 
 interface AllStudentsPanelProps {
-  selectedRooms: Array<{ id: string; name: string; students: Array<{ id: string; name: string; rollNumber: string; email?: string; username?: string; active: boolean }> }>;
+  selectedRooms: Array<{ id: string; name: string; students: Array<{ id: string; name: string; rollNumber: string; username?: string; active: boolean; avatarId?: number; avatarUrl?: string | null }> }>;
   selections: Record<string, string[]>;
-  rooms: Array<{ id: string; students: Array<{ id: string; name: string; rollNumber: string; email?: string; username?: string; active: boolean }> }>;
+  rooms: Array<{ id: string; students: Array<{ id: string; name: string; rollNumber: string; username?: string; active: boolean; avatarId?: number; avatarUrl?: string | null }> }>;
   toggleStudent: (roomId: string, rollNumber: string) => void;
   updateAudience: (patch: Record<string, unknown>) => void;
   eligibleCount: number;
@@ -356,7 +380,8 @@ function AllStudentsPanel({
         rollNumber: string;
         name: string;
         username?: string;
-        email?: string;
+        avatarId: number;
+        avatarUrl?: string | null;
         roomIds: string[];
         roomNames: string[];
         isAllowed: boolean;
@@ -379,8 +404,9 @@ function AllStudentsPanel({
           seen.set(key, {
             rollNumber: student.rollNumber,
             name: student.name,
-            username: student.username ?? (student as unknown as { email?: string }).email?.split("@")[0],
-            email: (student as unknown as { email?: string }).email,
+            username: student.username,
+            avatarId: student.avatarId ?? 1,
+            avatarUrl: student.avatarUrl,
             roomIds: [room.id],
             roomNames: [room.name],
             isAllowed: allowed,
@@ -398,8 +424,7 @@ function AllStudentsPanel({
       (s) =>
         s.name.toLowerCase().includes(q) ||
         (s.username ?? "").toLowerCase().includes(q) ||
-        s.rollNumber.toLowerCase().includes(q) ||
-        (s.email ?? "").toLowerCase().includes(q)
+        s.rollNumber.toLowerCase().includes(q)
     );
   }, [allStudents, query]);
 
@@ -457,7 +482,7 @@ function AllStudentsPanel({
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by name, username, roll number, or email…"
+          placeholder="Search by name, username, or roll number…"
           className="h-9 w-full rounded-lg border border-input-border bg-input-bg pl-8 pr-3 text-xs text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60"
         />
         {query && (
@@ -515,12 +540,17 @@ function AllStudentsPanel({
                   }}
                   className="h-3.5 w-3.5 rounded accent-pink-500"
                 />
+                <img
+                  src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
+                  alt=""
+                  className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-border"
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-medium text-text-primary">
-                    @{student.username ?? student.email?.split("@")[0] ?? student.name}
+                    @{student.username ?? student.name}
                   </p>
                   <p className="truncate text-[10px] text-text-muted">
-                    {student.username ? `@${student.username}` : student.email ?? ""} &middot; {student.rollNumber}
+                    @{student.username ?? ""} &middot; {student.rollNumber}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-1">

@@ -12,7 +12,7 @@ import { IconButton } from "@/components/creator/billing/ui";
    ============================================================ */
 export function MiniBarChart({
   data,
-  height = 200,
+  height = 220,
   formatter,
   barClassName = "bg-[#EC4899]",
 }: {
@@ -24,7 +24,7 @@ export function MiniBarChart({
   const max = Math.max(...data.map((d) => d.value), 1);
 
   return (
-    <div className="flex items-end gap-1.5" style={{ height }}>
+    <div className="flex items-end gap-2" style={{ height }}>
       {data.map((d, i) => (
         <div key={d.label} className="group relative flex h-full min-w-0 flex-1 flex-col">
           <div className="pointer-events-none absolute inset-x-0 -top-8 z-20 mx-auto hidden w-max max-w-[180px] rounded-lg border border-border bg-popover px-2 py-1.5 text-center shadow-xl group-hover:block">
@@ -34,14 +34,15 @@ export function MiniBarChart({
             </span>
           </div>
           <div className="relative flex flex-1 items-end">
+            <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-text-secondary">{d.value}</span>
             <motion.div
               initial={{ height: 0 }}
-              animate={{ height: `${Math.max((d.value / max) * 100, 2)}%` }}
+              animate={{ height: `${Math.max((d.value / max) * 100, 6)}%` }}
               transition={{ delay: i * 0.03, duration: 0.55, ease: "easeOut" }}
-              className={cn("w-full rounded-t-md", barClassName)}
+              className={cn("w-full rounded-t-xl", barClassName)}
             />
           </div>
-          <span className="mt-1.5 truncate text-center text-[9px] font-medium text-text-muted">
+          <span className="mt-1.5 truncate text-center text-[10px] font-medium text-text-muted">
             {d.label}
           </span>
         </div>

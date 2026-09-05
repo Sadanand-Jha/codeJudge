@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
   FileText,
@@ -79,14 +80,23 @@ export function SetupStep() {
       {/* Creation method choice — only on create, not edit */}
       {!editMode && (
         <>
-          <div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <h2 className="text-lg font-semibold text-text-primary">How do you want to start?</h2>
             <p className="mt-1 text-xs text-text-secondary">
               You can always use AI tools later inside the editor.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.08 }}
+            className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+          >
             {CREATE_CHOICES.map((c) => (
               <ChoiceCard
                 key={c.id}
@@ -104,12 +114,17 @@ export function SetupStep() {
                 }}
               />
             ))}
-          </div>
+          </motion.div>
         </>
       )}
 
       {/* Basic information — white card with shadow like image */}
-      <div className="rounded-xl bg-white dark:bg-card border border-gray-100 dark:border-border shadow-[0_4px_20px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] dark:shadow-none p-6 sm:p-7 space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: editMode ? 0 : 0.15 }}
+        className="rounded-xl bg-white dark:bg-card border border-gray-100 dark:border-border shadow-[0_4px_20px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] dark:shadow-none p-6 sm:p-7 space-y-6"
+      >
         <div className="border-b border-pink-500/20 pb-3">
           <h3 className="text-sm font-bold uppercase tracking-wider text-pink-500">
             Basic Information
@@ -276,7 +291,7 @@ export function SetupStep() {
             <p className="text-[11px] text-text-muted text-right">{info.fullDescription.length}/5000</p>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
     </div>
     </div>

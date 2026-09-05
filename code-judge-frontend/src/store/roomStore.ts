@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { Room, RoomStudent } from "@/types/room";
 import { AudienceStudent } from "@/components/quiz/creator/types";
 import { MAX_STUDENTS_PER_ROOM } from "@/lib/constants";
@@ -54,36 +53,34 @@ function bumpUpdatedAt(room: Room): Room {
 }
 
 /**
- * Room store backed by the room service (currently mock/localStorage, later a
- * real API). Persisted to localStorage so rooms survive reloads.
+ * Room store backed by the room service. All room data is fetched from
+ * the backend — no localStorage persistence.
  */
 function migrateStudentUsernames(rooms: Room[]): Room[] {
   return rooms.map((room) => ({
     ...room,
     students: room.students.map((s) => {
       if (s.username) return s;
-      const fallback = (s as unknown as { email?: string }).email?.split("@")[0]?.toLowerCase().replace(/[^a-z0-9._-]/g, "") || `user_${s.rollNumber.toLowerCase()}`;
+      const fallback = `user_${s.rollNumber.toLowerCase()}`;
       return { ...s, username: fallback };
     }),
   }));
 }
 
 export const useRoomStore = create<RoomStoreState>()(
-  persist(
-    (set, get) => ({
-      rooms: MOCK_ROOMS,
-      hydrated: false,
-      recentlyUsedIds: [],
-      recentlyUsedStudentIds: [],
+  (set, get) => ({
+    rooms: MOCK_ROOMS,
+    hydrated: false,
+    recentlyUsedIds: [],
+    recentlyUsedStudentIds: [],
 
-      hydrate: () =>
-        set((state) => ({
-          hydrated: true,
-          // Remove dummy mock rooms (ids like room_cse_a) — now using backend
-          rooms: migrateStudentUsernames(state.rooms.filter((r) => !String(r.id).startsWith("room_"))),
-        })),
+    hydrate: () =>
+      set((state) => ({
+        hydrated: true,
+        rooms: migrateStudentUsernames(state.rooms.filter((r) => !String(r.id).startsWith("room_"))),
+      })),
 
-      setRooms: (rooms) => set({ rooms: migrateStudentUsernames(rooms) }),
+    setRooms: (rooms) => set({ rooms: migrateStudentUsernames(rooms) }),
 
       createRoom: ({ name, description, students, ownerId }) => {
         const now = new Date().toISOString();
@@ -213,8 +210,6 @@ export const useRoomStore = create<RoomStoreState>()(
                           name: patch.name !== undefined ? patch.name.trim() : s.name,
                           rollNumber: patch.rollNumber !== undefined ? patch.rollNumber.trim() : s.rollNumber,
                           username: patch.username !== undefined ? patch.username.trim().toLowerCase() : s.username,
-                          // keep legacy email in sync if present
-                          email: (patch as Record<string, unknown>).email !== undefined ? String((patch as Record<string, unknown>).email).trim().toLowerCase() : s.email,
                           active: patch.active ?? s.active,
                         }
                       : s
@@ -236,15 +231,6 @@ export const useRoomStore = create<RoomStoreState>()(
         set({ recentlyUsedStudentIds: [key, ...rest].slice(0, 20) });
       },
     }),
-    {
-      name: "byteclash_rooms",
-      partialize: (state) => ({
-        rooms: state.rooms,
-        recentlyUsedIds: state.recentlyUsedIds,
-        recentlyUsedStudentIds: state.recentlyUsedStudentIds,
-      }),
-    }
-  )
 );
 
 /* =============================================
@@ -398,25 +384,23 @@ export function countAudience(
 /**
  * Resolve whether a logged-in user is eligible for a quiz: belongs to any of
  * the selected rooms OR matches an individually selected student. Matches on
- * username, roll number, then full name (falls back to legacy email for persisted data).
+ * username, roll number, then full name.
  */
 export function isUserEligible(
   rooms: Room[],
   roomIds: string[],
-  user?: { email?: string | null; username?: string | null; rollNo?: string | null; name?: string | null } | null,
+  user?: { username?: string | null; rollNo?: string | null; name?: string | null } | null,
   individuals: AudienceStudent[] = []
 ): boolean {
-  if (!user?.email && !user?.username && !user?.rollNo && !user?.name) return false;
+  if (!user?.username && !user?.rollNo && !user?.name) return false;
   const selected = new Set(roomIds);
-  const email = user.email?.toLowerCase();
   const username = user.username?.toLowerCase();
   const roll = user.rollNo?.toLowerCase();
   const name = user.name?.toLowerCase();
 
-  const matches = (s: { username?: string; email?: string; rollNumber: string; name: string }) => {
-    const sUsername = (s.username ?? s.email?.split("@")[0] ?? "").toLowerCase();
+  const matches = (s: { username?: string; rollNumber: string; name: string }) => {
+    const sUsername = (s.username ?? "").toLowerCase();
     if (username && sUsername === username) return true;
-    if (email && s.email?.toLowerCase() === email) return true;
     if (roll && s.rollNumber.toLowerCase() === roll) return true;
     if (name && s.name.toLowerCase() === name) return true;
     return false;

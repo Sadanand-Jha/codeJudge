@@ -123,9 +123,12 @@ export const quizUpdateSchema = quizSchema.omit({ code: true }).strict();
 
 /**
  * Schema for quiz status updates.
+ * Allows live auto-duration fields so that `endtime = now + sessionDuration` can be set.
  */
 export const quizStatusSchema = z.object({
   status: z.enum(["scheduled", "live", "ended"]),
+  sessionDuration: z.number().int().positive().optional(),
+  endBehavior: z.enum(["manual", "auto_duration"]).optional(),
 });
 
 /**

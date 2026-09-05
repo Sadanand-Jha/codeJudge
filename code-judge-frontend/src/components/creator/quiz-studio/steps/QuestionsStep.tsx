@@ -16,6 +16,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { motion } from "framer-motion";
 import { QuestionList } from "../components/QuestionList";
 import { QuestionEditor } from "../components/QuestionEditor";
 import { LiveRail } from "../components/LiveRail";
@@ -115,7 +116,12 @@ export function QuestionsStep() {
 
   return (
     <>
-      <div className="flex min-h-0 flex-col gap-3 bg-background xl:flex-1 xl:min-h-0 xl:flex-row xl:overflow-hidden min-w-0">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="flex min-h-0 flex-col gap-3 bg-background xl:flex-1 xl:min-h-0 xl:flex-row xl:overflow-hidden min-w-0"
+      >
         {sidebarOpen && <div className="fixed inset-0 z-40 xl:hidden bg-black/20" onClick={() => setSidebarOpen(false)} />}
         {/* Right drawer overlay */}
         {rightOpen && <div className="fixed inset-0 z-40 xl:hidden bg-black/20" onClick={() => setRightOpen(false)} />}
@@ -201,7 +207,7 @@ export function QuestionsStep() {
             </div>
           </div>
         )}
-      </div>
+      </motion.div>
 
       <AiGenerateModal open={aiOpen} onClose={() => setAiOpen(false)} onQuestionsAdded={handleAiQuestions} />
 

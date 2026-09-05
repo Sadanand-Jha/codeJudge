@@ -561,8 +561,9 @@ export class QuizRepository {
 
     for (const field of updateableFields) {
       const camelKey = Object.keys(fieldKeyMap).find((k) => fieldKeyMap[k] === field);
-      const val = data[field] ?? (camelKey ? data[camelKey] : undefined);
-      if (val !== undefined) {
+      const raw = data[field] !== undefined ? data[field] : (camelKey ? data[camelKey] : undefined);
+      if (raw !== undefined) {
+        const val = raw === null ? null : raw;
         paramCount++;
         fields.push(`${field} = $${paramCount}`);
         values.push(val);
@@ -1656,8 +1657,7 @@ export class QuizRepository {
         qcr.invited_by,
         qcr.updated_at AS accepted_at,
         cl.collaborators,
-        COUNT(DISTINCT qp.id)::int AS total_questions,
-        COUNT(DISTINCT qr.id)::int AS participants
+        COUNT(DISTINCT qp.id)::int AS total_questions
       FROM quiz_collaborator_request qcr
       JOIN quiz q ON q.id = qcr.quiz_id
       JOIN users u ON u.id = q.createdby
@@ -1665,17 +1665,15 @@ export class QuizRepository {
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
       LEFT JOIN collaborator_lists cl ON cl.quiz_id = q.id
       LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
-      LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
       WHERE qcr.user_id = $1 AND qcr.status = 'accepted'
       GROUP BY q.id, u.username, u.first_name, u.last_name, a.url, qcr.invited_by, qcr.updated_at, cl.collaborators, qs.name
       ORDER BY qcr.updated_at DESC NULLS LAST, q.id DESC
     `;
     const result = await pool.query(query, [userId]);
-    return result.rows.map((row) => ({
+    return result.rows.map((row: any) => ({
       ...row,
       collaborators: Array.isArray(row.collaborators) ? row.collaborators : [],
       total_questions: row.total_questions ? Number(row.total_questions) : 0,
-      participants: row.participants ? Number(row.participants) : 0,
     }));
   }
 
@@ -1851,7 +1849,7 @@ export class QuizRepository {
       email: string;
       name?: string | null;
       rollNumber?: string | null;
-      source?: "room" | "individual";
+      source?: number;
       roomId?: number | null;
       allowed?: boolean;
     }>
@@ -1874,7 +1872,7 @@ export class QuizRepository {
             p.email.toLowerCase(),
             p.name ?? null,
             p.rollNumber ?? null,
-            p.source === "room" ? "room" : "individual",
+            p.source ?? 2,
             p.roomId ?? null,
             p.allowed !== false,
           ]
@@ -2044,6 +2042,7 @@ export class QuizRepository {
 
       // Insert new mechanics
       for (const m of mechanics) {
+        if (!m.enabled || m.quantity <= 0) continue;
         // Look up mechanic_id from code
         const mechResult = await client.query(
           "SELECT id FROM game_mechanics WHERE code = $1",

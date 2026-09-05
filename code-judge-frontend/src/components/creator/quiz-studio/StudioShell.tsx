@@ -206,7 +206,7 @@ export function StudioFooter() {
       toast.success({ title: state.info.title || "Quiz published", description: "Your quiz is now live." });
       publish();
     } catch (err) {
-      if (!isQuestionValidationError(err)) toast.error({ title: "Could not publish quiz", description: err instanceof Error ? err.message : "Something went wrong." });
+      if (!isQuestionValidationError(err)) toast.error({ title: "Could not start quiz", description: err instanceof Error ? err.message : "Something went wrong." });
     } finally {
       setPublishing(false);
     }
@@ -260,19 +260,19 @@ export function StudioFooter() {
               type="button"
               onClick={() => setConfirmPublish(true)}
               disabled={publishing}
-              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[#E91E63] px-5 text-xs font-semibold text-white hover:bg-[#D81B60] disabled:opacity-60"
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-5 text-xs font-semibold text-white shadow-lg shadow-emerald-500/20 hover:brightness-110 disabled:opacity-60"
             >
-              <Rocket className="h-3.5 w-3.5" /> Publish Quiz
+              <Rocket className="h-3.5 w-3.5" /> Start Quiz
             </button>
             {confirmPublish && (
               <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" onClick={() => !publishing && setConfirmPublish(false)}>
                 <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-xl border border-border bg-background p-6 shadow-xl">
-                  <h3 className="font-semibold text-text-primary">Publish this quiz?</h3>
+                  <h3 className="font-semibold text-text-primary">Start this quiz?</h3>
                   <p className="mt-1 text-xs text-text-secondary">It will go live immediately for eligible students.</p>
                   <div className="mt-4 flex justify-end gap-2">
                     <button onClick={() => setConfirmPublish(false)} className="rounded-lg border border-border bg-card px-4 py-2 text-xs text-text-primary hover:bg-card-hover">Cancel</button>
-                    <button onClick={handleConfirmPublish} className="rounded-lg bg-[#E91E63] px-4 py-2 text-xs font-semibold text-white">
-                      {publishing ? "Publishing…" : "Yes, Publish"}
+                    <button onClick={handleConfirmPublish} className="rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-emerald-500/20 hover:brightness-110">
+                      {publishing ? "Starting…" : "Yes, Start Quiz"}
                     </button>
                   </div>
                 </div>
@@ -319,7 +319,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           className="flex-1 min-h-0 flex flex-col bg-background min-w-0 overflow-hidden"
         >
           <div
-            className="mx-auto flex flex-1 min-h-0 w-full max-w-[1600px] flex-col overflow-y-auto overflow-x-hidden p-2 sm:p-3 min-w-0"
+            className="mx-auto flex flex-1 min-h-0 w-full max-w-none flex-col overflow-y-auto overflow-x-hidden p-2 sm:p-3 min-w-0 lg:w-[96%] xl:w-[95%]"
           >
             {children}
           </div>

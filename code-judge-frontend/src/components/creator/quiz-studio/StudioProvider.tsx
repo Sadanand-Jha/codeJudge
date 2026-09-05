@@ -21,8 +21,9 @@ import {
   setQuizParticipants,
   loadQuizForEdit,
   updateQuizGameMechanics,
+  getQuizGameMechanics,
   type QuizParticipantInput,
-  type Quiz,
+  type QuizBasic,
   type QuizProblemWithOptions,
 } from "@/services/quiz";
 import { syncQuizQuestions, computeChangedQuestions, buildQuestionSnapshot } from "@/utils/quizQuestionSync";
@@ -238,7 +239,13 @@ function mapBackendProblem(
   return base;
 }
 
-function mapQuizToStudioInfo(quiz: Quiz & { subject_name?: string; exam_cat_name?: string }): StudioState["info"] {
+function mapQuizToStudioInfo(quiz: QuizBasic & { subject_name?: string; exam_cat_name?: string }): StudioState["info"] {
+  const raw = ((quiz as any).status as string | null)?.toLowerCase() ?? "";
+  let quizLifecycle: "draft" | "scheduled" | "live" | "ended" = "draft";
+  if (raw === "live") quizLifecycle = "live";
+  else if (raw === "scheduled") quizLifecycle = "scheduled";
+  else if (raw === "ended" || raw === "completed") quizLifecycle = "ended";
+
   return {
     id: String(quiz.id),
     code: quiz.code ?? "",
@@ -250,7 +257,7 @@ function mapQuizToStudioInfo(quiz: Quiz & { subject_name?: string; exam_cat_name
     exam: quiz.exam_cat_name ?? "",
     examId: quiz.exam_cat ?? "",
     classGrade: "",
-    difficulty: quiz.difficulty_name ?? "Medium",
+    difficulty: (quiz as any).difficulty_name ?? "Medium",
     difficultyId: quiz.difficulty ?? "",
     language: "English",
     duration: quiz.duration ?? 60,
@@ -259,19 +266,20 @@ function mapQuizToStudioInfo(quiz: Quiz & { subject_name?: string; exam_cat_name
     thumbnailUrl: "",
     startDate: quiz.starttime ?? "",
     endDate: quiz.endtime ?? "",
+    quizLifecycle,
   };
 }
 
-function mapQuizToStudioSettings(quiz: Quiz): StudioState["settings"] {
+function mapQuizToStudioSettings(quiz: QuizBasic): StudioState["settings"] {
   return {
     randomizeQuestions: quiz.shuffle_questions ?? false,
     randomizeOptions: quiz.shuffle_options ?? false,
     negativeMarking: quiz.negative_marking ?? false,
     negativeMarkValue: 1,
     showResultsImmediately: quiz.show_results_immediately ?? true,
-    fullscreenMode: false,
-    tabSwitchDetection: false,
-    copyProtection: false,
+    fullscreenMode: true,
+    tabSwitchDetection: true,
+    copyProtection: true,
   };
 }
 
@@ -436,7 +444,38 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           },
         });
         quizSnapshotRef.current = quizSnapshot;
-        gameMechanicsSnapshotRef.current = JSON.stringify(DEFAULT_GAME_MECHANICS);
+
+        // Load game mechanics from server
+        let loadedGameMechanics = JSON.parse(JSON.stringify(DEFAULT_GAME_MECHANICS));
+        try {
+          const serverMechanics = await getQuizGameMechanics(initialQuizId);
+          const CODE_TO_ID: Record<string, string> = {
+            FIFTY_FIFTY: "fiftyFifty",
+            AUDIENCE_POLL: "audiencePoll",
+            HINT: "hint",
+            SKIP_QUESTION: "skip",
+            EXTRA_TIME: "extraTime",
+            ELIMINATE_ONE: "eliminateOne",
+            DOUBLE_SCORE: "doublePoints",
+            FREEZE_TIME: "freezeTimer",
+            STREAK_BONUS: "streakBonus",
+            SPEED_BONUS: "speedBonus",
+            SECOND_CHANCE: "secondChance",
+            DECAYING_POINTS: "decayingPoints",
+          };
+          for (const sm of serverMechanics) {
+            const id = CODE_TO_ID[sm.code];
+            if (!id) continue;
+            const m: any = (loadedGameMechanics as any)[id];
+            if (!m) continue;
+            m.enabled = sm.enabled;
+            if ("uses" in m) m.uses = sm.quantity;
+          }
+        } catch (e) {
+          console.warn("Failed to load game mechanics (non-critical):", e);
+        }
+
+        gameMechanicsSnapshotRef.current = JSON.stringify(loadedGameMechanics);
         setState((s) => ({
           ...s,
           info: { ...DEFAULT_QUIZ_INFO, ...info },
@@ -445,6 +484,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           activeQuestionId:
             questions.length > 0 ? questions[0].id : createEmptyQuestion("q_1").id,
           serverQuizId: initialQuizId,
+          gameMechanics: loadedGameMechanics,
         }));
       } catch (err) {
         console.error("Failed to load quiz for editing:", err);
@@ -879,29 +919,28 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
 
         if (!opts?.skipParticipants) {
         // Build the unique participant set — union of allowed room members and
-        // individually invited emails, deduped by email.
+        // individually invited emails, deduped by username.
         const audience = state.audience;
         const selRoomIds = audience.roomIds ?? [];
         const selections = audience.roomStudentSelections ?? {};
         const allRooms = useRoomStore.getState().rooms;
-        const byEmail = new Map<string, QuizParticipantInput>();
+        const byKey = new Map<string, QuizParticipantInput>();
 
         for (const roomId of selRoomIds) {
           const room = allRooms.find((r) => r.id === roomId);
           if (!room) continue;
           const selected: string[] | undefined = selections[roomId];
           for (const student of room.students) {
-            const studentUsername = (student as unknown as { username?: string; email?: string }).username ?? (student as unknown as { email?: string }).email?.split("@")[0];
-            const studentEmail = (student as unknown as { email?: string }).email ?? (studentUsername ? `${studentUsername}@placeholder.local` : undefined);
-            if (!student.active || !studentEmail) continue;
+            const studentUsername = student.username ?? "";
+            if (!student.active || !studentUsername) continue;
             if (selected && !selected.includes(student.rollNumber)) continue;
-            const key = studentEmail.toLowerCase();
-            if (!byEmail.has(key)) {
-              byEmail.set(key, {
-                email: studentEmail,
+            const key = studentUsername.toLowerCase();
+            if (!byKey.has(key)) {
+              byKey.set(key, {
+                email: `${studentUsername}@quiz.local`,
                 name: student.name,
                 rollNumber: student.rollNumber,
-                source: "room",
+                source: 4,
                 roomId: null,
                 allowed: true,
               });
@@ -911,14 +950,14 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
 
         for (const email of audience.invitedEmails ?? []) {
           const key = email.toLowerCase();
-          if (!byEmail.has(key)) {
-            byEmail.set(key, { email, source: "individual", allowed: true });
+          if (!byKey.has(key)) {
+            byKey.set(key, { email, source: 2, allowed: true });
           }
         }
 
-        const currentAudienceSnapshot = JSON.stringify([...byEmail.values()]);
+        const currentAudienceSnapshot = JSON.stringify([...byKey.values()]);
         if (currentAudienceSnapshot !== audienceSnapshotRef.current) {
-          await setQuizParticipants(quizId, [...byEmail.values()]);
+          await setQuizParticipants(quizId, [...byKey.values()]);
           audienceSnapshotRef.current = currentAudienceSnapshot;
         }
         } // skipParticipants

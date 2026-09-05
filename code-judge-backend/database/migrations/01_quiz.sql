@@ -11,10 +11,10 @@ CREATE TABLE quiz_status (
 
 INSERT INTO quiz_status (id, name, description)
 VALUES
-
+    (1, 'DRAFT', 'Quiz is in draft mode and not yet published'),
     (2, 'SCHEDULED', 'Quiz is published and scheduled to start at a future time'),
     (3, 'LIVE', 'Quiz is currently active and accepting attempts'),
-    (4, 'ENDED', 'Quiz has reached its end time'),
+    (4, 'ENDED', 'Quiz has reached its end time');
 
 
 
@@ -50,11 +50,8 @@ CREATE TABLE quiz_participants (
 
     status INTEGER NOT NULL,
 
-    rollno VARCHAR(100),
 
     registered_at TIMESTAMP,
-    started_at TIMESTAMP,
-    submitted_at TIMESTAMP,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -308,3 +305,6 @@ VALUES
     ('Decaying Points', 'DECAYING_POINTS',
      'Points on each question decrease over time — answer fast for maximum marks.',
      'timer-off', 'POWER_UP', 1, TRUE);
+
+alter table quiz_participants 
+add column source integer

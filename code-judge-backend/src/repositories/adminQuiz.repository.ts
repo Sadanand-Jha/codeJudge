@@ -130,13 +130,12 @@ export class AdminQuizRepository {
     const query = `
       SELECT
         q.id, q.name, q.code, q.duration, qs.name AS status,
-        COUNT(DISTINCT qr.id) AS participants,
         COUNT(DISTINCT qp.id) AS total_questions,
         COALESCE(AVG(CASE WHEN qsr.answer IS NOT NULL THEN 1 ELSE 0 END), 0) AS completion_rate
       FROM quiz q
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
       LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
+      LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
       LEFT JOIN quiz_attempt qa_attempt ON qa_attempt.quiz_id = q.id AND qa_attempt.user_id = qr.user_id
       LEFT JOIN quiz_student_response qsr ON qsr.attempt_id = qa_attempt.id AND qsr.problem_id = qp.id
       ${whereClause}
@@ -215,8 +214,9 @@ export class AdminQuizRepository {
 
     for (const field of updateableFields) {
       const camelKey = Object.keys(fieldKeyMap).find((k) => fieldKeyMap[k] === field);
-      const val = data[field] ?? (camelKey ? data[camelKey] : undefined);
-      if (val !== undefined) {
+      const raw = data[field] !== undefined ? data[field] : (camelKey ? data[camelKey] : undefined);
+      if (raw !== undefined) {
+        const val = raw === null ? null : raw;
         paramCount++;
         fields.push(`${field} = $${paramCount}`);
         values.push(val);
@@ -689,51 +689,21 @@ export class AdminQuizRepository {
 
   // ==================== RESPONSES / RESULTS (admin view) ====================
 
-  async getQuizResponses(quizId: number): Promise<{ quiz: any; students: any[]; summary: any }> {
-    const quizResult = await pool.query(
-      `SELECT q.id, q.name, q.code, q.total_marks, q.passing_marks, qs.name AS status, q.starttime, q.endtime
-       FROM quiz q LEFT JOIN quiz_status qs ON qs.id = q.quiz_status WHERE q.id = $1`,
-      [quizId]
-    );
-    const quiz = quizResult.rows[0] || null;
-    if (!quiz) throw new Error("Quiz not found");
+  async getQuizResponses(quizId: number): Promise<{ students: any[] }> {
+    const quizCheck = await pool.query(`SELECT 1 FROM quiz WHERE id = $1`, [quizId]);
+    if (quizCheck.rows.length === 0) throw new Error("Quiz not found");
 
     const studentsResult = await pool.query(
       `SELECT qr.user_id, qr.rollno,
-        u.username, u.first_name, u.last_name, u.email,
-        qa.id AS attempt_id, qa.score, qa.percentage, qa.rank, qa.status AS attempt_status,
-        qa.completed_at, qa.time_taken, qa.total_questions, qa.correct_answers, qa.wrong_answers, qa.skipped_questions
+        u.username, u.first_name, u.last_name
        FROM quiz_registration qr
        JOIN users u ON u.id = qr.user_id
-       LEFT JOIN quiz_attempt qa ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
        WHERE qr.quiz_id = $1 AND qr.is_registered = true
-       ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC NULLS LAST, u.first_name ASC`,
+       ORDER BY u.first_name ASC`,
       [quizId]
     );
 
-    const counts = await pool.query(
-      `SELECT COUNT(*) AS total,
-        COUNT(qa.id) FILTER (WHERE qa.status='completed') AS submitted,
-        COUNT(*) FILTER (WHERE qa.id IS NULL OR qa.status<>'completed') AS not_submitted,
-        AVG(qa.score) AS average_score, MAX(qa.score) AS highest_score, MIN(qa.score) AS lowest_score
-       FROM quiz_registration qr
-       LEFT JOIN quiz_attempt qa ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
-       WHERE qr.quiz_id = $1 AND qr.is_registered = true`,
-      [quizId]
-    );
-    const summary = counts.rows[0] || {};
-    return {
-      quiz,
-      students: studentsResult.rows,
-      summary: {
-        total: parseInt(summary.total) || 0, submitted: parseInt(summary.submitted) || 0,
-        not_submitted: parseInt(summary.not_submitted) || 0,
-        average_score: parseFloat(summary.average_score) || 0,
-        highest_score: parseFloat(summary.highest_score) || 0,
-        lowest_score: summary.lowest_score === null ? null : parseFloat(summary.lowest_score),
-        total_marks: quiz.total_marks || 0,
-      },
-    };
+    return { students: studentsResult.rows };
   }
 
   async getStudentAttemptDetails(quizId: number, userId: number): Promise<any | null> {
@@ -781,7 +751,7 @@ export class AdminQuizRepository {
     quizId: number,
     participants: Array<{
       email: string; name?: string | null; rollNumber?: string | null;
-      source?: "room" | "individual"; roomId?: number | null; allowed?: boolean;
+      source?: number; roomId?: number | null; allowed?: boolean;
     }>
   ): Promise<number> {
     const client = await pool.connect();
@@ -795,7 +765,7 @@ export class AdminQuizRepository {
           `INSERT INTO quiz_participants (quiz_id, email, name, roll_number, source, room_id, allowed, created_at, updated_at)
            VALUES ($1,$2,$3,$4,$5,$6,$7,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT (quiz_id, email) DO NOTHING`,
           [quizId, p.email.toLowerCase(), p.name ?? null, p.rollNumber ?? null,
-           p.source === "room" ? "room" : "individual", p.roomId ?? null, p.allowed !== false]
+           p.source ?? 2, p.roomId ?? null, p.allowed !== false]
         );
         saved++;
       }
@@ -908,14 +878,12 @@ export class AdminQuizRepository {
       const skipped = Math.max(0, totalAttemptsNum - totalResp);
       const accuracy = totalResp > 0 ? (correct / totalResp * 100) : 0;
       return {
-        ...q, total_attempts: totalResp, total_responses: totalResp,
+        id: q.id, question_number: q.question_number, problem_statement: q.problem_statement,
+        problem_type: q.problem_type, difficulty: q.difficulty, difficulty_name: q.difficulty_name,
+        total_responses: totalResp,
         correct_responses: correct, incorrect_responses: incorrect, skipped_count: skipped,
         accuracy: parseFloat(accuracy.toFixed(1)),
         avg_time_ms: q.avg_time_ms ? parseInt(q.avg_time_ms) : null,
-        median_time_ms: q.median_time_ms ? parseInt(q.median_time_ms) : null,
-        max_time_ms: q.max_time_ms ? parseInt(q.max_time_ms) : null,
-        id: q.id, question_number: q.question_number, problem_statement: q.problem_statement,
-        problem_type: q.problem_type, difficulty: q.difficulty, difficulty_name: q.difficulty_name,
       };
     });
 
@@ -934,7 +902,7 @@ export class AdminQuizRepository {
         LEFT JOIN quiz_problem_options qpo ON qpo.id::text = qsr.answer::text
         WHERE qp.quiz_id=$1 GROUP BY qd.heading, qd.id ORDER BY qd.id
       `, [quizId]);
-      difficultyStats = r.rows.map((r: any) => ({ ...r, accuracy: r.responses > 0 ? (r.correct / r.responses * 100) : 0 }));
+      difficultyStats = r.rows.map((r: any) => ({ difficulty_name: r.difficulty_name, difficulty: r.difficulty, accuracy: r.responses > 0 ? (r.correct / r.responses * 100) : 0 }));
     } catch {}
 
     let gameEventsSummary: any = { total_events: 0, by_type: [] };
@@ -963,7 +931,7 @@ export class AdminQuizRepository {
 
     let students: any[] = [];
     try {
-      const r = await pool.query(`SELECT qa.id as attempt_id, qa.user_id, u.username, u.email, qa.score, qa.percentage, qa.correct_answers, qa.wrong_answers, qa.skipped_questions, qa.time_taken, qa.rank, qa.status, qa.completed_at FROM quiz_attempt qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC LIMIT 50`, [quizId]);
+      const r = await pool.query(`SELECT qa.id as attempt_id, qa.user_id, u.username, qa.score, qa.percentage, qa.correct_answers, qa.wrong_answers, qa.skipped_questions, qa.time_taken, qa.rank, qa.status FROM quiz_attempt qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC LIMIT 50`, [quizId]);
       students = r.rows;
     } catch {}
 
@@ -1076,15 +1044,15 @@ export class AdminQuizRepository {
 
   async getQuizGameMechanics(quizId: number): Promise<any[]> {
     const result = await pool.query(
-      `SELECT qgm.id, qgm.enabled, qgm.quantity,
-        gm.name, gm.code, gm.description, gm.icon, gm.mechanic_type
+      `SELECT qgm.enabled, qgm.quantity,
+        gm.name, gm.code, gm.description
        FROM quiz_game_mechanics qgm JOIN game_mechanics gm ON gm.id = qgm.mechanic_id
        WHERE qgm.quiz_id = $1 ORDER BY gm.id`,
       [quizId]
     );
     return result.rows.map((row) => ({
-      id: row.id, name: row.name, code: row.code, description: row.description,
-      icon: row.icon, mechanicType: row.mechanic_type, enabled: row.enabled, quantity: row.quantity,
+      name: row.name, code: row.code, description: row.description,
+      enabled: row.enabled, quantity: row.quantity,
     }));
   }
 
@@ -1094,6 +1062,7 @@ export class AdminQuizRepository {
       await client.query("BEGIN");
       await client.query("DELETE FROM quiz_game_mechanics WHERE quiz_id = $1", [quizId]);
       for (const m of mechanics) {
+        if (!m.enabled || m.quantity <= 0) continue;
         const mechResult = await client.query("SELECT id FROM game_mechanics WHERE code = $1", [m.mechanicCode]);
         if (mechResult.rows.length === 0) continue;
         await client.query(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Plus, Search, Users } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useRoomStore, getEligibleCount, getOwnedRooms } from "@/store/roomStore";
@@ -33,9 +33,17 @@ export default function SelectRoomsModal({
   onCreateRoom,
 }: SelectRoomsModalProps) {
   const rooms = useRoomStore((s) => s.rooms);
+  const setRooms = useRoomStore((s) => s.setRooms);
   const recentlyUsedIds = useRoomStore((s) => s.recentlyUsedIds);
   const markRecentlyUsed = useRoomStore((s) => s.markRecentlyUsed);
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (!open) return;
+    import("@/services/rooms").then(({ fetchMyRooms }) => {
+      fetchMyRooms().then((fresh) => setRooms(fresh as never)).catch(() => {});
+    });
+  }, [open, setRooms]);
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterTab>("all");
@@ -205,7 +213,7 @@ export default function SelectRoomsModal({
                     {room.name}
                   </span>
                   <span className="mt-0.5 block text-xs text-text-secondary">
-                    {room.students.length} student{room.students.length !== 1 ? "s" : ""}
+                    {room.memberCount ?? room.students.length} student{(room.memberCount ?? room.students.length) !== 1 ? "s" : ""}
                   </span>
                   {meta && (
                     <span className="mt-0.5 block truncate text-[11px] text-text-muted">{meta}</span>

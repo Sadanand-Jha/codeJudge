@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   ArrowDown,
   ArrowUp,
@@ -107,7 +108,12 @@ export function RegistrationStep() {
     <div className="">
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-wrap items-start justify-between gap-3"
+      >
         <div>
           <h2 className="text-lg font-semibold text-text-primary">Registration Settings</h2>
           <p className="mt-1 max-w-xl text-xs leading-relaxed text-text-secondary">
@@ -116,7 +122,7 @@ export function RegistrationStep() {
             by Risponse.
           </p>
         </div>
-      </div>
+      </motion.div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
         {/* ── Left column ── */}

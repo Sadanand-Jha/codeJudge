@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getQuizById, registerForQuiz, type Quiz, getQuizCode, quizCodePath } from "@/services/quiz";
+import { getQuizById, registerForQuiz, type QuizBasic, getQuizCode, quizCodePath } from "@/services/quiz";
 import { DEFAULT_ASSESSMENT_SETTINGS, LifelineConfig } from "@/types/quiz";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
@@ -56,7 +56,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
   const router = useRouter();
   const { user } = useAuthStore();
   const { isRegistered, getRegistration, register, unregister } = useQuizRegistrationStore();
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [quiz, setQuiz] = useState<QuizBasic | null>(null);
   const [loading, setLoading] = useState(true);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showUnregisterModal, setShowUnregisterModal] = useState(false);
@@ -85,7 +85,6 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
     if (!audience || audience.mode === "EVERYONE") return true;
     if (audience.mode === "ROOMS" && audience.roomIds.length === 0) return true;
     return isUserEligible(rooms, audience.roomIds, {
-      email: user?.email,
       name: user?.displayName || user?.username || [user?.firstName, user?.lastName].filter(Boolean).join(" "),
     }, audience.students ?? []);
   }, [audience, rooms, user]);

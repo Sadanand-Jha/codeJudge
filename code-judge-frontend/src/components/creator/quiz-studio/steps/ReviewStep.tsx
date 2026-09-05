@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { AlertCircle, CheckCircle2, AlertOctagon } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
@@ -27,22 +28,32 @@ export function ReviewStep() {
     <div className="flex flex-col bg-background">
     <div className="">
     <div className="mx-auto max-w-4xl px-4 py-6 space-y-8">
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <h2 className="text-lg font-semibold text-text-primary">Review & Validation</h2>
         <p className="mt-1 text-xs text-text-secondary">
           Publishing is blocked until all errors are resolved. Warnings will not
           prevent publishing but are recommended to fix.
         </p>
-      </div>
+      </motion.div>
 
       {errors.length > 0 && (
-        <ReviewGroup icon={AlertOctagon} title="Errors" items={errors} color="rose" />
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.08 }}>
+          <ReviewGroup icon={AlertOctagon} title="Errors" items={errors} color="rose" />
+        </motion.div>
       )}
       {warnings.length > 0 && (
-        <ReviewGroup icon={AlertCircle} title="Warnings" items={warnings} color="amber" />
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.14 }}>
+          <ReviewGroup icon={AlertCircle} title="Warnings" items={warnings} color="amber" />
+        </motion.div>
       )}
 
-      <ReviewGroup icon={CheckCircle2} title="Checks passed" items={oks} color="emerald" />
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.2 }}>
+        <ReviewGroup icon={CheckCircle2} title="Checks passed" items={oks} color="emerald" />
+      </motion.div>
     </div>
     </div>
     </div>

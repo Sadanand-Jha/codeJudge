@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { IndianRupee, PiggyBank, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
@@ -21,15 +22,24 @@ export function PricingStep() {
     <div className="flex flex-col bg-background">
     <div className="">
     <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <h2 className="text-lg font-semibold text-text-primary">Pricing & Monetization</h2>
         <p className="mt-1 text-xs text-text-secondary">
           Configure whether your quiz is free or paid. Actual payout depends on the
           configured payment system; the figures below are indicative.
         </p>
-      </div>
+      </motion.div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.08 }}
+        className="grid gap-4 sm:grid-cols-2"
+      >
         <label
           className={cn(
             "flex flex-col gap-1 rounded-xl border p-5 text-left transition-all",
@@ -66,7 +76,7 @@ export function PricingStep() {
           </div>
           <span className="text-xs text-text-secondary">Set a price and earn from every enrollment.</span>
         </div>
-      </div>
+      </motion.div>
 
       {p.mode === "paid" && (
         <div className="rounded-xl border border-border bg-card p-5 space-y-5">

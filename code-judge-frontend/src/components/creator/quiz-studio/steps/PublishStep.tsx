@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   Send,
   ListChecks,
@@ -41,7 +42,7 @@ export function PublishStep({
       onPublish();
     } catch (err) {
       toast.error({
-        title: "Could not publish quiz",
+        title: "Could not start quiz",
         description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
       });
     } finally {
@@ -66,7 +67,12 @@ export function PublishStep({
     <div className="flex flex-col bg-background">
     <div className="">
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <div className="rounded-xl border border-border bg-card">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+      className="rounded-xl border border-border bg-card"
+    >
         <div className="border-b border-border px-6 py-5">
           <h2 className="text-base font-semibold text-text-primary">
             Ready to publish?
@@ -116,17 +122,17 @@ export function PublishStep({
             >
               {saving ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Publishing…
+                  <Loader2 className="h-4 w-4 animate-spin" /> Starting…
                 </>
               ) : (
                 <>
-                  <Send className="h-4 w-4" /> Publish Quiz
+                  <Send className="h-4 w-4" /> Start Quiz
                 </>
               )}
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Publish confirmation */}
       {confirmOpen && (
@@ -145,7 +151,7 @@ export function PublishStep({
                   <Send className="h-5 w-5" />
                 </span>
                 <div>
-                  <h3 className="text-base font-semibold text-text-primary">Publish this quiz?</h3>
+                  <h3 className="text-base font-semibold text-text-primary">Start this quiz?</h3>
                   <p className="mt-0.5 text-xs text-text-secondary">
                     This will make the quiz live immediately. Participants can start
                     attempting it as soon as you confirm.

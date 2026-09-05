@@ -41,12 +41,12 @@ import {
 import { QuizLandingCards } from "@/components/quiz/live/QuizLandingCards";
 import { StatsCard, DifficultyBadge, VisibilityBadge, QuizCard, AssessmentCard, Card } from "@/components/quiz/quizComponents";
 import { QuizCardData } from "@/components/quiz/quizComponents";
-import { getAllQuizzes, type Quiz as ApiQuiz, quizCodePath } from "@/services/quiz";
+import { getAllQuizzes, type QuizListItem, quizCodePath } from "@/services/quiz";
 import { useToast } from "@/hooks/useToast";
 import GuestGuard from "@/components/guards/GuestGuard";
 
 // Convert API Quiz to QuizCardData for our reusable components
-function toQuizCardData(q: ApiQuiz): QuizCardData {
+function toQuizCardData(q: QuizListItem): QuizCardData {
   const now = new Date();
   const start = q.starttime ? new Date(q.starttime) : null;
   const end = q.endtime ? new Date(q.endtime) : null;
@@ -85,7 +85,7 @@ function QuizDashboardContent() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
-  const [quizzes, setQuizzes] = useState<ApiQuiz[]>([]);
+  const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

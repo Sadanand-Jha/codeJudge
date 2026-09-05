@@ -448,8 +448,6 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
       return;
     }
 
-    console.log(`Updating quiz ${quizId} status to ${status} by user ${userId}`);
-
     const updateData: Record<string, any> = { status };
 
     if (status === "live") {
@@ -466,7 +464,16 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
 
     const updatedQuiz = await quizService.updateQuiz(Number(quizId), updateData);
 
-    res.status(200).json({ success: true, message: `Quiz status updated to ${status}`, data: updatedQuiz });
+    res.status(200).json({
+      success: true,
+      message: `Quiz status updated to ${status}`,
+      data: {
+        id: updatedQuiz.id,
+        quiz_status: updatedQuiz.quiz_status,
+        starttime: updatedQuiz.starttime,
+        endtime: updatedQuiz.endtime,
+      },
+    });
   } catch (error) {
     console.error("Error updating quiz status:", error);
     res.status(500).json({ success: false, message: "Internal server error while updating quiz status" });

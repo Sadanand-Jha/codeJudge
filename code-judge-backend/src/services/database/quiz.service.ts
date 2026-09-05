@@ -282,7 +282,7 @@ export class QuizService {
       email: string;
       name?: string | null;
       rollNumber?: string | null;
-      source?: "room" | "individual";
+      source?: number;
       roomId?: number | null;
       allowed?: boolean;
     }>

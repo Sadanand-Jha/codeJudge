@@ -22,13 +22,10 @@ export interface GenerateResultsOptions {
 }
 
 export interface GenerateResultsResponse {
-  resultsGenerated: boolean;
   emailSent: boolean;
   emailError?: string;
   stats: {
-    totalSubmissions: number;
     evaluated: number;
-    leaderboardUpdated: boolean;
   };
 }
 
@@ -303,13 +300,10 @@ export class ResultGenerationService {
     logger.info(`Results generated for quiz ${quizId}: ${evaluatedResults.length} submissions evaluated`);
 
     return {
-      resultsGenerated: true,
       emailSent,
       emailError,
       stats: {
-        totalSubmissions: submissions.length,
         evaluated: evaluatedResults.length,
-        leaderboardUpdated: true,
       },
     };
   }

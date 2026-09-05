@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Play, Square, Radio, Info, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { ConfirmModal } from "./ConfirmModal";
+import { EndQuizModal } from "./EndQuizModal";
 import { DurationPicker } from "./DurationPicker";
 import { formatRelativeTime } from "./helpers";
 import { updateQuizStatus } from "@/services/quiz";
@@ -34,8 +36,16 @@ export function ManualMode({
 
   return (
     <div className="space-y-5">
-      {isReady && (
-        <div className="space-y-3">
+      <AnimatePresence mode="wait">
+        {isReady && (
+          <motion.div
+            key="ready"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-3"
+          >
           <div className="rounded-xl border border-border bg-card p-5 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card-hover">
               <Clock className="h-5 w-5 text-text-muted" />
@@ -66,11 +76,18 @@ export function ManualMode({
               be able to begin their attempts once you click Start Quiz.
             </p>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {isLive && (
-        <div className="space-y-4">
+        <motion.div
+          key="live"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.2 }}
+          className="space-y-4"
+        >
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
@@ -90,25 +107,29 @@ export function ManualMode({
             </div>
 
           </div>
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => setEndOpen(true)}
-              className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-rose-500/30 bg-rose-500/[0.06] px-8 py-4 text-base font-extrabold text-rose-600 shadow-sm transition-colors hover:bg-rose-500/10 dark:text-rose-400"
-            >
-              <Square className="h-5 w-5" />
-              End Quiz
-            </button>
-            <p className="text-[11px] text-text-secondary">
-              Ending the quiz stops the overall quiz session. You will be asked
-              to confirm before ending it.
-            </p>
-          </div>
-        </div>
+          <button
+            type="button"
+            onClick={() => setEndOpen(true)}
+            className="w-full inline-flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-rose-500 to-red-600 px-8 py-5 text-lg font-extrabold text-white shadow-xl shadow-rose-500/25 transition-all hover:brightness-110 hover:shadow-rose-500/30 active:scale-[0.98]"
+          >
+            <Square className="h-5 w-5" />
+            End Quiz
+          </button>
+          <p className="text-[11px] text-text-secondary text-center">
+            Ending the quiz stops the overall quiz session for all participants.
+          </p>
+        </motion.div>
       )}
 
       {isEnded && (
-        <div className="space-y-3">
+        <motion.div
+          key="ended"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.2 }}
+          className="space-y-3"
+        >
           <div className="rounded-xl border border-border bg-card p-5 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card-hover">
               <Square className="h-5 w-5 text-text-muted" />
@@ -131,8 +152,9 @@ export function ManualMode({
               Restart Quiz
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* ===== Start Quiz Modal with End Behavior ===== */}
       <ConfirmModal
@@ -157,6 +179,7 @@ export function ManualMode({
             sessionDuration: modalSessionDuration,
           });
           setStartOpen(false);
+          toast.success({ title: "Quiz is live!", description: "Participants can now start their attempts." });
         }}
         title="Start this quiz?"
         description="Starting the quiz will make it available to registered participants. They can begin their attempts immediately."
@@ -237,7 +260,7 @@ export function ManualMode({
         </div>
       </ConfirmModal>
 
-      <ConfirmModal
+      <EndQuizModal
         open={endOpen}
         onClose={() => setEndOpen(false)}
         onConfirm={async () => {
@@ -255,10 +278,6 @@ export function ManualMode({
           });
           setEndOpen(false);
         }}
-        title="End this quiz?"
-        description="New participants will no longer be able to start the quiz. Participants who are already taking the quiz will follow the configured end behavior."
-        confirmLabel="End Quiz"
-        confirmColor="rose"
       />
 
       <ConfirmModal
@@ -284,6 +303,7 @@ export function ManualMode({
             sessionDuration: modalSessionDuration,
           });
           setRestartOpen(false);
+          toast.success({ title: "Quiz is live!", description: "Participants can now start their attempts." });
         }}
         title="Restart this quiz?"
         description="This will make the quiz live again. Participants will be able to start new attempts."

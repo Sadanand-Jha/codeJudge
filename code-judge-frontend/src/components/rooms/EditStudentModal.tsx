@@ -29,7 +29,7 @@ export default function EditStudentModal({ open, onClose, student, onSave }: Edi
     setSeededFor(student.id);
     setName(student.name);
     setRoll(student.rollNumber);
-    setUsername(student.username ?? (student as unknown as { email?: string }).email?.split("@")[0] ?? "");
+    setUsername(student.username ?? "");
     setActive(student.active);
     setError(null);
   }

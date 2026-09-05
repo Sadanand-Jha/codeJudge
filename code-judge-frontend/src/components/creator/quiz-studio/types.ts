@@ -152,6 +152,7 @@ export interface StudioQuizInfo {
   thumbnailUrl: string;
   startDate: string;
   endDate: string;
+  quizLifecycle: "draft" | "scheduled" | "live" | "ended";
 }
 
 export type AccessMode = "public" | "private" | "classroom";
@@ -242,6 +243,7 @@ export const DEFAULT_QUIZ_INFO: StudioQuizInfo = {
   thumbnailUrl: "",
   startDate: "",
   endDate: "",
+  quizLifecycle: "draft",
 };
 
 export const DEFAULT_SETTINGS: StudioSettings = {
@@ -250,9 +252,9 @@ export const DEFAULT_SETTINGS: StudioSettings = {
   negativeMarking: false,
   negativeMarkValue: 1,
   showResultsImmediately: true,
-  fullscreenMode: false,
-  tabSwitchDetection: false,
-  copyProtection: false,
+  fullscreenMode: true,
+  tabSwitchDetection: true,
+  copyProtection: true,
 };
 
 export const DEFAULT_REGISTRATION: {

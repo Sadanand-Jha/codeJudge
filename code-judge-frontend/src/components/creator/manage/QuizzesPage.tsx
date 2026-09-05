@@ -52,11 +52,11 @@ interface QuizCard {
 }
 
 function mapQuizToCard(q: Quiz): QuizCard {
-  const raw = (q as any).status;
+  const raw = ((q as any).status as string | null)?.toLowerCase() ?? "";
   let status: QuizStatus = "draft";
   if (raw === "published" || raw === "live") status = "live";
   else if (raw === "scheduled") status = "scheduled";
-  else if (raw === "completed") status = "completed";
+  else if (raw === "completed" || raw === "ended") status = "completed";
   else if (raw === "draft") status = "draft";
 
   return {
@@ -84,7 +84,7 @@ const TABS: ReadonlyArray<{ id: TabId; label: string }> = [
 type TabId = "all" | "live" | "draft" | "scheduled" | "completed";
 
 const STATUS_META: Record<QuizStatus, { label: string; tone: StatusTone }> = {
-  live: { label: "Live", tone: "pink" },
+  live: { label: "Live", tone: "emerald" },
   draft: { label: "Draft", tone: "amber" },
   scheduled: { label: "Scheduled", tone: "pink" },
   completed: { label: "Completed", tone: "slate" },
