@@ -2220,7 +2220,7 @@ export const getStudentResponseDetail = async (req: Request, res: Response) => {
 
 /**
  * PUT /api/v1/user/quiz/:quizId/participants
- * Body: { participants: [{ email, name?, rollNumber?, source?, roomId?, allowed? }] }
+ * Body: { participants: [{ userId, name?, rollNumber?, source?, roomId?, allowed? }] }
  * Replaces the full participant list for the quiz.
  */
 export const setQuizParticipants = async (req: Request, res: Response) => {

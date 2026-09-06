@@ -7,14 +7,18 @@ import { getInterior } from "./interiorsData";
 // Premium Cozy Campus Renderer — Duolingo + Among Us lobby + cozy indie
 // Priorities: depth → atmosphere → composition → character quality → subtle animation → performance
 
-export function drawWorld(ctx: CanvasRenderingContext2D, cam: Camera, isDark:boolean){
+export function drawWorld(ctx: CanvasRenderingContext2D, cam: Camera, isDark:boolean, vpW?:number, vpH?:number){
   ctx.save();
-  const pr = ctx.canvas.width / ctx.canvas.getBoundingClientRect().width;
+  // vpW/vpH = actual canvas CSS dimensions (passed from render loop).
+  // cam.w/cam.h = world-visible area (smaller than canvas when zoom > 1).
+  // We MUST fill the full canvas, not just cam.w/h, to avoid background bleed-through at edges.
+  const viewW = vpW ?? cam.w;
+  const viewH = vpH ?? cam.h;
   // Grass base — sophisticated warm greens
   const grassBase = isDark ? "#1b3a23" : "#BFE07A";
   const grassDark = isDark ? "#142a1a" : "#A9D46A";
   ctx.fillStyle = grassBase;
-  ctx.fillRect(0,0, ctx.canvas.width, ctx.canvas.height);
+  ctx.fillRect(0,0, viewW, viewH);
   ctx.translate(-cam.x, -cam.y);
 
   drawGrassTexture(ctx, cam, isDark, grassDark);

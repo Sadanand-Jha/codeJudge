@@ -498,25 +498,39 @@ export async function updateQuizStatus(
 // ─────────────────────────────────────────
 
 export interface QuizParticipantInput {
-  email: string;
-  name?: string | null;
-  rollNumber?: string | null;
+  userId: number;
   source?: number;
-  roomId?: number | string | null;
-  allowed?: boolean;
 }
 
 export interface QuizParticipant {
   id: number;
   quiz_id: number;
-  email: string;
-  name: string | null;
-  roll_number: string | null;
+  user_id: number;
+  status: number;
   source: number;
-  room_id: number | null;
-  allowed: boolean;
+  registered_at: string | null;
   created_at: string | null;
   updated_at: string | null;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+  avatar_id?: number;
+}
+
+export const PARTICIPANT_SOURCE: Record<number, { label: string; color: string }> = {
+  1: { label: "Self-registered", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" },
+  2: { label: "Invited", color: "bg-blue-500/15 text-blue-400 border-blue-500/20" },
+  4: { label: "Room", color: "bg-violet-500/15 text-violet-400 border-violet-500/20" },
+};
+
+/** Fetch all participants for a quiz (admin). */
+export async function getQuizParticipants(quizId: string): Promise<QuizParticipant[]> {
+  console.log("[API] getQuizParticipants called with quizId:", quizId);
+  const res = await apiClient.get<QuizParticipant[]>(
+    `/v1/admin/quiz/${quizId}/participants`
+  );
+  console.log("[API] getQuizParticipants response:", res.data);
+  return res.data;
 }
 
 /** Replace the full participant list for a quiz. */

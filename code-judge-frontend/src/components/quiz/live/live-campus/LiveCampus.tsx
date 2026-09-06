@@ -518,7 +518,7 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
       const rect = canvas.getBoundingClientRect();
       ctx.setTransform(dpr,0,0,dpr,0,0);
       if(loc.type==="campus"){
-        drawWorld(ctx as CanvasRenderingContext2D, cam, isDark);
+        drawWorld(ctx as CanvasRenderingContext2D, cam, isDark, rect.width, rect.height);
       } else {
         // draw interior background
         ctx.fillStyle = isDark ? "#0a0f0a" : "#E8F5E2";
@@ -596,7 +596,7 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
   // Do not start game with stale config; show loading/error states
   if (configLoading) {
     return (
-      <div className="relative w-full h-[calc(100vh-56px)] flex items-center justify-center bg-background">
+      <div className="relative w-full h-full flex items-center justify-center" style={{ background: isDark ? "#1b3a23" : "#BFE07A" }}>
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#E91E63] border-t-transparent" />
           <p className="text-sm text-text-muted">Loading game configuration…</p>
@@ -607,7 +607,7 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
   }
   if (configError) {
     return (
-      <div className="relative w-full h-[calc(100vh-56px)] flex items-center justify-center bg-background p-6">
+      <div className="relative w-full h-full flex items-center justify-center p-6" style={{ background: isDark ? "#1b3a23" : "#BFE07A" }}>
         <div className="max-w-md rounded-2xl border border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 p-6 text-center">
           <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">Unable to load game configuration</p>
           <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">{configError}</p>
@@ -626,7 +626,7 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
   const allPlayersForMap = Array.from(playersRef.current.values());
 
   return (
-    <div className="relative w-full h-[calc(100vh-56px)] overflow-hidden bg-background">
+    <div className="relative w-full h-full overflow-hidden" style={{ background: isDark ? "#1b3a23" : "#BFE07A" }}>
       <canvas
         ref={canvasRef}
         tabIndex={0}
@@ -644,19 +644,19 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
       {/* Minimap */}
       {location.type==="campus" && <MiniMap players={allPlayersForMap} localId={localIdRef.current} isDark={isDark} />}
       {/* Zoom controls */}
-      <div className="absolute top-[108px] right-3 z-20 hidden xl:flex flex-col gap-1">
+      <div className="absolute top-[132px] right-3 z-20 hidden xl:flex flex-col gap-1">
         <button onClick={()=> setZoom(z=> Math.min(1.35, z+0.08))} className={`w-8 h-8 rounded-lg border flex items-center justify-center font-bold ${isDark? "bg-black/40 border-white/10 text-white":"bg-white/85 border-black/10 text-[#1a1a2e]"}`}>+</button>
         <button onClick={()=> setZoom(z=> Math.max(0.85, z-0.08))} className={`w-8 h-8 rounded-lg border flex items-center justify-center font-bold ${isDark? "bg-black/40 border-white/10 text-white":"bg-white/85 border-black/10 text-[#1a1a2e]"}`}>−</button>
         <span className={`text-[9px] text-center font-medium ${isDark?"text-white/60":"text-black/60"}`}>{Math.round(zoom*100)}%</span>
       </div>
       {/* location indicator */}
-      <div className="absolute left-3 top-[66px] z-20 pointer-events-none flex items-center gap-2">
+      <div className="absolute left-3 top-[100px] z-20 pointer-events-none flex items-center gap-2">
         <div className={`rounded-full border px-3 py-1 text-xs font-bold backdrop-blur-xl ${isDark? "bg-black/40 border-white/10 text-white":"bg-white/85 border-black/10 text-[#1a1a2e]"}`}>{locLabel}</div>
         {location.type!=="building" && <span className={`rounded-full border px-2.5 py-1 text-[10px] font-medium backdrop-blur-xl ${isDark? "bg-black/30 border-white/10 text-white/70":"bg-white/70 border-black/10 text-black/60"}`}>Stuck? Press <span className="font-bold text-[#EC4899]">Space</span> to jump</span>}
       </div>
       {/* Persisted game config HUD — demonstrates that TopDown uses DB values, not hardcoded constants */}
       {effectiveConfig && (
-        <div className="absolute left-3 top-[94px] z-20 pointer-events-none flex flex-wrap items-center gap-1.5 max-w-[72%]">
+        <div className="absolute left-3 top-[132px] z-20 pointer-events-none flex flex-wrap items-center gap-1.5 max-w-[72%]">
           <span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold backdrop-blur-xl ${effectiveConfig.movementEnabled ? "bg-emerald-500/90 text-white border-emerald-500" : "bg-red-500/90 text-white border-red-500"}`}>
             {effectiveConfig.movementEnabled ? `Movement · ${effectiveConfig.movementSpeed}` : "Movement OFF"}
           </span>

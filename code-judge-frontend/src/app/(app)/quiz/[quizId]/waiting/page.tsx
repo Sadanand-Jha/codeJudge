@@ -215,6 +215,7 @@ function WaitingRoomPageInner({
         setViewMode(saved);
         if(saved==="light"){ setTheme("light"); setWaitingTheme("ai-cloud"); setStudentOverride(undefined); }
         if(saved==="dark"){ setTheme("dark"); setWaitingTheme("deep-space"); setStudentOverride(undefined); }
+        if(saved==="real"){ setWaitingTheme(isDark ? "deep-space" : "ai-cloud"); setStudentOverride(undefined); }
         return;
       }
       setViewMode(isDark ? "dark" : "light");
@@ -289,7 +290,7 @@ function WaitingRoomPageInner({
         </div>
       )}
 
-      {/* Full-screen roaming avatars - behind all UI */}
+      {/* Full-screen roaming avatars */}
       <div className="fixed inset-0 z-[5] pointer-events-none">
         {participants.length > 0 && (
           <AnimatedCrowd
@@ -392,13 +393,17 @@ function WaitingRoomPageInner({
         </div>
       </div>
 
-      {/* Top-down is present everywhere: LiveCampus is always mounted behind, mechanics 0 when disabled still shows world */}
-      <div className="relative z-20 flex-1 min-h-0">
-        <LiveCampus quizId={quizCode} quizName={quiz.name} startsIn={remainingTime} totalCapacity={40} />
-      </div>
-      {viewMode!=="real" && (
+      {/* LiveCampus — only mounted in Real World mode, positioned absolutely to fill screen */}
+      {viewMode === "real" && (
+        <div className="absolute inset-0 z-10 pt-[60px]">
+          <LiveCampus quizId={quizCode} quizName={quiz.name} startsIn={remainingTime} totalCapacity={40} />
+        </div>
+      )}
+
+      {/* Waiting Room UI — hidden in Real World mode */}
+      {viewMode !== "real" && (
         <>
-      {/* Centered Header (overlay on top of LiveCampus when not in real mode) */}
+      {/* Centered Header */}
       <div className="relative z-20 flex flex-col items-center text-center pt-6 pb-4 px-4">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -599,13 +604,17 @@ function WaitingRoomPageInner({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="waiting-announcement flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-[#111217]/80 backdrop-blur-xl border border-[#EC4899]/20 shadow-xl"
+          className={`waiting-announcement flex items-center gap-3 px-4 py-2.5 rounded-2xl backdrop-blur-xl border shadow-xl transition-all duration-350 ${
+            isDark
+              ? 'bg-[#111217]/80 border-[#EC4899]/20'
+              : 'bg-white/80 border-[#EC4899]/25'
+          }`}
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#EC4899] to-[#BE185D] flex items-center justify-center text-sm">
             👩‍🏫
           </div>
           <div>
-            <p className="waiting-announcement-text text-xs font-medium text-white">The teacher will start the quiz soon.</p>
+            <p className={`waiting-announcement-text text-xs font-medium transition-colors duration-350 ${isDark ? 'text-white' : 'text-[#1a1a2e]'}`}>The teacher will start the quiz soon.</p>
             <p className="waiting-announcement-sub text-[10px] text-muted-foreground">Get ready and stay here! 🚀</p>
           </div>
         </motion.div>
@@ -648,7 +657,11 @@ function WaitingRoomPageInner({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="waiting-exit-modal w-full max-w-md rounded-2xl border border-[#EC4899]/20 bg-card p-6 shadow-2xl"
+              className={`waiting-exit-modal w-full max-w-md rounded-2xl border border-[#EC4899]/20 p-6 shadow-2xl transition-all duration-350 ${
+                isDark
+                  ? 'bg-card border-[#EC4899]/20'
+                  : 'bg-white border-[#EC4899]/25'
+              }`}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 mb-4">
@@ -656,12 +669,16 @@ function WaitingRoomPageInner({
                   <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
                 </div>
                 <div>
-                  <h3 className="waiting-exit-modal-title text-lg font-semibold text-white">Leave Waiting Room?</h3>
+                  <h3 className={`waiting-exit-modal-title text-lg font-semibold transition-colors duration-350 ${isDark ? 'text-white' : 'text-[#1a1a2e]'}`}>Leave Waiting Room?</h3>
                   <p className="waiting-exit-modal-sub text-xs text-muted-foreground">You won't be unregistered from the quiz</p>
                 </div>
               </div>
 
-              <div className="waiting-exit-modal-body rounded-xl border border-border bg-[#0B0D12] p-4 mb-4">
+              <div className={`waiting-exit-modal-body rounded-xl border p-4 mb-4 transition-all duration-350 ${
+                isDark
+                  ? 'border-border bg-[#0B0D12]'
+                  : 'border-black/10 bg-gray-50'
+              }`}>
                 <div className="flex items-center justify-between">
                   <span className="waiting-exit-modal-label text-sm text-muted-foreground">Quiz starts in:</span>
                   <span className="waiting-exit-value text-sm font-bold text-[#F59E0B]">{remainingTime}</span>
@@ -679,7 +696,11 @@ function WaitingRoomPageInner({
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setExitModalOpen(false)}
-                  className="flex-1 h-10 rounded-xl border border-border-hover bg-white/[0.04] text-sm font-medium text-white hover:border-border-hover transition-colors"
+                  className={`flex-1 h-10 rounded-xl border text-sm font-medium transition-colors ${
+                    isDark
+                      ? 'border-border-hover bg-white/[0.04] text-white hover:border-border-hover'
+                      : 'border-black/10 bg-white text-[#1a1a2e] hover:border-black/20'
+                  }`}
                 >
                   Stay Here
                 </button>

@@ -279,12 +279,8 @@ export class QuizService {
   async replaceQuizParticipants(
     quizId: number,
     participants: Array<{
-      email: string;
-      name?: string | null;
-      rollNumber?: string | null;
+      userId: number;
       source?: number;
-      roomId?: number | null;
-      allowed?: boolean;
     }>
   ): Promise<number> {
     return this.repository.replaceQuizParticipants(quizId, participants);

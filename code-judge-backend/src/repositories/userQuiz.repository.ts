@@ -162,20 +162,12 @@ export class UserQuizRepository {
     );
 
     // Also add to quiz_participants so the student appears in the audience list
-    const userResult = await pool.query(
-      `SELECT email, first_name, last_name, username FROM users WHERE id = $1`,
-      [userId]
+    await pool.query(
+      `INSERT INTO quiz_participants (quiz_id, user_id, status, source, registered_at, created_at, updated_at)
+       VALUES ($1, $2, 1, 1, NOW(), NOW(), NOW())
+       ON CONFLICT (quiz_id, user_id) DO NOTHING`,
+      [quizId, userId]
     );
-    if (userResult.rows.length > 0) {
-      const u = userResult.rows[0];
-      const fullName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.username;
-      await pool.query(
-        `INSERT INTO quiz_participants (quiz_id, email, name, roll_number, source, room_id, allowed, registered_at, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, 1, NULL, true, NOW(), NOW(), NOW())
-         ON CONFLICT (quiz_id, email) DO NOTHING`,
-        [quizId, u.email.toLowerCase(), fullName, rollno || null]
-      );
-    }
 
     return result.rows[0];
   }

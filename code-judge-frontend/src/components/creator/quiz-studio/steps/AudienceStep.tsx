@@ -19,6 +19,8 @@ import { toast } from "@/lib/toast";
 import { useRoomStore, getEligibleCount } from "@/store/roomStore";
 import SelectRoomsModal from "@/components/quiz/creator/settings/audience/SelectRoomsModal";
 import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateRoomModal";
+import { fetchMyRooms, getRoom } from "@/services/rooms";
+import { getQuizParticipants } from "@/services/quiz";
 
 const MODE_OPTIONS: Array<{ id: "public" | "private" | "classroom"; label: string; desc: string }> = [
   { id: "public", label: "Public", desc: "Anyone can discover and attempt the quiz." },
@@ -27,10 +29,11 @@ const MODE_OPTIONS: Array<{ id: "public" | "private" | "classroom"; label: strin
 ];
 
 export function AudienceStep() {
-  const { state, updateAudience } = useStudio();
+  const { state, updateAudience, saveAudienceParticipants, audienceDirty } = useStudio();
   const a = state.audience;
 
   const rooms = useRoomStore((s) => s.rooms);
+  const setRooms = useRoomStore((s) => s.setRooms);
   const [selectRoomsOpen, setSelectRoomsOpen] = useState(false);
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
 
@@ -41,7 +44,100 @@ export function AudienceStep() {
     [rooms, roomIds]
   );
 
-  const setRooms = useRoomStore((s) => s.setRooms);
+  useEffect(() => {
+    if (a.mode !== "classroom") return;
+    if (roomIds.length > 0) return;
+    if (!state.serverQuizId) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const participants = await getQuizParticipants(state.serverQuizId!);
+        if (cancelled) return;
+        console.log("[AudienceStep] participants:", participants);
+
+        const roomParticipants = participants?.filter((p) => p.source === 4) ?? [];
+        console.log("[AudienceStep] roomParticipants:", roomParticipants.length, roomParticipants);
+        if (roomParticipants.length === 0) return;
+
+        const userIdSet = new Set(roomParticipants.map((p) => String(p.user_id)));
+        const usernameSet = new Set(
+          roomParticipants.filter((p) => p.username).map((p) => p.username!.toLowerCase())
+        );
+        console.log("[AudienceStep] userIdSet:", [...userIdSet], "usernameSet:", [...usernameSet]);
+
+        const allRooms = await fetchMyRooms();
+        if (cancelled) return;
+        console.log("[AudienceStep] allRooms:", allRooms.length, allRooms);
+        useRoomStore.getState().setRooms(allRooms);
+
+        const matchedRoomIds: string[] = [];
+        const matchedSelections: Record<string, string[]> = {};
+
+        for (const room of allRooms) {
+          if (cancelled) break;
+          if (room.archived) continue;
+
+          try {
+            const res: unknown = await getRoom(room.id);
+            const payload = (res as Record<string, unknown>) ?? {};
+            const members = (payload.members ?? []) as Array<Record<string, unknown>>;
+            const mapped = members.map((mm) => {
+              const u = (mm.user as Record<string, unknown>) ?? mm;
+              const username = String((u.username as string) ?? "");
+              return {
+                id: String(u.id ?? mm.userId ?? Math.random()),
+                name: String((u.displayName as string) ?? username),
+                rollNumber: username,
+                username: username.toLowerCase(),
+                active: (mm.statusName as string) === "ACTIVE" || mm.status === 1,
+                avatarId: Number(u.avatarId ?? 1),
+                avatarUrl: (u.avatarUrl as string) ?? null,
+              };
+            });
+
+            const current = useRoomStore.getState().rooms;
+            const updated = current.map((r) =>
+              String(r.id) === String(room.id) ? { ...r, students: mapped as never } : r
+            );
+            useRoomStore.getState().setRooms(updated as never);
+
+            const matchingStudents = mapped.filter(
+              (s) =>
+                userIdSet.has(String(s.id)) ||
+                (s.username && usernameSet.has(s.username.toLowerCase())) ||
+                (s.rollNumber && usernameSet.has(s.rollNumber.toLowerCase()))
+            );
+            console.log(`[AudienceStep] room "${room.name}" members:`, mapped.map(s => ({ id: s.id, username: s.username })), "matched:", matchingStudents.length);
+
+            if (matchingStudents.length > 0) {
+              matchedRoomIds.push(room.id);
+              matchedSelections[room.id] = matchingStudents.map((s) => s.rollNumber);
+            }
+          } catch (e) {
+            console.error(`[AudienceStep] Failed to fetch room ${room.id}:`, e);
+          }
+        }
+
+        if (!cancelled && matchedRoomIds.length > 0) {
+          console.log("[AudienceStep] updating audience with matched rooms:", matchedRoomIds, matchedSelections);
+          updateAudience({
+            roomIds: matchedRoomIds,
+            roomStudentSelections: matchedSelections,
+          });
+        } else if (!cancelled) {
+          console.log("[AudienceStep] no rooms matched");
+        }
+      } catch (e) {
+        console.error("[AudienceStep] Failed to resolve rooms:", e);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [a.mode, roomIds.length, state.serverQuizId]);
+
   const fetchingRef = useRef(new Set<string>());
 
   const selectedRoomIdsKey = roomIds.join(",");
@@ -276,6 +372,8 @@ export function AudienceStep() {
           toggleStudent={toggleStudent}
           updateAudience={updateAudience}
           eligibleCount={eligibleCount}
+          onSave={saveAudienceParticipants}
+          dirty={audienceDirty}
         />
       )}
 
@@ -360,6 +458,8 @@ interface AllStudentsPanelProps {
   toggleStudent: (roomId: string, rollNumber: string) => void;
   updateAudience: (patch: Record<string, unknown>) => void;
   eligibleCount: number;
+  onSave: () => Promise<void>;
+  dirty: boolean;
 }
 
 function AllStudentsPanel({
@@ -369,8 +469,11 @@ function AllStudentsPanel({
   toggleStudent,
   updateAudience,
   eligibleCount,
+  onSave,
+  dirty,
 }: AllStudentsPanelProps) {
   const [query, setQuery] = useState("");
+  const [saving, setSaving] = useState(false);
 
   /** Unique students across all selected rooms, with room membership info. */
   const allStudents = useMemo(() => {
@@ -472,6 +575,24 @@ function AllStudentsPanel({
             className="rounded-md border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary disabled:opacity-40"
           >
             Unselect all
+          </button>
+          <button
+            type="button"
+            disabled={saving || !dirty}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                await onSave();
+                toast.success({ title: "Audience saved", description: `${selectedCount} student${selectedCount !== 1 ? "s" : ""} allowed to attempt.` });
+              } catch (e) {
+                toast.error({ title: "Failed to save audience" });
+              } finally {
+                setSaving(false);
+              }
+            }}
+            className="rounded-md bg-pink-500 px-2.5 py-1 text-[11px] font-medium text-white transition-colors duration-150 hover:bg-pink-600 disabled:opacity-40"
+          >
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>

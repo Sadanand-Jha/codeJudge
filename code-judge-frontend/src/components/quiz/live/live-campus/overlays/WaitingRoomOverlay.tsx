@@ -29,7 +29,7 @@ export function WaitingRoomOverlay({ quizName, ready, total, startsIn, isDark, r
       </div>
 
       {/* Top-right: Room Code (mobile shows here) + Legend — glass pills */}
-      <div className="absolute right-3 top-3 z-20 pointer-events-none select-none hidden sm:flex flex-col items-end gap-2">
+      <div className="absolute right-3 top-[148px] z-20 pointer-events-none select-none hidden sm:flex flex-col items-end gap-2">
         <div className={`rounded-xl border px-2.5 py-1.5 backdrop-blur-xl shadow-lg flex items-center gap-2 ${isDark? "bg-[#0f0f12]/60 border-white/10 text-white/80":"bg-white/80 border-black/10 text-black/70"}`}>
           <Sparkles className="w-3.5 h-3.5 text-[#EC4899]" />
           <span className="text-[11px] font-semibold">Coding Campus</span>

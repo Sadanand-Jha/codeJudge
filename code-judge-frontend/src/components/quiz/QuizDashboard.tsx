@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -35,6 +35,10 @@ import {
   Activity,
   Calendar,
   MoreHorizontal,
+  Search,
+  RefreshCw,
+  Loader2,
+  User,
 } from "lucide-react";
 import {
   StudioQuestion,
@@ -43,6 +47,11 @@ import {
 import QuizSettings from "@/components/quiz/QuizSettings";
 import QuizStudio from "@/components/quiz/QuizStudio";
 import { GenerateResultsButton } from "@/components/quiz/GenerateResultsButton";
+import {
+  getQuizParticipants,
+  QuizParticipant,
+  PARTICIPANT_SOURCE,
+} from "@/services/quiz";
 
 type DashboardTab =
   | "overview"
@@ -313,7 +322,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
                 />
               )}
 
-              {activeTab === "participants" && <PlaceholderTab title="Participants" description="Manage who can attempt this quiz." icon={Users} />}
+              {activeTab === "participants" && <ParticipantsTab quizId={quizId} />}
               {activeTab === "registrations" && <PlaceholderTab title="Registrations" description="View and manage quiz registrations." icon={ClipboardList} />}
               {activeTab === "leaderboard" && <PlaceholderTab title="Leaderboard" description="See top performers and rankings." icon={Trophy} />}
               {activeTab === "analytics" && <PlaceholderTab title="Analytics" description="Track quiz performance and insights." icon={BarChart3} />}
@@ -532,6 +541,199 @@ function QuickActionButton({ icon: Icon, label, onClick, color }: { icon: any; l
       <span className="text-xs font-medium text-white group-hover:text-white">{label}</span>
       <ChevronRight className="w-3.5 h-3.5 text-[#6B7280] ml-auto group-hover:text-muted-foreground transition-colors" />
     </button>
+  );
+}
+
+// ===== Participants Tab =====
+function ParticipantsTab({ quizId }: { quizId: string }) {
+  const [participants, setParticipants] = useState<QuizParticipant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterSource, setFilterSource] = useState<number | null>(null);
+
+  const fetchParticipants = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getQuizParticipants(quizId);
+      setParticipants(data);
+    } catch (err) {
+      setError("Failed to load participants");
+    } finally {
+      setLoading(false);
+    }
+  }, [quizId]);
+
+  useEffect(() => {
+    fetchParticipants();
+  }, [fetchParticipants]);
+
+  const filtered = useMemo(() => {
+    let list = participants;
+    if (filterSource !== null) {
+      list = list.filter((p) => p.source === filterSource);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.username?.toLowerCase().includes(q) ||
+          p.first_name?.toLowerCase().includes(q) ||
+          p.last_name?.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [participants, searchQuery, filterSource]);
+
+  const sourceCounts = useMemo(() => {
+    const counts: Record<number, number> = {};
+    for (const p of participants) {
+      counts[p.source] = (counts[p.source] || 0) + 1;
+    }
+    return counts;
+  }, [participants]);
+
+  const getSourceInfo = (source: number) =>
+    PARTICIPANT_SOURCE[source] ?? { label: `Source ${source}`, color: "bg-gray-500/15 text-gray-400 border-gray-500/20" };
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-white">Participants</h2>
+          <p className="text-xs text-[#6B7280] mt-0.5">
+            {participants.length} participant{participants.length !== 1 ? "s" : ""} in this quiz
+          </p>
+        </div>
+        <button
+          onClick={fetchParticipants}
+          disabled={loading}
+          className="h-8 px-3 rounded-lg border border-border bg-white/[0.04] text-xs font-medium text-muted-foreground hover:text-white hover:bg-white/[0.06] transition-colors flex items-center gap-1.5 disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
+      </div>
+
+      {/* Source filter chips */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setFilterSource(null)}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+            filterSource === null
+              ? "bg-white/10 text-white border-white/20"
+              : "bg-white/[0.03] text-[#6B7280] border-border hover:text-white"
+          }`}
+        >
+          All ({participants.length})
+        </button>
+        {[1, 2, 4].map((src) => {
+          const info = getSourceInfo(src);
+          const count = sourceCounts[src] || 0;
+          return (
+            <button
+              key={src}
+              onClick={() => setFilterSource(filterSource === src ? null : src)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                filterSource === src
+                  ? info.color + " border-current"
+                  : "bg-white/[0.03] text-[#6B7280] border-border hover:text-white"
+              }`}
+            >
+              {info.label} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#6B7280]" />
+        <input
+          type="text"
+          placeholder="Search by name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-white/[0.04] text-xs text-white placeholder-[#6B7280] outline-none focus:border-[#EC4899]/40 transition-colors"
+        />
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 text-[#EC4899] animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <AlertCircle className="w-8 h-8 text-red-400 mb-3" />
+          <p className="text-sm text-red-400">{error}</p>
+          <button onClick={fetchParticipants} className="mt-3 text-xs text-[#EC4899] hover:underline">
+            Retry
+          </button>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Users className="w-10 h-10 text-[#6B7280] mb-3" />
+          <h3 className="text-sm font-semibold text-white mb-1">
+            {participants.length === 0 ? "No participants yet" : "No matches"}
+          </h3>
+          <p className="text-xs text-[#6B7280]">
+            {participants.length === 0
+              ? "Participants will appear here once they are added via rooms or invited."
+              : "Try a different search or filter."}
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border bg-white/[0.02]">
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">User</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Source</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Status</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Added</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((p) => {
+                const srcInfo = getSourceInfo(p.source);
+                const displayName = [p.first_name, p.last_name].filter(Boolean).join(" ") || p.username || `User #${p.user_id}`;
+                return (
+                  <tr key={p.id} className="border-b border-border/50 hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#EC4899]/20 to-[#3B82F6]/20 border border-white/10 flex items-center justify-center shrink-0">
+                          <User className="w-4 h-4 text-[#EC4899]" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-white truncate">{displayName}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-semibold border ${srcInfo.color}`}>
+                        {srcInfo.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${p.status === 1 ? "text-emerald-400" : "text-red-400"}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${p.status === 1 ? "bg-emerald-400" : "bg-red-400"}`} />
+                        {p.status === 1 ? "Allowed" : "Not allowed"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[10px] text-[#6B7280]">
+                      {p.created_at ? new Date(p.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
 

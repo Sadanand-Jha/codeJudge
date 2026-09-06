@@ -50,7 +50,6 @@ CREATE TABLE quiz_participants (
 
     status INTEGER NOT NULL,
 
-
     registered_at TIMESTAMP,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -305,6 +304,3 @@ VALUES
     ('Decaying Points', 'DECAYING_POINTS',
      'Points on each question decrease over time — answer fast for maximum marks.',
      'timer-off', 'POWER_UP', 1, TRUE);
-
-alter table quiz_participants 
-add column source integer

@@ -19,6 +19,7 @@ import {
   updateQuiz,
   updateQuizStatus,
   setQuizParticipants,
+  getQuizParticipants,
   loadQuizForEdit,
   updateQuizGameMechanics,
   getQuizGameMechanics,
@@ -332,6 +333,8 @@ interface StudioContextValue {
     validQuestions: number;
     incompleteQuestions: number;
   };
+  saveAudienceParticipants: () => Promise<void>;
+  audienceDirty: boolean;
 }
 
 const StudioContext = createContext<StudioContextValue | null>(null);
@@ -475,6 +478,29 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           console.warn("Failed to load game mechanics (non-critical):", e);
         }
 
+        // ─── Load audience from backend ────────────────────────────────────
+        let loadedAudience = { ...DEFAULT_AUDIENCE, accessCode: generateQuizCode() };
+        try {
+          const participants = await getQuizParticipants(initialQuizId);
+          if (!cancelled && participants && participants.length > 0) {
+            const hasRoomSource = participants.some((p) => p.source === 4);
+            const hasInviteSource = participants.some((p) => p.source === 2);
+
+            if (hasRoomSource || hasInviteSource) {
+              loadedAudience = { ...loadedAudience, mode: "classroom" };
+            }
+
+            // Set audience snapshot so save doesn't overwrite loaded data
+            const snapshotParticipants = participants.map((p) => ({
+              userId: p.user_id,
+              source: p.source,
+            }));
+            audienceSnapshotRef.current = JSON.stringify(snapshotParticipants);
+          }
+        } catch (e) {
+          console.error("[StudioProvider] Failed to load participants:", e);
+        }
+
         gameMechanicsSnapshotRef.current = JSON.stringify(loadedGameMechanics);
         setState((s) => ({
           ...s,
@@ -485,6 +511,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
             questions.length > 0 ? questions[0].id : createEmptyQuestion("q_1").id,
           serverQuizId: initialQuizId,
           gameMechanics: loadedGameMechanics,
+          audience: loadedAudience,
         }));
       } catch (err) {
         console.error("Failed to load quiz for editing:", err);
@@ -918,8 +945,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         snapshotRef.current = buildQuestionSnapshot(state.questions);
 
         if (!opts?.skipParticipants) {
-        // Build the unique participant set — union of allowed room members and
-        // individually invited emails, deduped by username.
         const audience = state.audience;
         const selRoomIds = audience.roomIds ?? [];
         const selections = audience.roomStudentSelections ?? {};
@@ -931,27 +956,21 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           if (!room) continue;
           const selected: string[] | undefined = selections[roomId];
           for (const student of room.students) {
-            const studentUsername = student.username ?? "";
-            if (!student.active || !studentUsername) continue;
+            if (!student.active || !student.id) continue;
             if (selected && !selected.includes(student.rollNumber)) continue;
-            const key = studentUsername.toLowerCase();
+            const key = String(student.id);
             if (!byKey.has(key)) {
-              byKey.set(key, {
-                email: `${studentUsername}@quiz.local`,
-                name: student.name,
-                rollNumber: student.rollNumber,
-                source: 4,
-                roomId: null,
-                allowed: true,
-              });
+              byKey.set(key, { userId: Number(student.id), source: 4 });
             }
           }
         }
 
-        for (const email of audience.invitedEmails ?? []) {
-          const key = email.toLowerCase();
+        for (const uid of audience.invitedEmails ?? []) {
+          const numId = Number(uid);
+          if (!numId) continue;
+          const key = String(numId);
           if (!byKey.has(key)) {
-            byKey.set(key, { email, source: 2, allowed: true });
+            byKey.set(key, { userId: numId, source: 2 });
           }
         }
 
@@ -1034,6 +1053,77 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
     }
   }, [state.serverQuizId, state.gameMechanics]);
 
+  const saveAudienceParticipants = useCallback(async () => {
+    const quizId = state.serverQuizId;
+    if (!quizId) throw new Error("Quiz not saved yet — save the quiz first");
+
+    const audience = state.audience;
+    const selRoomIds = audience.roomIds ?? [];
+    const selections = audience.roomStudentSelections ?? {};
+    const allRooms = useRoomStore.getState().rooms;
+    const byKey = new Map<string, QuizParticipantInput>();
+
+    for (const roomId of selRoomIds) {
+      const room = allRooms.find((r) => r.id === roomId);
+      if (!room) continue;
+      const selected: string[] | undefined = selections[roomId];
+      for (const student of room.students) {
+        if (!student.active || !student.id) continue;
+        if (selected && !selected.includes(student.rollNumber)) continue;
+        const key = String(student.id);
+        if (!byKey.has(key)) {
+          byKey.set(key, { userId: Number(student.id), source: 4 });
+        }
+      }
+    }
+
+    for (const uid of audience.invitedEmails ?? []) {
+      const numId = Number(uid);
+      if (!numId) continue;
+      const key = String(numId);
+      if (!byKey.has(key)) {
+        byKey.set(key, { userId: numId, source: 2 });
+      }
+    }
+
+    await setQuizParticipants(quizId, [...byKey.values()]);
+    audienceSnapshotRef.current = JSON.stringify([...byKey.values()]);
+  }, [state.serverQuizId, state.audience]);
+
+  const audienceDirty = useMemo(() => {
+    const audience = state.audience;
+    const selRoomIds = audience.roomIds ?? [];
+    const selections = audience.roomStudentSelections ?? {};
+    const allRooms = useRoomStore.getState().rooms;
+    const byKey = new Map<string, QuizParticipantInput>();
+
+    for (const roomId of selRoomIds) {
+      const room = allRooms.find((r) => r.id === roomId);
+      if (!room) continue;
+      const selected: string[] | undefined = selections[roomId];
+      for (const student of room.students) {
+        if (!student.active || !student.id) continue;
+        if (selected && !selected.includes(student.rollNumber)) continue;
+        const key = String(student.id);
+        if (!byKey.has(key)) {
+          byKey.set(key, { userId: Number(student.id), source: 4 });
+        }
+      }
+    }
+
+    for (const uid of audience.invitedEmails ?? []) {
+      const numId = Number(uid);
+      if (!numId) continue;
+      const key = String(numId);
+      if (!byKey.has(key)) {
+        byKey.set(key, { userId: numId, source: 2 });
+      }
+    }
+
+    return JSON.stringify([...byKey.values()]) !== audienceSnapshotRef.current;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.serverQuizId, state.audience]);
+
   const value: StudioContextValue = useMemo(
     () => ({
       state,
@@ -1065,8 +1155,10 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       loadError,
       editMode,
       summary,
+      saveAudienceParticipants,
+      audienceDirty,
     }),
-    [state, stepIndex, summary, savingToServer, saveProgress, loading, loadError, editMode, steps]
+    [state, stepIndex, summary, savingToServer, saveProgress, loading, loadError, editMode, steps, saveAudienceParticipants, audienceDirty]
   );
 
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;

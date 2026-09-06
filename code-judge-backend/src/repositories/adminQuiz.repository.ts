@@ -129,7 +129,7 @@ export class AdminQuizRepository {
 
     const query = `
       SELECT
-        q.id, q.name, q.code, q.duration, qs.name AS status,
+        q.id, q.name, q.duration, qs.name AS status,
         COUNT(DISTINCT qp.id) AS total_questions,
         COALESCE(AVG(CASE WHEN qsr.answer IS NOT NULL THEN 1 ELSE 0 END), 0) AS completion_rate
       FROM quiz q
@@ -750,8 +750,8 @@ export class AdminQuizRepository {
   async replaceQuizParticipants(
     quizId: number,
     participants: Array<{
-      email: string; name?: string | null; rollNumber?: string | null;
-      source?: number; roomId?: number | null; allowed?: boolean;
+      userId: number;
+      source?: number;
     }>
   ): Promise<number> {
     const client = await pool.connect();
@@ -760,12 +760,12 @@ export class AdminQuizRepository {
       await client.query("DELETE FROM quiz_participants WHERE quiz_id = $1", [quizId]);
       let saved = 0;
       for (const p of participants) {
-        if (!p?.email) continue;
+        if (!p?.userId) continue;
         await client.query(
-          `INSERT INTO quiz_participants (quiz_id, email, name, roll_number, source, room_id, allowed, created_at, updated_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) ON CONFLICT (quiz_id, email) DO NOTHING`,
-          [quizId, p.email.toLowerCase(), p.name ?? null, p.rollNumber ?? null,
-           p.source ?? 2, p.roomId ?? null, p.allowed !== false]
+          `INSERT INTO quiz_participants (quiz_id, user_id, status, source, registered_at, created_at, updated_at)
+           VALUES ($1, $2, 1, $3, CASE WHEN $3 = 1 THEN NOW() ELSE NULL END, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT (quiz_id, user_id) DO NOTHING`,
+          [quizId, p.userId, p.source ?? 2]
         );
         saved++;
       }
@@ -780,10 +780,12 @@ export class AdminQuizRepository {
   }
   async getQuizParticipants(quizId: number): Promise<any[]> {
     const result = await pool.query(
-      `SELECT id, email, name, roll_number, source, allowed, created_at
-       FROM quiz_participants
-       WHERE quiz_id = $1
-       ORDER BY created_at ASC, id ASC`,
+      `SELECT qp.id, qp.user_id, qp.status, qp.source, qp.registered_at, qp.created_at,
+              u.username, u.first_name, u.last_name, u.avatar_id
+       FROM quiz_participants qp
+       LEFT JOIN users u ON u.id = qp.user_id
+       WHERE qp.quiz_id = $1
+       ORDER BY qp.created_at ASC, qp.id ASC`,
       [quizId]
     );
     return result.rows;
