@@ -331,7 +331,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       showResultsImmediately: body.showResultsImmediately,
       negativeMarking: body.negativeMarking,
       leaderboard: true,
-      status: "draft",
+      status: body.status || "draft",
     });
 
     res.status(201).json({ success: true, message: "Quiz created successfully", data: quiz });

@@ -85,13 +85,13 @@ function decodeHtml(str: string): string {
 
 /* ── Mechanic Icon/Color Map ── */
 const MECHANIC_META: Record<string, { icon: string; title: string; desc: string; color: string }> = {
-  FIFTY_FIFTY: { icon: "50:50", title: "50 - 50", desc: "Eliminate 2 wrong options", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  EXTRA_TIME: { icon: "⏰", title: "Extra Time", desc: "+5 minutes", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  HINT: { icon: "💡", title: "Hint", desc: "Get a smart hint", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  SKIP_QUESTION: { icon: "⏭", title: "Skip Question", desc: "Skip and come back later", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  SHIELD: { icon: "🛡", title: "Shield", desc: "Protect from negative marking", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  DOUBLE_SCORE: { icon: "2x", title: "Double Score", desc: "Next correct answer = 2x", color: "bg-pink-50 border border-pink-200 text-pink-600" },
-  EXTRA_LIFE: { icon: "❤", title: "Extra Life", desc: "Get 1 extra life", color: "bg-pink-50 border border-pink-200 text-pink-600" },
+  FIFTY_FIFTY: { icon: "50:50", title: "50 - 50", desc: "Eliminate 2 wrong options", color: "bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400" },
+  EXTRA_TIME: { icon: "⏰", title: "Extra Time", desc: "+5 minutes", color: "bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400" },
+  HINT: { icon: "💡", title: "Hint", desc: "Get a smart hint", color: "bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400" },
+  SKIP_QUESTION: { icon: "⏭", title: "Skip Question", desc: "Skip and come back later", color: "bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400" },
+  SHIELD: { icon: "🛡", title: "Shield", desc: "Protect from negative marking", color: "bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400" },
+  DOUBLE_SCORE: { icon: "2x", title: "Double Score", desc: "Next correct answer = 2x", color: "bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400" },
+  EXTRA_LIFE: { icon: "❤", title: "Extra Life", desc: "Get 1 extra life", color: "bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400" },
 };
 
 interface DisplayMechanic {
@@ -164,7 +164,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
               dbMechanics
                 .filter((m) => m.enabled)
                 .map((m) => {
-                  const meta = MECHANIC_META[m.code] ?? { icon: "⚙", title: m.name, desc: m.description ?? "", color: "bg-pink-50 border border-pink-200 text-pink-600" };
+                  const meta = MECHANIC_META[m.code] ?? { icon: "⚙", title: m.name, desc: m.description ?? "", color: "bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400" };
                   return {
                     code: m.code,
                     icon: meta.icon,
@@ -224,24 +224,24 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
     if (idx === current) return "bg-pink-500 text-white shadow-sm";
     if (marked[question.id]) return "bg-amber-500 text-white";
     if (answers[question.id]) return "bg-emerald-500 text-white";
-    return "bg-white text-gray-500 border border-gray-200 hover:border-gray-300";
+    return "bg-white dark:bg-card text-gray-500 dark:text-text-muted border border-gray-200 dark:border-border hover:border-gray-300 dark:hover:border-border-hover";
   };
 
   if (loading) {
     return (
-      <div className="flex h-[100dvh] w-full flex-col items-center justify-center bg-white">
+      <div className="flex h-[100dvh] w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
-        <p className="mt-3 text-sm text-gray-400">Loading quiz preview...</p>
+        <p className="mt-3 text-sm text-text-muted">Loading quiz preview...</p>
       </div>
     );
   }
 
   if (error || !quiz) {
     return (
-      <div className="flex h-[100dvh] w-full flex-col items-center justify-center bg-white">
+      <div className="flex h-[100dvh] w-full flex-col items-center justify-center bg-background">
         <AlertCircle className="h-8 w-8 text-red-500" />
         <p className="mt-3 text-sm text-red-500">{error ?? "Quiz not found."}</p>
-        <Link href="/creator/quizzes" className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100">
+        <Link href="/creator/quizzes" className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary hover:bg-card-hover">
           <ArrowLeft className="h-3 w-3" /> Back to Studio
         </Link>
       </div>
@@ -259,17 +259,17 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
       autoEnter
       fullWidth
     >
-      <div className="flex h-full w-full flex-col overflow-hidden bg-[#f5f7fb] text-gray-900">
+      <div className="flex h-full w-full flex-col overflow-hidden bg-background text-text-primary">
       {/* ── MAIN GRID ── */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[clamp(350px,27.5vw,450px)_minmax(0,1fr)_clamp(325px,27.5vw,425px)] gap-3 p-3 overflow-hidden">
         {/* LEFT */}
         <aside className="hidden lg:flex flex-col gap-3 min-h-0 overflow-hidden order-1">
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex flex-col flex-1 min-h-0">
+          <div className="bg-card border border-border rounded-xl shadow-sm p-5 flex flex-col flex-1 min-h-0">
             <div className="flex items-center gap-2 mb-2 shrink-0">
               <span className="text-pink-500 text-base">◆</span>
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Game Mechanics</h3>
+              <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Game Mechanics</h3>
             </div>
-            <p className="text-xs text-gray-400 mb-4 leading-tight shrink-0">Use lifelines strategically to maximize your score.</p>
+            <p className="text-xs text-text-muted mb-4 leading-tight shrink-0">Use lifelines strategically to maximize your score.</p>
             <div className="space-y-3 flex-1 flex flex-col justify-between py-1 overflow-hidden">
               {mechanics.map((m, i) => (
                 <button
@@ -278,27 +278,27 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
                   className={cn(
                     "w-full flex items-center gap-3 rounded-xl border px-4 py-4 text-left transition-all",
                     usedMechanics[i] && i !== 0
-                      ? "border-emerald-200 bg-emerald-50"
+                      ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10"
                       : fiftyFiftyMap[questions[current]?.id || -1] && i === 0
-                      ? "border-pink-300 bg-pink-50"
-                      : "border-gray-200 bg-white hover:border-pink-200 hover:bg-pink-50/50"
+                      ? "border-pink-300 dark:border-pink-500/30 bg-pink-50 dark:bg-pink-500/10"
+                      : "border-border bg-card hover:border-pink-200 dark:hover:border-pink-500/30 hover:bg-pink-50/50 dark:hover:bg-pink-500/5"
                   )}
                 >
                   <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-base font-bold", m.color)}>{m.icon}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 leading-none">{m.title}</p>
-                    <p className="text-xs text-gray-400 leading-tight truncate">{m.desc}</p>
+                    <p className="text-sm font-semibold text-text-primary leading-none">{m.title}</p>
+                    <p className="text-xs text-text-muted leading-tight truncate">{m.desc}</p>
                   </div>
-                  <span className={cn("shrink-0 rounded-full px-3 py-1 text-xs font-bold", usedMechanics[i] ? "bg-emerald-100 text-emerald-600" : "bg-pink-100 text-pink-600")}>{m.left}</span>
+                  <span className={cn("shrink-0 rounded-full px-3 py-1 text-xs font-bold", usedMechanics[i] ? "bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-pink-100 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400")}>{m.left}</span>
                 </button>
               ))}
             </div>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 shrink-0">
-            <h4 className="text-xs font-bold text-gray-900 mb-2">Quiz Rules</h4>
+          <div className="bg-card border border-border rounded-xl shadow-sm p-4 shrink-0">
+            <h4 className="text-xs font-bold text-text-primary mb-2">Quiz Rules</h4>
             <ul className="space-y-1.5">
               {["Answer all questions before time runs out.", "Negative marking is applicable.", "Game mechanics can help you maximize your score.", "All the best! ✦"].map((rule) => (
-                <li key={rule} className="flex items-start gap-2 text-[11px] text-gray-500 leading-relaxed">
+                <li key={rule} className="flex items-start gap-2 text-[11px] text-text-muted leading-relaxed">
                   <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500" />
                   {rule}
                 </li>
@@ -309,22 +309,22 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
 
         {/* CENTER */}
         <main className="flex flex-col min-h-0 order-1 lg:order-2 overflow-hidden">
-          <div className="flex-1 min-h-0 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col overflow-hidden p-5">
+          <div className="flex-1 min-h-0 bg-card border border-border rounded-xl shadow-sm flex flex-col overflow-hidden p-5">
             {q && (
               <>
                 <div className="flex items-center justify-between shrink-0">
-                  <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-[11px] font-bold text-emerald-600">{q.difficulty}</span>
+                  <span className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-3 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{q.difficulty}</span>
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-pink-50 border border-pink-200 px-3 py-1 text-[11px] font-bold text-pink-600">{q.marks} Marks</span>
-                    <button className="text-gray-300 hover:text-pink-500 transition-colors">
+                    <span className="rounded-full bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 px-3 py-1 text-[11px] font-bold text-pink-600 dark:text-pink-400">{q.marks} Marks</span>
+                    <button className="text-gray-300 dark:text-text-muted hover:text-pink-500 transition-colors">
                       <Bookmark className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-                <h2 className="text-[18px] lg:text-[20px] font-semibold text-gray-900 mt-4 leading-snug" dangerouslySetInnerHTML={{ __html: q.q || "Untitled question" }} />
+                <h2 className="text-[18px] lg:text-[20px] font-semibold text-text-primary mt-4 leading-snug" dangerouslySetInnerHTML={{ __html: q.q || "Untitled question" }} />
                 <div className="mt-4 space-y-2 flex-1 min-h-0 overflow-y-auto pr-1">
                   {fiftyFiftyMap[q.id] && (
-                    <div className="flex items-center gap-1.5 rounded-lg border border-pink-200 bg-pink-50 px-3 py-2 text-[11px] font-medium text-pink-600">
+                    <div className="flex items-center gap-1.5 rounded-lg border border-pink-200 dark:border-pink-500/30 bg-pink-50 dark:bg-pink-500/10 px-3 py-2 text-[11px] font-medium text-pink-600 dark:text-pink-400">
                       <span className="text-xs">◐</span> 50–50 active — 2 options shown (preview only)
                     </div>
                   )}
@@ -339,42 +339,42 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
                             onClick={() => setAnswers((p) => ({ ...p, [q.id]: o.label }))}
                             className={cn(
                               "w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all min-h-[56px]",
-                              active ? "border-pink-300 bg-pink-50 shadow-[0_0_0_2px_rgba(236,72,153,0.08)]" : "border-gray-200 bg-white hover:border-pink-200 hover:bg-pink-50/30"
+                              active ? "border-pink-300 dark:border-pink-500/50 bg-pink-50 dark:bg-pink-500/10 shadow-[0_0_0_2px_rgba(236,72,153,0.08)]" : "border-border bg-card hover:border-pink-200 dark:hover:border-pink-500/30 hover:bg-pink-50/30 dark:hover:bg-pink-500/5"
                             )}
                           >
-                            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold border", active ? "bg-pink-500 text-white border-pink-500" : "bg-pink-50 text-pink-600 border-pink-200")}>{o.label}</span>
-                            <span className="flex-1 text-sm text-gray-700" dangerouslySetInnerHTML={{ __html: o.text }} />
+                            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold border", active ? "bg-pink-500 text-white border-pink-500" : "bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-200 dark:border-pink-500/30")}>{o.label}</span>
+                            <span className="flex-1 text-sm text-text-secondary" dangerouslySetInnerHTML={{ __html: o.text }} />
                           </button>
                         );
                       });
                     })()
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-xs text-gray-400 font-medium">Type your answer below:</p>
-                      <input type="text" value={answers[q.id] ?? ""} onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))} placeholder="Enter your answer..." className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-300 focus:border-pink-300 focus:outline-none focus:ring-2 focus:ring-pink-100" />
+                      <p className="text-xs text-text-muted font-medium">Type your answer below:</p>
+                      <input type="text" value={answers[q.id] ?? ""} onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))} placeholder="Enter your answer..." className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:border-pink-300 dark:focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-100 dark:focus:ring-pink-500/10" />
                     </div>
                   )}
-                  <div className="rounded-xl border border-pink-200 bg-pink-50/40 overflow-hidden mt-2">
+                  <div className="rounded-xl border border-pink-200 dark:border-pink-500/30 bg-pink-50/40 dark:bg-pink-500/5 overflow-hidden mt-2">
                     <button onClick={() => setExplanationOpen((o) => !o)} className="flex w-full items-center gap-2 px-4 py-3 text-left h-[46px]">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white border border-pink-200 text-pink-600">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white dark:bg-card border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400">
                         <BookOpenIcon className="h-3.5 w-3.5" />
                       </span>
-                      <span className="flex-1 text-sm font-medium text-gray-900">Explanation</span>
-                      {explanationOpen ? <ChevronUp className="h-4 w-4 text-pink-400" /> : <ChevronDown className="h-4 w-4 text-pink-300" />}
+                      <span className="flex-1 text-sm font-medium text-text-primary">Explanation</span>
+                      {explanationOpen ? <ChevronUp className="h-4 w-4 text-pink-400" /> : <ChevronDown className="h-4 w-4 text-pink-300 dark:text-pink-500/50" />}
                     </button>
                     {explanationOpen && (
-                      <div className="border-t border-pink-200 px-4 py-3 bg-white max-h-[120px] overflow-y-auto">
-                        <p className="text-sm text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: q.explanation }} />
+                      <div className="border-t border-pink-200 dark:border-pink-500/30 px-4 py-3 bg-white dark:bg-card max-h-[120px] overflow-y-auto">
+                        <p className="text-sm text-text-secondary leading-relaxed" dangerouslySetInnerHTML={{ __html: q.explanation }} />
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-4 mt-auto border-t border-gray-100 shrink-0">
+                <div className="flex items-center justify-between pt-4 mt-auto border-t border-border shrink-0">
                   <div className="flex gap-3">
-                    <button onClick={() => setCurrent((c) => Math.max(0, c - 1))} disabled={current === 0} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-30">
+                    <button onClick={() => setCurrent((c) => Math.max(0, c - 1))} disabled={current === 0} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-semibold text-text-secondary hover:bg-card-hover disabled:opacity-30">
                       <ChevronLeft className="h-5 w-5" /> Previous
                     </button>
-                    <button onClick={() => setMarked((m) => ({ ...m, [q.id]: !m[q.id] }))} className={cn("inline-flex items-center gap-2 rounded-lg border px-6 py-3 text-sm font-semibold", marked[q.id] ? "border-amber-300 bg-amber-50 text-amber-600" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50")}>
+                    <button onClick={() => setMarked((m) => ({ ...m, [q.id]: !m[q.id] }))} className={cn("inline-flex items-center gap-2 rounded-lg border px-6 py-3 text-sm font-semibold", marked[q.id] ? "border-amber-300 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" : "border-border bg-card text-text-secondary hover:bg-card-hover")}>
                       <Eye className="h-5 w-5" /> Mark for Review
                     </button>
                   </div>
@@ -392,10 +392,10 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
             )}
           </div>
           {/* Mobile mechanics */}
-          <div className="lg:hidden mt-3 flex items-center gap-2 overflow-x-auto p-2 bg-white border border-gray-200 rounded-xl">
+          <div className="lg:hidden mt-3 flex items-center gap-2 overflow-x-auto p-2 bg-card border border-border rounded-xl">
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-pink-500 ml-1" />
             {mechanics.map((m, i) => (
-              <button key={m.title} onClick={() => setSelectedMechanic(i)} className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs", usedMechanics[i] ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-gray-200 bg-white")}>
+              <button key={m.title} onClick={() => setSelectedMechanic(i)} className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs", usedMechanics[i] ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "border-border bg-card")}>
                 {m.icon}
               </button>
             ))}
@@ -404,16 +404,16 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
 
         {/* RIGHT */}
         <aside className="hidden lg:flex flex-col gap-3 min-h-0 overflow-hidden order-3">
-          <div className="rounded-xl border border-gray-200 bg-white p-4 h-[92px] shrink-0 flex items-center justify-between">
+          <div className="rounded-xl border border-border bg-card p-4 h-[92px] shrink-0 flex items-center justify-between">
             <div>
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted uppercase tracking-wider">
                 <Timer className="h-3.5 w-3.5" /> Time Left
               </p>
-              <p className="mt-1 font-mono text-2xl font-bold text-pink-600">{formatTime(timeLeft)}</p>
+              <p className="mt-1 font-mono text-2xl font-bold text-pink-600 dark:text-pink-400">{formatTime(timeLeft)}</p>
             </div>
             <div className="relative h-16 w-16 shrink-0">
               <svg className="h-16 w-16 -rotate-90" viewBox="0 0 64 64">
-                <circle cx="32" cy="32" r="28" fill="none" stroke="#fce7f3" strokeWidth="4" />
+                <circle cx="32" cy="32" r="28" fill="none" stroke="var(--border)" strokeWidth="4" />
                 <circle cx="32" cy="32" r="28" fill="none" stroke="url(#timerGrad)" strokeWidth="4" strokeDasharray={`${2 * Math.PI * 28}`} strokeDashoffset={`${2 * Math.PI * 28 * (1 - timerProgress / 100)}`} strokeLinecap="round" />
                 <defs>
                   <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -424,19 +424,19 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
               </svg>
             </div>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 h-[68px] shrink-0">
+          <div className="rounded-xl border border-border bg-card p-4 h-[68px] shrink-0">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Progress</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Progress</p>
+              <p className="text-xs text-text-muted">
                 {Object.keys(answers).length} / {questions.length}
               </p>
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-border">
               <div className="h-full rounded-full bg-gradient-to-r from-pink-500 to-rose-500 transition-all" style={{ width: `${questions.length ? (Object.keys(answers).length / questions.length) * 100 : 0}%` }} />
             </div>
           </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 flex-1 min-h-0 flex flex-col overflow-hidden">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider shrink-0">
+          <div className="rounded-xl border border-border bg-card p-4 flex-1 min-h-0 flex flex-col overflow-hidden">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-text-muted uppercase tracking-wider shrink-0">
               <span className="h-2 w-2 rounded-full bg-pink-500" /> Question Navigator
             </p>
             <div className="mt-3 grid grid-cols-5 gap-1.5">
@@ -447,47 +447,47 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
               ))}
             </div>
             <div className="mt-3 grid grid-cols-2 gap-1.5 text-[10px] shrink-0">
-              <p className="flex items-center gap-1.5 text-gray-500">
+              <p className="flex items-center gap-1.5 text-text-muted">
                 <span className="h-2 w-2 rounded-full bg-pink-500" /> Current
               </p>
-              <p className="flex items-center gap-1.5 text-gray-500">
+              <p className="flex items-center gap-1.5 text-text-muted">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" /> Answered
               </p>
-              <p className="flex items-center gap-1.5 text-gray-500">
-                <span className="h-2 w-2 rounded-full bg-gray-200 border border-gray-300" /> Not Answered
+              <p className="flex items-center gap-1.5 text-text-muted">
+                <span className="h-2 w-2 rounded-full bg-border border border-border" /> Not Answered
               </p>
-              <p className="flex items-center gap-1.5 text-gray-500">
+              <p className="flex items-center gap-1.5 text-text-muted">
                 <span className="h-2 w-2 rounded-full bg-amber-500" /> Marked
               </p>
             </div>
           </div>
-          <Link href="/creator/quizzes" className="rounded-xl border border-pink-200 overflow-hidden bg-white shrink-0 block hover:shadow-md transition-shadow">
+          <Link href="/creator/quizzes" className="rounded-xl border border-pink-200 dark:border-pink-500/30 overflow-hidden bg-card shrink-0 block hover:shadow-md transition-shadow">
             <img src="/images/quiz/banner/preview_submit.png" alt="Preview Mode" className="w-full h-auto object-cover" />
           </Link>
         </aside>
       </div>
 
       {/* ── FOOTER 46px ── */}
-      <footer className="h-[46px] shrink-0 flex items-center justify-between border-t border-gray-200 bg-white px-4 gap-2">
-        <div className="flex items-center gap-4 lg:gap-6 text-[11px] text-gray-400 overflow-hidden">
+      <footer className="h-[46px] shrink-0 flex items-center justify-between border-t border-border bg-card px-4 gap-2">
+        <div className="flex items-center gap-4 lg:gap-6 text-[11px] text-text-muted overflow-hidden">
           <span className="flex items-center gap-1.5 whitespace-nowrap">
-            Quiz ID: <span className="font-mono text-gray-600">{quiz.code}</span>
-            <Copy className="h-3 w-3 cursor-pointer text-gray-300 hover:text-gray-500" />
+            Quiz ID: <span className="font-mono text-text-secondary">{quiz.code}</span>
+            <Copy className="h-3 w-3 cursor-pointer text-text-muted hover:text-text-secondary" />
           </span>
           <span className="hidden sm:flex items-center gap-1.5 whitespace-nowrap">
-            <Target className="h-3 w-3 text-pink-500" /> Total Marks: <span className="text-gray-700 font-semibold">{totalMarks}</span>
+            <Target className="h-3 w-3 text-pink-500" /> Total Marks: <span className="text-text-primary font-semibold">{totalMarks}</span>
           </span>
           <span className="hidden md:flex items-center gap-1.5 whitespace-nowrap">
-            <Target className="h-3 w-3 text-pink-500" /> Passing Marks: <span className="text-gray-700 font-semibold">{quiz.passing_marks ?? "—"}</span>
+            <Target className="h-3 w-3 text-pink-500" /> Passing Marks: <span className="text-text-primary font-semibold">{quiz.passing_marks ?? "—"}</span>
           </span>
           <span className="hidden lg:flex items-center gap-1.5 whitespace-nowrap">
-            <Target className="h-3 w-3 text-pink-500" /> Negative Marking: <span className={quiz.negative_marking ? "text-red-500 font-semibold" : "text-gray-700"}>{quiz.negative_marking ? "Yes (-1)" : "No"}</span>
+            <Target className="h-3 w-3 text-pink-500" /> Negative Marking: <span className={quiz.negative_marking ? "text-red-500 font-semibold" : "text-text-primary"}>{quiz.negative_marking ? "Yes (-1)" : "No"}</span>
           </span>
           <span className="hidden xl:flex items-center gap-1.5 whitespace-nowrap">
-            <Users className="h-3 w-3 text-pink-500" /> Attempts Allowed: <span className="text-gray-700 font-semibold">1</span>
+            <Users className="h-3 w-3 text-pink-500" /> Attempts Allowed: <span className="text-text-primary font-semibold">1</span>
           </span>
         </div>
-        <button className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-[11px] font-semibold text-gray-500 hover:bg-gray-100 shrink-0">
+        <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card-hover px-3 py-1.5 text-[11px] font-semibold text-text-muted hover:bg-card shrink-0">
           <Flag className="h-3 w-3" /> Report an Issue
         </button>
       </footer>
@@ -495,29 +495,29 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
       {/* ── Mechanic Modal ── */}
       {selectedMechanic !== null && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/20 backdrop-blur-sm p-4" onClick={() => setSelectedMechanic(null)}>
-          <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl text-base font-bold", mechanics[selectedMechanic].color)}>{mechanics[selectedMechanic].icon}</div>
                 <div>
-                  <h3 className="text-sm font-bold text-gray-900">{mechanics[selectedMechanic].title}</h3>
-                  <p className="text-[11px] text-gray-400">{mechanics[selectedMechanic].desc}</p>
+                  <h3 className="text-sm font-bold text-text-primary">{mechanics[selectedMechanic].title}</h3>
+                  <p className="text-[11px] text-text-muted">{mechanics[selectedMechanic].desc}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedMechanic(null)} className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-400">
+              <button onClick={() => setSelectedMechanic(null)} className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card-hover text-text-muted">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="mt-4 flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-3">
+            <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-card-hover p-3">
               <div>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Uses remaining</p>
-                <p className="text-lg font-bold text-gray-900">{mechanics[selectedMechanic].left}</p>
+                <p className="text-[10px] text-text-muted uppercase tracking-wider">Uses remaining</p>
+                <p className="text-lg font-bold text-text-primary">{mechanics[selectedMechanic].left}</p>
               </div>
-              {usedMechanics[selectedMechanic] && selectedMechanic !== 0 && <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600">Used</span>}
-              {selectedMechanic === 0 && fiftyFiftyMap[q?.id] && <span className="rounded-full bg-pink-100 px-2.5 py-0.5 text-[10px] font-bold text-pink-600">Active on Q{current + 1}</span>}
+              {usedMechanics[selectedMechanic] && selectedMechanic !== 0 && <span className="rounded-full bg-emerald-100 dark:bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Used</span>}
+              {selectedMechanic === 0 && fiftyFiftyMap[q?.id] && <span className="rounded-full bg-pink-100 dark:bg-pink-500/10 px-2.5 py-0.5 text-[10px] font-bold text-pink-600 dark:text-pink-400">Active on Q{current + 1}</span>}
             </div>
-            {selectedMechanic === 0 && q && q.type !== "single_choice" && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-700">50–50 only works on MCQ (single choice). Current is {q.type.replace("_", " ")}.</p>}
-            {selectedMechanic === 0 && q && q.type === "single_choice" && q.options.length < 3 && <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-medium text-amber-700">Not enough options for 50–50.</p>}
+            {selectedMechanic === 0 && q && q.type !== "single_choice" && <p className="mt-3 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-400">50–50 only works on MCQ (single choice). Current is {q.type.replace("_", " ")}.</p>}
+            {selectedMechanic === 0 && q && q.type === "single_choice" && q.options.length < 3 && <p className="mt-3 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-400">Not enough options for 50–50.</p>}
             <button
               onClick={() => {
                 if (selectedMechanic === 0) {
@@ -559,7 +559,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
                 setSelectedMechanic(null);
               }}
               disabled={selectedMechanic !== 0 ? !!usedMechanics[selectedMechanic!] : !q || q.type !== "single_choice" || q.options.length < 3 || !!fiftyFiftyMap[q.id] || Object.keys(fiftyFiftyMap).length >= 2}
-              className={cn("mt-4 w-full rounded-xl py-2.5 text-sm font-bold", (selectedMechanic !== 0 ? !!usedMechanics[selectedMechanic!] : !q || q.type !== "single_choice" || q.options.length < 3 || !!fiftyFiftyMap[q.id] || Object.keys(fiftyFiftyMap).length >= 2) ? "cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400" : "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg")}
+              className={cn("mt-4 w-full rounded-xl py-2.5 text-sm font-bold", (selectedMechanic !== 0 ? !!usedMechanics[selectedMechanic!] : !q || q.type !== "single_choice" || q.options.length < 3 || !!fiftyFiftyMap[q.id] || Object.keys(fiftyFiftyMap).length >= 2) ? "cursor-not-allowed border border-border bg-card-hover text-text-muted" : "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg")}
             >
               {selectedMechanic === 0 ? (fiftyFiftyMap[q?.id] ? "Already applied to this question" : Object.keys(fiftyFiftyMap).length >= 2 ? "No uses left" : "Use 50–50 (preview only)") : usedMechanics[selectedMechanic!] ? "Already Used" : "Use Now"}
             </button>
@@ -569,15 +569,15 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
 
       {showSubmitModal && (
         <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/50 p-4" onClick={() => setShowSubmitModal(false)}>
-          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <Send className="h-6 w-6" />
             </div>
-            <h3 className="text-center text-lg font-bold text-gray-900">Submit quiz?</h3>
-            <p className="mt-1 text-center text-sm text-gray-500">This preview will end and return you to the quizzes list.</p>
+            <h3 className="text-center text-lg font-bold text-text-primary">Submit quiz?</h3>
+            <p className="mt-1 text-center text-sm text-text-muted">This preview will end and return you to the quizzes list.</p>
 
             <div className="mt-5 flex items-center gap-3">
-              <button onClick={() => setShowSubmitModal(false)} className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+              <button onClick={() => setShowSubmitModal(false)} className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-text-secondary hover:bg-card-hover">
                 Continue Preview
               </button>
               <button onClick={onExitPreview} className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-sm font-bold text-white shadow-md hover:shadow-lg">

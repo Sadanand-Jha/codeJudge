@@ -299,6 +299,9 @@ export interface QuizProblemListItem {
   quiz_problem_type: number | null;
   question_number: number | null;
   difficulty: number | null;
+  difficulty_name: string | null;
+  explaination: string | null;
+  hint: string | null;
   options: QuizProblemOption[];
 }
 
@@ -312,12 +315,12 @@ export async function getQuizProblems(quizId: string): Promise<QuizProblemListIt
 }
 
 /**
- * Get quiz problems without correct answers
- * GET /api/v1/admin/quiz/:quizId/problems/public
+ * Get quiz problems for preview (uses the admin problems endpoint)
+ * GET /api/v1/admin/quiz/:quizId/problems
  */
 export async function getQuizProblemsPublic(quizId: string): Promise<PublicQuizProblem[]> {
-  const response = await apiClient.get<PublicQuizProblem[]>(`/v1/admin/quiz/${quizId}/problems/public`);
-  return response.data;
+  const response = await apiClient.get<QuizProblemListItem[]>(`/v1/admin/quiz/${quizId}/problems`);
+  return response.data as unknown as PublicQuizProblem[];
 }
 
 /**
@@ -394,7 +397,7 @@ export async function getOldQuizzes(params: {
  */
 export async function generateQuizCode(): Promise<string> {
   const response = await apiClient.get<{ success: boolean; data: { code: string } }>("/v1/admin/quiz/generate-code");
-  return response.data.data.code;
+  return (response.data as any).code;
 }
 
 /**
@@ -405,7 +408,7 @@ export async function copyQuizCode(quizId: string): Promise<string> {
   const response = await apiClient.post<{ success: boolean; data: { code: string } }>(
     `/v1/admin/quiz/${quizId}/copy-code`
   );
-  return response.data.data.code;
+  return (response.data as any).code;
 }
 
 /**

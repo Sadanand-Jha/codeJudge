@@ -117,6 +117,7 @@ export const quizSchema = z.object({
   showResultsImmediately: z.boolean().optional(),
   negativeMarking: z.boolean().optional(),
   leaderboard: z.boolean().optional(),
+  status: z.enum(["draft", "scheduled", "live", "ended"]).optional(),
 });
 
 export const quizUpdateSchema = quizSchema.omit({ code: true }).strict();

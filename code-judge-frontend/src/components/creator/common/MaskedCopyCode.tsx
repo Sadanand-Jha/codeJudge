@@ -6,7 +6,7 @@ import { toast } from "@/lib/toast";
 import { copyQuizCode } from "@/services/quiz";
 
 interface MaskedCopyCodeProps {
-  code: string;
+  code?: string;
   quizId?: string;
   className?: string;
   label?: string;
@@ -23,10 +23,15 @@ export function MaskedCopyCode({ code, quizId, className, label = "Quiz Code" }:
     if (revealed) return;
 
     try {
-      let codeToReveal = code;
+      let codeToReveal = code || "";
 
       if (quizId) {
         codeToReveal = await copyQuizCode(quizId);
+      }
+
+      if (!codeToReveal) {
+        toast.error({ title: "No code available", description: "Quiz code could not be fetched" });
+        return;
       }
 
       await navigator.clipboard.writeText(codeToReveal);
@@ -45,7 +50,7 @@ export function MaskedCopyCode({ code, quizId, className, label = "Quiz Code" }:
     }
   };
 
-  if (!code) {
+  if (!code && !quizId) {
     return (
       <div className={className} aria-label={`${label} unavailable`}>
         <span className="font-mono text-sm tracking-[0.3em] text-text-muted">{masked}</span>
