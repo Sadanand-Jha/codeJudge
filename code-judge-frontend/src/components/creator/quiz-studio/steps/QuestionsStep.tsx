@@ -29,6 +29,7 @@ import { downloadQuizPaperPdf } from "@/utils/quizPdf";
 import { type PdfConfig, type PdfStudent } from "@/utils/pdfConfig";
 import { QuizSettingsProvider } from "@/components/quiz/creator/settings/QuizSettingsContext";
 import PdfConfigModal from "@/components/quiz/creator/settings/PdfConfigModal";
+import { generateQuizCode } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 
 function hashState(questions: CreatorQuestion[], info: { title: string; shortDescription: string; fullDescription: string; subject: string; difficulty: string; duration: number; passingMarks: number; tags: string[] }) {
@@ -42,6 +43,7 @@ export function QuestionsStep() {
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [rightOpen, setRightOpen] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
+  const [pdfCode, setPdfCode] = useState(state.info.code);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [studentPreviewOpen, setStudentPreviewOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -49,9 +51,29 @@ export function QuestionsStep() {
   const snapshotRef = useRef(hashState(state.questions, state.info));
   const [hasChanges, setHasChanges] = useState(false);
 
+  const openPdfModal = useCallback(async () => {
+    const code = state.info.code || pdfCode;
+    if (code) {
+      setPdfCode(code);
+      setPdfModalOpen(true);
+      return;
+    }
+    try {
+      const newCode = await generateQuizCode();
+      setPdfCode(newCode);
+      setPdfModalOpen(true);
+    } catch {
+      toast.error({ title: "Could not load PDF preview", description: "Failed to generate quiz code. Please try again." });
+    }
+  }, [state.info.code, pdfCode]);
+
   useEffect(() => {
     setHasChanges(hashState(state.questions, state.info) !== snapshotRef.current);
   }, [state.questions, state.info]);
+
+  useEffect(() => {
+    if (state.info.code && !pdfCode) setPdfCode(state.info.code);
+  }, [state.info.code]);
 
   const handleSave = useCallback(async () => {
     if (saving) return;
@@ -132,7 +154,7 @@ export function QuestionsStep() {
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"}
           `}
         >
-          <QuestionList onAiGenerate={() => setAiOpen(true)} onDownloadPdf={() => setPdfModalOpen(true)} onSave={handleSave} saving={saving} hasChanges={hasChanges} saveProgress={saveProgress} onToggleSidebar={() => setSidebarOpen(false)} />
+          <QuestionList onAiGenerate={() => setAiOpen(true)} onDownloadPdf={openPdfModal} onSave={handleSave} saving={saving} hasChanges={hasChanges} saveProgress={saveProgress} onToggleSidebar={() => setSidebarOpen(false)} />
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden bg-card rounded-xl border border-border">
@@ -189,7 +211,7 @@ export function QuestionsStep() {
         </main>
 
         <div className={`${rightCollapsed ? "w-10" : "w-[340px]"} hidden shrink-0 xl:flex`}>
-          <LiveRail onDownloadPdf={() => setPdfModalOpen(true)} onStudentPreview={() => setStudentPreviewOpen(true)} collapsed={rightCollapsed} onToggle={() => setRightCollapsed(!rightCollapsed)} />
+          <LiveRail onDownloadPdf={openPdfModal} onStudentPreview={() => setStudentPreviewOpen(true)} collapsed={rightCollapsed} onToggle={() => setRightCollapsed(!rightCollapsed)} />
         </div>
 
         {/* Mobile/tablet drawer for Properties */}
@@ -202,7 +224,7 @@ export function QuestionsStep() {
                 <button onClick={() => setRightOpen(false)} className="rounded p-1.5 hover:bg-card-hover text-text-muted">✕</button>
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto">
-                <LiveRail onDownloadPdf={() => { setRightOpen(false); setPdfModalOpen(true); }} onStudentPreview={() => { setRightOpen(false); setStudentPreviewOpen(true); }} collapsed={false} onToggle={() => {}} />
+                <LiveRail onDownloadPdf={() => { setRightOpen(false); openPdfModal(); }} onStudentPreview={() => { setRightOpen(false); setStudentPreviewOpen(true); }} collapsed={false} onToggle={() => {}} />
               </div>
             </div>
           </div>
@@ -218,8 +240,8 @@ export function QuestionsStep() {
         quizTitle={state.info.title}
       />
 
-      {state.info.code && (
-        <QuizSettingsProvider code={state.info.code}>
+      {pdfCode && (
+        <QuizSettingsProvider code={pdfCode}>
           <PdfConfigModal
             open={pdfModalOpen}
             onClose={() => setPdfModalOpen(false)}
