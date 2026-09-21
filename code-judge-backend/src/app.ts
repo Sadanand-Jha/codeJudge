@@ -37,6 +37,7 @@ const allowedOrigins = [
   ...envOrigins,
   "https://quizbackend-dun.vercel.app",
   "https://quizbackend-dun.vercel.app/api/v1",
+  "https://code-judge-seven.vercel.app",
   "http://localhost:3000",
   "http://localhost:3001",
   "http://127.0.0.1:3000",
