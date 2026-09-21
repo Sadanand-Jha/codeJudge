@@ -546,15 +546,17 @@ export default function SettingsPage() {
                 )}
                 <button
                   onClick={handleReset}
-                  disabled={!hasChanges || saving}
-                  className="h-11 rounded-xl border border-border bg-card px-4 text-xs font-medium text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled
+                  title="Temporarily disabled"
+                  className="h-11 rounded-xl border border-border bg-card px-4 text-xs font-medium text-text-primary opacity-40 cursor-not-allowed"
                 >
                   Reset
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={!hasChanges || saving}
-                  className="flex h-11 items-center gap-2 rounded-xl bg-accent px-5 text-xs font-bold text-white transition-all duration-200 hover:shadow-[0_4px_16px_rgba(37,99,235,0.3)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:brightness-100"
+                  disabled
+                  title="Temporarily disabled"
+                  className="flex h-11 items-center gap-2 rounded-xl bg-accent px-5 text-xs font-bold text-white opacity-40 cursor-not-allowed"
                 >
                   {saving ? (
                     <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
@@ -1257,7 +1259,7 @@ function DangerAction({
 }) {
   const isDanger = variant === "danger";
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between opacity-90">
       <div className="flex items-start gap-3.5">
         <div className={cn(
           "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
@@ -1272,11 +1274,13 @@ function DangerAction({
       </div>
       <button
         onClick={onConfirm}
+        disabled
+        title="This action is temporarily disabled"
         className={cn(
-          "shrink-0 rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-[0.98]",
+          "shrink-0 rounded-xl px-4 py-2.5 text-xs font-bold opacity-50 cursor-not-allowed",
           isDanger
-            ? "border border-danger/30 text-danger hover:bg-danger hover:text-white"
-            : "border border-border bg-card text-text-primary hover:border-border-hover"
+            ? "border border-danger/30 text-danger"
+            : "border border-border bg-card text-text-primary"
         )}
       >
         {buttonLabel}
