@@ -13,10 +13,12 @@ import { authenticate } from "../middleware/auth.js";
 const userService = new UserService();
 const userRepo = new userRepository();
 
-// Common Cookie Options helper Object
+// Vercel par hain YA NODE_ENV production hai -> secure: true ho jayega
+const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production", // Vercel/Production pe true, local pe false
+  secure: isProduction, // Local host pe FALSE, Vercel pe automatic TRUE
   sameSite: "lax" as const,
   path: "/",
 };
