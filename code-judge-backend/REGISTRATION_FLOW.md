@@ -61,15 +61,16 @@ Content-Type: application/json
 }
 ```
 
-### Response (Existing OTP — 429 Too Many Requests)
+### Response (Resend Cooldown — 429 Too Many Requests)
 
 ```json
 {
   "success": false,
-  "message": "An OTP has already been sent to this email. Please wait for it to expire before requesting a new one.",
+  "message": "Please wait before requesting a new OTP. You can resend after 60 seconds.",
   "statusCode": 429
 }
 ```
+> Cooldown is enforced via Redis key `otp_cooldown:{email}` with TTL `60s` (`OTP_RESEND_COOLDOWN_SECONDS`), synced with frontend countdown. OTP itself remains valid `5 minutes` (`OTP_TTL_SECONDS=300`) and is overwritten on resend.
 
 ### Files & Functions Called
 
@@ -93,13 +94,14 @@ Content-Type: application/json
 1. **Validate email format** — `isValidEmail(email)` (line 23 in `auth.ts`) checks regex pattern
 2. **Normalize email** — Convert to lowercase
 3. **Check duplicate** — `userService.checkUserExistsByEmail()` queries DB
-4. **Check existing OTP** — If an unexpired OTP (`otp:<email>`) is still in Redis, reject with 429
+4. **Check resend cooldown** — Redis key `otp_cooldown:{email}` (TTL 60s, `OTP_RESEND_COOLDOWN_SECONDS` synced with frontend): if exists, reject 429
 5. **Check 2-hour rate limit** — Redis key `otp_requests_2hr:<email>`: reject if ≥ 3 (TTL: 2 hours)
 6. **Check 5-minute rate limit** — Redis key `otp_requests:<email>`: reject if ≥ 2 (TTL: 5 minutes)
 7. **Increment both rate limit counters** — Set TTL on first request, increment on subsequent
 8. **Generate OTP** — `generateSixDigitOtp()` calls `generateOtp(6, true, false)` from `otpGenerator.ts`
-9. **Cache OTP as Redis hash** — `cacheOtp()` stores `{ otp: "123456", attempts_remaining: "3" }` with key `otp:{email}`, TTL = 5 minutes
-10. **Send email** — `sendOtpEmail()` called with `.catch()` to prevent blocking HTTP response
+9. **Cache OTP as Redis hash** — `cacheOtp()` stores `{ otp: "123456", attempts_remaining: "3" }` with key `otp:{email}`, TTL = 5 minutes (overwrites previous OTP)
+10. **Set resend cooldown** — `setEx otp_cooldown:{email} 60 "1"` synced with frontend `RESEND_COOLDOWN_SECONDS`
+11. **Send email** — `sendOtpEmail()` called with `.catch()` to prevent blocking HTTP response
 
 ---
 
@@ -300,7 +302,8 @@ src/server.ts → imports app from src/app.ts
 
 | Data | Key Pattern | Type | TTL | Expiry Behavior |
 |------|-------------|------|-----|-----------------|
-| OTP + attempts | `otp:{email}` | Hash `{ otp, attempts_remaining }` | 5 minutes | Auto-expires; both OTP and attempts cleaned up on success |
+| OTP + attempts | `otp:{email}` | Hash `{ otp, attempts_remaining }` | 5 minutes | Auto-expires; both OTP and attempts cleaned up on success; overwritten on resend after cooldown |
+| Resend cooldown | `otp_cooldown:{email}` | String `"1"` | 60 seconds | Synced with frontend countdown; blocks resend until expiry, independent of OTP TTL |
 | OTP rate limit | `otp_requests:<email>` | String (counter) | 5 minutes | Auto-expires; tracks max 2 requests per 5 min |
 | OTP rate limit (2hr) | `otp_requests_2hr:<email>` | String (counter) | 2 hours | Auto-expires; tracks max 3 requests per 2 hours |
 | Registration Token | `reg_token:{uuid}` | String | 15 minutes | Auto-expires; deleted after registration/verification |
@@ -325,7 +328,8 @@ CREATE TABLE users (
 
 ## Authentication & Security
 
-- **OTP TTL**: 5 minutes (Redis auto-expiry)
+- **OTP TTL**: 5 minutes (Redis auto-expiry, `OTP_TTL_SECONDS=300`)
+- **Resend Cooldown**: 60 seconds (`OTP_RESEND_COOLDOWN_SECONDS=60` via `otp_cooldown:{email}`) — **synced with frontend `RESEND_COOLDOWN_SECONDS`**
 - **Registration Token TTL**: 15 minutes (Redis auto-expiry)
 - **Password Hashing**: bcrypt with 10 salt rounds
 - **JWT**: Used for immediate session after registration
@@ -334,7 +338,7 @@ CREATE TABLE users (
 - **Rate Limiting**:
   - Max 2 OTP requests per email per 5 minutes
   - Max 3 OTP requests per email per 2 hours
-  - Existing OTP blocks new requests until expiry
+  - Resend cooldown blocks new OTP for 60s after each send (replaces old "existing OTP blocks until expiry")
 - **Race Condition Guard**: Email existence checked twice (before OTP send and at registration)
 - **Email Normalization**: All emails lowercased for consistent storage
 
@@ -386,7 +390,7 @@ DATABASE_URL=postgres://user:password@localhost:5432/byteclash
 
 - **Fire-and-forget email**: `sendOtpEmail()` is called with `.catch()` to avoid blocking the HTTP response
 - **Redis hash storage**: OTP and `attempts_remaining` stored together in a Redis hash; `hSet`, `hGet`, `hIncrBy` used for atomic operations
-- **Existing OTP check**: If an unexpired OTP is cached, new OTP requests are rejected (prevents overwrite spam)
+- **Resend cooldown**: `otp_cooldown:{email}` with 60s TTL prevents spam while allowing OTP overwrite after cooldown (previously blocked until 5-min OTP expiry)
 - **Rate limit counters**: Tracked independently via `otp_requests:<email>` (5-min) and `otp_requests_2hr:<email>` (2-hr) keys with corresponding TTLs
 - **Attempts decrement**: Each wrong OTP entry decrements `attempts_remaining` via `HINCRBY -1`; when 0, OTP is deleted
 - **Single-use OTP**: OTP hash is deleted from Redis after successful verification

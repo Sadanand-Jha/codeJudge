@@ -42,8 +42,9 @@ The frontend uses a **3-step email verification registration** and **token-based
 
 ### Resend OTP
 - Available during verify step
-- 60-second cooldown between requests
+- 60-second cooldown between requests (synced with backend `OTP_RESEND_COOLDOWN_SECONDS=60` via `otp_cooldown:{email}` Redis key; OTP itself valid 5 minutes)
 - Calls same endpoint as Step 1
+- Frontend timer `RESEND_COOLDOWN_SECONDS=60` in `RegistrationForm.tsx` must match backend
 
 ---
 

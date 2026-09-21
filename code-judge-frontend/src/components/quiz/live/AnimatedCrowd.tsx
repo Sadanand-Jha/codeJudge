@@ -4,6 +4,8 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import type { LiveParticipant } from "@/types/liveAssessment";
 import { StudentAvatar } from "./StudentAvatar";
+import { PREDEFINED_AVATARS, DEFAULT_AVATAR_URL } from "@/config/dicebear";
+import { preloadImages } from "@/hooks/useImagePreload";
 
 interface AnimatedCrowdProps {
   participants: LiveParticipant[];
@@ -167,6 +169,7 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
   const [roamingStates, setRoamingStates] = useState<Map<string, RoamingState>>(new Map());
   const [isVisible, setIsVisible] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [imagesReady, setImagesReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Latest visible set, kept ref-synced so the (stable) pointer handler can
@@ -189,23 +192,47 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
-  // Initial spawn - show all participants immediately
+  // Preload all avatar images once — page waits until decoded (sab aajaye phir dikhe)
   useEffect(() => {
-    if (fullPool.length === 0) return;
-    if (visibleParticipants.length > 0) return;
+    const urls = PREDEFINED_AVATARS.map((a) => a.url);
+    // Also include any participant-specific avatarUrls that may be custom
+    const custom = fullPool.map((p) => p.avatarUrl).filter(Boolean) as string[];
+    const allUrls = Array.from(new Set([...urls, DEFAULT_AVATAR_URL, ...custom]));
+    let cancelled = false;
+    void preloadImages(allUrls, 2500).then(() => {
+      if (!cancelled) setImagesReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fullPool]);
 
-    const all = [...fullPool];
-    setVisibleParticipants(all);
+  // Initial spawn — only after images are decoded, so no empty rings / lazy pop-in
+  // After initial gate, incrementally add new participants (waiting room streams via interval)
+  useEffect(() => {
+    if (!imagesReady) return;
+    if (fullPool.length === 0) return;
+
+    setVisibleParticipants((prev) => {
+      if (prev.length === 0) return [...fullPool];
+      // Add only newcomers
+      const existing = new Set(prev.map((p) => p.id));
+      const newcomers = fullPool.filter((p) => !existing.has(p.id));
+      if (newcomers.length === 0) return prev;
+      // Keep cap at MAX_VISIBLE if needed, but respect parent's slicing; just append
+      return [...prev, ...newcomers].slice(-40);
+    });
+
     setRoamingStates((prev) => {
       const next = new Map(prev);
-      all.forEach((p) => {
+      fullPool.forEach((p) => {
         if (!next.has(p.id)) {
           next.set(p.id, createRoamingState());
         }
       });
       return next;
     });
-  }, [fullPool]);
+  }, [fullPool, imagesReady]);
 
   // Roaming: move random avatars to new destinations every 8 seconds
   // Each avatar smoothly travels to its new position (no teleporting)
@@ -341,6 +368,21 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
       rafRef.current = null;
     };
   }, [handlePointerMove, onHideNow]);
+
+  if (!imagesReady) {
+    // Gated skeleton — keeps layout stable until avatars decoded, then fades in
+    return (
+      <div className={`relative w-full h-full pointer-events-none ${className}`}>
+        <div className="relative w-full h-full flex items-center justify-center" ref={containerRef}>
+          <div className="flex items-center gap-2 opacity-60">
+            <div className="h-10 w-10 rounded-full bg-white/10 animate-pulse" />
+            <div className="h-10 w-10 rounded-full bg-white/10 animate-pulse delay-100" />
+            <div className="h-10 w-10 rounded-full bg-white/10 animate-pulse delay-200" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative w-full h-full pointer-events-none ${className}`}>

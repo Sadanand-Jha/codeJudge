@@ -10,7 +10,8 @@ import { UserService } from './database/user.database.js';
 import { sendOtpEmail } from './email.js';
 import generateOtp from './otpGenerator.js';
 
-const OTP_TTL_SECONDS = 5 * 60; // 5 minutes
+const OTP_TTL_SECONDS = 5 * 60; // 5 minutes — OTP validity
+const OTP_RESEND_COOLDOWN_SECONDS = 60; // 60 seconds — resend cooldown (must match frontend countdown)
 const REGISTRATION_TOKEN_TTL_SECONDS = 15 * 60; // 15 minutes
 const OTP_MAX_REQUESTS = 2; // Max OTP requests per email per 5-min window
 const OTP_REQUEST_WINDOW_SECONDS = 2 * 60; // 2-minute window for rate limiting
@@ -149,8 +150,9 @@ function errorResponse(message: string, statusCode: number = 400): ServiceRespon
 /**
  * POST /api/auth/send-otp
  * Validates email, generates OTP, caches it, sends email asynchronously
- * Rate-limited: max 2 requests per 5 minutes per email
- * Rejects if an unexpired OTP already exists for the email
+ * Rate-limited: max 2 requests per 5 minutes per email, 3 per 2 hours
+ * Resend cooldown: 60s (synced with frontend countdown) — enforced via otp_cooldown:<email>
+ * OTP validity: 5 minutes (OTP_TTL_SECONDS) — allows resending after cooldown by overwriting
  */
 export async function sendOtp(email: string): Promise<ServiceResponse> {
   try {
@@ -167,11 +169,12 @@ export async function sendOtp(email: string): Promise<ServiceResponse> {
       return errorResponse('Email already registered', 400);
     }
 
-    // 3. Check if an unexpired OTP already exists for this email
-    const existingOtp = await getCachedOtp(normalizedEmail);
-    if (existingOtp) {
+    // 3. Check resend cooldown (60s) — must match frontend countdown
+    const cooldownKey = `otp_cooldown:${normalizedEmail}`;
+    const cooldownExists = await redisClient.get(cooldownKey);
+    if (cooldownExists) {
       return errorResponse(
-        'An OTP has already been sent to this email. Please wait for it to expire before requesting a new one.',
+        `Please wait before requesting a new OTP. You can resend after ${OTP_RESEND_COOLDOWN_SECONDS} seconds.`,
         429
       );
     }
@@ -210,10 +213,12 @@ export async function sendOtp(email: string): Promise<ServiceResponse> {
     // 6. Generate cryptographically secure 6-digit OTP
     const otp = generateSixDigitOtp();
 
-    // 7. Store OTP in Redis with TTL
+    // 7. Store OTP in Redis with TTL (overwrites any existing OTP)
     await cacheOtp(normalizedEmail, otp);
+    // 8. Set resend cooldown — frontend timer is synced to this TTL (60s)
+    await redisClient.setEx(cooldownKey, OTP_RESEND_COOLDOWN_SECONDS, '1');
 
-    // 8. Send email asynchronously (non-blocking)
+    // 9. Send email asynchronously (non-blocking)
     sendOtpEmail(normalizedEmail, otp).catch((err: any) => {
       console.error('Failed to send OTP email:', err);
     });

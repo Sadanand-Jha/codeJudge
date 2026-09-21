@@ -32,6 +32,7 @@ export function StudentAvatar({
   className = "",
 }: StudentAvatarProps) {
   const [hovered, setHovered] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const dims = SIZE_MAP[size];
   const displayAvatarUrl = participant.avatarUrl || DEFAULT_AVATAR_URL;
 
@@ -87,9 +88,15 @@ export function StudentAvatar({
             <img
               src={displayAvatarUrl}
               alt={participant.username}
-              className="w-full h-full object-cover"
-              loading="lazy"
+              className={`w-full h-full object-cover transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+              loading="eager"
+              decoding="async"
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgLoaded(true)}
             />
+            {!imgLoaded && (
+              <div className="absolute inset-0 rounded-full bg-white/10 animate-pulse" aria-hidden />
+            )}
           </div>
 
           {/* Small yellow waiting dot */}
@@ -124,7 +131,7 @@ export function StudentAvatar({
               <div className="absolute -inset-1 rounded-full bg-gradient-to-br from-[#EC4899]/40 to-[#BE185D]/30 blur-md opacity-80" />
               <div className="relative h-14 w-14 overflow-hidden rounded-full border-2 border-white/10 bg-background shadow-[0_6px_24px_rgba(0,0,0,0.45)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={displayAvatarUrl} alt={participant.username} className="h-full w-full object-cover" />
+                <img src={displayAvatarUrl} alt={participant.username} className="h-full w-full object-cover" loading="eager" decoding="async" />
               </div>
             </div>
             <p className="text-xs font-bold text-white truncate w-full text-center">{participant.username}</p>

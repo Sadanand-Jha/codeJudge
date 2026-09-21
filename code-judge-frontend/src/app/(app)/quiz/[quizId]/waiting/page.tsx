@@ -290,16 +290,14 @@ function WaitingRoomPageInner({
         </div>
       )}
 
-      {/* Full-screen roaming avatars */}
+      {/* Full-screen roaming avatars — always mounted so preload gate shows shimmer, then fade-in together */}
       <div className="fixed inset-0 z-[5] pointer-events-none">
-        {participants.length > 0 && (
-          <AnimatedCrowd
-            participants={participants}
-            onShow={showHovered}
-            onArmHide={armHideHover}
-            onHideNow={hideNowHover}
-          />
-        )}
+        <AnimatedCrowd
+          participants={participants}
+          onShow={showHovered}
+          onArmHide={armHideHover}
+          onHideNow={hideNowHover}
+        />
       </div>
 
       {/* Avatar hover preview */}

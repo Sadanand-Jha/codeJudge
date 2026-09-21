@@ -126,6 +126,14 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        {/* Preload critical avatar images — avoids lazy-load waterfall on first paint */}
+        <link rel="preload" as="image" href="/images/avatar-1.png" />
+        <link rel="preload" as="image" href="/images/avatar-2.png" />
+        <link rel="preload" as="image" href="/images/avatar-3.png" />
+        <link rel="preload" as="image" href="/images/avatar-4.png" />
+        <link rel="preload" as="image" href="/images/avatar-5.png" />
+        <link rel="preload" as="image" href="/images/avatar-6.png" />
+        <link rel="preload" as="image" href="/images/avatar-7.png" />
       </head>
       <body className="min-h-screen bg-[var(--background)]" suppressHydrationWarning>
         <ThemeProvider>

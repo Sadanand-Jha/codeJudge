@@ -66,8 +66,11 @@ export default function RegistrationForm() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Must stay in sync with backend OTP_RESEND_COOLDOWN_SECONDS (60s) in code-judge-backend/src/services/auth.ts
+  const RESEND_COOLDOWN_SECONDS = 60;
+
   const startCountdown = useCallback(() => {
-    setCountdown(60);
+    setCountdown(RESEND_COOLDOWN_SECONDS);
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setCountdown((prev) => {
