@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { getQuizByCode, getQuizProblems, updateQuiz, updateQuizStatus, type Quiz } from "@/services/quiz";
+import { getQuizByCode, getQuizProblems, updateQuiz, updateQuizStatus, type QuizBasic } from "@/services/quiz";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, DEFAULT_QUIZ_AUDIENCE } from "@/components/quiz/creator/types";
 import { loadQuizState, saveQuizDetails, computeQuestionsSignature, getSyncedSignature } from "@/utils/quizStorage";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
@@ -88,7 +88,7 @@ function validateQuizStart(details: QuizDetails): string | null {
 interface QuizSettingsContextValue {
   code: string;
   quizId?: number;
-  quiz: Quiz | null;
+  quiz: QuizBasic | null;
   loading: boolean;
   error: string | null;
   derivedStatus: QuizStatus;
@@ -127,7 +127,7 @@ export function QuizSettingsProvider({
   children: ReactNode;
 }) {
   const toast = useToast();
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [quiz, setQuiz] = useState<QuizBasic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [confirmingStart, setConfirmingStart] = useState(false);
@@ -260,8 +260,8 @@ export function QuizSettingsProvider({
     setActionBusy(true);
     try {
       saveQuizDetails(details);
-      await updateQuiz(String(quiz.id), { name: details.name, code });
-      await updateQuizStatus(String(quiz.id), "published");
+      await updateQuiz(String(quiz.id), { name: details.name });
+      await updateQuizStatus(String(quiz.id), "live");
       await refresh();
       setConfirmingStart(false);
       toast.success({
@@ -293,7 +293,7 @@ export function QuizSettingsProvider({
     if (!quiz?.id) return;
     setActionBusy(true);
     try {
-      await updateQuizStatus(String(quiz.id), "archived");
+      await updateQuizStatus(String(quiz.id), "ended");
       await refresh();
       setConfirmingEnd(false);
       toast.success({

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, AlertTriangle, X, Settings2, ChevronDown, ChevronRight } from "lucide-react";
 import { useStudio } from "../StudioProvider";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
-import { getQuizDifficultyOptions } from "@/services/quiz";
+import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 
 /**
  * LiveRail — right sidebar in the quiz studio showing question properties,
@@ -17,13 +17,10 @@ export function LiveRail({ onDownloadPdf, onStudentPreview, collapsed, onToggle 
   const { state, updateQuestion } = useStudio();
   const q = state.questions.find((x) => x.id === state.activeQuestionId);
   const [propsCollapsed, setPropsCollapsed] = useState(false);
-  const [difficultyOptions, setDifficultyOptions] = useState<{ id: number; heading: string }[]>([]);
-  const fetchedDiffRef = useRef(false);
+  const { difficultyOptions, fetchAll } = useQuizReferenceStore();
 
   useEffect(() => {
-    if (fetchedDiffRef.current) return;
-    fetchedDiffRef.current = true;
-    getQuizDifficultyOptions().then(setDifficultyOptions).catch(() => {});
+    fetchAll();
   }, []);
 
   if (collapsed) {

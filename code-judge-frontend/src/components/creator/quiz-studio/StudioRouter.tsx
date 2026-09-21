@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StudioProvider, useStudio } from "./StudioProvider";
 import { StudioShell } from "./StudioShell";
@@ -14,8 +15,26 @@ import { BrandingStep } from "./steps/BrandingStep";
 import { ReviewStep } from "./steps/ReviewStep";
 import { PublishStep, SuccessStep } from "./steps/PublishStep";
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
+
 export function StudioRouter() {
-  const { state, publish } = useStudio();
+  const { state, publish, editMode } = useStudio();
+  const isMobile = useIsMobile();
+
+  if (isMobile && state.step === "gameMechanics") {
+    return <SettingsStep />;
+  }
+
   switch (state.step) {
     case "setup":
       return <SetupStep />;
@@ -36,6 +55,7 @@ export function StudioRouter() {
     case "review":
       return <ReviewStep />;
     case "publish":
+      if (editMode) return <ReviewStep />;
       return <PublishStep onPublish={publish} />;
     default:
       return <SetupStep />;

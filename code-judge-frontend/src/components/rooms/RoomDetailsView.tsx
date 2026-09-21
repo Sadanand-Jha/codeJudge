@@ -11,6 +11,7 @@ import {
   CheckSquare,
   Copy,
   Download,
+  Edit3,
   Eye,
   FileSpreadsheet,
   Plus,
@@ -78,6 +79,9 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const [addTab, setAddTab] = useState<"manual" | "import">("manual");
   const [duplicateOpen, setDuplicateOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameName, setRenameName] = useState("");
+  const [renameDesc, setRenameDesc] = useState("");
   const [editingStudent, setEditingStudent] = useState<RoomStudent | null>(null);
   const [detailsStudent, setDetailsStudent] = useState<RoomStudent | null>(null);
   const [removingStudent, setRemovingStudent] = useState<RoomStudent | null>(null);
@@ -94,9 +98,9 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       .then(({ getRoom }) =>
         getRoom(roomId)
           .then((res: unknown) => {
-            const data = (res as { data?: Record<string, unknown> })?.data ?? (res as Record<string, unknown>);
+            const data = (res as Record<string, unknown>) ?? {};
             if (!data || !data.id) return;
-            const members = (data.members as unknown[]) ?? [];
+            const members = (data.members ?? []) as Array<Record<string, unknown>>;
             const mappedStudents: RoomStudent[] = members.map((m: unknown) => {
               const mm = m as Record<string, unknown>;
               const userObj = (mm.user as Record<string, unknown>) ?? mm;
@@ -170,7 +174,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       if (filter === "recent" && !(s.addedAt && isWithinWindow(s.addedAt, RECENT_WINDOW_MS)))
         return false;
       if (filter === "issues" && !hasStudentIssue(s)) return false;
-      if (q && !`${s.name} ${s.rollNumber} ${s.username ?? s.email ?? ""}`.toLowerCase().includes(q)) return false;
+      if (q && !`${s.name} ${s.rollNumber} ${s.username ?? ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
     list = [...list].sort((a, b) => {
@@ -250,12 +254,36 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const handleExport = () => {
     exportStudentsToFile(
       room.name.replace(/[^\w\s-]/g, ""),
-      room.students.map((s) => ({ name: s.name, rollNumber: s.rollNumber, username: s.username ?? s.email?.split("@")[0] ?? "" }))
+      room.students.map((s) => ({ name: s.name, rollNumber: s.rollNumber, username: s.username ?? "" }))
     );
     toast.success({ title: "Export started", description: `${room.students.length} students exported.` });
   };
 
   const isBackendRoom = /^\d+$/.test(room.id);
+
+  const startRename = () => {
+    setRenameName(room.name);
+    setRenameDesc(room.description ?? "");
+    setIsRenaming(true);
+  };
+
+  const saveRename = async () => {
+    const name = renameName.trim();
+    if (!name) { setIsRenaming(false); return; }
+    const desc = renameDesc.trim() || undefined;
+    const updated = rooms.map((r) => r.id === room.id ? { ...r, name, description: desc } : r);
+    setRooms(updated as never);
+    setIsRenaming(false);
+    if (isBackendRoom) {
+      try { await updateRoomPatch(room.id, { name, description: desc }); } catch {
+        const revert = useRoomStore.getState().rooms.map((r) => r.id === room.id ? { ...r, name: room.name, description: room.description } : r);
+        setRooms(revert as never);
+        toast.error({ title: "Rename failed" });
+        return;
+      }
+    }
+    toast.success({ title: "Room renamed" });
+  };
 
   const handleRemoveSelected = async () => {
     const ids = [...selected];
@@ -322,19 +350,50 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             <Users className="h-5 w-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">{room.name}</h1>
-              {room.archived && (
-                <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[9px] font-bold text-warning">
-                  Archived
-                </span>
-              )}
-            </div>
-            <p className="mt-0.5 text-xs text-text-secondary sm:text-sm">
-              {room.description || "Student group"}
-              <span className="mx-1.5 text-text-muted">·</span>
-              Updated {timeAgo(room.updatedAt)}
-            </p>
+            {isRenaming ? (
+              <div className="flex flex-col gap-1.5">
+                <input
+                  autoFocus
+                  value={renameName}
+                  onChange={(e) => setRenameName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveRename(); if (e.key === "Escape") setIsRenaming(false); }}
+                  onBlur={saveRename}
+                  className="rounded-lg border border-pink-500/40 bg-input-bg px-2 py-1 text-xl font-bold tracking-tight text-text-primary outline-none focus:ring-2 focus:ring-pink-500/15 sm:text-2xl"
+                />
+                <input
+                  value={renameDesc}
+                  onChange={(e) => setRenameDesc(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveRename(); if (e.key === "Escape") setIsRenaming(false); }}
+                  onBlur={saveRename}
+                  placeholder="Description (optional)"
+                  className="rounded-lg border border-border bg-input-bg px-2 py-1 text-xs text-text-secondary outline-none focus:border-pink-500/40 sm:text-sm"
+                />
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">{room.name}</h1>
+                  <button
+                    type="button"
+                    onClick={startRename}
+                    className="rounded-md p-1 text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
+                    title="Rename room"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                  </button>
+                  {room.archived && (
+                    <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[9px] font-bold text-warning">
+                      Archived
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-xs text-text-secondary sm:text-sm">
+                  {room.description || "Student group"}
+                  <span className="mx-1.5 text-text-muted">·</span>
+                  Updated {timeAgo(room.updatedAt)}
+                </p>
+              </>
+            )}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -584,7 +643,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                       {student.rollNumber}
                     </td>
                     <td className="hidden px-2 py-3 text-xs text-text-secondary lg:table-cell">
-                      @{(student.username ?? student.email?.split("@")[0] ?? "").toLowerCase() || "—"}
+                      @{(student.username ?? "").toLowerCase() || "—"}
                     </td>
                     <td className="hidden px-2 py-3 text-xs text-text-muted sm:table-cell">
                       {student.addedAt ? timeAgo(student.addedAt) : "—"}
@@ -740,7 +799,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
 }
 
 function getUsername(student: RoomStudent): string {
-  return (student.username ?? student.email?.split("@")[0] ?? "").trim();
+  return (student.username ?? "").trim();
 }
 
 function hasStudentIssue(student: RoomStudent): boolean {

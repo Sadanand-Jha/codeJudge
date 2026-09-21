@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Plus, Search, Users } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useRoomStore, getEligibleCount, getOwnedRooms } from "@/store/roomStore";
@@ -33,9 +33,17 @@ export default function SelectRoomsModal({
   onCreateRoom,
 }: SelectRoomsModalProps) {
   const rooms = useRoomStore((s) => s.rooms);
+  const setRooms = useRoomStore((s) => s.setRooms);
   const recentlyUsedIds = useRoomStore((s) => s.recentlyUsedIds);
   const markRecentlyUsed = useRoomStore((s) => s.markRecentlyUsed);
   const { user } = useAuthStore();
+
+  useEffect(() => {
+    if (!open) return;
+    import("@/services/rooms").then(({ fetchMyRooms }) => {
+      fetchMyRooms().then((fresh) => setRooms(fresh as never)).catch(() => {});
+    });
+  }, [open, setRooms]);
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterTab>("all");
@@ -113,8 +121,8 @@ export default function SelectRoomsModal({
       }
     >
       {/* Search + Create New Room */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input
             value={query}
@@ -125,7 +133,7 @@ export default function SelectRoomsModal({
         </div>
         <button
           onClick={onCreateRoom}
-          className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-dashed border-pink-500/30 bg-pink-500/5 px-3.5 text-xs font-semibold text-pink-500 transition-colors hover:bg-pink-500/10"
+          className="flex h-10 w-full sm:w-auto shrink-0 items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-500/30 bg-pink-500/5 px-3.5 text-xs font-semibold text-pink-500 transition-colors hover:bg-pink-500/10"
         >
           <Plus className="h-3.5 w-3.5" />
           Create New Room
@@ -205,7 +213,7 @@ export default function SelectRoomsModal({
                     {room.name}
                   </span>
                   <span className="mt-0.5 block text-xs text-text-secondary">
-                    {room.students.length} student{room.students.length !== 1 ? "s" : ""}
+                    {room.memberCount ?? room.students.length} student{(room.memberCount ?? room.students.length) !== 1 ? "s" : ""}
                   </span>
                   {meta && (
                     <span className="mt-0.5 block truncate text-[11px] text-text-muted">{meta}</span>

@@ -74,8 +74,8 @@ export default function AddStudentsModal({
       import("@/services/rooms").then(({ getRoom }) => {
         getRoom(selectedRoomId)
           .then((res: unknown) => {
-            const data = (res as { data?: Record<string, unknown> })?.data ?? (res as Record<string, unknown>);
-            const members = (data.members as unknown[]) ?? [];
+            const payload = (res as Record<string, unknown>) ?? {};
+            const members = (payload.members ?? []) as Array<Record<string, unknown>>;
             const mapped = members.map((m: unknown) => {
               const mm = m as Record<string, unknown>;
               const u = (mm.user as Record<string, unknown>) ?? mm;
@@ -360,7 +360,7 @@ export default function AddStudentsModal({
                         <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500"><Users className="h-4 w-4" /></span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-semibold text-text-primary">{room.name}</span>
-                          <span className="block text-xs text-text-muted">{room.students.length} students {room.description ? `· ${room.description}` : ""}</span>
+                          <span className="block text-xs text-text-muted">{room.memberCount ?? room.students.length} students {room.description ? `· ${room.description}` : ""}</span>
                         </span>
                         <span className="text-xs font-bold text-pink-500">Open →</span>
                       </button>

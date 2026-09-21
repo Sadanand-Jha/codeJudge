@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import { Gamepad2, Eye, Trophy, Timer, ShieldCheck, Users, Save, Check, ChevronDown, ChevronRight, ArrowLeft } from "lucide-react";
+import { Gamepad2, Eye, Trophy, Timer, ShieldCheck, Users, ArrowLeft } from "lucide-react";
 import { useStudio } from "../StudioProvider";
 import { GameMechanicsPanel } from "./GameMechanicsPanel";
 import { getEnabledMechanicsSummary, isMechanicAvailable, MECHANIC_META, type MechanicId } from "../types/gameMechanics";
@@ -10,9 +10,7 @@ import { cn } from "@/lib/helpers";
 import type { CreatorQuestionType } from "../types";
 
 export function GameMechanicsPage() {
-  const { state, updateGameMechanics, saveGameMechanicsOnly, savingToServer, saveProgress } = useStudio();
-  const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const { state, updateGameMechanics } = useStudio();
 
   const hasTimer = (state.info.duration ?? 0) > 0;
   const summary = getEnabledMechanicsSummary(state.gameMechanics);
@@ -53,21 +51,6 @@ export function GameMechanicsPage() {
     return notes;
   }, [hasMCQ, hasMatchOnly, hasTimer, state.gameMechanics]);
 
-  const handleSave = async () => {
-    if (saving || savingToServer) return;
-    setSaving(true);
-    setSaveStatus("saving");
-    try {
-      await saveGameMechanicsOnly();
-      setSaveStatus("saved");
-      setTimeout(() => setSaveStatus("idle"), 2000);
-    } catch {
-      setSaveStatus("idle");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const isPublished = state.published;
   const quizName = state.info.title || "Untitled Quiz";
 
@@ -105,24 +88,6 @@ export function GameMechanicsPage() {
                 </div>
               )}
             </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2 self-start">
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-text-muted">
-              {saveStatus === "saving" ? (
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />{saveProgress ? "Saving " + saveProgress.saved + "/" + saveProgress.total + "…" : "Saving..."}</span>
-              ) : saveStatus === "saved" ? (
-                <><Check className="h-3.5 w-3.5 text-emerald-500" /> Saved</>
-              ) : (
-                <><Save className="h-3.5 w-3.5" /> Auto-save</>
-              )}
-            </span>
-            <button
-              onClick={handleSave}
-              disabled={saving || savingToServer}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#E91E63] px-4 py-2 text-xs font-semibold text-white hover:bg-[#D81B60] disabled:opacity-50"
-            >
-              <Save className="h-3.5 w-3.5" /> Save
-            </button>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { formatDateTime, toTimeString } from "./helpers";
 import type { TimingState } from "./types";
@@ -82,13 +83,19 @@ export function TimingSummary({ state }: { state: TimingState }) {
       </div>
 
       <div className="space-y-2">
-        {rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between">
+        {rows.map((row, i) => (
+          <motion.div
+            key={row.label}
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2, delay: i * 0.04 }}
+            className="flex items-center justify-between"
+          >
             <span className="text-xs text-text-secondary">{row.label}</span>
             <span className="text-xs font-semibold text-text-primary">
               {row.value}
             </span>
-          </div>
+          </motion.div>
         ))}
       </div>
 

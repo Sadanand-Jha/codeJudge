@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -23,6 +23,14 @@ import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/helpers";
 import { EXAMS, LANGUAGES } from "@/components/tests/mockData";
 import { PrimaryButton, GhostButton } from "@/components/tests/ui";
+import { SectionCard } from "./sections/SectionCard";
+import { AIGenerateModal } from "./sections/AIGenerateModal";
+import {
+  type Section,
+  createDefaultSection,
+  getSectionQuestionCount,
+  getSectionMarks,
+} from "./sections/types";
 
 const STEPS = [
   { id: "basic", label: "Basic Information", icon: FileText },
@@ -34,8 +42,6 @@ const STEPS = [
 ];
 
 const SUBJECT_POOL = ["Physics", "Chemistry", "Mathematics", "Biology", "Quant", "Reasoning", "English", "GK", "VARC", "DILR"];
-
-type Section = { id: string; name: string; questionCount: number };
 
 export type CreationType = "test" | "quiz" | "assessment";
 
@@ -76,20 +82,29 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const [subjects, setSubjects] = useState<string[]>([]);
   const [language, setLanguage] = useState<string>("english");
   const [difficulty, setDifficulty] = useState("medium");
-  const [sections, setSections] = useState<Section[]>([{ id: "sec_1", name: "Section A", questionCount: 20 }]);
-  const [negativeMarking, setNegativeMarking] = useState(true);
+  const [sections, setSections] = useState<Section[]>([createDefaultSection(0)]);
   const [mode, setMode] = useState<"free" | "paid">("free");
   const [price, setPrice] = useState(0);
   const [originalPrice, setOriginalPrice] = useState(0);
   const [publishing, setPublishing] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
 
-  const totalQuestions = sections.reduce((sum, s) => sum + s.questionCount, 0);
+  const totalQuestions = useMemo(
+    () => sections.reduce((sum, s) => sum + getSectionQuestionCount(s), 0),
+    [sections]
+  );
+
+  const totalMarks = useMemo(
+    () => sections.reduce((sum, s) => sum + getSectionMarks(s), 0),
+    [sections]
+  );
+
   const selectedExam = EXAMS.find((e) => e.id === examId);
 
   const canContinue = () => {
     if (step === 0) return title.trim().length > 3 && description.trim().length > 10;
     if (step === 1) return examId !== "" && subjects.length > 0;
-    if (step === 2) return sections.length > 0 && totalQuestions > 0 && sections.every((s) => s.name.trim() && s.questionCount > 0);
+    if (step === 2) return sections.length > 0 && totalQuestions > 0;
     if (step === 3) return mode === "free" || price > 0;
     return true;
   };
@@ -97,16 +112,49 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const toggleSubject = (s: string) =>
     setSubjects((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
-  const updateSection = (id: string, patch: Partial<Section>) =>
+  const updateSection = useCallback((id: string, patch: Partial<Section>) => {
     setSections((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  }, []);
 
-  const addSection = () =>
-    setSections((prev) => [
-      ...prev,
-      { id: `sec_${Date.now()}`, name: `Section ${String.fromCharCode(65 + prev.length)}`, questionCount: 10 },
-    ]);
+  const removeSection = useCallback((id: string) => {
+    setSections((prev) => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((s) => s.id !== id);
+    });
+  }, []);
 
-  const removeSection = (id: string) => setSections((prev) => prev.filter((s) => s.id !== id));
+  const duplicateSection = useCallback((id: string) => {
+    setSections((prev) => {
+      const idx = prev.findIndex((s) => s.id === id);
+      if (idx === -1) return prev;
+      const source = prev[idx];
+      const newSection: Section = {
+        ...source,
+        id: `sec_${Date.now()}_dup`,
+        name: `${source.name} (Copy)`,
+        questionGroups: source.questionGroups.map((g) => ({ ...g, id: `qg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` })),
+      };
+      const next = [...prev];
+      next.splice(idx + 1, 0, newSection);
+      return next;
+    });
+  }, []);
+
+  const moveSection = useCallback((id: string, direction: "up" | "down") => {
+    setSections((prev) => {
+      const idx = prev.findIndex((s) => s.id === id);
+      if (idx === -1) return prev;
+      const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[targetIdx]] = [next[targetIdx], next[idx]];
+      return next;
+    });
+  }, []);
+
+  const addSection = useCallback(() => {
+    setSections((prev) => [...prev, createDefaultSection(prev.length)]);
+  }, []);
 
   const handlePublish = () => {
     setPublishing(true);
@@ -166,7 +214,10 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.25 }}
-          className="mt-8 rounded-3xl border border-border bg-card p-6 sm:p-8"
+          className={cn(
+            "mt-8 rounded-3xl border border-border bg-card p-6 sm:p-8",
+            step === 2 && "overflow-hidden"
+          )}
         >
           {step === 0 && (
             <div className="space-y-5">
@@ -302,69 +353,44 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
 
           {step === 2 && (
             <div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-text-primary">Sections</h3>
-                  <p className="mt-0.5 text-xs text-text-secondary">
-                    {sections.length} section{sections.length !== 1 && "s"} · {totalQuestions} total questions
-                  </p>
-                </div>
-                <GhostButton onClick={addSection}>
-                  <Plus className="h-4 w-4" /> Add Section
-                </GhostButton>
+              {/* Summary */}
+              <div className="mb-5 flex flex-wrap items-center gap-3 text-[11px] text-text-muted">
+                <span className="font-semibold text-text-primary">{sections.length} Section{sections.length !== 1 && "s"}</span>
+                <span>·</span>
+                <span>{totalQuestions} Question{totalQuestions !== 1 && "s"}</span>
+                <span>·</span>
+                <span className="font-semibold text-text-secondary">{totalMarks} Total Marks</span>
               </div>
 
-              <div className="mt-4 space-y-3">
-                {sections.map((sec) => (
-                  <div
-                    key={sec.id}
-                    className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card-hover/30 p-3.5 sm:flex-nowrap"
-                  >
-                    <div className="min-w-0 flex-1 basis-full sm:basis-auto">
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-text-muted">Section name</label>
-                      <input
-                        value={sec.name}
-                        onChange={(e) => updateSection(sec.id, { name: e.target.value })}
-                        placeholder="Section A"
-                        className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none"
-                      />
-                    </div>
-                    <div className="min-w-[120px]">
-                      <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-text-muted">Questions</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={200}
-                        value={sec.questionCount || ""}
-                        onChange={(e) => updateSection(sec.id, { questionCount: Number(e.target.value) })}
-                        className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeSection(sec.id)}
-                      disabled={sections.length === 1}
-                      className="mt-5 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border text-text-muted transition-colors hover:border-rose-500/40 hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label="Remove section"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+              {/* Section Cards */}
+              <div className="space-y-4">
+                <AnimatePresence initial={false}>
+                  {sections.map((section, idx) => (
+                    <SectionCard
+                      key={section.id}
+                      section={section}
+                      index={idx}
+                      totalSections={sections.length}
+                      onUpdate={updateSection}
+                      onRemove={removeSection}
+                      onDuplicate={duplicateSection}
+                      onMoveUp={() => moveSection(section.id, "up")}
+                      onMoveDown={() => moveSection(section.id, "down")}
+                      onAIGenerate={() => setAiModalOpen(true)}
+                    />
+                  ))}
+                </AnimatePresence>
               </div>
 
-              <div className="mt-5 flex items-center gap-3 rounded-xl border border-border bg-white/[0.02] px-4 py-3">
-                <input
-                  id="negmark"
-                  type="checkbox"
-                  checked={negativeMarking}
-                  onChange={(e) => setNegativeMarking(e.target.checked)}
-                  className="h-4 w-4 rounded border-border-hover accent-pink-500"
-                />
-                <label htmlFor="negmark" className="text-sm font-medium text-text-primary">
-                  Enable negative marking
-                </label>
-              </div>
+              {/* Add Section */}
+              <button
+                type="button"
+                onClick={addSection}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-card/50 py-4 text-sm font-semibold text-text-secondary transition-all hover:border-pink-500/30 hover:text-pink-500 dark:hover:text-pink-400"
+              >
+                <Plus className="h-5 w-5" />
+                Add Section
+              </button>
             </div>
           )}
 
@@ -473,9 +499,9 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                     <span className="rounded-full border border-border bg-card-hover px-2.5 py-0.5 font-semibold capitalize">
                       {LANGUAGES.find((l) => l.id === language)?.label}
                     </span>
-                    {negativeMarking && (
-                      <span className="rounded-full border border-border bg-card-hover px-2.5 py-0.5 font-semibold">-ve marking</span>
-                    )}
+                    <span className="rounded-full border border-border bg-card-hover px-2.5 py-0.5 font-semibold">
+                      {totalMarks} marks
+                    </span>
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
                     {mode === "free" ? (
@@ -505,7 +531,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               <h3 className="mt-4 text-lg font-extrabold text-text-primary">Ready to publish?</h3>
               <p className="mx-auto mt-1 max-w-md text-sm text-text-secondary">
                 <span className="font-bold text-text-primary">{title}</span> — {totalQuestions} questions across {sections.length} section
-                {sections.length !== 1 && "s"}, {duration || 0} minutes,{" "}
+                {sections.length !== 1 && "s"}, {totalMarks} marks, {duration || 0} minutes,{" "}
                 {mode === "free" ? "free" : `₹${price}`}. Once published it will be visible to all students.
               </p>
               <div className="mt-6 flex items-center justify-center gap-3">
@@ -538,6 +564,17 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           )}
         </div>
       </div>
+
+      {/* AI Generate Modal */}
+      <AIGenerateModal
+        open={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        onGenerate={(aiSections) => {
+          setSections(aiSections);
+          setAiModalOpen(false);
+        }}
+        existingSectionCount={sections.length}
+      />
     </div>
   );
 }

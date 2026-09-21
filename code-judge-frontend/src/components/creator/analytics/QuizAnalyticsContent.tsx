@@ -273,7 +273,7 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
             <div className="py-10 text-center text-sm text-text-muted">No completed attempts yet.</div>
           ) : (
             <>
-              <MiniBarChart data={scoreDistChart} height={180} formatter={(v) => `${v}`} />
+              <MiniBarChart data={scoreDistChart} height={220} formatter={(v) => `${v}`} />
               <p className="mt-2 text-[11px] text-text-muted">Mean {stats.average_score.toFixed(1)} · Median {Number(stats.median_score).toFixed(1)} · σ {Number(stats.stddev_score).toFixed(1)}</p>
             </>
           )}
@@ -373,10 +373,10 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title="Accuracy by Question (easiest → hardest)" subtitle="Higher is easier">
-          {questions.length === 0 ? <div className="py-8 text-center text-sm text-text-muted">No data</div> : <MiniBarChart data={[...questions].sort((a:any,b:any)=>b.accuracy-a.accuracy).map((q:any)=>({label:`Q${q.question_number}`, value: q.accuracy}))} height={180} formatter={(v)=>`${v}%`} barClassName="bg-emerald-500" />}
+          {questions.length === 0 ? <div className="py-8 text-center text-sm text-text-muted">No data</div> : <MiniBarChart data={[...questions].sort((a:any,b:any)=>b.accuracy-a.accuracy).map((q:any)=>({label:`Q${q.question_number}`, value: q.accuracy}))} height={220} formatter={(v)=>`${v}%`} barClassName="bg-emerald-500" />}
         </Panel>
         <Panel title="Time Spent by Question" subtitle="Avg time — most time-consuming">
-          {questions.every((q:any)=>!q.avg_time_ms) ? <div className="py-8 text-center text-sm text-text-muted">No per-question timing recorded yet. Time is tracked via events once enabled.</div> : <MiniBarChart data={[...questions].sort((a:any,b:any)=>(b.avg_time_ms||0)-(a.avg_time_ms||0)).slice(0,10).map((q:any)=>({label:`Q${q.question_number}`, value: Math.round((q.avg_time_ms||0)/1000)}))} height={180} formatter={(v)=>`${v}s`} barClassName="bg-amber-500" />}
+          {questions.every((q:any)=>!q.avg_time_ms) ? <div className="py-8 text-center text-sm text-text-muted">No per-question timing recorded yet. Time is tracked via events once enabled.</div> : <MiniBarChart data={[...questions].sort((a:any,b:any)=>(b.avg_time_ms||0)-(a.avg_time_ms||0)).slice(0,10).map((q:any)=>({label:`Q${q.question_number}`, value: Math.round((q.avg_time_ms||0)/1000)}))} height={220} formatter={(v)=>`${v}s`} barClassName="bg-amber-500" />}
         </Panel>
       </div>
 
@@ -427,7 +427,7 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
           </div>
         ) : (
           <div className="space-y-4">
-            <MiniBarChart data={game.by_type.map((g:any)=>({label:g.event_type, value:g.total_uses}))} height={160} formatter={(v)=>`${v}`} barClassName="bg-violet-500" />
+            <MiniBarChart data={game.by_type.map((g:any)=>({label:g.event_type, value:g.total_uses}))} height={200} formatter={(v)=>`${v}`} barClassName="bg-violet-500" />
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] text-left text-xs">
                 <thead><tr className="border-b border-border text-[10px] uppercase tracking-wider text-text-muted"><th className="px-2 py-2">Mechanic</th><th className="px-2 py-2 text-right">Total Uses</th><th className="px-2 py-2 text-right">Unique Users</th><th className="px-2 py-2 text-right">Usage %</th></tr></thead>
@@ -440,15 +440,15 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title="50-50 Usage by Question" subtitle="Question → uses">
-          {fiftyByQ.length === 0 ? <div className="py-8 text-center text-sm text-text-muted">No 50-50 uses yet.</div> : <MiniBarChart data={fiftyByQ.slice(0,10).map((r:any)=>{ const q=questions.find((qq:any)=>String(qq.id)===String(r.question_id)); return {label: q ? `Q${q.question_number}`: `Q${r.question_id}`, value: r.uses}; })} height={180} barClassName="bg-pink-500" />}
+          {fiftyByQ.length === 0 ? <div className="py-8 text-center text-sm text-text-muted">No 50-50 uses yet.</div> : <MiniBarChart data={fiftyByQ.slice(0,10).map((r:any)=>{ const q=questions.find((qq:any)=>String(qq.id)===String(r.question_id)); return {label: q ? `Q${q.question_number}`: `Q${r.question_id}`, value: r.uses}; })} height={220} barClassName="bg-pink-500" />}
         </Panel>
         <Panel title="Power-up Timeline (7d)" subtitle="Uses over time">
-          {timeline.length === 0 ? <div className="py-8 text-center text-sm text-text-muted">No timeline data.</div> : <MiniBarChart data={timeline.slice(-12).map((t:any)=>({label: new Date(t.hour).toLocaleDateString("en-IN",{month:"short",day:"numeric"}), value: t.cnt}))} height={180} barClassName="bg-violet-500" />}
+          {timeline.length === 0 ? <div className="py-8 text-center text-sm text-text-muted">No timeline data.</div> : <MiniBarChart data={timeline.slice(-12).map((t:any)=>({label: new Date(t.hour).toLocaleDateString("en-IN",{month:"short",day:"numeric"}), value: t.cnt}))} height={220} barClassName="bg-violet-500" />}
         </Panel>
       </div>
 
       <Panel title="Lives Analytics" subtitle="Distribution of lives remaining (from config)">
-        {livesDist.length === 0 ? <div className="py-8 text-center text-sm text-text-muted">No lives data.</div> : <MiniBarChart data={livesDist.map((d:any)=>({label: `${d.lives_remaining} ♥`, value: d.count}))} height={160} barClassName="bg-emerald-500" />}
+        {livesDist.length === 0 ? <div className="py-8 text-center text-sm text-text-muted">No lives data.</div> : <MiniBarChart data={livesDist.map((d:any)=>({label: `${d.lives_remaining} ♥`, value: d.count}))} height={200} barClassName="bg-emerald-500" />}
       </Panel>
 
       {/* Difficulty & Topic */}

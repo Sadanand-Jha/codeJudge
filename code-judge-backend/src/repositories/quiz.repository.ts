@@ -84,7 +84,6 @@ export class QuizRepository {
       SELECT
         q.id,
         q.name,
-        q.code,
         q.createdby,
         q.starttime,
         q.visibility,
@@ -529,6 +528,16 @@ export class QuizRepository {
     const values: any[] = [];
     let paramCount = 0;
 
+    if (data.status) {
+      const statusResult = await pool.query(
+        "SELECT id FROM quiz_status WHERE LOWER(name) = LOWER($1) LIMIT 1", [data.status]
+      );
+      if (statusResult.rows.length > 0) {
+        data.quiz_status = statusResult.rows[0].id;
+      }
+      delete data.status;
+    }
+
     const updateableFields = [
       "name", "code", "starttime", "endtime", "visibility", "difficulty",
       "subject_id", "exam_cat", "duration", "total_marks", "passing_marks", "shuffle_questions", "shuffle_options",
@@ -551,8 +560,9 @@ export class QuizRepository {
 
     for (const field of updateableFields) {
       const camelKey = Object.keys(fieldKeyMap).find((k) => fieldKeyMap[k] === field);
-      const val = data[field] ?? (camelKey ? data[camelKey] : undefined);
-      if (val !== undefined) {
+      const raw = data[field] !== undefined ? data[field] : (camelKey ? data[camelKey] : undefined);
+      if (raw !== undefined) {
+        const val = raw === null ? null : raw;
         paramCount++;
         fields.push(`${field} = $${paramCount}`);
         values.push(val);
@@ -1240,10 +1250,8 @@ export class QuizRepository {
     }
 
     const q = quiz.rows[0];
-
-    if (q.status?.toLowerCase() === 'draft') {
-      return { allowed: false, reason: "Quiz is not published" };
-    }
+    const status = q.status?.toLowerCase();
+    if (status === "ended") return { allowed: false, reason: "Quiz has ended" };
 
     const now = new Date();
     if (q.starttime && new Date(q.starttime) > now) {
@@ -1272,13 +1280,28 @@ export class QuizRepository {
     return { allowed: true };
   }
 
+  async checkQuizAccessForRegistration(quizId: string): Promise<{ allowed: boolean; reason?: string }> {
+    const quiz = await pool.query(
+      `SELECT q.*, qs.name AS status FROM quiz q LEFT JOIN quiz_status qs ON qs.id = q.quiz_status WHERE q.id = $1`,
+      [quizId]
+    );
+    if (!quiz.rows.length) return { allowed: false, reason: "Quiz not found" };
+    const q = quiz.rows[0];
+    const status = q.status?.toLowerCase();
+    if (status === "ended") return { allowed: false, reason: "Quiz has ended" };
+    const now = new Date();
+    if (q.starttime && new Date(q.starttime) > now) return { allowed: false, reason: "Quiz has not started yet" };
+    if (q.endtime && new Date(q.endtime) < now) return { allowed: false, reason: "Quiz has ended" };
+    return { allowed: true };
+  }
+
   async getQuizByIdForAttempt(quizId: number): Promise<any | null> {
     const query = `
       SELECT q.*, qv.heading AS visibility_name, qs.name AS status
       FROM quiz q
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.id = $1 AND qs.name = 'published'
+      WHERE q.id = $1 AND qs.name IN ('scheduled', 'live')
     `;
     const result = await pool.query(query, [quizId]);
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -1633,8 +1656,7 @@ export class QuizRepository {
         qcr.invited_by,
         qcr.updated_at AS accepted_at,
         cl.collaborators,
-        COUNT(DISTINCT qp.id)::int AS total_questions,
-        COUNT(DISTINCT qr.id)::int AS participants
+        COUNT(DISTINCT qp.id)::int AS total_questions
       FROM quiz_collaborator_request qcr
       JOIN quiz q ON q.id = qcr.quiz_id
       JOIN users u ON u.id = q.createdby
@@ -1642,17 +1664,15 @@ export class QuizRepository {
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
       LEFT JOIN collaborator_lists cl ON cl.quiz_id = q.id
       LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
-      LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
       WHERE qcr.user_id = $1 AND qcr.status = 'accepted'
       GROUP BY q.id, u.username, u.first_name, u.last_name, a.url, qcr.invited_by, qcr.updated_at, cl.collaborators, qs.name
       ORDER BY qcr.updated_at DESC NULLS LAST, q.id DESC
     `;
     const result = await pool.query(query, [userId]);
-    return result.rows.map((row) => ({
+    return result.rows.map((row: any) => ({
       ...row,
       collaborators: Array.isArray(row.collaborators) ? row.collaborators : [],
       total_questions: row.total_questions ? Number(row.total_questions) : 0,
-      participants: row.participants ? Number(row.participants) : 0,
     }));
   }
 
@@ -1825,12 +1845,8 @@ export class QuizRepository {
   async replaceQuizParticipants(
     quizId: number,
     participants: Array<{
-      email: string;
-      name?: string | null;
-      rollNumber?: string | null;
-      source?: "room" | "individual";
-      roomId?: number | null;
-      allowed?: boolean;
+      userId: number;
+      source?: number;
     }>
   ): Promise<number> {
     const client = await pool.connect();
@@ -1840,21 +1856,13 @@ export class QuizRepository {
 
       let saved = 0;
       for (const p of participants) {
-        if (!p?.email) continue;
+        if (!p?.userId) continue;
         await client.query(
           `INSERT INTO quiz_participants
-             (quiz_id, email, name, roll_number, source, room_id, allowed, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-           ON CONFLICT (quiz_id, email) DO NOTHING`,
-          [
-            quizId,
-            p.email.toLowerCase(),
-            p.name ?? null,
-            p.rollNumber ?? null,
-            p.source === "room" ? "room" : "individual",
-            p.roomId ?? null,
-            p.allowed !== false,
-          ]
+             (quiz_id, user_id, status, source, registered_at, created_at, updated_at)
+           VALUES ($1, $2, 1, $3, CASE WHEN $3 = 1 THEN NOW() ELSE NULL END, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+           ON CONFLICT (quiz_id, user_id) DO NOTHING`,
+          [quizId, p.userId, p.source ?? 2]
         );
         saved++;
       }
@@ -1871,10 +1879,13 @@ export class QuizRepository {
 
   async getQuizParticipants(quizId: number): Promise<any[]> {
     const query = `
-      SELECT id, quiz_id, email, name, roll_number, source, room_id, allowed, created_at, updated_at
-      FROM quiz_participants
-      WHERE quiz_id = $1
-      ORDER BY created_at ASC, id ASC
+      SELECT qp.id, qp.quiz_id, qp.user_id, qp.status, qp.source,
+             qp.registered_at, qp.created_at, qp.updated_at,
+             u.username, u.first_name, u.last_name, u.avatar_id
+      FROM quiz_participants qp
+      LEFT JOIN users u ON u.id = qp.user_id
+      WHERE qp.quiz_id = $1
+      ORDER BY qp.created_at ASC, qp.id ASC
     `;
     const result = await pool.query(query, [quizId]);
     return result.rows;
@@ -2021,6 +2032,7 @@ export class QuizRepository {
 
       // Insert new mechanics
       for (const m of mechanics) {
+        if (!m.enabled || m.quantity <= 0) continue;
         // Look up mechanic_id from code
         const mechResult = await client.query(
           "SELECT id FROM game_mechanics WHERE code = $1",

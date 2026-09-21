@@ -21,10 +21,12 @@ declare global {
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.cookies?.session_token || req.headers.authorization?.replace(/^Bearer\s+/i, "");
-    // console.log(req.cookies)
-    // console.log('Authenticating request. Token:', token);
+    console.log("[AUTH] cookies:", Object.keys(req.cookies || {}));
+    console.log("[AUTH] token present:", !!token);
+    console.log("[AUTH] path:", req.method, req.originalUrl);
 
     if (!token) {
+      console.log("[AUTH] NO TOKEN FOUND — 401");
       res.status(401).json({
         success: false,
         message: "Authentication required",

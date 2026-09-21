@@ -53,7 +53,7 @@ export default function SelectStudentsModal({
     return directory.filter((s) => {
       if (filter === "recent" && !recent.has(s.rollNumber.toLowerCase())) return false;
       if (q) {
-        const haystack = `${s.name} ${s.rollNumber} ${s.username ?? (s as unknown as { email?: string }).email ?? ""}`.toLowerCase();
+        const haystack = `${s.name} ${s.rollNumber} ${s.username ?? ""}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
@@ -128,7 +128,7 @@ export default function SelectStudentsModal({
         <span className="min-w-0 flex-1">
           <span className="block truncate text-xs font-semibold text-text-primary">{student.name}</span>
           <span className="mt-0.5 block truncate text-[11px] text-text-muted">
-            {student.rollNumber} · @{(student.username ?? (student as unknown as { email?: string }).email?.split("@")[0] ?? "").toLowerCase()}
+            {student.rollNumber} · @{(student.username ?? "").toLowerCase()}
           </span>
         </span>
       </button>
@@ -293,7 +293,7 @@ export default function SelectStudentsModal({
                         <div className="min-w-0">
                           <p className="truncate text-xs font-semibold text-text-primary">{room.name}</p>
                           <p className="text-[10px] text-text-muted">
-                            {room.students.length} student{room.students.length !== 1 ? "s" : ""}
+                            {room.memberCount ?? room.students.length} student{(room.memberCount ?? room.students.length) !== 1 ? "s" : ""}
                           </p>
                         </div>
                       </div>

@@ -13,7 +13,6 @@ import {
   RefreshCw,
   Shield,
   Sparkles,
-  Users,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { getMyCollaborations, type CollaborationProject } from "@/services/quiz";
@@ -194,10 +193,6 @@ function CollaborationCard({ quiz, index }: { quiz: CollaborationProject; index:
             <span className="inline-flex items-center gap-1.5">
               <HelpCircle className="h-3.5 w-3.5 text-text-muted" />
               {quiz.total_questions || 0} Question{quiz.total_questions !== 1 ? "s" : ""}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Users className="h-3.5 w-3.5 text-text-muted" />
-              {quiz.participants || 0} Participant{quiz.participants !== 1 ? "s" : ""}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-text-muted" />

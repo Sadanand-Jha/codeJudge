@@ -73,7 +73,7 @@ export function WaitingRoomThemeProvider({ children }: { children: ReactNode }) 
     });
   }, [appTheme, isHydrated]);
 
-  // Load stored state on mount
+  // Load stored state on mount (once only)
   useEffect(() => {
     const stored = getStoredState();
     if (stored) {
@@ -92,7 +92,7 @@ export function WaitingRoomThemeProvider({ children }: { children: ReactNode }) 
       }));
     }
     setIsHydrated(true);
-  }, [appTheme]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist state changes
   useEffect(() => {

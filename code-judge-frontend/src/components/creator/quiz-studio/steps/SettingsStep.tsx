@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { ChevronDown, Clock } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { SwitchField } from "../primitives";
 import { TimingSection } from "../components/timing";
 
-const GROUPS: Array<{ id: string; label: string; fields: SettingField[]; comingSoon?: boolean }> = [
+const GROUPS: Array<{ id: string; label: string; fields: SettingField[]; comingSoon?: boolean; alwaysOn?: boolean }> = [
   {
     id: "general",
     label: "General",
@@ -33,7 +34,7 @@ const GROUPS: Array<{ id: string; label: string; fields: SettingField[]; comingS
   {
     id: "security",
     label: "Security",
-    comingSoon: true,
+    alwaysOn: true,
     fields: [
       { key: "fullscreenMode", label: "Full-screen mode" },
       { key: "tabSwitchDetection", label: "Tab-switch detection" },
@@ -52,30 +53,43 @@ interface SettingField {
 
 export function SettingsStep() {
   return (
-    <div className="flex flex-col bg-background">
-    <div className="">
-    <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="mb-5 flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/10">
+    <div className="flex flex-col bg-zinc-50 lg:bg-background min-w-0 overflow-x-hidden">
+    <div className="min-w-0">
+    <div className="mx-auto max-w-6xl space-y-4 sm:space-y-8 px-0 sm:px-4 py-3 sm:py-6 min-w-0">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="rounded-2xl lg:rounded-xl border border-zinc-200 lg:border-border bg-white lg:bg-card p-3 sm:p-5 min-w-0 overflow-hidden"
+      >
+        <div className="mb-4 sm:mb-5 flex items-center gap-2.5 min-w-0">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10">
             <Clock className="h-4 w-4 text-pink-500" />
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-text-primary">Timing & Lifecycle</h3>
-            <p className="text-[11px] text-text-secondary">Configure when the quiz runs and how long participants get.</p>
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-zinc-900 lg:text-text-primary">Timing & Lifecycle</h3>
+            <p className="text-xs sm:text-[11px] text-zinc-500 lg:text-text-secondary leading-tight">Configure when the quiz runs and how long participants get.</p>
           </div>
         </div>
         <TimingSection />
-      </div>
+      </motion.div>
 
-      {GROUPS.map((g) => (
-        <SettingGroup
+      {GROUPS.map((g, i) => (
+        <motion.div
+          key={g.id}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 + i * 0.06 }}
+        >
+          <SettingGroup
           key={g.id}
           id={g.id}
           label={g.label}
           fields={g.fields}
           comingSoon={g.comingSoon}
-        />
+          alwaysOn={g.alwaysOn}
+          />
+        </motion.div>
       ))}
     </div>
     </div>
@@ -87,15 +101,17 @@ function SettingGroup({
   label,
   fields,
   comingSoon,
+  alwaysOn,
 }: {
   id: string;
   label: string;
   fields: SettingField[];
   comingSoon?: boolean;
+  alwaysOn?: boolean;
 }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className={cn("rounded-xl border border-border bg-card p-4", comingSoon && "opacity-60")}>
+    <div className={cn("rounded-2xl lg:rounded-xl border border-zinc-200 lg:border-border bg-white lg:bg-card p-3 sm:p-4 min-w-0 overflow-hidden", comingSoon && "opacity-60")}>
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -119,7 +135,14 @@ function SettingGroup({
       {open && (
         <div className="mt-3 space-y-1">
           {fields.map((f) =>
-            comingSoon ? (
+            alwaysOn ? (
+              <div key={f.key} className="flex items-center justify-between py-2.5">
+                <span className="text-sm text-text-primary">{f.label}</span>
+                <span className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full bg-pink-500">
+                  <span className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full bg-white shadow-sm" />
+                </span>
+              </div>
+            ) : comingSoon ? (
               <div key={f.key} className="flex items-center justify-between py-2.5">
                 <span className="text-sm text-text-muted">{f.label}</span>
                 <span className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-border bg-border opacity-60">

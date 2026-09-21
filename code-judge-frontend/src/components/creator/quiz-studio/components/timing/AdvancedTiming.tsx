@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Info } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import type { AdvancedConfig, LateJoinCutoff } from "./types";
@@ -37,90 +38,100 @@ export function AdvancedTiming({
         />
       </button>
 
-      {open && (
-        <div className="space-y-5 border-t border-border px-5 py-4">
-          <SwitchRow
-            label="Allow participants to join after quiz starts"
-            description="When enabled, participants can begin their attempts after the quiz has already started, as long as the quiz is still accepting new attempts."
-            example="Quiz starts at 2:00 PM. A participant can still join at 2:20 PM."
-            checked={advanced.lateJoining}
-            onChange={(v) => onChange({ lateJoining: v })}
-          />
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-5 border-t border-border px-5 py-4">
+              <SwitchRow
+                label="Allow participants to join after quiz starts"
+                description="When enabled, participants can begin their attempts after the quiz has already started, as long as the quiz is still accepting new attempts."
+                example="Quiz starts at 2:00 PM. A participant can still join at 2:20 PM."
+                checked={advanced.lateJoining}
+                onChange={(v) => onChange({ lateJoining: v })}
+              />
 
-          {advanced.lateJoining && (
-            <div className="ml-0 space-y-2 pl-0">
-              <p className="text-xs font-medium text-text-secondary">
-                Stop accepting new attempts
-              </p>
-              <p className="text-[11px] text-text-secondary">
-                Choose when late joining should stop.
-              </p>
-              <div className="space-y-1.5">
-                {(
-                  [
-                    {
-                      value: "15min_before",
-                      label: "15 minutes before quiz ends",
-                    },
-                    { value: "at_end", label: "At quiz end" },
-                  ] as const
-                ).map((opt) => (
-                  <label
-                    key={opt.value}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-card-hover cursor-pointer",
-                      advanced.lateJoinCutoff === opt.value
-                        ? "border-pink-500/40"
-                        : "border-border"
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="lateJoinCutoff"
-                      checked={advanced.lateJoinCutoff === opt.value}
-                      onChange={() =>
-                        onChange({
-                          lateJoinCutoff: opt.value as LateJoinCutoff,
-                        })
-                      }
-                      className="accent-pink-500"
-                    />
-                    <span className="text-sm text-text-primary">
-                      {opt.label}
-                    </span>
-                  </label>
-                ))}
+              {advanced.lateJoining && (
+                <div className="ml-0 space-y-2 pl-0">
+                  <p className="text-xs font-medium text-text-secondary">
+                    Stop accepting new attempts
+                  </p>
+                  <p className="text-[11px] text-text-secondary">
+                    Choose when late joining should stop.
+                  </p>
+                  <div className="space-y-1.5">
+                    {(
+                      [
+                        {
+                          value: "15min_before",
+                          label: "15 minutes before quiz ends",
+                        },
+                        { value: "at_end", label: "At quiz end" },
+                      ] as const
+                    ).map((opt) => (
+                      <label
+                        key={opt.value}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-card-hover cursor-pointer",
+                          advanced.lateJoinCutoff === opt.value
+                            ? "border-pink-500/40"
+                            : "border-border"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="lateJoinCutoff"
+                          checked={advanced.lateJoinCutoff === opt.value}
+                          onChange={() =>
+                            onChange({
+                              lateJoinCutoff: opt.value as LateJoinCutoff,
+                            })
+                          }
+                          className="accent-pink-500"
+                        />
+                        <span className="text-sm text-text-primary">
+                          {opt.label}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <SwitchRow
+                label="Allow participants to rejoin"
+                description="Participants can reconnect to an existing attempt after losing connection or refreshing the page. Their existing attempt time is preserved."
+                note="The timer is attempt-based, not browser-based. Refreshing the page does not reset the timer."
+                checked={advanced.rejoining}
+                onChange={(v) => onChange({ rejoining: v })}
+              />
+
+              <div className="space-y-2">
+                <SwitchRow
+                  label="Automatically submit when time expires"
+                  description="When a participant's allotted time runs out, their attempt is automatically submitted."
+                  checked={advanced.autoSubmit}
+                  onChange={(v) => onChange({ autoSubmit: v })}
+                />
+                {advanced.autoSubmit && (
+                  <div className="flex items-center gap-2 rounded-lg border border-border bg-card-hover px-3 py-2">
+                    <Info className="h-3 w-3 shrink-0 text-text-muted" />
+                    <p className="text-[11px] text-text-secondary">
+                      60-minute attempt → Time reaches 00:00 → Attempt
+                      submitted
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-
-          <SwitchRow
-            label="Allow participants to rejoin"
-            description="Participants can reconnect to an existing attempt after losing connection or refreshing the page. Their existing attempt time is preserved."
-            note="The timer is attempt-based, not browser-based. Refreshing the page does not reset the timer."
-            checked={advanced.rejoining}
-            onChange={(v) => onChange({ rejoining: v })}
-          />
-
-          <div className="space-y-2">
-            <SwitchRow
-              label="Automatically submit when time expires"
-              description="When a participant's allotted time runs out, their attempt is automatically submitted."
-              checked={advanced.autoSubmit}
-              onChange={(v) => onChange({ autoSubmit: v })}
-            />
-            {advanced.autoSubmit && (
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-card-hover px-3 py-2">
-                <Info className="h-3 w-3 shrink-0 text-text-muted" />
-                <p className="text-[11px] text-text-secondary">
-                  60-minute attempt → Time reaches 00:00 → Attempt
-                  submitted
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

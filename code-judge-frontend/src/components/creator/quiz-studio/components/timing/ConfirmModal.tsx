@@ -50,6 +50,7 @@ export function ConfirmModal({
   title,
   description,
   details,
+  children,
   confirmLabel,
   confirmColor = "pink",
 }: {
@@ -59,6 +60,7 @@ export function ConfirmModal({
   title: string;
   description: string;
   details?: { label: string; value: string }[];
+  children?: React.ReactNode;
   confirmLabel: string;
   confirmColor?: Variant;
 }) {
@@ -133,7 +135,7 @@ export function ConfirmModal({
               </p>
 
               {details && details.length > 0 && (
-                <div className="mt-6 grid grid-cols-2 gap-2.5">
+                <div className={cn("mt-6 grid gap-2.5", details.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
                   {details.map((d) => (
                     <div
                       key={d.label}
@@ -149,6 +151,8 @@ export function ConfirmModal({
                   ))}
                 </div>
               )}
+
+              {children && <div className="mt-5 text-left">{children}</div>}
             </div>
 
             <div className="flex items-center justify-end gap-2.5 border-t border-border bg-card-hover/40 px-6 py-4">

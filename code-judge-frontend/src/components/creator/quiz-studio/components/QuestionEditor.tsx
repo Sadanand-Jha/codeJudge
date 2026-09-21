@@ -26,7 +26,7 @@ import { useStudio } from "../StudioProvider";
 import { EditableContent, RichToolbar } from "./RichToolbar";
 import { MatchFollowingEditor } from "./MatchFollowingEditor";
 import { motion, AnimatePresence } from "framer-motion";
-import { getQuizDifficultyOptions } from "@/services/quiz";
+import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 
 const SELECTABLE_TYPES: CreatorQuestionType[] = [
   "single_choice", "multiple_choice", "true_false", "fill_blanks", "match_following",
@@ -80,13 +80,10 @@ export function QuestionEditor() {
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const pendingImageOption = useRef<string | null>(null);
   const [draggedOpt, setDraggedOpt] = useState<string | null>(null);
-  const [difficultyOptions, setDifficultyOptions] = useState<{ id: number; heading: string }[]>([]);
-  const fetchedDiffRef = useRef(false);
+  const { difficultyOptions, fetchAll } = useQuizReferenceStore();
 
   useEffect(() => {
-    if (fetchedDiffRef.current) return;
-    fetchedDiffRef.current = true;
-    getQuizDifficultyOptions().then(setDifficultyOptions).catch(() => {});
+    fetchAll();
   }, []);
 
   const hasDataToLose = (qq: CreatorQuestion) => {

@@ -88,6 +88,13 @@ function migrateLegacyStorageKeys() {
   } catch {
     // ignore migration errors
   }
+
+  // Clean up removed localStorage keys
+  try {
+    localStorage.removeItem("byteclash_rooms");
+  } catch {
+    // ignore
+  }
 }
 
 export default function RootLayout({

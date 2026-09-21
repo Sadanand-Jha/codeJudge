@@ -22,6 +22,8 @@ type Workspace = "student" | "studio";
 export default function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
   const pathname = usePathname();
 
   const workspace: Workspace = pathname.startsWith("/creator") || isNestedQuizPath(pathname) ? "studio" : "student";
@@ -36,9 +38,20 @@ export default function WorkspaceSwitcher() {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
+  useEffect(() => {
+    if (open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 6,
+        right: window.innerWidth - rect.right,
+      });
+    }
+  }, [open]);
+
   return (
     <div ref={ref} className="relative shrink-0">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen(!open)}
         aria-haspopup="true"
@@ -67,7 +80,8 @@ export default function WorkspaceSwitcher() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.97 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className="absolute right-0 top-full mt-1.5 z-50 w-60 rounded-xl border border-border bg-card p-1.5 shadow-xl"
+              className="fixed z-50 w-60 rounded-xl border border-border bg-card p-1.5 shadow-xl"
+              style={{ top: dropdownPos.top, right: dropdownPos.right }}
             >
               <WorkspaceOption
                 active={workspace === "student"}

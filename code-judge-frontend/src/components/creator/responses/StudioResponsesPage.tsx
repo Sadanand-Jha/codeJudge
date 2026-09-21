@@ -1,297 +1,704 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  AlertTriangle,
-  ArrowLeft,
-  Award,
-  BarChart3,
-  CheckCircle2,
-  ChevronDown,
-  Clock,
-  Crown,
-  Download,
-  Loader2,
-  Mail,
-  Medal,
-  Search,
-  TrendingDown,
-  TrendingUp,
-  Trophy,
-  UserX,
-  Users,
-  X,
+  ArrowLeft, Download, Mail, Square, Search, ChevronDown, X, Users,
+  CheckCircle2, Clock, AlertTriangle, XCircle, Trophy, BarChart3,
+  Eye, Pause, RotateCcw, ExternalLink, Crown, Medal,
+  ChevronRight, Filter, ArrowUpDown, MoreVertical, FileDown,
+  Timer, TrendingUp, TrendingDown, Minus, Circle,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { useToast } from "@/hooks/useToast";
 import {
-  PageHeader,
-  StatCard,
-  SegmentedControl,
-  Panel,
-  EmptyState,
-  ErrorState,
-  BillButton,
-} from "@/components/creator/billing/ui";
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
+} from "recharts";
+import Link from "next/link";
 
-// ---- Reuse same mock data as pre-created page (keep everything) ----
-type QuizResponseStudent = {
-  user_id: number;
-  rollno: string | null;
-  is_registered: boolean;
-  registered_at: string | null;
-  username: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-  attempt_id: number | null;
-  score: number | null;
-  percentage: number | null;
-  rank: number | null;
-  attempt_status: string | null;
-  completed_at: string | null;
-  time_taken: number | null;
-  total_questions: number | null;
-  correct_answers: number | null;
-  wrong_answers: number | null;
-  skipped_questions: number | null;
-};
-type QuizResponsesSummary = {
+// ─── Mock Data ───────────────────────────────────────────────────────────────
+
+type StudentStatus = "SUBMITTED" | "IN_PROGRESS" | "NOT_STARTED" | "TIMED_OUT" | "LEFT_EARLY";
+
+interface Student {
+  id: string;
+  name: string;
+  rollNo: string;
+  userId: string;
+  status: StudentStatus;
+  marks: number | null;
   total: number;
-  submitted: number;
-  not_submitted: number;
-  average_score: number;
-  highest_score: number | null;
-  lowest_score: number | null;
-  total_marks: number;
-};
-type QuizResponsesData = {
-  quiz: { id: number; name: string; code: string; total_marks: number; passing_marks: number; status: string | null; starttime: string | null; endtime: string | null; };
-  students: QuizResponseStudent[];
-  summary: QuizResponsesSummary;
-};
-type StudentResponseDetail = {
-  attempt: { attempt_id: number; user_id: number; quiz_id: number; score: number; percentage: number; rank: number | null; attempt_status: string; completed_at: string | null; time_taken: number | null; total_questions: number | null; correct_answers: number | null; wrong_answers: number | null; skipped_questions: number | null; username: string | null; first_name: string | null; last_name: string | null; email: string | null; };
-  review: Array<{ problem_id: number; question_number: number; problem_statement: string; problem_description: string | null; explaination: string | null; problem_type: string | null; correct_answer: string | null; selected_option: string | null; selected_statement: string | null; answered_at: string | null; status: "correct" | "wrong" | "unanswered"; }>;
-};
-
-const MOCK_RESPONSES_DATA: QuizResponsesData = {
-  quiz: { id: 1, name: "Fun Math Quiz for Kids", code: "KIDS123MATH", total_marks: 50, passing_marks: 25, status: "published", starttime: "2026-01-15T10:00:00Z", endtime: "2026-01-15T11:30:00Z" },
-  students: [
-    { user_id: 101, rollno: "KIDS-001", is_registered: true, registered_at: "2026-01-10T09:00:00Z", username: "alice_smith", first_name: "Alice", last_name: "Smith", email: "alice@example.com", attempt_id: 201, score: 48, percentage: 96.0, rank: 1, attempt_status: "completed", completed_at: "2026-01-15T10:30:15Z", time_taken: 1815, total_questions: 50, correct_answers: 48, wrong_answers: 2, skipped_questions: 0 },
-    { user_id: 102, rollno: "KIDS-002", is_registered: true, registered_at: "2026-01-10T09:05:00Z", username: "bob_jones", first_name: "Bob", last_name: "Jones", email: "bob@example.com", attempt_id: 202, score: 42, percentage: 84.0, rank: 2, attempt_status: "completed", completed_at: "2026-01-15T10:35:42Z", time_taken: 2142, total_questions: 50, correct_answers: 42, wrong_answers: 8, skipped_questions: 0 },
-    { user_id: 103, rollno: "KIDS-003", is_registered: true, registered_at: "2026-01-10T09:10:00Z", username: "charlie_brown", first_name: "Charlie", last_name: "Brown", email: "charlie@example.com", attempt_id: 203, score: 38, percentage: 76.0, rank: 3, attempt_status: "completed", completed_at: "2026-01-15T10:40:10Z", time_taken: 2410, total_questions: 50, correct_answers: 38, wrong_answers: 10, skipped_questions: 2 },
-    { user_id: 104, rollno: "KIDS-004", is_registered: true, registered_at: "2026-01-10T09:15:00Z", username: "diana_prince", first_name: "Diana", last_name: "Prince", email: "diana@example.com", attempt_id: 204, score: 35, percentage: 70.0, rank: 4, attempt_status: "completed", completed_at: "2026-01-15T10:42:55Z", time_taken: 2575, total_questions: 50, correct_answers: 35, wrong_answers: 12, skipped_questions: 3 },
-    { user_id: 105, rollno: "KIDS-005", is_registered: true, registered_at: "2026-01-10T09:20:00Z", username: "ethan_hunt", first_name: "Ethan", last_name: "Hunt", email: "ethan@example.com", attempt_id: 205, score: 28, percentage: 56.0, rank: 5, attempt_status: "completed", completed_at: "2026-01-15T10:45:30Z", time_taken: 2730, total_questions: 50, correct_answers: 28, wrong_answers: 15, skipped_questions: 7 },
-    { user_id: 106, rollno: "KIDS-006", is_registered: true, registered_at: "2026-01-10T09:25:00Z", username: "fiona_glen", first_name: "Fiona", last_name: "Glen", email: "fiona@example.com", attempt_id: 206, score: 22, percentage: 44.0, rank: 6, attempt_status: "timed_out", completed_at: "2026-01-15T11:30:00Z", time_taken: 5400, total_questions: 50, correct_answers: 22, wrong_answers: 8, skipped_questions: 20 },
-    { user_id: 107, rollno: "KIDS-007", is_registered: true, registered_at: "2026-01-10T09:30:00Z", username: "george_king", first_name: "George", last_name: "King", email: "george@example.com", attempt_id: 207, score: 15, percentage: 30.0, rank: 7, attempt_status: "left_early", completed_at: "2026-01-15T10:20:00Z", time_taken: 1200, total_questions: 50, correct_answers: 15, wrong_answers: 5, skipped_questions: 30 },
-    { user_id: 108, rollno: "KIDS-008", is_registered: true, registered_at: "2026-01-10T09:35:00Z", username: "hannah_lee", first_name: "Hannah", last_name: "Lee", email: "hannah@example.com", attempt_id: null, score: null, percentage: null, rank: null, attempt_status: null, completed_at: null, time_taken: null, total_questions: null, correct_answers: null, wrong_answers: null, skipped_questions: null },
-    { user_id: 109, rollno: "KIDS-009", is_registered: true, registered_at: "2026-01-10T09:40:00Z", username: "ivan_moore", first_name: "Ivan", last_name: "Moore", email: "ivan@example.com", attempt_id: null, score: null, percentage: null, rank: null, attempt_status: null, completed_at: null, time_taken: null, total_questions: null, correct_answers: null, wrong_answers: null, skipped_questions: null },
-    { user_id: 110, rollno: "KIDS-010", is_registered: true, registered_at: "2026-01-10T09:45:00Z", username: "julia_nash", first_name: "Julia", last_name: "Nash", email: "julia@example.com", attempt_id: null, score: null, percentage: null, rank: null, attempt_status: null, completed_at: null, time_taken: null, total_questions: null, correct_answers: null, wrong_answers: null, skipped_questions: null },
-  ],
-  summary: { total: 10, submitted: 5, not_submitted: 3, average_score: 32.6, highest_score: 48, lowest_score: 15, total_marks: 50 },
-};
-
-const MOCK_STUDENT_DETAILS: Record<number, StudentResponseDetail> = {
-  101: { attempt: { attempt_id: 201, user_id: 101, quiz_id: 1, score: 48, percentage: 96.0, rank: 1, attempt_status: "completed", completed_at: "2026-01-15T10:30:15Z", time_taken: 1815, total_questions: 50, correct_answers: 48, wrong_answers: 2, skipped_questions: 0, username: "alice_smith", first_name: "Alice", last_name: "Smith", email: "alice@example.com" }, review: [{ problem_id: 1, question_number: 1, problem_statement: "What is 2 + 2?", problem_description: null, explaination: "Basic addition", problem_type: "mcq", correct_answer: "4", selected_option: "4", selected_statement: "4", answered_at: "2026-01-15T10:01:00Z", status: "correct" }] },
-};
-
-type FilterKey = "all" | "submitted" | "not_submitted" | "timed_out" | "left_early";
-type SortKey = "rank" | "marks" | "percentage" | "time_taken" | "rollno" | "name";
-
-function studentStatus(s: QuizResponseStudent): { key: FilterKey; label: string } {
-  if (!s.attempt_id || !s.attempt_status) return { key: "not_submitted", label: "Not Submitted" };
-  const st = s.attempt_status.toLowerCase();
-  if (st === "completed" || st === "submitted_late") return { key: "submitted", label: st === "submitted_late" ? "Submitted Late" : "Submitted" };
-  if (st === "timed_out") return { key: "timed_out", label: "Timed Out" };
-  return { key: "left_early", label: "Left Early" };
+  percentage: number | null;
+  timeTaken: string | null;
+  submittedAt: string | null;
+  avatar: string;
+  tabSwitches: number;
+  fullscreenExits: number;
+  usedFiftyFifty: boolean;
+  questionsAnswered: number;
+  totalQuestions: number;
+  questionResults: ("correct" | "wrong" | "skipped")[];
 }
-const STATUS_TONE: Record<string, { badge: string; dot: string }> = {
-  Submitted: { badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500", dot: "bg-emerald-500" },
-  "Not Submitted": { badge: "border-amber-500/30 bg-amber-500/10 text-amber-500", dot: "bg-amber-500" },
-  "Timed Out": { badge: "border-red-500/30 bg-red-500/10 text-red-500", dot: "bg-red-500" },
-  "Left Early": { badge: "border-orange-500/30 bg-orange-500/10 text-orange-500", dot: "bg-orange-500" },
-};
-function formatTimeTaken(sec?: number | null): string {
-  if (sec == null) return "—";
-  const m = Math.floor(sec / 60); const s = Math.floor(sec % 60);
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
-function formatPercent(p?: number | null): string { if (p == null) return "—"; return `${Number(p).toFixed(1)}%`; }
 
-export default function StudioResponsesPage({ quizId }: { quizId?: string | number }) {
-  const toast = useToast();
-  const [data, setData] = useState<QuizResponsesData | null>(null);
-  const [loading, setLoading] = useState(true);
+const STATUS_CONFIG: Record<StudentStatus, { label: string; color: string; bg: string; dot: string }> = {
+  SUBMITTED:    { label: "Submitted",    color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20", dot: "bg-emerald-400" },
+  IN_PROGRESS:  { label: "In Progress",  color: "text-blue-400",    bg: "bg-blue-500/10 border-blue-500/20",    dot: "bg-blue-400" },
+  NOT_STARTED:  { label: "Not Started",  color: "text-amber-400",   bg: "bg-amber-500/10 border-amber-500/20",   dot: "bg-amber-400" },
+  TIMED_OUT:    { label: "Timed Out",    color: "text-red-400",     bg: "bg-red-500/10 border-red-500/20",     dot: "bg-red-400" },
+  LEFT_EARLY:   { label: "Left Early",   color: "text-orange-400",  bg: "bg-orange-500/10 border-orange-500/20",  dot: "bg-orange-400" },
+};
+
+const MOCK_STUDENTS: Student[] = [
+  { id: "1", name: "Alice Smith", rollNo: "KIDS-001", userId: "101", status: "SUBMITTED", marks: 48, total: 50, percentage: 96, timeTaken: "30m 15s", submittedAt: "4:00 PM", avatar: "AS", tabSwitches: 0, fullscreenExits: 0, usedFiftyFifty: false, questionsAnswered: 10, totalQuestions: 10, questionResults: ["correct","correct","correct","correct","correct","correct","correct","correct","correct","correct"] },
+  { id: "2", name: "Bob Jones", rollNo: "KIDS-002", userId: "102", status: "SUBMITTED", marks: 42, total: 50, percentage: 84, timeTaken: "35m 42s", submittedAt: "4:05 PM", avatar: "BJ", tabSwitches: 1, fullscreenExits: 0, usedFiftyFifty: true, questionsAnswered: 10, totalQuestions: 10, questionResults: ["correct","correct","correct","wrong","correct","correct","correct","correct","correct","correct"] },
+  { id: "3", name: "Charlie Brown", rollNo: "KIDS-003", userId: "103", status: "SUBMITTED", marks: 38, total: 50, percentage: 76, timeTaken: "40m 10s", submittedAt: "4:10 PM", avatar: "CB", tabSwitches: 0, fullscreenExits: 1, usedFiftyFifty: false, questionsAnswered: 10, totalQuestions: 10, questionResults: ["correct","correct","correct","correct","wrong","correct","correct","correct","wrong","correct"] },
+  { id: "4", name: "Diana Prince", rollNo: "KIDS-004", userId: "104", status: "IN_PROGRESS", marks: 35, total: 50, percentage: 70, timeTaken: "42m 55s", submittedAt: null, avatar: "DP", tabSwitches: 2, fullscreenExits: 1, usedFiftyFifty: true, questionsAnswered: 8, totalQuestions: 10, questionResults: ["correct","correct","correct","correct","correct","wrong","correct","correct","skipped","skipped"] },
+  { id: "5", name: "Ethan Hunt", rollNo: "KIDS-005", userId: "105", status: "IN_PROGRESS", marks: 28, total: 50, percentage: 56, timeTaken: "45m 30s", submittedAt: null, avatar: "EH", tabSwitches: 0, fullscreenExits: 0, usedFiftyFifty: false, questionsAnswered: 7, totalQuestions: 10, questionResults: ["correct","correct","correct","wrong","correct","correct","correct","skipped","skipped","skipped"] },
+  { id: "6", name: "Fiona Glen", rollNo: "KIDS-006", userId: "106", status: "TIMED_OUT", marks: 22, total: 50, percentage: 44, timeTaken: "60m 00s", submittedAt: null, avatar: "FG", tabSwitches: 3, fullscreenExits: 2, usedFiftyFifty: true, questionsAnswered: 6, totalQuestions: 10, questionResults: ["correct","correct","wrong","correct","correct","correct","skipped","skipped","skipped","skipped"] },
+  { id: "7", name: "George Miller", rollNo: "KIDS-007", userId: "107", status: "NOT_STARTED", marks: null, total: 50, percentage: null, timeTaken: null, submittedAt: null, avatar: "GM", tabSwitches: 0, fullscreenExits: 0, usedFiftyFifty: false, questionsAnswered: 0, totalQuestions: 10, questionResults: [] },
+  { id: "8", name: "Hannah Lee", rollNo: "KIDS-008", userId: "108", status: "SUBMITTED", marks: 31, total: 50, percentage: 62, timeTaken: "51m 20s", submittedAt: "4:50 PM", avatar: "HL", tabSwitches: 1, fullscreenExits: 0, usedFiftyFifty: false, questionsAnswered: 10, totalQuestions: 10, questionResults: ["correct","correct","wrong","correct","correct","correct","wrong","correct","correct","correct"] },
+  { id: "9", name: "Ian Carter", rollNo: "KIDS-009", userId: "109", status: "LEFT_EARLY", marks: 18, total: 50, percentage: 36, timeTaken: "21m 44s", submittedAt: null, avatar: "IC", tabSwitches: 0, fullscreenExits: 0, usedFiftyFifty: false, questionsAnswered: 5, totalQuestions: 10, questionResults: ["correct","correct","correct","wrong","correct","skipped","skipped","skipped","skipped","skipped"] },
+  { id: "10", name: "Julia Wilson", rollNo: "KIDS-010", userId: "110", status: "IN_PROGRESS", marks: 41, total: 50, percentage: 82, timeTaken: "38m 12s", submittedAt: null, avatar: "JW", tabSwitches: 1, fullscreenExits: 0, usedFiftyFifty: true, questionsAnswered: 9, totalQuestions: 10, questionResults: ["correct","correct","correct","correct","correct","correct","correct","correct","wrong","skipped"] },
+];
+
+const LIVE_STUDENTS = MOCK_STUDENTS.filter(s => s.status === "IN_PROGRESS");
+
+// ─── Score Distribution Data ─────────────────────────────────────────────────
+
+const SCORE_RANGES = ["0-10", "10-20", "20-30", "30-40", "40-50"];
+const SCORE_DATA = [
+  { range: "0-10", count: 0 },
+  { range: "10-20", count: 1 },
+  { range: "20-30", count: 2 },
+  { range: "30-40", count: 3 },
+  { range: "40-50", count: 4 },
+];
+
+const PIE_COLORS = ["#22C55E", "#3B82F6", "#EAB308", "#EF4444", "#F97316"];
+
+const SUBMISSION_DATA = [
+  { name: "Submitted", value: 4, color: "#22C55E" },
+  { name: "In Progress", value: 3, color: "#3B82F6" },
+  { name: "Not Started", value: 1, color: "#EAB308" },
+  { name: "Timed Out", value: 1, color: "#EF4444" },
+  { name: "Left Early", value: 1, color: "#F97316" },
+];
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: StudentStatus }) {
+  const cfg = STATUS_CONFIG[status];
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide", cfg.bg, cfg.color)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
+      {cfg.label}
+    </span>
+  );
+}
+
+function RankBadge({ rank }: { rank: number }) {
+  if (rank === 1) return <span className="flex items-center justify-center w-6 h-6"><Crown className="h-4 w-4 text-amber-400" /></span>;
+  if (rank === 2) return <span className="flex items-center justify-center w-6 h-6"><Medal className="h-4 w-4 text-gray-300" /></span>;
+  if (rank === 3) return <span className="flex items-center justify-center w-6 h-6"><Medal className="h-4 w-4 text-amber-600" /></span>;
+  return <span className="text-xs font-semibold text-text-muted w-6 text-center">{rank}</span>;
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────────
+
+export default function StudioResponsesPage({ quizId }: { quizId: string }) {
+  const [students, setStudents] = useState<Student[]>(MOCK_STUDENTS);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterKey>("all");
-  const [sortKey, setSortKey] = useState<SortKey>("rank");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [selectedStudent, setSelectedStudent] = useState<QuizResponseStudent | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detail, setDetail] = useState<StudentResponseDetail | null>(null);
-  const [emailBusy, setEmailBusy] = useState(false);
+  const [filter, setFilter] = useState<StudentStatus | "ALL">("ALL");
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [detailPanel, setDetailPanel] = useState<Student | null>(null);
+  const [pauseOpen, setPauseOpen] = useState(false);
+  const [restartOpen, setRestartOpen] = useState(false);
+  const [endOpen, setEndOpen] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      await new Promise((r) => setTimeout(r, 400));
-      setData(MOCK_RESPONSES_DATA);
-    } catch {
-      toast.error({ title: "Could not load responses" });
-    } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const handleSelectStudent = async (s: QuizResponseStudent) => {
-    setSelectedStudent(s); setDetail(null); setDetailLoading(true);
-    try {
-      await new Promise((r) => setTimeout(r, 250));
-      setDetail(MOCK_STUDENT_DETAILS[s.user_id] || { attempt: { attempt_id: s.attempt_id || 0, user_id: s.user_id, quiz_id: Number(quizId ?? 0), score: s.score || 0, percentage: s.percentage || 0, rank: s.rank || null, attempt_status: s.attempt_status || "completed", completed_at: s.completed_at, time_taken: s.time_taken, total_questions: s.total_questions, correct_answers: s.correct_answers, wrong_answers: s.wrong_answers, skipped_questions: s.skipped_questions, username: s.username, first_name: s.first_name, last_name: s.last_name, email: s.email }, review: [] });
-    } catch { toast.error({ title: "Could not load student result" }); } finally { setDetailLoading(false); }
-  };
-
-  const downloadResultsCsv = () => {
-    if (!data) return;
-    const esc = (v: unknown) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-    const header = ["Rank","Roll No.","Student","User ID","Status","Marks","Total","Percentage","Time Taken","Submitted At"];
-    const rows = data.students.map((s) => [s.rank ?? "", s.rollno ?? "", [s.first_name, s.last_name].filter(Boolean).join(" "), s.user_id, studentStatus(s).label, s.score ?? "", data.quiz.total_marks ?? "", s.percentage != null ? Number(s.percentage).toFixed(1) : "", s.time_taken != null ? formatTimeTaken(s.time_taken) : "", s.completed_at ? new Date(s.completed_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : ""]);
-    const csv = [header, ...rows].map((r) => r.map(esc).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `quiz-${data.quiz.code}-results.csv`; a.click(); URL.revokeObjectURL(url);
-    toast.success({ title: "Results downloaded" });
-  };
-  const handleSendEmail = async () => {
-    setEmailBusy(true);
-    try { await new Promise((r) => setTimeout(r, 800)); toast.success({ title: "Results emailed (Demo)", description: "Mock send successful." }); } catch { toast.error({ title: "Could not send results" }); } finally { setEmailBusy(false); }
-  };
-
-  const students = useMemo(() => {
-    if (!data) return [];
-    let list = data.students.slice();
-    if (search.trim()) { const q = search.trim().toLowerCase(); list = list.filter((s) => `${s.first_name ?? ""} ${s.last_name ?? ""} ${s.username ?? ""} ${s.user_id} ${s.rollno ?? ""}`.toLowerCase().includes(q)); }
-    if (filter !== "all") list = list.filter((s) => studentStatus(s).key === filter);
-    const dir = sortDir === "asc" ? 1 : -1;
-    list.sort((a,b)=>{ switch(sortKey){ case "rank": {const ar=a.rank??Infinity, br=b.rank??Infinity; if(ar!==br) return (ar-br)*dir; return (b.score??0)-(a.score??0);} case "marks": return ((a.score??0)-(b.score??0))*dir; case "percentage": return ((a.percentage??0)-(b.percentage??0))*dir; case "time_taken": return ((a.time_taken??0)-(b.time_taken??0))*dir; case "rollno": return String(a.rollno??"").localeCompare(String(b.rollno??""))*dir; case "name": return `${a.first_name??""} ${a.last_name??""}`.trim().localeCompare(`${b.first_name??""} ${b.last_name??""}`.trim())*dir; default: return 0; }});
+  const filtered = useMemo(() => {
+    let list = students;
+    if (filter !== "ALL") list = list.filter(s => s.status === filter);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(s => s.name.toLowerCase().includes(q) || s.rollNo.toLowerCase().includes(q) || s.userId.includes(q));
+    }
     return list;
-  }, [data, search, filter, sortKey, sortDir]);
+  }, [students, filter, search]);
 
-  const summary = data?.summary;
-  const quizName = data?.quiz?.name || "Quiz Responses";
-
-  if (loading) return <div className="space-y-4 p-4 sm:p-6 lg:p-8"><div className="grid grid-cols-2 gap-4 lg:grid-cols-6">{Array.from({length:6}).map((_,i)=><div key={i} className="h-28 animate-pulse rounded-2xl bg-white/[0.06]" />)}</div><div className="h-[400px] animate-pulse rounded-2xl bg-white/[0.06]" /></div>;
-  if (!data) return <div className="p-4 sm:p-6 lg:p-8"><ErrorState onRetry={load} message="Could not load responses." /></div>;
+  const stats = useMemo(() => ({
+    total: students.length,
+    submitted: students.filter(s => s.status === "SUBMITTED").length,
+    inProgress: students.filter(s => s.status === "IN_PROGRESS").length,
+    notStarted: students.filter(s => s.status === "NOT_STARTED").length,
+    timedOut: students.filter(s => s.status === "TIMED_OUT").length,
+    leftEarly: students.filter(s => s.status === "LEFT_EARLY").length,
+    avgScore: students.filter(s => s.marks !== null).reduce((a, b) => a + (b.marks ?? 0), 0) / Math.max(students.filter(s => s.marks !== null).length, 1),
+    highest: Math.max(...students.filter(s => s.marks !== null).map(s => s.marks ?? 0)),
+    lowest: Math.min(...students.filter(s => s.marks !== null && s.marks > 0).map(s => s.marks ?? 0)),
+  }), [students]);
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-      <BillButton variant="ghost" icon={<ArrowLeft className="h-4 w-4" />} href="/creator/quizzes">
-        Back
-      </BillButton>
-      <PageHeader title="Responses" subtitle={quizName} actions={
-        <div className="flex flex-wrap items-center gap-2">
-          <BillButton variant="ghost" icon={<Download className="h-4 w-4" />} onClick={downloadResultsCsv}>Download Results</BillButton>
-          <BillButton loading={emailBusy} icon={<Mail className="h-4 w-4" />} onClick={handleSendEmail}>Send results on email</BillButton>
-        </div>
-      } />
-
-      {/* Stats — studio StatCard style same as QuizzesPage */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
-        <StatCard label="Total Students" value={summary?.total ?? 0} display={String(summary?.total ?? 0)} accent="primary" icon={<Users className="h-3.5 w-3.5" />} hint="registered" />
-        <StatCard label="Submitted" value={summary?.submitted ?? 0} display={String(summary?.submitted ?? 0)} accent="success" icon={<CheckCircle2 className="h-3.5 w-3.5" />} hint="completed" />
-        <StatCard label="Not Submitted" value={summary?.not_submitted ?? 0} display={String(summary?.not_submitted ?? 0)} accent="warning" icon={<UserX className="h-3.5 w-3.5" />} hint="pending" />
-        <StatCard label="Average Score" value={Math.round(summary?.average_score ?? 0)} display={String(summary?.average_score ?? 0)} accent="info" icon={<BarChart3 className="h-3.5 w-3.5" />} hint={`of ${summary?.total_marks ?? 0}`} />
-        <StatCard label="Highest Score" value={summary?.highest_score ?? 0} display={String(summary?.highest_score ?? "—")} accent="gold" icon={<TrendingUp className="h-3.5 w-3.5" />} hint="max" />
-        <StatCard label="Lowest Score" value={summary?.lowest_score ?? 0} display={String(summary?.lowest_score ?? "—")} accent="warning" icon={<TrendingDown className="h-3.5 w-3.5" />} hint="min" />
-      </div>
-
-      {/* Toolbar */}
-      <Panel noPadding>
-        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative flex-1 sm:max-w-sm">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-            <input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search by roll number, name or user ID..." className="w-full h-10 rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-500/10" />
-          </div>
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {(["all","submitted","not_submitted","timed_out","left_early"] as FilterKey[]).map(k=>(
-              <button key={k} onClick={()=>setFilter(k)} className={cn("shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-semibold capitalize", filter===k ? "border-pink-500 bg-pink-500/10 text-pink-500" : "border-border bg-card-hover text-text-secondary")}>{k.replace("_"," ")}</button>
-            ))}
-          </div>
-          <SegmentedControl options={[{id:"rank",label:"Rank"},{id:"marks",label:"Marks"},{id:"percentage",label:"%"},{id:"time_taken",label:"Time"},{id:"rollno",label:"Roll"},{id:"name",label:"Name"}] as any} value={sortKey as any} onChange={(v)=>{ if(v===sortKey) setSortDir(d=>d==="asc"?"desc":"asc"); else {setSortKey(v as SortKey); setSortDir("desc");}}} size="sm" />
-        </div>
-      </Panel>
-
-      {/* Table */}
-      <Panel noPadding>
-        <div className="max-h-[60vh] sm:max-h-[70vh] overflow-auto">
-          <table className="w-full min-w-[700px] sm:min-w-[900px] border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-card">
-              <tr className="border-b border-border text-[10px] uppercase tracking-wider text-text-muted">
-                <th className="px-4 py-3">Rank</th><th className="px-4 py-3">Roll No.</th><th className="px-4 py-3">Student</th><th className="px-4 py-3">User ID</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Marks</th><th className="px-4 py-3 text-right">Total</th><th className="px-4 py-3 text-right">%</th><th className="px-4 py-3 text-right">Time</th><th className="px-4 py-3">Submitted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((s)=>{ const st=studentStatus(s); const style=STATUS_TONE[st.label]||STATUS_TONE["Not Submitted"]; return (
-                <tr key={s.user_id} onClick={()=>handleSelectStudent(s)} className="cursor-pointer border-b border-border/60 hover:bg-pink-500/[0.04]">
-                  <td className="px-4 py-3">{s.rank!=null ? <span className={cn("inline-flex h-6 w-6 items-center justify-center rounded-lg text-xs font-bold", s.rank===1 ? "bg-amber-500/15 text-amber-500" : s.rank===2 ? "bg-slate-400/15 text-slate-400" : s.rank===3 ? "bg-orange-500/15 text-orange-500" : "bg-card-hover text-text-secondary")}>{s.rank===1?<Crown className="h-3.5 w-3.5"/>:s.rank===2?<Medal className="h-3.5 w-3.5"/>:s.rank===3?<Award className="h-3.5 w-3.5"/>:s.rank}</span> : <span className="text-xs text-text-muted">—</span>}</td>
-                  <td className="px-4 py-3 text-sm font-medium tabular-nums">{s.rollno||"—"}</td>
-                  <td className="px-4 py-3"><p className="text-sm font-semibold">{[s.first_name,s.last_name].filter(Boolean).join(" ")||"Student"}</p><p className="text-[11px] text-text-muted">@{s.username}</p></td>
-                  <td className="px-4 py-3 text-sm tabular-nums">{s.user_id}</td>
-                  <td className="px-4 py-3"><span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider", style.badge)}><span className={cn("h-1.5 w-1.5 rounded-full", style.dot)} />{st.label}</span></td>
-                  <td className="px-4 py-3 text-right font-bold tabular-nums">{s.score??0}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{data.quiz.total_marks}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-violet-500 tabular-nums">{formatPercent(s.percentage)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">{formatTimeTaken(s.time_taken)}</td>
-                  <td className="px-4 py-3 text-xs">{s.completed_at ? new Date(s.completed_at).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"}) : "—"}</td>
-                </tr>
-              );})}
-            </tbody>
-          </table>
-        </div>
-      </Panel>
-
-      <AnimatePresence>
-        {selectedStudent && (
-          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={()=>setSelectedStudent(null)}>
-            <motion.div initial={{scale:0.95, opacity:0, y:12}} animate={{scale:1, opacity:1, y:0}} exit={{scale:0.95, opacity:0, y:12}} onClick={(e)=>e.stopPropagation()} className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-              <div className="flex items-start justify-between gap-4 border-b border-border p-5">
-                <div><p className="text-[10px] font-bold uppercase tracking-wider text-pink-500">Student Result</p><h3 className="mt-0.5 text-lg font-bold">{[selectedStudent.first_name, selectedStudent.last_name].filter(Boolean).join(" ")||"Student"}</h3><p className="mt-0.5 text-xs text-text-secondary">Roll No: {selectedStudent.rollno||"—"} · User ID: {selectedStudent.user_id}</p></div>
-                <button onClick={()=>setSelectedStudent(null)} className="rounded-lg border border-border bg-card-hover p-2"><X className="h-4 w-4" /></button>
+    <div className="min-h-screen bg-background">
+      {/* ── Top Header ─────────────────────────────────────────────── */}
+      <header className="border-b border-border bg-background">
+        <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between px-6">
+          <div className="flex items-center gap-4">
+            <Link href="/creator/quizzes" className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card hover:bg-card-hover transition-colors">
+              <ArrowLeft className="h-4 w-4 text-text-secondary" />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-bold text-text-primary">Responses</h1>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  LIVE
+                </span>
               </div>
-              <div className="flex-1 overflow-y-auto p-5">
-                {detailLoading ? <div className="flex flex-col items-center gap-2 py-16"><Loader2 className="h-6 w-6 animate-spin" /><p className="text-sm">Loading result...</p></div> : detail?.attempt ? (
-                  <>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {[
-                        { label: "Marks", value: `${detail.attempt.score} / ${detail.attempt.total_questions ?? "—"}`, icon: Medal, tone: "text-pink-500 bg-pink-500/10" },
-                        { label: "Percentage", value: formatPercent(detail.attempt.percentage), icon: BarChart3, tone: "text-violet-500 bg-violet-500/10" },
-                        { label: "Rank", value: detail.attempt.rank ?? "—", icon: Trophy, tone: "text-amber-500 bg-amber-500/10" },
-                        { label: "Correct", value: detail.attempt.correct_answers ?? 0, icon: CheckCircle2, tone: "text-emerald-500 bg-emerald-500/10" },
-                        { label: "Wrong", value: detail.attempt.wrong_answers ?? 0, icon: X, tone: "text-red-500 bg-red-500/10" },
-                        { label: "Unanswered", value: detail.attempt.skipped_questions ?? 0, icon: UserX, tone: "text-orange-500 bg-orange-500/10" },
-                      ].map((it)=>(
-                        <div key={it.label} className="rounded-xl border border-border bg-card-hover p-3.5">
-                          <div className={cn("mb-2 inline-flex h-8 w-8 items-center justify-center rounded-lg", it.tone)}><it.icon className="h-4 w-4" /></div>
-                          <p className="text-lg font-bold tabular-nums">{it.value}</p>
-                          <p className="text-[11px] font-medium text-text-secondary">{it.label}</p>
-                        </div>
+              <p className="text-[11px] text-text-muted">Fun Math Quiz for Kids</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary hover:bg-card-hover transition-colors">
+              <Download className="h-3.5 w-3.5" />
+              Download Results
+            </button>
+            <button className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary hover:bg-card-hover transition-colors">
+              <Mail className="h-3.5 w-3.5" />
+              Send on Email
+            </button>
+            <button className="inline-flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/20 transition-colors">
+              <Square className="h-3.5 w-3.5" />
+              End Quiz
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-[1600px] px-6 py-6 space-y-6">
+
+        {/* ── KPI Cards ─────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3">
+          {[
+            { icon: Users, label: "Total Students", value: stats.total, sub: "registered", accent: "text-pink-400" },
+            { icon: CheckCircle2, label: "Submitted", value: stats.submitted, sub: "completed", accent: "text-emerald-400" },
+            { icon: Clock, label: "In Progress", value: stats.inProgress, sub: "currently taking", accent: "text-blue-400" },
+            { icon: AlertTriangle, label: "Not Started", value: stats.notStarted, sub: "waiting", accent: "text-amber-400" },
+            { icon: XCircle, label: "Timed Out", value: stats.timedOut, sub: "", accent: "text-red-400" },
+            { icon: XCircle, label: "Left Early", value: stats.leftEarly, sub: "", accent: "text-orange-400" },
+            { icon: BarChart3, label: "Avg Score", value: `${stats.avgScore.toFixed(1)}`, sub: `/ 50`, accent: "text-purple-400" },
+            { icon: TrendingUp, label: "Highest", value: stats.highest, sub: "score", accent: "text-emerald-400" },
+            { icon: TrendingDown, label: "Lowest", value: stats.lowest, sub: "score", accent: "text-rose-400" },
+          ].map((kpi) => (
+            <div key={kpi.label} className="rounded-xl border border-border bg-card p-3 flex flex-col gap-1">
+              <div className="flex items-center gap-1.5">
+                <kpi.icon className={cn("h-3.5 w-3.5", kpi.accent)} />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">{kpi.label}</span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-extrabold text-text-primary">{kpi.value}</span>
+                {kpi.sub && <span className="text-[10px] text-text-muted">{kpi.sub}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Live Control Bar ──────────────────────────────────────── */}
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Live Now</span>
+              <span className="text-[11px] text-text-muted">{LIVE_STUDENTS.length} students currently taking this quiz</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setEndOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-rose-600 transition-colors">
+                <Square className="h-3.5 w-3.5" />
+                End Quiz
+              </button>
+              <div className="relative" id="live-more-menu">
+                <button
+                  onClick={() => {
+                    const m = document.getElementById("live-more-dropdown");
+                    if (m) m.classList.toggle("hidden");
+                  }}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-text-muted hover:bg-card-hover hover:text-text-primary transition-colors"
+                  aria-label="More actions"
+                >
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </button>
+                <div id="live-more-dropdown" className="hidden absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-card p-1 shadow-xl">
+                  <button onClick={() => { document.getElementById("live-more-dropdown")?.classList.add("hidden"); setPauseOpen(true); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors">
+                    <Pause className="h-3.5 w-3.5" /> Pause
+                  </button>
+                  <button onClick={() => { document.getElementById("live-more-dropdown")?.classList.add("hidden"); setRestartOpen(true); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors">
+                    <RotateCcw className="h-3.5 w-3.5" /> Restart
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 overflow-x-auto">
+            {LIVE_STUDENTS.map(s => (
+              <div key={s.id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 min-w-[200px]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-[10px] font-bold text-blue-400">{s.avatar}</div>
+                <div>
+                  <p className="text-xs font-semibold text-text-primary">{s.name}</p>
+                  <p className="text-[10px] text-text-muted">{s.timeTaken}</p>
+                </div>
+              </div>
+            ))}
+            <button className="inline-flex items-center gap-1 rounded-lg border border-dashed border-border px-3 py-2 text-[11px] font-semibold text-text-muted hover:text-text-primary hover:border-border-hover transition-colors">
+              <ExternalLink className="h-3 w-3" />
+              Open Live Monitor
+            </button>
+          </div>
+        </div>
+
+        {/* ── Filter Bar ────────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by roll number, name or user ID..."
+              className="h-9 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-xs text-text-primary placeholder-text-muted outline-none focus:border-pink-500/40 focus:ring-1 focus:ring-pink-500/10"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(["ALL", "SUBMITTED", "IN_PROGRESS", "NOT_STARTED", "TIMED_OUT", "LEFT_EARLY"] as const).map(f => {
+              const cfg = f === "ALL" ? { label: "All", color: "text-text-primary", bg: "bg-card border-border" } : STATUS_CONFIG[f];
+              const active = filter === f;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide transition-all",
+                    active ? cn(cfg.bg, cfg.color) : "border-border bg-card text-text-muted hover:bg-card-hover"
+                  )}
+                >
+                  {cfg.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <button className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-text-secondary hover:bg-card-hover transition-colors">
+              <FileDown className="h-3 w-3" />
+              Export
+            </button>
+            <button className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-text-secondary hover:bg-card-hover transition-colors">
+              <ArrowUpDown className="h-3 w-3" />
+              Sort
+            </button>
+          </div>
+        </div>
+
+        {/* ── Analytics Row ─────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Score Distribution — Sales This Week style */}
+          <div className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold tracking-tight text-text-primary">Score Distribution</h3>
+                <p className="mt-1 text-xs text-text-muted">{stats.total} submissions across all ranges</p>
+              </div>
+              <span className="shrink-0 rounded-full bg-pink-500/10 px-2.5 py-1 text-[11px] font-bold text-pink-500">Detailed stats →</span>
+            </div>
+            <div className="flex-1">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={SCORE_DATA} barSize={48} barCategoryGap="18%">
+                  <XAxis dataKey="range" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} dy={10} />
+                  <YAxis hide domain={[0, "auto"]} />
+                  <Tooltip
+                    contentStyle={{ background: "#1A1F2E", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, fontSize: 11 }}
+                    cursor={{ fill: "rgba(236,72,153,0.06)" }}
+                  />
+                  <Bar dataKey="count" radius={[10, 10, 0, 0]} label={{ position: "top", fill: "#9CA3AF", fontSize: 11, fontWeight: 800, dy: -8 }}>
+                    {SCORE_DATA.map((_, i) => (
+                      <Cell key={i} fill="#EC4899" />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Submission Status — premium */}
+          <div className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h3 className="text-sm font-bold tracking-tight text-text-primary">Submission Status</h3>
+            <p className="mt-1 text-xs text-text-muted">Breakdown of {stats.total} students</p>
+            <div className="mt-5 flex flex-1 items-center gap-7">
+              <div className="relative h-[148px] w-[148px] shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={SUBMISSION_DATA}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={46}
+                      outerRadius={68}
+                      paddingAngle={3}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {SUBMISSION_DATA.map((entry, i) => (
+                        <Cell key={i} fill={entry.color} stroke="rgba(0,0,0,0.08)" strokeWidth={1.5} />
                       ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-[24px] font-extrabold leading-none tracking-tight text-text-primary">{stats.total}</span>
+                  <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Total</span>
+                </div>
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col justify-center">
+                {SUBMISSION_DATA.map(d => (
+                  <div key={d.name} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full shadow-sm ring-1 ring-white/10" style={{ background: d.color }} />
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-none text-text-secondary">{d.name}</span>
+                    <span className="text-[13px] font-extrabold leading-none text-text-primary tabular-nums">{d.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Time Taken — premium */}
+          <div className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h3 className="text-sm font-bold tracking-tight text-text-primary">Time Taken</h3>
+            <p className="mt-1 text-xs text-text-muted">Duration insights</p>
+            <div className="mt-5 flex flex-1 flex-col gap-3">
+              {[
+                { label: "Average", value: "41m 14s", icon: Timer, accent: "bg-violet-500 text-white", sub: "Typical completion" },
+                { label: "Fastest", value: "21m 44s", icon: TrendingUp, accent: "bg-emerald-500 text-white", sub: "Best performer" },
+                { label: "Slowest", value: "60m 00s", icon: TrendingDown, accent: "bg-rose-500 text-white", sub: "Needs attention" },
+              ].map(t => (
+                <div key={t.label} className="flex items-center gap-3.5 rounded-xl border border-border/60 bg-gradient-to-br from-card-hover/70 to-card-hover/30 px-4 py-3.5 transition-colors hover:border-pink-500/20">
+                  <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm", t.accent)}>
+                    <t.icon className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">{t.label}</p>
+                    <p className="text-[11px] leading-none text-text-muted">{t.sub}</p>
+                  </div>
+                  <p className="text-sm font-extrabold tracking-tight text-text-primary tabular-nums">{t.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Student Response Table ────────────────────────────────── */}
+        <div className="rounded-xl border border-border bg-card">
+          <div className="border-b border-border px-5 py-4">
+            <h3 className="text-sm font-bold text-text-primary">Student Responses</h3>
+            <p className="text-[11px] text-text-muted mt-0.5">Monitor every student&apos;s quiz activity and performance in real time.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-border">
+                  {["Rank", "Roll No.", "Student", "User ID", "Status", "Marks", "Total", "%", "Time Taken", "Submitted At", "Actions"].map(h => (
+                    <th key={h} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-text-muted whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((s, i) => (
+                  <tr
+                    key={s.id}
+                    onClick={() => setDetailPanel(s)}
+                    className="border-b border-border/50 hover:bg-card-hover/50 cursor-pointer transition-colors"
+                  >
+                    <td className="px-4 py-3"><RankBadge rank={i + 1} /></td>
+                    <td className="px-4 py-3 text-xs font-mono text-text-secondary">{s.rollNo}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-pink-500/10 text-[10px] font-bold text-pink-400">{s.avatar}</div>
+                        <span className="text-xs font-semibold text-text-primary">{s.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-text-muted font-mono">{s.userId}</td>
+                    <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
+                    <td className="px-4 py-3 text-xs font-bold text-text-primary">{s.marks !== null ? s.marks : "—"}</td>
+                    <td className="px-4 py-3 text-xs text-text-muted">{s.total}</td>
+                    <td className="px-4 py-3 text-xs font-semibold text-text-primary">{s.percentage !== null ? `${s.percentage}%` : "—"}</td>
+                    <td className="px-4 py-3 text-xs text-text-secondary">{s.timeTaken ?? "—"}</td>
+                    <td className="px-4 py-3 text-[11px] text-text-muted">{s.submittedAt ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={(e) => { e.stopPropagation(); }} className="rounded p-1 hover:bg-card-hover transition-colors">
+                        <MoreVertical className="h-3.5 w-3.5 text-text-muted" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      {/* ── Student Detail Panel ────────────────────────────────────── */}
+      <AnimatePresence>
+        {detailPanel && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              onClick={() => setDetailPanel(null)}
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed right-0 top-0 z-50 h-full w-full max-w-md border-l border-border bg-card shadow-2xl overflow-y-auto"
+            >
+              <div className="flex items-center justify-between border-b border-border px-5 py-4 sticky top-0 bg-card z-10">
+                <h3 className="text-sm font-bold text-text-primary">Student Details</h3>
+                <button onClick={() => setDetailPanel(null)} className="rounded-lg p-1.5 hover:bg-card-hover transition-colors">
+                  <X className="h-4 w-4 text-text-muted" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-5">
+                {/* Profile */}
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500/10 text-lg font-bold text-pink-400">{detailPanel.avatar}</div>
+                  <div>
+                    <h4 className="text-base font-bold text-text-primary">{detailPanel.name}</h4>
+                    <p className="text-xs text-text-muted">{detailPanel.rollNo} &middot; User #{detailPanel.userId}</p>
+                    <StatusBadge status={detailPanel.status} />
+                  </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Score", value: detailPanel.marks !== null ? `${detailPanel.marks} / ${detailPanel.total}` : "—" },
+                    { label: "Percentage", value: detailPanel.percentage !== null ? `${detailPanel.percentage}%` : "—" },
+                    { label: "Time Taken", value: detailPanel.timeTaken ?? "—" },
+                    { label: "Started At", value: "3:30 PM" },
+                    { label: "Submitted At", value: detailPanel.submittedAt ?? "—" },
+                    { label: "Questions", value: `${detailPanel.questionsAnswered} / ${detailPanel.totalQuestions}` },
+                  ].map(s => (
+                    <div key={s.label} className="rounded-lg border border-border bg-background px-3 py-2">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted">{s.label}</p>
+                      <p className="text-sm font-bold text-text-primary mt-0.5">{s.value}</p>
                     </div>
-                    {detail.review.length>0 && (
-                      <div className="mt-6"><h4 className="mb-3 text-sm font-bold">Question-wise Breakdown</h4><div className="space-y-2">{detail.review.map((q)=>(
-                        <div key={q.problem_id} className={cn("rounded-xl border p-3.5", q.status==="correct" ? "border-emerald-500/20 bg-emerald-500/[0.04]" : q.status==="wrong" ? "border-red-500/20 bg-red-500/[0.04]" : "border-orange-500/20 bg-orange-500/[0.04]")}>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1"><p className="text-xs font-semibold" dangerouslySetInnerHTML={{ __html: `Q${q.question_number}. ${q.problem_statement}` }} /><p className="mt-1 text-[11px] text-text-secondary">Selected: <span className="text-text-primary">{q.selected_statement||"—"}</span></p>{q.status!=="correct" && q.correct_answer && <p className="mt-0.5 text-[11px] text-emerald-500">Correct: {q.correct_answer}</p>}</div>
-                            <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider", q.status==="correct" ? "bg-emerald-500/15 text-emerald-500" : q.status==="wrong" ? "bg-red-500/15 text-red-500" : "bg-orange-500/15 text-orange-500")}>{q.status}</span>
-                          </div>
-                        </div>
-                      ))}</div></div>
-                    )}
-                  </>
-                ) : <div className="py-16 text-center text-text-muted"><Clock className="mx-auto h-8 w-8" /><p className="mt-2 text-sm">No submission found.</p></div>}
+                  ))}
+                </div>
+
+                {/* Question Progress */}
+                <div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-2">Question Progress</h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {detailPanel.questionResults.map((r, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "flex h-8 w-8 items-center justify-center rounded-lg text-[10px] font-bold",
+                          r === "correct" && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                          r === "wrong" && "bg-red-500/10 text-red-400 border border-red-500/20",
+                          r === "skipped" && "bg-card-hover text-text-muted border border-border",
+                        )}
+                      >
+                        {r === "correct" ? "✓" : r === "wrong" ? "✕" : "—"}
+                      </div>
+                    ))}
+                    {Array.from({ length: detailPanel.totalQuestions - detailPanel.questionResults.length }).map((_, i) => (
+                      <div key={`empty-${i}`} className="flex h-8 w-8 items-center justify-center rounded-lg text-[10px] text-text-muted border border-border bg-card-hover">
+                        —
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Activity */}
+                <div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-2">Activity</h4>
+                  <div className="space-y-2">
+                    {[
+                      { label: "Tab switches", value: detailPanel.tabSwitches },
+                      { label: "Fullscreen exits", value: detailPanel.fullscreenExits },
+                      { label: "50/50 used", value: detailPanel.usedFiftyFifty ? "Yes" : "No" },
+                      { label: "Questions answered", value: `${detailPanel.questionsAnswered}/${detailPanel.totalQuestions}` },
+                    ].map(a => (
+                      <div key={a.label} className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">
+                        <span className="text-xs text-text-secondary">{a.label}</span>
+                        <span className="text-xs font-bold text-text-primary">{a.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </motion.div>
-          </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Pause Quiz Modal ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {pauseOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md"
+              onClick={() => setPauseOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              transition={{ type: "spring", stiffness: 380, damping: 28 }}
+              className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            >
+              <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card shadow-2xl overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-yellow-400 to-transparent" />
+                <div className="px-6 pb-6 pt-7 text-center">
+                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 text-white shadow-xl">
+                    <Pause className="h-7 w-7" />
+                  </div>
+                  <h3 className="text-lg font-extrabold text-text-primary">Pause this quiz?</h3>
+                  <p className="mt-2 text-[13px] text-text-secondary leading-relaxed">
+                    Pausing the quiz will stop the timer for all active participants. They will not be able to continue until you resume.
+                  </p>
+                  <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/[0.04] px-3 py-2">
+                    <p className="text-[11px] text-amber-500">
+                      {LIVE_STUDENTS.length} student{LIVE_STUDENTS.length !== 1 ? "s" : ""} currently taking this quiz
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2.5 border-t border-border bg-card-hover/40 px-6 py-4">
+                  <button
+                    onClick={() => setPauseOpen(false)}
+                    className="h-10 rounded-xl border border-border px-4 text-xs font-semibold text-text-secondary hover:bg-card-hover transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => { setPauseOpen(false); /* TODO: call pause API */ }}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 px-5 text-xs font-bold text-white shadow-lg shadow-amber-500/25 hover:brightness-110 transition-all"
+                  >
+                    <Pause className="h-3.5 w-3.5" />
+                    Pause Quiz
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Restart Quiz Modal ───────────────────────────────────────── */}
+      <AnimatePresence>
+        {restartOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md"
+              onClick={() => setRestartOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              transition={{ type: "spring", stiffness: 380, damping: 28 }}
+              className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            >
+              <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card shadow-2xl overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-transparent" />
+                <div className="px-6 pb-6 pt-7 text-center">
+                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl">
+                    <RotateCcw className="h-7 w-7" />
+                  </div>
+                  <h3 className="text-lg font-extrabold text-text-primary">Restart this quiz?</h3>
+                  <p className="mt-2 text-[13px] text-text-secondary leading-relaxed">
+                    This will make the quiz live again. All participants will be able to start new attempts.
+                  </p>
+                </div>
+                <div className="flex items-center justify-end gap-2.5 border-t border-border bg-card-hover/40 px-6 py-4">
+                  <button
+                    onClick={() => setRestartOpen(false)}
+                    className="h-10 rounded-xl border border-border px-4 text-xs font-semibold text-text-secondary hover:bg-card-hover transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => { setRestartOpen(false); /* TODO: call restart API */ }}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-5 text-xs font-bold text-white shadow-lg shadow-emerald-500/25 hover:brightness-110 transition-all"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Restart Quiz
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── End Quiz Modal ───────────────────────────────────────────── */}
+      <AnimatePresence>
+        {endOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md"
+              onClick={() => setEndOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              transition={{ type: "spring", stiffness: 380, damping: 28 }}
+              className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            >
+              <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card shadow-2xl overflow-hidden">
+                <div className="h-1 w-full bg-gradient-to-r from-rose-500 via-red-400 to-transparent" />
+                <div className="px-6 pb-6 pt-7 text-center">
+                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-xl">
+                    <Square className="h-7 w-7" />
+                  </div>
+                  <h3 className="text-lg font-extrabold text-text-primary">End this quiz?</h3>
+                  <p className="mt-2 text-[13px] text-text-secondary leading-relaxed">
+                    New participants will no longer be able to start the quiz. Participants who are already taking the quiz will follow the configured end behavior.
+                  </p>
+                  <div className="mt-4 rounded-lg border border-rose-500/20 bg-rose-500/[0.04] px-3 py-2">
+                    <p className="text-[11px] text-rose-500">
+                      {LIVE_STUDENTS.length} student{LIVE_STUDENTS.length !== 1 ? "s" : ""} currently active
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2.5 border-t border-border bg-card-hover/40 px-6 py-4">
+                  <button
+                    onClick={() => setEndOpen(false)}
+                    className="h-10 rounded-xl border border-border px-4 text-xs font-semibold text-text-secondary hover:bg-card-hover transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => { setEndOpen(false); /* TODO: call end API */ }}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 px-5 text-xs font-bold text-white shadow-lg shadow-rose-500/25 hover:brightness-110 transition-all"
+                  >
+                    <Square className="h-3.5 w-3.5" />
+                    End Quiz
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

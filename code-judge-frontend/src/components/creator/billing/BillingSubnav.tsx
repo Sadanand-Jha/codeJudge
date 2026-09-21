@@ -22,7 +22,7 @@ export function BillingSubnav() {
   const pathname = usePathname();
 
   return (
-    <div className="sticky top-16 z-10 -mx-4 border-b border-border bg-ai-bg/85 px-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+    <div className="relative z-10 -mx-4 border-b border-border bg-ai-bg/85 px-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
       <div className="flex items-center gap-1 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {BILLING_TABS.map((tab) => {
           const isActive = tab.exact

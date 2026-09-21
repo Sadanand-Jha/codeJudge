@@ -99,7 +99,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+        className="relative flex h-[72dvh] min-h-[480px] max-h-[78vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl sm:h-auto sm:max-h-[90vh] sm:min-h-0"
       >
         {/* Header */}
         <div className="shrink-0 border-b border-border bg-background">
@@ -127,8 +127,8 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
           </div>
         </div>
 
-        {/* Question area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        {/* Question area — fixed height on mobile */}
+        <div className="flex flex-1 flex-col overflow-y-auto p-4 sm:p-6 min-h-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={q.id}
@@ -136,9 +136,9 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="rounded-2xl border border-border bg-card p-4 sm:p-6"
+              className="flex min-h-[360px] flex-1 flex-col rounded-2xl border border-border bg-card p-4 sm:min-h-0 sm:p-6"
             >
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-1 flex-col gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium text-text-muted">Q{currentIdx + 1}</span>
                   <span className="rounded-full bg-[#EC4899]/10 px-2 py-0.5 text-[10px] font-medium text-[#EC4899]">
@@ -251,9 +251,8 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                 {q.type === "fill_blanks" && (
                   <div className="rounded-xl border border-border bg-input-bg p-4">
                     <input
-                      readOnly
                       placeholder="Student types answer here..."
-                      className="w-full bg-transparent text-sm text-text-muted placeholder:text-text-muted focus:outline-none"
+                      className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
                     />
                   </div>
                 )}
@@ -262,10 +261,9 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                 {(q.type === "integer" || q.type === "text" || q.type === "paragraph") && (
                   <div className="rounded-xl border border-border bg-input-bg p-4">
                     <textarea
-                      readOnly
                       rows={q.type === "paragraph" ? 4 : 2}
                       placeholder={q.type === "integer" ? "Enter numeric answer..." : "Type your answer here..."}
-                      className="w-full resize-none bg-transparent text-sm text-text-muted placeholder:text-text-muted focus:outline-none"
+                      className="w-full resize-none bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
                     />
                   </div>
                 )}
@@ -275,10 +273,9 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                   <div className="rounded-xl border border-border bg-input-bg p-4">
                     <p className="text-xs text-text-muted mb-2">Write your code output:</p>
                     <textarea
-                      readOnly
                       rows={3}
                       placeholder="Enter expected output..."
-                      className="w-full resize-none bg-transparent text-sm font-mono text-text-muted placeholder:text-text-muted focus:outline-none"
+                      className="w-full resize-none bg-transparent text-sm font-mono text-text-primary placeholder:text-text-muted focus:outline-none"
                     />
                   </div>
                 )}

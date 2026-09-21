@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
   FileText,
@@ -15,8 +16,8 @@ import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { Badge } from "../primitives";
 import { SearchableDropdown } from "@/components/ui";
-import { getAllSubjects, getAllExamCategories, generateQuizCode as fetchQuizCode, getQuizDifficultyOptions } from "@/services/quiz";
-import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
+import { getAllSubjects, getAllExamCategories, generateQuizCode as fetchQuizCode } from "@/services/quiz";
+import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 
 const CREATE_CHOICES = [
   {
@@ -59,7 +60,7 @@ export function SetupStep() {
   const info = state.info;
   const marks = summary.totalMarks;
   const fetchedRef = useRef(false);
-  const [difficultyOptions, setDifficultyOptions] = useState<{ id: number; heading: string }[]>([]);
+  const { difficultyOptions, fetchAll } = useQuizReferenceStore();
 
   useEffect(() => {
     if (fetchedRef.current) return;
@@ -67,26 +68,35 @@ export function SetupStep() {
     if (!editMode) {
       fetchQuizCode().then((code) => updateInfo({ code })).catch(() => {});
     }
-    getQuizDifficultyOptions().then(setDifficultyOptions).catch(() => {});
+    fetchAll();
   }, [editMode]);
 
   const hasBasicInfo = info.title.trim().length >= 3;
 
   return (
-    <div className="flex flex-col bg-[#F9FAFB] dark:bg-background">
-    <div className="">
-    <div className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-8">
+    <div className="flex w-full max-w-full min-w-0 flex-col overflow-x-hidden bg-[#F9FAFB] dark:bg-background">
+    <div className="w-full max-w-full min-w-0">
+    <div className="mx-auto w-full max-w-5xl min-w-0 max-w-full space-y-6 px-3 py-4 sm:space-y-8 sm:px-6 sm:py-8 overflow-x-hidden">
       {/* Creation method choice — only on create, not edit */}
       {!editMode && (
         <>
-          <div>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <h2 className="text-lg font-semibold text-text-primary">How do you want to start?</h2>
             <p className="mt-1 text-xs text-text-secondary">
               You can always use AI tools later inside the editor.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.08 }}
+            className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          >
             {CREATE_CHOICES.map((c) => (
               <ChoiceCard
                 key={c.id}
@@ -104,19 +114,24 @@ export function SetupStep() {
                 }}
               />
             ))}
-          </div>
+          </motion.div>
         </>
       )}
 
       {/* Basic information — white card with shadow like image */}
-      <div className="rounded-xl bg-white dark:bg-card border border-gray-100 dark:border-border shadow-[0_4px_20px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] dark:shadow-none p-6 sm:p-7 space-y-6">
-        <div className="border-b border-pink-500/20 pb-3">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-pink-500">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: editMode ? 0 : 0.15 }}
+        className="w-full min-w-0 max-w-full overflow-hidden rounded-xl bg-white dark:bg-card border border-gray-100 dark:border-border shadow-[0_4px_20px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] dark:shadow-none p-4 sm:p-7 space-y-5 sm:space-y-6"
+      >
+        <div className="border-b border-pink-500/20 pb-3 min-w-0">
+          <h3 className="text-[13px] sm:text-sm font-bold uppercase tracking-wider text-pink-500 break-words">
             Basic Information
           </h3>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2">
           {/* Title */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-text-secondary">Quiz Title</label>
@@ -128,15 +143,6 @@ export function SetupStep() {
               className="h-10 w-full rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
             />
             <p className="text-[11px] text-text-muted text-right">{info.title.length}/100</p>
-          </div>
-
-          {/* Code + Copy */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-text-secondary">Quiz Code</label>
-            <MaskedCopyCode
-              code={info.code}
-              className="flex h-10 w-full items-center justify-between rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg px-3.5 text-left transition-colors duration-150 hover:border-pink-500/40 hover:bg-pink-500/5"
-            />
           </div>
 
           {/* Subject */}
@@ -231,15 +237,30 @@ export function SetupStep() {
                 max={marks || undefined}
                 value={info.passingMarks || ""}
                 placeholder={`Default: ${Math.ceil((marks || 0) * 0.4)}`}
-                onChange={(e) => updateInfo({ passingMarks: Number(e.target.value) })}
-                className="h-10 w-full rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (val > (marks || 0)) return;
+                  updateInfo({ passingMarks: val });
+                }}
+                className={cn(
+                  "h-10 w-full rounded-lg border bg-[#F8FAFC] dark:bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:ring-2 focus:ring-pink-500/10",
+                  info.passingMarks > (marks || 0)
+                    ? "border-red-400 dark:border-red-500 focus:border-red-500/60"
+                    : "border-gray-200 dark:border-input-border focus:border-pink-500/60"
+                )}
               />
             </div>
-            <p className="text-[11px] text-text-muted">
-              {info.passingMarks
-                ? `${info.passingMarks} / ${marks || 0} marks`
-                : `Defaults to 40% (${Math.ceil((marks || 0) * 0.4)} marks) if left empty`}
-            </p>
+            {info.passingMarks > (marks || 0) ? (
+              <p className="text-[11px] text-red-500">
+                Passing marks cannot exceed total marks ({marks || 0})
+              </p>
+            ) : (
+              <p className="text-[11px] text-text-muted">
+                {info.passingMarks
+                  ? `${info.passingMarks} / ${marks || 0} marks`
+                  : `Defaults to 40% (${Math.ceil((marks || 0) * 0.4)} marks) if left empty`}
+              </p>
+            )}
           </div>
 
           {/* Short Description */}
@@ -270,7 +291,7 @@ export function SetupStep() {
             <p className="text-[11px] text-text-muted text-right">{info.fullDescription.length}/5000</p>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
     </div>
     </div>
@@ -297,7 +318,7 @@ function ChoiceCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center gap-2 rounded-xl border p-4 text-center text-sm transition-all duration-150 ease-out hover:-translate-y-0.5",
+        "flex w-full min-w-0 max-w-full flex-col items-center gap-2 rounded-xl border p-4 text-center text-sm transition-all duration-150 ease-out hover:-translate-y-0.5 overflow-hidden",
         selected
           ? "border-pink-500 bg-white dark:bg-card text-pink-600 shadow-[0_4px_16px_rgba(236,72,153,0.12),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[0_0_0_1px_rgba(236,72,153,0.15)]"
           : "border-gray-200 dark:border-border bg-white dark:bg-card shadow-[0_2px_10px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none hover:border-pink-500/20 hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
@@ -305,7 +326,7 @@ function ChoiceCard({
     >
       <div
         className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-lg",
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
           selected
             ? "bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-500 border border-pink-100 dark:border-pink-500/20"
             : "bg-gray-50 dark:bg-card-hover/40 text-gray-500 dark:text-text-secondary border border-gray-100 dark:border-transparent"
@@ -313,8 +334,8 @@ function ChoiceCard({
       >
         <Icon className="h-5 w-5" />
       </div>
-      <span className="font-semibold text-text-primary">{label}</span>
-      <p className="text-[11px] leading-snug text-text-secondary">{desc}</p>
+      <span className="font-semibold text-text-primary break-words">{label}</span>
+      <p className="text-[12px] sm:text-[11px] leading-snug text-text-secondary break-words max-w-full">{desc}</p>
       <span className="mt-0.5 inline-flex items-center rounded-md bg-gray-100 dark:bg-pink-500/10 border border-gray-200 dark:border-pink-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:text-pink-600">
         {meta}
       </span>

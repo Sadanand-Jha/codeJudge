@@ -41,7 +41,6 @@ type QuizStatus = "live" | "draft" | "scheduled" | "completed";
 interface QuizCard {
   id: string;
   title: string;
-  code: string;
   subject: string;
   questions: number;
   durationMin: number;
@@ -52,17 +51,16 @@ interface QuizCard {
 }
 
 function mapQuizToCard(q: Quiz): QuizCard {
-  const raw = (q as any).status;
+  const raw = ((q as any).status as string | null)?.toLowerCase() ?? "";
   let status: QuizStatus = "draft";
   if (raw === "published" || raw === "live") status = "live";
   else if (raw === "scheduled") status = "scheduled";
-  else if (raw === "completed") status = "completed";
+  else if (raw === "completed" || raw === "ended") status = "completed";
   else if (raw === "draft") status = "draft";
 
   return {
     id: String(q.id),
     title: q.name,
-    code: q.code,
     subject: (q as any).subject || "General",
     questions: (q as any).total_questions ?? 0,
     durationMin: (q as any).duration ?? 0,
@@ -84,7 +82,7 @@ const TABS: ReadonlyArray<{ id: TabId; label: string }> = [
 type TabId = "all" | "live" | "draft" | "scheduled" | "completed";
 
 const STATUS_META: Record<QuizStatus, { label: string; tone: StatusTone }> = {
-  live: { label: "Live", tone: "pink" },
+  live: { label: "Live", tone: "emerald" },
   draft: { label: "Draft", tone: "amber" },
   scheduled: { label: "Scheduled", tone: "pink" },
   completed: { label: "Completed", tone: "slate" },
@@ -244,7 +242,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                       <div className="min-w-0">
                         <h3 className="truncate text-sm font-semibold tracking-tight text-text-primary">{q.title}</h3>
                         <MaskedCopyCode
-                          code={q.code}
+                          quizId={q.id}
                           className="mt-0.5 inline-flex items-center gap-2 rounded-md border border-transparent px-0 py-0 text-left font-mono text-[11px] font-medium text-text-muted transition-colors hover:text-[#EC4899]"
                         />
                       </div>
@@ -352,7 +350,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                     label: "Code",
                     value: (
                       <MaskedCopyCode
-                        code={deleteTarget.code}
+                        quizId={deleteTarget.id}
                         className="inline-flex h-7 items-center gap-2 rounded-md border border-transparent px-0 py-0 text-left font-mono text-[11px] font-medium text-text-muted transition-colors hover:text-[#EC4899]"
                       />
                     ),

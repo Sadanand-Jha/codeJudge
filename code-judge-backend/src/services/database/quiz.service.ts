@@ -55,6 +55,10 @@ export class QuizService {
     return this.repository.isUserRegistered(userId, quizId);
   }
 
+  async checkQuizAccessForRegistration(quizId: string): Promise<{ allowed: boolean; reason?: string }> {
+    return this.repository.checkQuizAccessForRegistration(quizId);
+  }
+
   async registerUser(userId: string, quizId: string, rollno?: string): Promise<any> {
     return this.repository.registerUser(userId, quizId, rollno);
   }
@@ -275,12 +279,8 @@ export class QuizService {
   async replaceQuizParticipants(
     quizId: number,
     participants: Array<{
-      email: string;
-      name?: string | null;
-      rollNumber?: string | null;
-      source?: "room" | "individual";
-      roomId?: number | null;
-      allowed?: boolean;
+      userId: number;
+      source?: number;
     }>
   ): Promise<number> {
     return this.repository.replaceQuizParticipants(quizId, participants);

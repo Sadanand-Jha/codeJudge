@@ -31,7 +31,7 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
   const [result, setResult] = useState<{
     emailSent: boolean;
     emailError?: string;
-    stats?: { totalSubmissions: number; evaluated: number };
+    stats?: { evaluated: number };
   } | null>(null);
 
   const handleGenerate = async (force: boolean) => {

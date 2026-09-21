@@ -4,7 +4,6 @@ import type { Room } from "@/types/room";
 export interface SearchedUser {
   id: string;
   username: string;
-  email?: string;
   avatarId?: number;
   avatarUrl?: string | null;
   displayName?: string | null;

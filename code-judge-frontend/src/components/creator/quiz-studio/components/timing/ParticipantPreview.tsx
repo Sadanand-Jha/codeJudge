@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { ArrowRight, Clock, User, CheckCircle2 } from "lucide-react";
 import { formatTime12 } from "./helpers";
 import type { TimingState } from "./types";
@@ -16,15 +17,11 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
           )
         : null;
 
-  const participantStart = quizStart ? "2:12 PM" : null;
+  const participantStart = quizStart ? "When they join" : null;
 
-  const attemptEndMinutes = participantDuration;
-  const attemptEndHour = 14;
-  const attemptEndMin = 12 + attemptEndMinutes;
-  const attemptEnd =
-    attemptEndMinutes <= 60
-      ? `${attemptEndHour}:${String(attemptEndMin).padStart(2, "0")} PM`
-      : "3:12 PM";
+  const attemptEnd = participantStart
+    ? `${participantDuration} min after they start`
+    : null;
 
   const sessionEnd = null;
 
@@ -38,39 +35,63 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
       </div>
 
       <div className="flex flex-col items-start gap-0">
+        <motion.div
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.2, delay: 0.05 }}
+        >
         <PreviewStep
           icon={<Clock className="h-3 w-3" />}
           label="Quiz starts"
           time={quizStart || "Not set"}
           active={!!quizStart}
         />
+        </motion.div>
 
         <div className="ml-[11px] h-4 w-px bg-border" />
 
+        <motion.div
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.2, delay: 0.1 }}
+        >
         <PreviewStep
           icon={<User className="h-3 w-3" />}
           label="Participant starts"
           time={participantStart || "After you start the quiz"}
           active={!!participantStart}
         />
+        </motion.div>
 
         <div className="ml-[11px] h-4 w-px bg-border" />
 
+        <motion.div
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.2, delay: 0.15 }}
+        >
         <PreviewStep
           icon={<Clock className="h-3 w-3" />}
           label="Participant gets"
           time={`${participantDuration} minutes`}
           active={true}
         />
+        </motion.div>
 
         <div className="ml-[11px] h-4 w-px bg-border" />
 
+        <motion.div
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.2, delay: 0.2 }}
+        >
         <PreviewStep
           icon={<CheckCircle2 className="h-3 w-3" />}
           label="Attempt deadline"
-          time={participantStart ? attemptEnd : "Depends on start time"}
+          time={(participantStart ? attemptEnd : "Depends on start time") ?? "Depends on start time"}
           active={!!participantStart}
         />
+        </motion.div>
 
         {sessionEnd && (
           <>

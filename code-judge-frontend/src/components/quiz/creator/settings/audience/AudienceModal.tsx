@@ -44,7 +44,7 @@ export default function AudienceModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-6"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-6"
           onClick={onClose}
         >
           <motion.div
@@ -54,8 +54,9 @@ export default function AudienceModal({
             transition={{ duration: 0.2, ease: "easeOut" }}
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              "relative flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col overflow-hidden overflow-x-hidden rounded-none border-0 bg-card shadow-2xl shadow-black/50",
-              "sm:h-auto sm:max-h-[calc(100dvh-3rem)] sm:rounded-2xl sm:border sm:border-border",
+              "relative flex max-h-[85dvh] w-full flex-col overflow-hidden overflow-x-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/50",
+              "h-auto",
+              "sm:max-h-[calc(100dvh-3rem)]",
               SIZES[size]
             )}
           >

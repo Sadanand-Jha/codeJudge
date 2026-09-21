@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { motion } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import {
@@ -45,22 +46,10 @@ export function VisualTimeline({ state }: { state: TimingState }) {
     }
     return [
       {
-        label: "Ready",
-        time: "",
-        active: manual.status === "ready",
-        done: manual.status === "live" || manual.status === "ended",
-      },
-      {
-        label: "Started",
+        label: "Live",
         time: manual.startedAt
           ? formatTime12(toTimeString(new Date(manual.startedAt)))
-          : "\u2014",
-        active: manual.status === "live",
-        done: manual.status === "live" || manual.status === "ended",
-      },
-      {
-        label: "Live",
-        time: "",
+          : "",
         active: manual.status === "live",
         done: manual.status === "ended",
       },
@@ -68,7 +57,7 @@ export function VisualTimeline({ state }: { state: TimingState }) {
         label: "Ended",
         time: manual.endedAt
           ? formatTime12(toTimeString(new Date(manual.endedAt)))
-          : "\u2014",
+          : "",
         active: false,
         done: manual.status === "ended",
       },
@@ -78,7 +67,13 @@ export function VisualTimeline({ state }: { state: TimingState }) {
   return (
     <div className="flex items-center gap-0 overflow-x-auto py-3">
       {steps.map((step, i) => (
-        <div key={`${step.label}-${i}`} className="flex items-center">
+        <motion.div
+          key={`${step.label}-${i}`}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.25, delay: i * 0.1 }}
+          className="flex items-center"
+        >
           <div className="flex flex-col items-center min-w-[80px]">
             <div
               className={cn(
@@ -108,7 +103,7 @@ export function VisualTimeline({ state }: { state: TimingState }) {
             >
               {step.label}
             </p>
-            {step.time && step.time !== "\u2014" && (
+            {step.time && (
               <p className="text-[9px] text-text-muted">{step.time}</p>
             )}
           </div>
@@ -120,7 +115,7 @@ export function VisualTimeline({ state }: { state: TimingState }) {
               )}
             />
           )}
-        </div>
+        </motion.div>
       ))}
     </div>
   );

@@ -68,8 +68,8 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
       import("@/services/rooms").then(({ getRoom }) => {
         getRoom(selectedRoomId)
           .then((res: unknown) => {
-            const data = (res as { data?: Record<string, unknown> })?.data ?? (res as Record<string, unknown>);
-            const members = (data.members as unknown[]) ?? [];
+            const payload = (res as Record<string, unknown>) ?? {};
+            const members = (payload.members ?? []) as Array<Record<string, unknown>>;
             const mapped = members.map((m: unknown) => {
               const mm = m as Record<string, unknown>;
               const u = (mm.user as Record<string, unknown>) ?? mm;
