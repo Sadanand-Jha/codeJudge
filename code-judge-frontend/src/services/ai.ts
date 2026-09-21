@@ -1,4 +1,8 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const rawBase =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://quizbackend-dun.vercel.app/api";
+const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
 
 /**
  * Normalized, provider-agnostic token usage. Every field is optional — a

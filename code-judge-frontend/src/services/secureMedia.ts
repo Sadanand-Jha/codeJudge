@@ -101,7 +101,11 @@ export async function getSecureImageBlob(imageName: string): Promise<Blob> {
   // encrypted fetch reaches the backend even when the Next.js dev server and
   // API run on different origins. Fall back to a relative URL for the
   // same-origin production deployment where `/api` is proxied to the backend.
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  const rawBase =
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "https://quizbackend-dun.vercel.app/api";
+  const baseUrl = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
   const endpoint = baseUrl
     ? `${baseUrl}/v1/secure-media/${encodeURIComponent(imageName)}`
     : `/api/v1/secure-media/${encodeURIComponent(imageName)}`;

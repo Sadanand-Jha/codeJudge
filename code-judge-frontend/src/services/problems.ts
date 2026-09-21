@@ -30,7 +30,11 @@
 
 import type { Problem, ProblemListItem, ApiResponse } from "@/types/problem";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const rawBase =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://quizbackend-dun.vercel.app/api";
+const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
 
 export async function fetchProblem(problemId: string): Promise<Problem> {
   const response = await fetch(`${API_BASE}/problems/${problemId}`, {
