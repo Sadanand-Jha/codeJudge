@@ -21,21 +21,25 @@ const nextConfig: NextConfig = {
     // Option B: Proxy /api to backend so auth cookies become first-party
     // (SameSite=Lax works). Browser hits same origin /api -> Next.js forwards
     // to real backend, response Set-Cookie is then stored for frontend host.
+    // Do NOT depend on NODE_ENV (Vercel dashboard me NODE_ENV set nahi bhi ho
+    // to bhi build me Next.js usko "production" set karta hai, lekin safe
+    // rehne ke liye yaha hardcoded production fallback use karo).
+    const FALLBACK_BACKEND = "https://quizbackend-dun.vercel.app/api";
     const rawBackend =
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
-      (process.env.NODE_ENV === "production"
-        ? "https://quizbackend-dun.vercel.app/api"
-        : "http://localhost:8000/api");
+      FALLBACK_BACKEND;
     // Resolve backend origin. If env is relative (/api) it means "use proxy
-    // with default backend" - derive origin from default, not skip rewrites.
+    // with default backend" - derive origin from fallback, not skip rewrites.
     let backendOrigin: string;
     if (rawBackend.startsWith("/")) {
-      backendOrigin =
-        process.env.NODE_ENV === "production"
-          ? "https://quizbackend-dun.vercel.app"
-          : "http://localhost:8000";
+      // Relative => proxy to production backend (never localhost on Vercel)
+      backendOrigin = FALLBACK_BACKEND.replace(/\/api\/?$/, "");
     } else {
+      backendOrigin = rawBackend.replace(/\/api\/?$/, "").replace(/\/$/, "");
+    }
+    // localhost explicitly set in env => respect it for local dev
+    if (rawBackend.includes("localhost")) {
       backendOrigin = rawBackend.replace(/\/api\/?$/, "").replace(/\/$/, "");
     }
     if (!backendOrigin || !backendOrigin.startsWith("http")) return [];

@@ -276,9 +276,10 @@ export const loginController = async (req: Request, res: Response) => {
     // Keeps SameSite=Lax (secure) because frontend rewrites /api -> backend
     // makes the cookie first-party. No Domain attribute so it is host-only
     // for the frontend origin.
+    const isSecure = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
     res.cookie("session_token", sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecure,
       sameSite: "lax",
       path: "/",
       maxAge: 10 * 24 * 60 * 60 * 1000, // 10 days
@@ -528,9 +529,10 @@ export const logoutController = async (req: Request, res: Response) => {
     // Clear the httpOnly cookie by setting it to expire immediately
     // Must match sameSite/path/secure used in loginController (lax) otherwise
     // browser will not clear the cookie when proxied via same-site rewrites.
+    const isSecureClear = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
     res.clearCookie("session_token", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecureClear,
       sameSite: "lax",
       path: "/",
     });
