@@ -45,6 +45,7 @@ import {
   DEFAULT_BRANDING,
   DEFAULT_GAME_MECHANICS_STATE,
   createEmptyQuestion,
+  getRegistrationFieldDef,
 } from "./types";
 import { DEFAULT_GAME_MECHANICS, normalizeGameMechanics, zeroAllMechanics } from "./types/gameMechanics";
 
@@ -376,7 +377,25 @@ interface StudioProviderProps {
 }
 
 export function StudioProvider({ children, editMode = false, initialQuizId }: StudioProviderProps) {
-  const steps = STEPS;
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  const steps = useMemo(() => {
+    let result = editMode ? STEPS.filter((s) => s.id !== "publish") : STEPS;
+    if (isMobile) {
+      // Mobile simplified flow: Questions → Settings → Audience → Review → Publish
+      // Hide Setup, Game Mechanics, Registration, Pricing, Branding as per mobile spec
+      const mobileVisible = new Set(["questions", "settings", "audience", "review", "publish"]);
+      result = result.filter((s) => mobileVisible.has(s.id as string));
+    }
+    return result;
+  }, [editMode, isMobile]);
 
   const [state, setState] = useState<StudioState>(() => {
     if (editMode && initialQuizId) {
@@ -749,8 +768,62 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
     if (id !== state.step && state.step !== "setup" && state.step !== "publish" && !validateAllQuestions()) return;
     setState((s) => ({ ...s, step: id }));
   };
+  const getReviewErrors = (): string[] => {
+    const errs: string[] = [];
+    if (state.info.title.trim().length < 3) errs.push("Quiz title is required");
+    if (state.info.duration <= 0) errs.push("Duration must be greater than 0");
+    if (summary.questionCount === 0) errs.push("No questions added");
+    else if (summary.incompleteQuestions > 0) errs.push(`${summary.incompleteQuestions} question(s) are incomplete`);
+    if (state.questions.some((q) => (q.marks || 0) <= 0)) errs.push("Some questions have no marks");
+    if (state.audience.mode === "classroom") {
+      const roomCount = (state.audience.roomIds ?? []).length;
+      const manualCount = (state.audience.invitedEmails ?? []).length;
+      if (roomCount === 0 && manualCount === 0) errs.push("No audience selected — select at least one room");
+    }
+    const regFields = state.registration?.fields ?? [];
+    const emptySelect = regFields.find((f) => {
+      const def = getRegistrationFieldDef(f.key);
+      return def?.inputType === "select" && (!f.options || f.options.length === 0);
+    });
+    if (emptySelect) {
+      const label = getRegistrationFieldDef(emptySelect.key)?.label ?? emptySelect.key;
+      errs.push(`Registration field "${label}" has no options`);
+    }
+    if (state.pricing.mode === "paid" && state.pricing.price <= 0) errs.push("Paid quiz requires a price");
+    return errs;
+  };
+
   const nextStep = async () => {
     const i = steps.findIndex((st) => st.id === state.step);
+
+    // Review step: block if errors exist (publishing blocked until resolved)
+    if (state.step === "review") {
+      const reviewErrs = getReviewErrors();
+      if (reviewErrs.length > 0) {
+        toast.error({
+          title: reviewErrs[0],
+          description: reviewErrs.length > 1 ? `${reviewErrs.length} errors need to be fixed. Check the Review page.` : "Please fix the error using the Fix button before continuing.",
+        });
+        return;
+      }
+      // Review is last on mobile-edit (publish hidden) — treat Continue as Save & exit
+      const isLast = i === steps.length - 1;
+      if (isLast) {
+        if (editMode) {
+          try {
+            await saveToServer();
+            toast.success({ title: "Saved", description: "Your quiz has been saved." });
+            window.location.href = "/creator/quizzes";
+          } catch (err) {
+            if (!isQuestionValidationError(err)) {
+              toast.error({ title: "Could not save", description: err instanceof Error ? err.message : "Something went wrong." });
+            }
+          }
+          return;
+        }
+        // create-flow publish: will be handled by publish step
+      }
+    }
 
     if (state.step === "setup") {
       try {

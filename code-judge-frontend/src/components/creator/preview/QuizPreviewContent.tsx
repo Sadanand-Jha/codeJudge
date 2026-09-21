@@ -309,20 +309,20 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
 
         {/* CENTER */}
         <main className="flex flex-col min-h-0 order-1 lg:order-2 overflow-hidden">
-          <div className="flex-1 min-h-0 bg-card border border-border rounded-xl shadow-sm flex flex-col overflow-hidden p-5">
+          <div className="flex-1 min-h-0 bg-card border border-border rounded-xl shadow-sm flex flex-col overflow-hidden p-3 sm:p-5">
             {q && (
               <>
-                <div className="flex items-center justify-between shrink-0">
-                  <span className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-3 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{q.difficulty}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 px-3 py-1 text-[11px] font-bold text-pink-600 dark:text-pink-400">{q.marks} Marks</span>
+                <div className="flex items-center justify-between shrink-0 gap-2">
+                  <span className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400">{q.difficulty}</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="rounded-full bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-bold text-pink-600 dark:text-pink-400">{q.marks} Marks</span>
                     <button className="text-gray-300 dark:text-text-muted hover:text-pink-500 transition-colors">
                       <Bookmark className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-                <h2 className="text-[18px] lg:text-[20px] font-semibold text-text-primary mt-4 leading-snug" dangerouslySetInnerHTML={{ __html: q.q || "Untitled question" }} />
-                <div className="mt-4 space-y-2 flex-1 min-h-0 overflow-y-auto pr-1">
+                <h2 className="text-base sm:text-[18px] lg:text-[20px] font-semibold text-text-primary mt-3 sm:mt-4 leading-snug" dangerouslySetInnerHTML={{ __html: q.q || "Untitled question" }} />
+                <div className="mt-3 sm:mt-4 space-y-2 flex-1 min-h-0 overflow-y-auto pr-1">
                   {fiftyFiftyMap[q.id] && (
                     <div className="flex items-center gap-1.5 rounded-lg border border-pink-200 dark:border-pink-500/30 bg-pink-50 dark:bg-pink-500/10 px-3 py-2 text-[11px] font-medium text-pink-600 dark:text-pink-400">
                       <span className="text-xs">◐</span> 50–50 active — 2 options shown (preview only)
@@ -338,12 +338,12 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
                             key={o.label}
                             onClick={() => setAnswers((p) => ({ ...p, [q.id]: o.label }))}
                             className={cn(
-                              "w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all min-h-[56px]",
+                              "w-full flex items-center gap-2 sm:gap-3 rounded-xl border px-3 sm:px-4 py-2.5 sm:py-3 text-left transition-all min-h-[48px] sm:min-h-[56px]",
                               active ? "border-pink-300 dark:border-pink-500/50 bg-pink-50 dark:bg-pink-500/10 shadow-[0_0_0_2px_rgba(236,72,153,0.08)]" : "border-border bg-card hover:border-pink-200 dark:hover:border-pink-500/30 hover:bg-pink-50/30 dark:hover:bg-pink-500/5"
                             )}
                           >
-                            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold border", active ? "bg-pink-500 text-white border-pink-500" : "bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-200 dark:border-pink-500/30")}>{o.label}</span>
-                            <span className="flex-1 text-sm text-text-secondary" dangerouslySetInnerHTML={{ __html: o.text }} />
+                            <span className={cn("flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full text-[10px] sm:text-xs font-bold border", active ? "bg-pink-500 text-white border-pink-500" : "bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-200 dark:border-pink-500/30")}>{o.label}</span>
+                            <span className="flex-1 text-xs sm:text-sm text-text-secondary" dangerouslySetInnerHTML={{ __html: o.text }} />
                           </button>
                         );
                       });
@@ -355,36 +355,36 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
                     </div>
                   )}
                   <div className="rounded-xl border border-pink-200 dark:border-pink-500/30 bg-pink-50/40 dark:bg-pink-500/5 overflow-hidden mt-2">
-                    <button onClick={() => setExplanationOpen((o) => !o)} className="flex w-full items-center gap-2 px-4 py-3 text-left h-[46px]">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white dark:bg-card border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400">
-                        <BookOpenIcon className="h-3.5 w-3.5" />
+                    <button onClick={() => setExplanationOpen((o) => !o)} className="flex w-full items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-left h-[42px] sm:h-[46px]">
+                      <span className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-lg bg-white dark:bg-card border border-pink-200 dark:border-pink-500/30 text-pink-600 dark:text-pink-400">
+                        <BookOpenIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                       </span>
-                      <span className="flex-1 text-sm font-medium text-text-primary">Explanation</span>
+                      <span className="flex-1 text-xs sm:text-sm font-medium text-text-primary">Explanation</span>
                       {explanationOpen ? <ChevronUp className="h-4 w-4 text-pink-400" /> : <ChevronDown className="h-4 w-4 text-pink-300 dark:text-pink-500/50" />}
                     </button>
                     {explanationOpen && (
-                      <div className="border-t border-pink-200 dark:border-pink-500/30 px-4 py-3 bg-white dark:bg-card max-h-[120px] overflow-y-auto">
-                        <p className="text-sm text-text-secondary leading-relaxed" dangerouslySetInnerHTML={{ __html: q.explanation }} />
+                      <div className="border-t border-pink-200 dark:border-pink-500/30 px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-card max-h-[120px] overflow-y-auto">
+                        <p className="text-xs sm:text-sm text-text-secondary leading-relaxed" dangerouslySetInnerHTML={{ __html: q.explanation }} />
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-4 mt-auto border-t border-border shrink-0">
-                  <div className="flex gap-3">
-                    <button onClick={() => setCurrent((c) => Math.max(0, c - 1))} disabled={current === 0} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-6 py-3 text-sm font-semibold text-text-secondary hover:bg-card-hover disabled:opacity-30">
-                      <ChevronLeft className="h-5 w-5" /> Previous
+                <div className="flex items-center justify-between pt-4 mt-auto border-t border-border shrink-0 gap-2">
+                  <div className="flex gap-2 sm:gap-3">
+                    <button onClick={() => setCurrent((c) => Math.max(0, c - 1))} disabled={current === 0} className="inline-flex items-center gap-1 sm:gap-2 rounded-lg border border-border bg-card px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold text-text-secondary hover:bg-card-hover disabled:opacity-30">
+                      <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" /> <span className="hidden xs:inline">Previous</span>
                     </button>
-                    <button onClick={() => setMarked((m) => ({ ...m, [q.id]: !m[q.id] }))} className={cn("inline-flex items-center gap-2 rounded-lg border px-6 py-3 text-sm font-semibold", marked[q.id] ? "border-amber-300 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" : "border-border bg-card text-text-secondary hover:bg-card-hover")}>
-                      <Eye className="h-5 w-5" /> Mark for Review
+                    <button onClick={() => setMarked((m) => ({ ...m, [q.id]: !m[q.id] }))} className={cn("inline-flex items-center gap-1 sm:gap-2 rounded-lg border px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-semibold", marked[q.id] ? "border-amber-300 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" : "border-border bg-card text-text-secondary hover:bg-card-hover")}>
+                      <Eye className="h-4 w-4 sm:h-5 sm:w-5" /> <span className="hidden sm:inline">Mark for Review</span>
                     </button>
                   </div>
                   {current === questions.length - 1 ? (
-                    <button onClick={() => setShowSubmitModal(true)} className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-7 py-3 text-sm font-bold text-white shadow-md hover:shadow-lg">
-                      <Send className="h-5 w-5" /> Submit Quiz
+                    <button onClick={() => setShowSubmitModal(true)} className="inline-flex items-center gap-1 sm:gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-4 sm:px-7 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white shadow-md hover:shadow-lg">
+                      <Send className="h-4 w-4 sm:h-5 sm:w-5" /> <span className="hidden sm:inline">Submit Quiz</span>
                     </button>
                   ) : (
-                    <button onClick={() => setCurrent((c) => Math.min(questions.length - 1, c + 1))} className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 px-7 py-3 text-sm font-bold text-white shadow-md">
-                      Next <ChevronRight className="h-5 w-5" />
+                    <button onClick={() => setCurrent((c) => Math.min(questions.length - 1, c + 1))} className="inline-flex items-center gap-1 sm:gap-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 px-4 sm:px-7 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white shadow-md">
+                      <span className="hidden sm:inline">Next</span> <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
                   )}
                 </div>
@@ -392,10 +392,10 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
             )}
           </div>
           {/* Mobile mechanics */}
-          <div className="lg:hidden mt-3 flex items-center gap-2 overflow-x-auto p-2 bg-card border border-border rounded-xl">
-            <Sparkles className="h-3.5 w-3.5 shrink-0 text-pink-500 ml-1" />
+          <div className="lg:hidden mt-2 sm:mt-3 flex items-center gap-1.5 sm:gap-2 overflow-x-auto p-1.5 sm:p-2 bg-card border border-border rounded-xl">
+            <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-pink-500 ml-1" />
             {mechanics.map((m, i) => (
-              <button key={m.title} onClick={() => setSelectedMechanic(i)} className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs", usedMechanics[i] ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "border-border bg-card")}>
+              <button key={m.title} onClick={() => setSelectedMechanic(i)} className={cn("flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg border text-[10px] sm:text-xs", usedMechanics[i] ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "border-border bg-card")}>
                 {m.icon}
               </button>
             ))}
@@ -468,10 +468,11 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
       </div>
 
       {/* ── FOOTER 46px ── */}
-      <footer className="h-[46px] shrink-0 flex items-center justify-between border-t border-border bg-card px-4 gap-2">
-        <div className="flex items-center gap-4 lg:gap-6 text-[11px] text-text-muted overflow-hidden">
-          <span className="flex items-center gap-1.5 whitespace-nowrap">
-            Quiz ID: <span className="font-mono text-text-secondary">{quiz.code}</span>
+      <footer className="h-[46px] shrink-0 flex items-center justify-between border-t border-border bg-card px-2 sm:px-4 gap-2">
+        <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 text-[10px] sm:text-[11px] text-text-muted overflow-hidden min-w-0">
+          <span className="flex items-center gap-1 sm:gap-1.5 whitespace-nowrap shrink-0">
+            <span className="hidden sm:inline">Quiz ID:</span>
+            <span className="font-mono text-text-secondary">{quiz.code}</span>
             <Copy className="h-3 w-3 cursor-pointer text-text-muted hover:text-text-secondary" />
           </span>
           <span className="hidden sm:flex items-center gap-1.5 whitespace-nowrap">
@@ -487,8 +488,8 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
             <Users className="h-3 w-3 text-pink-500" /> Attempts Allowed: <span className="text-text-primary font-semibold">1</span>
           </span>
         </div>
-        <button className="flex items-center gap-1.5 rounded-lg border border-border bg-card-hover px-3 py-1.5 text-[11px] font-semibold text-text-muted hover:bg-card shrink-0">
-          <Flag className="h-3 w-3" /> Report an Issue
+        <button className="flex items-center gap-1 sm:gap-1.5 rounded-lg border border-border bg-card-hover px-2 sm:px-3 py-1.5 text-[10px] sm:text-[11px] font-semibold text-text-muted hover:bg-card shrink-0">
+          <Flag className="h-3 w-3" /> <span className="hidden sm:inline">Report an Issue</span>
         </button>
       </footer>
 

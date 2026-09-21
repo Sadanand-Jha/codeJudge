@@ -14,6 +14,7 @@ import {
   Check,
   Loader2,
   BarChart3,
+  Copy,
 } from "lucide-react";
 import { useStudio } from "../StudioProvider";
 import { toast } from "@/lib/toast";

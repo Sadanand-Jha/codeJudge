@@ -121,8 +121,8 @@ export default function SelectRoomsModal({
       }
     >
       {/* Search + Create New Room */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input
             value={query}
@@ -133,7 +133,7 @@ export default function SelectRoomsModal({
         </div>
         <button
           onClick={onCreateRoom}
-          className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-dashed border-pink-500/30 bg-pink-500/5 px-3.5 text-xs font-semibold text-pink-500 transition-colors hover:bg-pink-500/10"
+          className="flex h-10 w-full sm:w-auto shrink-0 items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-500/30 bg-pink-500/5 px-3.5 text-xs font-semibold text-pink-500 transition-colors hover:bg-pink-500/10"
         >
           <Plus className="h-3.5 w-3.5" />
           Create New Room

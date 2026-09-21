@@ -134,7 +134,7 @@ export function MatchingStudentPreview({
         exit={{ opacity: 0, scale: 0.98 }}
         transition={{ duration: 0.2 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+        className="relative flex h-[78dvh] max-h-[86vh] min-h-[520px] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl sm:h-auto sm:max-h-[92vh] sm:min-h-0"
       >
         {/* Header */}
         <div className="shrink-0 border-b border-border bg-background px-4 py-3 sm:px-6">

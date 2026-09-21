@@ -273,10 +273,10 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
       onContextMenu={(e) => e.preventDefault()}
       onCopy={(e) => e.preventDefault()}
       onCut={(e) => e.preventDefault()}
-      className="h-14 min-w-0 w-full border-b border-border bg-card/80 backdrop-blur-xl flex items-center px-4 gap-2 sticky top-0 z-30 select-none"
+      className="h-14 min-w-0 w-full max-w-full overflow-hidden border-b border-border bg-card/80 backdrop-blur-xl flex items-center px-3 sm:px-4 gap-1 sm:gap-2 sticky top-0 z-30 select-none"
     >
       {/* Left: Brand + Navigation */}
-      <div className="flex items-center gap-1 min-w-0 shrink-0">
+      <div className="flex items-center gap-1 min-w-0 flex-1 sm:flex-none sm:shrink-0">
         {/* Mobile menu toggle */}
         {onMobileMenuToggle && (
           <button
@@ -290,18 +290,18 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
         )}
 
         {/* Studio brand */}
-        <Link href="/creator" className="flex items-center gap-2 shrink-0 mr-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-pink-500 to-violet-600">
+        <Link href="/creator" className="flex items-center gap-1.5 sm:gap-2 shrink-0 mr-1 sm:mr-2 min-w-0">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-pink-500 to-violet-600">
             <span className="text-[10px] font-black text-white">S</span>
           </div>
-          <span className="hidden sm:block text-[13px] font-bold text-text-primary tracking-tight">Studio</span>
+          <span className="hidden xs:block sm:block text-[13px] font-bold text-text-primary tracking-tight truncate">Studio</span>
         </Link>
 
         {/* Separator */}
-        <div className="hidden sm:block h-4 w-px bg-border mx-1" />
+        <div className="hidden sm:block h-4 w-px bg-border mx-1 shrink-0" />
 
         {/* Nav links — compact */}
-        <nav className="hidden md:flex items-center gap-0.5">
+        <nav className="hidden md:flex items-center gap-0.5 shrink-0">
           {[
             { label: "Quizzes", href: "/creator/quizzes" },
             { label: "Library", href: "/creator/tests" },
@@ -328,10 +328,10 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
       </div>
 
       {/* Spacer */}
-      <div className="flex-1" />
+      <div className="hidden sm:block flex-1 min-w-0" />
 
       {/* Center: Business Metrics */}
-      <div className="hidden lg:flex items-center gap-0.5">
+      <div className="hidden lg:flex items-center gap-0.5 shrink-0">
         <MetricPill
           icon={Star}
           iconColor="text-amber-400"
@@ -431,9 +431,13 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
       </div>
 
       {/* Right: Workspace + Theme + Notifications + Profile */}
-      <div className="flex items-center gap-1 shrink-0">
-        <WorkspaceSwitcher />
-        <ThemeToggle />
+      <div className="flex items-center gap-1 sm:gap-1 shrink-0 min-w-0">
+        <div className="flex shrink-0">
+          <WorkspaceSwitcher />
+        </div>
+        <div className="flex shrink-0">
+          <ThemeToggle />
+        </div>
         <NotificationsDropdown />
         <ProfileMenu />
       </div>

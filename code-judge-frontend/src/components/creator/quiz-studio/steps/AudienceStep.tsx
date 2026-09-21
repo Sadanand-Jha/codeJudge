@@ -223,16 +223,17 @@ export function AudienceStep() {
     updateAudience({ roomIds: a.roomIds.filter((id) => id !== roomId) });
 
   return (
-    <div className="flex flex-col bg-background">
-    <div className="">
-    <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
+    <div className="flex w-full max-w-full min-w-0 flex-col overflow-x-hidden bg-background sm:bg-background bg-zinc-50 lg:bg-background">
+    <div className="w-full max-w-full min-w-0">
+    <div className="mx-auto w-full max-w-4xl min-w-0 space-y-4 sm:space-y-8 px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
+        className="min-w-0"
       >
-        <h2 className="text-lg font-semibold text-text-primary">Audience & Access</h2>
-        <p className="mt-1 text-xs text-text-secondary">
+        <h2 className="break-words text-base sm:text-lg font-semibold text-text-primary">Audience & Access</h2>
+        <p className="mt-1 break-words text-xs text-text-secondary">
           Control who can register and attempt your quiz.
         </p>
       </motion.div>
@@ -242,19 +243,19 @@ export function AudienceStep() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.08 }}
-        className="rounded-xl border border-border bg-card p-5"
+        className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 sm:border-border bg-white sm:bg-card p-3 sm:p-5"
       >
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="h-4 w-4 text-pink-500" />
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        <div className="flex min-w-0 items-center gap-2 mb-3">
+          <Users className="h-4 w-4 shrink-0 text-pink-500" />
+          <h4 className="min-w-0 break-words text-xs font-semibold uppercase tracking-wider text-text-secondary">
             How audience &amp; access works
           </h4>
         </div>
-        <p className="text-xs text-text-secondary leading-relaxed mb-4">
+        <p className="break-words text-xs text-text-secondary leading-relaxed mb-4">
           Choose who can discover, register, and attempt your quiz. Each mode
           offers a different level of visibility and restriction.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
           <AccessTip
             icon={<Users className="h-3.5 w-3.5" />}
             label="Public"
@@ -277,7 +278,7 @@ export function AudienceStep() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.15 }}
-        className="grid gap-3 sm:grid-cols-3"
+        className="grid w-full min-w-0 gap-3 sm:grid-cols-3"
       >
         {MODE_OPTIONS.map((m) => (
           <label
@@ -303,21 +304,21 @@ export function AudienceStep() {
       </motion.div>
 
       {a.mode === "classroom" && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 sm:border-border bg-white sm:bg-card p-3 sm:p-5 space-y-3 sm:space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h3 className="break-words text-xs font-semibold uppercase tracking-wider text-text-secondary">
                 Rooms
               </h3>
-              <p className="mt-0.5 text-xs text-text-secondary">
+              <p className="mt-0.5 break-words text-xs leading-relaxed text-text-secondary">
                 Students in the selected rooms can register and attempt this quiz.
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex w-full sm:w-auto gap-2">
               <button
                 type="button"
                 onClick={() => setSelectRoomsOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-primary transition-colors duration-150 hover:bg-card-hover"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-lg border border-zinc-200 sm:border-border bg-white sm:bg-card px-3 py-2.5 sm:py-1.5 text-xs font-semibold sm:font-medium text-zinc-900 sm:text-text-primary transition-colors duration-150 hover:bg-zinc-50 sm:hover:bg-card-hover"
               >
                 <Users className="h-3.5 w-3.5" /> Select Rooms
               </button>
@@ -325,35 +326,35 @@ export function AudienceStep() {
           </div>
 
           {selectedRooms.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border p-6 text-center">
-              <Users className="mx-auto h-6 w-6 text-text-muted" />
-              <p className="mt-2 text-xs text-text-secondary">
+            <div className="rounded-lg border border-dashed border-zinc-200 sm:border-border p-6 text-center">
+              <Users className="mx-auto h-6 w-6 text-zinc-400 sm:text-text-muted" />
+              <p className="mt-2 break-words text-xs leading-relaxed text-zinc-600 sm:text-text-secondary">
                 No rooms selected yet. Pick rooms or create a new one to restrict
                 this quiz to their members.
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-pink-500/10 rounded-lg border border-pink-500/20 bg-pink-500/[0.04] dark:divide-pink-400/15 dark:border-pink-400/40 dark:bg-pink-500/10">
+            <ul className="divide-y divide-pink-500/10 rounded-lg border border-pink-500/20 bg-pink-500/[0.04] dark:divide-pink-400/15 dark:border-pink-400/40 dark:bg-pink-500/10 overflow-hidden">
               {selectedRooms.map((room) => {
                 const allowed = new Set(allowedStudentsOf(room.id));
                 const activeStudents = room.students.filter((s) => s.active);
                 return (
-                  <li key={room.id} className="flex items-center gap-3 px-3.5 py-2.5">
+                  <li key={room.id} className="flex min-w-0 items-center gap-2 sm:gap-3 px-3 sm:px-3.5 py-2.5">
                     <button
                       type="button"
                       onClick={() => removeRoom(room.id)}
                       title="Remove room"
-                      className="shrink-0 rounded-md p-1 text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-rose-500"
+                      className="shrink-0 rounded-md p-1 text-zinc-500 sm:text-text-secondary transition-colors duration-150 hover:bg-zinc-100 sm:hover:bg-card-hover hover:text-rose-500"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-text-primary">{room.name}</p>
+                      <p className="truncate text-sm font-medium text-zinc-900 sm:text-text-primary">{room.name}</p>
                       {room.description && (
-                        <p className="truncate text-xs text-text-secondary">{room.description}</p>
+                        <p className="truncate text-xs text-zinc-600 sm:text-text-secondary">{room.description}</p>
                       )}
                     </div>
-                    <span className="shrink-0 text-xs text-text-secondary">
+                    <span className="shrink-0 whitespace-nowrap text-xs font-medium text-zinc-600 sm:text-text-secondary">
                       {allowed.size}/{activeStudents.length} allowed
                     </span>
                   </li>
@@ -378,45 +379,45 @@ export function AudienceStep() {
       )}
 
       {a.mode === "classroom" && (
-        <div className="relative rounded-xl border border-border bg-card p-5 space-y-4 opacity-60 pointer-events-none select-none">
-          <div className="flex items-center gap-2">
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        <div className="relative w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 sm:border-border bg-white sm:bg-card p-3 sm:p-5 space-y-3 sm:space-y-4 opacity-60 pointer-events-none select-none">
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h3 className="break-words text-xs font-semibold uppercase tracking-wider text-text-secondary">
                 Manually Added Students
               </h3>
-              <p className="mt-0.5 text-xs text-text-secondary">
+              <p className="mt-0.5 break-words text-xs leading-relaxed text-text-secondary">
                 Add students by email — they can attempt this quiz without being in
                 any room.
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+            <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
               Coming Soon
             </span>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               disabled
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 sm:border-border px-3 py-2 sm:py-1.5 text-xs font-semibold text-text-secondary"
             >
               <ClipboardList className="h-3.5 w-3.5" /> Sample CSV
             </button>
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary">
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 sm:border-border px-3 py-2 sm:py-1.5 text-xs font-semibold text-text-secondary">
               <Upload className="h-3.5 w-3.5" /> Upload CSV
             </span>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="email"
               disabled
               placeholder="student@example.com"
-              className="h-9 flex-1 rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary placeholder-text-muted outline-none"
+              className="h-11 sm:h-9 flex-1 min-w-0 rounded-lg border border-zinc-200 sm:border-input-border bg-zinc-50 sm:bg-input-bg px-3 text-sm text-text-primary placeholder-text-muted outline-none"
             />
             <button
               type="button"
               disabled
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-text-secondary"
+              className="inline-flex h-11 sm:h-auto w-full sm:w-auto shrink-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 sm:border-border bg-white sm:bg-card px-3.5 py-2 text-xs font-semibold text-text-secondary"
             >
               <Plus className="h-3.5 w-3.5" /> Add Student
             </button>
@@ -546,25 +547,25 @@ function AllStudentsPanel({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+    <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 sm:border-border bg-white sm:bg-card p-3 sm:p-5 space-y-3 sm:space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h3 className="break-words text-xs font-semibold uppercase tracking-wider text-zinc-600 sm:text-text-secondary">
             All Students
           </h3>
-          <p className="mt-0.5 text-xs text-text-secondary">
-            <span className="font-semibold text-text-primary">{allStudents.length}</span> unique{" "}
+          <p className="mt-0.5 break-words text-xs leading-relaxed text-zinc-600 sm:text-text-secondary">
+            <span className="font-semibold text-zinc-900 sm:text-text-primary">{allStudents.length}</span> unique{" "}
             {allStudents.length === 1 ? "student" : "students"} across selected rooms.
             {" "}
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{selectedCount}</span> allowed to attempt.
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{selectedCount}</span> allowed.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 gap-1.5 sm:flex sm:w-auto sm:gap-2">
           <button
             type="button"
             onClick={() => toggleAll(true)}
             disabled={allAllowed}
-            className="rounded-md border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary disabled:opacity-40"
+            className="rounded-lg sm:rounded-md border border-zinc-200 sm:border-border bg-white sm:bg-card px-2 py-2 sm:px-2.5 sm:py-1 text-xs sm:text-[11px] font-semibold sm:font-medium text-zinc-700 sm:text-text-secondary transition-colors duration-150 hover:bg-zinc-50 sm:hover:bg-card-hover hover:text-zinc-900 sm:hover:text-text-primary disabled:opacity-40"
           >
             Select all
           </button>
@@ -572,9 +573,9 @@ function AllStudentsPanel({
             type="button"
             onClick={() => toggleAll(false)}
             disabled={noneAllowed}
-            className="rounded-md border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary disabled:opacity-40"
+            className="rounded-lg sm:rounded-md border border-zinc-200 sm:border-border bg-white sm:bg-card px-2 py-2 sm:px-2.5 sm:py-1 text-xs sm:text-[11px] font-semibold sm:font-medium text-zinc-700 sm:text-text-secondary transition-colors duration-150 hover:bg-zinc-50 sm:hover:bg-card-hover hover:text-zinc-900 sm:hover:text-text-primary disabled:opacity-40"
           >
-            Unselect all
+            Unselect
           </button>
           <button
             type="button"
@@ -590,56 +591,56 @@ function AllStudentsPanel({
                 setSaving(false);
               }
             }}
-            className="rounded-md bg-pink-500 px-2.5 py-1 text-[11px] font-medium text-white transition-colors duration-150 hover:bg-pink-600 disabled:opacity-40"
+            className="rounded-lg sm:rounded-md bg-[#E91E63] sm:bg-pink-500 px-2 py-2 sm:px-2.5 sm:py-1 text-xs sm:text-[11px] font-bold sm:font-medium text-white transition-colors duration-150 hover:bg-[#D81B60] sm:hover:bg-pink-600 disabled:opacity-40"
           >
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+      <div className="relative w-full min-w-0">
+        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 sm:text-text-muted" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, username, or roll number…"
-          className="h-9 w-full rounded-lg border border-input-border bg-input-bg pl-8 pr-3 text-xs text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60"
+          className="h-11 sm:h-9 w-full min-w-0 rounded-xl sm:rounded-lg border border-zinc-200 sm:border-input-border bg-zinc-50 sm:bg-input-bg pl-8 pr-8 sm:pr-3 text-sm sm:text-xs text-zinc-900 sm:text-text-primary placeholder-zinc-400 sm:placeholder-text-muted outline-none focus:border-pink-300 sm:focus:border-pink-500/60"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-text-muted hover:text-text-primary"
+            className="absolute right-2.5 sm:right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-400 sm:text-text-muted hover:text-zinc-700 sm:hover:text-text-primary"
           >
-            <X className="h-3 w-3" />
+            <X className="h-4 w-4 sm:h-3 sm:w-3" />
           </button>
         )}
       </div>
 
       {allStudents.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-6 text-center">
-          <Users className="mx-auto h-6 w-6 text-text-muted" />
-          <p className="mt-2 text-xs text-text-secondary">
+        <div className="rounded-xl sm:rounded-lg border border-dashed border-zinc-200 sm:border-border p-6 text-center">
+          <Users className="mx-auto h-6 w-6 text-zinc-400 sm:text-text-muted" />
+          <p className="mt-2 break-words text-xs leading-relaxed text-zinc-600 sm:text-text-secondary">
             No students found in the selected rooms.
           </p>
         </div>
       ) : filtered.length === 0 ? (
-        <p className="py-3 text-center text-xs text-text-muted">
+        <p className="py-3 text-center break-words text-xs text-zinc-500 sm:text-text-muted">
           No students match &ldquo;{query}&rdquo;
         </p>
       ) : (
-        <ul className="max-h-80 overflow-y-auto divide-y divide-border rounded-lg border border-border">
+        <ul className="max-h-[55vh] sm:max-h-80 overflow-y-auto divide-y divide-zinc-200 sm:divide-border rounded-xl sm:rounded-lg border border-zinc-200 sm:border-border overflow-hidden">
           {filtered.map((student) => {
             const key = student.rollNumber.toLowerCase();
             return (
               <li
                 key={key}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 transition-colors duration-150",
+                  "flex min-w-0 items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-2 transition-colors duration-150",
                   student.isAllowed
-                    ? "bg-emerald-500/[0.04]"
-                    : "bg-red-500/[0.06]"
+                    ? "bg-emerald-50/60 sm:bg-emerald-500/[0.04]"
+                    : "bg-red-50/60 sm:bg-red-500/[0.06]"
                 )}
               >
                 <input
@@ -659,26 +660,26 @@ function AllStudentsPanel({
                     }
                     updateAudience({ roomStudentSelections: next });
                   }}
-                  className="h-3.5 w-3.5 rounded accent-pink-500"
+                  className="h-4 w-4 sm:h-3.5 sm:w-3.5 shrink-0 rounded accent-pink-500"
                 />
                 <img
                   src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
                   alt=""
-                  className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-border"
+                  className="h-8 w-8 sm:h-7 sm:w-7 shrink-0 rounded-full object-cover ring-1 ring-zinc-200 sm:ring-border"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-medium text-text-primary">
+                  <p className="truncate text-xs font-semibold sm:font-medium text-zinc-900 sm:text-text-primary">
                     @{student.username ?? student.name}
                   </p>
-                  <p className="truncate text-[10px] text-text-muted">
-                    @{student.username ?? ""} &middot; {student.rollNumber}
+                  <p className="truncate text-[11px] sm:text-[10px] text-zinc-500 sm:text-text-muted">
+                    {student.rollNumber}
                   </p>
                 </div>
-                <div className="flex shrink-0 flex-wrap gap-1">
-                  {student.roomNames.map((rn) => (
+                <div className="hidden sm:flex shrink-0 flex-wrap gap-1 max-w-[90px] justify-end">
+                  {student.roomNames.slice(0,2).map((rn) => (
                     <span
                       key={rn}
-                      className="rounded bg-pink-500/10 px-1.5 py-0.5 text-[9px] font-medium text-pink-600 dark:text-pink-400"
+                      className="truncate max-w-[80px] rounded bg-pink-500/10 px-1.5 py-0.5 text-[9px] font-medium text-pink-600 dark:text-pink-400"
                     >
                       {rn}
                     </span>
@@ -686,13 +687,14 @@ function AllStudentsPanel({
                 </div>
                 <span
                   className={cn(
-                    "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
+                    "shrink-0 whitespace-nowrap rounded-full sm:rounded px-2 sm:px-1.5 py-1 sm:py-0.5 text-[10px] font-bold sm:font-medium",
                     student.isAllowed
-                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                      : "bg-card-hover text-text-muted"
+                      ? "bg-emerald-100 sm:bg-emerald-500/10 text-emerald-700 sm:text-emerald-600 dark:text-emerald-400"
+                      : "bg-zinc-100 sm:bg-card-hover text-zinc-500 sm:text-text-muted"
                   )}
                 >
-                  {student.isAllowed ? "Can attempt" : "Removed"}
+                  <span className="sm:hidden">{student.isAllowed ? "✓" : "✕"}</span>
+                  <span className="hidden sm:inline">{student.isAllowed ? "Can attempt" : "Removed"}</span>
                 </span>
               </li>
             );

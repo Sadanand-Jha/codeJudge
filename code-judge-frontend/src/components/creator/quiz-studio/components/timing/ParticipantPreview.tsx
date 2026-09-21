@@ -88,7 +88,7 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
         <PreviewStep
           icon={<CheckCircle2 className="h-3 w-3" />}
           label="Attempt deadline"
-          time={participantStart ? attemptEnd : "Depends on start time"}
+          time={(participantStart ? attemptEnd : "Depends on start time") ?? "Depends on start time"}
           active={!!participantStart}
         />
         </motion.div>
