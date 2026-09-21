@@ -272,16 +272,22 @@ export const loginController = async (req: Request, res: Response) => {
       signOptions
     );
 
-    // Set httpOnly, secure, sameSite: 'lax' cookie
+    // Set httpOnly cookie for same-site (via Next.js rewrites proxy).
+    // Keeps SameSite=Lax (secure) because frontend rewrites /api -> backend
+    // makes the cookie first-party. No Domain attribute so it is host-only
+    // for the frontend origin.
     res.cookie("session_token", sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
+      path: "/",
       maxAge: 10 * 24 * 60 * 60 * 1000, // 10 days
     });
 
     // Return the full merged profile so the frontend can persist it in zustand
     // and render it on every page without a follow-up /auth/me call.
+    // Also return token as fallback for Authorization header when cookies are
+    // not sent (e.g. direct cross-origin call without proxy).
     const mergedData = await buildUserProfile(String(user.id));
 
     res.status(200).json({
@@ -289,6 +295,7 @@ export const loginController = async (req: Request, res: Response) => {
       message: "Login successful",
       data: {
         user: mergedData,
+        token: sessionToken,
       },
     });
   } catch (error: any) {
@@ -370,7 +377,10 @@ const buildUserProfile = async (userId: string) => {
  */
 export const meController = async (req: Request, res: Response) => {
   try {
-    const session_token = req.cookies?.session_token || req.body.session_token;
+    const session_token =
+      req.cookies?.session_token ||
+      req.body.session_token ||
+      req.headers.authorization?.replace(/^Bearer\s+/i, "");
 
     if (!session_token) {
       res.status(200).json({
@@ -434,7 +444,10 @@ export const meController = async (req: Request, res: Response) => {
  */
 export const getProfileController = async (req: Request, res: Response) => {
   try {
-    const { session_token } = req.body;
+    const session_token =
+      req.body.session_token ||
+      req.cookies?.session_token ||
+      req.headers.authorization?.replace(/^Bearer\s+/i, "");
 
     if (!session_token) {
       res.status(200).json({
@@ -488,7 +501,10 @@ export const getProfileController = async (req: Request, res: Response) => {
  */
 export const logoutController = async (req: Request, res: Response) => {
   try {
-    const token = req.cookies?.session_token;
+    const token =
+      req.cookies?.session_token ||
+      req.headers.authorization?.replace(/^Bearer\s+/i, "") ||
+      req.body?.session_token;
 
     if (token) {
       try {
@@ -510,10 +526,13 @@ export const logoutController = async (req: Request, res: Response) => {
     }
 
     // Clear the httpOnly cookie by setting it to expire immediately
+    // Must match sameSite/path/secure used in loginController (lax) otherwise
+    // browser will not clear the cookie when proxied via same-site rewrites.
     res.clearCookie("session_token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
+      path: "/",
     });
 
     res.status(200).json({
