@@ -13,6 +13,14 @@ import { authenticate } from "../middleware/auth.js";
 const userService = new UserService();
 const userRepo = new userRepository();
 
+// Common Cookie Options helper Object
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // Vercel/Production pe true, local pe false
+  sameSite: "lax" as const,
+  path: "/",
+};
+
 /**
  * GET /api/auth/check-username?username=xxx
  * Returns whether the username is available
@@ -272,17 +280,10 @@ export const loginController = async (req: Request, res: Response) => {
       signOptions
     );
 
-    // Set httpOnly cookie for same-site (via Next.js rewrites proxy).
-    // Keeps SameSite=Lax (secure) because frontend rewrites /api -> backend
-    // makes the cookie first-party. No Domain attribute so it is host-only
-    // for the frontend origin.
-    const isSecure = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+    // 1. LOGIN TIME
     res.cookie("session_token", sessionToken, {
-      httpOnly: true,
-      secure: isSecure,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 10 * 24 * 60 * 60 * 1000, // 10 days
+      ...cookieOptions,
+      maxAge: 10 * 24 * 60 * 60 * 1000,
     });
 
     // Return the full merged profile so the frontend can persist it in zustand
@@ -526,16 +527,8 @@ export const logoutController = async (req: Request, res: Response) => {
       }
     }
 
-    // Clear the httpOnly cookie by setting it to expire immediately
-    // Must match sameSite/path/secure used in loginController (lax) otherwise
-    // browser will not clear the cookie when proxied via same-site rewrites.
-    const isSecureClear = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
-    res.clearCookie("session_token", {
-      httpOnly: true,
-      secure: isSecureClear,
-      sameSite: "lax",
-      path: "/",
-    });
+    // 2. LOGOUT TIME (Must match cookieOptions exactly)
+    res.clearCookie("session_token", cookieOptions);
 
     res.status(200).json({
       success: true,
