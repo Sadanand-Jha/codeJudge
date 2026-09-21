@@ -21,17 +21,23 @@ const nextConfig: NextConfig = {
     // Option B: Proxy /api to backend so auth cookies become first-party
     // (SameSite=Lax works). Browser hits same origin /api -> Next.js forwards
     // to real backend, response Set-Cookie is then stored for frontend host.
-    // Uses NEXT_PUBLIC_BACKEND_URL if absolute, otherwise defaults to
-    // production backend. In dev it falls back to localhost:8000.
     const rawBackend =
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
       (process.env.NODE_ENV === "production"
         ? "https://quizbackend-dun.vercel.app/api"
         : "http://localhost:8000/api");
-    // If env is already relative (/api) skip rewrite - no backend to proxy to
-    if (rawBackend.startsWith("/")) return [];
-    const backendOrigin = rawBackend.replace(/\/api\/?$/, "").replace(/\/$/, "");
+    // Resolve backend origin. If env is relative (/api) it means "use proxy
+    // with default backend" - derive origin from default, not skip rewrites.
+    let backendOrigin: string;
+    if (rawBackend.startsWith("/")) {
+      backendOrigin =
+        process.env.NODE_ENV === "production"
+          ? "https://quizbackend-dun.vercel.app"
+          : "http://localhost:8000";
+    } else {
+      backendOrigin = rawBackend.replace(/\/api\/?$/, "").replace(/\/$/, "");
+    }
     if (!backendOrigin || !backendOrigin.startsWith("http")) return [];
     return [
       {
