@@ -1,6 +1,6 @@
 // Main Express application setup. Configures middleware (CORS, Helmet, Morgan,
-// cookie-parser), creates the PostgreSQL connection pool, and mounts all API
-// routes under /api. Exports the configured Express app and the DB pool.
+// cookie-parser), reuses cached PostgreSQL pool for serverless, and mounts all API
+// routes under /api. Exports the configured Express app for Vercel/serverless.
 import 'dotenv/config';
 import express from "express";
 import cors from "cors";
@@ -10,122 +10,88 @@ import cookieParser from "cookie-parser";
 import apiRoutes from "./routes/index.routes.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
 import dns from "dns";
+import { pool } from "./config/database.ts"; // Serverless-cached pool
 
-
-
-// console.log(process.env.PGHOST, process.env.PGDATABASE, process.env.PGUSER, process.env.PGPASSWORD, process.env.PGSSLMODE, process.env.PGCHANNELBINDING); // Ye line sabse upar honi chahiye
-
-// console.log("nhi mila")
-
-
-// console.log({
-//   host: process.env.PGHOST,
-//   user: process.env.PGUSER,
-//   passwordType: typeof process.env.PGPASSWORD,
-//   passwordLength: process.env.PGPASSWORD?.length,
-// });
-
-
-// console.log(process.env.DATABASE_URL); // Ye line sabse upar honi chahiye
-
-
-import pg from 'pg';
-const { Pool } = pg;
-
+// Re-export pool for backward compatibility (services importing from app.ts still work)
+export { pool };
 
 dns.setDefaultResultOrder("ipv4first");
 
-// Force Asia/Kolkata everywhere: JS Date formatting + Postgres session timezone,
-// so created_at / updated_at are stored & returned in IST.
+// Force Asia/Kolkata everywhere: JS Date formatting + Postgres session timezone
 process.env.TZ = "Asia/Kolkata";
 
+// Trust proxy for Vercel (X-Forwarded-For, secure cookies)
+import type { Express } from "express";
 
-export const pool = new Pool({
-  ssl: {
-    rejectUnauthorized: false // <-- Yahan add karna hai
-  }});
+const app: Express = express();
 
-// Set the session timezone for every new pooled connection so NOW(),
-// created_at and updated_at use Asia/Kolkata (IST, UTC+05:30).
-pool.on("connect", (client) => {
-  client.query("SET TIME ZONE 'Asia/Kolkata'").catch((err) =>
-    console.error("Failed to set session timezone:", err.message)
-  );
-});
+// --- CORS: Serverless-optimized, supports wildcard for testing ---
+const rawFrontendUrl = process.env.FRONTEND_URL || "";
+// Allow comma-separated origins for multiple frontends (e.g., "https://a.vercel.app,https://b.vercel.app")
+const envOrigins = rawFrontendUrl
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
-// export const pool = new Pool({
-//   connectionString: process.env.DATABASE_URL,
-//   max: 5,
-//   idleTimeoutMillis: 30000,
-//   connectionTimeoutMillis: 10000,
-//   ssl: {
-//     rejectUnauthorized: false,
-//   },
-// });
-
-async function shutdown(signal: string) {
-  console.log(`Received ${signal}. Closing database connections...`);
-
-  try {
-    await pool.end();
-    console.log("Database pool closed.");
-    process.exit(0);
-  } catch (err) {
-    console.error("Error closing database pool:", err);
-    process.exit(1);
-  }
-}
-
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-
-pool.connect()
-  .then(() => console.log('✅ Connected to PostgreSQL database successfully!'))
-  .catch((err) => console.error('❌ Database connection error', err));
-
-const app = express();
-
-// --- UPDATED CORS CONFIGURATION ---
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
+  ...envOrigins,
   "http://localhost:3000",
   "http://localhost:3001",
   "http://127.0.0.1:3000",
-  "http://127.0.0.1:3001"
-].filter(Boolean); // यह खाली या undefined वैल्यू को अपने आप हटा देगा
+  "http://127.0.0.1:3001",
+].filter(Boolean);
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // अगर कोई सर्वर-टू-सर्वर रिक्वेस्ट है (जैसे Postman) तो origin undefined होता है, उसे अनुमति दें
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-}));
+const isWildcard = allowedOrigins.includes("*");
+
+app.set("trust proxy", 1);
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Server-to-server (Postman, curl, Vercel health checks) have no origin
+      if (!origin) return callback(null, true);
+
+      // Wildcard for testing: allow all origins (credentials must be handled carefully)
+      if (isWildcard) return callback(null, true);
+
+      // Dynamic origin check against allowlist
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // In development, allow any localhost
+      if (process.env.NODE_ENV !== "production" && origin.includes("localhost")) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
+    credentials: true, // Allow cookies/auth headers
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Cookie"],
+    exposedHeaders: ["Set-Cookie"],
+  })
+);
+
+// Preflight
+// Note: cors() already handles OPTIONS, but explicit is fine for Vercel
+// app.options("*", cors()) — handled by cors middleware
 
 app.use(helmet());
-app.use(morgan("dev"));
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
-app.use("/api", apiRoutes);
 
-// Global error handler — must be registered after routes
-app.use(errorHandler);
-
+// Health check before auth — useful for Vercel
 app.get("/health", async (req, res) => {
-  const health = {
+  const health: any = {
     status: "ok",
     timestamp: new Date().toISOString(),
     database: "unknown",
     internet: "disabled",
   };
 
-  // Database check
   try {
     await pool.query("SELECT 1");
     health.database = "connected";
@@ -134,13 +100,11 @@ app.get("/health", async (req, res) => {
     health.status = "degraded";
   }
 
-  // Ping check (not production)
   if (process.env.NODE_ENV !== "production") {
     try {
       const response = await fetch("https://1.1.1.1", {
         signal: AbortSignal.timeout(3000),
       });
-
       health.internet = response.ok ? "reachable" : "unreachable";
     } catch {
       health.internet = "unreachable";
@@ -149,5 +113,28 @@ app.get("/health", async (req, res) => {
 
   res.status(health.status === "ok" ? 200 : 503).json(health);
 });
+
+app.use("/api", apiRoutes);
+
+// Global error handler — must be after routes
+app.use(errorHandler);
+
+// Graceful shutdown only for local dev (not Vercel serverless)
+// In serverless, process.exit would kill the lambda
+if (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1") {
+  async function shutdown(signal: string) {
+    console.log(`Received ${signal}. Closing database connections...`);
+    try {
+      await pool.end();
+      console.log("Database pool closed.");
+      process.exit(0);
+    } catch (err) {
+      console.error("Error closing database pool:", err);
+      process.exit(1);
+    }
+  }
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+}
 
 export default app;

@@ -41,7 +41,7 @@ export default function JoinQuizPage() {
     setError(null);
     try {
       const data = await getQuizByCode(digits);
-      setQuiz(data);
+      setQuiz(data as unknown as Quiz);
       setStep("details");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Quiz not found. Please check the code and try again.");

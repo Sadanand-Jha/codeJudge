@@ -261,8 +261,8 @@ export async function verifyOtp(email: string, otp: string): Promise<ServiceResp
       );
     }
 
-    // 5. Validate OTP match
-    if (cachedOtp !== otp) {
+    // 5. Validate OTP match (Upstash may return number, so string-compare)
+    if (String(cachedOtp).trim() !== String(otp).trim()) {
       // Wrong OTP — decrement remaining attempts
       const newRemaining = await decrementAttempts(normalizedEmail);
 
@@ -317,8 +317,6 @@ export async function register(email: string, password: string, registrationToke
       );
     }
 
-    console.log(password, 'password')
-    
     if (!registrationToken) {
       return errorResponse('Registration token is required', 400);
     }

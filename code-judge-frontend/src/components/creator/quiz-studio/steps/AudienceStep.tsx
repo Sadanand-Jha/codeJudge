@@ -55,21 +55,17 @@ export function AudienceStep() {
       try {
         const participants = await getQuizParticipants(state.serverQuizId!);
         if (cancelled) return;
-        console.log("[AudienceStep] participants:", participants);
 
         const roomParticipants = participants?.filter((p) => p.source === 4) ?? [];
-        console.log("[AudienceStep] roomParticipants:", roomParticipants.length, roomParticipants);
         if (roomParticipants.length === 0) return;
 
         const userIdSet = new Set(roomParticipants.map((p) => String(p.user_id)));
         const usernameSet = new Set(
           roomParticipants.filter((p) => p.username).map((p) => p.username!.toLowerCase())
         );
-        console.log("[AudienceStep] userIdSet:", [...userIdSet], "usernameSet:", [...usernameSet]);
 
         const allRooms = await fetchMyRooms();
         if (cancelled) return;
-        console.log("[AudienceStep] allRooms:", allRooms.length, allRooms);
         useRoomStore.getState().setRooms(allRooms);
 
         const matchedRoomIds: string[] = [];
@@ -109,28 +105,23 @@ export function AudienceStep() {
                 (s.username && usernameSet.has(s.username.toLowerCase())) ||
                 (s.rollNumber && usernameSet.has(s.rollNumber.toLowerCase()))
             );
-            console.log(`[AudienceStep] room "${room.name}" members:`, mapped.map(s => ({ id: s.id, username: s.username })), "matched:", matchingStudents.length);
 
             if (matchingStudents.length > 0) {
               matchedRoomIds.push(room.id);
               matchedSelections[room.id] = matchingStudents.map((s) => s.rollNumber);
             }
           } catch (e) {
-            console.error(`[AudienceStep] Failed to fetch room ${room.id}:`, e);
           }
         }
 
         if (!cancelled && matchedRoomIds.length > 0) {
-          console.log("[AudienceStep] updating audience with matched rooms:", matchedRoomIds, matchedSelections);
           updateAudience({
             roomIds: matchedRoomIds,
             roomStudentSelections: matchedSelections,
           });
         } else if (!cancelled) {
-          console.log("[AudienceStep] no rooms matched");
         }
       } catch (e) {
-        console.error("[AudienceStep] Failed to resolve rooms:", e);
       }
     })();
 

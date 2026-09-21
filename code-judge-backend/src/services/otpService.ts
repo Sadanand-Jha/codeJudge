@@ -66,7 +66,7 @@ export class OTPService {
     if (!storedOtp) {
       return false; // OTP expired or never requested
     }
-    return storedOtp === otp;
+    return String(storedOtp).trim() === String(otp).trim();
   }
 
   /**

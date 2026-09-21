@@ -794,9 +794,6 @@ export class QuizRepository {
           }
         }
 
-        console.log(fields)
-        console.log(paramCount)
-
         if (fields.length > 0) {
           paramCount++;
           fields.push(`updated_at = CURRENT_TIMESTAMP`);

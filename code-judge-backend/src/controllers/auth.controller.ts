@@ -272,8 +272,6 @@ export const loginController = async (req: Request, res: Response) => {
       signOptions
     );
 
-    console.log(sessionToken);
-
     // Set httpOnly, secure, sameSite: 'lax' cookie
     res.cookie("session_token", sessionToken, {
       httpOnly: true,

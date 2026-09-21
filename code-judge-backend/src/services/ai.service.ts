@@ -176,7 +176,6 @@ export const chatWithAI_testor = async (
   messages: ChatMessageInput[] | string,
   signal?: AbortSignal
 ): Promise<AIResponse> => {
-  console.log(process.env.LM_STUDIO_MODEL_TESTOR);
   const response = await client.chat.completions.create(
     {
       model: process.env.LM_STUDIO_MODEL_TESTOR!,

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { sendOtp, verifyOtp, register, checkUsername } from "@/services/auth";
 import { useAuthStore } from "@/store/authStore";
@@ -61,6 +61,8 @@ export default function RegistrationForm() {
   }>({ checking: false, available: null, message: "" });
 
   const [countdown, setCountdown] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -469,18 +471,29 @@ export default function RegistrationForm() {
 
               {/* Password */}
               <div>
-                <input
-                  type="password"
-                  value={form.password.value}
-                  onChange={(e) => updateField("password", e.target.value)}
-                  onBlur={() => validatePasswordField(form.password.value)}
-                  className={`w-full rounded-xl bg-input-bg border px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
-                    form.password.touched && form.password.error
-                      ? "border-red-500"
-                      : "border-input-border"
-                  }`}
-                  placeholder="Password"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={form.password.value}
+                    onChange={(e) => updateField("password", e.target.value)}
+                    onBlur={() => validatePasswordField(form.password.value)}
+                    className={`w-full rounded-xl bg-input-bg border px-4 py-3 pr-11 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                      form.password.touched && form.password.error
+                        ? "border-red-500"
+                        : "border-input-border"
+                    }`}
+                    placeholder="Password"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-text-muted hover:bg-black/5 hover:text-text-primary transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {form.password.touched && form.password.error && (
                   <p className="mt-2 text-xs text-red-400">{form.password.error}</p>
                 )}
@@ -488,20 +501,31 @@ export default function RegistrationForm() {
 
               {/* Confirm Password */}
               <div>
-                <input
-                  type="password"
-                  value={form.confirmPassword.value}
-                  onChange={(e) => updateField("confirmPassword", e.target.value)}
-                  onBlur={() => validateConfirmPasswordField(form.confirmPassword.value)}
-                  className={`w-full rounded-xl bg-input-bg border px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
-                    form.confirmPassword.touched && form.confirmPassword.error
-                      ? "border-red-500"
-                      : form.confirmPassword.touched && !form.confirmPassword.error && form.confirmPassword.value
-                      ? "border-green-500"
-                      : "border-input-border"
-                  }`}
-                  placeholder="Confirm password"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={form.confirmPassword.value}
+                    onChange={(e) => updateField("confirmPassword", e.target.value)}
+                    onBlur={() => validateConfirmPasswordField(form.confirmPassword.value)}
+                    className={`w-full rounded-xl bg-input-bg border px-4 py-3 pr-11 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                      form.confirmPassword.touched && form.confirmPassword.error
+                        ? "border-red-500"
+                        : form.confirmPassword.touched && !form.confirmPassword.error && form.confirmPassword.value
+                        ? "border-green-500"
+                        : "border-input-border"
+                    }`}
+                    placeholder="Confirm password"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowConfirmPassword((v) => !v)}
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-text-muted hover:bg-black/5 hover:text-text-primary transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 {form.confirmPassword.touched && form.confirmPassword.error && (
                   <p className="mt-2 text-xs text-red-400">{form.confirmPassword.error}</p>
                 )}

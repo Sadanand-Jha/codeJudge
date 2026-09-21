@@ -528,11 +528,9 @@ export const PARTICIPANT_SOURCE: Record<number, { label: string; color: string }
 
 /** Fetch all participants for a quiz (admin). */
 export async function getQuizParticipants(quizId: string): Promise<QuizParticipant[]> {
-  console.log("[API] getQuizParticipants called with quizId:", quizId);
   const res = await apiClient.get<QuizParticipant[]>(
     `/v1/admin/quiz/${quizId}/participants`
   );
-  console.log("[API] getQuizParticipants response:", res.data);
   return res.data;
 }
 

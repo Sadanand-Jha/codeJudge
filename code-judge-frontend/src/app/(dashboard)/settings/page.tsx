@@ -375,6 +375,10 @@ export default function SettingsPage() {
     async function fetchUserInfo() {
       try {
         const data = await getUserInfo();
+        if (!data) {
+          console.warn("No user data returned from /auth/me");
+          return;
+        }
         
         // Map accent color from API format to hex
         const accentColorMap: Record<string, string> = {
@@ -385,9 +389,16 @@ export default function SettingsPage() {
           "red": "#EF4444",
         };
         
-        // Format member since date
-        const memberSince = data.createdAt 
-          ? new Date(data.createdAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "long", year: "numeric" })
+        // Format member since date — guard against missing/invalid date
+        const memberSince = data?.createdAt 
+          ? (() => {
+              try {
+                const d = new Date(data.createdAt as string);
+                return isNaN(d.getTime()) ? "March 2024" : d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", month: "long", year: "numeric" });
+              } catch {
+                return "March 2024";
+              }
+            })()
           : "March 2024";
         
         // Map API response to settings
@@ -422,8 +433,15 @@ export default function SettingsPage() {
         };
         setSettings((prev) => ({ ...prev, ...mappedSettings }));
         setOriginalSettings((prev) => ({ ...prev, ...mappedSettings }));
-      } catch (err) {
-        console.error("Failed to fetch user info:", err);
+      } catch (err: any) {
+        // 401 = not authenticated — redirect is handled by middleware/AppLayout, don't spam error log
+        // The GET /register?redirect=%2Fsettings you see in dev logs is the expected redirect for guests
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) {
+          console.warn("User not authenticated for /settings — redirecting to login");
+          return;
+        }
+        console.error("Failed to fetch user info:", err?.message ?? err);
       }
     }
     fetchUserInfo();
