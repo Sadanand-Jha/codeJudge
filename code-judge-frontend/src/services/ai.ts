@@ -219,6 +219,42 @@ export const generateQuestionsFromFiles = async (
   return payload.data?.questions ?? [];
 };
 
+export interface GenerateFromBankOptions {
+  numberOfQuestions: number;
+  easyCount?: number;
+  mediumCount?: number;
+  hardCount?: number;
+  hardnessHint?: string;
+}
+
+export interface GenerateFromBankResponse {
+  success: boolean;
+  message?: string;
+  data?: { questions: RawAIGeneratedQuestion[]; extractedText?: string; usage?: LiveUsage };
+}
+
+export const generateFromQuestionBank = async (
+  options: GenerateFromBankOptions
+): Promise<RawAIGeneratedQuestion[]> => {
+  const response = await fetch(`${API_BASE}/v1/user/ai/generate-from-bank`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      numberOfQuestions: options.numberOfQuestions,
+      easyCount: options.easyCount,
+      mediumCount: options.mediumCount,
+      hardCount: options.hardCount,
+      hardnessHint: options.hardnessHint,
+    }),
+    credentials: "include",
+  });
+  const payload = (await response.json().catch(() => ({}))) as GenerateFromBankResponse;
+  if (!response.ok || !payload.success) {
+    throw new Error(payload.message || `Request failed with status ${response.status}`);
+  }
+  return payload.data?.questions ?? [];
+};
+
 export interface SelectionRange {
   startLine: number;
   startColumn: number;

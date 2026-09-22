@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAICreditConsumption } from "@/hooks/useAICreditConsumption";
 import { toast } from "@/lib/toast";
-import { generateQuestionsFromFiles, mapRawQuestionsToPreview } from "@/services/ai";
+import { generateQuestionsFromFiles, generateFromQuestionBank, mapRawQuestionsToPreview } from "@/services/ai";
 import type { RawAIGeneratedQuestion, AIQuestionPreview } from "@/services/ai";
 import AIQuestionReviewOverlay, {
   type PreviewQuestion,
@@ -157,6 +157,7 @@ export default function AIStudio({
   onClose?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(true);
+  const [sourceMode, setSourceMode] = useState<"own" | "bank">("own");
   const [activeTab, setActiveTab] = useState<"upload" | "generate" | "review">("upload");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [options, setOptions] = useState<GenerationOptions>(DEFAULT_OPTIONS);
@@ -167,6 +168,12 @@ export default function AIStudio({
   const [estimatedCredits, setEstimatedCredits] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showSmartSuggestions, setShowSmartSuggestions] = useState(true);
+  // Question Bank (OS 100) controls — balanced 10 paper by default 4/3/3
+  const [bankNumber, setBankNumber] = useState(10);
+  const [bankEasy, setBankEasy] = useState(4);
+  const [bankMedium, setBankMedium] = useState(3);
+  const [bankHard, setBankHard] = useState(3);
+  const [bankHardnessHint, setBankHardnessHint] = useState("");
 
   const { consume, refund, completeRequest, balance, isLowCredit, recommendedPack } = useAICreditConsumption();
 
@@ -291,6 +298,51 @@ export default function AIStudio({
     toast.success("Question added");
   };
 
+  // Sync bank distribution when number changes — default 40/30/30
+  const syncBankDistribution = (total: number) => {
+    let e = Math.round(total * 0.4);
+    let m = Math.round(total * 0.3);
+    let h = total - e - m;
+    if (total === 10) { e = 4; m = 3; h = 3; }
+    if (h < 0) h = 0;
+    setBankEasy(e); setBankMedium(m); setBankHard(h);
+  };
+
+  const handleGenerateFromBank = async () => {
+    const sum = bankEasy + bankMedium + bankHard;
+    if (sum !== bankNumber) {
+      toast.error("Distribution must sum to total", { description: `Easy (${bankEasy}) + Medium (${bankMedium}) + Hard (${bankHard}) = ${sum} ≠ ${bankNumber}` });
+      return;
+    }
+    setIsGenerating(true);
+    setGenerationProgress(5);
+    try {
+      const rawQuestions = await generateFromQuestionBank({
+        numberOfQuestions: bankNumber,
+        easyCount: bankEasy,
+        mediumCount: bankMedium,
+        hardCount: bankHard,
+        hardnessHint: bankHardnessHint || undefined,
+      });
+      setGenerationProgress(70);
+      const questions: GeneratedQuestion[] = mapRawQuestionsToPreview(rawQuestions).map((q: AIQuestionPreview, i) => ({
+        ...q,
+        credits: Math.round(8 / Math.max(rawQuestions.length, 1)),
+      }));
+      setGenerationProgress(100);
+      setGeneratedQuestions(questions);
+      setIsGenerating(false);
+      setActiveTab("review");
+      setShowReviewOverlay(true);
+      toast.success(`Selected ${questions.length} questions from bank (Easy ${bankEasy} · Medium ${bankMedium} · Hard ${bankHard})`);
+    } catch (error) {
+      console.error("Bank generation failed:", error);
+      toast.error("Bank selection failed", { description: (error as Error).message });
+      setIsGenerating(false);
+      setGenerationProgress(0);
+    }
+  };
+
   const handleAcceptOne = (question: PreviewQuestion) => {
     const q = question as GeneratedQuestion;
     setGeneratedQuestions((prev) => prev.filter((x) => x.id !== q.id));
@@ -374,12 +426,53 @@ export default function AIStudio({
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Source Mode Selector — two options */}
+      <div className="grid grid-cols-2 gap-2 p-3 border-b border-border bg-card-hover/30">
+        {[
+          { id: "own" as const, label: "From Your Material", sub: "Upload your own files", icon: Upload },
+          { id: "bank" as const, label: "From Question Bank", sub: "Curated · balanced", icon: BookOpen },
+        ].map((mode) => (
+          <button
+            key={mode.id}
+            onClick={() => {
+              setSourceMode(mode.id);
+              setActiveTab(mode.id === "bank" ? "generate" : "upload");
+            }}
+            className={`rounded-xl border p-3 text-left transition-all ${
+              sourceMode === mode.id
+                ? "border-accent bg-accent/10 shadow"
+                : "border-border bg-card hover:border-accent/20"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <mode.icon className={`h-4 w-4 ${sourceMode === mode.id ? "text-accent" : "text-text-muted"}`} />
+              <span className={`text-[11px] font-bold ${sourceMode === mode.id ? "text-accent" : "text-text-primary"}`}>{mode.label}</span>
+            </div>
+            <p className="text-[10px] text-text-muted mt-1">{mode.sub}</p>
+          </button>
+        ))}
+      </div>
+      {/* Question Bank quick info when bank mode */}
+      {sourceMode === "bank" && (
+        <div className="mx-3 mt-3 rounded-xl border border-[#8B5CF6]/20 bg-gradient-to-br from-[#8B5CF6]/5 to-[#EC4899]/5 p-3 flex items-start gap-2">
+          <BookOpen className="h-4 w-4 text-accent mt-0.5" />
+          <div className="flex-1">
+            <p className="text-[11px] font-bold text-text-primary">Curated Operating Systems Bank</p>
+            <p className="text-[10px] text-text-secondary">200 single-correct MCQs · Balanced difficulty · Theory + Numerical</p>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs — hidden when bank mode shows its own flow, but keep Review always */}
       <div className="flex border-b border-border">
         {[
-          { id: "upload", label: "Upload", icon: Upload },
-          { id: "generate", label: "Generate", icon: Wand2 },
-          { id: "review", label: "Review", icon: CheckCircle2, badge: generatedQuestions.length },
+          ...(sourceMode === "own"
+            ? [
+                { id: "upload", label: "Upload", icon: Upload },
+                { id: "generate", label: "Generate", icon: Wand2 },
+              ] as const
+            : [{ id: "generate", label: "Configure", icon: SlidersHorizontal }] as const),
+          { id: "review", label: "Review", icon: CheckCircle2, badge: generatedQuestions.length } as const,
         ].map((tab) => (
           <button
             key={tab.id}
@@ -398,9 +491,9 @@ export default function AIStudio({
             )}
             <tab.icon className="h-3.5 w-3.5" />
             {tab.label}
-            {tab.badge !== undefined && tab.badge > 0 && (
+            {(tab as any).badge !== undefined && (tab as any).badge > 0 && (
               <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold text-accent">
-                {tab.badge}
+                {(tab as any).badge}
               </span>
             )}
           </button>
@@ -408,9 +501,75 @@ export default function AIStudio({
       </div>
 
       {/* Content */}
-      <div className="h-[calc(100vh-120px)] overflow-y-auto p-4">
+      <div className="h-[calc(100vh-220px)] overflow-y-auto p-4">
         <AnimatePresence mode="wait">
-          {activeTab === "upload" && (
+          {sourceMode === "bank" && activeTab === "generate" && (
+            <motion.div
+              key="bank-config"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-4"
+            >
+              <div className="rounded-xl border border-border bg-card p-3 space-y-3">
+                <label className="text-[11px] font-bold text-text-primary flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-accent" /> Assessment size</label>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => { const v = Math.max(1, bankNumber - 1); setBankNumber(v); syncBankDistribution(v); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border"><Minus className="h-3.5 w-3.5" /></button>
+                  <div className="flex-1 text-center">
+                    <span className="text-lg font-bold text-accent">{bankNumber}</span>
+                    <span className="text-[10px] text-text-muted ml-1">questions</span>
+                  </div>
+                  <button onClick={() => { const v = Math.min(50, bankNumber + 1); setBankNumber(v); syncBankDistribution(v); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border"><Plus className="h-3.5 w-3.5" /></button>
+                </div>
+                <input type="range" min={5} max={20} value={bankNumber} onChange={(e) => { const v = parseInt(e.target.value); setBankNumber(v); syncBankDistribution(v); }} className="w-full h-2 bg-card-hover rounded-lg appearance-none cursor-pointer accent-accent" />
+                <p className="text-[10px] text-text-muted">Balanced OS paper typically 10 questions. Range 5–20.</p>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-3 space-y-3">
+                <label className="text-[11px] font-bold text-text-primary flex items-center gap-1.5"><SlidersHorizontal className="h-3.5 w-3.5 text-accent" /> Difficulty distribution — must sum to {bankNumber}</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: "easy", label: "Easy", value: bankEasy, setter: setBankEasy, color: "text-success" },
+                    { key: "medium", label: "Medium", value: bankMedium, setter: setBankMedium, color: "text-accent" },
+                    { key: "hard", label: "Hard", value: bankHard, setter: setBankHard, color: "text-danger" },
+                  ].map((d) => (
+                    <div key={d.key} className="rounded-lg border border-border bg-card-hover p-2 text-center">
+                      <p className={`text-[10px] font-bold ${d.color}`}>{d.label}</p>
+                      <div className="flex items-center justify-center gap-1 mt-1">
+                        <button onClick={() => (d.setter as any)((v: number) => Math.max(0, v - 1))} className="h-6 w-6 rounded border border-border flex items-center justify-center"><Minus className="h-3 w-3" /></button>
+                        <span className="w-6 text-sm font-bold text-text-primary">{d.value}</span>
+                        <button onClick={() => (d.setter as any)((v: number) => Math.min(bankNumber, v + 1))} className="h-6 w-6 rounded border border-border flex items-center justify-center"><Plus className="h-3 w-3" /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className={`text-[10px] font-medium px-2 py-1 rounded ${bankEasy + bankMedium + bankHard === bankNumber ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>
+                  {bankEasy} + {bankMedium} + {bankHard} = {bankEasy + bankMedium + bankHard} {bankEasy + bankMedium + bankHard === bankNumber ? "✓ Balanced" : `≠ ${bankNumber} — adjust`}
+                </div>
+                <div className="flex gap-1.5 flex-wrap">
+                  <button onClick={() => syncBankDistribution(bankNumber)} className="text-[10px] font-medium px-2 py-1 rounded-full bg-accent/10 text-accent">Auto 40/30/30</button>
+                  <button onClick={() => { setBankEasy(5); setBankMedium(3); setBankHard(2); }} className="text-[10px] font-medium px-2 py-1 rounded-full bg-card-hover border border-border">5/3/2</button>
+                  <button onClick={() => { const e = Math.floor(bankNumber/3); setBankEasy(e); setBankMedium(e); setBankHard(bankNumber - 2*e); }} className="text-[10px] font-medium px-2 py-1 rounded-full bg-card-hover border border-border">Equal split</button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+                <label className="text-[11px] font-bold text-text-primary flex items-center gap-1.5"><Zap className="h-3.5 w-3.5 text-accent" /> Hardness hint (optional)</label>
+                <input value={bankHardnessHint} onChange={(e) => setBankHardnessHint(e.target.value)} placeholder="e.g. Make it a hard paper, focus on numerical…" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-[11px] text-text-primary placeholder:text-text-muted focus:border-accent outline-none" />
+                <p className="text-[10px] text-text-muted">Guides overall hardness beyond counts. Leave blank for default balanced paper.</p>
+              </div>
+
+              <div className="rounded-xl border border-accent/20 bg-gradient-to-br from-[#8B5CF6]/10 to-[#EC4899]/10 p-3">
+                <p className="text-[10px] font-bold text-text-primary mb-1">What happens?</p>
+                <p className="text-[10px] text-text-secondary leading-relaxed">AI curates <b>{bankNumber}</b> balanced questions for you — spread across chapters, difficulty ({bankEasy}·{bankMedium}·{bankHard}) and theory / numerical mix for a fair assessment.</p>
+              </div>
+
+              <button onClick={handleGenerateFromBank} disabled={isGenerating || bankEasy + bankMedium + bankHard !== bankNumber} className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-3 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:cursor-not-allowed">
+                {isGenerating ? <><Loader2 className="h-4 w-4 animate-spin" /> Selecting... {Math.round(generationProgress)}%</> : <><Wand2 className="h-4 w-4" /> Generate {bankNumber} from Bank</>}
+              </button>
+            </motion.div>
+          )}
+          {sourceMode === "own" && activeTab === "upload" && (
             <motion.div
               key="upload"
               initial={{ opacity: 0, x: 20 }}
@@ -602,7 +761,7 @@ export default function AIStudio({
             </motion.div>
           )}
 
-          {activeTab === "generate" && (
+          {sourceMode === "own" && activeTab === "generate" && (
             <motion.div
               key="generate"
               initial={{ opacity: 0, x: 20 }}

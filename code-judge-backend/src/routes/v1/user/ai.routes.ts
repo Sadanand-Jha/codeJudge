@@ -20,6 +20,7 @@ import {
   chat,
   chatWithFiles,
   generateQuestionsFromUpload,
+  generateFromQuestionBankHandler,
 } from "../../../controllers/ai.controller.ts";
 
 const router = Router();
@@ -49,5 +50,8 @@ router.post("/chat-files", upload.array("files", 25), chatWithFiles);
 // options (numberOfQuestions, questionTypes, difficulty, bloomsLevel, …) and
 // `files` carries the study material. Returns JSON `{ success, data }`.
 router.post("/generate-questions", upload.array("files", 25), generateQuestionsFromUpload);
+
+// Curated question-bank selection (balanced assessment). JSON body, no files.
+router.post("/generate-from-bank", generateFromQuestionBankHandler);
 
 export default router;

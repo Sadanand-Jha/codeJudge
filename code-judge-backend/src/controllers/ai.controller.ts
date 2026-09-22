@@ -28,6 +28,7 @@ import { QUIZ_EXTRACTION_GUIDE } from "../services/question-generation.service.j
 import type { GeneratedQuestionPayload } from "../services/question-generation.service.js";
 import { extractFileText } from "../services/question-generation.service.js";
 import { isDoclingAvailable } from "../services/docling-extract.service.js";
+import { generateFromQuestionBank } from "../services/question-bank.service.js";
 
 /**
  * Best-effort user id for operational logging. The AI endpoints are not
@@ -242,6 +243,50 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
     return res.status(400).json({
       success: false,
       message: error instanceof Error ? error.message : "Failed to generate questions",
+    });
+  }
+};
+
+/**
+ * POST /api/v1/user/ai/generate-from-bank
+ *
+ * JSON body. Curated balanced selection from internal OS question bank.
+ * Body: { numberOfQuestions?: number, easyCount?: number, mediumCount?: number, hardCount?: number }
+ * Returns: { success: true, data: { questions, extractedText, usage } }
+ */
+export const generateFromQuestionBankHandler = async (req: Request, res: Response) => {
+  try {
+    const numberOfQuestions = Math.min(50, Math.max(1, Number(req.body.numberOfQuestions) || 10));
+    const easyCount = req.body.easyCount != null ? Number(req.body.easyCount) : undefined;
+    const mediumCount = req.body.mediumCount != null ? Number(req.body.mediumCount) : undefined;
+    const hardCount = req.body.hardCount != null ? Number(req.body.hardCount) : undefined;
+    const hardnessHint = req.body.hardnessHint ? String(req.body.hardnessHint) : undefined;
+
+    // validate counts sum if all provided
+    if (easyCount != null && mediumCount != null && hardCount != null) {
+      const sum = easyCount + mediumCount + hardCount;
+      if (sum !== numberOfQuestions) {
+        return res.status(400).json({
+          success: false,
+          message: `easyCount+mediumCount+hardCount (${sum}) must equal numberOfQuestions (${numberOfQuestions})`,
+        });
+      }
+    }
+
+    const result = await generateFromQuestionBank({
+      numberOfQuestions,
+      easyCount: easyCount != null ? Math.max(0, Number(easyCount)) : undefined,
+      mediumCount: mediumCount != null ? Math.max(0, Number(mediumCount)) : undefined,
+      hardCount: hardCount != null ? Math.max(0, Number(hardCount)) : undefined,
+      hardnessHint,
+    });
+
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error("Question bank selection error:", error);
+    return res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Failed to generate from question bank",
     });
   }
 };
