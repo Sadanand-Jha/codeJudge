@@ -79,6 +79,17 @@ class MemoryRedis {
     return next;
   }
 
+  async ttl(key: string): Promise<number> {
+    const e = this.kv.get(key);
+    if (!e) return -2;
+    if (!e.expireAt) return -1;
+    if (this.isExpired(e)) {
+      this.kv.delete(key);
+      return -2;
+    }
+    return Math.ceil((e.expireAt - Date.now()) / 1000);
+  }
+
   async hset(key: string, fieldOrObj: any, value?: any): Promise<number> {
     let map = this.hashes.get(key);
     if (!map) {
@@ -245,6 +256,19 @@ class RedisCompatWrapper {
     } catch (e: any) {
       console.warn("Redis INCR failed:", e.message);
       return 0;
+    }
+  }
+
+  async ttl(key: string): Promise<number> {
+    try {
+      // Upstash supports TTL, node-redis also
+      if (typeof this.client.ttl === "function") {
+        return await this.client.ttl(key);
+      }
+      return -1;
+    } catch (e: any) {
+      console.warn("Redis TTL failed:", e.message);
+      return -1;
     }
   }
 

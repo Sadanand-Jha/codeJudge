@@ -9,6 +9,7 @@ import { sendOtp, verifyOtp, register } from "../services/auth.js";
 import { UserService } from "../services/database/user.database.js";
 import { userRepository } from "../repositories/user.repository.js";
 import { authenticate } from "../middleware/auth.js";
+import { getClientIp } from "../utils/getClientIp.js";
 
 const userService = new UserService();
 const userRepo = new userRepository();
@@ -98,9 +99,13 @@ export const sendOtpController = async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await sendOtp(email);
+    const clientIp = getClientIp(req);
+    const result = await sendOtp(email, clientIp);
 
     if (!result.success) {
+      if (result.statusCode === 429) {
+        res.setHeader("Retry-After", "60");
+      }
       res.status(result.statusCode || 400).json(result);
       return;
     }

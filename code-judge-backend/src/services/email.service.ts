@@ -1,6 +1,7 @@
 // Marksheet email service. Sends a formatted email to the quiz creator with the
 // generated marksheet Excel file as an attachment and quiz statistics.
-import nodemailer from "nodemailer";
+// Migrated from Nodemailer/SMTP to Resend SDK for Vercel serverless.
+import { Resend } from "resend";
 import logger from "../utils/logger.ts";
 
 export interface MarksheetEmailPayload {
@@ -21,33 +22,31 @@ export interface MarksheetEmailPayload {
   };
 }
 
+function getResend(): Resend {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) {
+    throw new Error("RESEND_API_KEY is missing. Set it in .env and Vercel Dashboard.");
+  }
+  return new Resend(key);
+}
+
+function getFrom(): string {
+  return process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+}
+
 /**
- * Send marksheet email to quiz creator
+ * Send marksheet email to quiz creator via Resend
  */
 export async function sendMarksheetEmail(payload: MarksheetEmailPayload): Promise<void> {
   const { to, quizName, quizCode, endTime, marksheetBuffer, stats } = payload;
 
-  // Validate environment variables
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = process.env.SMTP_PORT;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.FROM_EMAIL || smtpUser;
-
-  if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
-    throw new Error("Email configuration is incomplete. Please set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS environment variables.");
+  // Validate Resend configuration
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("Email configuration is incomplete. Please set RESEND_API_KEY and RESEND_FROM_EMAIL environment variables.");
   }
 
-  // Create transporter
-  const transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: Number(smtpPort),
-    secure: Number(smtpPort) === 465, // true for 465, false for other ports
-    auth: {
-      user: smtpUser,
-      pass: smtpPass,
-    },
-  });
+  const resend = getResend();
+  const fromEmail = getFrom();
 
   // Email subject
   const subject = `Quiz Report - ${quizName}`;
@@ -130,25 +129,30 @@ export async function sendMarksheetEmail(payload: MarksheetEmailPayload): Promis
     </div>
   `;
 
-  // Email options
-  const mailOptions: nodemailer.SendMailOptions = {
-    from: `"Quiz System" <${fromEmail}>`,
-    to: to,
-    subject: subject,
-    html: htmlBody,
-    attachments: [
-      {
-        filename: `marksheet_${quizCode}_${new Date().toISOString().split('T')[0]}.xlsx`,
-        content: marksheetBuffer,
-        contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      },
-    ],
-  };
-
-  // Send email
+  // Send email via Resend with attachment (base64)
   try {
-    const info = await transporter.sendMail(mailOptions);
-    logger.info(`Marksheet email sent to ${to} for quiz ${quizCode}: ${info.messageId}`);
+    const { data, error } = await resend.emails.send({
+      from: `Quiz System <${fromEmail}>`,
+      to,
+      subject,
+      html: htmlBody,
+      attachments: [
+        {
+          filename: `marksheet_${quizCode}_${new Date().toISOString().split("T")[0]}.xlsx`,
+          content: marksheetBuffer.toString("base64"),
+        },
+      ],
+    });
+
+    if (error) {
+      if ((error as any).statusCode === 401 || String(error.message).toLowerCase().includes("api key")) {
+        logger.error("Resend API key is missing or invalid. Check RESEND_API_KEY env var.");
+      }
+      logger.error(`Failed to send marksheet email to ${to} for quiz ${quizCode}:`, error);
+      throw new Error(`Failed to send email: ${error.message}`);
+    }
+
+    logger.info(`Marksheet email sent to ${to} for quiz ${quizCode}: ${data?.id}`);
   } catch (error) {
     logger.error(`Failed to send marksheet email to ${to} for quiz ${quizCode}:`, error);
     throw new Error(`Failed to send email: ${error instanceof Error ? error.message : String(error)}`);

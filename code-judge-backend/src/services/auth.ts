@@ -20,6 +20,13 @@ const OTP_REQUEST_WINDOW_2HR_SECONDS = 2 * 60 * 60; // 2-hour window for rate li
 const OTP_MAX_VERIFY_ATTEMPTS = 3; // Max OTP verification attempts before lockout
 const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
 
+// --- IP-based rate limiting (email flood protection) ---
+const IP_COOLDOWN_SECONDS = 60; // 60 seconds cooldown per IP
+const IP_MAX_REQUESTS = 3; // Max OTP requests per IP per 5-min window (prevents email enumeration flood)
+const IP_REQUEST_WINDOW_SECONDS = 5 * 60; // 5-minute window for IP rate limiting
+const IP_MAX_REQUESTS_2HR = 10; // Max OTP requests per IP per 2 hours (prevents prolonged flood)
+const IP_REQUEST_WINDOW_2HR_SECONDS = 2 * 60 * 60; // 2-hour window for IP rate limiting
+
 const userService = new UserService();
 
 // --- Validation ---
@@ -151,10 +158,11 @@ function errorResponse(message: string, statusCode: number = 400): ServiceRespon
  * POST /api/auth/send-otp
  * Validates email, generates OTP, caches it, sends email asynchronously
  * Rate-limited: max 2 requests per 5 minutes per email, 3 per 2 hours
- * Resend cooldown: 60s (synced with frontend countdown) — enforced via otp_cooldown:<email>
+ * IP rate-limited: max 3 requests per 5 minutes per IP, 10 per 2 hours (prevents email flood via enumeration)
+ * Resend cooldown: 60s per email (otp_cooldown:<email>) + 60s per IP (otp_cooldown_ip:<ip>) — synced with frontend
  * OTP validity: 5 minutes (OTP_TTL_SECONDS) — allows resending after cooldown by overwriting
  */
-export async function sendOtp(email: string): Promise<ServiceResponse> {
+export async function sendOtp(email: string, clientIp?: string): Promise<ServiceResponse> {
   try {
     // 1. Validate email format
     if (!email || !isValidEmail(email)) {
@@ -169,6 +177,22 @@ export async function sendOtp(email: string): Promise<ServiceResponse> {
       return errorResponse('Email already registered', 400);
     }
 
+    // 2a. IP-based cooldown (60s) — prevents email flood via different emails from same IP
+    const normalizedIp = clientIp ? clientIp.replace(/^::ffff:/, '').trim() : undefined;
+    const ipCooldownKey = normalizedIp && normalizedIp !== 'unknown' ? `otp_cooldown_ip:${normalizedIp}` : null;
+    const ipRateLimitKey = normalizedIp && normalizedIp !== 'unknown' ? `otp_requests_ip:${normalizedIp}` : null;
+    const ipRateLimitKey2hr = normalizedIp && normalizedIp !== 'unknown' ? `otp_requests_ip_2hr:${normalizedIp}` : null;
+
+    if (ipCooldownKey) {
+      const ipCooldownExists = await redisClient.get(ipCooldownKey);
+      if (ipCooldownExists) {
+        return errorResponse(
+          `Too many OTP requests from this network. Please wait ${IP_COOLDOWN_SECONDS} seconds before trying again.`,
+          429
+        );
+      }
+    }
+
     // 3. Check resend cooldown (60s) — must match frontend countdown
     const cooldownKey = `otp_cooldown:${normalizedEmail}`;
     const cooldownExists = await redisClient.get(cooldownKey);
@@ -177,6 +201,34 @@ export async function sendOtp(email: string): Promise<ServiceResponse> {
         `Please wait before requesting a new OTP. You can resend after ${OTP_RESEND_COOLDOWN_SECONDS} seconds.`,
         429
       );
+    }
+
+    // 3a. IP-based 2-hour rate limit: max 10 requests per 2 hours per IP
+    if (ipRateLimitKey2hr) {
+      const ipRequestCount2hr = await redisClient.incr(ipRateLimitKey2hr);
+      if (ipRequestCount2hr === 1) {
+        await redisClient.expire(ipRateLimitKey2hr, IP_REQUEST_WINDOW_2HR_SECONDS);
+      }
+      if (ipRequestCount2hr > IP_MAX_REQUESTS_2HR) {
+        return errorResponse(
+          `Too many OTP requests from this network. Maximum ${IP_MAX_REQUESTS_2HR} requests per 2 hours. Please try again later.`,
+          429
+        );
+      }
+    }
+
+    // 3b. IP-based 5-minute rate limit: max 3 requests per 5 minutes per IP (after cooldown checks to avoid overcounting)
+    if (ipRateLimitKey) {
+      const ipRequestCount = await redisClient.incr(ipRateLimitKey);
+      if (ipRequestCount === 1) {
+        await redisClient.expire(ipRateLimitKey, IP_REQUEST_WINDOW_SECONDS);
+      }
+      if (ipRequestCount > IP_MAX_REQUESTS) {
+        return errorResponse(
+          `Too many OTP requests from this network. Maximum ${IP_MAX_REQUESTS} requests per 5 minutes. Please try again later.`,
+          429
+        );
+      }
     }
 
     // 4. Atomic 2-hour rate limit check
@@ -217,10 +269,16 @@ export async function sendOtp(email: string): Promise<ServiceResponse> {
     await cacheOtp(normalizedEmail, otp);
     // 8. Set resend cooldown — frontend timer is synced to this TTL (60s)
     await redisClient.setEx(cooldownKey, OTP_RESEND_COOLDOWN_SECONDS, '1');
+    // 8a. Set IP cooldown (60s) to prevent immediate flood from same IP
+    if (ipCooldownKey) {
+      await redisClient.setEx(ipCooldownKey, IP_COOLDOWN_SECONDS, '1');
+    }
 
-    // 9. Send email asynchronously (non-blocking)
-    sendOtpEmail(normalizedEmail, otp).catch((err: any) => {
-      console.error('Failed to send OTP email:', err);
+    // 9. Send email asynchronously (non-blocking) - serverless-friendly
+    // Do not await; fire-and-forget prevents Vercel function timeout
+    // Gracefully handled inside email.ts if RESEND_API_KEY missing/invalid
+    sendOtpEmail({ to: normalizedEmail, otp }).catch((err: any) => {
+      console.error('Failed to send OTP email (non-blocking):', err.message || err);
     });
 
     return successResponse({ email: normalizedEmail }, 'OTP sent successfully');

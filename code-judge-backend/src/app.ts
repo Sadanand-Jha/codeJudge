@@ -9,6 +9,7 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import apiRoutes from "./routes/index.routes.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
+import { globalRateLimit } from "./middleware/globalRateLimit.ts";
 import dns from "dns";
 import { pool } from "./config/database.ts"; // Serverless-cached pool
 
@@ -85,6 +86,10 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
+
+// Global rate limiting: 400 req/min per IP → 1-day block if exceeded
+// Applied after cookieParser but before routes; health check is bypassed inside middleware
+app.use(globalRateLimit);
 
 // Health check before auth — useful for Vercel
 app.get("/health", async (req, res) => {
