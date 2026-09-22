@@ -13,9 +13,15 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  BookOpen,
+  SlidersHorizontal,
+  Target,
+  Plus,
+  Minus,
+  Brain,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { generateQuestionsFromFiles } from "@/services/ai";
+import { generateQuestionsFromFiles, generateFromQuestionBank } from "@/services/ai";
 import { toast } from "@/lib/toast";
 import type { RawAIGeneratedQuestion } from "@/services/ai";
 import type { CreatorQuestion } from "../types";
@@ -88,6 +94,7 @@ function mapToCreatorQuestion(
     const correctIdx = options.findIndex((o) => o.isCorrect);
     correctAnswer = correctIdx >= 0 ? correctIdx : 0;
   } else {
+    // Subjective / short — no choices; keep placeholder options hidden in editor
     options = [
       { id: `${id}_a`, label: "A", content: "", isCorrect: true },
       { id: `${id}_b`, label: "B", content: "", isCorrect: false },
@@ -105,6 +112,7 @@ function mapToCreatorQuestion(
     expert: "Expert",
   };
 
+  // Preserve full bank wording in title; also keep tags from bank
   return {
     id,
     type: isMcq || isTrueFalse ? "single_choice" : "text",
@@ -117,7 +125,7 @@ function mapToCreatorQuestion(
     negativeMarks: 0,
     difficulty: difficultyMap[diff] ?? "Medium",
     expectedTime: 2,
-    topic: "",
+    topic: raw.tags?.[0] ?? "",
     bloomLevel: "Understand",
     tags: raw.tags ?? [],
     visibility: "visible",
@@ -139,13 +147,29 @@ export function AiGenerateModal({
   onClose: () => void;
   onQuestionsAdded: (questions: CreatorQuestion[]) => void;
 }) {
+  const [mode, setMode] = useState<"own" | "bank">("own");
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
   const [addedCount, setAddedCount] = useState(0);
+  // Bank controls — balanced 10 paper default 4/3/3
+  const [bankNumber, setBankNumber] = useState(10);
+  const [bankEasy, setBankEasy] = useState(4);
+  const [bankMedium, setBankMedium] = useState(3);
+  const [bankHard, setBankHard] = useState(3);
+  const [bankHint, setBankHint] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const syncBankDistribution = (total: number) => {
+    let e = Math.round(total * 0.4);
+    let m = Math.round(total * 0.3);
+    let h = total - e - m;
+    if (total === 10) { e = 4; m = 3; h = 3; }
+    if (h < 0) h = 0;
+    setBankEasy(e); setBankMedium(m); setBankHard(h);
+  };
 
   const reset = () => {
     setFiles([]);
@@ -200,6 +224,7 @@ export function AiGenerateModal({
     if (files.length === 0) return;
     setGenerating(true);
     setProgress(10);
+    setError("");
 
     try {
       setProgress(30);
@@ -227,6 +252,37 @@ export function AiGenerateModal({
     }
   };
 
+  const handleGenerateFromBank = async () => {
+    const sum = bankEasy + bankMedium + bankHard;
+    if (sum !== bankNumber) {
+      setError(`Distribution must sum to ${bankNumber}: Easy ${bankEasy}+ Medium ${bankMedium}+ Hard ${bankHard}= ${sum}`);
+      return;
+    }
+    setGenerating(true);
+    setProgress(10);
+    setError("");
+    try {
+      setProgress(20);
+      const rawQuestions = await generateFromQuestionBank({
+        numberOfQuestions: bankNumber,
+        easyCount: bankEasy,
+        mediumCount: bankMedium,
+        hardCount: bankHard,
+        hardnessHint: bankHint || undefined,
+      });
+      setProgress(70);
+      const questions = rawQuestions.map((q, i) => mapToCreatorQuestion(q, i));
+      setProgress(100);
+      setAddedCount(questions.length);
+      setDone(true);
+      onQuestionsAdded(questions);
+      toast.success(`Selected ${questions.length} questions from bank (E${bankEasy}·M${bankMedium}·H${bankHard})`);
+    } catch (err) {
+      setError((err as Error).message || "Bank selection failed. Please try again.");
+      setGenerating(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -241,17 +297,19 @@ export function AiGenerateModal({
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+            className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/10">
                   <Sparkles className="h-4 w-4 text-pink-500" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-text-primary">Generate with AI</h3>
-                  <p className="text-[11px] text-text-secondary">Upload study materials to extract questions</p>
+                  <p className="text-[11px] text-text-secondary">
+                    {mode === "own" ? "Upload study materials to extract questions" : "AI-curated balanced selection"}
+                  </p>
                 </div>
               </div>
               <button
@@ -263,7 +321,49 @@ export function AiGenerateModal({
               </button>
             </div>
 
-            <div className="px-5 py-4">
+            {/* Mode selector */}
+            <div className="grid grid-cols-2 gap-2 px-5 pt-4 shrink-0">
+              <button
+                type="button"
+                onClick={() => { setMode("own"); setError(""); }}
+                className={cn(
+                  "rounded-xl border p-3 text-left transition-all",
+                  mode === "own" ? "border-pink-500 bg-pink-500/10 shadow-sm" : "border-border bg-card-hover hover:border-pink-500/20"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Upload className={cn("h-4 w-4", mode === "own" ? "text-pink-500" : "text-text-muted")} />
+                  <span className={cn("text-xs font-bold", mode === "own" ? "text-pink-600" : "text-text-primary")}>From Your Material</span>
+                </div>
+                <p className="text-[10px] text-text-muted mt-1">Upload PDF/DOC/PPT etc.</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode("bank"); setError(""); }}
+                className={cn(
+                  "rounded-xl border p-3 text-left transition-all",
+                  mode === "bank" ? "border-pink-500 bg-pink-500/10 shadow-sm" : "border-border bg-card-hover hover:border-pink-500/20"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <BookOpen className={cn("h-4 w-4", mode === "bank" ? "text-pink-500" : "text-text-muted")} />
+                  <span className={cn("text-xs font-bold", mode === "bank" ? "text-pink-600" : "text-text-primary")}>From Question Bank</span>
+                </div>
+                <p className="text-[10px] text-text-muted mt-1">Curated · balanced</p>
+              </button>
+            </div>
+
+            {mode === "bank" && !done && !generating && (
+              <div className="mx-5 mt-3 rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 to-pink-500/5 p-3 flex items-start gap-2 shrink-0">
+                <BookOpen className="h-4 w-4 text-violet-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs font-bold text-text-primary">Curated Operating Systems Bank</p>
+                  <p className="text-[11px] text-text-secondary">200 single-correct MCQs · Balanced difficulty · Theory + Numerical</p>
+                </div>
+              </div>
+            )}
+
+            <div className="px-5 py-4 overflow-y-auto flex-1 min-h-0">
               {done ? (
                 <div className="py-6 text-center">
                   <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
@@ -288,10 +388,10 @@ export function AiGenerateModal({
                   <div className="text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-pink-500" />
                     <p className="mt-3 text-sm font-semibold text-text-primary">
-                      Analyzing your files...
+                      {mode === "bank" ? "Selecting balanced questions..." : "Analyzing your files..."}
                     </p>
                     <p className="mt-1 text-xs text-text-secondary">
-                      Extracting text and generating questions
+                      {mode === "bank" ? `Picking ${bankNumber} (E${bankEasy}·M${bankMedium}·H${bankHard}) with chapter spread` : "Extracting text and generating questions"}
                     </p>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-border">
@@ -302,6 +402,84 @@ export function AiGenerateModal({
                       transition={{ duration: 0.4 }}
                     />
                   </div>
+                </div>
+              ) : mode === "bank" ? (
+                <div className="space-y-4">
+                  {/* Assessment size */}
+                  <div className="rounded-xl border border-border bg-card p-3 space-y-3">
+                    <label className="text-xs font-bold text-text-primary flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-pink-500" /> Assessment size</label>
+                    <div className="flex items-center gap-3">
+                      <button type="button" onClick={() => { const v = Math.max(1, bankNumber - 1); setBankNumber(v); syncBankDistribution(v); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border"><Minus className="h-3.5 w-3.5" /></button>
+                      <div className="flex-1 text-center">
+                        <span className="text-lg font-bold text-pink-600">{bankNumber}</span>
+                        <span className="text-xs text-text-muted ml-1">questions</span>
+                      </div>
+                      <button type="button" onClick={() => { const v = Math.min(50, bankNumber + 1); setBankNumber(v); syncBankDistribution(v); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border"><Plus className="h-3.5 w-3.5" /></button>
+                    </div>
+                    <input type="range" min={5} max={20} value={bankNumber} onChange={(e) => { const v = parseInt(e.target.value); setBankNumber(v); syncBankDistribution(v); }} className="w-full h-2 bg-border rounded-lg appearance-none cursor-pointer accent-pink-500" />
+                    <p className="text-[10px] text-text-muted">Typical balanced OS paper is 10 questions (5–20 allowed).</p>
+                  </div>
+
+                  {/* Difficulty distribution */}
+                  <div className="rounded-xl border border-border bg-card p-3 space-y-3">
+                    <label className="text-xs font-bold text-text-primary flex items-center gap-1.5"><SlidersHorizontal className="h-3.5 w-3.5 text-pink-500" /> Difficulty distribution — must sum to {bankNumber}</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { key: "easy", label: "Easy", value: bankEasy, setter: setBankEasy, color: "text-emerald-600" },
+                        { key: "medium", label: "Medium", value: bankMedium, setter: setBankMedium, color: "text-pink-600" },
+                        { key: "hard", label: "Hard", value: bankHard, setter: setBankHard, color: "text-rose-600" },
+                      ].map((d) => (
+                        <div key={d.key} className="rounded-lg border border-border bg-card-hover p-2 text-center">
+                          <p className={`text-xs font-bold ${d.color}`}>{d.label}</p>
+                          <div className="flex items-center justify-center gap-1 mt-1">
+                            <button type="button" onClick={() => (d.setter as any)((v: number) => Math.max(0, v - 1))} className="h-6 w-6 rounded border border-border flex items-center justify-center"><Minus className="h-3 w-3" /></button>
+                            <span className="w-6 text-sm font-bold text-text-primary">{d.value}</span>
+                            <button type="button" onClick={() => (d.setter as any)((v: number) => Math.min(bankNumber, v + 1))} className="h-6 w-6 rounded border border-border flex items-center justify-center"><Plus className="h-3 w-3" /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className={cn("text-xs font-medium px-2 py-1.5 rounded text-center border", bankEasy + bankMedium + bankHard === bankNumber ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-rose-500/10 text-rose-600 border-rose-500/20")}>
+                      {bankEasy} + {bankMedium} + {bankHard} = {bankEasy + bankMedium + bankHard} {bankEasy + bankMedium + bankHard === bankNumber ? "✓ Balanced" : `≠ ${bankNumber} — adjust`}
+                    </div>
+                    <div className="flex gap-1.5 flex-wrap">
+                      <button type="button" onClick={() => syncBankDistribution(bankNumber)} className="text-xs font-medium px-2.5 py-1 rounded-full bg-pink-500/10 text-pink-600 border border-pink-500/20">Auto 40/30/30</button>
+                      <button type="button" onClick={() => { const e = Math.floor(bankNumber/3); setBankEasy(e); setBankMedium(e); setBankHard(bankNumber - 2*e); }} className="text-xs font-medium px-2.5 py-1 rounded-full bg-card-hover border border-border">Equal split</button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-card p-3 space-y-2">
+                    <label className="text-xs font-bold text-text-primary flex items-center gap-1.5"><Brain className="h-3.5 w-3.5 text-pink-500" /> Hardness hint (optional)</label>
+                    <input value={bankHint} onChange={(e) => setBankHint(e.target.value)} placeholder="e.g. Make it a hard paper, focus on numerical…" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:border-pink-500 outline-none" />
+                    <p className="text-[11px] text-text-muted">Guides overall hardness beyond counts. Leave blank for default balanced paper.</p>
+                  </div>
+
+                  <div className="rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 to-pink-500/10 p-3">
+                    <p className="text-xs font-bold text-text-primary mb-1">How it works</p>
+                    <p className="text-xs text-text-secondary leading-relaxed">AI curates {bankNumber} questions for you — balanced across chapters, difficulty ({bankEasy}·{bankMedium}·{bankHard}) and theory / numerical mix for a fair assessment.</p>
+                  </div>
+
+                  {error && (
+                    <div className="flex items-start gap-2 rounded-lg border border-rose-500/20 bg-rose-500/[0.04] px-3 py-2.5">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
+                      <p className="text-xs text-rose-500">{error}</p>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateFromBank}
+                    disabled={bankEasy + bankMedium + bankHard !== bankNumber}
+                    className={cn(
+                      "flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all",
+                      bankEasy + bankMedium + bankHard === bankNumber
+                        ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-500/20 hover:brightness-110"
+                        : "cursor-not-allowed bg-card-hover text-text-muted"
+                    )}
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Generate {bankNumber} from Bank
+                  </button>
                 </div>
               ) : (
                 <>
