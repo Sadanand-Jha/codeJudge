@@ -29,6 +29,7 @@ import {
   getActivePreparationModule,
   PREPARATION_BASE,
 } from "@/config/preparation";
+import { FOCUS_MODE_ENABLED } from "@/config/focusMode";
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
@@ -100,26 +101,28 @@ type NavItemData = {
 // Navigation is grouped so the rail can separate logical sections with a
 // subtle divider instead of collapsing into one unbroken list.
 //
-// Information architecture:
+// Information architecture (full mode):
 //   HOME        → feed / dashboard
 //   TESTS       → assessments (Tests, Contests, Problems)
 //   PREPARATION → one primary entity; its sections live in a dedicated
 //                 workspace sidebar inside /preparation/* (like Profile)
 //   ACCOUNT     → Profile, Purchases, Settings
-const navGroups: { label: string; items: NavItemData[] }[] = [
+//
+// When FOCUS_MODE_ENABLED is true only Quiz & Test sections remain visible.
+const _fullNavGroups: { label: string; items: NavItemData[] }[] = [
   {
     label: "MAIN",
     items: [{ label: "Home", icon: LayoutDashboard, href: "/" }],
   },
-{
-      label: "TESTS",
-      items: [
-        { label: "Tests", icon: ClipboardCheck, href: "/tests" },
-        { label: "Contests", icon: Trophy, href: "/contests" },
-        { label: "Problems", icon: Code2, href: "/problems" },
-        { label: "Join Quiz", icon: UserPlus, href: "/quiz" },
-      ],
-    },
+  {
+    label: "TESTS",
+    items: [
+      { label: "Tests", icon: ClipboardCheck, href: "/tests" },
+      { label: "Contests", icon: Trophy, href: "/contests" },
+      { label: "Problems", icon: Code2, href: "/problems" },
+      { label: "Join Quiz", icon: UserPlus, href: "/quiz" },
+    ],
+  },
   {
     label: "PREPARATION",
     items: [{ label: "Preparation", icon: Waypoints, href: "/preparation" }],
@@ -136,6 +139,19 @@ const navGroups: { label: string; items: NavItemData[] }[] = [
     ],
   },
 ];
+
+// Focus mode: only Quiz & Test (and Home which becomes quiz/test hub)
+const _focusNavGroups: { label: string; items: NavItemData[] }[] = [
+  {
+    label: "QUIZ & TEST",
+    items: [
+      { label: "Tests", icon: ClipboardCheck, href: "/tests" },
+      { label: "Join Quiz", icon: UserPlus, href: "/quiz" },
+    ],
+  },
+];
+
+const navGroups: { label: string; items: NavItemData[] }[] = FOCUS_MODE_ENABLED ? _focusNavGroups : _fullNavGroups;
 
 // Flat list (longest href first) used for page-title resolution and for
 // guest-protection checks.
@@ -218,6 +234,12 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   const pageTitle = (() => {
     if (isStudioRoute) return "Studio";
     if (isNestedQuizPath(pathname)) return "Quiz Settings";
+    if (FOCUS_MODE_ENABLED) {
+      if (pathname === "/") return "Quiz & Test";
+      if (pathname.startsWith("/tests")) return "Tests";
+      if (pathname.startsWith("/quiz")) return "Quiz";
+      return navItems.find((n) => pathname.startsWith(n.href))?.label || "Quiz & Test";
+    }
     if (pathname === PREPARATION_BASE) return "Preparation";
     const prepModule = getActivePreparationModule(pathname);
     if (prepModule) return `Preparation · ${prepModule.label}`;
@@ -389,7 +411,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
           onContextMenu={(e) => e.preventDefault()}
           onCopy={(e) => e.preventDefault()}
           onCut={(e) => e.preventDefault()}
-          className="h-14 min-w-0 w-full border-b border-ai-border bg-ai-bg/80 backdrop-blur-xl flex items-center px-4 gap-4 sticky top-0 z-30 select-none"
+          className="h-14 min-w-0 w-full border-b border-ai-border bg-ai-bg/80 backdrop-blur-xl flex items-center px-3 sm:px-4 gap-2 sm:gap-4 sticky top-0 z-30 select-none"
         >
           {/* Left: menu + brand + page title */}
           <div className="flex items-center gap-4 min-w-0 flex-1">
@@ -406,8 +428,8 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
               <span className="hidden sm:block text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
             </Link>
 
-            {/* Page title */}
-            <h1 className="text-sm font-semibold text-text-primary hidden md:block whitespace-nowrap truncate min-w-0">{pageTitle}</h1>
+            {/* Page title — show on mobile too, truncated */}
+            <h1 className="text-sm font-semibold text-text-primary whitespace-nowrap truncate min-w-0 max-w-[40vw] sm:max-w-none">{pageTitle}</h1>
           </div>
 
           {/* Center spacer */}

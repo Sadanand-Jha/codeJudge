@@ -40,9 +40,13 @@ export function JoinQuizModal({ open, onClose, onJoin }: JoinQuizModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 16 }}
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md mx-4"
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            onClick={onClose}
           >
-            <div className="join-quiz-modal relative rounded-3xl border border-border-hover bg-card p-6 shadow-2xl shadow-black/60">
+            <div
+              className="join-quiz-modal relative w-full max-w-md rounded-3xl border border-border-hover bg-card p-6 shadow-2xl shadow-black/60"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="join-quiz-glow absolute -inset-0.5 rounded-3xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] opacity-20 blur" />
               <div className="relative">
                 <div className="flex items-center justify-between mb-4">

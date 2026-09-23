@@ -126,7 +126,7 @@ function QuizDashboardContent() {
     : currentQuizzes;
 
   return (
-    <div className="quiz-landing min-h-[calc(100vh-3.5rem)] bg-background text-text-primary p-4 sm:p-6 lg:p-8">
+    <div className="quiz-landing min-h-[calc(100vh-3.5rem)] bg-background text-text-primary p-3 sm:p-6 lg:p-8">
       {/* ===== HERO CARD ===== */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -140,8 +140,8 @@ function QuizDashboardContent() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#EC4899]/[0.03] rounded-full blur-3xl" />
         </div>
 
-        <div className="relative p-6 sm:p-10">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6 lg:gap-10">
+        <div className="relative p-4 sm:p-10">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-5 sm:gap-6 lg:gap-10">
             {/* Left: Text content */}
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-4">
@@ -156,7 +156,7 @@ function QuizDashboardContent() {
               <motion.h1
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary mb-3 tracking-tight"
+                className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-text-primary mb-3 tracking-tight"
               >
                 Assessment &{" "}
                 <span className="bg-gradient-to-r from-[#EC4899] to-[#F472B6] bg-clip-text text-transparent">

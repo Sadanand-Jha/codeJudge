@@ -99,9 +99,9 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
         </aside>
 
         {/* Main content */}
-        <div data-studio="true" className="flex-1 flex min-h-0">
+        <div data-studio="true" className="flex-1 flex min-h-0 min-w-0">
           <main
-            className="px-4 py-6 sm:px-6 lg:px-8 flex-1 min-h-0 overflow-y-auto"
+            className="px-3 py-4 sm:px-6 lg:px-8 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
           >
             {children}
           </main>

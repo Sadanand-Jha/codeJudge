@@ -306,7 +306,7 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
               onClick={() => setShowUnregisterModal(false)}
             >
               <motion.div
@@ -314,10 +314,10 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md mx-4"
+                className="w-full max-w-md"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="rounded-3xl border border-border-hover bg-card p-6 sm:p-8 shadow-2xl">
+                <div className="rounded-3xl border border-border-hover bg-card p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center">
                     <X className="w-8 h-8 text-[#F59E0B]" />
                   </div>

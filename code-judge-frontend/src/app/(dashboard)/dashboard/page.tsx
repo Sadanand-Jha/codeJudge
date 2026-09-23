@@ -20,6 +20,7 @@ import {
 import AppLayout from "@/components/layout/AppLayout";
 import DeveloperFeedCard from "@/components/feed/DeveloperFeedCard";
 import { feedPosts } from "@/data/developerFeed";
+import ComingSoonOverlay from "@/components/common/ComingSoonOverlay";
 
 export const metadata = {
   title: "Dashboard — ByteClash",
@@ -124,6 +125,7 @@ const codingNews = [
 export default function DashboardPage() {
   return (
     <AppLayout>
+      <ComingSoonOverlay title="Dashboard — Coming Soon" description="Dashboard is being rebuilt. Continue with Tests and Quizzes." primaryHref="/tests" primaryLabel="Go to Tests" />
       <div className="px-6 py-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}

@@ -178,13 +178,15 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
       {status === "ready" && data && (
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <SegmentedControl options={TABS} value={filter} onChange={setFilter} size="md" />
-            <span className="text-[11px] font-semibold text-text-muted">
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+              <SegmentedControl options={TABS} value={filter} onChange={setFilter} size="md" />
+            </div>
+            <span className="text-[11px] font-semibold text-text-muted shrink-0">
               Showing {filtered.length} of {data.length} quizzes
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-4">
             <StatCard
               label="Total Quizzes"
               value={filtered.length}
@@ -226,7 +228,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               action={<BillButton href="/creator/quizzes/create">New Quiz</BillButton>}
             />
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {filtered.map((q, i) => {
                 const meta = STATUS_META[q.status];
                 const engaged = q.attempts > 0;
@@ -253,7 +255,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                       <MiniStat label="Questions" value={String(q.questions)} icon={HelpCircle} />
                       <MiniStat label="Duration" value={`${q.durationMin} min`} icon={Timer} />
                       <MiniStat label="Attempts" value={q.attempts.toLocaleString("en-IN")} icon={Users} />
-                      <MiniStat label="Completion" value={engaged ? `${q.completionRate}%` : "\u2014"} icon={BarChart3} />
+                      <MiniStat label="Completion" value={engaged ? `${q.completionRate}%` : "—"} icon={BarChart3} />
                     </div>
 
                     {engaged && (

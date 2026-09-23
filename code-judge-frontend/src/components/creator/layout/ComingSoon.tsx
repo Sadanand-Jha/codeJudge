@@ -21,8 +21,8 @@ export function ComingSoon({
   accent: string;
 }) {
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-8 sm:p-10">
+    <div className="mx-auto max-w-3xl space-y-6 px-1 sm:px-0">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 sm:p-10">
         <div
           className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full opacity-[0.15] blur-3xl"
           style={{ background: "radial-gradient(circle, #EC4899, #8B5CF6)" }}
@@ -51,19 +51,19 @@ export function ComingSoon({
           ))}
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-8 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
           <Link
             href="/creator"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-2.5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:brightness-105"
+            className="inline-flex w-full sm:w-auto justify-center items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-3 sm:py-2.5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:brightness-105"
           >
             Go to Creator Dashboard
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
-            href="/creator/billing"
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-[13px] font-semibold text-text-primary transition-colors hover:border-pink-500/30 hover:text-pink-500 dark:hover:border-ai-accent/40 dark:hover:text-ai-accent"
+            href="/creator/quizzes"
+            className="inline-flex w-full sm:w-auto justify-center items-center gap-2 rounded-xl border border-border bg-card px-5 py-3 sm:py-2.5 text-[13px] font-semibold text-text-primary transition-colors hover:border-pink-500/30 hover:text-pink-500 dark:hover:border-ai-accent/40 dark:hover:text-ai-accent"
           >
-            Open Billing & Payments
+            Open Quizzes
           </Link>
         </div>
       </div>

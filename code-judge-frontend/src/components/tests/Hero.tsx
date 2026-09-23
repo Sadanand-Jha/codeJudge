@@ -76,7 +76,7 @@ export function TestsHero({ onSearch }: { onSearch?: (query: string) => void }) 
     <section className="tests-hero-wrap relative overflow-hidden rounded-3xl border border-border bg-card/60 backdrop-blur-sm">
       <div className="tests-hero-glow" />
 
-      <div className="relative grid gap-8 px-5 py-8 sm:px-8 sm:py-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-6 lg:px-10 lg:py-12">
+      <div className="relative grid gap-8 px-4 py-6 sm:px-8 sm:py-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-6 lg:px-10 lg:py-12">
         {/* Left — copy + search */}
         <div>
           <motion.div
@@ -96,7 +96,7 @@ export function TestsHero({ onSearch }: { onSearch?: (query: string) => void }) 
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.08 }}
-            className="mt-4 text-[34px] font-extrabold leading-[1.06] tracking-tight text-text-primary sm:text-[42px] lg:text-[48px]"
+            className="mt-4 text-[26px] font-extrabold leading-[1.06] tracking-tight text-text-primary sm:text-[34px] lg:text-[42px] xl:text-[48px]"
           >
             Test. Practice.
             <br />
@@ -109,7 +109,7 @@ export function TestsHero({ onSearch }: { onSearch?: (query: string) => void }) 
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.16 }}
-            className="mt-3 max-w-lg text-[15px] leading-relaxed text-text-secondary"
+            className="mt-3 max-w-lg text-[13px] leading-relaxed text-text-secondary sm:text-[15px]"
           >
             Prepare for competitive exams, sharpen your coding skills, and compete with thousands of learners.
           </motion.p>
