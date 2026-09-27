@@ -27,6 +27,7 @@ export const FOCUS_ALLOWED_PREFIXES: string[] = [
   "/creator/problems",
   "/creator/resources",
   "/creator/create",
+  "/creator/rooms",
   // Auth — required for login flows
   "/login",
   "/register",

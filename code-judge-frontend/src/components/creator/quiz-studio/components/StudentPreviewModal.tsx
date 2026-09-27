@@ -94,29 +94,29 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
   };
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4" onClick={onClose}>
       <Confetti show={showConfetti} />
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative flex h-[72dvh] min-h-[480px] max-h-[78vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl sm:h-auto sm:max-h-[90vh] sm:min-h-0"
+        className="relative flex h-[94dvh] max-h-[94dvh] min-h-0 w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-border bg-background shadow-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl"
       >
         {/* Header */}
         <div className="shrink-0 border-b border-border bg-background">
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-sm font-semibold text-text-primary truncate">{quizTitle || "Quiz Preview"}</h1>
-              <p className="text-xs text-text-muted">Q {currentIdx + 1} of {total}</p>
+          <div className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-6 sm:py-3">
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-[13px] font-semibold text-text-primary sm:text-sm">{quizTitle || "Quiz Preview"}</h1>
+              <p className="mt-0.5 text-[11px] text-text-muted sm:text-xs">Q {currentIdx + 1} of {total}</p>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+              <div className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5 text-[#F59E0B]" />
-                <span className="text-xs font-mono font-semibold text-text-primary">10:00</span>
+                <span className="font-mono text-xs font-semibold text-text-primary">10:00</span>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-md bg-[#EC4899]/10 px-2 py-1 text-[10px] font-bold text-[#EC4899]">
+              <span className="inline-flex items-center gap-1 rounded-md bg-[#EC4899]/10 px-1.5 py-1 text-[10px] font-bold text-[#EC4899] sm:px-2">
                 <Eye className="h-3 w-3" /> PREVIEW
               </span>
-              <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:bg-card-hover hover:text-text-primary transition-colors">
+              <button onClick={onClose} aria-label="Close preview" className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -127,8 +127,8 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
           </div>
         </div>
 
-        {/* Question area — fixed height on mobile */}
-        <div className="flex flex-1 flex-col overflow-y-auto p-4 sm:p-6 min-h-0">
+        {/* Question area */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain p-3 sm:p-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={q.id}
@@ -136,9 +136,9 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
-              className="flex min-h-[360px] flex-1 flex-col rounded-2xl border border-border bg-card p-4 sm:min-h-0 sm:p-6"
+              className="flex min-h-0 flex-col rounded-2xl border border-border bg-card p-3 sm:p-6"
             >
-              <div className="flex flex-1 flex-col gap-4">
+              <div className="flex flex-col gap-3 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium text-text-muted">Q{currentIdx + 1}</span>
                   <span className="rounded-full bg-[#EC4899]/10 px-2 py-0.5 text-[10px] font-medium text-[#EC4899]">
@@ -156,13 +156,13 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                 </div>
 
                 <h2
-                  className="text-base sm:text-lg font-semibold text-text-primary leading-relaxed"
+                  className="text-[15px] font-semibold leading-snug text-text-primary sm:text-lg sm:leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: q.title || "Untitled question" }}
                 />
 
                 {/* Options for choice questions */}
                 {(q.type === "single_choice" || q.type === "multiple_choice" || q.type === "true_false") && (
-                  <div className="space-y-2.5">
+                  <div className="space-y-2 sm:space-y-2.5">
                     {q.options.map((opt, idx) => {
                       const isSelected = selectedIdx === idx;
                       const isThisCorrect = idx === correctIdx;
@@ -198,16 +198,16 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                           disabled={isAnswered}
                           whileTap={!isAnswered ? { scale: 0.98 } : undefined}
                           className={cn(
-                            "w-full text-left p-4 rounded-xl border transition-all min-h-[56px]",
+                            "w-full p-3 text-left transition-all sm:min-h-[56px] sm:p-4 rounded-xl border",
                             borderColor,
                             bgColor,
                             !isAnswered && "hover:border-border hover:bg-card-hover cursor-pointer",
                             isAnswered && "cursor-default"
                           )}
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-start gap-2.5 sm:gap-3">
                             <span className={cn(
-                              "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold transition-colors",
+                              "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[11px] font-bold transition-colors sm:h-7 sm:w-7",
                               labelBorder,
                               labelColor
                             )}>
@@ -215,14 +215,14 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                                isAnswered && isSelected && !isThisCorrect ? <XCircle className="h-4 w-4" /> :
                                optionLabels[idx]}
                             </span>
-                            <span className="text-sm sm:text-base text-text-primary" dangerouslySetInnerHTML={{ __html: opt.content }} />
+                            <span className="min-w-0 flex-1 break-words text-sm leading-snug text-text-primary sm:text-base" dangerouslySetInnerHTML={{ __html: opt.content }} />
                             {isAnswered && isSelected && isThisCorrect && (
-                              <span className="ml-auto shrink-0 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                                Correct! Well done! 🎉
+                              <span className="mt-1 shrink-0 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                Correct! 🎉
                               </span>
                             )}
                             {isAnswered && isSelected && !isThisCorrect && (
-                              <span className="ml-auto shrink-0 text-[11px] font-bold text-red-600 dark:text-red-400">
+                              <span className="mt-1 shrink-0 text-[11px] font-bold text-red-600 dark:text-red-400">
                                 Incorrect
                               </span>
                             )}
@@ -303,25 +303,26 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
         </div>
 
         {/* Navigation footer */}
-        <div className="shrink-0 border-t border-border bg-background px-4 sm:px-6 py-3">
-          <div className="flex items-center justify-between">
+        <div className="shrink-0 border-t border-border bg-background px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6">
+          <div className="flex items-center justify-between gap-2">
             <button
               onClick={() => setCurrentIdx(Math.max(0, currentIdx - 1))}
               disabled={currentIdx === 0}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-text-secondary hover:bg-card-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex h-10 shrink-0 items-center gap-1 rounded-xl border border-border bg-card px-3 text-xs font-medium text-text-secondary transition-colors hover:bg-card-hover disabled:cursor-not-allowed disabled:opacity-30 sm:py-2"
             >
-              <ChevronLeft className="h-3.5 w-3.5" /> Previous
+              <ChevronLeft className="h-3.5 w-3.5" /> <span className="hidden min-[360px]:inline">Previous</span><span className="min-[360px]:hidden">Prev</span>
             </button>
 
             {/* Question dots */}
-            <div className="flex items-center gap-1">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-1.5 px-1">
               {questions.map((_, i) => (
                 <button
                   key={i}
+                  aria-label={`Go to question ${i + 1}`}
                   onClick={() => setCurrentIdx(i)}
                   className={cn(
-                    "h-2 w-2 rounded-full transition-all",
-                    i === currentIdx ? "bg-[#EC4899] scale-125" :
+                    "h-2 w-2 shrink-0 rounded-full transition-all",
+                    i === currentIdx ? "w-5 bg-[#EC4899]" :
                     answered[i] ? (selected[i] === getCorrectIdx(questions[i]) ? "bg-emerald-500" : "bg-red-500") :
                     selected[i] !== undefined ? "bg-[#EC4899]/40" :
                     "bg-border"
@@ -337,7 +338,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                 }
               }}
               disabled={currentIdx === total - 1}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-text-secondary hover:bg-card-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex h-10 shrink-0 items-center gap-1 rounded-xl bg-[#EC4899] px-4 text-xs font-semibold text-white transition-colors hover:bg-[#D81B60] disabled:cursor-not-allowed disabled:bg-card-hover disabled:text-text-muted sm:py-2"
             >
               Next <ChevronRight className="h-3.5 w-3.5" />
             </button>
