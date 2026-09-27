@@ -304,7 +304,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       <Sidebar
         dataSidebar="true"
         className={cn(
-          "fixed left-0 top-0 h-screen bg-ai-sidebar border-r border-ai-border flex flex-col z-50 overflow-hidden",
+          "fixed left-0 top-0 h-screen bg-ai-sidebar/75 backdrop-blur-xl backdrop-saturate-150 border-r border-ai-border flex flex-col z-50 overflow-hidden",
           "transition-[width,transform] duration-200 ease-out",
           "w-[var(--rail-w)]",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -411,7 +411,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
           onContextMenu={(e) => e.preventDefault()}
           onCopy={(e) => e.preventDefault()}
           onCut={(e) => e.preventDefault()}
-          className="h-14 min-w-0 w-full border-b border-ai-border bg-ai-bg/80 backdrop-blur-xl flex items-center px-3 sm:px-4 gap-2 sm:gap-4 sticky top-0 z-30 select-none"
+          className="h-14 min-w-0 w-full border-b border-ai-border bg-ai-bg/60 backdrop-blur-2xl backdrop-saturate-150 flex items-center px-3 sm:px-4 gap-2 sm:gap-4 sticky top-0 z-30 select-none"
         >
           {/* Left: menu + brand + page title */}
           <div className="flex items-center gap-4 min-w-0 flex-1">

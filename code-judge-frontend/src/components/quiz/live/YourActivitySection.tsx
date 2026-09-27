@@ -1,22 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
-  Search, Sparkles, History, BookOpen, TrendingUp,
-  CheckCircle2, XCircle, AlertTriangle, Trophy, Copy,
+  Search, History, BookOpen, TrendingUp,
+  CheckCircle2, Trophy, Copy,
   Send, Check, HelpCircle, Code2, Brain, Beaker, Calculator,
   Globe2, Palette, Database, Network, Hash, Target, Layers3,
-  Calendar, Timer, ArrowRight, X, Milestone, Filter, BarChart2,
-  CircleDot, ChevronDown, Award, Globe,
+  Calendar, Timer, ArrowRight, ArrowUpRight, X, Milestone, Filter,
+  BarChart2, ChevronDown, Award, Globe,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { getOldQuizzes } from "@/services/quiz";
 import { formatQuizCode } from "@/utils/quizCode";
 
 /* ═══════════════════════════════════════════════════════════════
-   TYPES
+   TYPES (unchanged — same data as current implementation)
    ═══════════════════════════════════════════════════════════════ */
 type RecentQuiz = {
   attempt_id: number;
@@ -40,29 +39,29 @@ type RecentQuiz = {
 const STATUS_OPTIONS = ["All", "Completed", "Submitted", "Timed Out", "Left Early"] as const;
 const SORT_OPTIONS = ["Newest", "Oldest", "Highest Score", "Lowest Score"] as const;
 
-/* ─── Subject → icon + color mapping ─── */
+/* ─── Subject → icon + color mapping (unchanged data, theme-aware tones) ─── */
 type SubjectInfo = { icon: React.ElementType; color: string; label: string };
 
 const SUBJECT_MAP: Record<string, SubjectInfo> = {
-  "Data Structures": { icon: Layers3, color: "text-accent", label: "Data Structures" },
-  "Algorithms": { icon: Brain, color: "text-pink-500", label: "Algorithms" },
-  "System Design": { icon: Network, color: "text-success", label: "System Design" },
-  "Database": { icon: Database, color: "text-warning", label: "Database" },
-  "Operating System": { icon: Hash, color: "text-accent-secondary", label: "Operating System" },
-  "Computer Networks": { icon: Globe2, color: "text-purple-500", label: "Computer Networks" },
-  "Programming": { icon: Code2, color: "text-pink-500", label: "Programming" },
-  "Mathematics": { icon: Calculator, color: "text-warning", label: "Mathematics" },
-  "Physics": { icon: Beaker, color: "text-accent-secondary", label: "Physics" },
-  "Aptitude": { icon: Target, color: "text-success", label: "Aptitude" },
-  "General Knowledge": { icon: Globe, color: "text-pink-500", label: "General Knowledge" },
-  "English": { icon: BookOpen, color: "text-accent", label: "English" },
-  "Art": { icon: Palette, color: "text-pink-500", label: "Art" },
-  "Graph Theory": { icon: BarChart2, color: "text-accent-secondary", label: "Graph Theory" },
-  "Dynamic Programming": { icon: TrendingUp, color: "text-success", label: "Dynamic Programming" },
-  "Web Development": { icon: Code2, color: "text-warning", label: "Web Development" },
+  "Data Structures": { icon: Layers3, color: "text-[#6B5CFF] dark:text-[#8B7CFF]", label: "Data Structures" },
+  "Algorithms": { icon: Brain, color: "text-[#667085] dark:text-[#9AA4B5]", label: "Algorithms" },
+  "System Design": { icon: Network, color: "text-[#039855] dark:text-[#20D889]", label: "System Design" },
+  "Database": { icon: Database, color: "text-[#B54708] dark:text-[#FFB84D]", label: "Database" },
+  "Operating System": { icon: Hash, color: "text-[#1570EF] dark:text-[#4F9DFF]", label: "Operating System" },
+  "Computer Networks": { icon: Globe2, color: "text-[#6B5CFF] dark:text-[#8B7CFF]", label: "Computer Networks" },
+  "Programming": { icon: Code2, color: "text-[#667085] dark:text-[#9AA4B5]", label: "Programming" },
+  "Mathematics": { icon: Calculator, color: "text-[#B54708] dark:text-[#FFB84D]", label: "Mathematics" },
+  "Physics": { icon: Beaker, color: "text-[#1570EF] dark:text-[#4F9DFF]", label: "Physics" },
+  "Aptitude": { icon: Target, color: "text-[#039855] dark:text-[#20D889]", label: "Aptitude" },
+  "General Knowledge": { icon: Globe, color: "text-[#667085] dark:text-[#9AA4B5]", label: "General Knowledge" },
+  "English": { icon: BookOpen, color: "text-[#6B5CFF] dark:text-[#8B7CFF]", label: "English" },
+  "Art": { icon: Palette, color: "text-[#667085] dark:text-[#9AA4B5]", label: "Art" },
+  "Graph Theory": { icon: BarChart2, color: "text-[#1570EF] dark:text-[#4F9DFF]", label: "Graph Theory" },
+  "Dynamic Programming": { icon: TrendingUp, color: "text-[#039855] dark:text-[#20D889]", label: "Dynamic Programming" },
+  "Web Development": { icon: Code2, color: "text-[#B54708] dark:text-[#FFB84D]", label: "Web Development" },
 };
 
-const DEFAULT_SUBJECT: SubjectInfo = { icon: HelpCircle, color: "text-accent", label: "Quiz" };
+const DEFAULT_SUBJECT: SubjectInfo = { icon: HelpCircle, color: "text-[#6B5CFF] dark:text-[#8B7CFF]", label: "Quiz" };
 
 function getSubjectInfo(name: string): SubjectInfo {
   const lower = name.toLowerCase();
@@ -72,77 +71,46 @@ function getSubjectInfo(name: string): SubjectInfo {
   return DEFAULT_SUBJECT;
 }
 
-/* ─── Status chip config (recent attempts) ─── */
-type ChipCfg = {
-  text: string;
-  icon: React.ElementType;
-  color: string;
-  bg: string;
-  border: string;
-  bar: string;
-  glow: string;
-};
-
-const STATUS_CONFIG: Record<string, ChipCfg> = {
-  Completed: {
-    text: "Completed", icon: CheckCircle2, color: "text-success",
-    bg: "bg-success/10", border: "border-success/25",
-    bar: "from-emerald-400 to-success", glow: "opacity-[0.18]",
-  },
-  Submitted: {
-    text: "Submitted", icon: Send, color: "text-accent",
-    bg: "bg-accent/10", border: "border-accent/25",
-    bar: "from-accent to-fuchsia-500", glow: "opacity-[0.18]",
-  },
-  "Timed Out": {
-    text: "Timed Out", icon: AlertTriangle, color: "text-warning",
-    bg: "bg-warning/10", border: "border-warning/25",
-    bar: "from-amber-400 to-orange-500", glow: "opacity-[0.16]",
-  },
-  "Left Early": {
-    text: "Left Early", icon: XCircle, color: "text-danger",
-    bg: "bg-danger/10", border: "border-danger/25",
-    bar: "from-rose-400 to-danger", glow: "opacity-[0.16]",
-  },
-};
-
-function getStatusConfig(status: string): ChipCfg {
-  return STATUS_CONFIG[status] || STATUS_CONFIG["Completed"];
+/* ─── Status → compact tone (readable on white + dark) ─── */
+function statusTone(status: string): { text: string; dot: string; chip: string } {
+  switch (status) {
+    case "Completed":
+      return { text: "text-[#039855] dark:text-[#20D889]", dot: "bg-[#12B76A] dark:bg-[#20D889]", chip: "border-[#12B76A]/30 bg-[#12B76A]/10 text-[#039855] dark:border-[#20D889]/25 dark:bg-[#20D889]/10 dark:text-[#20D889]" };
+    case "Submitted":
+      return { text: "text-[#6B5CFF] dark:text-[#8B7CFF]", dot: "bg-[#8B7CFF]", chip: "border-[#8B7CFF]/30 bg-[#8B7CFF]/10 text-[#6B5CFF] dark:text-[#8B7CFF]" };
+    case "Timed Out":
+      return { text: "text-[#B54708] dark:text-[#FFB84D]", dot: "bg-[#F79009] dark:bg-[#FFB84D]", chip: "border-[#F79009]/30 bg-[#F79009]/10 text-[#B54708] dark:border-[#FFB84D]/25 dark:bg-[#FFB84D]/10 dark:text-[#FFB84D]" };
+    case "Left Early":
+      return { text: "text-[#D92D20] dark:text-[#FF4D5D]", dot: "bg-[#F04438] dark:bg-[#FF4D5D]", chip: "border-[#F04438]/30 bg-[#F04438]/10 text-[#D92D20] dark:border-[#FF4D5D]/25 dark:bg-[#FF4D5D]/10 dark:text-[#FF4D5D]" };
+    default:
+      return { text: "text-[#039855] dark:text-[#20D889]", dot: "bg-[#12B76A] dark:bg-[#20D889]", chip: "border-[#12B76A]/30 bg-[#12B76A]/10 text-[#039855] dark:border-[#20D889]/25 dark:bg-[#20D889]/10 dark:text-[#20D889]" };
+  }
 }
 
-/* ─── Score → tone ─── */
-function scoreTone(pct: number): { text: string; bar: string; chipGlow: string; ring: string } {
-  if (pct >= 90) return { text: "text-success", bar: "from-emerald-400 to-success", chipGlow: "shadow-[0_0_20px_rgba(34,197,94,0.35)]", ring: "ring-success/40" };
-  if (pct >= 70) return { text: "text-accent", bar: "from-accent to-fuchsia-400", chipGlow: "shadow-[0_0_20px_rgba(124,58,237,0.35)]", ring: "ring-accent/40" };
-  if (pct >= 50) return { text: "text-warning", bar: "from-amber-400 to-warning", chipGlow: "shadow-[0_0_20px_rgba(245,158,11,0.35)]", ring: "ring-warning/40" };
-  return { text: "text-danger", bar: "from-rose-400 to-danger", chipGlow: "shadow-[0_0_20px_rgba(239,68,68,0.35)]", ring: "ring-danger/40" };
+function scoreColor(pct: number): string {
+  if (pct >= 90) return "text-[#039855] dark:text-[#20D889]";
+  if (pct >= 70) return "text-[#101828] dark:text-[#F4F6FA]";
+  if (pct >= 50) return "text-[#B54708] dark:text-[#FFB84D]";
+  return "text-[#D92D20] dark:text-[#FF4D5D]";
 }
 
-const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+function scoreBar(pct: number): string {
+  if (pct >= 90) return "bg-[#12B76A] dark:bg-[#20D889]";
+  if (pct >= 70) return "bg-[#8B7CFF]";
+  if (pct >= 50) return "bg-[#F79009] dark:bg-[#FFB84D]";
+  return "bg-[#F04438] dark:bg-[#FF4D5D]";
+}
 
 /* ═══════════════════════════════════════════════════════════════
-   SHARED UI PRIMITIVES
+   COMPACT PRIMITIVES
    ═══════════════════════════════════════════════════════════════ */
 
 function StatusChip({ status }: { status: string }) {
-  const cfg = getStatusConfig(status);
+  const t = statusTone(status);
   return (
-    <motion.span
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={`inline-flex items-center gap-1.5 rounded-full border ${cfg.border} ${cfg.bg} px-2.5 py-1 text-[11px] font-semibold ${cfg.color}`}
-    >
-      <cfg.icon className="h-3.5 w-3.5" />
-      {cfg.text}
-    </motion.span>
-  );
-}
-
-function RankChip({ rank }: { rank: number }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-[11px] font-semibold text-warning">
-      <Trophy className="h-3.5 w-3.5" />
-      #{rank}
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold", t.chip)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full", t.dot)} />
+      {status}
     </span>
   );
 }
@@ -168,137 +136,70 @@ function CodeCopyChip({ code }: { code: string }) {
   };
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 transition-colors ${copied ? "border-success/40 bg-success/10" : "border-border bg-card-hover"}`}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 transition-colors duration-150",
+        copied
+          ? "border-[#12B76A]/40 bg-[#12B76A]/10 dark:border-[#20D889]/40 dark:bg-[#20D889]/10"
+          : "border-[#E4E7EC] bg-[#F2F4F7] dark:border-[#252D3A] dark:bg-[#19202C]"
+      )}
       title="Quiz code"
     >
-      <code className="text-[11px] font-bold tracking-wider text-text-primary">{formatted}</code>
+      <code className="text-[11px] font-semibold tracking-wider text-[#475467] dark:text-[#9AA4B5]">{formatted}</code>
       <button
         type="button"
         onClick={handleCopy}
         aria-label="Copy quiz code"
-        className={`rounded-md p-0.5 transition-colors ${copied ? "text-success" : "text-text-muted hover:text-accent"}`}
+        className={cn("rounded p-0.5 transition-colors duration-150", copied ? "text-[#039855] dark:text-[#20D889]" : "text-[#98A2B3] hover:text-[#6B5CFF] dark:text-[#687386] dark:hover:text-[#8B7CFF]")}
       >
-        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
       </button>
     </span>
   );
 }
 
-function ProgressTrack({ value, max = 100, barClass }: { value: number; max?: number; barClass: string }) {
-  const pct = Math.max(0, Math.min(100, Math.round((value / max) * 100)));
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  accent,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string | number;
+  hint: string;
+  accent: string;
+}) {
   return (
-    <div className="relative h-2 w-full overflow-hidden rounded-full bg-text-muted/15 dark:bg-white/10">
-      <motion.div
-        className={`relative h-full rounded-full bg-gradient-to-r ${barClass}`}
-        initial={{ width: 0 }}
-        animate={{ width: `${pct}%` }}
-        transition={{ duration: 1, ease: EASE }}
-      >
-        <span className="bar-shimmer absolute inset-0" />
-      </motion.div>
-    </div>
-  );
-}
-
-function ScoreBlock({ pct, score, totalMarks }: { pct: number; score: number; totalMarks: number }) {
-  const tone = scoreTone(pct);
-  return (
-    <div className="flex flex-col items-start">
-      <div className="flex items-center gap-2">
-        <span className={`text-3xl font-extrabold leading-none tracking-tight ${tone.text}`}>{pct}%</span>
-        <span className={`rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${tone.text} border-current/20 bg-current/10`}>
-          {pct >= 90 ? "Elite" : pct >= 70 ? "Strong" : pct >= 50 ? "Good" : "Needs work"}
-        </span>
-      </div>
-      <div className="mt-2.5 w-full sm:w-44">
-        <ProgressTrack value={pct} barClass={tone.bar} />
-      </div>
-      <p className="mt-1.5 text-[11px] font-medium text-text-secondary">{score} / {totalMarks} marks</p>
-    </div>
-  );
-}
-
-type StatTone = "purple" | "green" | "blue" | "orange" | "pink";
-const STAT_TONES: Record<StatTone, { iconBg: string; iconText: string; glow: string }> = {
-  purple: { iconBg: "bg-accent/10", iconText: "text-accent", glow: "from-accent/20" },
-  green: { iconBg: "bg-success/10", iconText: "text-success", glow: "from-success/20" },
-  blue: { iconBg: "bg-accent-secondary/10", iconText: "text-accent-secondary", glow: "from-accent-secondary/20" },
-  orange: { iconBg: "bg-warning/10", iconText: "text-warning", glow: "from-warning/20" },
-  pink: { iconBg: "bg-pink-500/10", iconText: "text-pink-500", glow: "from-pink-500/20" },
-};
-
-function MetricCard({ icon: Icon, label, value, hint, tone, delay = 0 }: { icon: React.ElementType; label: string; value: string | number; hint: string; tone: StatTone; delay?: number }) {
-  const t = STAT_TONES[tone];
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.5, ease: EASE }}
-      className="group relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card p-4 transition-all duration-200 hover:-translate-y-1 hover:border-accent/30 hover:bg-card-hover hover:shadow-[0_12px_32px_-12px_rgba(124,58,237,0.3)] sm:p-5"
-    >
-      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${t.glow} to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
+    <div className="flex min-h-[104px] flex-col justify-between rounded-xl border border-[#E4E7EC] bg-white p-3.5 transition-colors duration-150 hover:border-[#D0D5DD] dark:border-[#252D3A] dark:bg-[#151A24] dark:hover:border-[#353f52] sm:p-4">
       <div className="flex items-center justify-between gap-2">
-        <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${t.iconBg} ring-1 ring-inset ring-white/10`}>
-          <Icon className={`h-5 w-5 ${t.iconText}`} />
-        </div>
-        <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-text-muted">{label}</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">{label}</span>
+        <Icon className={cn("h-4 w-4", accent)} strokeWidth={1.8} />
       </div>
-      <div className="relative">
-        <p className="text-3xl font-extrabold leading-none tracking-tight text-text-primary tabular-nums">{value}</p>
-        <p className="mt-1.5 text-[11px] font-medium text-text-muted">{hint}</p>
+      <div>
+        <p className="text-[26px] font-bold leading-none tracking-tight text-[#101828] tabular-nums dark:text-[#F4F6FA] sm:text-[28px]">{value}</p>
+        <p className="mt-1.5 text-[11px] text-[#98A2B3] dark:text-[#687386]">{hint}</p>
       </div>
-    </motion.div>
-  );
-}
-
-function SubjectTile({ icon: Icon, color }: { icon: React.ElementType; color: string }) {
-  return (
-    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-card-hover ring-1 ring-inset ring-border ${color}`}>
-      <Icon className="h-5 w-5" />
     </div>
-  );
-}
-
-function MetaChip({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-secondary">
-      <Icon className="h-3.5 w-3.5 text-text-muted" />
-      {children}
-    </span>
-  );
-}
-
-function AnswerChip({ icon: Icon, count, tone }: { icon: React.ElementType; count: number; tone: "success" | "danger" | "muted" | "accent" }) {
-  const map = {
-    success: "border-success/25 bg-success/10 text-success",
-    danger: "border-danger/25 bg-danger/10 text-danger",
-    muted: "border-border bg-card-hover text-text-secondary",
-    accent: "border-accent/25 bg-accent/10 text-accent",
-  }[tone];
-  return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${map}`}>
-      <Icon className="h-3 w-3" />
-      {count}
-    </span>
   );
 }
 
 function SearchField({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   return (
-    <div className="relative min-w-[200px] flex-1">
-      <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+    <div className="relative min-w-0 flex-1 sm:min-w-[200px]">
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3] dark:text-[#687386]" />
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder || "Search quizzes..."}
-        className="w-full rounded-xl border border-border bg-card py-2.5 pl-10 pr-9 text-sm text-text-primary shadow-sm outline-none transition-all placeholder:text-text-muted focus:border-accent/50 focus:shadow-[0_0_0_3px_rgba(124,58,237,0.13)]"
+        className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-white pl-9 pr-8 text-[13px] text-[#101828] outline-none transition-colors duration-150 placeholder:text-[#98A2B3] focus:border-[#8B7CFF]/60 dark:border-[#252D3A] dark:bg-[#151A24] dark:text-[#F4F6FA] dark:placeholder:text-[#687386] dark:focus:border-[#8B7CFF]/50"
       />
       {value && (
         <button
           type="button"
           onClick={() => onChange("")}
           aria-label="Clear search"
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted transition-colors hover:text-text-primary"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-[#98A2B3] transition-colors duration-150 hover:text-[#101828] dark:text-[#687386] dark:hover:text-[#F4F6FA]"
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -307,278 +208,223 @@ function SearchField({ value, onChange, placeholder }: { value: string; onChange
   );
 }
 
-function FilterSelect({ icon: Icon, value, options, onChange }: { icon: React.ElementType; value: string; options: readonly string[]; onChange: (v: string) => void }) {
+function FilterSelect({ icon: Icon, value, options, onChange, label }: { icon: React.ElementType; value: string; options: readonly string[]; onChange: (v: string) => void; label: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-semibold text-text-secondary shadow-sm transition-all hover:bg-card-hover hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${open ? "border-accent/40 text-text-primary" : ""}`}
-      >
-        <Icon className="h-3.5 w-3.5 text-accent" />
-        <span className="max-w-[88px] truncate">{value}</span>
-        <ChevronDown className={`h-3.5 w-3.5 text-text-muted transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <>
-            <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-            <motion.ul
-              initial={{ opacity: 0, y: -6, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -6, scale: 0.98 }}
-              transition={{ duration: 0.16, ease: "easeOut" }}
-              className="absolute left-0 z-30 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-card p-1.5 shadow-2xl shadow-black/20"
-            >
-              {options.map((opt) => (
-                <li key={opt}>
-                  <button
-                    type="button"
-                    onClick={() => { onChange(opt); setOpen(false); }}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-medium transition-colors ${value === opt ? "bg-accent/10 text-accent" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"}`}
-                  >
-                    {opt}
-                    {value === opt && <span className="h-1.5 w-1.5 rounded-full bg-accent" />}
-                  </button>
-                </li>
-              ))}
-            </motion.ul>
-          </>
+        aria-label={label}
+        className={cn(
+          "inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E4E7EC] bg-white px-2.5 text-xs font-medium text-[#475467] transition-colors duration-150 hover:border-[#D0D5DD] hover:text-[#101828] dark:border-[#252D3A] dark:bg-[#151A24] dark:text-[#9AA4B5] dark:hover:border-[#353f52] dark:hover:text-[#F4F6FA]",
+          open && "border-[#8B7CFF]/50 text-[#101828] dark:border-[#8B7CFF]/40 dark:text-[#F4F6FA]"
         )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function ActionButton({ icon: Icon, label, onClick, href, variant = "ghost" }: { icon: React.ElementType; label: string; onClick?: () => void; href?: string; variant?: "ghost" | "accent" | "filled" }) {
-  const styles = {
-    ghost: "border border-border bg-card-hover text-text-secondary hover:-translate-y-px hover:border-border-hover hover:text-text-primary",
-    accent: "border border-accent/25 bg-accent/10 text-accent hover:-translate-y-px hover:bg-accent/15",
-    filled: "bg-gradient-to-r from-accent to-fuchsia-500 text-white shadow-lg shadow-accent/30 hover:-translate-y-px hover:shadow-accent/60",
-  }[variant];
-  const cls = `inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-[0.97] ${styles}`;
-  const body = (<><Icon className="h-3.5 w-3.5" />{label}</>);
-  if (href) return <Link href={href} className={cls}>{body}</Link>;
-  return (
-    <button type="button" onClick={onClick} className={cls}>{body}</button>
-  );
-}
-
-/* ─── Ambient header decoration: slow glow + drifting particles ─── */
-function AmbientDecor({ accent = true }: { accent?: boolean }) {
-  const particles = useMemo(
-    () =>
-      Array.from({ length: 10 }).map((_, i) => ({
-        left: `${(i * 11 + 4) % 92}%`,
-        top: `${(i * 23 + 12) % 72}%`,
-        size: 2 + (i % 3),
-        delay: (i % 5) * 0.9,
-        dur: 6 + (i % 4),
-      })),
-    []
-  );
-  return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      <motion.div
-        className="absolute -top-28 right-1/4 h-64 w-64 rounded-full bg-accent/10 blur-3xl"
-        animate={{ x: [0, 22, 0], opacity: [0.35, 0.65, 0.35] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute -bottom-28 -left-20 h-64 w-64 rounded-full bg-fuchsia-500/10 blur-3xl"
-        animate={{ x: [0, -18, 0], opacity: [0.3, 0.55, 0.3] }}
-        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-      />
-      {accent && (
-        <motion.div
-          className="absolute right-8 top-8 h-16 w-16 rounded-full bg-accent/20 blur-2xl"
-          animate={{ y: [0, -10, 0], opacity: [0.2, 0.45, 0.2] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        />
+      >
+        <Icon className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" />
+        <span className="max-w-[88px] truncate">{value}</span>
+        <ChevronDown className={cn("h-3.5 w-3.5 text-[#98A2B3] transition-transform duration-150 dark:text-[#687386]", open && "rotate-180")} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <ul className="absolute right-0 z-30 mt-1.5 w-40 overflow-hidden rounded-xl border border-[#E4E7EC] bg-white p-1 shadow-xl shadow-black/10 dark:border-[#252D3A] dark:bg-[#151A24] dark:shadow-black/40 sm:left-0 sm:right-auto">
+            {options.map((opt) => (
+              <li key={opt}>
+                <button
+                  type="button"
+                  onClick={() => { onChange(opt); setOpen(false); }}
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs transition-colors duration-150",
+                    value === opt
+                      ? "bg-[#8B7CFF]/10 text-[#6B5CFF] dark:bg-[#8B7CFF]/12 dark:text-[#8B7CFF]"
+                      : "text-[#475467] hover:bg-[#F2F4F7] hover:text-[#101828] dark:text-[#9AA4B5] dark:hover:bg-[#19202C] dark:hover:text-[#F4F6FA]"
+                  )}
+                >
+                  {opt}
+                  {value === opt && <span className="h-1.5 w-1.5 rounded-full bg-[#8B7CFF]" />}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
-      {particles.map((p, i) => (
-        <motion.span
-          key={i}
-          className="absolute rounded-full bg-accent/30"
-          style={{ left: p.left, top: p.top, width: p.size, height: p.size }}
-          animate={{ y: [0, -14, 0], opacity: [0, 0.5, 0] }}
-          transition={{ duration: p.dur, delay: p.delay, repeat: Infinity, ease: "easeInOut" }}
-        />
-      ))}
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   RECENT QUIZ ROW  (student participated)
+   COMPACT ATTEMPT ROW (same info, dense table-style layout)
    ═══════════════════════════════════════════════════════════════ */
-function RecentQuizRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
+function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
   const [expanded, setExpanded] = useState(false);
-  const accent = getStatusConfig(quiz.status);
+  const tone = statusTone(quiz.status);
 
   const timeTaken = useMemo(() => {
-    if (!quiz.time_taken) return "—";
+    if (quiz.time_taken == null) return "—";
     const mins = Math.floor(quiz.time_taken / 60);
-    const secs = quiz.time_taken % 60;
-    return `${mins}m ${secs}s`;
+    if (mins >= 60) {
+      const h = Math.floor(mins / 60);
+      return `${h}h ${mins % 60}m`;
+    }
+    if (mins > 0) return `${mins}m`;
+    return `${quiz.time_taken % 60}s`;
   }, [quiz.time_taken]);
 
   const dateFormatted = useMemo(() => {
     if (!quiz.completed_at) return "—";
-    return new Date(quiz.completed_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    return new Date(quiz.completed_at).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   }, [quiz.completed_at]);
 
   const subject = getSubjectInfo(quiz.name);
-  const totalAnswered = quiz.correct_answers + quiz.wrong_answers + quiz.skipped_questions;
+  const pct = Math.round(Number(quiz.percentage) || 0);
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.05, 0.3), duration: 0.45, ease: EASE }}
-      className="group relative"
-    >
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-0.5 hover:border-border-hover hover:shadow-2xl hover:shadow-black/10 dark:hover:border-accent/30 dark:hover:shadow-black/40">
-        <div className={`pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.10),transparent_55%)] transition-opacity duration-300 ${accent.glow} group-hover:opacity-100`} />
-        <div className={`absolute left-0 right-0 top-0 h-1 bg-gradient-to-r ${accent.bar}`} />
-
-        <div className="relative flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center">
-          <div className="min-w-0 flex-1">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <StatusChip status={quiz.status} />
-              {quiz.rank != null && <RankChip rank={quiz.rank} />}
+    <div className="transition-colors duration-150 hover:bg-[#F2F4F7] dark:hover:bg-[#19202C]/60">
+      {/* Desktop: 6-column grid · Mobile: stacked */}
+      <div className="grid grid-cols-1 gap-2 px-4 py-3 sm:px-5 lg:grid-cols-[minmax(0,1.6fr)_110px_76px_64px_72px_92px] lg:items-center lg:gap-3">
+        {/* Quiz */}
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E4E7EC] bg-[#F2F4F7] dark:border-[#252D3A] dark:bg-[#19202C]", subject.color)}>
+            <subject.icon className="h-4 w-4" strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-semibold text-[#101828] dark:text-[#F4F6FA] sm:text-sm">{quiz.name}</p>
+            <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[#98A2B3] dark:text-[#687386]">
+              <span className="hidden sm:inline">{subject.label} ·</span>
               <CodeCopyChip code={quiz.code} />
-            </div>
-
-            <div className="flex items-start gap-3">
-              <SubjectTile icon={subject.icon} color={subject.color} />
-              <div className="min-w-0">
-                <h3 className="truncate text-lg font-bold leading-snug text-text-primary transition-colors group-hover:text-accent sm:text-xl">
-                  {quiz.name}
-                </h3>
-                <p className="mt-0.5 text-xs text-text-secondary">
-                  {subject.label} <span className="mx-1 text-text-muted">·</span> Attempt #{quiz.attempt_id}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-              <MetaChip icon={Calendar}>{dateFormatted}</MetaChip>
-              <MetaChip icon={Timer}>{timeTaken}</MetaChip>
-              <MetaChip icon={Milestone}>{totalAnswered}/{quiz.total_questions} answered</MetaChip>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <AnswerChip icon={CheckCircle2} count={quiz.correct_answers} tone="success" />
-              <AnswerChip icon={XCircle} count={quiz.wrong_answers} tone="danger" />
-              <AnswerChip icon={AlertTriangle} count={quiz.skipped_questions} tone="muted" />
-              <AnswerChip icon={CircleDot} count={quiz.total_questions} tone="accent" />
-            </div>
-
-            <AnimatePresence initial={false}>
-              {expanded && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-border bg-card-hover/50 p-3 sm:grid-cols-4">
-                    {[
-                      { label: "Correct", value: quiz.correct_answers, cls: "text-success" },
-                      { label: "Wrong", value: quiz.wrong_answers, cls: "text-danger" },
-                      { label: "Skipped", value: quiz.skipped_questions, cls: "text-text-secondary" },
-                      { label: "Total Marks", value: quiz.total_marks, cls: "text-accent" },
-                    ].map((it) => (
-                      <div key={it.label} className="flex flex-col">
-                        <span className="text-lg font-extrabold leading-none tracking-tight text-text-primary">{it.value}</span>
-                        <span className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wider ${it.cls}`}>{it.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="flex shrink-0 flex-col gap-4 lg:w-60 lg:border-l lg:border-border lg:pl-6">
-            <ScoreBlock pct={quiz.percentage} score={quiz.score} totalMarks={quiz.total_marks} />
-            <div className="flex items-center gap-2 lg:flex-col lg:items-stretch">
-              <ActionButton icon={BarChart2} label={expanded ? "Less" : "Details"} onClick={() => setExpanded((e) => !e)} />
-              <ActionButton icon={Award} label="View Result" href={`/quiz/${quiz.code}/results`} variant="accent" />
-              <ActionButton icon={History} label="Reattempt" href={`/quiz/${quiz.code}`} />
-            </div>
+            </p>
           </div>
         </div>
+
+        {/* Status */}
+        <div className="flex items-center gap-2 lg:justify-start">
+          <span className="text-[11px] text-[#98A2B3] dark:text-[#687386] lg:hidden">Status</span>
+          <StatusChip status={quiz.status} />
+          {quiz.rank != null && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[#F79009]/30 bg-[#F79009]/10 px-2 py-0.5 text-[11px] font-semibold text-[#B54708] dark:border-[#FFB84D]/25 dark:bg-[#FFB84D]/10 dark:text-[#FFB84D]">
+              <Trophy className="h-3 w-3" />#{quiz.rank}
+            </span>
+          )}
+        </div>
+
+        {/* Score */}
+        <div className="flex items-center gap-2 lg:block">
+          <span className="text-[11px] text-[#98A2B3] dark:text-[#687386] lg:hidden">Score</span>
+          <span className={cn("text-sm font-bold tabular-nums", scoreColor(pct))}>{pct}%</span>
+          <span className="text-[11px] text-[#98A2B3] tabular-nums dark:text-[#687386]"> · {quiz.score}/{quiz.total_marks}</span>
+        </div>
+
+        {/* Time */}
+        <div className="flex items-center gap-2 lg:block">
+          <span className="text-[11px] text-[#98A2B3] dark:text-[#687386] lg:hidden">Time</span>
+          <span className="inline-flex items-center gap-1 text-xs text-[#475467] tabular-nums dark:text-[#9AA4B5]">
+            <Timer className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386] lg:hidden" />
+            {timeTaken}
+          </span>
+        </div>
+
+        {/* Date */}
+        <div className="flex items-center gap-2 lg:block">
+          <span className="text-[11px] text-[#98A2B3] dark:text-[#687386] lg:hidden">Date</span>
+          <span className="inline-flex items-center gap-1 text-xs text-[#475467] dark:text-[#9AA4B5]">
+            <Calendar className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386] lg:hidden" />
+            {dateFormatted}
+          </span>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 lg:justify-end">
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            className="inline-flex h-7 items-center rounded-lg border border-[#E4E7EC] bg-[#F2F4F7] px-2.5 text-[11px] font-semibold text-[#475467] transition-colors duration-150 hover:border-[#D0D5DD] hover:text-[#101828] dark:border-[#252D3A] dark:bg-[#19202C] dark:text-[#9AA4B5] dark:hover:border-[#353f52] dark:hover:text-[#F4F6FA]"
+          >
+            {expanded ? "Less" : "Details"}
+          </button>
+          <Link
+            href={`/quiz/${quiz.code}/results`}
+            className="inline-flex h-7 items-center gap-1 rounded-lg bg-[#8B7CFF]/10 px-2.5 text-[11px] font-semibold text-[#6B5CFF] transition-colors duration-150 hover:bg-[#8B7CFF]/20 dark:bg-[#8B7CFF]/12 dark:text-[#8B7CFF] dark:hover:bg-[#8B7CFF]/20"
+          >
+            View <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </div>
       </div>
-    </motion.div>
+
+      {/* Score bar (visual density, same data) */}
+      <div className="px-4 pb-1 sm:px-5 lg:pl-[68px] lg:pr-[220px]">
+        <div className="h-1 overflow-hidden rounded-full bg-[#E4E7EC] dark:bg-[#252D3A]/60">
+          <div className={cn("h-full rounded-full", scoreBar(pct))} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
+        </div>
+      </div>
+
+      {/* Expanded detail (same breakdown data, compact) */}
+      {expanded && (
+        <div className="mx-4 mb-3 mt-1 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-[#E4E7EC] bg-[#E4E7EC] dark:border-[#252D3A] dark:bg-[#252D3A] sm:mx-5 sm:grid-cols-5">
+          {[
+            { label: "Correct", value: quiz.correct_answers, cls: "text-[#039855] dark:text-[#20D889]" },
+            { label: "Wrong", value: quiz.wrong_answers, cls: "text-[#D92D20] dark:text-[#FF4D5D]" },
+            { label: "Skipped", value: quiz.skipped_questions, cls: "text-[#475467] dark:text-[#9AA4B5]" },
+            { label: "Questions", value: quiz.total_questions, cls: "text-[#1570EF] dark:text-[#4F9DFF]" },
+            { label: "Status", value: quiz.status, cls: tone.text, small: true },
+          ].map((it) => (
+            <div key={it.label} className="bg-white px-3 py-2.5 dark:bg-[#12161d]">
+              <p className={cn("truncate font-bold tabular-nums", it.small ? "text-xs" : "text-base text-[#101828] dark:text-[#F4F6FA]")}>{it.value}</p>
+              <p className={cn("mt-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]", it.cls)}>{it.label}</p>
+            </div>
+          ))}
+          <div className="col-span-2 flex items-center justify-between gap-2 bg-white px-3 py-2.5 dark:bg-[#12161d] sm:col-span-5">
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-[#98A2B3] dark:text-[#687386]">
+              <Milestone className="h-3.5 w-3.5" />
+              {quiz.correct_answers + quiz.wrong_answers + quiz.skipped_questions}/{quiz.total_questions} answered
+            </span>
+            <Link
+              href={`/quiz/${quiz.code}`}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6B5CFF] transition-colors duration-150 hover:text-[#5248d4] dark:text-[#8B7CFF] dark:hover:text-[#a394ff]"
+            >
+              <History className="h-3 w-3" /> Reattempt
+            </Link>
+          </div>
+        </div>
+      )}
+      <span className="sr-only">{index}</span>
+    </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   EMPTY STATE
+   EMPTY + SKELETON (compact)
    ═══════════════════════════════════════════════════════════════ */
 function EmptyState() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: EASE }}
-      className={cn("group relative overflow-hidden rounded-2xl border border-border bg-card")}
-    >
-      <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-accent/15 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-16 -right-16 h-56 w-56 rounded-full bg-fuchsia-500/10 blur-3xl" />
-
-      <div className="relative mx-auto flex max-w-md flex-col items-center px-6 py-14 text-center">
-        <div className="relative mb-6">
-          <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-accent to-fuchsia-500 opacity-30 blur-xl transition-opacity duration-300 group-hover:opacity-50" />
-          <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl border border-accent/25 bg-card shadow-lg">
-            <History className="h-9 w-9 text-accent" strokeWidth={1.6} />
-          </div>
-          <span className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card">
-            <Sparkles className="h-3 w-3 text-fuchsia-500" />
-          </span>
-        </div>
-
-        <h3 className="text-xl font-bold tracking-tight text-text-primary">No quiz attempts yet</h3>
-        <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-          You haven&apos;t participated in any quizzes yet. Join one to start tracking your scores, rankings and progress.
-        </p>
-
-        <div className="mt-6">
-          <ActionButton icon={ArrowRight} label="Join a Quiz" href="#join-quiz" variant="filled" />
-        </div>
-      </div>
-    </motion.div>
+    <div className="flex flex-col items-center px-6 py-10 text-center">
+      <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#E4E7EC] bg-[#F2F4F7] dark:border-[#252D3A] dark:bg-[#19202C]">
+        <History className="h-5 w-5 text-[#6B5CFF] dark:text-[#8B7CFF]" strokeWidth={1.8} />
+      </span>
+      <h3 className="mt-3 text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA]">No quiz attempts yet</h3>
+      <p className="mt-1 max-w-xs text-[13px] leading-5 text-[#475467] dark:text-[#9AA4B5]">
+        Join your first assessment to start building your activity history.
+      </p>
+      <Link
+        href="/quiz/join"
+        className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#8B7CFF] px-4 text-[13px] font-semibold text-white transition-colors duration-150 hover:bg-[#7A6BF5]"
+      >
+        Join a quiz <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
+    </div>
   );
 }
 
 function SkeletonRow() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card p-5 sm:p-6">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
-        <div className="flex-1">
-          <div className="mb-3 flex items-center gap-2">
-            <div className="h-5 w-20 rounded-full bg-border/60" />
-            <div className="h-5 w-16 rounded-full bg-border/60" />
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="h-11 w-11 rounded-xl bg-border/60" />
-            <div className="flex-1 space-y-2">
-              <div className="h-5 w-2/3 rounded-lg bg-border/60" />
-              <div className="h-3 w-1/3 rounded bg-border/60" />
-            </div>
-          </div>
+    <div className="animate-pulse px-4 py-3 sm:px-5">
+      <div className="flex items-center gap-3">
+        <div className="h-8 w-8 rounded-lg bg-[#E4E7EC] dark:bg-[#252D3A]" />
+        <div className="flex-1 space-y-1.5">
+          <div className="h-3.5 w-1/2 rounded bg-[#E4E7EC] dark:bg-[#252D3A]" />
+          <div className="h-2.5 w-1/4 rounded bg-[#E4E7EC]/70 dark:bg-[#252D3A]/70" />
         </div>
-        <div className="h-2 w-full rounded-full bg-border/60 lg:w-40" />
-        <div className="flex gap-2 lg:w-56 lg:flex-col">
-          <div className="h-9 flex-1 rounded-lg bg-border/60" />
-          <div className="h-9 flex-1 rounded-lg bg-border/60" />
-          <div className="h-9 flex-1 rounded-lg bg-border/60" />
-        </div>
+        <div className="h-6 w-16 rounded-full bg-[#E4E7EC] dark:bg-[#252D3A]" />
       </div>
     </div>
   );
@@ -591,8 +437,8 @@ export default function YourActivitySection() {
   const [recentQuizzes, setRecentQuizzes] = useState<RecentQuiz[]>([]);
   const [recentLoading, setRecentLoading] = useState(false);
   const [recentSearch, setRecentSearch] = useState("");
-  const [recentStatus, setRecentStatus] = useState("All");
-  const [recentSort, setRecentSort] = useState("Newest");
+  const [recentStatus, setRecentStatus] = useState<string>("All");
+  const [recentSort, setRecentSort] = useState<string>("Newest");
   const pageSize = 10;
 
   useEffect(() => {
@@ -621,64 +467,191 @@ export default function YourActivitySection() {
     return { totalAttempts: list.length, completed, avgScore, bestScore };
   }, [recentQuizzes]);
 
+  const filtered = useMemo(() => {
+    if (recentStatus === "All") return recentQuizzes;
+    return recentQuizzes.filter((q) => q.status === recentStatus);
+  }, [recentQuizzes, recentStatus]);
+
+  const performance = useMemo(() => {
+    const list = [...recentQuizzes]
+      .filter((q) => Number.isFinite(Number(q.percentage)))
+      .sort((a, b) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime())
+      .slice(0, 5);
+    const buckets = [0, 0, 0, 0];
+    for (const q of recentQuizzes) {
+      const p = Number(q.percentage);
+      if (!Number.isFinite(p)) continue;
+      if (p >= 90) buckets[3] += 1;
+      else if (p >= 70) buckets[2] += 1;
+      else if (p >= 50) buckets[1] += 1;
+      else buckets[0] += 1;
+    }
+    const maxBucket = Math.max(1, ...buckets);
+    return { recent: list, buckets, maxBucket };
+  }, [recentQuizzes]);
+
   return (
-    <section className="mb-8 sm:mb-10">
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-card/60 shadow-xl backdrop-blur-sm">
-        <AmbientDecor accent />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(124,58,237,0.06),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(236,72,153,0.04),transparent_30%)]" />
+    <section aria-label="My activity">
+      {/* ── Analytics header ── */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">My Activity</p>
+          <h2 className="mt-1 text-[22px] font-bold leading-tight tracking-tight text-[#101828] dark:text-[#F4F6FA] sm:text-[24px]">
+            Your Activity
+          </h2>
+          <p className="mt-1 text-[13px] text-[#475467] dark:text-[#9AA4B5] sm:text-sm">
+            Track attempts, scores and progress across your assessments.
+          </p>
+        </div>
+        <p className="text-xs text-[#98A2B3] tabular-nums dark:text-[#687386]">
+          {filtered.length} attempt{filtered.length === 1 ? "" : "s"}
+        </p>
+      </div>
 
-        <div className="relative p-4 sm:p-6 lg:p-7">
-          {/* ── HEADER ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: EASE }}
-            className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
-                  <Sparkles className="h-3 w-3" /> My Activity
-                </span>
-              </div>
+      {/* ── Stat cards (compact, 100–120px) ── */}
+      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatCard icon={BookOpen} label="Total Attempts" value={overview.totalAttempts} hint="quizzes attempted" accent="text-[#6B5CFF] dark:text-[#8B7CFF]" />
+        <StatCard icon={CheckCircle2} label="Completed" value={overview.completed} hint="finished attempts" accent="text-[#039855] dark:text-[#20D889]" />
+        <StatCard icon={Trophy} label="Best Score" value={overview.bestScore === null ? "—" : `${overview.bestScore}%`} hint="highest score" accent="text-[#6B5CFF] dark:text-[#8B7CFF]" />
+        <StatCard icon={TrendingUp} label="Average Score" value={overview.avgScore === null ? "—" : `${overview.avgScore}%`} hint="across attempts" accent="text-[#B54708] dark:text-[#FFB84D]" />
+      </div>
 
-              <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-text-primary sm:text-3xl">
-                Your Activity
-              </h2>
-              <p className="mt-1.5 max-w-2xl text-sm text-text-secondary">
-                Track your quiz history and progress across every quiz you participate in.
-              </p>
+      {/* ── Two-column: recent activity + performance overview ── */}
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+        {/* LEFT: recent attempts */}
+        <div className="min-w-0 overflow-hidden rounded-xl border border-[#E4E7EC] bg-white dark:border-[#252D3A] dark:bg-[#151A24]">
+          <div className="flex flex-col gap-2 border-b border-[#E4E7EC] p-3 dark:border-[#252D3A] sm:p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA]">Recent Quiz Activity</h3>
+              <span className="hidden items-center gap-1 text-[11px] text-[#98A2B3] dark:text-[#687386] sm:inline-flex">
+                <BarChart2 className="h-3.5 w-3.5" /> Latest first
+              </span>
             </div>
-          </motion.div>
-
-          <div className="space-y-5">
-            {/* ── METRICS ── */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-              <MetricCard icon={BookOpen} label="Total Attempts" value={overview.totalAttempts} hint="quizzes attempted" tone="purple" delay={0} />
-              <MetricCard icon={CheckCircle2} label="Completed" value={overview.completed} hint="finished attempts" tone="green" delay={0.05} />
-              <MetricCard icon={Trophy} label="Best Score" value={overview.bestScore === null ? "—" : `${overview.bestScore}%`} hint="highest score" tone="blue" delay={0.1} />
-              <MetricCard icon={TrendingUp} label="Avg Score" value={overview.avgScore === null ? "—" : `${overview.avgScore}%`} hint="across attempts" tone="orange" delay={0.15} />
-            </div>
-
-            {/* ── TOOLBAR ── */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <SearchField value={recentSearch} onChange={setRecentSearch} placeholder="Search quizzes..." />
-              <div className="ml-auto flex flex-wrap items-center gap-2">
-                <FilterSelect icon={Filter} value={recentStatus} options={STATUS_OPTIONS} onChange={setRecentStatus} />
-                <FilterSelect icon={TrendingUp} value={recentSort} options={SORT_OPTIONS} onChange={setRecentSort} />
+              <div className="flex items-center gap-2">
+                <FilterSelect icon={Filter} value={recentStatus} options={STATUS_OPTIONS} onChange={setRecentStatus} label="Filter by status" />
+                <FilterSelect icon={TrendingUp} value={recentSort} options={SORT_OPTIONS} onChange={setRecentSort} label="Sort attempts" />
               </div>
-            </div>
-
-            {/* ── LIST ── */}
-            <div className="flex flex-col gap-3.5">
-              {recentLoading
-                ? Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)
-                : recentQuizzes.length === 0
-                  ? <EmptyState />
-                  : recentQuizzes.map((quiz, i) => <RecentQuizRow key={quiz.attempt_id} quiz={quiz} index={i} />)}
             </div>
           </div>
+
+          {/* Desktop column labels */}
+          {filtered.length > 0 && (
+            <div className="hidden grid-cols-[minmax(0,1.6fr)_110px_76px_64px_72px_92px] gap-3 border-b border-[#E4E7EC] px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:border-[#252D3A] dark:text-[#687386] lg:grid">
+              <span>Quiz</span>
+              <span>Status</span>
+              <span>Score</span>
+              <span>Time</span>
+              <span>Date</span>
+              <span className="text-right">Action</span>
+            </div>
+          )}
+
+          <div className="divide-y divide-[#E4E7EC] dark:divide-[#252D3A]">
+            {recentLoading
+              ? Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)
+              : filtered.length === 0
+                ? <EmptyState />
+                : filtered.map((quiz, i) => <AttemptRow key={quiz.attempt_id} quiz={quiz} index={i} />)}
+          </div>
         </div>
+
+        {/* RIGHT: performance overview */}
+        <aside className="flex min-w-0 flex-col gap-4 rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#252D3A] dark:bg-[#111722] sm:p-5 lg:sticky lg:top-20 lg:self-start">
+          <h3 className="text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA]">Performance Overview</h3>
+
+          <div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">Average Score</span>
+              <span className="text-[26px] font-bold leading-none text-[#101828] tabular-nums dark:text-[#F4F6FA]">
+                {overview.avgScore === null ? "—" : `${overview.avgScore}%`}
+              </span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E4E7EC] dark:bg-[#252D3A]/70">
+              <div
+                className={cn("h-full rounded-full", scoreBar(overview.avgScore ?? 0))}
+                style={{ width: `${Math.min(100, Math.max(0, overview.avgScore ?? 0))}%` }}
+              />
+            </div>
+            <div className="mt-3 space-y-2 border-t border-[#E4E7EC] pt-3 text-[13px] dark:border-[#252D3A]">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-[#475467] dark:text-[#9AA4B5]">
+                  <Award className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" /> Best score
+                </span>
+                <span className="font-bold text-[#101828] tabular-nums dark:text-[#F4F6FA]">{overview.bestScore === null ? "—" : `${overview.bestScore}%`}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-[#475467] dark:text-[#9AA4B5]">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" /> Total completed
+                </span>
+                <span className="font-bold text-[#101828] tabular-nums dark:text-[#F4F6FA]">{overview.completed}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-[#475467] dark:text-[#9AA4B5]">
+                  <Send className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" /> Completion rate
+                </span>
+                <span className="font-bold text-[#101828] tabular-nums dark:text-[#F4F6FA]">
+                  {overview.totalAttempts ? `${Math.round((overview.completed / overview.totalAttempts) * 100)}%` : "—"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Score distribution (derived from existing data) */}
+          <div className="border-t border-[#E4E7EC] pt-3 dark:border-[#252D3A]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">Score distribution</p>
+            <div className="mt-4 flex items-end gap-2 pb-1 pt-1">
+              {[
+                { label: "<50", count: performance.buckets[0], cls: "bg-[#F04438]/70 dark:bg-[#FF4D5D]/70" },
+                { label: "50–69", count: performance.buckets[1], cls: "bg-[#F79009]/70 dark:bg-[#FFB84D]/70" },
+                { label: "70–89", count: performance.buckets[2], cls: "bg-[#8B7CFF]/70" },
+                { label: "90+", count: performance.buckets[3], cls: "bg-[#12B76A]/70 dark:bg-[#20D889]/70" },
+              ].map((b) => (
+                <div key={b.label} className="flex min-w-0 flex-1 flex-col items-center">
+                  <span className="mb-1.5 text-[11px] font-semibold leading-none text-[#475467] tabular-nums dark:text-[#9AA4B5]">{b.count}</span>
+                  <div className="flex h-12 w-full items-end rounded-md bg-[#F2F4F7] p-1 dark:bg-[#252D3A]/40">
+                    <div
+                      className={cn("w-full rounded-sm", b.cls)}
+                      style={{ height: `${Math.max(b.count > 0 ? 12 : 4, (b.count / performance.maxBucket) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="mt-1.5 text-[10px] leading-none text-[#98A2B3] dark:text-[#687386]">{b.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Latest trend (same attempts, compact) */}
+          {performance.recent.length > 0 && (
+            <div className="border-t border-[#E4E7EC] pt-3 dark:border-[#252D3A]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">Latest results</p>
+              <ul className="mt-2 space-y-2">
+                {performance.recent.map((q) => {
+                  const p = Math.round(Number(q.percentage) || 0);
+                  return (
+                    <li key={q.attempt_id}>
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="min-w-0 truncate text-[#475467] dark:text-[#9AA4B5]">{q.name}</span>
+                        <span className={cn("shrink-0 font-bold tabular-nums", scoreColor(p))}>{p}%</span>
+                      </div>
+                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-[#E4E7EC] dark:bg-[#252D3A]/60">
+                        <div className={cn("h-full rounded-full", scoreBar(p))} style={{ width: `${Math.min(100, Math.max(0, p))}%` }} />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              <Link
+                href="/quiz/join"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#6B5CFF] transition-colors duration-150 hover:text-[#5248d4] dark:text-[#8B7CFF] dark:hover:text-[#a394ff]"
+              >
+                Join another quiz <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          )}
+
+        </aside>
       </div>
     </section>
   );

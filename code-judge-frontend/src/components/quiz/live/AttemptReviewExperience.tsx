@@ -6,17 +6,20 @@ import Link from "next/link";
 import {
   ArrowLeft,
   BookOpen,
+  Check,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Clock3,
   CircleDashed,
-  CircleDot,
+  Clock3,
+  LayoutGrid,
   Medal,
   PieChart,
   Target,
   Timer,
   Trophy,
+  Upload,
   XCircle,
   Zap,
 } from "lucide-react";
@@ -74,234 +77,11 @@ interface AttemptReviewData {
   questions: AttemptReviewQuestion[];
 }
 
-/* ─── MOCK PREVIEW DATA — commented out. The review screen now loads the real
-   attempt result (GET /v1/user/quiz/result/:attemptId) and question-wise
-   review (GET /v1/user/quiz/result/:attemptId/review) via buildAttemptReviewData
-   below. Kept here for UI reference only.
-const data: AttemptReviewData = {
-  quizName: "Graph Algorithms Sprint",
-  subject: "Data Structures",
-  attemptDate: "Aug 3, 2026 · 9:30 AM",
-  duration: "18m 24s",
-  score: "18/20",
-  percentage: 90,
-  rank: 7,
-  submittedAt: "Aug 3, 2026 · 9:49 AM",
-  totalQuestions: 6,
-  correct: 4,
-  wrong: 1,
-  skipped: 1,
-  percentile: 91,
-  insights: {
-    strongestTopic: "Shortest Path Algorithms",
-    weakestTopic: "Traversal Edge Cases",
-    longestQuestions: ["Question 3", "Question 5"],
-    fastestQuestions: ["Question 1", "Question 2"],
-    topicAccuracy: [
-      { topic: "Graph Traversal", accuracy: 88 },
-      { topic: "Shortest Path", accuracy: 95 },
-      { topic: "MST", accuracy: 72 },
-    ],
-    difficultyPerformance: [
-      { difficulty: "Easy", accuracy: 100 },
-      { difficulty: "Medium", accuracy: 83 },
-      { difficulty: "Hard", accuracy: 67 },
-    ],
-  },
-  questions: [
-    {
-      id: "q1",
-      number: 1,
-      statement: "Which traversal is typically used to compute shortest path in an unweighted graph?",
-      difficulty: "Easy",
-      options: [
-        { id: "a", label: "A", text: "DFS" },
-        { id: "b", label: "B", text: "BFS" },
-        { id: "c", label: "C", text: "Dijkstra" },
-        { id: "d", label: "D", text: "Kruskal" },
-      ],
-      correctOptionId: "b",
-      selectedOptionId: "b",
-      explanation: "BFS explores layers level by level, so it yields the minimum number of edges in an unweighted graph.",
-      marksObtained: 4,
-      maxMarks: 4,
-      timeSpent: "1m 02s",
-    },
-    {
-      id: "q2",
-      number: 2,
-      statement: "Which algorithm finds the minimum spanning tree using edge sorting?",
-      difficulty: "Easy",
-      options: [
-        { id: "a", label: "A", text: "Prim" },
-        { id: "b", label: "B", text: "Kruskal" },
-        { id: "c", label: "C", text: "Bellman-Ford" },
-        { id: "d", label: "D", text: "Floyd-Warshall" },
-      ],
-      correctOptionId: "b",
-      selectedOptionId: "b",
-      explanation: "Kruskal sorts all edges and picks the smallest valid edge while avoiding cycles.",
-      marksObtained: 4,
-      maxMarks: 4,
-      timeSpent: "1m 18s",
-    },
-    {
-      id: "q3",
-      number: 3,
-      statement: "Select the traversal order for a level-order walk of a tree.",
-      difficulty: "Medium",
-      options: [
-        { id: "a", label: "A", text: "Root, left subtree, right subtree" },
-        { id: "b", label: "B", text: "Left subtree only" },
-        { id: "c", label: "C", text: "Level by level from root" },
-        { id: "d", label: "D", text: "Deepest leaves first" },
-      ],
-      correctOptionId: "c",
-      selectedOptionId: "a",
-      explanation: "Level order visits each level from top to bottom and left to right.",
-      marksObtained: 0,
-      maxMarks: 4,
-      timeSpent: "2m 31s",
-    },
-    {
-      id: "q4",
-      number: 4,
-      statement: "Which of these is a sign of a greedy strategy?",
-      difficulty: "Medium",
-      options: [
-        { id: "a", label: "A", text: "Local optimal choice at each step" },
-        { id: "b", label: "B", text: "Backtracking all possibilities" },
-        { id: "c", label: "C", text: "Memoizing overlapping subproblems" },
-        { id: "d", label: "D", text: "Randomized sampling" },
-      ],
-      correctOptionId: "a",
-      selectedOptionId: "a",
-      explanation: "Greedy algorithms make the locally best choice at each step.",
-      marksObtained: 4,
-      maxMarks: 4,
-      timeSpent: "1m 04s",
-    },
-    {
-      id: "q5",
-      number: 5,
-      statement: "Which graph property is required for Dijkstra to remain valid?",
-      difficulty: "Hard",
-      options: [
-        { id: "a", label: "A", text: "No cycles" },
-        { id: "b", label: "B", text: "Undirected edges only" },
-        { id: "c", label: "C", text: "Non-negative edge weights" },
-        { id: "d", label: "D", text: "All vertices connected" },
-      ],
-      correctOptionId: "c",
-      selectedOptionId: "d",
-      explanation: "Dijkstra fails when negative edge weights can invalidate a shortest-path relaxation.",
-      marksObtained: 0,
-      maxMarks: 4,
-      timeSpent: "3m 10s",
-    },
-    {
-      id: "q6",
-      number: 6,
-      statement: "How many edges are in a spanning tree with n vertices?",
-      difficulty: "Easy",
-      options: [
-        { id: "a", label: "A", text: "n" },
-        { id: "b", label: "B", text: "n - 1" },
-        { id: "c", label: "C", text: "n + 1" },
-        { id: "d", label: "D", text: "2n" },
-      ],
-      correctOptionId: "b",
-      selectedOptionId: undefined,
-      explanation: "A spanning tree connects all n vertices with exactly n - 1 edges.",
-      marksObtained: 0,
-      maxMarks: 4,
-      timeSpent: "0m 40s",
-    },
-  ],
-};
-─── END OF MOCK PREVIEW DATA ─── */
+/* ─── Data helpers — unchanged logic ─── */
 
 function questionStatus(question: AttemptReviewQuestion): QuestionStatus {
   if (!question.selectedOptionId) return "skipped";
   return question.selectedOptionId === question.correctOptionId ? "correct" : "wrong";
-}
-
-// Donut chart helper - computes SVG arc path for a segment
-function describeArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
-  const start = polarToCartesian(cx, cy, r, endAngle);
-  const end = polarToCartesian(cx, cy, r, startAngle);
-  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
-}
-
-function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
-  const angleRad = ((angleDeg - 90) * Math.PI) / 180.0;
-  return {
-    x: cx + r * Math.cos(angleRad),
-    y: cy + r * Math.sin(angleRad),
-  };
-}
-
-function DonutChart({ correct, wrong, skipped }: { correct: number; wrong: number; skipped: number }) {
-  const total = Math.max(1, correct + wrong + skipped);
-  const correctPct = (correct / total) * 100;
-  const wrongPct = (wrong / total) * 100;
-  const skippedPct = (skipped / total) * 100;
-
-  const segments = [
-    { pct: correctPct, color: "var(--success)" },
-    { pct: wrongPct, color: "var(--danger)" },
-    { pct: skippedPct, color: "var(--text-muted)" },
-  ].filter((s) => s.pct > 0);
-
-  let cumulative = 0;
-  const arcs = segments.map((seg) => {
-    const start = cumulative;
-    const end = cumulative + seg.pct * 3.6;
-    cumulative = end;
-    return { ...seg, start, end };
-  });
-
-  return (
-    <div className="flex items-center gap-4">
-      <div className="relative h-24 w-24 shrink-0">
-        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-          <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" strokeWidth="12" />
-          {arcs.map((arc, i) => (
-            <path
-              key={i}
-              d={describeArc(50, 50, 40, arc.start, arc.end)}
-              fill="none"
-              stroke={arc.color}
-              strokeWidth="12"
-              strokeLinecap="butt"
-            />
-          ))}
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-sm font-bold text-text-primary leading-none">{correct + wrong + skipped}</span>
-          <span className="text-[8px] uppercase tracking-wider text-text-muted mt-0.5">Total</span>
-        </div>
-      </div>
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className="h-2.5 w-2.5 rounded-full bg-success" />
-          <span className="text-text-secondary">Correct</span>
-          <span className="ml-auto font-semibold text-text-primary">{correct} ({Math.round(correctPct)}%)</span>
-        </div>
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className="h-2.5 w-2.5 rounded-full bg-danger" />
-          <span className="text-text-secondary">Wrong</span>
-          <span className="ml-auto font-semibold text-text-primary">{wrong} ({Math.round(wrongPct)}%)</span>
-        </div>
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className="h-2.5 w-2.5 rounded-full bg-text-muted" />
-          <span className="text-text-secondary">Skipped</span>
-          <span className="ml-auto font-semibold text-text-primary">{skipped} ({Math.round(skippedPct)}%)</span>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function formatDuration(totalSeconds: number | null | undefined): string {
@@ -449,6 +229,49 @@ function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): A
   };
 }
 
+/* ─── Score ring — dark track, green progress, subtle glow ─── */
+
+function ScoreRing({ percentage }: { percentage: number }) {
+  const clamped = Math.max(0, Math.min(100, Number(percentage) || 0));
+  const size = 120;
+  const stroke = 10;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const filled = (clamped / 100) * c;
+
+  return (
+    <div className="relative h-[112px] w-[112px] shrink-0 sm:h-[128px] sm:w-[128px]" role="img" aria-label={`Score ${clamped}%`}>
+      <svg viewBox={`0 0 ${size} ${size}`} className="h-full w-full -rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#16233C" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="#20D889"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${filled} ${c}`}
+          style={{
+            filter: "drop-shadow(0 0 6px rgba(32,216,137,0.45))",
+            transition: "stroke-dasharray 0.8s ease",
+          }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+        <span className="text-[20px] font-bold leading-none text-[#F5F7FB] sm:text-[22px]">
+          {Number.isInteger(clamped) ? `${clamped}%` : `${clamped.toFixed(1)}%`}
+        </span>
+        <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6F819D]">
+          Score
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main component ─── */
+
 export default function AttemptReviewExperience({
   attemptId,
 }: {
@@ -459,6 +282,7 @@ export default function AttemptReviewExperience({
   const [data, setData] = useState<AttemptReviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -488,16 +312,16 @@ export default function AttemptReviewExperience({
     };
   }, [attemptId]);
 
-  const progress = useMemo(() => {
-    if (!data) return 0;
-    return Math.round((Number(data.percentage) / 100) * 360);
+  const paletteStatus = useMemo(() => {
+    if (!data) return [];
+    return data.questions.map(questionStatus);
   }, [data]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background text-text-primary">
-        <div className="mx-auto max-w-[1600px] p-4">
-          <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-text-secondary">
+      <div className="min-h-screen bg-[#050A14] text-[#F5F7FB]">
+        <div className="mx-auto box-border w-full max-w-[1240px] px-4 py-6 sm:px-6">
+          <div className="rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-8 text-center text-sm text-[#9AAAC3]">
             Loading attempt review…
           </div>
         </div>
@@ -507,14 +331,14 @@ export default function AttemptReviewExperience({
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-background text-text-primary">
-        <div className="mx-auto max-w-[1600px] p-4">
-          <div className="rounded-2xl border border-border bg-card p-8 text-center">
-            <p className="text-sm font-semibold text-text-primary">Could not load attempt review</p>
-            <p className="mt-1 text-xs text-text-secondary">{error ?? "Attempt review not found."}</p>
+      <div className="min-h-screen bg-[#050A14] text-[#F5F7FB]">
+        <div className="mx-auto box-border w-full max-w-[1240px] px-4 py-6 sm:px-6">
+          <div className="rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-8 text-center">
+            <p className="text-sm font-semibold text-[#F5F7FB]">Could not load attempt review</p>
+            <p className="mt-1 text-xs text-[#9AAAC3]">{error ?? "Attempt review not found."}</p>
             <Link
               href="/quiz"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-border bg-card-hover px-3.5 py-1.5 text-sm font-medium text-text-primary"
+              className="mt-4 inline-flex items-center gap-2 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3.5 py-1.5 text-sm font-medium text-[#F5F7FB]"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Dashboard
@@ -529,14 +353,14 @@ export default function AttemptReviewExperience({
 
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen bg-background text-text-primary">
-        <div className="mx-auto max-w-[1600px] p-4">
-          <div className="rounded-2xl border border-border bg-card p-8 text-center">
-            <p className="text-sm font-semibold text-text-primary">No questions in this attempt</p>
-            <p className="mt-1 text-xs text-text-secondary">The quiz has no questions to review.</p>
+      <div className="min-h-screen bg-[#050A14] text-[#F5F7FB]">
+        <div className="mx-auto box-border w-full max-w-[1240px] px-4 py-6 sm:px-6">
+          <div className="rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-8 text-center">
+            <p className="text-sm font-semibold text-[#F5F7FB]">No questions in this attempt</p>
+            <p className="mt-1 text-xs text-[#9AAAC3]">The quiz has no questions to review.</p>
             <Link
               href="/quiz"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-border bg-card-hover px-3.5 py-1.5 text-sm font-medium text-text-primary"
+              className="mt-4 inline-flex items-center gap-2 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3.5 py-1.5 text-sm font-medium text-[#F5F7FB]"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Dashboard
@@ -547,93 +371,137 @@ export default function AttemptReviewExperience({
     );
   }
 
+  const currentStatus = questionStatus(currentQuestion);
+
   return (
-    <div className="min-h-screen bg-background text-text-primary">
-      <div className="mx-auto max-w-[1600px] p-2 sm:p-3 md:p-4 lg:p-4">
-        {/* Header */}
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <Link href="/quiz" className="inline-flex items-center gap-2 rounded-xl border border-border bg-card-hover px-3 sm:px-3.5 py-1.5 text-sm font-medium text-text-primary transition-all hover:border-border-hover hover:bg-card-hover">
-            <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            <span className="hidden sm:inline">Back to Dashboard</span>
-            <span className="sm:hidden">Back</span>
+    <div className="relative min-h-screen bg-[#050A14] text-[#F5F7FB]">
+      {/* Subtle top glows — background stays mostly solid */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[320px] overflow-hidden">
+        <div
+          className="absolute -top-24 left-[-80px] h-[280px] w-[380px] rounded-full opacity-100"
+          style={{ background: "radial-gradient(closest-side, rgba(92,124,255,0.10), transparent)" }}
+        />
+        <div
+          className="absolute -top-24 right-[-80px] h-[280px] w-[380px] rounded-full opacity-100"
+          style={{ background: "radial-gradient(closest-side, rgba(139,124,255,0.10), transparent)" }}
+        />
+      </div>
+
+      <div className="relative mx-auto box-border w-full max-w-[1240px] px-4 py-4 sm:px-6 sm:py-6">
+        {/* Back + Attempt Review */}
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <Link
+            href="/quiz"
+            className="inline-flex items-center gap-2 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3 py-2 text-[13px] font-medium text-[#9AAAC3] transition-colors hover:border-[#2A4160] hover:text-[#F5F7FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF]"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
           </Link>
-          <div className="flex items-center gap-2 text-xs text-text-secondary">
-            <span className="rounded-full border border-accent/20 bg-accent/10 px-2.5 sm:px-3 py-0.5 font-medium text-accent text-[10px] sm:text-xs">Attempt Review</span>
-            <span className="hidden md:inline">LeetCode-style response review</span>
-          </div>
+          <span className="inline-flex items-center rounded-[10px] border border-[#8B7CFF]/40 bg-[#8B7CFF]/10 px-3 py-2 text-[13px] font-medium text-[#B9AEFF]">
+            Attempt Review
+          </span>
         </div>
 
-        <div className="grid gap-2.5 xl:grid-cols-[1.3fr_340px]">
-          <div className="space-y-2.5">
+        <div className="grid gap-4 md:gap-5 xl:grid-cols-[1fr_320px]">
+          <div className="min-w-0 space-y-4 md:space-y-5">
             {/* Summary Card */}
-            <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="overflow-hidden rounded-2xl border border-border bg-card p-3">
-              <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-text-muted">
-                    <span className="rounded-full border border-border bg-card-hover px-2 py-0.5 text-text-secondary">{data.subject}</span>
-                    {data.rank !== undefined && <span className="rounded-full border border-warning/20 bg-warning/10 px-2 py-0.5 text-gold">Rank #{data.rank}</span>}
-                    {data.flagged && (
-                      <span title={data.flagReason ?? "Flagged by exam-cell proctoring"} className="rounded-full border border-danger/30 bg-danger/10 px-2 py-0.5 text-danger">
-                        Flagged for review
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <h1 className="text-lg font-bold tracking-tight sm:text-xl text-text-primary">{data.quizName}</h1>
-                    <p className="mt-0.5 text-[11px] text-text-secondary">Attempted on {data.attemptDate} · Submitted at {data.submittedAt}</p>
-                  </div>
-                </div>
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
+            >
+              <span className="inline-flex items-center rounded-[8px] bg-[#8B7CFF]/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#8B7CFF]">
+                Quiz
+              </span>
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#F5F7FB] sm:text-[32px] sm:leading-[1.15]">
+                {data.quizName}
+              </h1>
+              <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] text-[#9AAAC3] sm:text-sm">
+                <span>Attempted on {data.attemptDate}</span>
+                <span aria-hidden className="text-[#34435B]">•</span>
+                <span>Submitted at {data.submittedAt}</span>
+              </p>
+              {data.flagged && (
+                <p
+                  title={data.flagReason ?? "Flagged by exam-cell proctoring"}
+                  className="mt-2 inline-flex items-center rounded-[8px] border border-[#FF4D5D]/30 bg-[#FF4D5D]/10 px-2 py-1 text-xs font-medium text-[#FF6572]"
+                >
+                  Flagged for review
+                </p>
+              )}
 
-                <div className="flex items-center gap-3">
-                  <div className="relative h-16 w-16 shrink-0 rounded-full border border-border bg-card-hover p-1.5">
-                    <div
-                      className="absolute inset-1.5 rounded-full"
-                      style={{ background: `conic-gradient(var(--accent) ${progress}deg, var(--border) ${progress}deg)` }}
-                    />
-                    <div className="absolute inset-3 rounded-full border border-border bg-background flex flex-col items-center justify-center text-center">
-                      <div className="text-sm font-bold text-text-primary leading-none">{data.percentage}%</div>
-                      <div className="text-[7px] uppercase tracking-[0.14em] text-text-muted mt-0.5">Score</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <SummaryCard label="Score" value={data.score} icon={Target} />
-                    <SummaryCard label="Duration" value={data.duration} icon={Clock3} />
-                    <SummaryCard label="Rank" value={data.rank ? `#${data.rank}` : "-"} icon={Trophy} />
-                    <SummaryCard label="Submitted" value={data.submittedAt} icon={Timer} />
-                  </div>
+              <div className="mt-4 flex items-stretch gap-4 sm:gap-5">
+                <div className="flex items-center">
+                  <ScoreRing percentage={data.percentage} />
+                </div>
+                <div aria-hidden className="w-px shrink-0 bg-[#1D3150]" />
+                <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:gap-2.5">
+                  <MetricCard label="Score" value={data.score} icon={Target} iconColor="#8B7CFF" />
+                  <MetricCard label="Duration" value={data.duration} icon={Clock3} iconColor="#4EA1FF" />
+                  <MetricCard
+                    label="Rank"
+                    value={data.rank ? `#${data.rank}` : "-"}
+                    icon={Trophy}
+                    iconColor="#C084FC"
+                  />
+                  <MetricCard
+                    label="Submitted"
+                    value={data.submittedAt}
+                    icon={Upload}
+                    iconColor="#38BDF8"
+                    truncate
+                  />
                 </div>
               </div>
             </motion.section>
 
             {/* Question Palette */}
-            <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="rounded-2xl border border-border bg-card p-2.5">
-              <div className="mb-1.5 flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-xs font-semibold text-text-primary">Question Palette</h2>
-                  <p className="text-[10px] text-text-secondary">Green = correct, red = wrong, gray = skipped, blue = current</p>
-                </div>
-                <div className="flex items-center gap-2 text-[10px] text-text-secondary">
-                  <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-success" />Correct</span>
-                  <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-danger" />Wrong</span>
-                  <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-text-muted" />Skipped</span>
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <h2 className="flex items-center gap-2 text-[15px] font-semibold text-[#F5F7FB]">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[#8B7CFF]/12 text-[#8B7CFF]">
+                    <LayoutGrid className="h-4 w-4" />
+                  </span>
+                  Question Palette
+                </h2>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#9AAAC3]">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-[#20D889]" /> Correct
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-[#FF4D5D]" /> Wrong
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-[#6F819D]" /> Skipped
+                  </span>
                 </div>
               </div>
-              <div className="grid grid-cols-6 gap-1 sm:grid-cols-8 lg:grid-cols-10">
+              <p className="mt-1.5 text-xs text-[#6F819D]">
+                Green = correct, red = wrong, gray = skipped, blue = current
+              </p>
+              <div className="mt-3 grid grid-cols-5 gap-2 min-[420px]:grid-cols-6 sm:gap-2.5" role="group" aria-label="Question palette">
                 {data.questions.map((question, index) => {
-                  const state = questionStatus(question);
+                  const state = paletteStatus[index] ?? questionStatus(question);
                   const isActive = selectedQuestion === index;
                   return (
                     <button
                       key={question.id}
                       onClick={() => setSelectedQuestion(index)}
-                      className={`flex h-7 items-center justify-center rounded-md border text-[11px] font-semibold transition-all ${
+                      aria-current={isActive ? "true" : undefined}
+                      aria-label={`Question ${question.number}: ${state}${isActive ? ", current" : ""}`}
+                      className={`flex h-[42px] items-center justify-center rounded-[10px] border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF] sm:h-[50px] sm:text-[15px] ${
                         isActive
-                          ? "border-accent/40 bg-accent/15 text-accent ring-1 ring-accent/20"
+                          ? "border-[#5C7CFF] bg-[#5C7CFF]/15 text-[#8FA7FF]"
                           : state === "correct"
-                          ? "border-success/20 bg-success/10 text-success"
-                          : state === "wrong"
-                          ? "border-danger/20 bg-danger/10 text-danger"
-                          : "border-border bg-card-hover text-text-secondary"
+                            ? "border-[#20D889]/60 bg-[#20D889]/10 text-[#20D889] hover:border-[#20D889]"
+                            : state === "wrong"
+                              ? "border-[#FF4D5D]/60 bg-[#FF4D5D]/10 text-[#FF6572] hover:border-[#FF4D5D]"
+                              : "border-[#34435B] bg-[#182235] text-[#91A0B7] hover:border-[#4A5D7E]"
                       }`}
                     >
                       {question.number}
@@ -643,166 +511,246 @@ export default function AttemptReviewExperience({
               </div>
             </motion.section>
 
-            {/* Question Card */}
-            <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-2xl border border-border bg-card p-3">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full border border-border bg-card-hover px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-text-secondary">Question {currentQuestion.number}</span>
-                    <span className="rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[9px] font-semibold text-accent">{currentQuestion.difficulty}</span>
-                  </div>
-                  <h3 className="mt-1 text-sm font-semibold leading-snug text-text-primary">{currentQuestion.statement}</h3>
+            {/* Question Review Card */}
+            <motion.section
+              key={currentQuestion.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.08 }}
+              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center rounded-[8px] bg-[#5C7CFF]/12 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#8FA7FF]">
+                    Question {currentQuestion.number}
+                  </span>
+                  <DifficultyBadge difficulty={currentQuestion.difficulty} />
+                  <StatusBadge status={currentStatus} />
                 </div>
-                <div className="hidden items-center gap-1.5 sm:flex">
-                  <button
-                    onClick={() => setSelectedQuestion((current) => Math.max(0, current - 1))}
-                    disabled={selectedQuestion === 0}
-                    className="inline-flex items-center gap-1 rounded-lg border border-border bg-card-hover px-2 py-1 text-[11px] font-medium text-text-primary transition-all hover:border-border-hover disabled:opacity-40"
-                  >
-                    <ChevronLeft className="h-3 w-3" />
-                    Prev
-                  </button>
-                  <button
-                    onClick={() => setSelectedQuestion((current) => Math.min(data.questions.length - 1, current + 1))}
-                    disabled={selectedQuestion === data.questions.length - 1}
-                    className="inline-flex items-center gap-1 rounded-lg border border-border bg-card-hover px-2 py-1 text-[11px] font-medium text-text-primary transition-all hover:border-border-hover disabled:opacity-40"
-                  >
-                    Next
-                    <ChevronRight className="h-3 w-3" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => setCollapsed((v) => !v)}
+                  aria-expanded={!collapsed}
+                  aria-label={collapsed ? "Expand question" : "Collapse question"}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-[#1D3150] bg-[#0F192B] text-[#9AAAC3] transition-colors hover:text-[#F5F7FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF]"
+                >
+                  <ChevronDown className={`h-4 w-4 transition-transform ${collapsed ? "" : "rotate-180"}`} />
+                </button>
               </div>
 
-              <div className="space-y-1">
-                {currentQuestion.options.map((option) => {
-                  const isCorrect = option.id === currentQuestion.correctOptionId;
-                  const isSelected = option.id === currentQuestion.selectedOptionId;
-                  const selectedWrong = isSelected && !isCorrect;
-                  return (
-                    <div
-                      key={option.id}
-                      className={`rounded-lg border px-2.5 py-1.5 transition-all ${
-                        isCorrect
-                          ? "border-success/30 bg-success/10"
-                          : selectedWrong
-                          ? "border-danger/30 bg-danger/10"
-                          : isSelected
-                          ? "border-accent/30 bg-accent/10"
-                          : "border-border bg-card-hover"
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <div className={`mt-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full border text-[9px] font-bold ${isCorrect ? "border-success/30 bg-success text-white" : selectedWrong ? "border-danger/30 bg-danger text-white" : isSelected ? "border-accent/30 bg-accent text-white" : "border-border bg-card-hover text-text-secondary"}`}>
-                          {option.label}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-1.5 text-xs text-text-primary">
-                            {option.text}
-                            {isCorrect && <CheckCircle2 className="h-3 w-3 text-success" />}
+              {!collapsed && (
+                <>
+                  <h3 className="mt-3 text-[18px] font-semibold leading-snug text-[#F5F7FB] sm:text-[22px]">
+                    {currentQuestion.statement}
+                  </h3>
+
+                  <div className="mt-4 space-y-2.5">
+                    {currentQuestion.options.map((option) => {
+                      const isCorrect = option.id === currentQuestion.correctOptionId;
+                      const isSelected = option.id === currentQuestion.selectedOptionId;
+                      const selectedWrong = isSelected && !isCorrect;
+                      return (
+                        <div
+                          key={option.id}
+                          className={`box-border flex w-full max-w-full items-start gap-3 rounded-[12px] border p-3 sm:p-3.5 ${
+                            isCorrect
+                              ? "border-[#20D889] bg-[#20D889]/10"
+                              : selectedWrong
+                                ? "border-[#FF4D5D] bg-[#FF4D5D]/10"
+                                : "border-[#1D3150] bg-[#0F192B]"
+                          }`}
+                        >
+                          <span
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                              isCorrect
+                                ? "bg-[#20D889] text-[#050A14]"
+                                : selectedWrong
+                                  ? "bg-[#FF4D5D] text-white"
+                                  : "bg-[#1A2740] text-[#9AAAC3]"
+                            }`}
+                          >
+                            {option.label}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="flex flex-wrap items-center gap-2 break-words text-[14px] font-medium leading-relaxed text-[#F5F7FB] sm:text-[15px]">
+                              <span className="min-w-0 break-words">{option.text}</span>
+                              {isCorrect && (
+                                <CheckCircle2 className="h-4 w-4 shrink-0 text-[#20D889]" aria-label="Correct option" />
+                              )}
+                              {selectedWrong && (
+                                <XCircle className="h-4 w-4 shrink-0 text-[#FF4D5D]" aria-label="Your incorrect selection" />
+                              )}
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {isSelected && (
+                                <span
+                                  className={`rounded-[8px] border px-2 py-0.5 text-[11px] font-medium ${
+                                    isCorrect
+                                      ? "border-[#20D889]/40 bg-transparent text-[#20D889]"
+                                      : "border-[#FF4D5D]/40 bg-transparent text-[#FF6572]"
+                                  }`}
+                                >
+                                  Your Answer
+                                </span>
+                              )}
+                              {isCorrect && (
+                                <span className="rounded-[8px] border border-[#20D889]/40 bg-transparent px-2 py-0.5 text-[11px] font-medium text-[#20D889]">
+                                  Correct Answer
+                                </span>
+                              )}
+                              <span className="rounded-[8px] border border-[#34435B] bg-transparent px-2 py-0.5 text-[11px] font-medium text-[#9AAAC3]">
+                                Marks {isCorrect ? currentQuestion.marksObtained : 0}/{currentQuestion.maxMarks}
+                              </span>
+                            </div>
                           </div>
-                          <div className="mt-0.5 flex flex-wrap gap-1 text-[9px] font-medium">
-                            {isSelected && <span className="rounded-full border border-accent/20 bg-accent/10 px-1.5 py-0.5 text-accent">Your Answer</span>}
-                            {isCorrect && <span className="rounded-full border border-success/20 bg-success/10 px-1.5 py-0.5 text-success">Correct Answer</span>}
-                            <span className="rounded-full border border-border bg-card-hover px-1.5 py-0.5 text-text-secondary">Marks {isCorrect ? currentQuestion.marksObtained : isSelected ? currentQuestion.marksObtained : 0}/{currentQuestion.maxMarks}</span>
-                          </div>
                         </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Question statistics */}
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-2.5">
+                    <StatBlock
+                      label="Your Answer"
+                      value={
+                        currentQuestion.selectedOptionId
+                          ? (currentQuestion.options.find((o) => o.id === currentQuestion.selectedOptionId)?.label ??
+                            currentQuestion.selectedOptionId)
+                          : "Skipped"
+                      }
+                      icon={Check}
+                      iconBg="bg-[#20D889]/15 text-[#20D889]"
+                    />
+                    <StatBlock
+                      label="Correct Answer"
+                      value={
+                        currentQuestion.options.find((o) => o.id === currentQuestion.correctOptionId)?.label ??
+                        currentQuestion.correctOptionId.toUpperCase()
+                      }
+                      icon={CheckCircle2}
+                      iconBg="bg-[#4EA1FF]/15 text-[#4EA1FF]"
+                    />
+                    <StatBlock
+                      label="Marks Obtained"
+                      value={`${currentQuestion.marksObtained}/${currentQuestion.maxMarks}`}
+                      icon={Medal}
+                      iconBg="bg-[#8B7CFF]/15 text-[#8B7CFF]"
+                    />
+                    <StatBlock
+                      label="Time Spent"
+                      value={currentQuestion.timeSpent}
+                      icon={Timer}
+                      iconBg="bg-[#8B7CFF]/15 text-[#B9AEFF]"
+                    />
+                  </div>
+
+                  {currentQuestion.explanation && (
+                    <div className="mt-3 rounded-[12px] border border-[#1D3150] bg-[#0F192B] p-3 sm:p-3.5">
+                      <div className="mb-1 flex items-center gap-1.5 text-[13px] font-semibold text-[#F5F7FB]">
+                        <BookOpen className="h-3.5 w-3.5 text-[#8B7CFF]" />
+                        Explanation
                       </div>
+                      <p className="break-words text-[13px] leading-relaxed text-[#9AAAC3] sm:text-sm">
+                        {currentQuestion.explanation}
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Stats row - one compact row */}
-              <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-1">
-                <StatBlock label="Your Answer" value={currentQuestion.selectedOptionId ? currentQuestion.selectedOptionId.toUpperCase() : "Skipped"} icon={CircleDot} />
-                <StatBlock label="Correct Answer" value={currentQuestion.correctOptionId.toUpperCase()} icon={CheckCircle2} />
-                <StatBlock label="Marks Obtained" value={`${currentQuestion.marksObtained}/${currentQuestion.maxMarks}`} icon={Medal} />
-                <StatBlock label="Time Spent" value={currentQuestion.timeSpent} icon={Timer} />
-              </div>
-
-              {currentQuestion.explanation && (
-                <div className="mt-2 rounded-lg border border-border bg-card-hover p-2.5">
-                  <div className="mb-0.5 flex items-center gap-1.5 text-xs font-semibold text-text-primary">
-                    <BookOpen className="h-3 w-3 text-accent" />
-                    Explanation
-                  </div>
-                  <p className="text-[11px] leading-5 text-text-secondary">{currentQuestion.explanation}</p>
-                </div>
+                  )}
+                </>
               )}
 
-              {/* Navigation - below question content */}
-              <div className="mt-2 flex items-center justify-between gap-2">
+              {/* Prev / Next */}
+              <div className="mt-4 flex items-center justify-between gap-2">
                 <button
                   onClick={() => setSelectedQuestion((current) => Math.max(0, current - 1))}
                   disabled={selectedQuestion === 0}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card-hover px-3 py-1.5 text-[11px] font-medium text-text-primary transition-all hover:border-border-hover disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3 py-2 text-xs font-medium text-[#F5F7FB] transition-colors hover:border-[#2A4160] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF]"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
-                  Previous Question
+                  Previous
                 </button>
+                <span className="text-xs text-[#6F819D]">
+                  {selectedQuestion + 1} / {data.questions.length}
+                </span>
                 <button
-                  onClick={() => setSelectedQuestion((current) => Math.min(data.questions.length - 1, current + 1))}
+                  onClick={() =>
+                    setSelectedQuestion((current) => Math.min(data.questions.length - 1, current + 1))
+                  }
                   disabled={selectedQuestion === data.questions.length - 1}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card-hover px-3 py-1.5 text-[11px] font-medium text-text-primary transition-all hover:border-border-hover disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3 py-2 text-xs font-medium text-[#F5F7FB] transition-colors hover:border-[#2A4160] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF]"
                 >
-                  Next Question
+                  Next
                   <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               </div>
             </motion.section>
           </div>
 
-          <div className="space-y-2.5">
-            {/* Result Analytics */}
-            <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-2.5">
-              <h2 className="text-xs font-semibold text-text-primary">Result Analytics</h2>
-              <p className="mt-0.5 text-[10px] text-text-secondary">Score, ranking, and answer breakdown.</p>
-              <div className="mt-2 space-y-1">
+          {/* Sidebar */}
+          <div className="min-w-0 space-y-4 md:space-y-5">
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
+            >
+              <h2 className="text-[15px] font-semibold text-[#F5F7FB]">Result Analytics</h2>
+              <p className="mt-0.5 text-xs text-[#6F819D]">Score, ranking, and answer breakdown.</p>
+              <div className="mt-3 space-y-1.5">
                 <AnalyticsMetric label="Overall Score" value={data.score} icon={Target} />
                 <AnalyticsMetric label="Accuracy" value={`${data.percentage}%`} icon={PieChart} />
                 <AnalyticsMetric label="Attempt Time" value={data.attemptDate} icon={Clock3} />
                 <AnalyticsMetric label="Avg Time / Q" value={data.avgTimePerQuestion} icon={Timer} />
-                <AnalyticsMetric label="Correct" value={data.correct} icon={CheckCircle2} />
-                <AnalyticsMetric label="Wrong" value={data.wrong} icon={XCircle} />
-                <AnalyticsMetric label="Skipped" value={data.skipped} icon={CircleDashed} />
+                <AnalyticsMetric label="Correct" value={data.correct} icon={CheckCircle2} accent="#20D889" />
+                <AnalyticsMetric label="Wrong" value={data.wrong} icon={XCircle} accent="#FF4D5D" />
+                <AnalyticsMetric label="Skipped" value={data.skipped} icon={CircleDashed} accent="#91A0B7" />
                 <AnalyticsMetric label="Rank" value={data.rank ? `#${data.rank}` : "—"} icon={Trophy} />
-                <AnalyticsMetric label="Percentile" value={data.percentile !== null ? `${data.percentile}%` : "—"} icon={Zap} />
+                <AnalyticsMetric
+                  label="Percentile"
+                  value={data.percentile !== null ? `${data.percentile}%` : "—"}
+                  icon={Zap}
+                />
               </div>
 
-              <div className="mt-2.5 rounded-xl border border-border bg-card-hover p-2.5">
-                <div className="mb-2 flex items-center justify-between text-[11px] text-text-primary">
+              <div className="mt-3 rounded-[12px] border border-[#1D3150] bg-[#0F192B] p-3">
+                <div className="mb-2 flex items-center justify-between text-xs font-medium text-[#F5F7FB]">
                   <span>Correct vs Wrong vs Skipped</span>
-                  <PieChart className="h-3 w-3 text-accent" />
+                  <PieChart className="h-3.5 w-3.5 text-[#8B7CFF]" />
                 </div>
-                <DonutChart correct={data.correct} wrong={data.wrong} skipped={data.skipped} />
+                <DonutBreakdown correct={data.correct} wrong={data.wrong} skipped={data.skipped} />
               </div>
             </motion.section>
 
-            {/* Performance Insights — only metrics with a real backend
-                source are shown (difficulty-wise accuracy). Topic-level
-                insights and per-question timing are not tracked, so they
-                are hidden instead of showing mock data. */}
-            <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="rounded-2xl border border-border bg-card p-2.5">
-              <h2 className="text-xs font-semibold text-text-primary">Performance Insights</h2>
-              {data.insights.strongestTopic && (
-                <div className="mt-2 space-y-1 text-[11px] text-text-secondary">
-                  <InsightRow label="Strongest Topic" value={data.insights.strongestTopic} />
-                  {data.insights.weakestTopic && (
-                    <InsightRow label="Weakest Topic" value={data.insights.weakestTopic} />
-                  )}
+            <motion.section
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
+            >
+              <h2 className="text-[15px] font-semibold text-[#F5F7FB]">Performance Insights</h2>
+              {data.insights.difficultyPerformance.length > 0 ? (
+                <div className="mt-3 rounded-[12px] border border-[#1D3150] bg-[#0F192B] p-3">
+                  <div className="text-xs font-semibold text-[#F5F7FB]">Difficulty-wise Performance</div>
+                  <div className="mt-2 space-y-2">
+                    {data.insights.difficultyPerformance.map((item) => (
+                      <div key={item.difficulty}>
+                        <div className="mb-1 flex items-center justify-between text-[11px] text-[#9AAAC3]">
+                          <span>{item.difficulty}</span>
+                          <span>{item.accuracy}%</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[#1D3150]">
+                          <div
+                            className="h-1.5 rounded-full"
+                            style={{
+                              width: `${item.accuracy}%`,
+                              background: "linear-gradient(90deg, #8B7CFF, #4EA1FF)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              ) : (
+                <p className="mt-2 text-xs text-[#9AAAC3]">No performance breakdown available.</p>
               )}
-
-              <div className="mt-2 grid gap-1.5">
-                {data.insights.topicAccuracy.length > 0 && (
-                  <MiniChart title="Accuracy by Topic" values={data.insights.topicAccuracy} />
-                )}
-                {data.insights.difficultyPerformance.length > 0 ? (
-                  <MiniChart title="Difficulty-wise Performance" values={data.insights.difficultyPerformance} />
-                ) : (
-                  <p className="text-[11px] text-text-secondary">No performance breakdown available.</p>
-                )}
-              </div>
             </motion.section>
           </div>
         </div>
@@ -811,65 +759,181 @@ export default function AttemptReviewExperience({
   );
 }
 
-function SummaryCard({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
+/* ─── Sub components — styles only ─── */
+
+function MetricCard({
+  label,
+  value,
+  icon: Icon,
+  iconColor,
+  truncate = false,
+}: {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  iconColor: string;
+  truncate?: boolean;
+}) {
   return (
-    <div className="rounded-lg border border-border bg-card-hover px-2 py-1">
-      <div className="flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-text-muted">
-        <Icon className="h-2.5 w-2.5 text-accent" />
-        {label}
+    <div className="box-border min-w-0 rounded-[12px] border border-[#1D3150] bg-[#0F192B] p-2.5 sm:p-3">
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6F819D]">
+        <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: iconColor }} />
+        <span className="truncate">{label}</span>
       </div>
-      <div className="mt-0.5 text-[11px] font-semibold text-text-primary truncate max-w-[100px]">{value}</div>
-    </div>
-  );
-}
-
-function StatBlock({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
-  return (
-    <div className="rounded-lg border border-border bg-card-hover px-2 py-1">
-      <div className="flex items-center gap-1 text-[8px] uppercase tracking-[0.1em] text-text-muted">
-        <Icon className="h-2.5 w-2.5 text-accent" />
-        {label}
+      <div
+        title={value}
+        className={`mt-1 text-[16px] font-semibold text-[#F5F7FB] sm:text-[18px] ${
+          truncate ? "truncate" : "break-words"
+        }`}
+      >
+        {value}
       </div>
-      <div className="mt-0.5 text-[11px] font-semibold text-text-primary truncate">{value}</div>
     </div>
   );
 }
 
-function AnalyticsMetric({ label, value, icon: Icon }: { label: string; value: string | number; icon: LucideIcon }) {
+function DifficultyBadge({ difficulty }: { difficulty: "Easy" | "Medium" | "Hard" }) {
+  const styles: Record<string, string> = {
+    Easy: "border-[#20D889]/30 bg-[#20D889]/10 text-[#20D889]",
+    Medium: "border-[#FFB84D]/30 bg-[#FFB84D]/10 text-[#FFB84D]",
+    Hard: "border-[#FF4D5D]/30 bg-[#FF4D5D]/10 text-[#FF6572]",
+  };
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border bg-card-hover px-2.5 py-1">
-      <div className="flex items-center gap-1.5 text-[11px] text-text-secondary">
-        <Icon className="h-3 w-3 text-accent" />
-        {label}
+    <span
+      className={`inline-flex items-center rounded-[8px] border px-2 py-1 text-[11px] font-semibold ${styles[difficulty]}`}
+    >
+      {difficulty}
+    </span>
+  );
+}
+
+function StatusBadge({ status }: { status: QuestionStatus }) {
+  if (status === "correct")
+    return (
+      <span className="inline-flex items-center gap-1 rounded-[8px] border border-[#20D889]/30 bg-[#20D889]/10 px-2 py-1 text-[11px] font-semibold text-[#20D889]">
+        <Check className="h-3 w-3" /> Correct
+      </span>
+    );
+  if (status === "wrong")
+    return (
+      <span className="inline-flex items-center gap-1 rounded-[8px] border border-[#FF4D5D]/30 bg-[#FF4D5D]/10 px-2 py-1 text-[11px] font-semibold text-[#FF6572]">
+        <XCircle className="h-3 w-3" /> Wrong
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1 rounded-[8px] border border-[#34435B] bg-[#182235] px-2 py-1 text-[11px] font-semibold text-[#91A0B7]">
+      <CircleDashed className="h-3 w-3" /> Skipped
+    </span>
+  );
+}
+
+function StatBlock({
+  label,
+  value,
+  icon: Icon,
+  iconBg,
+}: {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  iconBg: string;
+}) {
+  return (
+    <div className="box-border flex min-w-0 items-center gap-2.5 rounded-[12px] border border-[#1D3150] bg-[#111D31] p-2.5 sm:p-3">
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${iconBg}`}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6F819D] sm:text-[11px]">
+          {label}
+        </span>
+        <span title={value} className="block truncate text-[15px] font-semibold text-[#F5F7FB] sm:text-base">
+          {value}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+function AnalyticsMetric({
+  label,
+  value,
+  icon: Icon,
+  accent = "#8B7CFF",
+}: {
+  label: string;
+  value: string | number;
+  icon: LucideIcon;
+  accent?: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-2 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-2.5 py-2">
+      <div className="flex min-w-0 items-center gap-1.5 text-xs text-[#9AAAC3]">
+        <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
+        <span className="truncate">{label}</span>
       </div>
-      <div className="text-[11px] font-semibold text-text-primary">{value}</div>
+      <div title={String(value)} className="max-w-[45%] truncate text-xs font-semibold text-[#F5F7FB]">
+        {value}
+      </div>
     </div>
   );
 }
 
-function InsightRow({ label, value }: { label: string; value: string }) {
+function DonutBreakdown({ correct, wrong, skipped }: { correct: number; wrong: number; skipped: number }) {
+  const total = Math.max(1, correct + wrong + skipped);
+  const rows = [
+    { label: "Correct", count: correct, pct: Math.round((correct / total) * 100), dot: "bg-[#20D889]", text: "text-[#20D889]" },
+    { label: "Wrong", count: wrong, pct: Math.round((wrong / total) * 100), dot: "bg-[#FF4D5D]", text: "text-[#FF6572]" },
+    { label: "Skipped", count: skipped, pct: Math.round((skipped / total) * 100), dot: "bg-[#6F819D]", text: "text-[#91A0B7]" },
+  ];
   return (
-    <div className="rounded-lg border border-border bg-card-hover px-2.5 py-1">
-      <div className="text-[8px] uppercase tracking-[0.14em] text-text-muted">{label}</div>
-      <div className="mt-0.5 text-[11px] font-medium text-text-primary truncate">{value}</div>
-    </div>
-  );
-}
-
-function MiniChart({ title, values }: { title: string; values: Array<{ topic?: string; difficulty?: string; accuracy: number }> }) {
-  return (
-    <div className="rounded-lg border border-border bg-card-hover p-2">
-      <div className="text-[11px] font-semibold text-text-primary">{title}</div>
-      <div className="mt-1.5 space-y-1.5">
-        {values.map((item) => (
-          <div key={item.topic || item.difficulty}>
-            <div className="mb-0.5 flex items-center justify-between text-[9px] text-text-secondary">
-              <span>{item.topic || item.difficulty}</span>
-              <span>{item.accuracy}%</span>
-            </div>
-            <div className="h-1 rounded-full bg-border">
-              <div className="h-1 rounded-full bg-gradient-to-r from-accent to-accent-secondary" style={{ width: `${item.accuracy}%` }} />
-            </div>
+    <div className="flex items-center gap-3">
+      <div className="relative h-[72px] w-[72px] shrink-0">
+        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#1D3150" strokeWidth="12" />
+          {(() => {
+            let cumulative = 0;
+            const segs = [
+              { pct: (correct / total) * 100, color: "#20D889" },
+              { pct: (wrong / total) * 100, color: "#FF4D5D" },
+              { pct: (skipped / total) * 100, color: "#6F819D" },
+            ].filter((s) => s.pct > 0);
+            return segs.map((seg, i) => {
+              const start = (cumulative / 100) * 360;
+              const end = ((cumulative + seg.pct) / 100) * 360;
+              cumulative += seg.pct;
+              const large = end - start > 180 ? 1 : 0;
+              const polar = (deg: number) => {
+                const rad = ((deg - 90) * Math.PI) / 180;
+                return { x: 50 + 40 * Math.cos(rad), y: 50 + 40 * Math.sin(rad) };
+              };
+              const s = polar(end);
+              const e = polar(start);
+              return (
+                <path
+                  key={i}
+                  d={`M ${s.x} ${s.y} A 40 40 0 ${large} 0 ${e.x} ${e.y}`}
+                  fill="none"
+                  stroke={seg.color}
+                  strokeWidth="12"
+                />
+              );
+            });
+          })()}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-sm font-bold leading-none text-[#F5F7FB]">{correct + wrong + skipped}</span>
+          <span className="mt-0.5 text-[8px] uppercase tracking-wider text-[#6F819D]">Total</span>
+        </div>
+      </div>
+      <div className="min-w-0 flex-1 space-y-1.5">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center gap-2 text-[11px]">
+            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${row.dot}`} />
+            <span className="text-[#9AAAC3]">{row.label}</span>
+            <span className={`ml-auto font-semibold text-[#F5F7FB]`}>
+              {row.count} ({row.pct}%)
+            </span>
           </div>
         ))}
       </div>
