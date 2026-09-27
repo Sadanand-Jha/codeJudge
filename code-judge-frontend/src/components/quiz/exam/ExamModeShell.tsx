@@ -4,16 +4,37 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Clock, Maximize2, ShieldAlert, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { reportViolation } from "@/services/quiz";
 
-type ViolationType = "fullscreen_exit" | "tab_switch" | "window_blur";
+export const MAX_EXAM_VIOLATIONS = 3;
+
+type ViolationType =
+  | "fullscreen_exit"
+  | "tab_switch"
+  | "window_blur"
+  | "copy_attempt"
+  | "cut_attempt"
+  | "paste_attempt";
+
+export interface ViolationSummary {
+  violations: number;
+  types: ViolationType[];
+}
 
 interface ExamModeShellProps {
   quizName: string;
   progressLabel: string; // e.g. "Q 1 / 3"
-  timeLeft: number; // seconds
+  timeLeft: number | null; // seconds; null = no time limit
   maxViolations?: number;
+  /** Live exam-cell mode: entry/termination copy refers to a real attempt. */
+  isLive?: boolean;
+  /** Attempt id — when provided, every violation is reported to the backend. */
+  attemptId?: string | null;
+  /** Called (after user gesture) when exam mode is entered. */
+  onEnterExam?: () => void;
   onExitPreview: () => void;
-  onTerminate?: () => void;
+  /** Called with the violation summary once maxViolations is reached. */
+  onTerminate?: (summary: ViolationSummary) => void;
   autoEnter?: boolean;
   fullWidth?: boolean;
   children: React.ReactNode;
@@ -23,7 +44,10 @@ export default function ExamModeShell({
   quizName,
   progressLabel,
   timeLeft,
-  maxViolations = 3,
+  maxViolations = MAX_EXAM_VIOLATIONS,
+  isLive = false,
+  attemptId = null,
+  onEnterExam,
   onExitPreview,
   onTerminate,
   autoEnter = false,
@@ -38,9 +62,17 @@ export default function ExamModeShell({
   const [warning, setWarning] = useState<string | null>(null);
   const lastViolationRef = useRef<number>(0);
   const violationCountRef = useRef(0);
+  const violationTypesRef = useRef<ViolationType[]>([]);
+  const attemptIdRef = useRef<string | null>(attemptId);
+  useEffect(() => {
+    attemptIdRef.current = attemptId;
+  }, [attemptId]);
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  const formatTime = (s: number | null) => {
+    if (s === null) return "No limit";
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  };
 
   const recordViolation = useCallback(
     (type: ViolationType, title: string, desc: string) => {
@@ -58,7 +90,15 @@ export default function ExamModeShell({
 
       const next = violationCountRef.current + 1;
       violationCountRef.current = next;
+      violationTypesRef.current = [...violationTypesRef.current, type];
       setViolations(next);
+
+      // Persist to the backend (fire-and-forget — the count also travels
+      // with the final submit as a fallback).
+      const id = attemptIdRef.current;
+      if (id) {
+        reportViolation(id, type).catch(() => {});
+      }
 
       if (next >= maxViolations) {
         setTerminated(true);
@@ -68,7 +108,7 @@ export default function ExamModeShell({
         if (document.fullscreenElement) {
           document.exitFullscreen().catch(() => {});
         }
-        onTerminate?.();
+        onTerminate?.({ violations: next, types: violationTypesRef.current });
         return;
       }
 
@@ -80,6 +120,7 @@ export default function ExamModeShell({
   const enterExamMode = useCallback(async () => {
     setExamActive(true);
     violationCountRef.current = 0;
+    violationTypesRef.current = [];
     setViolations(0);
     setTerminated(false);
     setActiveViolation(null);
@@ -96,7 +137,8 @@ export default function ExamModeShell({
         // if denied, still continue but record as violation? For preview we allow
       }
     }
-  }, []);
+    onEnterExam?.();
+  }, [onEnterExam]);
 
   const exitExamMode = useCallback(async () => {
     setExamActive(false);
@@ -182,6 +224,50 @@ export default function ExamModeShell({
     };
   }, [examActive, terminated, recordViolation]);
 
+  // Block copy / cut / paste and right-click inside the exam. Copy & paste
+  // attempts are cheating vectors, so each blocked attempt counts as a
+  // violation; right-click is blocked silently to avoid false positives.
+  useEffect(() => {
+    if (!examActive || terminated) return;
+    const onCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      recordViolation("copy_attempt", "Copying blocked", "Copying exam content is not allowed and has been recorded.");
+    };
+    const onCut = (e: ClipboardEvent) => {
+      e.preventDefault();
+      recordViolation("cut_attempt", "Cutting blocked", "Cutting exam content is not allowed and has been recorded.");
+    };
+    const onPaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      recordViolation("paste_attempt", "Pasting blocked", "Pasting into the exam is not allowed and has been recorded.");
+    };
+    const onContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Best-effort block of devtools/view-source shortcuts.
+      if (
+        e.key === "F12" ||
+        ((e.ctrlKey || e.metaKey) && ["u", "s", "p"].includes(e.key.toLowerCase())) ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && ["i", "j", "c"].includes(e.key.toLowerCase()))
+      ) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("copy", onCopy);
+    document.addEventListener("cut", onCut);
+    document.addEventListener("paste", onPaste);
+    document.addEventListener("contextmenu", onContextMenu);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("copy", onCopy);
+      document.removeEventListener("cut", onCut);
+      document.removeEventListener("paste", onPaste);
+      document.removeEventListener("contextmenu", onContextMenu);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [examActive, terminated, recordViolation]);
+
   // Cleanup warning timer on unmount
   useEffect(() => {
     return () => {
@@ -192,7 +278,8 @@ export default function ExamModeShell({
   // Auto-enter exam mode on mount (for preview)
   useEffect(() => {
     if (autoEnter && !examActive && !terminated) {
-      enterExamMode();
+      const timer = window.setTimeout(() => void enterExamMode(), 0);
+      return () => window.clearTimeout(timer);
     }
   }, [autoEnter, examActive, terminated, enterExamMode]);
 
@@ -206,16 +293,17 @@ export default function ExamModeShell({
               <ShieldAlert className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <h1 className="mt-3 text-lg font-bold tracking-tight sm:mt-4 sm:text-xl">You&apos;re entering Exam Mode</h1>
-            <p className="mt-1.5 text-xs text-text-secondary sm:mt-2 sm:text-sm">This preview simulates the student exam experience. Your current quiz will open in a distraction-free exam environment.</p>
+            <p className="mt-1.5 text-xs text-text-secondary sm:mt-2 sm:text-sm">{isLive ? "Your attempt will be monitored to keep the exam fair. Stay in fullscreen until you submit." : "This preview simulates the student exam experience. Your current quiz will open in a distraction-free exam environment."}</p>
 
             <div className="mt-4 space-y-1.5 rounded-xl border border-border bg-background p-3 text-left sm:mt-6 sm:space-y-2 sm:p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted sm:text-xs">Before you continue</p>
               <ul className="space-y-1.5 text-xs text-text-secondary sm:space-y-2 sm:text-sm">
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500 sm:mt-1" /> Fullscreen is required and will be requested automatically.</li>
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500 sm:mt-1" /> Switching tabs/windows may be recorded as a violation.</li>
+                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500 sm:mt-1" /> Copying, cutting or pasting is blocked and recorded as a violation.</li>
                 <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500" /> Leaving fullscreen (Esc) may be recorded as a violation.</li>
                 <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500" /> Your progress will be preserved during temporary warnings.</li>
-                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500 sm:mt-1" /> After {maxViolations} violations the session will be terminated.</li>
+                <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500 sm:mt-1" /> After {maxViolations} violations {isLive ? "your attempt will be submitted automatically and flagged for review" : "the session will be terminated"}.</li>
               </ul>
               <p className="hidden pt-2 text-[11px] text-text-muted sm:block">A real exam cannot fully block OS shortcuts like Ctrl+T / Alt+Tab. We detect and record their effects instead.</p>
             </div>
@@ -353,11 +441,11 @@ export default function ExamModeShell({
                 <X className="h-5 w-5 text-pink-500 dark:text-pink-400 stroke-[2.5]" />
               </div>
               <h3 className="mt-4 text-[15px] font-bold tracking-tight text-gray-900 dark:text-white">Maximum violations reached</h3>
-              <p className="mt-1.5 text-[13px] leading-5 text-gray-500 dark:text-white/70">This preview session has been terminated after {maxViolations} violations.</p>
+              <p className="mt-1.5 text-[13px] leading-5 text-gray-500 dark:text-white/70">{isLive ? `Your attempt has been submitted automatically after ${maxViolations} violations and flagged for review.` : `This preview session has been terminated after ${maxViolations} violations.`}</p>
               <button onClick={exitExamMode} className="mt-6 w-full rounded-xl bg-pink-500 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(236,72,153,0.35)] hover:bg-pink-600 transition-colors">
-                Exit Preview
+                {isLive ? "View Result" : "Exit Preview"}
               </button>
-              <p className="mt-2 text-[11px] text-pink-500/60 dark:text-pink-400/60">Preview ended due to policy violation</p>
+              <p className="mt-2 text-[11px] text-pink-500/60 dark:text-pink-400/60">{isLive ? "Attempt auto-submitted due to policy violations" : "Preview ended due to policy violation"}</p>
             </motion.div>
           </motion.div>
         )}

@@ -5,32 +5,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
   Clock,
-  Users,
   Check,
   X,
   Shield,
   Timer,
   RefreshCw,
-  Shuffle,
   Award,
-  MessageSquare,
-  Bookmark,
   Trophy,
-  FileText,
   Target,
   Eye,
-  SkipForward,
-  Lightbulb,
   Calendar,
   Star,
   Hash,
-  Tag,
-  Globe,
   Lock,
-  GraduationCap,
-  Code2,
-  Type,
-  AlignLeft,
   CheckCircle2,
   AlertCircle,
   XCircle,
@@ -38,14 +25,14 @@ import {
   ArrowLeft,
   Play,
   UserCheck,
-  School,
-  BarChart3,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getQuizByCode, joinQuiz, type QuizBasic, getQuizCode, quizCodePath } from "@/services/quiz";
-import { DEFAULT_ASSESSMENT_SETTINGS, LifelineConfig } from "@/types/quiz";
+import { getMyQuizzes, getQuizByCode, registerForQuiz, unregisterFromQuiz, type QuizBasic, getQuizCode, quizCodePath } from "@/services/quiz";
+import { DEFAULT_ASSESSMENT_SETTINGS } from "@/types/quiz";
 import { toast } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { useAuthStore } from "@/store/authStore";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 import { loadQuizAudience } from "@/utils/quizStorage";
@@ -58,19 +45,21 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
   const { isRegistered, getRegistration, register, unregister } = useQuizRegistrationStore();
   const [quiz, setQuiz] = useState<QuizBasic | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showUnregisterModal, setShowUnregisterModal] = useState(false);
-  const [agreed, setAgreed] = useState(false);
-  const [readRules, setReadRules] = useState(false);
   const [studentName, setStudentName] = useState("");
   const [rollNo, setRollNo] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [serverRegistration, setServerRegistration] = useState<{ rollNumber?: string } | null>(null);
 
   const quizCode = getQuizCode(quizId);
   const settings = DEFAULT_ASSESSMENT_SETTINGS;
 
-  const registration = getRegistration(quizCode);
-  const registered = isRegistered(quizCode);
+  const localRegistration = getRegistration(quizCode);
+  const registration = localRegistration ?? (serverRegistration ? {
+    studentName: user?.displayName || user?.username || "Student",
+    rollNumber: serverRegistration.rollNumber,
+  } : null);
+  const registered = isRegistered(quizCode) || serverRegistration !== null;
 
   // Audience-based eligibility. The frontend only surfaces a hint — the real
   // check happens on the registration endpoint. When no audience is stored the
@@ -90,13 +79,15 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
     }, audience.students ?? []);
   }, [audience, rooms, user]);
 
-  const canRegister = agreed && readRules && studentName.trim() && rollNo.trim();
+  const canRegister = Boolean(studentName.trim() && rollNo.trim());
 
   useEffect(() => {
     async function fetchQuiz() {
       try {
-        const data = await getQuizByCode(quizCode);
+        const [data, registrations] = await Promise.all([getQuizByCode(quizCode), getMyQuizzes()]);
         setQuiz(data);
+        const own = registrations.find((item) => item.code === quizCode && item.is_registered);
+        setServerRegistration(own ? { rollNumber: own.rollno ?? undefined } : null);
       } catch (err) {
         console.error("Failed to fetch quiz:", err);
         toast.error({
@@ -119,29 +110,21 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
       toast.error("Please enter your roll number");
       return;
     }
-    if (!readRules) {
-      toast.error("Please confirm that you have read all instructions");
-      return;
-    }
-    if (!agreed) {
-      toast.error("Please agree to the assessment rules");
-      return;
-    }
-
     if (submitting) return;
     setSubmitting(true);
     try {
-      await joinQuiz({ code: quizCode });
+      if (!quiz) throw new Error("Quiz details are unavailable");
+      await registerForQuiz(String(quiz.id), rollNo.trim());
       register(quizCode, quizCode, quiz?.name || "Quiz", studentName.trim(), rollNo.trim());
       toast.success({
         title: "Registered Successfully!",
         description: "Your quiz access has been verified.",
       });
       router.push(quizCodePath(quizCode, "waiting"));
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error({
         title: "Registration denied",
-        description: err?.response?.data?.message || "You are not allowed to join this quiz.",
+        description: getApiErrorMessage(err, "You are not allowed to join this quiz."),
       });
     } finally {
       setSubmitting(false);
@@ -152,13 +135,20 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
     setShowUnregisterModal(true);
   };
 
-  const confirmUnregister = () => {
-    unregister(quizCode);
-    setShowUnregisterModal(false);
-    toast.success({
-      title: "Unregistered",
-      description: "You have been removed from the quiz.",
-    });
+  const confirmUnregister = async () => {
+    if (!quiz || submitting) return;
+    setSubmitting(true);
+    try {
+      await unregisterFromQuiz(String(quiz.id));
+      unregister(quizCode);
+      setServerRegistration(null);
+      setShowUnregisterModal(false);
+      toast.success({ title: "Unregistered", description: "You have been removed from the quiz." });
+    } catch (error: unknown) {
+      toast.error({ title: "Could not unregister", description: getApiErrorMessage(error, "Please try again.") });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -232,21 +222,14 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
     );
   }
 
-  const enabledLifelines = settings.lifelines.filter((l) => l.enabled && l.maxUses > 0);
   const questionTypes = [
-    { label: "MCQ", count: 20, icon: CircleDot, color: "#3B82F6" },
-    { label: "Multiple Correct", count: 5, icon: Check, color: "#22C55E" },
-    { label: "True / False", count: 5, icon: ToggleRight, color: "#F59E0B" },
-    { label: "Short Answer", count: 0, icon: Type, color: "#EC4899" },
-    { label: "Long Answer", count: 0, icon: AlignLeft, color: "#F97316" },
-    { label: "Coding", count: 0, icon: Code2, color: "#06B6D4" },
+    { label: "Protected until start", count: "Hidden", icon: Shield, color: "#3B82F6" },
   ];
 
-  const totalQuestions = questionTypes.reduce((sum, q) => sum + q.count, 0);
-  const totalMarks = 100;
-  const passingMarks = 40;
-  const quizDuration = "60 min";
-  const estimatedTime = "75 min";
+  const totalQuestions = "Hidden";
+  const totalMarks = quiz.total_marks ?? "—";
+  const passingMarks = quiz.passing_marks ?? "—";
+  const quizDuration = quiz.duration ? `${quiz.duration} min` : "No fixed limit";
 
   const getStatusBadge = () => {
     const now = new Date();
@@ -341,18 +324,10 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <InfoItem icon={Hash} label="Quiz Code" value={quizCode} mono />
-                      <InfoItem icon={GraduationCap} label="Subject" value="Computer Science" />
-                      <InfoItem icon={Target} label="Topic" value="Data Structures & Algorithms" />
-                      <InfoItem icon={Star} label="Difficulty" value="Medium" />
-                      <InfoItem icon={Calendar} label="Created On" value={new Date(quiz.created_at || Date.now()).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })} />
+                      <InfoItem icon={Star} label="Difficulty" value={quiz.difficulty_name || (quiz.difficulty ? `Level ${quiz.difficulty}` : "Not specified")} />
                       <InfoItem icon={Clock} label="Start Time" value={quiz.starttime ? new Date(quiz.starttime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "TBD"} />
                       <InfoItem icon={Clock} label="End Time" value={quiz.endtime ? new Date(quiz.endtime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "TBD"} />
                       <InfoItem icon={Timer} label="Duration" value={quizDuration} />
-                      <InfoItem icon={Globe} label="Visibility" value="Public" />
-                      <InfoItem icon={Lock} label="Language" value="English" />
-                      <div className="sm:col-span-2">
-                        <InfoItem icon={Tag} label="Tags" value={["DSA", "Algorithms", "Interview Prep"].join(", ")} />
-                      </div>
                     </div>
                   </motion.div>
 
@@ -370,8 +345,8 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <InstructionItem icon={BookOpen} text="Read every question carefully before answering." />
                       <InstructionItem icon={Timer} text="The timer cannot be paused once started." />
-                      <InstructionItem icon={RefreshCw} text="Do not refresh the page during the quiz." />
-                      <InstructionItem icon={Shield} text="Answers are auto-saved every 30 seconds." />
+                      <InstructionItem icon={RefreshCw} text="Refreshing resumes your attempt with the server timer." />
+                      <InstructionItem icon={Shield} text="Answers are saved securely as you work." />
                       <InstructionItem icon={Eye} text="Leaderboard visibility depends on quiz settings." />
                       <InstructionItem icon={X} text="Once submitted, the attempt cannot be edited." />
                     </div>
@@ -430,7 +405,6 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       <MetricCard label="Passing Marks" value={passingMarks.toString()} icon={CheckCircle2} color="#22C55E" />
                       <MetricCard label="Negative Marking" value={settings.negativeMarking ? `Yes (-${settings.negativeMarkValue})` : "No"} icon={XCircle} color={settings.negativeMarking ? "#EF4444" : "#22C55E"} />
                       <MetricCard label="Duration" value={quizDuration} icon={Clock} color="#F59E0B" />
-                      <MetricCard label="Est. Completion" value={estimatedTime} icon={Timer} color="#8B5CF6" />
                     </div>
                   </motion.div>
                 </div>
@@ -502,10 +476,10 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       <div className="space-y-2.5">
                         <DetailRow label="Quiz Code" value={quizCode} />
                         <DetailRow label="Duration" value={quizDuration} />
-                        <DetailRow label="Questions" value={totalQuestions.toString()} />
+                        <DetailRow label="Questions" value={totalQuestions} />
                         <DetailRow label="Total Marks" value={totalMarks.toString()} />
-                        <DetailRow label="Visibility" value="Public" />
-                        <DetailRow label="Leaderboard" value="Enabled" />
+                        <DetailRow label="Access" value={quiz.visibility ? "Controlled" : "Open registration"} />
+                        <DetailRow label="Leaderboard" value={quiz.leaderboard ? "Enabled" : "Disabled"} />
                       </div>
                     </motion.div>
 
@@ -523,7 +497,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       <div className="space-y-2">
                         <EligibilityItem status="eligible" text="Eligible to participate" />
                         <EligibilityItem status="info" text={registered ? "Already registered" : "Not previously registered"} />
-                        <EligibilityItem status="success" text="Quiz is currently active" />
+                        <EligibilityItem status={statusBadge.text === "Closed" ? "warning" : "success"} text={`Quiz is ${statusBadge.text.toLowerCase()}`} />
                       </div>
                     </motion.div>
 
@@ -595,7 +569,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                 </div>
                 <h3 className="text-xl font-bold text-white text-center mb-2">Unregister from Quiz?</h3>
                 <p className="text-sm text-muted-foreground text-center mb-6">
-                  This will remove you from the registered participants list for "{quiz.name}".
+                  This will remove you from the registered participants list for &quot;{quiz.name}&quot;.
                   You can register again later if the quiz is still open.
                 </p>
 
@@ -623,7 +597,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
   );
 }
 
-function NavItem({ icon: Icon, label, href }: { icon: any; label: string; href: string }) {
+function NavItem({ icon: Icon, label, href }: { icon: LucideIcon; label: string; href: string }) {
   return (
     <Link
       href={href}
@@ -635,7 +609,7 @@ function NavItem({ icon: Icon, label, href }: { icon: any; label: string; href: 
   );
 }
 
-function InfoItem({ icon: Icon, label, value, mono }: { icon: any; label: string; value: string; mono?: boolean }) {
+function InfoItem({ icon: Icon, label, value, mono }: { icon: LucideIcon; label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-border-hover bg-[#0F1117] p-3">
       <Icon className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
@@ -647,7 +621,7 @@ function InfoItem({ icon: Icon, label, value, mono }: { icon: any; label: string
   );
 }
 
-function InstructionItem({ icon: Icon, text }: { icon: any; text: string }) {
+function InstructionItem({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-border-hover bg-[#0F1117] p-3">
       <div className="w-8 h-8 rounded-lg bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 flex items-center justify-center shrink-0">
@@ -658,7 +632,7 @@ function InstructionItem({ icon: Icon, text }: { icon: any; text: string }) {
   );
 }
 
-function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color: string }) {
+function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: LucideIcon; color: string }) {
   return (
     <div className="rounded-xl border border-border-hover bg-[#0F1117] p-4">
       <div className="flex items-center gap-2 mb-2">
@@ -718,23 +692,6 @@ function Layers3({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-    </svg>
-  );
-}
-
-function CircleDot({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function ToggleRight({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
     </svg>
   );
 }

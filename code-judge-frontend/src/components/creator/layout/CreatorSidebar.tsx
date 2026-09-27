@@ -158,6 +158,8 @@ const FOCUS_CREATOR_ALLOWED = new Set([
   "/creator/problems",
   "/creator/resources",
   "/creator/create",
+  // Rooms
+  "/creator/rooms",
 ]);
 
 function isFocusAllowedHref(href: string): boolean {

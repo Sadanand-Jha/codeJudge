@@ -2,13 +2,14 @@
 // submissions, game config, collaboration, and result generation under /api/v1/user/quiz.
 import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
-import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema, quizGameMechanicsSchema } from "../../../middleware/validate.ts";
+import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, submitQuizAttemptSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema, quizGameMechanicsSchema, reportViolationSchema } from "../../../middleware/validate.ts";
 import {
   getAllQuizzes,
   getQuizById,
   getQuizByCode,
   getQuizProblemsPublicController,
   registerForQuiz,
+  unregisterFromQuiz,
   getMyQuizzes,
   getMyCreatedQuizzes,
   createQuiz,
@@ -24,6 +25,7 @@ import {
   addQuizProblemOption,
   startQuizAttempt,
   saveQuizResponse,
+  reportViolation,
   submitQuizAttempt,
   getQuizResult,
   getQuizReview,
@@ -169,8 +171,11 @@ router.post("/:quizId/start", startQuizAttempt);
 // POST /api/v1/user/quiz/attempt/:attemptId/save — autosave answers
 router.post("/attempt/:attemptId/save", validate(saveQuizResponseSchema), saveQuizResponse);
 
+// POST /api/v1/user/quiz/attempt/:attemptId/violation — report an exam-cell violation
+router.post("/attempt/:attemptId/violation", validate(reportViolationSchema), reportViolation);
+
 // POST /api/v1/user/quiz/attempt/:attemptId/submit — submit a quiz
-router.post("/attempt/:attemptId/submit", submitQuizAttempt);
+router.post("/attempt/:attemptId/submit", validate(submitQuizAttemptSchema), submitQuizAttempt);
 
 // ==================== RESULTS & REVIEW ====================
 
@@ -226,6 +231,7 @@ router.put("/:quizId/participants", setQuizParticipants);
 
 // POST /api/v1/user/quiz/register — register/join for a quiz
 router.post("/register", validate(quizRegistrationSchema), registerForQuiz);
+router.delete("/register/:quizId", unregisterFromQuiz);
 
 // POST /api/v1/user/quiz/join — join quiz by code or ID
 router.post("/join", validate(joinQuizSchema), joinQuiz);

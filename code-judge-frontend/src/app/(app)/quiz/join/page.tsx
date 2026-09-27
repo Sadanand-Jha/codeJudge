@@ -13,11 +13,14 @@ import {
   BookOpen,
   ChevronRight,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getQuizByCode, joinQuiz, type Quiz } from "@/services/quiz";
+import { getQuizByCode, joinQuiz, startQuizAttempt, type Quiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
+import { getApiErrorMessage } from "@/lib/apiError";
+import { writeQuizAttemptAnswers } from "@/lib/quizAttemptStorage";
 
 type Step = "code" | "details";
 
@@ -29,6 +32,12 @@ export default function JoinQuizPage() {
   const [loading, setLoading] = useState(false);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clockMs, setClockMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const code = normalizeQuizCode(raw.replace(/[^a-zA-Z]/g, ""));
   const display = formatQuizCode(code);
@@ -42,8 +51,8 @@ export default function JoinQuizPage() {
       const data = await getQuizByCode(code);
       setQuiz(data as unknown as Quiz);
       setStep("details");
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Quiz not found. Please check the code and try again.");
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Quiz not found. Please check the code and try again."));
     } finally {
       setLoading(false);
     }
@@ -55,11 +64,21 @@ export default function JoinQuizPage() {
     try {
       await joinQuiz({ code });
       toast.success({ title: "Joined!", description: `You've joined "${quiz.name}"` });
-      router.push(`/quiz/${code}/waiting`);
-    } catch (err: any) {
+      const startsAt = quiz.starttime ? new Date(quiz.starttime).getTime() : null;
+      const isAvailableNow = !startsAt || startsAt <= Date.now();
+      if (isAvailableNow) {
+        const started = await startQuizAttempt(String(quiz.id));
+        if (!started.resumed) {
+          try { writeQuizAttemptAnswers(started.attempt.id, {}); } catch { /* storage unavailable */ }
+        }
+        router.push(`/quiz/${code}/attempt`);
+      } else {
+        router.push(`/quiz/${code}/waiting`);
+      }
+    } catch (err: unknown) {
       toast.error({
         title: "Could not join",
-        description: err?.response?.data?.message || "Something went wrong. Please try again.",
+        description: getApiErrorMessage(err, "Something went wrong. Please try again."),
       });
     } finally {
       setJoining(false);
@@ -78,7 +97,8 @@ export default function JoinQuizPage() {
 
   const getTimeRemaining = (iso: string | null) => {
     if (!iso) return null;
-    const diff = new Date(iso).getTime() - Date.now();
+    if (clockMs === null) return "Soon";
+    const diff = new Date(iso).getTime() - clockMs;
     if (diff <= 0) return "Started";
     const hrs = Math.floor(diff / 3600000);
     const mins = Math.floor((diff % 3600000) / 60000);
@@ -88,7 +108,7 @@ export default function JoinQuizPage() {
 
   const getQuizStatus = () => {
     if (!quiz) return null;
-    const now = Date.now();
+    const now = clockMs ?? 0;
     const start = quiz.starttime ? new Date(quiz.starttime).getTime() : null;
     const end = quiz.endtime ? new Date(quiz.endtime).getTime() : null;
 
@@ -297,7 +317,7 @@ export default function JoinQuizPage() {
   );
 }
 
-function InfoCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string; color: string }) {
+function InfoCard({ icon: Icon, label, value, color }: { icon: LucideIcon; label: string; value: string; color: string }) {
   return (
     <div className="rounded-xl border border-border bg-background p-3 space-y-1.5">
       <div className="flex items-center gap-2">

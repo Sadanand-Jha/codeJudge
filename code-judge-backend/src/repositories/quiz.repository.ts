@@ -344,11 +344,24 @@ export class QuizRepository {
       INSERT INTO quiz_registration (user_id, quiz_id, is_registered, rollno, created_at, updated_at)
       VALUES ($1, $2, true, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       ON CONFLICT (user_id, quiz_id) DO UPDATE
-      SET is_registered = true, rollno = $3, updated_at = CURRENT_TIMESTAMP
+      SET is_registered = true,
+          rollno = COALESCE($3, quiz_registration.rollno),
+          updated_at = CURRENT_TIMESTAMP
       RETURNING *
     `;
     const result = await pool.query(query, [userId, quizId, rollno || null]);
     return result.rows[0];
+  }
+
+  async unregisterUser(userId: string, quizId: string): Promise<boolean> {
+    const result = await pool.query(
+      `UPDATE quiz_registration
+       SET is_registered = false, updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $1 AND quiz_id = $2 AND is_registered = true
+       RETURNING id`,
+      [userId, quizId],
+    );
+    return result.rowCount === 1;
   }
 
   /**
@@ -386,7 +399,12 @@ export class QuizRepository {
       JOIN quiz q ON q.id = qr.quiz_id
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      LEFT JOIN quiz_attempt qa ON qa.quiz_id = q.id AND qa.user_id = qr.user_id
+      LEFT JOIN LATERAL (
+        SELECT * FROM quiz_attempt candidate
+        WHERE candidate.quiz_id = q.id AND candidate.user_id = qr.user_id
+        ORDER BY candidate.created_at DESC, candidate.id DESC
+        LIMIT 1
+      ) qa ON true
       WHERE qr.user_id = $1
       ORDER BY q.starttime DESC
     `;
@@ -915,7 +933,9 @@ export class QuizRepository {
 
     const updateableFields = [
       "score", "percentage", "rank", "status", "completed_at", "time_taken",
-      "total_questions", "correct_answers", "wrong_answers", "skipped_questions"
+      "total_questions", "correct_answers", "wrong_answers", "skipped_questions",
+      "violations", "flagged", "flag_reason",
+      "total_marks", "marks_obtained"
     ];
 
     for (const field of updateableFields) {
@@ -929,11 +949,12 @@ export class QuizRepository {
     if (fields.length === 0) return null;
 
     paramCount++;
+    fields.push(`updated_at = CURRENT_TIMESTAMP`);
     values.push(attemptId);
 
     const query = `
       UPDATE quiz_attempt
-      SET ${fields.join(", ")} = CURRENT_TIMESTAMP
+      SET ${fields.join(", ")}
       WHERE id = $${paramCount}
       RETURNING *
     `;
@@ -968,37 +989,49 @@ export class QuizRepository {
       }
     }
 
+    const isAttempted = Boolean(
+      (typeof data.option === "string" && data.option.trim()) ||
+      (typeof data.textAnswer === "string" && data.textAnswer.trim()) ||
+      (data.answer !== undefined && data.answer !== null)
+    );
+    if (!isAttempted) answerJsonb = null;
+
     const query = `
-      INSERT INTO quiz_student_response (attempt_id, problem_id, answer, is_attempted, created_at, updated_at)
-      VALUES ($1, $2, $3, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      INSERT INTO quiz_student_response (attempt_id, problem_id, answer, is_attempted, time_spent_seconds, created_at, updated_at)
+      VALUES ($1, $2, $3, $5, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       ON CONFLICT (attempt_id, problem_id) DO UPDATE
-      SET answer = $3, is_attempted = true, updated_at = CURRENT_TIMESTAMP
+      SET answer = $3, is_attempted = $5,
+          time_spent_seconds = GREATEST(quiz_student_response.time_spent_seconds, $4),
+          updated_at = CURRENT_TIMESTAMP
       RETURNING *
     `;
     const result = await pool.query(query, [
       data.attemptId,
       data.problemId,
       answerJsonb ? JSON.stringify(answerJsonb) : null,
+      data.timeTaken ?? 0,
+      isAttempted,
     ]);
     return result.rows[0];
   }
 
-  async getStudentResponses(userId: number, quizId: number): Promise<any[]> {
+  async getStudentResponses(attemptId: number, userId: number): Promise<any[]> {
     const query = `
       SELECT qsr.*, qp.problem_statement, qp.quiz_problem_type, qp.question_number
       FROM quiz_student_response qsr
       JOIN quiz_attempt qa ON qa.id = qsr.attempt_id
       JOIN quiz_problems qp ON qp.id = qsr.problem_id
-      WHERE qa.user_id = $1 AND qp.quiz_id = $2
+      WHERE qa.id = $1 AND qa.user_id = $2
       ORDER BY qp.question_number ASC
     `;
-    const result = await pool.query(query, [userId, quizId]);
+    const result = await pool.query(query, [attemptId, userId]);
     return result.rows;
   }
 
   async getQuizLeaderboard(quizId: number): Promise<any[]> {
     const query = `
       SELECT
+        ROW_NUMBER() OVER (ORDER BY COALESCE(qa.marks_obtained, qa.score) DESC, qa.time_taken ASC, qa.completed_at ASC)::int AS rank,
         qa.user_id,
         u.username,
         u.first_name,
@@ -1007,6 +1040,8 @@ export class QuizRepository {
         a.url AS avatar_url,
         c.name AS college_name,
         qa.score,
+        qa.marks_obtained,
+        qa.total_marks,
         qa.percentage,
         qa.rank,
         qa.time_taken,
@@ -1020,7 +1055,7 @@ export class QuizRepository {
       LEFT JOIN avatar a ON a.id = u.avatar_id
       LEFT JOIN college c ON c.id = u.college_id
       WHERE qa.quiz_id = $1 AND qa.status = 'completed'
-      ORDER BY qa.score DESC, qa.time_taken ASC, qa.completed_at ASC
+      ORDER BY COALESCE(qa.marks_obtained, qa.score) DESC, qa.time_taken ASC, qa.completed_at ASC
     `;
     const result = await pool.query(query, [quizId]);
     return result.rows;
@@ -1275,6 +1310,22 @@ export class QuizRepository {
       return { allowed: false, reason: "You are not registered for this quiz" };
     }
 
+    // Audience constraint: once the creator configures a participant list
+    // (quiz edit → rooms / invites), only students present in it (status = 1
+    // = allowed) may attempt the quiz. An empty list means open access.
+    const audience = await pool.query(
+      `SELECT
+         COUNT(*)::int AS configured,
+         COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed
+       FROM quiz_participants
+       WHERE quiz_id = $1`,
+      [quizId, userId]
+    );
+    const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
+    if (Number(configured) > 0 && Number(allowed) === 0) {
+      return { allowed: false, reason: "You are not invited to this quiz" };
+    }
+
     const existingAttempt = await pool.query(
       "SELECT * FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress'",
       [userId, quizId]
@@ -1402,9 +1453,11 @@ export class QuizRepository {
 
   async getQuizResult(attemptId: number, userId: number): Promise<any | null> {
     const query = `
-      SELECT qa.*, q.name, q.code, q.total_marks, q.passing_marks
+      SELECT qa.*, q.name, q.code, q.total_marks, q.passing_marks,
+             q.show_results_immediately, q.endtime, qs.name AS quiz_status_name
       FROM quiz_attempt qa
       JOIN quiz q ON q.id = qa.quiz_id
+      LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
       WHERE qa.id = $1 AND qa.user_id = $2
     `;
     const result = await pool.query(query, [attemptId, userId]);
@@ -1421,6 +1474,19 @@ export class QuizRepository {
         qp.explaination,
         qp.hint,
         qpt.name AS problem_type,
+        qd.heading AS difficulty,
+        COALESCE((
+          SELECT json_agg(
+            json_build_object(
+              'id', o.id,
+              'option_statement', o.option_statement,
+              'iscorrect', o.iscorrect
+            )
+            ORDER BY o.id
+          )
+          FROM quiz_problem_options o
+          WHERE o.problem_id = qp.id
+        ), '[]') AS options,
         qpo.option_statement AS correct_answer,
         qsr.answer AS selected_option,
         qsr.created_at AS answered_at
@@ -1429,6 +1495,7 @@ export class QuizRepository {
       LEFT JOIN quiz_student_response qsr ON qsr.attempt_id = qa.id AND qsr.problem_id = qp.id
       LEFT JOIN quiz_problem_options qpo ON qpo.problem_id = qp.id AND qpo.iscorrect = true
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
+      LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
       WHERE qa.id = $1 AND qa.user_id = $2
       ORDER BY qp.question_number ASC
     `;

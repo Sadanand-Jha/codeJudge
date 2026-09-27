@@ -183,7 +183,12 @@ export class UserQuizRepository {
       JOIN quiz q ON q.id = qr.quiz_id
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      LEFT JOIN quiz_attempt qa ON qa.quiz_id = q.id AND qa.user_id = qr.user_id
+      LEFT JOIN LATERAL (
+        SELECT * FROM quiz_attempt candidate
+        WHERE candidate.quiz_id = q.id AND candidate.user_id = qr.user_id
+        ORDER BY candidate.created_at DESC, candidate.id DESC
+        LIMIT 1
+      ) qa ON true
       WHERE qr.user_id = $1 ORDER BY q.starttime DESC
     `, [userId]);
     return result.rows;
@@ -209,6 +214,22 @@ export class UserQuizRepository {
       [userId, quizId]
     );
     if (!registration.rows.length) return { allowed: false, reason: "You are not registered for this quiz" };
+
+    // Audience constraint: once the creator configures a participant list
+    // (quiz edit → rooms / invites), only students present in it (status = 1
+    // = allowed) may attempt the quiz. An empty list means open access.
+    const audience = await pool.query(
+      `SELECT
+         COUNT(*)::int AS configured,
+         COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed
+       FROM quiz_participants
+       WHERE quiz_id = $1`,
+      [quizId, userId]
+    );
+    const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
+    if (Number(configured) > 0 && Number(allowed) === 0) {
+      return { allowed: false, reason: "You are not invited to this quiz" };
+    }
 
     const existingAttempt = await pool.query(
       "SELECT * FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 AND status = 'in_progress'",
@@ -285,14 +306,14 @@ export class UserQuizRepository {
     return result.rows[0];
   }
 
-  async getStudentResponses(userId: number, quizId: number): Promise<any[]> {
+  async getStudentResponses(attemptId: number, userId: number): Promise<any[]> {
     const result = await pool.query(`
       SELECT qsr.*, qp.problem_statement, qp.quiz_problem_type, qp.question_number
       FROM quiz_student_response qsr
       JOIN quiz_attempt qa ON qa.id = qsr.attempt_id
       JOIN quiz_problems qp ON qp.id = qsr.problem_id
-      WHERE qa.user_id = $1 AND qp.quiz_id = $2 ORDER BY qp.question_number ASC
-    `, [userId, quizId]);
+      WHERE qa.id = $1 AND qa.user_id = $2 ORDER BY qp.question_number ASC
+    `, [attemptId, userId]);
     return result.rows;
   }
 

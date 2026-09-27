@@ -23,7 +23,8 @@ const toStudentQuiz = (quiz: Record<string, any>) => ({
   duration: quiz.duration,
   total_marks: quiz.total_marks,
   passing_marks: quiz.passing_marks,
-  difficulty: quiz.difficulty_name ?? quiz.difficulty,
+  difficulty: quiz.difficulty,
+  difficulty_name: quiz.difficulty_name ?? null,
   status: quiz.status,
 });
 
@@ -1088,13 +1089,65 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
     }
 
     const problems = await attachQuizProblemOptions(quizId, false);
+    const quiz = await quizService.getQuizById(quizId);
+
+    const stableShuffle = <T>(items: T[], seed: number): T[] => {
+      const output = [...items];
+      let state = seed || 1;
+      for (let index = output.length - 1; index > 0; index--) {
+        state = (state * 1664525 + 1013904223) >>> 0;
+        const swapIndex = state % (index + 1);
+        [output[index], output[swapIndex]] = [output[swapIndex], output[index]];
+      }
+      return output;
+    };
+
+    const buildAttemptPayload = async (attempt: any, resumed: boolean) => {
+      const savedResponses = await quizService.getStudentResponses(Number(attempt.id), Number(userId));
+      const startedAtMs = new Date(attempt.started_at ?? attempt.created_at).getTime();
+      const durationDeadline = quiz?.duration
+        ? startedAtMs + Number(quiz.duration) * 60_000
+        : Number.POSITIVE_INFINITY;
+      const quizDeadline = quiz?.endtime
+        ? new Date(quiz.endtime).getTime()
+        : Number.POSITIVE_INFINITY;
+      const deadlineMs = Math.min(durationDeadline, quizDeadline);
+      const remainingSeconds = Number.isFinite(deadlineMs)
+        ? Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000))
+        : null;
+      const orderedProblems = (quiz?.shuffle_questions
+        ? stableShuffle(problems, Number(attempt.id))
+        : [...problems]
+      ).map((problem: any) => ({
+        ...problem,
+        options: quiz?.shuffle_options
+          ? stableShuffle(problem.options ?? [], Number(attempt.id) + Number(problem.id))
+          : problem.options ?? [],
+      }));
+      return { attempt, problems: orderedProblems, savedResponses, remainingSeconds, resumed };
+    };
 
     if (access.reason === "resume") {
       const attempt = await quizService.getQuizAttempt(Number(userId), Number(quizId));
+      // Keep the question count fresh (questions may have been added after join).
+      if (attempt && Number(attempt.total_questions) !== problems.length) {
+        try {
+          const refreshed = await quizService.updateQuizAttempt(Number(attempt.id), { total_questions: problems.length });
+          if (refreshed) {
+            return res.status(200).json({
+              success: true,
+              message: "Resuming existing quiz attempt",
+              data: await buildAttemptPayload(refreshed, true),
+            });
+          }
+        } catch {
+          // Fall through with the stored attempt — count mismatch is non-fatal.
+        }
+      }
       return res.status(200).json({
         success: true,
         message: "Resuming existing quiz attempt",
-        data: { attempt, problems },
+        data: await buildAttemptPayload(attempt, true),
       });
     }
 
@@ -1118,8 +1171,7 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
       success: true,
       message: "Quiz started successfully",
       data: {
-        attempt,
-        problems,
+        ...(await buildAttemptPayload(attempt, false)),
       },
     });
   } catch (error) {
@@ -1163,6 +1215,19 @@ export const saveQuizResponse = async (req: Request, res: Response) => {
       return;
     }
 
+    const attemptQuiz = await quizService.getQuizById(String(attempt.quiz_id));
+    const attemptStartedAt = attempt.started_at ?? attempt.created_at;
+    const durationDeadline = attemptQuiz?.duration && attemptStartedAt
+      ? new Date(attemptStartedAt).getTime() + Number(attemptQuiz.duration) * 60_000
+      : Number.POSITIVE_INFINITY;
+    const quizDeadline = attemptQuiz?.endtime
+      ? new Date(attemptQuiz.endtime).getTime()
+      : Number.POSITIVE_INFINITY;
+    if (Date.now() > Math.min(durationDeadline, quizDeadline)) {
+      res.status(409).json({ success: false, message: "Quiz time has expired; submit your saved attempt" });
+      return;
+    }
+
     const problem = await quizService.getQuizProblemById(Number(problemId));
     if (!problem || Number(problem.quiz_id) !== Number(attempt.quiz_id)) {
       res.status(400).json({ success: false, message: "Question does not belong to this quiz" });
@@ -1188,6 +1253,73 @@ export const saveQuizResponse = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while saving response",
+    });
+  }
+};
+
+/**
+ * Exam-cell: maximum proctoring violations before an attempt is auto-flagged.
+ * The frontend counts a violation per episode (tab switch, window blur,
+ * fullscreen exit, copy/cut/paste attempt) and reports each one here.
+ */
+export const MAX_PROCTORING_VIOLATIONS = 3;
+
+/**
+ * POST /api/v1/user/quiz/attempt/:attemptId/violation
+ * Record one exam-cell (proctoring) violation for an in-progress attempt.
+ * Body: { type: string }
+ * At MAX_PROCTORING_VIOLATIONS the attempt is flagged for examiner review
+ * (flagged = true) so the frontend can auto-submit it.
+ */
+export const reportViolation = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { attemptId } = req.params;
+    const { type } = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+      return;
+    }
+
+    const attempt = await quizService.getQuizAttemptById(Number(attemptId));
+    if (!attempt || Number(attempt.user_id) !== Number(userId)) {
+      res.status(404).json({ success: false, message: "Quiz attempt not found" });
+      return;
+    }
+
+    if (attempt.status !== "in_progress") {
+      res.status(400).json({ success: false, message: "Attempt is no longer active" });
+      return;
+    }
+
+    const violations = (Number(attempt.violations) || 0) + 1;
+    const flagged = violations >= MAX_PROCTORING_VIOLATIONS;
+    const entry = `${String(type)}#${violations}`;
+    const flagReason = attempt.flag_reason ? `${attempt.flag_reason}; ${entry}` : entry;
+
+    const updated = await quizService.updateQuizAttempt(Number(attemptId), {
+      violations,
+      flagged,
+      flag_reason: flagReason,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        violations: updated?.violations ?? violations,
+        flagged: updated?.flagged ?? flagged,
+        maxAllowed: MAX_PROCTORING_VIOLATIONS,
+      },
+    });
+  } catch (error) {
+    console.error("Error reporting quiz violation:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while reporting violation",
     });
   }
 };
@@ -1236,6 +1368,37 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
       return;
     }
 
+    const quizRow = await quizService.getQuizById(String(attempt.quiz_id));
+    const startedAt = attempt.started_at ?? attempt.created_at;
+    const durationDeadline = quizRow?.duration && startedAt
+      ? new Date(startedAt).getTime() + Number(quizRow.duration) * 60_000
+      : Number.POSITIVE_INFINITY;
+    const quizDeadline = quizRow?.endtime
+      ? new Date(quizRow.endtime).getTime()
+      : Number.POSITIVE_INFINITY;
+    const deadlineMs = Math.min(durationDeadline, quizDeadline);
+    const isLate = Number.isFinite(deadlineMs) && Date.now() > deadlineMs;
+
+    // Exam-cell: merge violations counted on the frontend (sent as a fallback
+    // in case live violation reports failed) with what is already stored.
+    const body = req.body as {
+      responses?: unknown;
+      violations?: unknown;
+      flagged?: unknown;
+      flagReason?: unknown;
+    };
+    const storedViolations = Number(attempt.violations) || 0;
+    const sentViolations = Number(body.violations) || 0;
+    const violations = Math.max(storedViolations, sentViolations);
+    const flagged =
+      attempt.flagged === true ||
+      body.flagged === true ||
+      violations >= MAX_PROCTORING_VIOLATIONS;
+    const sentReason = typeof body.flagReason === "string" ? body.flagReason.trim().slice(0, 500) : "";
+    const flagReason = flagged
+      ? [attempt.flag_reason, sentReason].filter(Boolean).join("; ") || "auto-flagged"
+      : undefined;
+
     const problems = await quizService.getQuizProblems(String(attempt.quiz_id));
     const optionsMap = new Map<number, any[]>();
     for (const problem of problems) {
@@ -1246,13 +1409,21 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
     const problemMap = new Map(problems.map(p => [p.id, p]));
 
     let score = 0;
+    let earnedMarks = 0;
     let correctAnswers = 0;
     let wrongAnswers = 0;
     let skippedQuestions = problems.length;
 
     const validResponses: Array<{ problemId: number; option?: string; textAnswer?: string }> = [];
-
+    const totalQuestions = problems.length;
+    const totalMarks = Number(quizRow?.total_marks) || 0;
+    const defaultQuestionMarks = totalQuestions > 0 ? totalMarks / totalQuestions : 0;
+    const uniqueResponses = new Map<number, { problemId: number; option?: string; textAnswer?: string }>();
     for (const response of responses) {
+      uniqueResponses.set(Number(response.problemId), response);
+    }
+
+    for (const response of uniqueResponses.values()) {
       const problemId = Number(response.problemId);
       const problem = problemMap.get(problemId);
 
@@ -1267,26 +1438,60 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
         if (selectedOption.iscorrect) {
           correctAnswers++;
           score += 1;
+          earnedMarks += Number(problem.marks) || defaultQuestionMarks;
         } else {
           wrongAnswers++;
+          if (quizRow?.negative_marking === true) {
+            earnedMarks -= Math.abs(Number(problem.negative_marks) || 0);
+          }
         }
       } else if (response.textAnswer) {
-        skippedQuestions--;
+        // Subjective answers are persisted for manual review. They remain in
+        // the ungraded/skipped bucket until a grading workflow awards marks.
         validResponses.push(response);
       }
     }
 
-    const totalQuestions = problems.length;
-    const percentage = totalQuestions > 0 ? parseFloat(((correctAnswers / totalQuestions) * 100).toFixed(2)) : 0;
+    const marksObtained = Math.round((totalMarks > 0 ? earnedMarks : score) * 100) / 100;
+    const percentage = totalMarks > 0
+      ? Math.round((marksObtained / totalMarks) * 10000) / 100
+      : totalQuestions > 0
+        ? Math.round((correctAnswers / totalQuestions) * 10000) / 100
+        : 0;
+
+    // Persist every submitted answer in the quiz student response table
+    // (upsert — autosave may already have stored some of them).
+    for (const response of validResponses) {
+      try {
+        await quizService.saveStudentResponse({
+          attemptId: Number(attemptId),
+          problemId: Number(response.problemId),
+          option: response.option,
+          textAnswer: response.textAnswer,
+        });
+      } catch (responseError) {
+        console.error("Error persisting quiz response on submit:", responseError);
+      }
+    }
+
+    const timeTaken = startedAt
+      ? Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000))
+      : undefined;
 
     const updatedAttempt = await quizService.updateQuizAttempt(Number(attemptId), {
-      status: "completed",
+      status: isLate ? "timed_out" : "completed",
       completed_at: new Date(),
       score,
       percentage,
       correct_answers: correctAnswers,
       wrong_answers: wrongAnswers,
       skipped_questions: skippedQuestions,
+      total_marks: totalMarks,
+      marks_obtained: marksObtained,
+      violations,
+      flagged,
+      ...(flagReason !== undefined ? { flag_reason: flagReason } : {}),
+      ...(timeTaken !== undefined ? { time_taken: timeTaken } : {}),
     });
 
     res.status(200).json({
@@ -1362,7 +1567,7 @@ export const registerForQuiz = async (req: Request, res: Response) => {
       return;
     }
 
-    const quizCheck = await quizService.checkQuizAccessForRegistration(quizId);
+    const quizCheck = await quizService.checkQuizAccessForRegistration(quizId, Number(userId));
     if (!quizCheck.allowed) {
       res.status(403).json({
         success: false,
@@ -1393,6 +1598,27 @@ export const registerForQuiz = async (req: Request, res: Response) => {
       success: false,
       message: "Internal server error while registering for quiz",
     });
+  }
+};
+
+export const unregisterFromQuiz = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const quizId = Number(req.params.quizId);
+    if (!userId) return void res.status(401).json({ success: false, message: "Unauthorized access" });
+    if (!Number.isInteger(quizId) || quizId <= 0) {
+      return void res.status(400).json({ success: false, message: "Invalid quizId" });
+    }
+    const attempt = await quizService.getQuizAttempt(Number(userId), quizId);
+    if (attempt?.status === "in_progress") {
+      return void res.status(409).json({ success: false, message: "An active attempt cannot be unregistered" });
+    }
+    const removed = await quizService.unregisterUser(String(userId), String(quizId));
+    if (!removed) return void res.status(404).json({ success: false, message: "Active registration not found" });
+    res.status(200).json({ success: true, message: "Unregistered successfully" });
+  } catch (error) {
+    console.error("Error unregistering from quiz:", error);
+    res.status(500).json({ success: false, message: "Internal server error while unregistering" });
   }
 };
 
@@ -1450,6 +1676,13 @@ export const getPreviousQuizzes = async (req: Request, res: Response) => {
 
 // ==================== RESULTS & REVIEW ====================
 
+function areStudentResultsAvailable(result: any): boolean {
+  if (result?.show_results_immediately === true) return true;
+  if (String(result?.quiz_status_name ?? "").toLowerCase() === "ended") return true;
+  if (!result?.endtime) return false;
+  return new Date(result.endtime).getTime() <= Date.now();
+}
+
 /**
  * GET /api/v1/user/quiz/result/:attemptId
  * Get quiz result
@@ -1473,6 +1706,14 @@ export const getQuizResult = async (req: Request, res: Response) => {
       res.status(404).json({
         success: false,
         message: "Quiz result not found",
+      });
+      return;
+    }
+
+    if (!areStudentResultsAvailable(result)) {
+      res.status(403).json({
+        success: false,
+        message: "Results will be available after the quiz ends",
       });
       return;
     }
@@ -1503,6 +1744,19 @@ export const getQuizReview = async (req: Request, res: Response) => {
       res.status(401).json({
         success: false,
         message: "Unauthorized access",
+      });
+      return;
+    }
+
+    const result = await quizService.getQuizResult(Number(attemptId), Number(userId));
+    if (!result) {
+      res.status(404).json({ success: false, message: "Quiz result not found" });
+      return;
+    }
+    if (!areStudentResultsAvailable(result)) {
+      res.status(403).json({
+        success: false,
+        message: "Answer review will be available after the quiz ends",
       });
       return;
     }
@@ -1865,6 +2119,7 @@ export const joinQuiz = async (req: Request, res: Response) => {
       data: {
         quiz: toStudentQuiz(quiz),
         registration,
+        attempt: null,
       },
     });
   } catch (error) {

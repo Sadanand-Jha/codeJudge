@@ -44,6 +44,13 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
 
   const isPreview = pathname.includes("/preview");
 
+  // Quiz Studio create/edit routes render their own full-bleed StudioHeader +
+  // StudioStepper, so the shared content padding (py-4) would leave an empty
+  // blank strip above the header — render those routes edge-to-edge instead.
+  const isFullBleedStudio =
+    pathname === "/creator/quizzes/create" ||
+    /^\/creator\/quizzes\/[^/]+\/edit$/.test(pathname);
+
   if (isPreview) {
     return (
       <div className="flex flex-1 min-h-0 bg-background h-full">
@@ -101,7 +108,11 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
         {/* Main content */}
         <div data-studio="true" className="flex-1 flex min-h-0 min-w-0">
           <main
-            className="px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-6 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
+            className={
+              isFullBleedStudio
+                ? "flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
+                : "px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-6 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
+            }
           >
             {children}
           </main>

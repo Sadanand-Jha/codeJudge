@@ -196,8 +196,31 @@ export const reorderQuizProblemsSchema = z.object({
 export const saveQuizResponseSchema = z.object({
   problemId: z.number().int().positive(),
   option: z.string().trim().optional(),
-  textAnswer: z.string().trim().optional(),
+  textAnswer: z.string().trim().max(20000).optional(),
   timeTaken: z.number().int().nonnegative().optional(),
+}).strict();
+
+/**
+ * Schema for final attempt submission. A question may occur only once; the
+ * controller also normalizes into a Map as a defense-in-depth measure.
+ */
+export const submitQuizAttemptSchema = z.object({
+  responses: z.array(z.object({
+    problemId: z.number().int().positive(),
+    option: z.string().trim().optional(),
+    textAnswer: z.string().trim().max(20000).optional(),
+  }).strict()).max(1000),
+  violations: z.number().int().nonnegative().max(1000).optional(),
+  flagged: z.boolean().optional(),
+  flagReason: z.string().trim().max(500).optional(),
+}).strict();
+
+/**
+ * Schema for reporting an exam-cell (proctoring) violation.
+ * Body: { type: "tab_switch" | "window_blur" | "fullscreen_exit" | "copy_attempt" | ... }
+ */
+export const reportViolationSchema = z.object({
+  type: z.string().trim().min(1).max(50),
 });
 
 /**

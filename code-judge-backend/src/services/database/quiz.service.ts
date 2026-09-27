@@ -63,6 +63,10 @@ export class QuizService {
     return this.repository.registerUser(userId, quizId, rollno);
   }
 
+  async unregisterUser(userId: string, quizId: string): Promise<boolean> {
+    return this.repository.unregisterUser(userId, quizId);
+  }
+
   async getUserQuizzes(userId: string): Promise<any[]> {
     return this.repository.getUserQuizzes(userId);
   }
@@ -176,8 +180,8 @@ export class QuizService {
     return this.repository.saveStudentResponse(data);
   }
 
-  async getStudentResponses(userId: number, quizId: number): Promise<any[]> {
-    return this.repository.getStudentResponses(userId, quizId);
+  async getStudentResponses(attemptId: number, userId: number): Promise<any[]> {
+    return this.repository.getStudentResponses(attemptId, userId);
   }
 
   async getQuizLeaderboard(quizId: number): Promise<any[]> {

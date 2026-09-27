@@ -344,12 +344,12 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       </div>
 
       {/* Header */}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 ring-1 ring-inset ring-pink-500/20">
-            <Users className="h-5 w-5" />
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 ring-1 ring-inset ring-pink-500/20 sm:h-10 sm:w-10">
+            <Users className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
-          <div>
+          <div className="min-w-0">
             {isRenaming ? (
               <div className="flex flex-col gap-1.5">
                 <input
@@ -371,8 +371,8 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">{room.name}</h1>
+                <div className="flex min-w-0 items-center gap-2">
+                  <h1 className="truncate text-lg font-bold tracking-tight text-text-primary sm:text-2xl">{room.name}</h1>
                   <button
                     type="button"
                     onClick={startRename}
@@ -387,7 +387,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-xs text-text-secondary sm:text-sm">
+                <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary sm:text-sm">
                   {room.description || "Student group"}
                   <span className="mx-1.5 text-text-muted">·</span>
                   Updated {timeAgo(room.updatedAt)}
@@ -396,10 +396,10 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             )}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <button
             onClick={handleExport}
-            className="flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover sm:h-9 sm:px-3.5"
+            className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover sm:h-9 sm:w-auto sm:rounded-lg sm:px-3.5"
           >
             <Download className="h-3.5 w-3.5" />
             Export
@@ -409,7 +409,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               setAddTab("import");
               setAddOpen(true);
             }}
-            className="flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover sm:h-9 sm:px-3.5"
+            className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover sm:h-9 sm:w-auto sm:rounded-lg sm:px-3.5"
           >
             <FileSpreadsheet className="h-3.5 w-3.5" />
             Import
@@ -419,7 +419,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               setAddTab("manual");
               setAddOpen(true);
             }}
-            className="flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] sm:h-9 sm:px-3.5"
+            className="order-first col-span-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] sm:order-none sm:col-span-1 sm:h-9 sm:w-auto sm:rounded-lg sm:px-3.5"
           >
             <UserRoundPlus className="h-3.5 w-3.5" />
             Add Students
@@ -429,7 +429,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
 
       {/* Stats */}
       {stats && (
-        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
           {(
             [
               { label: "Total Students", value: stats.total, icon: Users, tint: "text-pink-500 bg-pink-500/10" },
@@ -438,20 +438,20 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               { label: "Needs Attention", value: stats.issues, icon: AlertTriangle, tint: "text-warning bg-warning/10" },
             ] as Array<{ label: string; value: number; icon: typeof Users; tint: string }>
           ).map((s) => (
-            <div key={s.label} className="rounded-lg border border-border bg-card p-3.5">
+            <div key={s.label} className="rounded-xl border border-border bg-card p-3 sm:p-3.5">
               <div className={cn("flex h-7 w-7 items-center justify-center rounded-md", s.tint)}>
                 <s.icon className="h-3.5 w-3.5" />
               </div>
-              <p className="mt-2 text-xl font-bold tabular-nums text-text-primary">{s.value}</p>
-              <p className="mt-0.5 text-[11px] font-medium text-text-muted">{s.label}</p>
+              <p className="mt-2 text-lg font-bold tabular-nums text-text-primary sm:text-xl">{s.value}</p>
+              <p className="mt-0.5 text-[11px] font-medium leading-tight text-text-muted">{s.label}</p>
             </div>
           ))}
         </div>
       )}
 
       {/* Toolbar */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="relative w-full max-w-xs">
+      <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
+        <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input
             value={query}
@@ -460,8 +460,8 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             className="h-10 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-0.5">
+        <div className="flex w-full items-center gap-2 sm:w-auto sm:flex-wrap">
+          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1 sm:flex-none">
             {(
               [
                 { id: "all", label: "All" },
@@ -473,7 +473,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                 key={tab.id}
                 onClick={() => setFilter(tab.id)}
                 className={cn(
-                  "rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
+                  "shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
                   filter === tab.id ? "bg-pink-500/10 text-pink-500" : "text-text-muted hover:text-text-primary"
                 )}
               >
