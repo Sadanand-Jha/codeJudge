@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Plus, GripVertical, Copy, Trash2 } from "lucide-react";
+import { Search, X, Plus, GripVertical, Copy, Trash2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../../StudioProvider";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
@@ -22,9 +22,10 @@ function decodeHtml(html: string): string {
 interface Props {
   open: boolean;
   onClose: () => void;
+  onAiGenerate?: () => void;
 }
 
-export function MobileQuestionBankSheet({ open, onClose }: Props) {
+export function MobileQuestionBankSheet({ open, onClose, onAiGenerate }: Props) {
   const { state, setActiveQuestion, duplicateQuestion, removeQuestion, addQuestion } = useStudio();
   const [search, setSearch] = useState("");
 
@@ -78,14 +79,25 @@ export function MobileQuestionBankSheet({ open, onClose }: Props) {
                   className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-9 pr-3 text-sm placeholder:text-zinc-400 focus:border-pink-300 focus:outline-none"
                 />
               </div>
-              <button
-                onClick={() => {
-                  addQuestion();
-                }}
-                className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-200 bg-pink-50 py-3 text-sm font-semibold text-[#E91E63]"
-              >
-                <Plus className="h-4 w-4" /> Add Question
-              </button>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    addQuestion();
+                  }}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-200 bg-pink-50 py-3 text-sm font-semibold text-[#E91E63]"
+                >
+                  <Plus className="h-4 w-4" /> Add
+                </button>
+                <button
+                  onClick={() => {
+                    onClose();
+                    onAiGenerate?.();
+                  }}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 py-3 text-sm font-semibold text-violet-700"
+                >
+                  <Sparkles className="h-4 w-4" /> AI Generate
+                </button>
+              </div>
             </div>
 
             {/* list */}

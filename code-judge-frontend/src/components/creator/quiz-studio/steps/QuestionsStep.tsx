@@ -164,6 +164,14 @@ export function QuestionsStep() {
               {completed} / {state.questions.length} complete
             </span>
             <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              className="flex shrink-0 items-center gap-1 rounded-xl border border-violet-200 bg-violet-50 px-2.5 sm:px-3 py-2 text-xs font-semibold text-violet-700"
+            >
+              <Sparkles className="h-3.5 w-3.5 shrink-0" />
+              <span>AI Generate</span>
+            </button>
+            <button
               onClick={() => setMobileSettingsOpen(true)}
               className="flex shrink-0 items-center gap-1 rounded-xl border border-zinc-200 bg-white px-2.5 sm:px-3 py-2 text-xs font-semibold text-zinc-700"
             >
@@ -248,6 +256,15 @@ export function QuestionsStep() {
               <span className="truncate">{saving ? "Saving..." : "Save"}</span>
             </button>
             <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              title="AI Generate"
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700"
+            >
+              <Sparkles className="h-4 w-4" />
+              AI
+            </button>
+            <button
               onClick={() => setStudentPreviewOpen(true)}
               className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-700"
             >
@@ -258,7 +275,14 @@ export function QuestionsStep() {
         )}
 
         {/* Sheets */}
-        <MobileQuestionBankSheet open={mobileBankOpen} onClose={() => setMobileBankOpen(false)} />
+        <MobileQuestionBankSheet
+          open={mobileBankOpen}
+          onClose={() => setMobileBankOpen(false)}
+          onAiGenerate={() => {
+            setMobileBankOpen(false);
+            setAiOpen(true);
+          }}
+        />
         <MobileQuestionSettingsSheet open={mobileSettingsOpen} onClose={() => setMobileSettingsOpen(false)} />
       </div>
 
