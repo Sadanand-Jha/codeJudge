@@ -826,8 +826,7 @@ export interface JoinQuizResponse {
  * POST /api/v1/user/quiz/join
  */
 export async function joinQuiz(data: {
-  code?: string;
-  quizId?: number;
+  code: string;
 }): Promise<JoinQuizResponse> {
   const response = await apiClient.post<JoinQuizResponse>("/v1/user/quiz/join", data);
   return response.data;

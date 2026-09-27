@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import {
-  LayoutDashboard,
+  ClipboardList,
   Code2,
   Trophy,
   FileCode,
@@ -14,7 +14,7 @@ import {
 import Link from "next/link";
 
 const menuItems = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", active: true },
+  { label: "Quizzes", icon: ClipboardList, href: "/quiz", active: true },
   { label: "Problems", icon: Code2, href: "/problems" },
   { label: "Contests", icon: Trophy, href: "/contests" },
   { label: "Submissions", icon: FileCode, href: "/submissions" },
@@ -29,7 +29,7 @@ export default function Sidebar() {
     <aside data-sidebar="true" className="fixed left-0 top-0 h-screen w-64 bg-background border-r border-border flex flex-col z-50">
       {/* Logo */}
       <div className="px-6 py-6">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/quiz" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
             <Code2 className="w-4 h-4 text-white" />
           </div>

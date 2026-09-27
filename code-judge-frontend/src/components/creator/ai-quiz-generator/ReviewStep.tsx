@@ -84,16 +84,16 @@ export function ReviewStep({
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 pb-6">
+    <div className="mx-auto max-w-3xl space-y-4 py-4 pb-8 sm:space-y-6 sm:py-8">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
-          <Check className="h-7 w-7 text-white" />
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-md shadow-emerald-500/20 sm:mb-4 sm:h-14 sm:w-14">
+          <Check className="h-6 w-6 text-white sm:h-7 sm:w-7" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-text-primary">
+        <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">
           Your Quiz is Ready
         </h1>
-        <p className="mt-2 text-sm text-text-secondary">
+        <p className="mx-auto mt-2 max-w-xl text-sm leading-5 text-text-secondary">
           AI analyzed your problem list and prepared a suggested configuration.
           Review and edit anything below.
         </p>
@@ -141,7 +141,7 @@ export function ReviewStep({
         {/* Thumbnail + Summary — responsive: stack on mobile, 3 cols on desktop */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-3">
           {/* Thumbnail */}
-          <Card title="Thumbnail" className="sm:col-span-1">
+          <Card title="Thumbnail" className="order-2 sm:col-span-1">
             <div className="flex flex-col items-center">
               <label className="relative flex h-32 w-full max-w-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/60 p-3 text-center text-xs text-text-secondary transition-colors hover:border-violet-500/40 hover:bg-card-hover sm:h-40">
                 {config.thumbnailUrl ? (
@@ -173,7 +173,7 @@ export function ReviewStep({
           </Card>
 
           {/* Summary rail — 2 per line on mobile, prevent icon overlap */}
-          <Card title="Summary" className="sm:col-span-2">
+          <Card title="Summary" className="order-1 sm:col-span-2">
             <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-center">
               <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
                 <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
@@ -301,7 +301,7 @@ export function ReviewStep({
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
             Difficulty Distribution
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {Object.entries(difficultyDistribution).map(([level, count]) => (
               <div key={level} className="flex items-center gap-1.5">
                 <Badge color={difficultyColor[level as keyof typeof difficultyColor]}>
@@ -354,11 +354,11 @@ export function ReviewStep({
       </Card>
 
       {/* CTA */}
-      <div className="flex justify-end pt-2">
+      <div className="sticky bottom-0 z-10 -mx-4 flex border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:justify-end sm:border-0 sm:bg-transparent sm:px-0 sm:pt-2 sm:backdrop-blur-none">
         <button
           type="button"
           onClick={() => onProceed(config)}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition-all hover:brightness-110"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-violet-500/20 transition-all hover:brightness-110 sm:w-auto"
         >
           Create Quiz
           <ArrowRight className="h-4 w-4" />

@@ -10,6 +10,28 @@ import { sendCollaboratorInviteEmail } from "../services/email.ts";
 const quizService = new QuizService();
 const resultGenerationService = new ResultGenerationService();
 
+/**
+ * Student-safe quiz DTO. Never send ownership identifiers, creator profile
+ * data, internal timestamps, or creator-only configuration to participants.
+ */
+const toStudentQuiz = (quiz: Record<string, any>) => ({
+  id: quiz.id,
+  code: quiz.code,
+  name: quiz.name,
+  starttime: quiz.starttime,
+  endtime: quiz.endtime,
+  duration: quiz.duration,
+  total_marks: quiz.total_marks,
+  passing_marks: quiz.passing_marks,
+  difficulty: quiz.difficulty_name ?? quiz.difficulty,
+  status: quiz.status,
+});
+
+const normalizeQuizCode = (value: unknown) =>
+  typeof value === "string" ? value.trim().toUpperCase() : "";
+
+const isQuizCode = (value: string) => /^[A-Z]{16}$/.test(value);
+
 // ==================== QUIZ SETTINGS ====================
 
 /**
@@ -146,22 +168,26 @@ export const getAdminQuizById = async (req: Request, res: Response) => {
  */
 export const getQuizByCode = async (req: Request, res: Response) => {
   try {
-    const { code } = req.params;
+    const code = normalizeQuizCode(req.params.code);
+    if (!isQuizCode(code)) {
+      res.status(404).json({ success: false, message: "Quiz not found or unavailable" });
+      return;
+    }
+
     const quiz = await quizService.getQuizByCode(code);
 
-    if (!quiz) {
+    const status = String(quiz?.status ?? "").toLowerCase();
+    if (!quiz || !["scheduled", "live"].includes(status)) {
       res.status(404).json({
         success: false,
-        message: "Quiz not found",
+        message: "Quiz not found or unavailable",
       });
       return;
     }
 
-    const { code: _code, ...publicQuiz } = quiz as { code?: string } & Record<string, unknown>;
-
     res.status(200).json({
       success: true,
-      data: publicQuiz,
+      data: toStudentQuiz(quiz),
     });
   } catch (error) {
     console.error("Error fetching quiz by code:", error);
@@ -1061,16 +1087,17 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
       return;
     }
 
+    const problems = await attachQuizProblemOptions(quizId, false);
+
     if (access.reason === "resume") {
       const attempt = await quizService.getQuizAttempt(Number(userId), Number(quizId));
       return res.status(200).json({
         success: true,
         message: "Resuming existing quiz attempt",
-        data: attempt,
+        data: { attempt, problems },
       });
     }
 
-    const problems = await quizService.getQuizProblems(quizId);
     const totalQuestions = problems.length;
 
     if (totalQuestions === 0) {
@@ -1130,6 +1157,18 @@ export const saveQuizResponse = async (req: Request, res: Response) => {
       return;
     }
 
+    const attempt = await quizService.getQuizAttemptById(Number(attemptId));
+    if (!attempt || Number(attempt.user_id) !== Number(userId) || attempt.status !== "in_progress") {
+      res.status(404).json({ success: false, message: "Active quiz attempt not found" });
+      return;
+    }
+
+    const problem = await quizService.getQuizProblemById(Number(problemId));
+    if (!problem || Number(problem.quiz_id) !== Number(attempt.quiz_id)) {
+      res.status(400).json({ success: false, message: "Question does not belong to this quiz" });
+      return;
+    }
+
     const response = await quizService.saveStudentResponse({
       attemptId: Number(attemptId),
       problemId: Number(problemId),
@@ -1180,8 +1219,8 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
       return;
     }
 
-    const attempt = await quizService.getQuizAttempt(Number(userId), Number(attemptId));
-    if (!attempt) {
+    const attempt = await quizService.getQuizAttemptById(Number(attemptId));
+    if (!attempt || Number(attempt.user_id) !== Number(userId)) {
       res.status(404).json({
         success: false,
         message: "Quiz attempt not found",
@@ -1701,11 +1740,20 @@ const attachQuizProblemOptions = async (quizId: string, includeCorrectAnswers: b
   return Promise.all(
     problems.map(async (problem: any) => {
       const options = await quizService.getQuizProblemOptions(String(problem.id));
+      if (includeCorrectAnswers) return { ...problem, options };
+
+      const {
+        explaination: _explanation,
+        hint: _hint,
+        reference_notes: _referenceNotes,
+        internal_comments: _internalComments,
+        created_at: _createdAt,
+        updated_at: _updatedAt,
+        ...studentProblem
+      } = problem;
       return {
-        ...problem,
-        options: includeCorrectAnswers
-          ? options
-          : options.map(({ iscorrect, ...option }: any) => option),
+        ...studentProblem,
+        options: options.map(({ iscorrect, created_at, updated_at, ...option }: any) => option),
       };
     })
   );
@@ -1718,6 +1766,12 @@ const attachQuizProblemOptions = async (quizId: string, includeCorrectAnswers: b
 export const getQuizProblemsController = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
+    const userId = req.user?.userId;
+    const quiz = await quizService.getQuizById(quizId);
+    if (!userId || !quiz || Number(quiz.createdby) !== Number(userId)) {
+      res.status(403).json({ success: false, message: "Creator access required" });
+      return;
+    }
     const problemsWithOptions = await attachQuizProblemOptions(quizId, true);
 
     res.status(200).json({
@@ -1740,6 +1794,17 @@ export const getQuizProblemsController = async (req: Request, res: Response) => 
 export const getQuizProblemsPublicController = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const access = await quizService.checkQuizAccess(Number(userId), Number(quizId));
+    if (!access.allowed) {
+      res.status(403).json({ success: false, message: access.reason || "Quiz access denied" });
+      return;
+    }
     
     const problemsWithOptions = await attachQuizProblemOptions(quizId, false);
 
@@ -1763,7 +1828,7 @@ export const getQuizProblemsPublicController = async (req: Request, res: Respons
 export const joinQuiz = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
-    const { code, quizId } = req.body;
+    const { code } = req.body;
 
     if (!userId) {
       res.status(401).json({
@@ -1773,20 +1838,7 @@ export const joinQuiz = async (req: Request, res: Response) => {
       return;
     }
 
-    if (!code && !quizId) {
-      res.status(400).json({
-        success: false,
-        message: "Either code or quizId is required",
-      });
-      return;
-    }
-
-    let quiz;
-    if (code) {
-      quiz = await quizService.getQuizByCode(code);
-    } else {
-      quiz = await quizService.getQuizById(quizId as string);
-    }
+    const quiz = await quizService.getQuizByCode(code);
 
     if (!quiz) {
       res.status(404).json({
@@ -1796,7 +1848,7 @@ export const joinQuiz = async (req: Request, res: Response) => {
       return;
     }
 
-    const access = await quizService.checkQuizAccess(Number(userId), Number(quiz.id));
+    const access = await quizService.checkQuizAccessForRegistration(String(quiz.id), Number(userId));
     if (!access.allowed) {
       res.status(403).json({
         success: false,
@@ -1811,7 +1863,7 @@ export const joinQuiz = async (req: Request, res: Response) => {
       success: true,
       message: "Successfully joined quiz",
       data: {
-        quiz,
+        quiz: toStudentQuiz(quiz),
         registration,
       },
     });

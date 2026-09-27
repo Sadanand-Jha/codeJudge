@@ -51,7 +51,7 @@ export default function AboutPage() {
           </div>
 
           <Link
-            href="/"
+            href="/quiz"
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#7C3AED] transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />

@@ -19,6 +19,7 @@ import {
 import { useStudio } from "../StudioProvider";
 import { toast } from "@/lib/toast";
 import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
+import { StudioStepLayout } from "../primitives";
 
 export function PublishStep({
   onPublish,
@@ -65,23 +66,17 @@ export function PublishStep({
   ];
 
   return (
-    <div className="flex flex-col bg-background">
-    <div className="">
-    <div className="mx-auto max-w-2xl px-4 py-10">
+    <StudioStepLayout width="compact" className="sm:py-8">
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="rounded-xl border border-border bg-card"
+      className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
     >
         <div className="border-b border-border px-6 py-5">
           <h2 className="text-base font-semibold text-text-primary">
             Ready to publish?
           </h2>
-          <p className="mt-1 text-xs text-text-secondary">
-            Publishing will immediately make this quiz live. Participants will be
-            able to start attempting it right away.
-          </p>
         </div>
 
         <div className="px-6 py-5">
@@ -94,8 +89,8 @@ export function PublishStep({
               </div>
             )}
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-text-primary">{state.info.title || "Untitled Quiz"}</p>
-              <p className="mt-0.5 text-xs text-text-secondary line-clamp-2">
+              <p className="break-words text-sm font-semibold text-text-primary">{state.info.title || "Untitled Quiz"}</p>
+              <p className="mt-0.5 break-words text-xs text-text-secondary">
                 {state.info.shortDescription || "No description."}
               </p>
             </div>
@@ -187,7 +182,7 @@ export function PublishStep({
                 ].map((r) => (
                   <div key={r.label} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
                     <dt className="text-text-secondary">{r.label}</dt>
-                    <dd className="max-w-[60%] truncate font-medium text-text-primary">{r.value}</dd>
+                <dd className="max-w-[65%] break-words text-right font-medium text-text-primary">{r.value}</dd>
                   </div>
                 ))}
               </dl>
@@ -228,9 +223,7 @@ export function PublishStep({
           </div>
         </div>
       )}
-    </div>
-    </div>
-    </div>
+    </StudioStepLayout>
   );
 }
 

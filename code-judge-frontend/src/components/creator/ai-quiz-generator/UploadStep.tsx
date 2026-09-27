@@ -5,9 +5,8 @@ import {
   Upload,
   FileText,
   FileCheck,
-  AlertCircle,
   Sparkles,
-  Info,
+  ChevronDown,
   ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
@@ -118,25 +117,31 @@ export function UploadStep({
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 pb-8 sm:space-y-8">
+    <div className="mx-auto max-w-2xl space-y-5 py-4 pb-8 sm:space-y-6 sm:py-8">
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          href="/creator/quizzes/create"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Create Quiz
+        </Link>
+        <span className="rounded-full bg-violet-500/10 px-2.5 py-1 text-[11px] font-semibold text-violet-600 dark:text-violet-300">
+          AI assisted
+        </span>
+      </div>
+
       {/* Header */}
       <div className="text-center px-2">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/20 sm:mb-4 sm:h-14 sm:w-14">
-          <Sparkles className="h-6 w-6 text-white sm:h-7 sm:w-7" />
+        <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-md shadow-violet-500/20 sm:h-12 sm:w-12">
+          <Sparkles className="h-5 w-5 text-white sm:h-6 sm:w-6" />
         </div>
         <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">
           Generate Quiz with AI
         </h1>
-        <p className="mt-1.5 text-sm text-text-secondary sm:mt-2">
+        <p className="mx-auto mt-1.5 max-w-md text-sm leading-5 text-text-secondary sm:mt-2">
           Upload your problem list — we&apos;ll build the quiz configuration for you.
         </p>
-        <Link
-          href="/creator/quizzes/create"
-          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary transition-colors hover:border-violet-500/30 hover:text-text-primary sm:mt-4 sm:px-3.5"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Create Quiz
-        </Link>
       </div>
 
       {/* Upload area */}
@@ -149,14 +154,14 @@ export function UploadStep({
         onDrop={onDrop}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "relative cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all duration-200 sm:p-10",
+          "relative min-h-[190px] cursor-pointer rounded-2xl border-2 border-dashed bg-card p-6 text-center transition-all duration-200 sm:min-h-[220px] sm:p-10",
           dragging
             ? "border-violet-500 bg-violet-500/[0.06]"
             : file?.valid
             ? "border-emerald-500/30 bg-emerald-500/[0.03]"
             : file && !file.valid
             ? "border-rose-500/30 bg-rose-500/[0.03]"
-            : "border-border hover:border-violet-500/30 hover:bg-violet-500/[0.03]"
+            : "border-border hover:border-violet-500/40 hover:bg-violet-500/[0.03]"
         )}
       >
         <input
@@ -197,43 +202,25 @@ export function UploadStep({
         )}
       </div>
 
-      {/* Info section */}
-      <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
-        <div className="flex items-center gap-2 mb-2 sm:mb-3">
-          <Info className="h-4 w-4 shrink-0 text-violet-500" />
-          <h3 className="text-sm font-semibold text-text-primary">
-            What AI will generate
-          </h3>
-        </div>
-        <p className="mb-3 text-xs text-text-secondary">
-          The AI analyzes your problem list and suggests:
-        </p>
-        <div className="grid grid-cols-2 gap-1 sm:gap-1.5 sm:grid-cols-3">
-          {WHAT_AI_GENERATES.map((item) => (
-            <div
-              key={item}
-              className="flex items-center gap-1 rounded-md bg-white/[0.03] px-1.5 py-1.5 text-[10px] font-medium text-text-secondary sm:gap-1.5 sm:px-2 sm:text-[11px]"
-            >
-              <FileCheck className="h-3 w-3 shrink-0 text-violet-500" />
-              <span className="truncate">{item}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Hard limit notice */}
-      <div className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-3 sm:gap-3 sm:p-4">
-        <AlertCircle className="h-4 w-4 shrink-0 text-amber-500 mt-0.5" />
-        <div>
-          <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-            Maximum 5 pages
+      <details className="group rounded-xl border border-border bg-card">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-text-primary marker:content-none sm:px-5">
+          <span>What will be generated?</span>
+          <ChevronDown className="h-4 w-4 shrink-0 text-text-muted transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-border px-4 py-4 sm:px-5">
+          <p className="mb-3 text-xs leading-5 text-text-secondary">
+            You can review and edit every suggestion before the quiz is created.
           </p>
-          <p className="mt-0.5 text-[11px] text-text-secondary">
-            Documents exceeding 5 pages will not be processed. The uploaded document must
-            contain at most 5 pages.
-          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {WHAT_AI_GENERATES.map((item) => (
+              <div key={item} className="flex min-w-0 items-center gap-2 rounded-lg bg-card-hover/60 px-2.5 py-2 text-[11px] font-medium text-text-secondary">
+                <FileCheck className="h-3.5 w-3.5 shrink-0 text-violet-500" />
+                <span className="min-w-0 break-words">{item}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </details>
     </div>
   );
 }

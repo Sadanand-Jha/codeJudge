@@ -9,8 +9,6 @@ import {
   Plus,
   Search,
   X,
-  BookOpen,
-  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { getAvatarUrlById } from "@/config/dicebear";
@@ -21,11 +19,12 @@ import SelectRoomsModal from "@/components/quiz/creator/settings/audience/Select
 import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateRoomModal";
 import { fetchMyRooms, getRoom } from "@/services/rooms";
 import { getQuizParticipants } from "@/services/quiz";
+import { StudioStepHeader, StudioStepLayout } from "../primitives";
 
-const MODE_OPTIONS: Array<{ id: "public" | "private" | "classroom"; label: string; desc: string }> = [
-  { id: "public", label: "Public", desc: "Anyone can discover and attempt the quiz." },
-  { id: "private", label: "Private", desc: "Only people with the link can attempt." },
-  { id: "classroom", label: "Rooms", desc: "Restricted to students in your selected rooms." },
+const MODE_OPTIONS: Array<{ id: "public" | "private" | "classroom"; label: string }> = [
+  { id: "public", label: "Public" },
+  { id: "private", label: "Private" },
+  { id: "classroom", label: "Rooms" },
 ];
 
 export function AudienceStep() {
@@ -214,68 +213,28 @@ export function AudienceStep() {
     updateAudience({ roomIds: a.roomIds.filter((id) => id !== roomId) });
 
   return (
-    <div className="flex w-full max-w-full min-w-0 flex-col overflow-x-hidden bg-background sm:bg-background bg-zinc-50 lg:bg-background">
-    <div className="w-full max-w-full min-w-0">
-    <div className="mx-auto w-full max-w-4xl min-w-0 space-y-4 sm:space-y-8 px-3 sm:px-4 py-4 sm:py-6 overflow-x-hidden">
+    <StudioStepLayout>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         className="min-w-0"
       >
-        <h2 className="break-words text-base sm:text-lg font-semibold text-text-primary">Audience & Access</h2>
-        <p className="mt-1 break-words text-xs text-text-secondary">
-          Control who can register and attempt your quiz.
-        </p>
-      </motion.div>
-
-      {/* Access modes tip */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.08 }}
-        className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 sm:border-border bg-white sm:bg-card p-3 sm:p-5"
-      >
-        <div className="flex min-w-0 items-center gap-2 mb-3">
-          <Users className="h-4 w-4 shrink-0 text-pink-500" />
-          <h4 className="min-w-0 break-words text-xs font-semibold uppercase tracking-wider text-text-secondary">
-            How audience &amp; access works
-          </h4>
-        </div>
-        <p className="break-words text-xs text-text-secondary leading-relaxed mb-4">
-          Choose who can discover, register, and attempt your quiz. Each mode
-          offers a different level of visibility and restriction.
-        </p>
-        <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
-          <AccessTip
-            icon={<Users className="h-3.5 w-3.5" />}
-            label="Public"
-            description="Anyone on the platform can find and attempt the quiz. Best for open contests, practice sets, and widespread assessments."
-          />
-          <AccessTip
-            icon={<Shield className="h-3.5 w-3.5" />}
-            label="Private"
-            description="Only people with the link or access code can attempt. Ideal for invite-only tests, interviews, and internal evaluations."
-          />
-          <AccessTip
-            icon={<BookOpen className="h-3.5 w-3.5" />}
-            label="Rooms"
-            description="Restricted to students in your selected rooms. Perfect for classroom quizzes, section-wise exams, and batch assessments."
-          />
-        </div>
+        <StudioStepHeader title="Audience & Access" />
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.15 }}
-        className="grid w-full min-w-0 gap-3 sm:grid-cols-3"
+        className="grid w-full min-w-0 grid-cols-2 gap-2.5 sm:grid-cols-3"
       >
         {MODE_OPTIONS.map((m) => (
           <label
             key={m.id}
             className={cn(
-              "flex flex-col gap-1 rounded-xl border p-4 text-left transition-all",
+              "flex min-h-16 flex-col justify-center gap-1 rounded-xl border bg-card p-3 text-left transition-all sm:p-4",
+              m.id === "classroom" && "col-span-2 sm:col-span-1",
               a.mode === m.id
                 ? "border-pink-500/40 bg-pink-500/[0.06] dark:border-pink-400/70 dark:bg-pink-500/10"
                 : "border-border hover:border-border-hover dark:hover:border-white/25"
@@ -289,13 +248,12 @@ export function AudienceStep() {
               onChange={() => updateAudience({ mode: m.id })}
             />
             <span className="text-sm font-bold text-text-primary">{m.label}</span>
-            <span className="text-xs text-text-secondary">{m.desc}</span>
           </label>
         ))}
       </motion.div>
 
       {a.mode === "classroom" && (
-        <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 sm:border-border bg-white sm:bg-card p-3 sm:p-5 space-y-3 sm:space-y-4">
+        <div className="w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-5 space-y-3 sm:space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div className="min-w-0">
               <h3 className="break-words text-xs font-semibold uppercase tracking-wider text-text-secondary">
@@ -435,9 +393,7 @@ export function AudienceStep() {
           toast.success({ title: "Room created and added to audience" });
         }}
       />
-    </div>
-    </div>
-    </div>
+    </StudioStepLayout>
   );
 }
 
@@ -692,28 +648,6 @@ function AllStudentsPanel({
           })}
         </ul>
       )}
-    </div>
-  );
-}
-
-function AccessTip({
-  icon,
-  label,
-  description,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-card-hover p-3">
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-pink-500">{icon}</span>
-        <p className="text-xs font-semibold text-text-primary">{label}</p>
-      </div>
-      <p className="text-[11px] text-text-secondary leading-relaxed">
-        {description}
-      </p>
     </div>
   );
 }

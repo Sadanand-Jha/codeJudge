@@ -1,11 +1,7 @@
-import { CreatorDashboard } from "@/components/creator/workspace/CreatorDashboard";
-import { demoStateFromParams } from "@/lib/demoState";
-
-export default async function CreatorDashboardRoute({
-  searchParams,
-}: {
-  searchParams: Promise<{ state?: string }>;
-}) {
-  const { state } = await searchParams;
-  return <CreatorDashboard demoState={demoStateFromParams(state)} />;
+export default function CreatorDashboardRoute() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <p className="text-lg font-semibold text-text-secondary">Work in progress</p>
+    </div>
+  );
 }

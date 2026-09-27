@@ -207,15 +207,15 @@ export function Panel({
       )}
     >
       {(title || action) && (
-        <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5">
-          <div>
+        <div className="flex flex-col items-start justify-between gap-3 px-4 pt-4 sm:flex-row sm:px-5 sm:pt-5">
+          <div className="min-w-0">
             {title && <h3 className="text-sm font-semibold text-text-primary">{title}</h3>}
             {subtitle && <p className="mt-0.5 text-xs text-text-secondary">{subtitle}</p>}
           </div>
-          {action}
+          {action && <div className="w-full min-w-0 sm:w-auto">{action}</div>}
         </div>
       )}
-      <div className={cn(noPadding ? "" : "p-5", (title || action) && "pt-0", bodyClassName)}>
+      <div className={cn(noPadding ? "" : "p-4 sm:p-5", (title || action) && "pt-0", bodyClassName)}>
         {children}
       </div>
     </section>
@@ -255,23 +255,23 @@ export function StatCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="group relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-[0_1px_3px_rgba(17,24,39,0.04),0_4px_12px_rgba(17,24,39,0.03)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.25)] transition-all duration-200 hover:border-[#EC4899]/15 hover:shadow-[0_4px_16px_rgba(17,24,39,0.06)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
+      className="group relative overflow-hidden rounded-2xl border border-border bg-card p-3.5 sm:p-5 shadow-[0_1px_3px_rgba(17,24,39,0.04),0_4px_12px_rgba(17,24,39,0.03)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.25)] transition-all duration-200 hover:border-[#EC4899]/15 hover:shadow-[0_4px_16px_rgba(17,24,39,0.06)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
     >
       <span className={cn("absolute left-0 top-0 h-full w-[3px] rounded-full", ACCENT_DOT[accent])} />
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">{label}</p>
+        <p className="min-w-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-text-muted sm:text-[11px] sm:tracking-widest">{label}</p>
         {icon && (
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#FCE7F3] dark:border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-text-muted group-hover:text-[#EC4899] transition-colors">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-[#FCE7F3] dark:border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-text-muted group-hover:text-[#EC4899] transition-colors sm:h-7 sm:w-7">
             {icon}
           </div>
         )}
       </div>
-      <p className="mt-2.5 text-[26px] font-extrabold leading-none tracking-tight text-text-primary tabular-nums">
+      <p className="mt-2.5 text-xl font-extrabold leading-none tracking-tight text-text-primary tabular-nums sm:text-[26px]">
         {display ?? formatINR(value)}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {typeof delta === "number" && <DeltaPill pct={delta} />}
-        {hint && <span className="text-[11px] font-medium text-text-muted">{hint}</span>}
+        {hint && <span className="text-[10px] font-medium leading-4 text-text-muted sm:text-[11px]">{hint}</span>}
       </div>
     </motion.div>
   );
@@ -337,14 +337,14 @@ export function SegmentedControl<T extends string>({
 }) {
   const layoutId = useId();
   return (
-    <div className={cn("inline-flex items-center gap-0.5 rounded-xl border border-border bg-muted dark:bg-white/[0.04] p-0.5", className)}>
+    <div className={cn("flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-muted p-0.5 hide-scrollbar dark:bg-white/[0.04] sm:inline-flex", className)}>
       {options.map((opt) => (
         <button
           key={opt.id}
           type="button"
           onClick={() => onChange(opt.id)}
           className={cn(
-            "relative rounded-lg font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#EC4899]/20",
+            "relative shrink-0 rounded-lg font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#EC4899]/20",
             size === "sm" ? "px-2.5 py-1 text-[11px]" : "px-3.5 py-1.5 text-xs",
             value === opt.id ? "text-text-primary" : "text-text-muted hover:text-[#EC4899]"
           )}
@@ -473,7 +473,7 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function StatCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-5">
       <Skeleton className="h-3 w-24" />
       <Skeleton className="mt-3 h-7 w-32" />
       <Skeleton className="mt-3 h-4 w-28" />
@@ -581,7 +581,7 @@ export function PageHeader({
   badge?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-start sm:gap-4">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2.5">
           <h1 className="text-[22px] font-extrabold tracking-tight text-text-primary sm:text-2xl">{title}</h1>
@@ -589,7 +589,7 @@ export function PageHeader({
         </div>
         {subtitle && <p className="mt-1 text-[13px] text-text-secondary">{subtitle}</p>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
     </div>
   );
 }

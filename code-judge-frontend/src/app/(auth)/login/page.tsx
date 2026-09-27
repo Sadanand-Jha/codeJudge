@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated) {
-      router.replace("/");
+      router.replace("/quiz");
     }
   }, [hasHydrated, isAuthenticated, router]);
 
@@ -52,7 +52,7 @@ export default function LoginPage() {
         // token, so store a sentinel to keep the session local.
         setAuth(token || "session", user);
         toast.success("Logged in successfully");
-        router.push("/");
+        router.push("/quiz");
       } else {
         toast.error(res.data?.message || "Login failed");
       }

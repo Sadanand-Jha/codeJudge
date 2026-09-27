@@ -18,7 +18,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated) {
-      router.replace("/");
+      router.replace("/quiz");
     }
   }, [hasHydrated, isAuthenticated, router]);
 

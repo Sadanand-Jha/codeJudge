@@ -8,7 +8,7 @@ export default function Footer() {
           <div className="flex items-center gap-3">
             <span className="font-medium text-white">ByteClash</span>
             <span className="text-[#3F3F46]">|</span>
-            <Link href="/" className="hover:text-[#7C3AED] transition-colors">Home</Link>
+            <Link href="/quiz" className="hover:text-[#7C3AED] transition-colors">Quizzes</Link>
             <Link href="/problems" className="hover:text-[#7C3AED] transition-colors">Problemset</Link>
             <Link href="/contests" className="hover:text-[#7C3AED] transition-colors">Contests</Link>
             <Link href="/about" className="hover:text-[#7C3AED] transition-colors">About</Link>

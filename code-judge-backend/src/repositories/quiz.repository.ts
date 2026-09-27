@@ -886,6 +886,14 @@ export class QuizRepository {
     return result.rows.length > 0 ? result.rows[0] : null;
   }
 
+  async getQuizAttemptById(attemptId: number): Promise<any | null> {
+    const result = await pool.query(
+      "SELECT * FROM quiz_attempt WHERE id = $1 LIMIT 1",
+      [attemptId]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  }
+
   async createQuizAttempt(data: {
     userId: number;
     quizId: number;
@@ -1248,6 +1256,7 @@ export class QuizRepository {
 
     const q = quiz.rows[0];
     const status = q.status?.toLowerCase();
+    if (status !== "live") return { allowed: false, reason: "Quiz is not live" };
     if (status === "ended") return { allowed: false, reason: "Quiz has ended" };
 
     const now = new Date();
@@ -1277,7 +1286,7 @@ export class QuizRepository {
     return { allowed: true };
   }
 
-  async checkQuizAccessForRegistration(quizId: string): Promise<{ allowed: boolean; reason?: string }> {
+  async checkQuizAccessForRegistration(quizId: string, userId?: number): Promise<{ allowed: boolean; reason?: string }> {
     const quiz = await pool.query(
       `SELECT q.*, qs.name AS status FROM quiz q LEFT JOIN quiz_status qs ON qs.id = q.quiz_status WHERE q.id = $1`,
       [quizId]
@@ -1285,10 +1294,27 @@ export class QuizRepository {
     if (!quiz.rows.length) return { allowed: false, reason: "Quiz not found" };
     const q = quiz.rows[0];
     const status = q.status?.toLowerCase();
+    if (!status || status === "draft") return { allowed: false, reason: "Quiz is not available" };
     if (status === "ended") return { allowed: false, reason: "Quiz has ended" };
     const now = new Date();
-    if (q.starttime && new Date(q.starttime) > now) return { allowed: false, reason: "Quiz has not started yet" };
     if (q.endtime && new Date(q.endtime) < now) return { allowed: false, reason: "Quiz has ended" };
+
+    // An empty participant list means open access. Once a creator configures
+    // an audience, only explicitly allowed users may register.
+    if (userId) {
+      const audience = await pool.query(
+        `SELECT
+           COUNT(*)::int AS configured,
+           COUNT(*) FILTER (WHERE user_id = $2 AND status = 1)::int AS allowed
+         FROM quiz_participants
+         WHERE quiz_id = $1`,
+        [quizId, userId]
+      );
+      const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
+      if (Number(configured) > 0 && Number(allowed) === 0) {
+        return { allowed: false, reason: "You are not invited to this quiz" };
+      }
+    }
     return { allowed: true };
   }
 

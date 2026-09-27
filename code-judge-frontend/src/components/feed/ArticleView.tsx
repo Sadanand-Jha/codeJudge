@@ -121,7 +121,7 @@ export default function ArticleView({
         {/* ===== Compact article nav row ===== */}
         <div className="flex items-center justify-between">
           <Link
-            href="/"
+            href="/quiz"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted transition-colors hover:text-[#7C3AED] dark:hover:text-[#A78BFA]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />

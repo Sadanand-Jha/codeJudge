@@ -136,11 +136,12 @@ export const quizStatusSchema = z.object({
  * Schema for joining a quiz.
  */
 export const joinQuizSchema = z.object({
-  code: z.string().trim().min(16, "Invalid quiz code").optional(),
-  quizId: z.number().int().positive().optional(),
-}).refine((data) => data.code || data.quizId, {
-  message: "Either code or quizId is required",
-});
+  code: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{16}$/, "Quiz code must contain exactly 16 letters")
+    .transform((value) => value.toUpperCase()),
+}).strict();
 
 /**
  * Schema for quiz registration.

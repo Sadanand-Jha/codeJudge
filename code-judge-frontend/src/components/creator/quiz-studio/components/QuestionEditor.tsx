@@ -408,7 +408,7 @@ export function QuestionEditor() {
                         setDraggedOpt(null);
                       }}
                       className={cn(
-                        "flex items-center gap-3 rounded-xl border px-3 py-3",
+                        "flex items-start gap-3 rounded-xl border px-3 py-3",
                         o.isCorrect ? "border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-border bg-card hover:border-border"
                       )}
                     >
@@ -419,23 +419,24 @@ export function QuestionEditor() {
                           else update({ options: q.options.map((x) => (x.id === o.id ? { ...x, isCorrect: !x.isCorrect } : x)) });
                         }}
                         className={cn(
-                          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2",
+                          "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2",
                           o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card"
                         )}
                       >
                         {o.isCorrect && <Check className="h-3.5 w-3.5" />}
                       </button>
-                      <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card-hover text-text-primary")}>
+                      <span className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card-hover text-text-primary")}>
                         {o.label}
                       </span>
-                      <input
+                      <textarea
                         value={o.content}
                         onChange={(e) => { if (e.target.value.length <= 250) update({ options: q.options.map((x) => (x.id === o.id ? { ...x, content: e.target.value } : x)) }); }}
                         placeholder={`Option ${o.label}`}
                         maxLength={250}
-                        className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
+                        rows={Math.max(1, Math.ceil(Math.max(o.content.length, 1) / 48))}
+                        className="min-h-7 min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-1 text-sm leading-5 text-text-primary placeholder:text-text-muted focus:outline-none"
                       />
-                      <div className="flex shrink-0 items-center gap-0.5 sm:flex">
+                      <div className="mt-0.5 flex shrink-0 items-center gap-0.5 sm:flex">
                         <button onClick={() => openImageAssistant(o.id)} className="rounded p-1.5 text-text-muted hover:bg-card-hover">
                           <ImageIcon className="h-3.5 w-3.5" />
                         </button>

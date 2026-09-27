@@ -1,20 +1,186 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ChevronLeft, ChevronRight, Check, Loader2, Rocket } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Check, HelpCircle, Loader2, Rocket, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio, useSaveStatus, isQuestionValidationError } from "./StudioProvider";
 import { toast } from "@/lib/toast";
 
+const STEP_HELP: Record<string, { title: string; intro: string; items: string[] }> = {
+  setup: {
+    title: "Quiz setup",
+    intro: "Add the basic details students will see before starting the quiz.",
+    items: [
+      "Enter a clear title and select the closest subject and exam.",
+      "Duration is the total attempt time. Passing marks cannot exceed total question marks.",
+      "You can start manually, import questions, duplicate a quiz, or use AI generation.",
+    ],
+  },
+  questions: {
+    title: "Questions",
+    intro: "Build the question paper and mark the correct answers.",
+    items: [
+      "Add a question, choose its type, then enter the question and answer options.",
+      "For single choice, select one correct answer. Multiple choice can have several correct answers.",
+      "Use question settings for marks, difficulty, and time. Save before leaving this step.",
+      "The question list lets you reorder, duplicate, search, or remove questions.",
+    ],
+  },
+  gameMechanics: {
+    title: "Game mechanics",
+    intro: "Optional rules can make an attempt more interactive.",
+    items: [
+      "Enable only the mechanics you want students to use.",
+      "Some mechanics require multiple-choice questions or a timed quiz.",
+      "Leave every option off for a standard quiz experience.",
+    ],
+  },
+  settings: {
+    title: "Quiz settings",
+    intro: "Control timing, question order, results, and attempt security.",
+    items: [
+      "Choose when the quiz starts and ends, or keep manual control.",
+      "Randomization changes question or option order for each student.",
+      "Security options help discourage tab switching, copying, and leaving full screen.",
+    ],
+  },
+  audience: {
+    title: "Audience and access",
+    intro: "Choose who is allowed to find and attempt the quiz.",
+    items: [
+      "Public quizzes can be discovered by anyone.",
+      "Private quizzes require the link or access code.",
+      "Rooms restrict access to students from the rooms you select.",
+    ],
+  },
+  registration: {
+    title: "Registration",
+    intro: "Choose what information participants must provide.",
+    items: [
+      "Add only the fields you need and mark required fields clearly.",
+      "Reorder fields to control how the registration form appears.",
+      "Platform identity and account contact information remain protected.",
+    ],
+  },
+  pricing: {
+    title: "Pricing",
+    intro: "Choose whether students can join for free or must pay.",
+    items: [
+      "Free quizzes have no enrollment charge.",
+      "Paid quiz support is marked as coming soon where it is unavailable.",
+      "Any fee and earnings preview is an estimate until payment settings are configured.",
+    ],
+  },
+  branding: {
+    title: "Branding",
+    intro: "Branding controls the visual identity of the student experience.",
+    items: [
+      "Logo, colors, and certificate options will appear here when available.",
+      "Skipping this step does not prevent saving or publishing a quiz.",
+    ],
+  },
+  review: {
+    title: "Review",
+    intro: "Check the quiz before publishing or finishing your edit.",
+    items: [
+      "Errors must be fixed before publishing.",
+      "Warnings are recommendations and do not block publishing.",
+      "Use Fix beside an item to return directly to the relevant step.",
+    ],
+  },
+  publish: {
+    title: "Publish",
+    intro: "Confirm the final details and make the quiz available.",
+    items: [
+      "Review the title, question count, duration, audience, and schedule.",
+      "Starting the quiz makes it live for eligible participants.",
+      "Use the copy control to share the quiz code when needed.",
+    ],
+  },
+};
+
+function StudioHelpButton() {
+  const { state } = useStudio();
+  const [open, setOpen] = useState(false);
+  const help = STEP_HELP[state.step] ?? STEP_HELP.setup;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-xs font-semibold text-text-primary hover:bg-card-hover sm:px-3"
+        aria-label="Open help"
+      >
+        <HelpCircle className="h-4 w-4" />
+        <span className="hidden sm:inline">Help</span>
+      </button>
+
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-stretch sm:justify-end">
+                <motion.button
+                  type="button"
+                  aria-label="Close help"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
+                  onClick={() => setOpen(false)}
+                />
+                <motion.aside
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", stiffness: 360, damping: 34 }}
+                  className="relative z-10 max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border border-border bg-background p-5 shadow-2xl sm:h-full sm:max-h-none sm:max-w-sm sm:rounded-none sm:rounded-l-2xl sm:p-6"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-pink-500">Help</p>
+                      <h2 className="mt-1 text-lg font-bold text-text-primary">{help.title}</h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setOpen(false)}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                      aria-label="Close help"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <p className="mt-4 text-sm leading-relaxed text-text-secondary">{help.intro}</p>
+                  <ol className="mt-5 space-y-3">
+                    {help.items.map((item, index) => (
+                      <li key={item} className="flex gap-3 text-sm leading-relaxed text-text-secondary">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pink-500/10 text-[11px] font-bold text-pink-500">
+                          {index + 1}
+                        </span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </motion.aside>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
+    </>
+  );
+}
+
 export function StudioHeader() {
   const router = useRouter();
-  const { state, updateInfo, setActiveQuestion, nextStep, saveToServer, stepIndex, steps, editMode } = useStudio();
+  const { state, updateInfo, nextStep, saveToServer, stepIndex, steps, editMode } = useStudio();
   const { status, lastSaved } = useSaveStatus();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(state.info.title);
-  const [savingDraft, setSavingDraft] = useState(false);
   const [continuing, setContinuing] = useState(false);
   const [saving, setSaving] = useState(false);
   const isLast = stepIndex === steps.length - 1;
@@ -47,11 +213,11 @@ export function StudioHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-[56px] w-full max-w-full items-center gap-1.5 border-b border-zinc-200 bg-white px-2 sm:h-14 sm:gap-3 sm:border-border sm:bg-background sm:px-4 min-w-0 max-w-[100vw] overflow-hidden">
-      <button onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 transition-colors sm:h-8 sm:rounded-lg sm:border-border sm:bg-card sm:text-text-secondary sm:h-9 sm:w-9 sm:rounded-xl">
+    <header className="sticky top-0 z-20 flex min-h-[56px] h-auto w-full max-w-full flex-wrap items-center gap-2 border-b border-border bg-background px-2 py-2 sm:h-14 sm:flex-nowrap sm:gap-3 sm:px-4 sm:py-0 min-w-0 max-w-[100vw]">
+      <button onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors sm:h-9 sm:w-9 sm:rounded-xl">
         <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </button>
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
         {editing ? (
           <input
             autoFocus
@@ -62,10 +228,10 @@ export function StudioHeader() {
               if (e.key === "Enter") commit();
               if (e.key === "Escape") setEditing(false);
             }}
-            className="min-w-0 max-w-[42vw] sm:min-w-[120px] sm:max-w-[40vw] flex-1 rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-sm font-semibold text-zinc-900 outline-none sm:rounded-xl sm:px-3 sm:py-2"
+            className="min-w-0 flex-1 rounded-lg border border-input-border bg-input-bg px-2 py-1.5 text-sm font-semibold text-text-primary outline-none sm:min-w-[120px] sm:max-w-[40vw] sm:rounded-xl sm:px-3 sm:py-2"
           />
         ) : (
-          <button onClick={() => setEditing(true)} className="truncate text-left font-['Inter'] text-[13px] sm:text-[15px] font-semibold text-zinc-900 min-w-0 max-w-[32vw] xs:max-w-[38vw] sm:max-w-none">
+          <button onClick={() => setEditing(true)} className="min-w-0 flex-1 whitespace-normal break-words text-left font-['Inter'] text-[13px] font-semibold leading-snug text-text-primary sm:max-w-none sm:truncate sm:text-[15px]">
             {label}
           </button>
         )}
@@ -85,7 +251,8 @@ export function StudioHeader() {
         ) : null}
       </div>
 
-      <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+      <div className="ml-auto flex w-full min-w-0 items-center gap-2 border-t border-border/70 pt-2 sm:w-auto sm:shrink-0 sm:justify-end sm:border-0 sm:pt-0">
+        <StudioHelpButton />
         {state.step === "questions" && (
           <div className="hidden items-center gap-2 lg:flex shrink-0">
             <span className="font-['Inter'] text-xs font-medium text-text-secondary whitespace-nowrap">{topCounter}</span>
@@ -95,11 +262,11 @@ export function StudioHeader() {
           </div>
         )}
         {/* Mobile: Save + Continue compact */}
-        <div className="flex min-w-0 shrink-0 items-center gap-1.5 lg:hidden">
+        <div className="flex min-w-0 flex-1 items-center gap-2 lg:hidden">
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 text-xs font-semibold text-zinc-700 disabled:opacity-50 sm:h-9 sm:rounded-xl sm:px-3"
+            className="inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary disabled:opacity-50 sm:rounded-xl"
           >
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
           </button>
@@ -120,7 +287,7 @@ export function StudioHeader() {
               }
             }}
             disabled={continuing}
-            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-[#E91E63] px-3 text-xs font-bold text-white shadow-sm disabled:opacity-60 sm:h-9 sm:rounded-xl sm:px-4"
+            className="inline-flex h-9 min-w-0 flex-[1.25] items-center justify-center gap-1 rounded-lg bg-[#E91E63] px-3 text-xs font-bold text-white shadow-sm disabled:opacity-60 sm:rounded-xl sm:px-4"
           >
             {continuing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>Continue</>}
           </button>
@@ -147,109 +314,87 @@ export function StudioHeader() {
 }
 
 export function StudioStepper() {
-  const { state, goToStep, stepIndex, steps, editMode } = useStudio();
-  const labels = ["Setup", "Questions", "Game Mechanics", "Settings", "Audience", "Registration", "Pricing", "Branding", "Review", "Publish"];
-  const display = steps.map((s, i) => ({ id: s.id, label: labels[i] ?? s.label }));
+  const { state, goToStep, stepIndex, steps } = useStudio();
+  const [stepMenuOpen, setStepMenuOpen] = useState(false);
+  const stepMenuRef = useRef<HTMLDivElement>(null);
+  const display = steps;
+  const current = display[stepIndex] ?? display[0];
+  const progress = ((stepIndex + 1) / Math.max(display.length, 1)) * 100;
 
-  // Mobile simplified flow — only essential steps, no gamification
-  const MOBILE_STEPS: Array<{ id: string; label: string }> = [
-    { id: "questions", label: "Questions" },
-    { id: "settings", label: "Settings" },
-    { id: "audience", label: "Audience" },
-    { id: "review", label: "Review" },
-    ...(!editMode ? [{ id: "publish", label: "Publish" }] : []),
-  ];
-  const mobileIndex = MOBILE_STEPS.findIndex((s) => s.id === state.step);
-  // For excluded steps (setup, gameMechanics, etc.) map to nearest: setup -> Questions, gameMechanics -> Settings
-  const effectiveMobileIndex = (() => {
-    if (mobileIndex !== -1) return mobileIndex;
-    if (state.step === "setup") return 0;
-    if (state.step === "gameMechanics") return 1;
-    if (state.step === "registration" || state.step === "pricing" || state.step === "branding") return 2;
-    return -1;
-  })();
+  useEffect(() => {
+    if (!stepMenuOpen) return;
+    const close = (event: MouseEvent) => {
+      if (!stepMenuRef.current?.contains(event.target as Node)) setStepMenuOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [stepMenuOpen]);
 
   return (
-    <>
-      {/* Desktop: full 10-step timeline */}
-      <div className="hidden lg:block shrink-0 border-b border-border bg-background overflow-hidden">
-        <nav
-          className="flex items-center gap-2 overflow-x-auto px-2 sm:px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x"
-          aria-label="Quiz creation steps"
-        >
-          {display.map((step, i) => {
-            const active = state.step === step.id;
-            const done = i < stepIndex;
-            const num = i + 1;
-            return (
-              <div key={step.id} className="flex shrink-0 items-center">
-                <button
-                  type="button"
-                  onClick={() => goToStep(step.id as any)}
-                  className={cn(
-                    "flex items-center gap-2 py-3 text-xs whitespace-nowrap",
-                    active ? "font-semibold text-[#E91E63]" : done ? "font-medium text-emerald-600 dark:text-emerald-400" : "font-medium text-text-muted"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
-                      active
-                        ? "bg-[#E91E63] text-white"
-                        : done
-                          ? "bg-emerald-500 text-white"
-                          : "bg-card-hover text-text-secondary border border-border"
-                    )}
-                  >
-                    {done ? <Check className="h-3 w-3" /> : num}
-                  </span>
-                  <span>{step.label}</span>
-                </button>
-                {i < display.length - 1 && <span className="mx-2 h-px w-8 bg-border" />}
-                {active && <span className="absolute" />}
-              </div>
-            );
-          })}
-        </nav>
-        <div className="relative h-0">
-          <div className="absolute left-0 top-0 h-0.5 w-full bg-transparent" />
-        </div>
-      </div>
-
-      {/* Mobile: compact single-step (Option A) — no horizontal overflow */}
-      <div className="lg:hidden shrink-0 border-b border-zinc-200 bg-white min-w-0 w-full max-w-full overflow-hidden">
-        <div className="px-4 pt-3 pb-3 space-y-2 min-w-0">
-          <div className="flex items-center justify-between min-w-0 gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-400">
-              {effectiveMobileIndex >= 0 ? `STEP ${effectiveMobileIndex + 1} OF ${MOBILE_STEPS.length}` : "STEP"}
+    <div className="shrink-0 border-b border-border bg-background px-3 py-2.5 sm:px-4">
+      <div className="mx-auto flex w-full max-w-5xl items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+              Step {stepIndex + 1} of {display.length}
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
-            <div
-              className="h-full rounded-full bg-[#E91E63] transition-all duration-300"
-              style={{ width: `${effectiveMobileIndex >= 0 ? ((effectiveMobileIndex + 1) / MOBILE_STEPS.length) * 100 : 10}%` }}
-            />
-          </div>
-          <div className="pt-1">
-            {effectiveMobileIndex >= 0 && (
-              <div className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E91E63] text-[11px] font-bold text-white">
-                  {effectiveMobileIndex + 1}
-                </span>
-                <span className="text-sm font-bold text-[#E91E63] break-words">
-                  {MOBILE_STEPS[effectiveMobileIndex].label}
-                </span>
-                {effectiveMobileIndex > 0 && (
-                  <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500">
-                    <Check className="h-3 w-3 text-white" />
-                  </span>
-                )}
-              </div>
-            )}
+          <div className="h-1.5 overflow-hidden rounded-full bg-border">
+            <div className="h-full rounded-full bg-[#E91E63] transition-all" style={{ width: `${progress}%` }} />
           </div>
         </div>
+        <div ref={stepMenuRef} className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setStepMenuOpen((value) => !value)}
+            aria-haspopup="menu"
+            aria-expanded={stepMenuOpen}
+            className={cn(
+              "flex h-9 max-w-[58vw] items-center gap-1.5 rounded-lg border bg-card px-2.5 text-xs font-semibold outline-none sm:max-w-none",
+              stepMenuOpen ? "border-pink-500 text-pink-500" : "border-border text-text-primary"
+            )}
+          >
+            <span className="truncate">{stepIndex + 1}. {current?.label}</span>
+            <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 rotate-90 transition-transform", stepMenuOpen && "-rotate-90")} />
+          </button>
+          <AnimatePresence>
+            {stepMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                transition={{ duration: 0.14 }}
+                role="menu"
+                className="absolute right-0 top-full z-50 mt-1.5 w-52 overflow-hidden rounded-xl border border-border bg-card p-1.5 shadow-2xl"
+              >
+                {display.map((step, index) => {
+                  const active = step.id === state.step;
+                  return (
+                    <button
+                      key={step.id}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        goToStep(step.id);
+                        setStepMenuOpen(false);
+                      }}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium",
+                        active ? "bg-pink-500/10 text-pink-500" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                      )}
+                    >
+                      <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", active ? "bg-pink-500 text-white" : "bg-card-hover text-text-muted")}>{index + 1}</span>
+                      <span className="truncate">{step.label}</span>
+                      {active && <Check className="ml-auto h-3.5 w-3.5" />}
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -413,7 +558,10 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   }, [title]);
 
   return (
-    <div data-studio="true" className="flex flex-1 min-h-0 flex-col bg-zinc-50 lg:bg-background text-foreground font-['Inter'] min-w-0 overflow-hidden">
+    <div
+      data-studio="true"
+      className="flex flex-1 min-h-0 flex-col bg-background text-foreground font-['Inter'] min-w-0 overflow-hidden dark:[&_.bg-white]:bg-card dark:[&_.bg-zinc-50]:bg-background dark:[&_.bg-zinc-100]:bg-card-hover dark:[&_.border-zinc-200]:border-border dark:[&_.border-zinc-300]:border-border-hover dark:[&_.text-zinc-900]:text-text-primary dark:[&_.text-zinc-700]:text-text-secondary dark:[&_.text-zinc-600]:text-text-secondary dark:[&_.text-zinc-500]:text-text-muted"
+    >
       <StudioHeader />
       <StudioStepper />
       <AnimatePresence mode="wait">
@@ -423,7 +571,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          className="flex-1 min-h-0 flex flex-col bg-zinc-50 lg:bg-background min-w-0 overflow-hidden"
+          className="flex-1 min-h-0 flex flex-col bg-background min-w-0 overflow-hidden"
         >
           <div
             className="mx-auto flex flex-1 min-h-0 w-full max-w-none flex-col overflow-y-auto overflow-x-hidden p-2 sm:p-3 min-w-0 lg:w-[96%] xl:w-[95%] max-w-[430px] lg:max-w-none"

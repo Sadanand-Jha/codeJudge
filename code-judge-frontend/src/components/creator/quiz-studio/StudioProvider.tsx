@@ -377,25 +377,9 @@ interface StudioProviderProps {
 }
 
 export function StudioProvider({ children, editMode = false, initialQuizId }: StudioProviderProps) {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 1023px)");
-    setIsMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-
   const steps = useMemo(() => {
-    let result = editMode ? STEPS.filter((s) => s.id !== "publish") : STEPS;
-    if (isMobile) {
-      // Mobile simplified flow: Questions → Settings → Audience → Review → Publish
-      // Hide Setup, Game Mechanics, Registration, Pricing, Branding as per mobile spec
-      const mobileVisible = new Set(["questions", "settings", "audience", "review", "publish"]);
-      result = result.filter((s) => mobileVisible.has(s.id as string));
-    }
-    return result;
-  }, [editMode, isMobile]);
+    return editMode ? STEPS.filter((s) => s.id !== "publish") : STEPS;
+  }, [editMode]);
 
   const [state, setState] = useState<StudioState>(() => {
     if (editMode && initialQuizId) {
@@ -783,7 +767,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
     const regFields = state.registration?.fields ?? [];
     const emptySelect = regFields.find((f) => {
       const def = getRegistrationFieldDef(f.key);
-      return def?.inputType === "select" && (!f.options || f.options.length === 0);
+      const options = f.options ?? def?.options ?? [];
+      return def?.inputType === "select" && options.length === 0;
     });
     if (emptySelect) {
       const label = getRegistrationFieldDef(emptySelect.key)?.label ?? emptySelect.key;
@@ -1247,4 +1232,3 @@ export function useSaveStatus() {
   const { state } = useStudio();
   return { status: state.saveStatus, lastSaved: state.lastSaved };
 }
-

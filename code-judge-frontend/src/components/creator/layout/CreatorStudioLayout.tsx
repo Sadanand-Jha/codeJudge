@@ -78,7 +78,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
               animate={{ x: 0 }}
               exit={{ x: -320 }}
               transition={{ type: "spring", stiffness: 380, damping: 34 }}
-              className="fixed inset-y-0 left-0 z-[80] w-[264px] border-r border-border bg-card shadow-2xl lg:hidden"
+              className="fixed inset-y-0 left-0 z-[80] w-[min(264px,calc(100vw-2rem))] border-r border-border bg-card shadow-2xl lg:hidden"
             >
               <button
                 type="button"
@@ -101,7 +101,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
         {/* Main content */}
         <div data-studio="true" className="flex-1 flex min-h-0 min-w-0">
           <main
-            className="px-3 py-4 sm:px-6 lg:px-8 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
+            className="px-3 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-6 flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
           >
             {children}
           </main>

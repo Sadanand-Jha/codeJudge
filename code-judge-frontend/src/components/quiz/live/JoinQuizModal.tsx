@@ -14,14 +14,14 @@ interface JoinQuizModalProps {
 export function JoinQuizModal({ open, onClose, onJoin }: JoinQuizModalProps) {
   const [raw, setRaw] = useState("");
 
-  const digits = raw.replace(/[^a-z0-9]/gi, "").toUpperCase();
-  const groups = digits.match(/.{1,4}/g) ?? [];
+  const code = raw.replace(/[^a-z]/gi, "").toUpperCase();
+  const groups = code.match(/.{1,4}/g) ?? [];
   const display = groups.join("-");
-  const valid = digits.length === 16;
+  const valid = /^[A-Z]{16}$/.test(code);
 
   const handleSubmit = () => {
     if (!valid) return;
-    onJoin(digits);
+    onJoin(code);
   };
 
   return (
@@ -75,13 +75,16 @@ export function JoinQuizModal({ open, onClose, onJoin }: JoinQuizModalProps) {
                   maxLength={19}
                   value={display}
                   onChange={(e) => setRaw(e.target.value)}
-                  placeholder="ABCD-1234-EFGH-5678"
-                  className="join-quiz-input w-full text-center text-xl font-mono font-bold tracking-widest px-4 py-3 rounded-xl border border-border bg-input-bg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#EC4899]/30 transition-colors"
+                  placeholder="ABCD-EFGH-IJKL-MNOP"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="join-quiz-input w-full rounded-xl border border-border bg-input-bg px-2 py-3 text-center font-mono text-lg font-bold tracking-[0.08em] text-foreground placeholder:text-muted-foreground focus:border-[#EC4899]/30 focus:outline-none sm:px-4 sm:text-xl sm:tracking-widest"
                 />
 
-                {!valid && digits.length > 0 && (
+                {!valid && code.length > 0 && (
                   <p className="join-quiz-error text-[10px] text-[#fd079f] mt-2">
-                    Enter the full 16-character code.
+                    Enter the full 16-letter code.
                   </p>
                 )}
 

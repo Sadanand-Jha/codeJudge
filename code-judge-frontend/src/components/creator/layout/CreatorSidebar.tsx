@@ -15,7 +15,6 @@ import {
   TrendingUp,
   ArrowLeftRight,
   ArrowLeft,
-  Home,
   Banknote,
   RotateCcw,
   Scale,
@@ -191,10 +190,12 @@ function NavRow({
   item,
   pathname,
   showLabels,
+  onNavigate,
 }: {
   item: CreatorNavItem;
   pathname: string;
   showLabels: boolean;
+  onNavigate?: () => void;
 }) {
   const isActive = item.match
     ? item.match(pathname)
@@ -207,6 +208,7 @@ function NavRow({
   return (
     <Link
       href={item.href}
+      onClick={onNavigate}
       aria-label={showLabels ? undefined : item.label}
       title={showLabels ? undefined : item.label}
       className={cn(
@@ -300,7 +302,13 @@ export function CreatorSidebar({
             </p>
             <div className="space-y-0.5">
               {group.items.map((item) => (
-                <NavRow key={item.href} item={item} pathname={pathname} showLabels={showLabels} />
+                <NavRow
+                  key={item.href}
+                  item={item}
+                  pathname={pathname}
+                  showLabels={showLabels}
+                  onNavigate={onNavigate}
+                />
               ))}
             </div>
           </div>
@@ -334,7 +342,7 @@ export function CreatorSidebar({
         {mobile && (
           <div className="mt-3 border-t border-border pt-3">
             <Link
-              href="/dashboard"
+              href="/quiz"
               onClick={onNavigate}
               className="flex cursor-pointer items-center gap-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 py-2.5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
             >

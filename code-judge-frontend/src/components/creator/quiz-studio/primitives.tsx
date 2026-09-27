@@ -6,6 +6,43 @@ import type { ComponentProps } from "react";
 
 type Icon = ComponentType<{ className?: string }>;
 
+export function StudioStepLayout({
+  children,
+  width = "default",
+  className,
+}: {
+  children: React.ReactNode;
+  width?: "compact" | "default" | "wide";
+  className?: string;
+}) {
+  const widths = {
+    compact: "max-w-2xl",
+    default: "max-w-4xl",
+    wide: "max-w-6xl",
+  };
+
+  return (
+    <div className={cn("mx-auto w-full min-w-0 space-y-4 py-3 sm:space-y-6 sm:px-4 sm:py-6", widths[width], className)}>
+      {children}
+    </div>
+  );
+}
+
+export function StudioStepHeader({
+  title,
+  actions,
+}: {
+  title: string;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between sm:px-0">
+      <h1 className="min-w-0 text-lg font-bold tracking-tight text-text-primary sm:text-xl">{title}</h1>
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+  );
+}
+
 export function PrimaryButton({
   children,
   icon: Icon,
@@ -16,7 +53,7 @@ export function PrimaryButton({
       type="button"
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 px-4 py-2 text-sm font-semibold text-pink-900 transition-colors duration-150",
+        "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 px-4 py-2 text-sm font-semibold text-pink-900 transition-colors duration-150",
         "hover:bg-pink-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/40",
         "disabled:cursor-not-allowed disabled:opacity-50"
@@ -38,7 +75,7 @@ export function SecondaryButton({
       type="button"
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-colors duration-150",
+        "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-colors duration-150",
         "hover:bg-card-hover",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/30",
         "disabled:cursor-not-allowed disabled:opacity-50"
@@ -233,20 +270,20 @@ export function Card({
   return (
     <section
       className={cn(
-        "rounded-xl border border-border bg-card",
+        "overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
         className
       )}
     >
       {(title || action) && (
         <div className="flex flex-col gap-2 border-b border-border px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:px-5 sm:py-4">
           <div className="min-w-0 flex-1">
-            {title && <h3 className="truncate text-sm font-semibold text-text-primary">{title}</h3>}
+            {title && <h3 className="text-sm font-semibold text-text-primary">{title}</h3>}
             {description && <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary sm:line-clamp-none">{description}</p>}
           </div>
           {action && <div className="shrink-0 self-start">{action}</div>}
         </div>
       )}
-      <div className="px-5 py-4">{children}</div>
+      <div className="px-4 py-4 sm:px-5">{children}</div>
     </section>
   );
 }

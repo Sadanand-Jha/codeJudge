@@ -154,8 +154,7 @@ export function QuizCard({ quiz, onClick, onRegister, onAttempt, compact = false
           </div>
         )}
 
-        <div className="flex items-center justify-between text-[10px] text-text-secondary">
-          <span>by {quiz.creatorName}</span>
+        <div className="flex items-center justify-end text-[10px] text-text-secondary">
           <VisibilityBadge visibility={quiz.visibility} />
         </div>
 

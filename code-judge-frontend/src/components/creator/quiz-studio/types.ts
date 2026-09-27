@@ -264,9 +264,9 @@ export const DEFAULT_REGISTRATION: {
   settings: { ...DEFAULT_REGISTRATION_SETTINGS },
   fields: [
     { id: "rfld_roll", key: "roll_number", required: true },
-    { id: "rfld_branch", key: "branch", required: true },
-    { id: "rfld_year", key: "year", required: true },
-    { id: "rfld_section", key: "section", required: false },
+    { id: "rfld_branch", key: "branch", required: true, options: ["CSE", "ECE", "EEE", "ME", "CE", "IT", "Other"] },
+    { id: "rfld_year", key: "year", required: true, options: ["1st Year", "2nd Year", "3rd Year", "4th Year"] },
+    { id: "rfld_section", key: "section", required: false, options: ["A", "B", "C", "D"] },
   ],
 };
 

@@ -7,6 +7,7 @@ import { useStudio } from "../StudioProvider";
 import type { StudioState } from "../types";
 import { getRegistrationFieldDef } from "../types";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
+import { StudioStepHeader, StudioStepLayout } from "../primitives";
 
 interface ReviewItem {
   id: string;
@@ -25,19 +26,13 @@ export function ReviewStep() {
   const oks = items.filter((i) => i.severity === "ok");
 
   return (
-    <div className="flex flex-col bg-background">
-    <div className="">
-    <div className="mx-auto max-w-4xl px-4 py-6 space-y-8">
+    <StudioStepLayout>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h2 className="text-lg font-semibold text-text-primary">Review & Validation</h2>
-        <p className="mt-1 text-xs text-text-secondary">
-          Publishing is blocked until all errors are resolved. Warnings will not
-          prevent publishing but are recommended to fix.
-        </p>
+        <StudioStepHeader title="Review & Validation" />
       </motion.div>
 
       {errors.length > 0 && (
@@ -54,9 +49,7 @@ export function ReviewStep() {
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.2 }}>
         <ReviewGroup icon={CheckCircle2} title="Checks passed" items={oks} color="emerald" />
       </motion.div>
-    </div>
-    </div>
-    </div>
+    </StudioStepLayout>
   );
 }
 
@@ -85,19 +78,21 @@ function ReviewGroup({
         </span>
       </div>
       <div className="space-y-2">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className={cn(
-              "flex items-start gap-2.5 rounded-lg border p-2.5",
+        {items.map((item) => {
+          const ItemIcon = item.severity === "error" ? AlertOctagon : item.severity === "warning" ? AlertCircle : CheckCircle2;
+          return (
+            <div
+              key={item.id}
+              className={cn(
+              "flex items-start gap-2.5 rounded-xl border p-3",
               item.severity === "error"
                 ? "border-rose-500/20 bg-rose-500/5"
                 : item.severity === "warning"
                 ? "border-amber-500/20 bg-amber-500/5"
                 : "border-emerald-500/20 bg-emerald-500/5"
-            )}
-          >
-            <div className="mt-0.25 h-4 w-4 shrink-0 rounded-full" />
+              )}
+            >
+            <ItemIcon className={cn("mt-0.5 h-4 w-4 shrink-0", item.severity === "error" ? "text-rose-500" : item.severity === "warning" ? "text-amber-500" : "text-emerald-500")} />
             <div className="min-w-0 flex-1">
               <p
                 className={cn(
@@ -121,13 +116,14 @@ function ReviewGroup({
               <button
                 type="button"
                 onClick={item.fix}
-                className="shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] font-bold text-text-secondary hover:text-text-primary"
+                className="shrink-0 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-text-secondary hover:bg-card-hover hover:text-text-primary"
               >
                 Fix
               </button>
             )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -262,7 +258,8 @@ function computeItems(
 
   const emptySelectField = regFields.find((f) => {
     const def = getRegistrationFieldDef(f.key);
-    return def?.inputType === "select" && (!f.options || f.options.length === 0);
+    const options = f.options ?? def?.options ?? [];
+    return def?.inputType === "select" && options.length === 0;
   });
   if (emptySelectField) {
     items.push({

@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Play, Info, Flag } from "lucide-react";
+import { ChevronDown, Play } from "lucide-react";
 import { DateTimeField } from "./DateTimeField";
 import { ConfirmModal } from "./ConfirmModal";
 import {
   toDateString,
   toTimeString,
-  formatTime12,
-  isPast,
   isStartAfterEnd,
 } from "./helpers";
 import type { ScheduleConfig, QuizLifecycle } from "./types";
@@ -25,6 +23,7 @@ export function ScheduleMode({
   validationErrors: string[];
 }) {
   const [startNowOpen, setStartNowOpen] = useState(false);
+  const [showEnd, setShowEnd] = useState(Boolean(schedule.endDate));
 
   const isScheduled = manualStatus === "scheduled";
   const isLive = manualStatus === "live";
@@ -46,12 +45,9 @@ export function ScheduleMode({
 
   return (
     <div className="space-y-5">
-      <div className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-          Start
-        </p>
+      <div className="rounded-xl border border-border bg-card p-3.5 sm:p-4">
         <DateTimeField
-          label="Start date & time"
+          label="Starts on"
           date={schedule.startDate}
           time={schedule.startTime}
           onDateChange={(d) => onChange({ startDate: d })}
@@ -59,54 +55,31 @@ export function ScheduleMode({
           error={validationErrors.find((e) => e.includes("start"))}
           disabled={locked}
         />
-        {schedule.startDate &&
-          schedule.startTime &&
-          !isPast(schedule.startDate, schedule.startTime) && (
-            <div className="flex items-center gap-2 rounded-lg border border-pink-500/20 bg-pink-500/[0.04] px-3 py-2">
-              <Info className="h-3.5 w-3.5 shrink-0 text-pink-500" />
-              <p className="text-[11px] text-pink-600 dark:text-pink-400">
-                Quiz will automatically become available at{" "}
-                {formatTime12(schedule.startTime)}. Participants can begin from
-                that time.
-              </p>
-            </div>
-          )}
       </div>
 
       {/* ===== End date & time ===== */}
-      <div className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-          End
-        </p>
-        <DateTimeField
-          label="End date & time (optional)"
-          date={schedule.endDate}
-          time={schedule.endTime}
-          onDateChange={(d) => onChange({ endDate: d })}
-          onTimeChange={(t) => onChange({ endTime: t })}
-          error={endError}
-          disabled={locked}
-        />
-        {schedule.endDate ? (
-          !endError && (
-            <div className="flex items-center gap-2 rounded-lg border border-pink-500/20 bg-pink-500/[0.04] px-3 py-2">
-              <Flag className="h-3.5 w-3.5 shrink-0 text-pink-500" />
-              <p className="text-[11px] text-pink-600 dark:text-pink-400">
-                The quiz will stop accepting attempts at{" "}
-                {formatTime12(schedule.endTime)} on{" "}
-                {new Date(`${schedule.endDate}T00:00`).toLocaleDateString(
-                  "en-IN",
-                  { timeZone: "Asia/Kolkata", day: "numeric", month: "long" }
-                )}
-                .
-              </p>
-            </div>
-          )
-        ) : (
-          <p className="flex items-center gap-2 text-[11px] text-text-secondary">
-            <span className="h-px w-6 shrink-0 bg-border" />
-            Leave empty to end the quiz manually anytime.
-          </p>
+      <div className="rounded-xl border border-border bg-card p-3.5 sm:p-4">
+        <button
+          type="button"
+          onClick={() => setShowEnd((value) => !value)}
+          className="flex w-full items-center justify-between gap-3 text-left text-xs font-semibold text-text-secondary"
+          aria-expanded={showEnd}
+        >
+          <span>Set an end time <span className="font-normal text-text-muted">(optional)</span></span>
+          <ChevronDown className={`h-4 w-4 transition-transform ${showEnd ? "rotate-180" : ""}`} />
+        </button>
+        {showEnd && (
+          <div className="mt-3">
+            <DateTimeField
+              label="Ends on"
+              date={schedule.endDate}
+              time={schedule.endTime}
+              onDateChange={(d) => onChange({ endDate: d })}
+              onTimeChange={(t) => onChange({ endTime: t })}
+              error={endError}
+              disabled={locked}
+            />
+          </div>
         )}
       </div>
 
@@ -122,10 +95,6 @@ export function ScheduleMode({
               Start Now
             </button>
           </div>
-          <p className="text-[11px] text-text-secondary">
-            If you are ready before the scheduled time, you can override the
-            schedule and start the quiz immediately.
-          </p>
         </div>
       )}
 
