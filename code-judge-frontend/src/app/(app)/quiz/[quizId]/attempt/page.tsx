@@ -1,17 +1,27 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ChevronLeft, ChevronRight, Clock, Loader2, Send, ShieldCheck } from "lucide-react";
+import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
 import {
   getQuizByCode,
-  saveQuizResponse,
   startQuizAttempt,
   submitQuizAttempt,
   type PublicQuizProblem,
   type QuizBasic,
 } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
+import { toast } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiError";
+import {
+  clearQuizAttemptAnswers,
+  readQuizAttemptAnswers,
+  writeQuizAttemptAnswers,
+  type StoredAttemptAnswer,
+} from "@/lib/quizAttemptStorage";
+
+type AnswerValue = StoredAttemptAnswer;
 
 export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = use(params);
@@ -19,14 +29,31 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const code = normalizeQuizCode(quizId.replace(/[^a-zA-Z]/g, ""));
   const [quiz, setQuiz] = useState<QuizBasic | null>(null);
   const [attemptId, setAttemptId] = useState<number | null>(null);
+  const [starting, setStarting] = useState(false);
   const [questions, setQuestions] = useState<PublicQuizProblem[]>([]);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [answers, setAnswers] = useState<Record<number, AnswerValue>>({});
   const [index, setIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const answersRef = useRef<Record<number, AnswerValue>>({});
+  useEffect(() => {
+    answersRef.current = answers;
+    // Persist locally on every change so a refresh/resume never loses answers.
+    // Nothing is sent to the backend until submit.
+    if (attemptId !== null) {
+      try {
+        writeQuizAttemptAnswers(attemptId, answers);
+      } catch {
+        // Storage full or unavailable (private mode) — in-memory answers still work.
+      }
+    }
+  }, [answers, attemptId]);
 
+  // Load quiz details only — the attempt starts when the student enters
+  // exam mode (user gesture, so fullscreen can engage).
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -37,14 +64,9 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       }
       try {
         const details = await getQuizByCode(code);
-        const started = await startQuizAttempt(String(details.id));
-        if (cancelled) return;
-        setQuiz(details);
-        setAttemptId(started.attempt.id);
-        setQuestions((started.problems ?? []) as unknown as PublicQuizProblem[]);
-        setTimeLeft(details.duration ? details.duration * 60 : null);
-      } catch (err: any) {
-        if (!cancelled) setError(err?.response?.data?.message || "Quiz access could not be verified.");
+        if (!cancelled) setQuiz(details);
+      } catch (err: unknown) {
+        if (!cancelled) setError(getApiErrorMessage(err, "Quiz access could not be verified."));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -53,34 +75,103 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     return () => { cancelled = true; };
   }, [code]);
 
+  const submit = useCallback(async (proctor?: { violations?: number; flagged?: boolean; flagReason?: string }) => {
+    const id = attemptId;
+    if (!id || submitting) return;
+    setSubmitting(true);
+    try {
+      await submitQuizAttempt(
+        String(id),
+        Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer })),
+        proctor
+      );
+      // Backend confirmed (200) — answers are safely stored, drop the local copy.
+      try {
+        clearQuizAttemptAnswers(id);
+      } catch {
+        // Ignore storage errors on cleanup.
+      }
+      const resultsAvailable = quiz?.show_results_immediately === true ||
+        String(quiz?.status ?? "").toLowerCase() === "ended" ||
+        Boolean(quiz?.endtime && new Date(quiz.endtime).getTime() <= Date.now());
+      if (resultsAvailable) {
+        router.replace(`/quiz/${code}/results/${id}`);
+      } else {
+        toast.success({
+          title: "Quiz submitted",
+          description: "Your answers are secure. Results will be available after the quiz ends.",
+        });
+        router.replace("/quiz#activity");
+      }
+    } catch (err: unknown) {
+      // Keep the local copy so nothing is lost; the student can retry.
+      setError(getApiErrorMessage(err, "Your attempt could not be submitted. Your answers are saved on this device — try again."));
+      setSubmitting(false);
+    }
+  }, [attemptId, submitting, code, quiz, router]);
+
+  // Exam-cell: after 3 violations the attempt is auto-submitted and flagged.
+  const handleTerminate = useCallback((summary: ViolationSummary) => {
+    setAutoSubmitted(true);
+    if (attemptId !== null) {
+      try { clearQuizAttemptAnswers(attemptId); } catch { /* storage unavailable */ }
+    }
+    void submit({
+      violations: summary.violations,
+      flagged: true,
+      flagReason: `auto-submit after ${summary.violations} violations: ${summary.types.join(", ")}`,
+    });
+  }, [attemptId, submit]);
+
   useEffect(() => {
     if (timeLeft === null || timeLeft <= 0 || submitting) return;
-    const timer = window.setInterval(() => setTimeLeft((value) => value === null ? null : Math.max(0, value - 1)), 1000);
+    const timer = window.setInterval(() => setTimeLeft((value) => {
+      if (value === null) return null;
+      if (value <= 1) {
+        window.setTimeout(() => void submit(), 0);
+        return 0;
+      }
+      return value - 1;
+    }), 1000);
     return () => window.clearInterval(timer);
-  }, [timeLeft, submitting]);
+  }, [timeLeft, submitting, submit]);
 
   const current = questions[index];
   const answered = Object.keys(answers).length;
   const progress = questions.length ? ((index + 1) / questions.length) * 100 : 0;
 
-  const submit = async () => {
-    if (!attemptId || submitting) return;
-    setSubmitting(true);
+  // Starts the backend attempt when the student enters exam mode.
+  const handleEnterExam = useCallback(async () => {
+    if (!quiz || attemptId || starting) return;
+    setStarting(true);
     try {
-      await submitQuizAttempt(
-        String(attemptId),
-        Object.entries(answers).map(([problemId, option]) => ({ problemId: Number(problemId), option }))
-      );
-      router.replace(`/quiz/${code}/results/${attemptId}`);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Your attempt could not be submitted.");
-      setSubmitting(false);
+      const started = await startQuizAttempt(String(quiz.id));
+      const id = started.attempt.id as number;
+      setAttemptId(id);
+      setQuestions(started.problems ?? []);
+      if (started.resumed) {
+        setAnswers(readQuizAttemptAnswers(id));
+      } else {
+        // A genuinely new attempt must always start blank. Create its local
+        // draft immediately so only this attempt can restore these answers.
+        try { writeQuizAttemptAnswers(id, {}); } catch { /* storage unavailable */ }
+        setAnswers({});
+      }
+      setTimeLeft(started.remainingSeconds);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, "Quiz attempt could not be started."));
+    } finally {
+      setStarting(false);
     }
-  };
+  }, [quiz, attemptId, starting]);
 
-  useEffect(() => {
-    if (timeLeft === 0 && attemptId && !submitting) submit();
-  }, [timeLeft, attemptId, submitting]);
+  const persistAnswer = useCallback((problemId: number, answer: AnswerValue) => {
+    setAnswers((previous) => ({ ...previous, [problemId]: answer }));
+  }, []);
+
+  const handleManualSubmit = useCallback(() => {
+    void submit();
+  }, [submit]);
 
   const formattedTime = useMemo(() => {
     if (timeLeft === null) return "No limit";
@@ -90,16 +181,36 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   }, [timeLeft]);
 
   if (loading) return <StatusScreen loading text="Preparing your secure attempt…" />;
-  if (error || !quiz || !current || !attemptId) return <StatusScreen text={error || "This quiz has no available questions."} />;
+  if (error && !quiz) return <StatusScreen text={error} />;
+  if (!quiz) return <StatusScreen text="This quiz could not be loaded." />;
 
   return (
-    <div className="min-h-screen bg-background px-4 py-4 sm:px-6 sm:py-6">
+    <ExamModeShell
+      quizName={quiz.name}
+      progressLabel={questions.length ? `Q ${index + 1} / ${questions.length}` : ""}
+      timeLeft={timeLeft}
+      isLive
+      attemptId={attemptId !== null ? String(attemptId) : null}
+      onEnterExam={() => void handleEnterExam()}
+      onExitPreview={() => router.replace(`/quiz/${code}`)}
+      onTerminate={handleTerminate}
+    >
+      {starting || (!attemptId && !error) ? (
+        <div className="flex h-full items-center justify-center p-6">
+          <StatusScreen loading text="Starting your secure attempt…" />
+        </div>
+      ) : !current || !attemptId ? (
+        <div className="flex h-full items-center justify-center p-6">
+          <StatusScreen text={error || "This quiz has no available questions."} />
+        </div>
+      ) : (
+      <div className="min-h-full bg-background px-4 py-4 sm:px-6 sm:py-6">
       <main className="mx-auto max-w-4xl space-y-4">
         <header className="rounded-2xl border border-border bg-card p-4 sm:p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-300">
-                <ShieldCheck className="h-3.5 w-3.5" /> Secure attempt
+                <ShieldCheck className="h-3.5 w-3.5" /> Secure attempt{autoSubmitted ? " · auto-submitted" : ""}
               </div>
               <h1 className="mt-1 break-words text-base font-bold text-text-primary sm:text-lg">{quiz.name}</h1>
               <p className="mt-1 text-xs text-text-secondary">Question {index + 1} of {questions.length} · {answered} answered</p>
@@ -120,19 +231,14 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {current.options.map((option) => {
-              const selected = answers[current.id] === String(option.id);
+              const selected = answers[current.id]?.option === String(option.id);
               return (
                 <button
                   key={option.id}
                   type="button"
-                  onClick={async () => {
+                  onClick={() => {
                     const value = String(option.id);
-                    setAnswers((previous) => ({ ...previous, [current.id]: value }));
-                    try {
-                      await saveQuizResponse(String(attemptId), { problemId: current.id, option: value });
-                    } catch {
-                      setError("Your answer could not be saved. Check your connection and try again.");
-                    }
+                    persistAnswer(current.id, { option: value });
                   }}
                   className={`min-h-14 rounded-xl border p-3 text-left text-sm leading-5 transition ${selected ? "border-pink-500 bg-pink-500/[0.08] text-text-primary ring-2 ring-pink-500/10" : "border-border bg-background text-text-secondary hover:border-pink-500/30 hover:text-text-primary"}`}
                 >
@@ -141,6 +247,20 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
               );
             })}
           </div>
+          {current.options.length === 0 && (
+            <textarea
+              value={answers[current.id]?.textAnswer ?? ""}
+              onChange={(event) => {
+                const textAnswer = event.target.value;
+                setAnswers((previous) => ({ ...previous, [current.id]: { textAnswer } }));
+              }}
+              onBlur={() => persistAnswer(current.id, { textAnswer: answers[current.id]?.textAnswer ?? "" })}
+              rows={8}
+              maxLength={20000}
+              placeholder="Write your answer here…"
+              className="mt-5 w-full resize-y rounded-xl border border-border bg-background p-4 text-sm leading-6 text-text-primary outline-none focus:border-pink-500"
+            />
+          )}
         </section>
 
         {error && (
@@ -158,13 +278,15 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
               Next <ChevronRight className="h-4 w-4" />
             </button>
           ) : (
-            <button type="button" onClick={submit} disabled={submitting} className="col-start-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-50 sm:col-start-3">
+            <button type="button" onClick={handleManualSubmit} disabled={submitting} className="col-start-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-50 sm:col-start-3">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Submit
             </button>
           )}
         </footer>
       </main>
-    </div>
+      </div>
+      )}
+    </ExamModeShell>
   );
 }
 

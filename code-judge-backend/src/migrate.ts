@@ -29,7 +29,15 @@ const TRACKING_TABLE = 'schema_migration';
 // ──────────────────────────────────────────────
 // 1. Database connection
 // ──────────────────────────────────────────────
-const pool = new Pool();
+const databaseUrl = process.env.DATABASE_URL;
+const isLocalDatabase = databaseUrl?.includes('localhost') || databaseUrl?.includes('127.0.0.1');
+
+// Keep migration connectivity consistent with the application pool. Hosted
+// PostgreSQL providers commonly require TLS while local development does not.
+const pool = new Pool({
+  ...(databaseUrl ? { connectionString: databaseUrl } : {}),
+  ssl: isLocalDatabase ? false : { rejectUnauthorized: false },
+});
 
 // Session timezone → Asia/Kolkata so NOW()/timestamps use IST on every connection
 pool.on("connect", (client) => {
@@ -106,7 +114,7 @@ function computeChecksum(content: string): string {
 // ──────────────────────────────────────────────
 // 5. Main orchestrator
 // ──────────────────────────────────────────────
-async function migrate(dryRun: boolean = false): Promise<void> {
+async function migrate(dryRun: boolean = false, onlyMigration?: string): Promise<void> {
   console.log('\n═══════════════════════════════════════');
   console.log('  byteclash – Database Migration');
   console.log('═══════════════════════════════════════\n');
@@ -146,7 +154,13 @@ async function migrate(dryRun: boolean = false): Promise<void> {
     const applied = await getAppliedMigrations(client);
 
     // Filter out already-applied migrations
-    const pending = files.filter((f) => !applied.has(f));
+    const pending = files.filter((f) =>
+      !applied.has(f) && (!onlyMigration || f === onlyMigration),
+    );
+
+    if (onlyMigration && !files.includes(onlyMigration)) {
+      throw new Error(`Migration not found: ${onlyMigration}`);
+    }
 
     if (pending.length === 0) {
       console.log('  ✓ All migrations are already up to date.\n');
@@ -207,4 +221,6 @@ async function migrate(dryRun: boolean = false): Promise<void> {
 // 6. Entry point
 // ──────────────────────────────────────────────
 const isDryRun = process.argv.includes('--dry-run');
-migrate(isDryRun);
+const onlyArgument = process.argv.find((argument) => argument.startsWith('--only='));
+const onlyMigration = onlyArgument?.slice('--only='.length);
+migrate(isDryRun, onlyMigration);

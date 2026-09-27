@@ -73,7 +73,7 @@ CREATE TABLE quiz_participants (
 
 
 alter table quiz_problem_options
-add column matching_target varchar(250)
+add column matching_target varchar(250);
 
 CREATE TABLE game_mechanics (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -195,17 +195,24 @@ CREATE TABLE quiz_attempt (
 
     status VARCHAR(30) NOT NULL DEFAULT 'IN_PROGRESS',
 
+    -- Exam-cell (anti-cheating): violations counted by the frontend,
+    -- flagged once MAX_PROCTORING_VIOLATIONS (3) is reached.
+    violations INTEGER NOT NULL DEFAULT 0,
+    flagged BOOLEAN NOT NULL DEFAULT FALSE,
+    flag_reason TEXT,
+
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT uq_user_quiz_attempt
-        UNIQUE (user_id, quiz_id),
 
     CONSTRAINT fk_attempt_quiz
         FOREIGN KEY (quiz_id)
         REFERENCES quiz(id)
         ON DELETE CASCADE
 );
+
+CREATE UNIQUE INDEX uq_quiz_attempt_active
+    ON quiz_attempt (user_id, quiz_id)
+    WHERE status = 'in_progress';
 
 CREATE TABLE quiz_student_response (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

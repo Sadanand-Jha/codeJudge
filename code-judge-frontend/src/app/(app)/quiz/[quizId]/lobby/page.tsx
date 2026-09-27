@@ -15,11 +15,7 @@ export default function QuizLobbyPage({ params }: { params: Promise<{ quizId: st
 
   useEffect(() => {
     let cancelled = false;
-    if (!isValidQuizCode(code)) {
-      setError("Invalid quiz code.");
-      setLoading(false);
-      return;
-    }
+    if (!isValidQuizCode(code)) return;
     getQuizByCode(code)
       .then((data) => { if (!cancelled) setQuiz(data); })
       .catch(() => { if (!cancelled) setError("Quiz not found or unavailable."); })
@@ -27,6 +23,7 @@ export default function QuizLobbyPage({ params }: { params: Promise<{ quizId: st
     return () => { cancelled = true; };
   }, [code]);
 
+  if (!isValidQuizCode(code)) return <Screen icon={<ShieldCheck className="h-8 w-8 text-rose-500" />} text="Invalid quiz code." />;
   if (loading) return <Screen icon={<Loader2 className="h-7 w-7 animate-spin text-pink-500" />} text="Checking quiz access…" />;
   if (error || !quiz) return <Screen icon={<ShieldCheck className="h-8 w-8 text-rose-500" />} text={error || "Quiz unavailable."} />;
 

@@ -15,9 +15,14 @@ import {
   ShieldCheck,
   Target,
 } from "lucide-react";
-import { getQuizByCode, joinQuiz, type Quiz } from "@/services/quiz";
+import { getQuizByCode, joinQuiz, startQuizAttempt, type Quiz } from "@/services/quiz";
 import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { toast } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiError";
+import { ThemeBackground } from "@/components/quiz/live/ThemeBackground";
+import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/WaitingRoomThemeContext";
+import { useTheme } from "@/context/ThemeContext";
+import { writeQuizAttemptAnswers } from "@/lib/quizAttemptStorage";
 
 export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = use(params);
@@ -27,14 +32,16 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clockMs, setClockMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    if (!isValidQuizCode(code)) {
-      setError("This quiz code is invalid.");
-      setLoading(false);
-      return;
-    }
+    if (!isValidQuizCode(code)) return;
 
     getQuizByCode(code)
       .then((data) => {
@@ -57,16 +64,34 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
     setJoining(true);
     try {
       await joinQuiz({ code });
-      router.push(`/quiz/${code}/waiting`);
-    } catch (err: any) {
+      const startsAt = quiz.starttime ? new Date(quiz.starttime).getTime() : null;
+      const isAvailableNow = !startsAt || startsAt <= Date.now();
+      if (isAvailableNow) {
+        const started = await startQuizAttempt(String(quiz.id));
+        if (!started.resumed) {
+          try { writeQuizAttemptAnswers(started.attempt.id, {}); } catch { /* storage unavailable */ }
+        }
+        router.push(`/quiz/${code}/attempt`);
+      } else {
+        router.push(`/quiz/${code}/waiting`);
+      }
+    } catch (err: unknown) {
       toast.error({
         title: "Access denied",
-        description: err?.response?.data?.message || "You cannot join this quiz.",
+        description: getApiErrorMessage(err, "You cannot join this quiz."),
       });
     } finally {
       setJoining(false);
     }
   };
+
+  if (!isValidQuizCode(code)) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
+        <p className="text-sm text-text-secondary">This quiz code is invalid.</p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -94,20 +119,22 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
     );
   }
 
-  const now = Date.now();
+  const now = clockMs ?? 0;
   const start = quiz.starttime ? new Date(quiz.starttime).getTime() : null;
   const end = quiz.endtime ? new Date(quiz.endtime).getTime() : null;
   const ended = Boolean(end && end < now);
   const upcoming = Boolean(start && start > now);
 
   return (
-    <div className="min-h-screen bg-background px-4 py-5 sm:px-6 sm:py-8">
-      <main className="mx-auto max-w-3xl space-y-4 sm:space-y-6">
+    <WaitingRoomThemeProvider>
+    <div className="relative min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 sm:py-8">
+      <AdaptiveQuizBackground />
+      <main className="relative z-10 mx-auto max-w-3xl space-y-4 sm:space-y-6">
         <Link href="/quiz/join" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-secondary hover:bg-card-hover hover:text-text-primary">
           <ArrowLeft className="h-3.5 w-3.5" /> Change code
         </Link>
 
-        <section className="overflow-hidden rounded-2xl border border-border bg-card">
+        <section className="overflow-hidden rounded-2xl border border-border bg-card/90 shadow-2xl shadow-black/10 backdrop-blur-xl dark:shadow-black/40">
           <div className="border-b border-border bg-gradient-to-br from-pink-500/[0.08] to-violet-500/[0.05] p-5 sm:p-7">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -131,7 +158,7 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
               <Detail icon={BookOpen} label="Difficulty" value={quiz.difficulty?.toString() || "—"} />
             </div>
 
-            <div className="mt-4 rounded-xl border border-border bg-background p-4">
+            <div className="mt-4 rounded-xl border border-border bg-background/80 p-4 backdrop-blur">
               <h2 className="text-xs font-bold uppercase tracking-wider text-text-muted">Schedule</h2>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <Schedule label="Starts" value={formatDate(quiz.starttime)} />
@@ -155,6 +182,34 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
           {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : ended ? "Quiz has ended" : upcoming ? "Join waiting room" : "Join quiz"}
         </button>
       </main>
+    </div>
+    </WaitingRoomThemeProvider>
+  );
+}
+
+function AdaptiveQuizBackground() {
+  const { theme } = useTheme();
+  const { setTheme, setStudentOverride } = useWaitingRoomTheme();
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setTheme(theme === "dark" ? "deep-space" : "ai-cloud");
+      setStudentOverride(undefined);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [setStudentOverride, setTheme, theme]);
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-0">
+      <ThemeBackground />
+      {theme === "light" && (
+        <>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(236,72,153,0.16),transparent_30%),radial-gradient(circle_at_85%_18%,rgba(99,102,241,0.16),transparent_32%),radial-gradient(circle_at_50%_85%,rgba(59,130,246,0.12),transparent_36%)]" />
+          <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(99,102,241,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.08)_1px,transparent_1px)] [background-size:44px_44px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
+          <div className="absolute inset-0 bg-white/5" />
+        </>
+      )}
+      {theme === "dark" && <div className="absolute inset-0 bg-black/15" />}
     </div>
   );
 }

@@ -154,6 +154,14 @@ export interface QuizRegistration {
   updated_at: string | null;
 }
 
+export interface MyQuiz extends Quiz {
+  is_registered: boolean;
+  rollno: string | null;
+  registered_at: string | null;
+  attempt_id: number | null;
+  attempt_status: QuizAttempt["status"] | null;
+}
+
 export interface QuizListItem {
   id: number;
   name: string;
@@ -212,6 +220,7 @@ export interface QuizBasic {
   endtime: string | null;
   visibility: number | null;
   difficulty: number | null;
+  difficulty_name?: string | null;
   subject_id: number | null;
   exam_cat: number | null;
   duration: number | null;
@@ -332,12 +341,16 @@ export async function registerForQuiz(quizId: string, rollno?: string): Promise<
   return response.data;
 }
 
+export async function unregisterFromQuiz(quizId: string): Promise<void> {
+  await apiClient.delete(`/v1/user/quiz/register/${quizId}`);
+}
+
 /**
  * Get user's quiz registrations
  * GET /api/v1/user/quiz/my
  */
-export async function getMyQuizzes(): Promise<Quiz[]> {
-  const response = await apiClient.get<Quiz[]>("/v1/user/quiz/my");
+export async function getMyQuizzes(): Promise<MyQuiz[]> {
+  const response = await apiClient.get<MyQuiz[]>("/v1/user/quiz/my");
   return response.data;
 }
 
@@ -396,8 +409,8 @@ export async function getOldQuizzes(params: {
  * GET /api/v1/admin/quiz/generate-code
  */
 export async function generateQuizCode(): Promise<string> {
-  const response = await apiClient.get<{ success: boolean; data: { code: string } }>("/v1/admin/quiz/generate-code");
-  return (response.data as any).code;
+  const response = await apiClient.get<{ code: string }>("/v1/admin/quiz/generate-code");
+  return response.data.code;
 }
 
 /**
@@ -405,10 +418,10 @@ export async function generateQuizCode(): Promise<string> {
  * POST /api/v1/admin/quiz/:quizId/copy-code
  */
 export async function copyQuizCode(quizId: string): Promise<string> {
-  const response = await apiClient.post<{ success: boolean; data: { code: string } }>(
+  const response = await apiClient.post<{ code: string }>(
     `/v1/admin/quiz/${quizId}/copy-code`
   );
-  return (response.data as any).code;
+  return response.data.code;
 }
 
 /**
@@ -627,11 +640,23 @@ export interface QuizAttempt {
   skipped_questions: number;
   created_at: string;
   updated_at: string;
+  started_at?: string | null;
+  total_marks?: number;
+  marks_obtained?: number;
+}
+
+export interface SavedQuizResponse {
+  problem_id: number;
+  answer: unknown;
+  time_spent_seconds?: number;
 }
 
 export interface StartQuizResponse {
   attempt: QuizAttempt;
-  problems: QuizProblem[];
+  problems: PublicQuizProblem[];
+  savedResponses: SavedQuizResponse[];
+  remainingSeconds: number | null;
+  resumed: boolean;
 }
 
 /**
@@ -659,9 +684,35 @@ export async function saveQuizResponse(attemptId: string, data: {
 /**
  * Submit a quiz attempt with batch responses
  * POST /api/v1/user/quiz/attempt/:attemptId/submit
+ * proctor is the exam-cell fallback: violations counted on-device in case
+ * live violation reports failed, plus the flagged state for auto-submit.
  */
-export async function submitQuizAttempt(attemptId: string, responses: Array<{ problemId: number; option?: string; textAnswer?: string }>): Promise<QuizAttempt> {
-  const response = await apiClient.post<QuizAttempt>(`/v1/user/quiz/attempt/${attemptId}/submit`, { responses });
+export async function submitQuizAttempt(
+  attemptId: string,
+  responses: Array<{ problemId: number; option?: string; textAnswer?: string }>,
+  proctor?: { violations?: number; flagged?: boolean; flagReason?: string }
+): Promise<QuizAttempt> {
+  const response = await apiClient.post<QuizAttempt>(`/v1/user/quiz/attempt/${attemptId}/submit`, {
+    responses,
+    ...(proctor?.violations !== undefined ? { violations: proctor.violations } : {}),
+    ...(proctor?.flagged !== undefined ? { flagged: proctor.flagged } : {}),
+    ...(proctor?.flagReason ? { flagReason: proctor.flagReason } : {}),
+  });
+  return response.data;
+}
+
+export interface ViolationReport {
+  violations: number;
+  flagged: boolean;
+  maxAllowed: number;
+}
+
+/**
+ * Report one exam-cell (proctoring) violation for an in-progress attempt
+ * POST /api/v1/user/quiz/attempt/:attemptId/violation
+ */
+export async function reportViolation(attemptId: string, type: string): Promise<ViolationReport> {
+  const response = await apiClient.post<ViolationReport>(`/v1/user/quiz/attempt/${attemptId}/violation`, { type });
   return response.data;
 }
 
@@ -688,7 +739,17 @@ export interface QuizResult {
   quiz_name: string;
   quiz_code: string;
   total_marks: number;
+  marks_obtained: number;
   passing_marks: number;
+  violations: number;
+  flagged: boolean;
+  flag_reason: string | null;
+}
+
+export interface ReviewOption {
+  id: number;
+  option_statement: string;
+  iscorrect: boolean;
 }
 
 export interface QuestionReview {
@@ -699,8 +760,10 @@ export interface QuestionReview {
   explaination: string | null;
   hint: string | null;
   problem_type: string;
+  difficulty: string | null;
+  options: ReviewOption[];
   correct_answer: string | null;
-  selected_option: string | null;
+  selected_option: unknown;
   answered_at: string | null;
 }
 
@@ -838,59 +901,31 @@ export async function joinQuiz(data: {
 
 export interface QuizLeaderboardEntry {
   rank: number;
-  userId: string;
+  user_id: number;
   username: string;
-  avatar: string;
-  college?: string;
-  marks: number;
-  totalMarks: number;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_id: number | null;
+  avatar_url: string | null;
+  college_name: string | null;
+  score: number;
+  marks_obtained: number;
+  total_marks: number;
   percentage: number;
-  correctCount: number;
-  wrongCount: number;
-  skippedCount: number;
-  timeTaken: number;
-  submissionTime: string;
-  status: "completed" | "timed_out" | "submitted_late" | "disconnected";
-}
-
-export interface QuizLeaderboardStats {
-  participants: number;
-  highestScore: number;
-  averageScore: number;
-  lowestScore: number;
-  avgCompletionTime: number;
-  quizDuration: number;
-  completionRate: number;
-}
-
-export interface QuizLeaderboardResponse {
-  quizId: string;
-  quizTitle: string;
-  settings: {
-    enabled: boolean;
-    showToParticipants: boolean;
-    showTop10Only: boolean;
-    showOnlyOwnRank: boolean;
-    anonymousMode: boolean;
-  };
-  entries: QuizLeaderboardEntry[];
-  stats: QuizLeaderboardStats;
-  currentUserRank?: {
-    rank: number;
-    marks: number;
-    totalMarks: number;
-  };
+  correct_answers: number;
+  wrong_answers: number;
+  skipped_questions: number;
+  time_taken: number;
+  completed_at: string;
+  status: "completed";
 }
 
 /**
  * Get quiz leaderboard
  * GET /api/v1/user/quiz/:quizId/leaderboard
  */
-export async function getQuizLeaderboard(quizId: string, userId?: string): Promise<QuizLeaderboardResponse> {
-  const params = new URLSearchParams();
-  if (userId) params.append("userId", userId);
-  
-  const response = await apiClient.get<QuizLeaderboardResponse>(`/v1/user/quiz/${quizId}/leaderboard`, { params });
+export async function getQuizLeaderboard(quizId: string): Promise<QuizLeaderboardEntry[]> {
+  const response = await apiClient.get<QuizLeaderboardEntry[]>(`/v1/user/quiz/${quizId}/leaderboard`);
   return response.data;
 }
 

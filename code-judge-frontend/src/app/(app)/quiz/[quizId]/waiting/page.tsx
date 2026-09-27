@@ -30,34 +30,12 @@ import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/Waiting
 import { useTheme } from "@/context/ThemeContext";
 import { useToast } from "@/hooks/useToast";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
-import { getQuizByCode, getQuizCode, quizCodePath, type Quiz } from "@/services/quiz";
+import { getMyQuizzes, getQuizByCode, getQuizCode, quizCodePath, type Quiz } from "@/services/quiz";
 import { isValidQuizCode } from "@/utils/quizCode";
-import { STORAGE_KEYS } from "@/utils/storageKeys";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 import dynamic from "next/dynamic";
 import { Sun, Moon, Globe } from "lucide-react";
 const LiveCampus = dynamic(() => import("@/components/quiz/live/live-campus/LiveCampus"), { ssr: false });
-
-function useRealtimeStartFlag(code: string, startedRef: { current: boolean }) {
-  const [started, setStarted] = useState(false);
-
-  useEffect(() => {
-    if (startedRef.current) return;
-    const key = `${STORAGE_KEYS.LIVE_QUIZ_STARTED_PREFIX}${code}`;
-    const t = setInterval(() => {
-      try {
-        const v = window.localStorage.getItem(key);
-        if (v && !startedRef.current) {
-          startedRef.current = true;
-          setStarted(true);
-        }
-      } catch {}
-    }, 700);
-    return () => clearInterval(t);
-  }, [code, startedRef]);
-
-  return started;
-}
 
 export default function WaitingRoomPage() {
   const params = useParams<{ quizId?: string }>();
@@ -71,6 +49,8 @@ export default function WaitingRoomPage() {
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
+  const [serverRegistered, setServerRegistered] = useState(false);
+  const [serverRollNo, setServerRollNo] = useState<string | undefined>();
 
   useEffect(() => {
     let cancelled = false;
@@ -95,12 +75,33 @@ export default function WaitingRoomPage() {
   }, [quizCode]);
 
   const registration = getRegistration(quizCode);
-  const registered = isRegistered(quizCode);
+  const registered = isRegistered(quizCode) || serverRegistered;
+  const [started, setStarted] = useState(false);
 
-  const startedRef = useMemo(() => ({ current: false as boolean }), []);
-  const started = useRealtimeStartFlag(quizCode, startedRef);
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const [latestQuiz, registrations] = await Promise.all([
+          getQuizByCode(quizCode),
+          getMyQuizzes(),
+        ]);
+        if (cancelled) return;
+        setQuiz(latestQuiz as unknown as Quiz);
+        const own = registrations.find((item) => item.code === quizCode);
+        setServerRegistered(own?.is_registered === true);
+        setServerRollNo(own?.rollno ?? undefined);
+        if (String(latestQuiz.status).toLowerCase() === "live") setStarted(true);
+      } catch {
+        // Keep the last verified state during transient network failures.
+      }
+    };
+    void refresh();
+    const interval = window.setInterval(refresh, 3000);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, [quizCode]);
 
-  const [participants, setParticipants] = useState<LiveParticipant[]>([]);
+  const [participants] = useState<LiveParticipant[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [exitModalOpen, setExitModalOpen] = useState(false);
 
@@ -127,7 +128,6 @@ export default function WaitingRoomPage() {
         quiz={quiz}
         started={started}
         participants={participants}
-        setParticipants={setParticipants}
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
         exitModalOpen={exitModalOpen}
@@ -141,7 +141,7 @@ export default function WaitingRoomPage() {
         toast={toast}
         isDark={isDark}
         registered={registered}
-        registration={registration}
+        registration={registration ?? (serverRegistered ? { studentName: "Student", rollNumber: serverRollNo } : null)}
       />
     </WaitingRoomThemeProvider>
   );
@@ -152,7 +152,6 @@ function WaitingRoomPageInner({
   quiz,
   started,
   participants,
-  setParticipants,
   drawerOpen,
   setDrawerOpen,
   exitModalOpen,
@@ -172,7 +171,6 @@ function WaitingRoomPageInner({
   quiz: Quiz;
   started: boolean;
   participants: LiveParticipant[];
-  setParticipants: React.Dispatch<React.SetStateAction<LiveParticipant[]>>;
   drawerOpen: boolean;
   setDrawerOpen: React.Dispatch<React.SetStateAction<boolean>>;
   exitModalOpen: boolean;
@@ -192,23 +190,17 @@ function WaitingRoomPageInner({
   const textPrimary = activeConfig.textPrimary;
   const textSecondary = activeConfig.textSecondary;
   const { setTheme } = useTheme();
-  const [viewMode, setViewMode] = useState<"light"|"dark"|"real">("light");
+  const [viewMode, setViewMode] = useState<"light"|"dark"|"real">(isDark ? "dark" : "light");
+  const [clockMs, setClockMs] = useState<number | null>(null);
 
-  useEffect(()=>{
-    try{
-      const key = `byteclash_waiting_view_mode_${quizCode}`;
-      const saved = localStorage.getItem(key) as "light"|"dark"|"real"|null;
-      if(saved==="light"|| saved==="dark"|| saved==="real"){
-        setViewMode(saved);
-        if(saved==="light"){ setTheme("light"); setWaitingTheme("ai-cloud"); setStudentOverride(undefined); }
-        if(saved==="dark"){ setTheme("dark"); setWaitingTheme("deep-space"); setStudentOverride(undefined); }
-        if(saved==="real"){ setWaitingTheme(isDark ? "deep-space" : "ai-cloud"); setStudentOverride(undefined); }
-        return;
-      }
-      setViewMode(isDark ? "dark" : "light");
-    }catch{}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[quizCode]);
+  useEffect(() => {
+    if (started && registered) router.replace(`/quiz/${quizCode}/attempt`);
+  }, [quizCode, registered, router, started]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const handleViewMode = (m:"light"|"dark"|"real")=>{
     setViewMode(m);
@@ -220,42 +212,18 @@ function WaitingRoomPageInner({
 
   const remainingTime = useMemo(() => {
     if (!quiz.starttime) return "Soon";
-    const diff = new Date(quiz.starttime).getTime() - Date.now();
+    if (clockMs === null) return "Soon";
+    const diff = new Date(quiz.starttime).getTime() - clockMs;
     if (diff <= 0) return "Starting soon";
     const mins = Math.floor(diff / 60000);
     const secs = Math.floor((diff % 60000) / 1000);
     return `${mins}m ${secs}s`;
-  }, [quiz.starttime]);
-
-  useEffect(() => {
-    if (started) return;
-    // Simulate participants joining (in production, this would come from real-time updates)
-    const interval = setInterval(() => {
-      setParticipants((prev) => {
-        const next = [...prev, { 
-          id: Date.now().toString(), 
-          username: `Student ${Math.floor(Math.random() * 1000)}`,
-          avatar: "👤",
-          status: "idle" as const,
-          progress: 0,
-          questionsAnswered: 0,
-          totalQuestions: 0,
-          currentQuestion: 0,
-          timeSpent: 0,
-          connection: "excellent" as const,
-          joinedAt: new Date().toISOString(),
-          positionSeed: Math.random(),
-        }];
-        return next.slice(-40);
-      });
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [started]);
+  }, [clockMs, quiz.starttime]);
 
   const handleStarted = () => {
-    try {
-      window.location.href = `/quiz/${quizCode}/attempt`;
-    } catch {}
+    if (String(quiz.status).toLowerCase() === "live" && registered) {
+      router.replace(`/quiz/${quizCode}/attempt`);
+    }
   };
 
   const infoCards = [
@@ -655,7 +623,7 @@ function WaitingRoomPageInner({
                 </div>
                 <div>
                   <h3 className={`waiting-exit-modal-title text-lg font-semibold transition-colors duration-350 ${isDark ? 'text-white' : 'text-[#1a1a2e]'}`}>Leave Waiting Room?</h3>
-                  <p className="waiting-exit-modal-sub text-xs text-muted-foreground">You won't be unregistered from the quiz</p>
+                  <p className="waiting-exit-modal-sub text-xs text-muted-foreground">You won&apos;t be unregistered from the quiz</p>
                 </div>
               </div>
 

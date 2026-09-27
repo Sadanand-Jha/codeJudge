@@ -260,7 +260,8 @@ CREATE TABLE IF NOT EXISTS quiz_registration (
     is_registered BOOLEAN DEFAULT false,
     rollno VARCHAR,
     created_at TIMESTAMP,
-    updated_at TIMESTAMP
+    updated_at TIMESTAMP,
+    CONSTRAINT uq_quiz_registration_user_quiz UNIQUE (user_id, quiz_id)
 );
 
 CREATE TABLE IF NOT EXISTS contest_registeration (

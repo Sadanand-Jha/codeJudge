@@ -1,12 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   ArrowLeft,
-  ArrowRight,
-  BarChart3,
   BookOpen,
   CheckCircle2,
   ChevronLeft,
@@ -14,9 +12,7 @@ import {
   Clock3,
   CircleDashed,
   CircleDot,
-  Layers3,
   Medal,
-  Play,
   PieChart,
   Target,
   Timer,
@@ -24,6 +20,15 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  getQuizResult,
+  getQuizReview,
+  type QuestionReview,
+  type QuizResult,
+  type ReviewOption,
+} from "@/services/quiz";
+import { getApiErrorMessage } from "@/lib/apiError";
 
 type QuestionStatus = "correct" | "wrong" | "skipped";
 
@@ -54,10 +59,13 @@ interface AttemptReviewData {
   correct: number;
   wrong: number;
   skipped: number;
-  percentile: number;
+  percentile: number | null;
+  avgTimePerQuestion: string;
+  flagged: boolean;
+  flagReason: string | null;
   insights: {
-    strongestTopic: string;
-    weakestTopic: string;
+    strongestTopic?: string;
+    weakestTopic?: string;
     longestQuestions: string[];
     fastestQuestions: string[];
     topicAccuracy: Array<{ topic: string; accuracy: number }>;
@@ -66,7 +74,11 @@ interface AttemptReviewData {
   questions: AttemptReviewQuestion[];
 }
 
-const ATTEMPT_DATA: AttemptReviewData = {
+/* ─── MOCK PREVIEW DATA — commented out. The review screen now loads the real
+   attempt result (GET /v1/user/quiz/result/:attemptId) and question-wise
+   review (GET /v1/user/quiz/result/:attemptId/review) via buildAttemptReviewData
+   below. Kept here for UI reference only.
+const data: AttemptReviewData = {
   quizName: "Graph Algorithms Sprint",
   subject: "Data Structures",
   attemptDate: "Aug 3, 2026 · 9:30 AM",
@@ -207,21 +219,11 @@ const ATTEMPT_DATA: AttemptReviewData = {
     },
   ],
 };
+─── END OF MOCK PREVIEW DATA ─── */
 
 function questionStatus(question: AttemptReviewQuestion): QuestionStatus {
   if (!question.selectedOptionId) return "skipped";
   return question.selectedOptionId === question.correctOptionId ? "correct" : "wrong";
-}
-
-function statusColor(status: QuestionStatus) {
-  switch (status) {
-    case "correct":
-      return "bg-success/20 text-success";
-    case "wrong":
-      return "bg-danger/20 text-danger";
-    case "skipped":
-      return "bg-text-muted/20 text-text-muted";
-  }
 }
 
 // Donut chart helper - computes SVG arc path for a segment
@@ -302,14 +304,248 @@ function DonutChart({ correct, wrong, skipped }: { correct: number; wrong: numbe
   );
 }
 
-export default function AttemptReviewExperience() {
+function formatDuration(totalSeconds: number | null | undefined): string {
+  if (totalSeconds === null || totalSeconds === undefined || Number.isNaN(Number(totalSeconds))) return "—";
+  const total = Math.max(0, Math.floor(Number(totalSeconds)));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  if (minutes <= 0) return `${seconds}s`;
+  return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function normalizeDifficulty(value: unknown): "Easy" | "Medium" | "Hard" {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (normalized.startsWith("easy")) return "Easy";
+  if (normalized.startsWith("hard")) return "Hard";
+  return "Medium";
+}
+
+/**
+ * The saved answer is stored as JSONB. Autosave/submit persist
+ * `{ type: "MCQ", selectedOptionId }` (or a legacy raw option id), so resolve
+ * it back to the option id string used by the review UI.
+ */
+function parseSelectedOptionId(selected: unknown): string | undefined {
+  if (selected === null || selected === undefined) return undefined;
+  try {
+    const value = typeof selected === "string" ? JSON.parse(selected) : selected;
+    if (value && typeof value === "object") {
+      if ("selectedOptionId" in value && (value as { selectedOptionId: unknown }).selectedOptionId != null) {
+        return String((value as { selectedOptionId: unknown }).selectedOptionId);
+      }
+      return undefined;
+    }
+    if (typeof value === "number" || typeof value === "string") return String(value);
+    return undefined;
+  } catch {
+    return typeof selected === "string" && selected.length > 0 ? selected : undefined;
+  }
+}
+
+const OPTION_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+/**
+ * Map the live result + question-wise review rows onto the shape the
+ * review UI renders. Per-question marks are derived from the quiz total
+ * (total_marks / total_questions); topic-level insights and percentile have
+ * no backend source, so they are left empty and hidden in the UI.
+ */
+function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): AttemptReviewData {
+  const totalQuestions = Number(result.total_questions) || review.length;
+  const totalMarks = Number(result.total_marks) || 0;
+  const perQuestionMarks =
+    totalQuestions > 0 ? Math.round((totalMarks / totalQuestions) * 100) / 100 : 0;
+  const percentage = Number(result.percentage) || 0;
+  const correct = Number(result.correct_answers) || 0;
+  const wrong = Number(result.wrong_answers) || 0;
+  const skipped =
+    result.skipped_questions !== null && result.skipped_questions !== undefined
+      ? Number(result.skipped_questions)
+      : Math.max(0, totalQuestions - correct - wrong);
+
+  const questions: AttemptReviewQuestion[] = review.map((row, index) => {
+    const options: ReviewOption[] = Array.isArray(row.options) ? row.options : [];
+    const correctOption = options.find((option) => option.iscorrect);
+    const correctOptionId = correctOption ? String(correctOption.id) : "";
+    const selectedOptionId = parseSelectedOptionId(row.selected_option);
+    const isCorrect = !!selectedOptionId && !!correctOptionId && selectedOptionId === correctOptionId;
+    return {
+      id: String(row.problem_id),
+      number: Number(row.question_number) || index + 1,
+      statement: row.problem_statement,
+      difficulty: normalizeDifficulty(row.difficulty),
+      options: options.map((option, optionIndex) => ({
+        id: String(option.id),
+        label: OPTION_LABELS[optionIndex] ?? String(optionIndex + 1),
+        text: option.option_statement,
+      })),
+      correctOptionId,
+      selectedOptionId,
+      explanation: row.explaination ?? undefined,
+      marksObtained: isCorrect ? perQuestionMarks : 0,
+      maxMarks: perQuestionMarks,
+      // Per-question time is not tracked by the backend (time_spent_seconds
+      // is never written), so there is no real value to show here.
+      timeSpent: "—",
+    };
+  });
+
+  const difficultyGroups = new Map<string, { total: number; correct: number }>();
+  for (const question of questions) {
+    const group = difficultyGroups.get(question.difficulty) ?? { total: 0, correct: 0 };
+    group.total += 1;
+    if (question.selectedOptionId && question.selectedOptionId === question.correctOptionId) {
+      group.correct += 1;
+    }
+    difficultyGroups.set(question.difficulty, group);
+  }
+
+  const timeTakenSeconds =
+    result.time_taken !== null && result.time_taken !== undefined ? Number(result.time_taken) : null;
+
+  return {
+    quizName: result.quiz_name || "Quiz Attempt",
+    subject: result.quiz_code ? `Code ${result.quiz_code}` : "Quiz",
+    attemptDate: formatDateTime(result.created_at),
+    duration: formatDuration(timeTakenSeconds),
+    score: `${Number(result.marks_obtained) || 0}/${totalMarks}`,
+    percentage,
+    rank: result.rank ?? undefined,
+    submittedAt: formatDateTime(result.completed_at),
+    totalQuestions,
+    correct,
+    wrong,
+    skipped,
+    percentile: null,
+    flagged: result.flagged === true,
+    flagReason: result.flag_reason ?? null,
+    avgTimePerQuestion:
+      timeTakenSeconds !== null && totalQuestions > 0
+        ? formatDuration(Math.round(timeTakenSeconds / totalQuestions))
+        : "—",
+    insights: {
+      longestQuestions: [],
+      fastestQuestions: [],
+      topicAccuracy: [],
+      difficultyPerformance: [...difficultyGroups.entries()].map(([difficulty, group]) => ({
+        difficulty,
+        accuracy: group.total > 0 ? Math.round((group.correct / group.total) * 100) : 0,
+      })),
+    },
+    questions,
+  };
+}
+
+export default function AttemptReviewExperience({
+  attemptId,
+}: {
+  quizId: string;
+  attemptId: string;
+}) {
   const [selectedQuestion, setSelectedQuestion] = useState(0);
+  const [data, setData] = useState<AttemptReviewData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [result, review] = await Promise.all([
+          getQuizResult(attemptId),
+          getQuizReview(attemptId),
+        ]);
+        if (!cancelled) {
+          setData(buildAttemptReviewData(result, review));
+          setSelectedQuestion(0);
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setError(getApiErrorMessage(err, "Could not load attempt review."));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [attemptId]);
 
   const progress = useMemo(() => {
-    return Math.round((ATTEMPT_DATA.percentage / 100) * 360);
-  }, []);
+    if (!data) return 0;
+    return Math.round((Number(data.percentage) / 100) * 360);
+  }, [data]);
 
-  const currentQuestion = ATTEMPT_DATA.questions[selectedQuestion];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-text-primary">
+        <div className="mx-auto max-w-[1600px] p-4">
+          <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-text-secondary">
+            Loading attempt review…
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-background text-text-primary">
+        <div className="mx-auto max-w-[1600px] p-4">
+          <div className="rounded-2xl border border-border bg-card p-8 text-center">
+            <p className="text-sm font-semibold text-text-primary">Could not load attempt review</p>
+            <p className="mt-1 text-xs text-text-secondary">{error ?? "Attempt review not found."}</p>
+            <Link
+              href="/quiz"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-border bg-card-hover px-3.5 py-1.5 text-sm font-medium text-text-primary"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentQuestion = data.questions[selectedQuestion];
+
+  if (!currentQuestion) {
+    return (
+      <div className="min-h-screen bg-background text-text-primary">
+        <div className="mx-auto max-w-[1600px] p-4">
+          <div className="rounded-2xl border border-border bg-card p-8 text-center">
+            <p className="text-sm font-semibold text-text-primary">No questions in this attempt</p>
+            <p className="mt-1 text-xs text-text-secondary">The quiz has no questions to review.</p>
+            <Link
+              href="/quiz"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl border border-border bg-card-hover px-3.5 py-1.5 text-sm font-medium text-text-primary"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-text-primary">
@@ -334,12 +570,17 @@ export default function AttemptReviewExperience() {
               <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-text-muted">
-                    <span className="rounded-full border border-border bg-card-hover px-2 py-0.5 text-text-secondary">{ATTEMPT_DATA.subject}</span>
-                    {ATTEMPT_DATA.rank !== undefined && <span className="rounded-full border border-warning/20 bg-warning/10 px-2 py-0.5 text-gold">Rank #{ATTEMPT_DATA.rank}</span>}
+                    <span className="rounded-full border border-border bg-card-hover px-2 py-0.5 text-text-secondary">{data.subject}</span>
+                    {data.rank !== undefined && <span className="rounded-full border border-warning/20 bg-warning/10 px-2 py-0.5 text-gold">Rank #{data.rank}</span>}
+                    {data.flagged && (
+                      <span title={data.flagReason ?? "Flagged by exam-cell proctoring"} className="rounded-full border border-danger/30 bg-danger/10 px-2 py-0.5 text-danger">
+                        Flagged for review
+                      </span>
+                    )}
                   </div>
                   <div>
-                    <h1 className="text-lg font-bold tracking-tight sm:text-xl text-text-primary">{ATTEMPT_DATA.quizName}</h1>
-                    <p className="mt-0.5 text-[11px] text-text-secondary">Attempted on {ATTEMPT_DATA.attemptDate} · Submitted at {ATTEMPT_DATA.submittedAt}</p>
+                    <h1 className="text-lg font-bold tracking-tight sm:text-xl text-text-primary">{data.quizName}</h1>
+                    <p className="mt-0.5 text-[11px] text-text-secondary">Attempted on {data.attemptDate} · Submitted at {data.submittedAt}</p>
                   </div>
                 </div>
 
@@ -350,15 +591,15 @@ export default function AttemptReviewExperience() {
                       style={{ background: `conic-gradient(var(--accent) ${progress}deg, var(--border) ${progress}deg)` }}
                     />
                     <div className="absolute inset-3 rounded-full border border-border bg-background flex flex-col items-center justify-center text-center">
-                      <div className="text-sm font-bold text-text-primary leading-none">{ATTEMPT_DATA.percentage}%</div>
+                      <div className="text-sm font-bold text-text-primary leading-none">{data.percentage}%</div>
                       <div className="text-[7px] uppercase tracking-[0.14em] text-text-muted mt-0.5">Score</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <SummaryCard label="Score" value={ATTEMPT_DATA.score} icon={Target} />
-                    <SummaryCard label="Duration" value={ATTEMPT_DATA.duration} icon={Clock3} />
-                    <SummaryCard label="Rank" value={ATTEMPT_DATA.rank ? `#${ATTEMPT_DATA.rank}` : "-"} icon={Trophy} />
-                    <SummaryCard label="Submitted" value={ATTEMPT_DATA.submittedAt} icon={Timer} />
+                    <SummaryCard label="Score" value={data.score} icon={Target} />
+                    <SummaryCard label="Duration" value={data.duration} icon={Clock3} />
+                    <SummaryCard label="Rank" value={data.rank ? `#${data.rank}` : "-"} icon={Trophy} />
+                    <SummaryCard label="Submitted" value={data.submittedAt} icon={Timer} />
                   </div>
                 </div>
               </div>
@@ -378,7 +619,7 @@ export default function AttemptReviewExperience() {
                 </div>
               </div>
               <div className="grid grid-cols-6 gap-1 sm:grid-cols-8 lg:grid-cols-10">
-                {ATTEMPT_DATA.questions.map((question, index) => {
+                {data.questions.map((question, index) => {
                   const state = questionStatus(question);
                   const isActive = selectedQuestion === index;
                   return (
@@ -422,8 +663,8 @@ export default function AttemptReviewExperience() {
                     Prev
                   </button>
                   <button
-                    onClick={() => setSelectedQuestion((current) => Math.min(ATTEMPT_DATA.questions.length - 1, current + 1))}
-                    disabled={selectedQuestion === ATTEMPT_DATA.questions.length - 1}
+                    onClick={() => setSelectedQuestion((current) => Math.min(data.questions.length - 1, current + 1))}
+                    disabled={selectedQuestion === data.questions.length - 1}
                     className="inline-flex items-center gap-1 rounded-lg border border-border bg-card-hover px-2 py-1 text-[11px] font-medium text-text-primary transition-all hover:border-border-hover disabled:opacity-40"
                   >
                     Next
@@ -500,8 +741,8 @@ export default function AttemptReviewExperience() {
                   Previous Question
                 </button>
                 <button
-                  onClick={() => setSelectedQuestion((current) => Math.min(ATTEMPT_DATA.questions.length - 1, current + 1))}
-                  disabled={selectedQuestion === ATTEMPT_DATA.questions.length - 1}
+                  onClick={() => setSelectedQuestion((current) => Math.min(data.questions.length - 1, current + 1))}
+                  disabled={selectedQuestion === data.questions.length - 1}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card-hover px-3 py-1.5 text-[11px] font-medium text-text-primary transition-all hover:border-border-hover disabled:opacity-40"
                 >
                   Next Question
@@ -517,15 +758,15 @@ export default function AttemptReviewExperience() {
               <h2 className="text-xs font-semibold text-text-primary">Result Analytics</h2>
               <p className="mt-0.5 text-[10px] text-text-secondary">Score, ranking, and answer breakdown.</p>
               <div className="mt-2 space-y-1">
-                <AnalyticsMetric label="Overall Score" value={ATTEMPT_DATA.score} icon={Target} />
-                <AnalyticsMetric label="Accuracy" value={`${ATTEMPT_DATA.percentage}%`} icon={PieChart} />
-                <AnalyticsMetric label="Attempt Time" value={ATTEMPT_DATA.attemptDate} icon={Clock3} />
-                <AnalyticsMetric label="Avg Time / Q" value="2m 03s" icon={Timer} />
-                <AnalyticsMetric label="Correct" value={ATTEMPT_DATA.correct} icon={CheckCircle2} />
-                <AnalyticsMetric label="Wrong" value={ATTEMPT_DATA.wrong} icon={XCircle} />
-                <AnalyticsMetric label="Skipped" value={ATTEMPT_DATA.skipped} icon={CircleDashed} />
-                <AnalyticsMetric label="Rank" value={`#${ATTEMPT_DATA.rank}`} icon={Trophy} />
-                <AnalyticsMetric label="Percentile" value={`${ATTEMPT_DATA.percentile}%`} icon={Zap} />
+                <AnalyticsMetric label="Overall Score" value={data.score} icon={Target} />
+                <AnalyticsMetric label="Accuracy" value={`${data.percentage}%`} icon={PieChart} />
+                <AnalyticsMetric label="Attempt Time" value={data.attemptDate} icon={Clock3} />
+                <AnalyticsMetric label="Avg Time / Q" value={data.avgTimePerQuestion} icon={Timer} />
+                <AnalyticsMetric label="Correct" value={data.correct} icon={CheckCircle2} />
+                <AnalyticsMetric label="Wrong" value={data.wrong} icon={XCircle} />
+                <AnalyticsMetric label="Skipped" value={data.skipped} icon={CircleDashed} />
+                <AnalyticsMetric label="Rank" value={data.rank ? `#${data.rank}` : "—"} icon={Trophy} />
+                <AnalyticsMetric label="Percentile" value={data.percentile !== null ? `${data.percentile}%` : "—"} icon={Zap} />
               </div>
 
               <div className="mt-2.5 rounded-xl border border-border bg-card-hover p-2.5">
@@ -533,23 +774,34 @@ export default function AttemptReviewExperience() {
                   <span>Correct vs Wrong vs Skipped</span>
                   <PieChart className="h-3 w-3 text-accent" />
                 </div>
-                <DonutChart correct={ATTEMPT_DATA.correct} wrong={ATTEMPT_DATA.wrong} skipped={ATTEMPT_DATA.skipped} />
+                <DonutChart correct={data.correct} wrong={data.wrong} skipped={data.skipped} />
               </div>
             </motion.section>
 
-            {/* Performance Insights */}
+            {/* Performance Insights — only metrics with a real backend
+                source are shown (difficulty-wise accuracy). Topic-level
+                insights and per-question timing are not tracked, so they
+                are hidden instead of showing mock data. */}
             <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }} className="rounded-2xl border border-border bg-card p-2.5">
               <h2 className="text-xs font-semibold text-text-primary">Performance Insights</h2>
-              <div className="mt-2 space-y-1 text-[11px] text-text-secondary">
-                <InsightRow label="Strongest Topic" value={ATTEMPT_DATA.insights.strongestTopic} />
-                <InsightRow label="Weakest Topic" value={ATTEMPT_DATA.insights.weakestTopic} />
-                <InsightRow label="Longest Questions" value={ATTEMPT_DATA.insights.longestQuestions.join(", ")} />
-                <InsightRow label="Fastest Solved" value={ATTEMPT_DATA.insights.fastestQuestions.join(", ")} />
-              </div>
+              {data.insights.strongestTopic && (
+                <div className="mt-2 space-y-1 text-[11px] text-text-secondary">
+                  <InsightRow label="Strongest Topic" value={data.insights.strongestTopic} />
+                  {data.insights.weakestTopic && (
+                    <InsightRow label="Weakest Topic" value={data.insights.weakestTopic} />
+                  )}
+                </div>
+              )}
 
               <div className="mt-2 grid gap-1.5">
-                <MiniChart title="Accuracy by Topic" values={ATTEMPT_DATA.insights.topicAccuracy} />
-                <MiniChart title="Difficulty-wise Performance" values={ATTEMPT_DATA.insights.difficultyPerformance} />
+                {data.insights.topicAccuracy.length > 0 && (
+                  <MiniChart title="Accuracy by Topic" values={data.insights.topicAccuracy} />
+                )}
+                {data.insights.difficultyPerformance.length > 0 ? (
+                  <MiniChart title="Difficulty-wise Performance" values={data.insights.difficultyPerformance} />
+                ) : (
+                  <p className="text-[11px] text-text-secondary">No performance breakdown available.</p>
+                )}
               </div>
             </motion.section>
           </div>
@@ -559,7 +811,7 @@ export default function AttemptReviewExperience() {
   );
 }
 
-function SummaryCard({ label, value, icon: Icon }: { label: string; value: string; icon: any }) {
+function SummaryCard({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
   return (
     <div className="rounded-lg border border-border bg-card-hover px-2 py-1">
       <div className="flex items-center gap-1 text-[8px] uppercase tracking-[0.12em] text-text-muted">
@@ -571,7 +823,7 @@ function SummaryCard({ label, value, icon: Icon }: { label: string; value: strin
   );
 }
 
-function StatBlock({ label, value, icon: Icon }: { label: string; value: string; icon: any }) {
+function StatBlock({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
   return (
     <div className="rounded-lg border border-border bg-card-hover px-2 py-1">
       <div className="flex items-center gap-1 text-[8px] uppercase tracking-[0.1em] text-text-muted">
@@ -583,7 +835,7 @@ function StatBlock({ label, value, icon: Icon }: { label: string; value: string;
   );
 }
 
-function AnalyticsMetric({ label, value, icon: Icon }: { label: string; value: string | number; icon: any }) {
+function AnalyticsMetric({ label, value, icon: Icon }: { label: string; value: string | number; icon: LucideIcon }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-border bg-card-hover px-2.5 py-1">
       <div className="flex items-center gap-1.5 text-[11px] text-text-secondary">

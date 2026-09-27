@@ -10,5 +10,5 @@ export default function AttemptReviewPage({
 }) {
   const { quizId, attemptId } = use(params);
 
-  return <AttemptReviewExperience key={`${quizId}-${attemptId}`} />;
+  return <AttemptReviewExperience quizId={quizId} attemptId={attemptId} key={`${quizId}-${attemptId}`} />;
 }
