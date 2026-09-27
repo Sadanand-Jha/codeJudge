@@ -30,7 +30,8 @@ import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/Waiting
 import { useTheme } from "@/context/ThemeContext";
 import { useToast } from "@/hooks/useToast";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
-import { getQuizCode, quizCodePath, type Quiz } from "@/services/quiz";
+import { getQuizByCode, getQuizCode, quizCodePath, type Quiz } from "@/services/quiz";
+import { isValidQuizCode } from "@/utils/quizCode";
 import { STORAGE_KEYS } from "@/utils/storageKeys";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 import dynamic from "next/dynamic";
@@ -75,33 +76,19 @@ export default function WaitingRoomPage() {
     let cancelled = false;
     async function fetchQuiz() {
       setLoading(true);
-      // Skip backend — use mock data directly
-      if (!cancelled) {
-        setQuiz({
-          id: 0,
-          code: quizCode,
-          name: `Quiz ${quizCode}`,
-          description: "Waiting for quiz to start.",
-          subject: "General",
-          difficulty: "Medium",
-          duration: 30,
-          total_marks: 100,
-          total_questions: 10,
-          status: "live",
-          starttime: null,
-          endtime: null,
-          negative_marking: false,
-          shuffle_questions: false,
-          shuffle_options: false,
-          show_results_immediately: false,
-          leaderboard: true,
-          visibility: "private",
-          creator_name: "Quiz Creator",
-          created_at: new Date().toISOString(),
-          registration_required: false,
-        } as unknown as Quiz);
+      if (!isValidQuizCode(quizCode)) {
+        if (!cancelled) setQuiz(null);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+      try {
+        const data = await getQuizByCode(quizCode);
+        if (!cancelled) setQuiz(data as unknown as Quiz);
+      } catch {
+        if (!cancelled) setQuiz(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
     fetchQuiz();
     return () => { cancelled = true; };
@@ -441,7 +428,7 @@ function WaitingRoomPageInner({
           className="waiting-header-sub text-sm transition-all duration-350"
           style={{ color: textSecondary }}
         >
-          by {quiz.creator_name || "Unknown"} • Quiz Code: {quiz.code}
+          Secure assessment • Code: {quiz.code}
         </motion.p>
 
         <motion.p

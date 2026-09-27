@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
-import { Badge } from "../primitives";
+import { Badge, StudioStepHeader, StudioStepLayout } from "../primitives";
 import { SearchableDropdown } from "@/components/ui";
 import { getAllSubjects, getAllExamCategories, generateQuizCode as fetchQuizCode } from "@/services/quiz";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
@@ -74,9 +74,7 @@ export function SetupStep() {
   const hasBasicInfo = info.title.trim().length >= 3;
 
   return (
-    <div className="flex w-full max-w-full min-w-0 flex-col overflow-x-hidden bg-[#F9FAFB] dark:bg-background">
-    <div className="w-full max-w-full min-w-0">
-    <div className="mx-auto w-full max-w-5xl min-w-0 max-w-full space-y-6 px-3 py-4 sm:space-y-8 sm:px-6 sm:py-8 overflow-x-hidden">
+    <StudioStepLayout width="wide">
       {/* Creation method choice — only on create, not edit */}
       {!editMode && (
         <>
@@ -85,24 +83,20 @@ export function SetupStep() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <h2 className="text-lg font-semibold text-text-primary">How do you want to start?</h2>
-            <p className="mt-1 text-xs text-text-secondary">
-              You can always use AI tools later inside the editor.
-            </p>
+            <StudioStepHeader title="Start quiz" />
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.08 }}
-            className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+            className="grid w-full min-w-0 grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4"
           >
             {CREATE_CHOICES.map((c) => (
               <ChoiceCard
                 key={c.id}
                 icon={c.icon}
                 label={c.label}
-                desc={c.desc}
                 meta={c.meta}
                 selected={choice === c.id}
                 onClick={() => {
@@ -123,7 +117,7 @@ export function SetupStep() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: editMode ? 0 : 0.15 }}
-        className="w-full min-w-0 max-w-full overflow-hidden rounded-xl bg-white dark:bg-card border border-gray-100 dark:border-border shadow-[0_4px_20px_rgba(0,0,0,0.06),0_1px_4px_rgba(0,0,0,0.04)] dark:shadow-none p-4 sm:p-7 space-y-5 sm:space-y-6"
+        className="w-full min-w-0 max-w-full overflow-hidden rounded-2xl bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-4 sm:p-6 space-y-5 sm:space-y-6"
       >
         <div className="border-b border-pink-500/20 pb-3 min-w-0">
           <h3 className="text-[13px] sm:text-sm font-bold uppercase tracking-wider text-pink-500 break-words">
@@ -292,23 +286,19 @@ export function SetupStep() {
           </div>
         </div>
       </motion.div>
-    </div>
-    </div>
-    </div>
+    </StudioStepLayout>
   );
 }
 
 function ChoiceCard({
   icon: Icon,
   label,
-  desc,
   meta,
   selected,
   onClick,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  desc: string;
   meta: string;
   selected: boolean;
   onClick: () => void;
@@ -318,7 +308,7 @@ function ChoiceCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full min-w-0 max-w-full flex-col items-center gap-2 rounded-xl border p-4 text-center text-sm transition-all duration-150 ease-out hover:-translate-y-0.5 overflow-hidden",
+        "flex w-full min-w-0 max-w-full flex-col items-center gap-2 rounded-xl border p-3 text-center text-sm transition-all duration-150 ease-out hover:-translate-y-0.5 overflow-hidden sm:p-4",
         selected
           ? "border-pink-500 bg-white dark:bg-card text-pink-600 shadow-[0_4px_16px_rgba(236,72,153,0.12),0_2px_8px_rgba(0,0,0,0.06)] dark:shadow-[0_0_0_1px_rgba(236,72,153,0.15)]"
           : "border-gray-200 dark:border-border bg-white dark:bg-card shadow-[0_2px_10px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none hover:border-pink-500/20 hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
@@ -335,7 +325,6 @@ function ChoiceCard({
         <Icon className="h-5 w-5" />
       </div>
       <span className="font-semibold text-text-primary break-words">{label}</span>
-      <p className="text-[12px] sm:text-[11px] leading-snug text-text-secondary break-words max-w-full">{desc}</p>
       <span className="mt-0.5 inline-flex items-center rounded-md bg-gray-100 dark:bg-pink-500/10 border border-gray-200 dark:border-pink-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:text-pink-600">
         {meta}
       </span>
@@ -428,5 +417,3 @@ function TagInput({
     </div>
   );
 }
-
-

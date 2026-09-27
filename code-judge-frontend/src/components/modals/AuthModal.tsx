@@ -104,9 +104,13 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="fixed left-1/2 top-1/2 z-50 w-full max-w-[520px] -translate-x-1/2 -translate-y-1/2"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={handleOverlayClick}
           >
-            <div className="relative rounded-2xl border border-border bg-card p-0 shadow-2xl">
+            <div
+              className="relative w-full max-w-[520px] max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card p-0 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
               {/* Close Button */}
               <button
                 onClick={onClose}

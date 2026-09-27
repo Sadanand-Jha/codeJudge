@@ -133,14 +133,16 @@ export function TestsPage({ demoState }: { demoState?: "empty" | "error" }) {
 
       {state === "ready" && data && (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <SegmentedControl options={TABS} value={filter} onChange={setFilter} size="md" />
-            <span className="text-[11px] font-semibold text-text-muted">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-none">
+              <SegmentedControl options={TABS} value={filter} onChange={setFilter} size="md" />
+            </div>
+            <span className="text-[11px] font-semibold text-text-muted shrink-0">
               Showing {filtered.length} of {data.length} tests
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Total Tests"
               value={filtered.length}
@@ -183,7 +185,7 @@ export function TestsPage({ demoState }: { demoState?: "empty" | "error" }) {
             />
           ) : (
             <Panel noPadding>
-              <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 pt-4 sm:pt-5">
                 <div>
                   <h3 className="text-sm font-semibold text-text-primary">All tests</h3>
                   <p className="mt-0.5 text-xs text-text-secondary">
@@ -191,7 +193,47 @@ export function TestsPage({ demoState }: { demoState?: "empty" | "error" }) {
                   </p>
                 </div>
               </div>
-              <div className="overflow-x-auto p-5">
+              {/* Mobile cards — visible below lg */}
+              <div className="grid gap-3 p-4 lg:hidden">
+                {filtered.map((t) => {
+                  const meta = STATUS_META[t.status];
+                  return (
+                    <div key={t.id} className="rounded-xl border border-border bg-card p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/10 to-violet-600/10 text-violet-500">
+                            <ClipboardList className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-text-primary">{t.name}</p>
+                            <p className="text-xs text-text-secondary">{t.exam} · {t.updated}</p>
+                          </div>
+                        </div>
+                        <RowActions status={t.status} />
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                        <div className="rounded-lg bg-white/[0.03] border border-border/50 p-2">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Qs</div>
+                          <div className="text-sm font-bold text-text-primary">{t.questions}</div>
+                        </div>
+                        <div className="rounded-lg bg-white/[0.03] border border-border/50 p-2">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Attempts</div>
+                          <div className="text-sm font-bold text-text-primary">{t.attempts.toLocaleString("en-IN")}</div>
+                        </div>
+                        <div className="rounded-lg bg-white/[0.03] border border-border/50 p-2">
+                          <div className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Score</div>
+                          <div className="text-sm font-bold text-text-primary">{t.avgScore > 0 ? `${t.avgScore}%` : "—"}</div>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <StatusBadge label={meta.label} tone={meta.tone} dot />
+                        <span className="text-xs font-semibold text-text-muted">{t.durationMin} min · {formatINR(t.revenue)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="hidden overflow-x-auto p-5 lg:block">
                 <table className="w-full min-w-[920px] text-left text-[13px]">
                   <thead>
                     <tr className="border-b border-border text-[11px] font-semibold uppercase tracking-wider text-text-muted">

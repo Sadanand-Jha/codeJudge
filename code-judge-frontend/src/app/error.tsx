@@ -34,7 +34,7 @@ export default function Error({
             Try again
           </button>
           <Link
-            href="/"
+            href="/quiz"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-text-secondary bg-card border border-border hover:text-text-primary transition-all"
           >
             <Home className="w-3.5 h-3.5" />

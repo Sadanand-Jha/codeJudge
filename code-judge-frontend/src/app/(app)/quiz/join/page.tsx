@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Clock,
   Calendar,
-  Users,
   Target,
   Award,
   Sparkles,
@@ -18,6 +17,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getQuizByCode, joinQuiz, type Quiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
+import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 
 type Step = "code" | "details";
 
@@ -30,17 +30,16 @@ export default function JoinQuizPage() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const digits = raw.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-  const groups = digits.match(/.{1,4}/g) ?? [];
-  const display = groups.join("-");
-  const valid = digits.length === 16;
+  const code = normalizeQuizCode(raw.replace(/[^a-zA-Z]/g, ""));
+  const display = formatQuizCode(code);
+  const valid = isValidQuizCode(code);
 
   const handleLookup = async () => {
     if (!valid || loading) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await getQuizByCode(digits);
+      const data = await getQuizByCode(code);
       setQuiz(data as unknown as Quiz);
       setStep("details");
     } catch (err: any) {
@@ -54,9 +53,9 @@ export default function JoinQuizPage() {
     if (!quiz || joining) return;
     setJoining(true);
     try {
-      await joinQuiz({ code: quiz.code });
+      await joinQuiz({ code });
       toast.success({ title: "Joined!", description: `You've joined "${quiz.name}"` });
-      router.push(`/quiz/${quiz.code}/waiting`);
+      router.push(`/quiz/${code}/waiting`);
     } catch (err: any) {
       toast.error({
         title: "Could not join",
@@ -114,7 +113,7 @@ export default function JoinQuizPage() {
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10">
         <AnimatePresence mode="wait">
           {step === "code" ? (
             <motion.div
@@ -122,7 +121,7 @@ export default function JoinQuizPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
-              className="space-y-6"
+              className="space-y-5 sm:space-y-6"
             >
               <div className="text-center space-y-3">
                 <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#EC4899] to-[#BE185D] mx-auto">
@@ -136,7 +135,7 @@ export default function JoinQuizPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+              <div className="space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-6">
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted">
                   Quiz Code
                 </label>
@@ -150,8 +149,11 @@ export default function JoinQuizPage() {
                     setError(null);
                   }}
                   onKeyDown={(e) => e.key === "Enter" && handleLookup()}
-                  placeholder="ABCD-1234-EFGH-5678"
-                  className="w-full text-center text-2xl font-mono font-bold tracking-[0.2em] px-4 py-4 rounded-xl border border-border bg-input-bg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-[#EC4899]/40 focus:ring-2 focus:ring-[#EC4899]/10 transition-all"
+                  placeholder="ABCD-EFGH-IJKL-MNOP"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="w-full rounded-xl border border-border bg-input-bg px-2 py-4 text-center font-mono text-lg font-bold tracking-[0.08em] text-text-primary placeholder:text-text-muted focus:border-[#EC4899]/40 focus:outline-none focus:ring-2 focus:ring-[#EC4899]/10 sm:px-4 sm:text-2xl sm:tracking-[0.2em]"
                   autoFocus
                 />
 
@@ -161,9 +163,9 @@ export default function JoinQuizPage() {
                   </div>
                 )}
 
-                {!valid && digits.length > 0 && (
+                {!valid && code.length > 0 && (
                   <p className="text-[11px] text-text-muted text-center">
-                    Enter the full 16-character code ({digits.length}/16)
+                    Enter the full 16-letter code ({code.length}/16)
                   </p>
                 )}
 
@@ -199,10 +201,8 @@ export default function JoinQuizPage() {
                 <div className="bg-gradient-to-r from-[#EC4899]/10 to-[#BE185D]/10 px-6 py-5 border-b border-border">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1 min-w-0">
-                      <h2 className="text-xl font-bold text-text-primary truncate">{quiz.name}</h2>
-                      <p className="text-xs text-text-muted">
-                        by {quiz.creator_name || "Unknown"} &bull; Code: <span className="font-mono text-text-secondary">{quiz.code}</span>
-                      </p>
+                      <h2 className="break-words text-xl font-bold text-text-primary">{quiz.name}</h2>
+                      <p className="text-xs text-text-muted">Secure assessment</p>
                     </div>
                     {status && (
                       <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${status.color}`}>
@@ -267,29 +267,9 @@ export default function JoinQuizPage() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-border bg-background p-4 space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted">Settings</h3>
-                    <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="text-text-muted">Negative Marking</span>
-                        <span className={quiz.negative_marking ? "text-red-500 font-medium" : "text-text-secondary"}>
-                          {quiz.negative_marking ? "Yes" : "No"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-text-muted">Shuffle Questions</span>
-                        <span className="text-text-secondary">{quiz.shuffle_questions ? "Yes" : "No"}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-text-muted">Shuffle Options</span>
-                        <span className="text-text-secondary">{quiz.shuffle_options ? "Yes" : "No"}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-text-muted">Leaderboard</span>
-                        <span className="text-text-secondary">{quiz.leaderboard ? "Yes" : "No"}</span>
-                      </div>
-                    </div>
-                  </div>
+                  <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-3 text-xs leading-5 text-emerald-700 dark:text-emerald-300">
+                    Your entry is verified securely. Quiz content becomes available only after access is approved.
+                  </p>
                 </div>
               </div>
 

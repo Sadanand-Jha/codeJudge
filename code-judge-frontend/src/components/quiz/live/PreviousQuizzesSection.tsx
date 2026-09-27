@@ -303,7 +303,7 @@ export default function PreviousQuizzesSection() {
     return MOCK_ATTEMPTS.filter((attempt) => {
       const matchesSearch =
         !query ||
-        [attempt.title, attempt.subject, attempt.createdBy, attempt.creatorRole, attempt.visibility, attempt.status]
+        [attempt.title, attempt.subject, attempt.visibility, attempt.status]
           .join(" ")
           .toLowerCase()
           .includes(query);
@@ -610,7 +610,7 @@ function AttemptCard({ attempt, index }: { attempt: AttemptCardData; index: numb
           >
             <h3 className="truncate text-sm font-semibold text-text-primary transition-colors group-hover:text-accent">{attempt.title}</h3>
             <p className="truncate text-[11px] text-text-secondary">
-              {attempt.subject} · {attempt.createdBy} ({attempt.creatorRole})
+              {attempt.subject}
             </p>
           </button>
 

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { IndianRupee, PiggyBank, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
+import { StudioStepHeader, StudioStepLayout } from "../primitives";
 
 export function PricingStep() {
   const { state, updatePricing, updateBranding } = useStudio();
@@ -19,30 +20,24 @@ export function PricingStep() {
   ];
 
   return (
-    <div className="flex flex-col bg-background">
-    <div className="">
-    <div className="mx-auto max-w-4xl space-y-8 px-4 py-6">
+    <StudioStepLayout>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h2 className="text-lg font-semibold text-text-primary">Pricing & Monetization</h2>
-        <p className="mt-1 text-xs text-text-secondary">
-          Configure whether your quiz is free or paid. Actual payout depends on the
-          configured payment system; the figures below are indicative.
-        </p>
+        <StudioStepHeader title="Pricing & Monetization" />
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.08 }}
-        className="grid gap-4 sm:grid-cols-2"
+        className="grid grid-cols-2 gap-2.5 sm:gap-4"
       >
         <label
           className={cn(
-            "flex flex-col gap-1 rounded-xl border p-5 text-left transition-all",
+            "flex min-h-24 flex-col justify-center gap-1 rounded-2xl border bg-card p-4 text-left transition-all sm:p-5",
             p.mode === "free"
               ? "border-emerald-500/40 bg-emerald-500/5"
               : "border-border hover:border-border-hover"
@@ -58,11 +53,10 @@ export function PricingStep() {
             }}
           />
           <span className="text-base font-semibold text-emerald-600 dark:text-emerald-300">FREE</span>
-          <span className="text-xs text-text-secondary">Reach the widest audience. No price, no friction.</span>
         </label>
         <div
           className={cn(
-            "flex flex-col gap-1 rounded-xl border p-5 text-left opacity-60",
+            "flex min-h-24 flex-col justify-center gap-1 rounded-2xl border bg-card p-4 text-left opacity-60 sm:p-5",
             p.mode === "paid"
               ? "border-pink-500/40 bg-pink-500/5 dark:border-pink-400/70 dark:bg-pink-500/10"
               : "border-border"
@@ -74,7 +68,6 @@ export function PricingStep() {
               Coming soon
             </span>
           </div>
-          <span className="text-xs text-text-secondary">Set a price and earn from every enrollment.</span>
         </div>
       </motion.div>
 
@@ -163,8 +156,6 @@ export function PricingStep() {
           <TrendingUp className="h-3.5 w-3.5 text-text-muted" />
         </div>
       </div>
-    </div>
-    </div>
-    </div>
+    </StudioStepLayout>
   );
 }

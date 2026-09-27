@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
-import { Gamepad2, Eye, Trophy, Timer, ShieldCheck, Users, ArrowLeft } from "lucide-react";
+import { Gamepad2, Eye, Trophy, Timer, ShieldCheck, Users } from "lucide-react";
 import { useStudio } from "../StudioProvider";
 import { GameMechanicsPanel } from "./GameMechanicsPanel";
 import { getEnabledMechanicsSummary, isMechanicAvailable, MECHANIC_META, type MechanicId } from "../types/gameMechanics";
 import { cn } from "@/lib/helpers";
 import type { CreatorQuestionType } from "../types";
+import { Badge, StudioStepHeader, StudioStepLayout } from "../primitives";
 
 export function GameMechanicsPage() {
   const { state, updateGameMechanics } = useStudio();
@@ -51,48 +51,24 @@ export function GameMechanicsPage() {
     return notes;
   }, [hasMCQ, hasMatchOnly, hasTimer, state.gameMechanics]);
 
-  const isPublished = state.published;
-  const quizName = state.info.title || "Untitled Quiz";
-
   return (
-    <div className="mx-auto w-full max-w-[1200px] space-y-6 p-4 sm:p-6">
-      {/* Header */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex gap-3 min-w-0">
-            <Link
-              href="/creator/quizzes"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E91E63] text-white shadow-[0_4px_12px_rgba(233,30,99,0.25)]">
-              <Gamepad2 className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <h1 className="text-lg font-semibold text-text-primary flex items-center gap-2">
-                Game Mechanics
-                <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-bold", isPublished ? "bg-emerald-500 text-white border-emerald-500" : "bg-amber-500 text-white border-amber-500")}>
-                  {isPublished ? "Published" : "Draft"}
-                </span>
-              </h1>
-              <p className="mt-1 text-sm text-text-muted">Configure the interactive game rules and power-ups available to students during this assessment.</p>
-              <p className="mt-1 text-xs font-medium text-text-secondary truncate">{quizName} · {state.questions.length} questions · {state.info.duration} min</p>
-              {applicabilityNotes.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {applicabilityNotes.map((n, i) => (
-                    <p key={i} className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-lg px-2.5 py-1.5">
-                      {n}
-                    </p>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+    <StudioStepLayout width="wide">
+      <StudioStepHeader
+        title="Game Mechanics"
+        actions={<Badge color={state.published ? "success" : "warning"}>{state.published ? "Published" : "Draft"}</Badge>}
+      />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+      {applicabilityNotes.length > 0 && (
+        <div className="space-y-2">
+          {applicabilityNotes.map((note) => (
+            <p key={note} className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+              {note}
+            </p>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[1fr_320px]">
         {/* Main mechanics */}
         <div className="space-y-6">
           <GameMechanicsPanel
@@ -212,7 +188,6 @@ export function GameMechanicsPage() {
               <h3 className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
                 <Trophy className="h-4 w-4 text-amber-500" /> Game Rules
               </h3>
-              <p className="text-xs text-text-muted">Immediate overview without opening every setting.</p>
             </div>
             <div className="p-4 space-y-3">
               <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
@@ -249,30 +224,10 @@ export function GameMechanicsPage() {
                 <p className="text-xs text-text-muted text-center py-2">No powers enabled yet.</p>
               )}
 
-              <div className="rounded-xl border border-dashed border-border bg-card p-3">
-                <p className="text-xs font-medium text-text-primary">Example</p>
-                <div className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-1 text-xs text-text-muted">
-                  <span className="whitespace-nowrap">DSA Championship</span><span className="opacity-60">·</span>
-                  <span className="whitespace-nowrap">20 Questions</span><span className="opacity-60">·</span>
-                  <span className="whitespace-nowrap">⏱ 15 min</span><span className="opacity-60">·</span>
-                  <span className="whitespace-nowrap">50:50 ×2</span><span className="opacity-60">·</span>
-                  <span className="whitespace-nowrap">Audience ×1</span><span className="opacity-60">·</span>
-                  <span className="whitespace-nowrap">Hint ×3</span><span className="opacity-60">·</span>
-                  <span className="whitespace-nowrap">Skip ×1</span><span className="opacity-60">·</span>
-                  <span className="whitespace-nowrap">2× Points ×1</span>
-                </div>
-              </div>
             </div>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted">Data & persistence</h4>
-            <p className="mt-1 text-xs leading-relaxed text-text-muted">
-              Single source of truth: <code className="rounded bg-background border border-border px-1 py-0.5 text-[11px]">quiz.gameMechanics</code>. Question builder reads quiz-level config but does not own it. Auto-saves via existing Studio save. Refresh preserves data. Switching Questions ↔ Game Mechanics preserves state.
-            </p>
           </div>
         </div>
       </div>
-    </div>
+    </StudioStepLayout>
   );
 }

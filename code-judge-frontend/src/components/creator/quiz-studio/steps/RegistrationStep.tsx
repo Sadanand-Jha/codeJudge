@@ -24,6 +24,7 @@ import {
   getRegistrationFieldDef,
   type RegistrationFieldConfig,
 } from "../types";
+import { StudioStepHeader, StudioStepLayout } from "../primitives";
 
 const uid = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
@@ -104,9 +105,7 @@ export function RegistrationStep() {
   /* ── render ────────────────────────────────────────────── */
 
   return (
-    <div className="flex flex-col bg-background">
-    <div className="">
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+    <StudioStepLayout width="wide">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -114,17 +113,10 @@ export function RegistrationStep() {
         transition={{ duration: 0.3 }}
         className="flex flex-wrap items-start justify-between gap-3"
       >
-        <div>
-          <h2 className="text-lg font-semibold text-text-primary">Registration Settings</h2>
-          <p className="mt-1 max-w-xl text-xs leading-relaxed text-text-secondary">
-            You choose what academic and assessment information participants
-            provide. Platform identity and contact information remain controlled
-            by Risponse.
-          </p>
-        </div>
+        <StudioStepHeader title="Registration Settings" />
       </motion.div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1fr_360px]">
         {/* ── Left column ── */}
         <div className="space-y-5">
           {/* Form requirement */}
@@ -264,6 +256,7 @@ export function RegistrationStep() {
                   {fields.map((field, idx) => {
                     const def = getRegistrationFieldDef(field.key);
                     if (!def) return null;
+                    const fieldOptions = field.options ?? def.options ?? [];
                     const expanded = expandedId === field.id;
                     return (
                       <li
@@ -381,13 +374,13 @@ export function RegistrationStep() {
                                   Options
                                 </p>
                                 <div className="space-y-1.5">
-                                  {(field.options ?? []).map((opt, i) => (
+                                  {fieldOptions.map((opt, i) => (
                                     <div key={i} className="flex items-center gap-1.5">
                                       <span className="w-4 text-center text-[10px] text-text-muted">{i + 1}</span>
                                       <input
                                         value={opt}
                                         onChange={(e) => {
-                                          const options = [...(field.options ?? [])];
+                                          const options = [...fieldOptions];
                                           options[i] = e.target.value;
                                           updateField(field.id, { options });
                                         }}
@@ -398,7 +391,7 @@ export function RegistrationStep() {
                                         danger
                                         onClick={() =>
                                           updateField(field.id, {
-                                            options: (field.options ?? []).filter((_, x) => x !== i),
+                                            options: fieldOptions.filter((_, x) => x !== i),
                                           })
                                         }
                                       >
@@ -410,7 +403,7 @@ export function RegistrationStep() {
                                     type="button"
                                     onClick={() =>
                                       updateField(field.id, {
-                                        options: [...(field.options ?? []), `Option ${(field.options?.length ?? 0) + 1}`],
+                                        options: [...fieldOptions, `Option ${fieldOptions.length + 1}`],
                                       })
                                     }
                                     className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-1 text-[10px] font-medium text-text-secondary transition-colors duration-150 hover:border-pink-500/40 hover:text-text-primary"
@@ -620,9 +613,7 @@ export function RegistrationStep() {
           </section>
         </aside>
       </div>
-    </div>
-    </div>
-    </div>
+    </StudioStepLayout>
   );
 }
 

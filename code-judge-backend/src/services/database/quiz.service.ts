@@ -55,8 +55,8 @@ export class QuizService {
     return this.repository.isUserRegistered(userId, quizId);
   }
 
-  async checkQuizAccessForRegistration(quizId: string): Promise<{ allowed: boolean; reason?: string }> {
-    return this.repository.checkQuizAccessForRegistration(quizId);
+  async checkQuizAccessForRegistration(quizId: string, userId?: number): Promise<{ allowed: boolean; reason?: string }> {
+    return this.repository.checkQuizAccessForRegistration(quizId, userId);
   }
 
   async registerUser(userId: string, quizId: string, rollno?: string): Promise<any> {
@@ -147,6 +147,10 @@ export class QuizService {
 
   async getQuizAttempt(userId: number, quizId: number): Promise<any | null> {
     return this.repository.getQuizAttempt(userId, quizId);
+  }
+
+  async getQuizAttemptById(attemptId: number): Promise<any | null> {
+    return this.repository.getQuizAttemptById(attemptId);
   }
 
   async createQuizAttempt(data: {

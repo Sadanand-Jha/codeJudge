@@ -37,16 +37,16 @@ export function AnalyzingStep({
   );
 
   return (
-    <div className="mx-auto max-w-lg space-y-8 pb-12">
+    <div className="mx-auto max-w-lg space-y-6 py-6 pb-12 sm:space-y-8 sm:py-10">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/20">
-          <Brain className="h-7 w-7 text-white" />
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-md shadow-violet-500/20 sm:mb-4 sm:h-14 sm:w-14">
+          <Brain className="h-6 w-6 text-white sm:h-7 sm:w-7" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-text-primary">
+        <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">
           Analyzing problem list
         </h1>
-        <p className="mt-2 text-sm text-text-secondary">
+        <p className="mt-2 break-words text-sm leading-5 text-text-secondary">
           Reading <span className="font-medium text-text-primary">{file.name}</span> ({file.pageCount} page{file.pageCount !== 1 ? "s" : ""})
         </p>
       </div>
@@ -67,7 +67,7 @@ export function AnalyzingStep({
       </div>
 
       {/* Steps */}
-      <div className="space-y-1 rounded-xl border border-border bg-card p-4">
+      <div className="space-y-1 rounded-xl border border-border bg-card p-2 sm:p-4">
         {ANALYSIS_STEPS.map((step, i) => {
           const isDone = completedSteps.includes(i);
           const isCurrent = i === currentStep;
@@ -78,7 +78,7 @@ export function AnalyzingStep({
               key={step}
               initial={false}
               animate={{ opacity: isPending ? 0.4 : 1 }}
-              className="flex items-center gap-3 rounded-lg px-3 py-2"
+              className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-2.5 sm:px-3"
             >
               <div
                 className={cn(
@@ -100,7 +100,7 @@ export function AnalyzingStep({
               </div>
               <span
                 className={cn(
-                  "text-sm",
+                  "min-w-0 flex-1 text-sm",
                   isDone
                     ? "text-text-secondary line-through"
                     : isCurrent
@@ -111,12 +111,12 @@ export function AnalyzingStep({
                 {step}
               </span>
               {isDone && (
-                <span className="ml-auto text-[10px] font-medium text-emerald-500">
+                <span className="shrink-0 text-[10px] font-medium text-emerald-500">
                   Done
                 </span>
               )}
               {isCurrent && (
-                <span className="ml-auto text-[10px] font-medium text-violet-500">
+                <span className="shrink-0 text-[10px] font-medium text-violet-500">
                   Processing…
                 </span>
               )}

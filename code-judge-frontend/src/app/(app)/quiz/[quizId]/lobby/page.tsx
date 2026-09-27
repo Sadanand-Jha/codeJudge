@@ -1,113 +1,75 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { motion } from "framer-motion";
-import { BookOpen, Clock, Users, Shield, Wifi, Monitor } from "lucide-react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { mockQuizzes } from "@/mocks/quizData";
-
-import { getQuizCode } from "@/services/quiz";
+import { BookOpen, CheckCircle2, Clock, Loader2, Monitor, ShieldCheck, Wifi } from "lucide-react";
+import { getQuizByCode, type QuizBasic } from "@/services/quiz";
+import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 
 export default function QuizLobbyPage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = use(params);
-  const quizCode = getQuizCode(quizId);
-  const quiz = mockQuizzes.find((q) => q.id === quizCode) || mockQuizzes[1];
-  const [countdown, setCountdown] = useState(10);
-  const [checking, setChecking] = useState(true);
+  const code = normalizeQuizCode(quizId.replace(/[^a-zA-Z]/g, ""));
+  const [quiz, setQuiz] = useState<QuizBasic | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setChecking(true);
-    const timer = setTimeout(() => setChecking(false), 1500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (countdown > 0) {
-      const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-      return () => clearTimeout(t);
+    let cancelled = false;
+    if (!isValidQuizCode(code)) {
+      setError("Invalid quiz code.");
+      setLoading(false);
+      return;
     }
-  }, [countdown]);
+    getQuizByCode(code)
+      .then((data) => { if (!cancelled) setQuiz(data); })
+      .catch(() => { if (!cancelled) setError("Quiz not found or unavailable."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [code]);
+
+  if (loading) return <Screen icon={<Loader2 className="h-7 w-7 animate-spin text-pink-500" />} text="Checking quiz access…" />;
+  if (error || !quiz) return <Screen icon={<ShieldCheck className="h-8 w-8 text-rose-500" />} text={error || "Quiz unavailable."} />;
+
+  const checks = [
+    { label: "Browser ready", icon: Monitor },
+    { label: "Connection active", icon: Wifi },
+    { label: "Access verified", icon: ShieldCheck },
+    { label: "Attempt protected", icon: CheckCircle2 },
+  ];
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-2xl mx-auto space-y-6">
-        {/* Header */}
-        <Link href={`/quiz/${quizCode}`} className="text-muted-foreground hover:text-white text-sm">
-          ← Back to Quiz
-        </Link>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-border-hover bg-card p-8 text-center space-y-6"
-        >
-          <div className="w-16 h-16 mx-auto rounded-xl bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center">
-            <BookOpen className="w-8 h-8 text-[#EC4899]" />
+    <div className="min-h-screen bg-background px-4 py-6 sm:px-6 sm:py-10">
+      <main className="mx-auto max-w-2xl space-y-4">
+        <Link href={`/quiz/${code}`} className="text-xs font-semibold text-text-secondary hover:text-text-primary">← Back to quiz</Link>
+        <section className="rounded-2xl border border-border bg-card p-5 sm:p-8">
+          <div className="text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-pink-500/10 text-pink-500"><BookOpen className="h-6 w-6" /></div>
+            <h1 className="mt-4 break-words text-xl font-bold text-text-primary">{quiz.name}</h1>
+            <p className="mt-1 text-sm text-text-secondary">Assessment lobby</p>
           </div>
 
-          <div>
-            <h1 className="text-xl font-bold text-white">{quiz.title}</h1>
-            <p className="text-sm text-muted-foreground mt-1">Assessment Lobby</p>
-          </div>
-
-          {/* Countdown */}
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Starting in</p>
-            <p className="text-5xl font-bold text-white">{countdown}s</p>
-          </div>
-
-          {/* System Check */}
-          <div className="space-y-3 pt-4">
-            <h2 className="text-sm font-semibold text-white">System Check</h2>
-            <div className="space-y-2">
-              {[
-                { label: "Browser Compatibility", icon: Monitor, ok: checking ? null : true },
-                { label: "Internet Status", icon: Wifi, ok: checking ? null : true },
-                { label: "Tab Switching Detection", icon: Shield, ok: checking ? null : true },
-                { label: "Fullscreen Mode", icon: Monitor, ok: checking ? null : true },
-              ].map((check) => (
-                <div key={check.label} className="flex items-center justify-between rounded-xl border border-border-hover bg-[#0B0D12] px-4 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <check.icon className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-[#E5E7EB]">{check.label}</span>
-                  </div>
-                  {check.ok === null ? (
-                    <div className="w-4 h-4 rounded-full bg-[#F59E0B] animate-pulse" />
-                  ) : check.ok ? (
-                    <div className="w-4 h-4 rounded-full bg-[#22C55E]" />
-                  ) : (
-                    <div className="w-4 h-4 rounded-full bg-[#EF4444]" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-4 space-y-3 text-xs text-muted-foreground">
-            <div className="flex items-center justify-center gap-4">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span>{quiz.timeLimit} min</span>
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            {checks.map(({ label, icon: Icon }) => (
+              <div key={label} className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-background p-3">
+                <Icon className="h-4 w-4 shrink-0 text-emerald-500" />
+                <span className="text-xs font-medium text-text-primary">{label}</span>
               </div>
-              <div className="flex items-center gap-1">
-                <BookOpen className="w-3 h-3" />
-                <span>{quiz.questions.length} questions</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                <span>{quiz.registeredCount} registered</span>
-              </div>
-            </div>
+            ))}
           </div>
 
-          <Link
-            href={`/quiz/${quizCode}/attempt`}
-            className="w-full h-10 rounded-xl border border-[#22C55E]/30 bg-[#22C55E]/10 text-sm font-bold text-[#22C55E] hover:bg-[#22C55E]/20 transition-colors flex items-center justify-center"
-          >
-            Enter Assessment
+          <div className="mt-5 flex items-center justify-center gap-2 text-xs text-text-secondary">
+            <Clock className="h-4 w-4" /> {quiz.duration ? `${quiz.duration} minutes` : "No fixed duration"}
+          </div>
+
+          <Link href={`/quiz/${code}/attempt`} className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-pink-600 px-5 text-sm font-bold text-white hover:bg-pink-700">
+            Enter assessment
           </Link>
-        </motion.div>
-      </div>
+        </section>
+      </main>
     </div>
   );
+}
+
+function Screen({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return <div className="flex min-h-[70vh] items-center justify-center bg-background px-4"><div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 text-center">{icon}<p className="mt-3 text-sm text-text-secondary">{text}</p></div></div>;
 }

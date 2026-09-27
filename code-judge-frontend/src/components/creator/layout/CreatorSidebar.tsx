@@ -15,7 +15,6 @@ import {
   TrendingUp,
   ArrowLeftRight,
   ArrowLeft,
-  Home,
   Banknote,
   RotateCcw,
   Scale,
@@ -42,6 +41,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useAuthStore } from "@/store/authStore";
+import { FOCUS_MODE_ENABLED } from "@/config/focusMode";
 
 export interface CreatorNavItem {
   label: string;
@@ -52,7 +52,7 @@ export interface CreatorNavItem {
   color?: "pink" | "purple";
 }
 
-export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
+const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
   {
     label: "Overview",
     items: [{ label: "Dashboard", href: "/creator", icon: LayoutDashboard, exact: true }],
@@ -140,19 +140,62 @@ export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
   },
 ];
 
-const BOTTOM_NAV: Array<{ label: string; href: string; icon: LucideIcon }> = [
+// Focus mode: only Problems / Quizzes / Tests (& related question bank) remain visible.
+// Payments, analytics, participants, advertise, AI studio, settings etc. are hidden.
+const FOCUS_CREATOR_ALLOWED = new Set([
+  "/creator",
+  // Quizzes / Tests / Series
+  "/creator/quizzes",
+  "/creator/quizzes/create",
+  "/creator/quizzes/ai-generate",
+  "/creator/tests",
+  "/creator/tests/create",
+  "/creator/series",
+  "/creator/series/create",
+  // Problems & question bank
+  "/creator/question-bank",
+  "/creator/questions",
+  "/creator/problems",
+  "/creator/resources",
+  "/creator/create",
+]);
+
+function isFocusAllowedHref(href: string): boolean {
+  for (const allowed of FOCUS_CREATOR_ALLOWED) {
+    if (allowed === "/creator") {
+      if (href === "/creator") return true;
+      continue;
+    }
+    if (href === allowed || href.startsWith(allowed + "/")) return true;
+  }
+  return false;
+}
+
+const _FOCUS_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = _FULL_CREATOR_NAV
+  .map((group) => ({
+    ...group,
+    items: group.items.filter((item) => isFocusAllowedHref(item.href)),
+  }))
+  .filter((group) => group.items.length > 0);
+
+export const CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = FOCUS_MODE_ENABLED ? _FOCUS_CREATOR_NAV : _FULL_CREATOR_NAV;
+
+const _FULL_BOTTOM_NAV: Array<{ label: string; href: string; icon: LucideIcon }> = [
   { label: "Upgrade", href: "/pricing", icon: Sparkles },
   { label: "Help Center", href: "/docs", icon: BookOpen },
 ];
+const BOTTOM_NAV: Array<{ label: string; href: string; icon: LucideIcon }> = FOCUS_MODE_ENABLED ? [] : _FULL_BOTTOM_NAV;
 
 function NavRow({
   item,
   pathname,
   showLabels,
+  onNavigate,
 }: {
   item: CreatorNavItem;
   pathname: string;
   showLabels: boolean;
+  onNavigate?: () => void;
 }) {
   const isActive = item.match
     ? item.match(pathname)
@@ -165,6 +208,7 @@ function NavRow({
   return (
     <Link
       href={item.href}
+      onClick={onNavigate}
       aria-label={showLabels ? undefined : item.label}
       title={showLabels ? undefined : item.label}
       className={cn(
@@ -230,7 +274,7 @@ export function CreatorSidebar({
       {/* Creator identity header */}
       <div className="border-b border-border px-4 py-3">
         <Link
-          href="/creator/profile"
+          href={FOCUS_MODE_ENABLED ? "/creator" : "/creator/profile"}
           onClick={onNavigate}
           className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-pink-500/30 hover:bg-white/[0.03]"
         >
@@ -258,7 +302,13 @@ export function CreatorSidebar({
             </p>
             <div className="space-y-0.5">
               {group.items.map((item) => (
-                <NavRow key={item.href} item={item} pathname={pathname} showLabels={showLabels} />
+                <NavRow
+                  key={item.href}
+                  item={item}
+                  pathname={pathname}
+                  showLabels={showLabels}
+                  onNavigate={onNavigate}
+                />
               ))}
             </div>
           </div>
@@ -267,24 +317,32 @@ export function CreatorSidebar({
 
       {/* Bottom */}
       <div className="shrink-0 border-t border-border p-3">
-        <div className="space-y-0.5">
-          {BOTTOM_NAV.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              onClick={onNavigate}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:bg-white/[0.04] hover:text-text-primary"
-            >
-              <item.icon className="h-4 w-4 text-text-muted" />
-              {item.label}
-            </Link>
-          ))}
-        </div>
+        {BOTTOM_NAV.length > 0 && (
+          <div className="space-y-0.5">
+            {BOTTOM_NAV.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={onNavigate}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:bg-white/[0.04] hover:text-text-primary"
+              >
+                <item.icon className="h-4 w-4 text-text-muted" />
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        )}
+        {FOCUS_MODE_ENABLED && (
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+            <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">Focus Mode</p>
+            <p className="text-[10px] text-text-muted leading-snug">Only Problems / Quizzes / Tests visible. Payments, analytics etc. hidden.</p>
+          </div>
+        )}
         {/* Back to Student Mode — mobile only, at last of sidebar */}
         {mobile && (
           <div className="mt-3 border-t border-border pt-3">
             <Link
-              href="/dashboard"
+              href="/quiz"
               onClick={onNavigate}
               className="flex cursor-pointer items-center gap-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 py-2.5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
             >

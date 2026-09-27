@@ -1,250 +1,51 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  LayoutDashboard,
-  Flame,
-  Trophy,
-  Star,
-  Award,
-  Zap,
-  Play,
-  Bookmark,
-  BarChart3,
-  Gift,
-  UserPlus,
-  Search,
-  Filter,
-  LayoutGrid,
-  List,
-  Calendar,
-  Clock,
-  Users,
-  TrendingUp,
-  Target,
-  FileText,
-  Sparkles,
-  ChevronRight,
-  BookOpen,
-  GraduationCap,
-  Briefcase,
-  Code2,
-  Building2,
-  Medal,
-  CheckCircle2,
-  Circle,
-  Timer,
-  Eye,
-} from "lucide-react";
-import { QuizLandingCards } from "@/components/quiz/live/QuizLandingCards";
-import { StatsCard, DifficultyBadge, VisibilityBadge, QuizCard, AssessmentCard, Card } from "@/components/quiz/quizComponents";
-import { QuizCardData } from "@/components/quiz/quizComponents";
-import { getAllQuizzes, type QuizListItem, quizCodePath } from "@/services/quiz";
-import { useToast } from "@/hooks/useToast";
+import { ArrowRight, ClipboardCheck, History, KeyRound, ShieldCheck } from "lucide-react";
 import GuestGuard from "@/components/guards/GuestGuard";
+import YourActivitySection from "@/components/quiz/live/YourActivitySection";
 
-// Convert API Quiz to QuizCardData for our reusable components
-function toQuizCardData(q: QuizListItem): QuizCardData {
-  const now = new Date();
-  const start = q.starttime ? new Date(q.starttime) : null;
-  const end = q.endtime ? new Date(q.endtime) : null;
-
-  let status: QuizCardData["status"] = "upcoming";
-  if (start && start <= now && (!end || end > now)) {
-    status = "active";
-  } else if (end && end <= now) {
-    status = "completed";
-  }
-
-  return {
-    id: q.code,
-    title: q.name,
-    description: "",
-    creatorName: q.creator_name || "Unknown",
-    difficulty: "Medium",
-    tags: [],
-    visibility: "global",
-    status,
-    questions: 0,
-    totalPoints: 0,
-    timeLimit: undefined,
-    registeredCount: 0,
-    attempts: 0,
-    averageScore: 0,
-    startTime: q.starttime || undefined,
-    endTime: q.endtime || undefined,
-    passingScore: undefined,
-  };
-}
-
-function QuizDashboardContent() {
-  const toast = useToast();
-  const [activeTab, setActiveTab] = useState("upcoming");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [quizzes, setQuizzes] = useState<QuizListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchQuizzes() {
-      try {
-        const data = await getAllQuizzes();
-        setQuizzes(data);
-      } catch (err) {
-        console.error("Failed to fetch quizzes:", err);
-        toast.error({
-          title: "Failed to Load Quizzes",
-          description: "Please try again later.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchQuizzes();
-  }, []);
-
-  const allQuizzes = useMemo(() => quizzes.map(toQuizCardData), [quizzes]);
-  const upcomingQuizzes = useMemo(() => allQuizzes.filter((q) => q.status === "upcoming"), [allQuizzes]);
-  const activeQuizzes = useMemo(() => allQuizzes.filter((q) => q.status === "active"), [allQuizzes]);
-  const completedQuizzes = useMemo(() => allQuizzes.filter((q) => q.status === "completed"), [allQuizzes]);
-  const myQuizzes = useMemo(() => allQuizzes.slice(0, 4), [allQuizzes]);
-
-  const currentQuizzesMap = {
-    upcoming: upcomingQuizzes,
-    active: activeQuizzes,
-    completed: completedQuizzes,
-    "my-quizzes": myQuizzes,
-    bookmarks: [] as QuizCardData[],
-  };
-  const currentQuizzes = currentQuizzesMap[activeTab as keyof typeof currentQuizzesMap] || [];
-
-  const currentList = searchQuery
-    ? currentQuizzes.filter((q) => q.title.toLowerCase().includes(searchQuery.toLowerCase()) || q.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())))
-    : currentQuizzes;
-
+function QuizHome() {
   return (
-    <div className="quiz-landing min-h-[calc(100vh-3.5rem)] bg-background text-text-primary p-4 sm:p-6 lg:p-8">
-      {/* ===== HERO CARD ===== */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative mb-8 overflow-hidden rounded-3xl border border-border bg-card"
-      >
-        {/* Decorative gradients */}
-        <div className="absolute inset-0">
-          <div className="absolute -top-32 -right-32 w-96 h-96 bg-[#EC4899]/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-[#BE185D]/5 rounded-full blur-2xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#EC4899]/[0.03] rounded-full blur-3xl" />
-        </div>
-
-        <div className="relative p-6 sm:p-10">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6 lg:gap-10">
-            {/* Left: Text content */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="px-2.5 py-1 rounded-full bg-[#EC4899]/10 border border-[#EC4899]/20 text-[10px] font-bold text-[#EC4899] uppercase tracking-wider">
-                  Assessment Platform
-                </span>
-                <span className="px-2.5 py-1 rounded-full bg-card-hover border border-border text-[10px] font-medium text-text-secondary">
-                  v2.0
-                </span>
-              </div>
-
-              <motion.h1
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary mb-3 tracking-tight"
-              >
-                Assessment &{" "}
-                <span className="bg-gradient-to-r from-[#EC4899] to-[#F472B6] bg-clip-text text-transparent">
-                  Quiz Platform
-                </span>
-              </motion.h1>
-
-              <motion.p
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-sm sm:text-base text-text-secondary max-w-2xl leading-relaxed"
-              >
-                Discover, create and participate in assessments across academics, placements, coding interviews, certifications and organizations.
-              </motion.p>
-
-              {/* Quick stats */}
-              <div className="flex flex-wrap items-center gap-4 mt-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center">
-                    <Users className="w-4 h-4 text-[#EC4899]" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-text-primary">{quizzes.length}+</p>
-                    <p className="text-[9px] text-text-muted">Quizzes Available</p>
-                  </div>
-                </div>
-                <div className="w-px h-8 bg-border" />
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-success/10 border border-success/20 flex items-center justify-center">
-                    <BookOpen className="w-4 h-4 text-success" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-text-primary">{activeQuizzes.length}</p>
-                    <p className="text-[9px] text-text-muted">Active Now</p>
-                  </div>
-                </div>
-                <div className="w-px h-8 bg-border" />
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-warning/10 border border-warning/20 flex items-center justify-center">
-                    <Medal className="w-4 h-4 text-warning" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-text-primary">{completedQuizzes.length}</p>
-                    <p className="text-[9px] text-text-muted">Completed</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Illustration / CTA */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
-              className="shrink-0 w-full lg:w-auto"
-            >
-              <div className="relative">
-                <div className="absolute -inset-4 bg-gradient-to-r from-[#EC4899]/20 to-[#BE185D]/20 rounded-3xl blur-2xl" />
-                <div className="relative flex items-center gap-4 p-4 rounded-2xl border border-border bg-card/80 backdrop-blur-xl">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#EC4899] to-[#BE185D] flex items-center justify-center shadow-[0_0_30px_rgba(236,72,153,0.3)]">
-                    <Sparkles className="w-8 h-8 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-text-primary">Ready to test yourself?</p>
-                    <p className="text-[10px] text-text-secondary mb-2">Join a live assessment or practice below</p>
-                    <Link href="#join-quiz">
-                      <motion.button
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] text-xs font-bold text-white hover:shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all flex items-center gap-2"
-                      >
-                        <UserPlus className="w-3.5 h-3.5" />
-                        Join a Quiz
-                      </motion.button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+    <div className="min-h-[calc(100vh-3.5rem)] bg-background px-4 py-6 text-text-primary sm:px-6 sm:py-8 lg:px-8">
+      <main className="mx-auto max-w-6xl space-y-6 sm:space-y-8">
+        <section className="overflow-hidden rounded-2xl border border-border bg-card p-5 sm:p-8">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+              <ShieldCheck className="h-3.5 w-3.5" /> Secure quiz access
+            </span>
+            <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">Quizzes</h1>
+            <p className="mt-2 text-sm leading-6 text-text-secondary">
+              Join an assessment using its verified 16-letter code, then manage your attempts and results from one place.
+            </p>
           </div>
+        </section>
+
+        <section className="grid grid-cols-2 gap-3 sm:gap-4">
+          <ActionCard
+            href="/quiz/join"
+            icon={KeyRound}
+            title="Join quiz"
+            description="Enter a valid quiz code to verify access."
+            primary
+          />
+          <ActionCard
+            href="#activity"
+            icon={History}
+            title="My activity"
+            description="Review attempts, results, and quiz history."
+          />
+        </section>
+
+        <section className="grid grid-cols-2 gap-3 sm:gap-4">
+          <InfoBox icon={ClipboardCheck} title="Verified entry" text="Invalid, draft, expired, and unauthorized quiz codes are rejected." />
+          <InfoBox icon={ShieldCheck} title="Private by design" text="Creator identity and internal quiz configuration are never shown here." />
+        </section>
+
+        <div id="activity" className="scroll-mt-20">
+          <YourActivitySection />
         </div>
-      </motion.div>
-
-      {/* ===== LANDING ACTION CARDS ===== */}
-      <QuizLandingCards />
-
-      
+      </main>
     </div>
   );
 }
@@ -252,7 +53,47 @@ function QuizDashboardContent() {
 export default function QuizDashboardPage() {
   return (
     <GuestGuard action="join-contest">
-      <QuizDashboardContent />
+      <QuizHome />
     </GuestGuard>
+  );
+}
+
+function ActionCard({
+  href,
+  icon: Icon,
+  title,
+  description,
+  primary = false,
+}: {
+  href: string;
+  icon: typeof KeyRound;
+  title: string;
+  description: string;
+  primary?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`group flex min-h-40 min-w-0 flex-col rounded-2xl border p-4 transition sm:min-h-44 sm:p-6 ${primary ? "border-pink-500/25 bg-pink-500/[0.06] hover:border-pink-500/40" : "border-border bg-card hover:border-border-hover"}`}
+    >
+      <span className={`flex h-9 w-9 items-center justify-center rounded-xl sm:h-10 sm:w-10 ${primary ? "bg-pink-500 text-white" : "bg-card-hover text-text-secondary"}`}>
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+      </span>
+      <h2 className="mt-4 break-words text-sm font-bold text-text-primary sm:text-base">{title}</h2>
+      <p className="mt-1 flex-1 text-[11px] leading-4 text-text-secondary sm:text-sm sm:leading-5">{description}</p>
+      <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-pink-600 dark:text-pink-300 sm:text-xs">
+        Open <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+      </span>
+    </Link>
+  );
+}
+
+function InfoBox({ icon: Icon, title, text }: { icon: typeof ShieldCheck; title: string; text: string }) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-border bg-card p-3.5 sm:p-5">
+      <Icon className="h-5 w-5 text-emerald-500" />
+      <h3 className="mt-3 text-xs font-bold text-text-primary sm:text-sm">{title}</h3>
+      <p className="mt-1 text-[10px] leading-4 text-text-secondary sm:text-xs sm:leading-5">{text}</p>
+    </div>
   );
 }

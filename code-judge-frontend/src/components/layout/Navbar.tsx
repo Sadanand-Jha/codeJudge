@@ -45,7 +45,7 @@ export default function Navbar() {
       {/* ===== TOP BAR ===== */}
       <div className="flex h-12 items-center justify-between border-b border-border px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/quiz" className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
             <Code2 className="w-4 h-4 text-white" />
           </div>

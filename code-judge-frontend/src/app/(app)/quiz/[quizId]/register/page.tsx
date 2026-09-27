@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getQuizById, registerForQuiz, type QuizBasic, getQuizCode, quizCodePath } from "@/services/quiz";
+import { getQuizByCode, joinQuiz, type QuizBasic, getQuizCode, quizCodePath } from "@/services/quiz";
 import { DEFAULT_ASSESSMENT_SETTINGS, LifelineConfig } from "@/types/quiz";
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
@@ -64,6 +64,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
   const [readRules, setReadRules] = useState(false);
   const [studentName, setStudentName] = useState("");
   const [rollNo, setRollNo] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const quizCode = getQuizCode(quizId);
   const settings = DEFAULT_ASSESSMENT_SETTINGS;
@@ -94,7 +95,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
   useEffect(() => {
     async function fetchQuiz() {
       try {
-        const data = await getQuizById(quizCode);
+        const data = await getQuizByCode(quizCode);
         setQuiz(data);
       } catch (err) {
         console.error("Failed to fetch quiz:", err);
@@ -109,7 +110,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
     if (quizCode) fetchQuiz();
   }, [quizCode]);
 
-  const handleRegisterClick = () => {
+  const handleRegisterClick = async () => {
     if (!studentName.trim()) {
       toast.error("Please enter your full name");
       return;
@@ -127,13 +128,24 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
       return;
     }
 
-    // mock registration
-    register(quizCode, quizCode, quiz?.name || "Quiz", studentName.trim(), rollNo.trim());
-    toast.success({
-      title: "Registered Successfully!",
-      description: "You have successfully registered for the quiz.",
-    });
-    router.push(quizCodePath(quizCode, "waiting"));
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await joinQuiz({ code: quizCode });
+      register(quizCode, quizCode, quiz?.name || "Quiz", studentName.trim(), rollNo.trim());
+      toast.success({
+        title: "Registered Successfully!",
+        description: "Your quiz access has been verified.",
+      });
+      router.push(quizCodePath(quizCode, "waiting"));
+    } catch (err: any) {
+      toast.error({
+        title: "Registration denied",
+        description: err?.response?.data?.message || "You are not allowed to join this quiz.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleUnregisterClick = () => {
@@ -267,9 +279,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
             </div>
             <nav className="space-y-1">
               <NavItem icon={BookOpen} label="Overview" href={`/quiz/${quizCode}`} />
-              <NavItem icon={Users} label="Dashboard" href={`/quiz/${quizCode}/dashboard`} />
               <NavItem icon={Trophy} label="Leaderboard" href={`/quiz/${quizCode}/leaderboard`} />
-              <NavItem icon={BarChart3} label="Settings" href={`/quiz/${quizCode}/settings`} />
             </nav>
           </div>
         </div>
@@ -321,7 +331,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       </div>
                       <div className="flex-1 min-w-0">
                         <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">{quiz.name}</h2>
-                        <p className="text-sm text-muted-foreground">by {quiz.creator_name || "Unknown Creator"}</p>
+                        <p className="text-sm text-muted-foreground">Secure assessment</p>
                       </div>
                     </div>
 
@@ -535,11 +545,11 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       ) : (
                         <button
                           onClick={handleRegisterClick}
-                          disabled={!canRegister}
+                          disabled={!canRegister || submitting}
                           className="w-full h-14 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(124,58,237,0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                          <Play className="w-4 h-4" />
-                          Register & Continue
+                          {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                          {submitting ? "Verifying…" : "Register & Continue"}
                         </button>
                       )}
                       <Link
@@ -573,10 +583,13 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md mx-4"
-              onClick={(e) => e.stopPropagation()}
+              className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+              onClick={() => setShowUnregisterModal(false)}
             >
-              <div className="rounded-3xl border border-border-hover bg-card p-6 sm:p-8 shadow-2xl">
+              <div
+                className="w-full max-w-md rounded-3xl border border-border-hover bg-card p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center">
                   <X className="w-8 h-8 text-[#F59E0B]" />
                 </div>

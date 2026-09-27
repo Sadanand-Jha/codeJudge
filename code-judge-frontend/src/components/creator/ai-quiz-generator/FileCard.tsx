@@ -20,7 +20,7 @@ export function FileCard({
   return (
     <div
       className={cn(
-        "flex items-center gap-4 rounded-xl border p-4 transition-colors",
+        "flex min-w-0 items-start gap-3 rounded-xl border p-3 text-left transition-colors sm:items-center sm:gap-4 sm:p-4",
         file.valid
           ? "border-emerald-500/20 bg-emerald-500/[0.04]"
           : "border-rose-500/20 bg-rose-500/[0.04]"
@@ -45,7 +45,7 @@ export function FileCard({
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-500" />
           )}
         </div>
-        <div className="mt-0.5 flex items-center gap-3 text-xs text-text-secondary">
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-text-secondary sm:text-xs">
           <span className="uppercase font-medium">{file.type}</span>
           <span>·</span>
           <span>{file.pageCount} page{file.pageCount !== 1 ? "s" : ""}</span>

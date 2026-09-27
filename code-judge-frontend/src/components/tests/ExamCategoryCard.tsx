@@ -42,7 +42,7 @@ function CategoryCard({ category, index }: { category: ExamCategory; index: numb
       </div>
 
       {/* Stats strip */}
-      <div className="relative grid grid-cols-4 gap-px overflow-hidden rounded-xl border border-border bg-border/60 px-0 text-center">
+      <div className="relative grid grid-cols-4 gap-px overflow-hidden rounded-xl border border-border bg-border/60 px-0 text-center text-[11px] sm:text-[13px]">
         {[
           { icon: Layers, label: "Tests", value: category.stats.tests.toLocaleString("en-IN") },
           { icon: FileText, label: "Series", value: String(category.stats.series) },
@@ -175,9 +175,9 @@ export function ExamCategories({ heading = true }: { heading?: boolean }) {
         />
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] xl:gap-8">
+      <div className="grid items-start gap-5 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)] xl:gap-8">
         {/* Main grid — 5 categories + the compact request card */}
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {EXAM_CATEGORIES.map((category, i) => (
             <CategoryCard key={category.id} category={category} index={i} />
           ))}

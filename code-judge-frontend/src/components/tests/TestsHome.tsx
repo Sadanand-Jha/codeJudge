@@ -33,7 +33,7 @@ import type { ExamId } from "./types";
 const POPULAR_SERIES = SERIES.filter((s) => s.featured).slice(0, 4);
 
 const LAYOUT_CLASSES =
-  "mx-auto w-full max-w-[1600px] px-5 pb-16 sm:px-8 lg:px-10 xl:px-12 2xl:px-16";
+  "mx-auto w-full max-w-[1600px] px-4 pb-16 sm:px-5 lg:px-10 xl:px-12 2xl:px-16";
 
 export function TestsHome({ initialExam, showContinue }: { initialExam?: ExamId; showContinue?: boolean }) {
   const [searchQuery, setSearchQuery] = useState("");

@@ -14,14 +14,14 @@ interface JoinQuizModalProps {
 export function JoinQuizModal({ open, onClose, onJoin }: JoinQuizModalProps) {
   const [raw, setRaw] = useState("");
 
-  const digits = raw.replace(/[^a-z0-9]/gi, "").toUpperCase();
-  const groups = digits.match(/.{1,4}/g) ?? [];
+  const code = raw.replace(/[^a-z]/gi, "").toUpperCase();
+  const groups = code.match(/.{1,4}/g) ?? [];
   const display = groups.join("-");
-  const valid = digits.length === 16;
+  const valid = /^[A-Z]{16}$/.test(code);
 
   const handleSubmit = () => {
     if (!valid) return;
-    onJoin(digits);
+    onJoin(code);
   };
 
   return (
@@ -40,9 +40,13 @@ export function JoinQuizModal({ open, onClose, onJoin }: JoinQuizModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 16 }}
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[60] w-full max-w-md mx-4"
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+            onClick={onClose}
           >
-            <div className="join-quiz-modal relative rounded-3xl border border-border-hover bg-card p-6 shadow-2xl shadow-black/60">
+            <div
+              className="join-quiz-modal relative w-full max-w-md rounded-3xl border border-border-hover bg-card p-6 shadow-2xl shadow-black/60"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="join-quiz-glow absolute -inset-0.5 rounded-3xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] opacity-20 blur" />
               <div className="relative">
                 <div className="flex items-center justify-between mb-4">
@@ -71,13 +75,16 @@ export function JoinQuizModal({ open, onClose, onJoin }: JoinQuizModalProps) {
                   maxLength={19}
                   value={display}
                   onChange={(e) => setRaw(e.target.value)}
-                  placeholder="ABCD-1234-EFGH-5678"
-                  className="join-quiz-input w-full text-center text-xl font-mono font-bold tracking-widest px-4 py-3 rounded-xl border border-border bg-input-bg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#EC4899]/30 transition-colors"
+                  placeholder="ABCD-EFGH-IJKL-MNOP"
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="join-quiz-input w-full rounded-xl border border-border bg-input-bg px-2 py-3 text-center font-mono text-lg font-bold tracking-[0.08em] text-foreground placeholder:text-muted-foreground focus:border-[#EC4899]/30 focus:outline-none sm:px-4 sm:text-xl sm:tracking-widest"
                 />
 
-                {!valid && digits.length > 0 && (
+                {!valid && code.length > 0 && (
                   <p className="join-quiz-error text-[10px] text-[#fd079f] mt-2">
-                    Enter the full 16-character code.
+                    Enter the full 16-letter code.
                   </p>
                 )}
 

@@ -100,7 +100,7 @@ export function CreatorSettingsPage() {
                   Cancel
                 </button>
                 <Link
-                  href="/"
+                  href="/quiz"
                   onClick={() => setConfirmLogout(false)}
                   className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-2.5 text-[13px] font-bold text-danger transition-colors hover:bg-red-600 hover:text-white"
                 >

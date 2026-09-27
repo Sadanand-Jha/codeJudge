@@ -37,7 +37,7 @@ export default function ContinueReading({ related }: { related: FeedPost[] }) {
           </h2>
         </div>
         <Link
-          href="/"
+          href="/quiz"
           className="hidden items-center gap-1 text-[13px] font-semibold text-text-secondary transition-colors hover:text-[#7C3AED] sm:flex"
         >
           Back to feed

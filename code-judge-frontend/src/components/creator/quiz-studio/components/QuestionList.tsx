@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Copy, Trash2, Search, CheckCircle2, XCircle, GripVertical, X, Sparkles, Download } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { toast } from "@/lib/toast";
@@ -44,30 +44,6 @@ export function QuestionList({
   const { state, reorderQuestions, duplicateQuestion, removeQuestion, setActiveQuestion, addQuestion } = useStudio();
   const [search, setSearch] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
-
-  const [tipIdx, setTipIdx] = useState(0);
-
-  const TIPS = [
-    "Drag questions to reorder them in the list.",
-    "Press Ctrl+Z to undo your last change.",
-    "Press Ctrl+Y to redo an undone change.",
-    "Click the circle next to an option to mark it as correct.",
-    "Use AI Generate to create questions instantly from your content.",
-    "Download a PDF of your quiz anytime from the button above.",
-    "Click Student Preview to see how students will view your quiz.",
-    "Press + Add Question to create a new blank question.",
-    "Duplicate a question using the copy icon on hover.",
-    "Set marks, difficulty, and time for each question in the toolbar.",
-    "The green dot means a question is complete, yellow means missing an answer.",
-    "You can add images to options using the image icon.",
-  ];
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTipIdx((prev) => (prev + 1) % TIPS.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [TIPS.length]);
 
   const visible = state.questions.filter((q) => {
     const term = search.toLowerCase();
@@ -222,12 +198,6 @@ export function QuestionList({
             ? (saveProgress ? `Saving ${saveProgress.saved}/${saveProgress.total}…` : "Saving…")
             : "Save Changes"}
         </button>
-        <div className="mt-3 flex items-start gap-2 rounded-lg bg-background p-2.5 text-xs text-text-secondary">
-          <span className="mt-0.5">💡</span>
-          <span>
-            <span className="font-semibold">Tip:</span> {TIPS[tipIdx]}
-          </span>
-        </div>
       </div>
     </div>
   );

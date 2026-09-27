@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,8 +23,13 @@ type Workspace = "student" | "studio";
 export default function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({
+    top: 0,
+    left: 12,
+    width: 240,
+  });
   const pathname = usePathname();
 
   const workspace: Workspace = pathname.startsWith("/creator") || isNestedQuizPath(pathname) ? "studio" : "student";
@@ -32,7 +38,14 @@ export default function WorkspaceSwitcher() {
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (
+        ref.current &&
+        !ref.current.contains(target) &&
+        !dropdownRef.current?.contains(target)
+      ) {
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -41,9 +54,11 @@ export default function WorkspaceSwitcher() {
   useEffect(() => {
     if (open && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
+      const width = Math.min(240, window.innerWidth - 24);
       setDropdownPos({
         top: rect.bottom + 6,
-        right: window.innerWidth - rect.right,
+        left: Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12),
+        width,
       });
     }
   }, [open]);
@@ -67,56 +82,63 @@ export default function WorkspaceSwitcher() {
         ) : (
           <GraduationCap className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
         )}
-        <span className="whitespace-nowrap">{workspace === "studio" ? "Studio" : "Student"}</span>
+        <span className="hidden whitespace-nowrap min-[380px]:inline">
+          {workspace === "studio" ? "Studio" : "Student"}
+        </span>
         <ChevronDown className={cn("h-3 w-3 shrink-0 text-text-muted transition-transform", open && "rotate-180")} />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-            <motion.div
-              initial={{ opacity: 0, y: -4, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -4, scale: 0.97 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className="fixed z-50 w-60 rounded-xl border border-border bg-card p-1.5 shadow-xl"
-              style={{ top: dropdownPos.top, right: dropdownPos.right }}
-            >
-              <WorkspaceOption
-                active={workspace === "student"}
-                icon={<GraduationCap className="h-4 w-4 shrink-0 text-text-secondary" />}
-                label="Student"
-                description="Student Workspace"
-                href="/"
-                onSelect={() => setOpen(false)}
-              />
-
-              <div className="my-1 h-px bg-border" />
-
-              {canAccessStudio ? (
-                <WorkspaceOption
-                  active={workspace === "studio"}
-                  icon={<Shapes className="h-4 w-4 shrink-0 text-pink-500 dark:text-ai-accent" />}
-                  label="Studio"
-                  description="Create and manage quizzes"
-                  href="/creator"
-                  onSelect={() => setOpen(false)}
-                />
-              ) : (
-                <Link
-                  href="/creator"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-white/[0.04] hover:text-text-primary"
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+                <motion.div
+                  ref={dropdownRef}
+                  initial={{ opacity: 0, y: -4, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.97 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="fixed z-50 rounded-xl border border-border bg-card p-1.5 shadow-xl"
+                  style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
                 >
-                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-pink-500 dark:text-ai-accent" />
-                  Become a Creator
-                </Link>
-              )}
-            </motion.div>
-          </>
+                  <WorkspaceOption
+                    active={workspace === "student"}
+                    icon={<GraduationCap className="h-4 w-4 shrink-0 text-text-secondary" />}
+                    label="Student"
+                    description="Student Workspace"
+                    href="/quiz"
+                    onSelect={() => setOpen(false)}
+                  />
+
+                  <div className="my-1 h-px bg-border" />
+
+                  {canAccessStudio ? (
+                    <WorkspaceOption
+                      active={workspace === "studio"}
+                      icon={<Shapes className="h-4 w-4 shrink-0 text-pink-500 dark:text-ai-accent" />}
+                      label="Studio"
+                      description="Create and manage quizzes"
+                      href="/creator"
+                      onSelect={() => setOpen(false)}
+                    />
+                  ) : (
+                    <Link
+                      href="/creator"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-white/[0.04] hover:text-text-primary"
+                    >
+                      <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-pink-500 dark:text-ai-accent" />
+                      Become a Creator
+                    </Link>
+                  )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </div>
   );
 }

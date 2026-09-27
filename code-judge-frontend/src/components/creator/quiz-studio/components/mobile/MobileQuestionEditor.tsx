@@ -293,32 +293,33 @@ export function MobileQuestionEditor({
                     setDraggedOpt(null);
                   }}
                   className={cn(
-                    "flex w-full max-w-full min-w-0 items-center gap-1.5 sm:gap-2 rounded-xl border px-2 sm:px-3 py-2.5 overflow-hidden",
+                    "flex w-full max-w-full min-w-0 items-start gap-1.5 sm:gap-2 rounded-xl border px-2 sm:px-3 py-2.5 overflow-hidden",
                     o.isCorrect ? "border-emerald-200 bg-emerald-50" : "border-zinc-200 bg-white"
                   )}
                 >
                   <button
                     onClick={() => setCorrect(o.id)}
-                    className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-zinc-300 bg-white")}
+                    className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-zinc-300 bg-white")}
                   >
                     {o.isCorrect && <Check className="h-4 w-4" />}
                   </button>
-                  <span className={cn("hidden xs:flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold sm:flex", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-zinc-200 bg-zinc-100 text-zinc-700")}>
+                  <span className={cn("mt-0.5 hidden xs:flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold sm:flex", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-zinc-200 bg-zinc-100 text-zinc-700")}>
                     {o.label}
                   </span>
-                  <input
+                  <textarea
                     value={o.content}
                     onChange={(e) => {
                       if (e.target.value.length <= 250) updateOption(o.id, { content: e.target.value });
                     }}
                     placeholder={`Option ${o.label}`}
                     maxLength={250}
-                    className="min-w-0 flex-1 bg-transparent text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
+                    rows={Math.max(1, Math.ceil(Math.max(o.content.length, 1) / 28))}
+                    className="min-h-7 min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-1 text-sm leading-5 text-zinc-900 placeholder:text-zinc-400 focus:outline-none"
                   />
                   <button onClick={() => openImageAssistant(o.id)} className="hidden sm:flex shrink-0 rounded p-1 text-zinc-400 hover:bg-zinc-100">
                     <ImageIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </button>
-                  <button onClick={() => removeOption(o.id)} className="shrink-0 rounded p-1 text-zinc-400 hover:bg-red-50 hover:text-red-500">
+                  <button onClick={() => removeOption(o.id)} className="mt-0.5 shrink-0 rounded p-1 text-zinc-400 hover:bg-red-50 hover:text-red-500">
                     <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </button>
                   <span className="hidden sm:flex cursor-grab p-1 text-zinc-400 shrink-0">
@@ -338,7 +339,6 @@ export function MobileQuestionEditor({
               <Plus className="h-4 w-4" /> Add option
             </button>
           )}
-          <p className="mt-2 text-center text-xs text-zinc-400">Tap the circle to mark the correct answer</p>
         </div>
       ) : (
         <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm p-4">
