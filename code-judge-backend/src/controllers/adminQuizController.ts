@@ -320,6 +320,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       createdby: userId,
       starttime: body.starttime ? new Date(body.starttime) : undefined,
       visibility: visibilityId ?? undefined,
+      audienceMode: body.audienceMode,
       difficulty: difficultyId ?? undefined,
       subjectId: subjectId ?? undefined,
       examId: examId ?? undefined,

@@ -15,7 +15,6 @@ import {
   BookOpen,
   Briefcase,
   Sparkles,
-  ClipboardCheck,
   Trophy,
   Loader2,
   ChevronDown,
@@ -103,21 +102,20 @@ type NavItemData = {
 //
 // Information architecture (full mode):
 //   HOME        → feed / dashboard
-//   TESTS       → assessments (Tests, Contests, Problems)
+//   ASSESSMENTS → assessments (Contests, Problems, Join Quiz)
 //   PREPARATION → one primary entity; its sections live in a dedicated
 //                 workspace sidebar inside /preparation/* (like Profile)
 //   ACCOUNT     → Profile, Purchases, Settings
 //
-// When FOCUS_MODE_ENABLED is true only Quiz & Test sections remain visible.
+// When FOCUS_MODE_ENABLED is true only Quiz section remains visible.
 const _fullNavGroups: { label: string; items: NavItemData[] }[] = [
   {
     label: "MAIN",
     items: [{ label: "Home", icon: LayoutDashboard, href: "/" }],
   },
   {
-    label: "TESTS",
+    label: "ASSESSMENTS",
     items: [
-      { label: "Tests", icon: ClipboardCheck, href: "/tests" },
       { label: "Contests", icon: Trophy, href: "/contests" },
       { label: "Problems", icon: Code2, href: "/problems" },
       { label: "Join Quiz", icon: UserPlus, href: "/quiz" },
@@ -140,12 +138,11 @@ const _fullNavGroups: { label: string; items: NavItemData[] }[] = [
   },
 ];
 
-// Focus mode: only Quiz & Test (and Home which becomes quiz/test hub)
+// Focus mode: only Quiz (and Home which becomes quiz hub)
 const _focusNavGroups: { label: string; items: NavItemData[] }[] = [
   {
-    label: "QUIZ & TEST",
+    label: "QUIZ",
     items: [
-      { label: "Tests", icon: ClipboardCheck, href: "/tests" },
       { label: "Join Quiz", icon: UserPlus, href: "/quiz" },
     ],
   },
@@ -235,10 +232,9 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
     if (isStudioRoute) return "Studio";
     if (isNestedQuizPath(pathname)) return "Quiz Settings";
     if (FOCUS_MODE_ENABLED) {
-      if (pathname === "/") return "Quiz & Test";
-      if (pathname.startsWith("/tests")) return "Tests";
+      if (pathname === "/") return "Quiz";
       if (pathname.startsWith("/quiz")) return "Quiz";
-      return navItems.find((n) => pathname.startsWith(n.href))?.label || "Quiz & Test";
+      return navItems.find((n) => pathname.startsWith(n.href))?.label || "Quiz";
     }
     if (pathname === PREPARATION_BASE) return "Preparation";
     const prepModule = getActivePreparationModule(pathname);
@@ -257,7 +253,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   // without a flash of the guest UI.
   if (!hasHydrated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-dvh bg-background flex items-center justify-center">
         <Loader2 className="w-6 h-6 text-accent animate-spin" />
       </div>
     );
@@ -266,7 +262,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   // Fullscreen routes (waiting room, etc.) - no sidebar/navbar
   if (isFullscreenRoute(pathname)) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-dvh bg-background">
         {children}
         <AuthModal
           isOpen={authModalOpen}
@@ -279,7 +275,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
   return (
     <div
-      className="min-h-screen w-full min-w-0 bg-ai-bg flex"
+      className="min-h-dvh w-full min-w-0 bg-ai-bg flex"
       data-ai-scope
       style={{ "--rail-w": isStudioRoute ? "0rem" : mobileMenuOpen || sidebarExpanded ? "16rem" : "3.75rem" } as CSSProperties}
     >
@@ -304,7 +300,9 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       <Sidebar
         dataSidebar="true"
         className={cn(
-          "fixed left-0 top-0 h-screen bg-ai-sidebar/75 backdrop-blur-xl backdrop-saturate-150 border-r border-ai-border flex flex-col z-50 overflow-hidden",
+          // `100vh` can extend behind mobile browser chrome. `100dvh` tracks
+          // the actually visible viewport, keeping the account action onscreen.
+          "fixed left-0 top-0 h-dvh bg-ai-sidebar/75 backdrop-blur-xl backdrop-saturate-150 border-r border-ai-border flex flex-col z-50 overflow-hidden",
           "transition-[width,transform] duration-200 ease-out",
           "w-[var(--rail-w)]",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
@@ -361,7 +359,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         </nav>
 
         {/* Bottom: Account + Collapse */}
-        <div className="border-t border-ai-border p-2 space-y-1">
+        <div className="shrink-0 border-t border-ai-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] space-y-1">
           {!isAuthenticated && showLabels && (
             <div className="px-3 py-2 rounded-lg bg-ai-accent-soft border border-ai-accent/20">
               <div className="text-[10px] text-ai-text-sec mb-1">{"You're browsing as a guest"}</div>
@@ -398,7 +396,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       <div
         className={cn(
           "flex-1 w-0 min-w-0 flex flex-col transition-[margin] duration-200 ease-out",
-          isStudioRoute ? "h-screen overflow-hidden" : "min-h-screen",
+          isStudioRoute ? "h-dvh overflow-hidden" : "min-h-dvh",
           !isStudioRoute && "lg:ml-[var(--rail-w)]"
         )}
       >

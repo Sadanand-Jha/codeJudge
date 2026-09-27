@@ -1,5 +1,5 @@
 /**
- * Focus Mode — Quiz & Test only
+ * Focus Mode — Quiz only
  * When enabled, all other sections of the platform are hidden from navigation
  * and blocked at the proxy layer. Single source of truth for both UI and
  * edge enforcement.
@@ -11,13 +11,12 @@ export const FOCUS_MODE_ENABLED = true;
 
 /**
  * Allowed URL prefixes when focus mode is active.
- * Exact "/" is allowed (repurposed to quiz/test hub). Everything else must
+ * Exact "/" is allowed (repurposed to quiz hub). Everything else must
  * match one of the prefixes below to remain accessible.
  */
 export const FOCUS_ALLOWED_PREFIXES: string[] = [
-  // Student quiz & test workspace
+  // Student quiz workspace
   "/quiz",
-  "/tests",
   // Creator quiz / test / problems workspace
   "/creator/quizzes",
   "/creator/tests",

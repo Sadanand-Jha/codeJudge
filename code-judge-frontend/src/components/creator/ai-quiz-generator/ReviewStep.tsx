@@ -94,7 +94,7 @@ export function ReviewStep({
           Your Quiz is Ready
         </h1>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-5 text-text-secondary">
-          AI analyzed your problem list and prepared a suggested configuration.
+          Your quiz is ready to review.
           Review and edit anything below.
         </p>
       </div>
@@ -102,7 +102,7 @@ export function ReviewStep({
       {/* Quiz Information */}
       <Card
         title="Quiz Information"
-        description="AI-generated metadata based on your problem list"
+        description="Check and edit the quiz details"
         action={
           <Badge color="accent">
             <Sparkles className="mr-1 h-3 w-3" />
@@ -319,7 +319,7 @@ export function ReviewStep({
       {/* Problems Detected */}
       <Card
         title="Problems Detected"
-        description={`${config.problems.length} problems extracted from your document`}
+        description={`${config.problems.length} questions ready to review`}
         action={
           <button
             type="button"
@@ -354,7 +354,7 @@ export function ReviewStep({
       </Card>
 
       {/* CTA */}
-      <div className="sticky bottom-0 z-10 -mx-4 flex border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:justify-end sm:border-0 sm:bg-transparent sm:px-0 sm:pt-2 sm:backdrop-blur-none">
+      <div className="mobile-viewport-actions sticky bottom-0 z-10 -mx-4 flex border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:justify-end sm:border-0 sm:bg-transparent sm:px-0 sm:pt-2 sm:backdrop-blur-none">
         <button
           type="button"
           onClick={() => onProceed(config)}

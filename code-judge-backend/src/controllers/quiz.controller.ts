@@ -14,7 +14,18 @@ const resultGenerationService = new ResultGenerationService();
  * Student-safe quiz DTO. Never send ownership identifiers, creator profile
  * data, internal timestamps, or creator-only configuration to participants.
  */
-const toStudentQuiz = (quiz: Record<string, any>) => ({
+const toStudentQuiz = (quiz: Record<string, any>) => {
+  const now = Date.now();
+  const rawStatus = String(quiz.status ?? "").toLowerCase();
+  const startsAt = quiz.starttime ? new Date(quiz.starttime).getTime() : null;
+  const endsAt = quiz.endtime ? new Date(quiz.endtime).getTime() : null;
+  const effectiveStatus = endsAt !== null && endsAt <= now
+    ? "ended"
+    : rawStatus === "scheduled" && startsAt !== null && startsAt <= now
+      ? "live"
+      : rawStatus;
+
+  return ({
   id: quiz.id,
   code: quiz.code,
   name: quiz.name,
@@ -25,8 +36,11 @@ const toStudentQuiz = (quiz: Record<string, any>) => ({
   passing_marks: quiz.passing_marks,
   difficulty: quiz.difficulty,
   difficulty_name: quiz.difficulty_name ?? null,
-  status: quiz.status,
-});
+  status: effectiveStatus,
+  show_results_immediately: quiz.show_results_immediately === true,
+  leaderboard: quiz.leaderboard === true,
+  });
+};
 
 const normalizeQuizCode = (value: unknown) =>
   typeof value === "string" ? value.trim().toUpperCase() : "";
@@ -1118,14 +1132,12 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
       const remainingSeconds = Number.isFinite(deadlineMs)
         ? Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000))
         : null;
-      const orderedProblems = (quiz?.shuffle_questions
-        ? stableShuffle(problems, Number(attempt.id))
-        : [...problems]
-      ).map((problem: any) => ({
+      // Student attempts always receive a stable per-attempt order. The seed
+      // keeps refresh/resume consistent while different attempts can differ;
+      // creator and Studio views continue to use the authored order.
+      const orderedProblems = stableShuffle(problems, Number(attempt.id)).map((problem: any) => ({
         ...problem,
-        options: quiz?.shuffle_options
-          ? stableShuffle(problem.options ?? [], Number(attempt.id) + Number(problem.id))
-          : problem.options ?? [],
+        options: stableShuffle(problem.options ?? [], Number(attempt.id) + Number(problem.id)),
       }));
       return { attempt, problems: orderedProblems, savedResponses, remainingSeconds, resumed };
     };
@@ -1201,7 +1213,7 @@ export const saveQuizResponse = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { attemptId } = req.params;
-    const { problemId, answer, option, textAnswer, timeTaken } = req.body;
+    const { problemId, answer, option, options, textAnswer, timeTaken } = req.body;
 
     if (!userId) {
       res.status(401).json({
@@ -1249,6 +1261,7 @@ export const saveQuizResponse = async (req: Request, res: Response) => {
       problemId: Number(problemId),
       answer,
       option,
+      options,
       textAnswer,
       timeTaken,
     });
@@ -1424,11 +1437,11 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
     let wrongAnswers = 0;
     let skippedQuestions = problems.length;
 
-    const validResponses: Array<{ problemId: number; option?: string; textAnswer?: string }> = [];
+    const validResponses: Array<{ problemId: number; option?: string; options?: string[]; textAnswer?: string }> = [];
     const totalQuestions = problems.length;
     const totalMarks = Number(quizRow?.total_marks) || 0;
     const defaultQuestionMarks = totalQuestions > 0 ? totalMarks / totalQuestions : 0;
-    const uniqueResponses = new Map<number, { problemId: number; option?: string; textAnswer?: string }>();
+    const uniqueResponses = new Map<number, { problemId: number; option?: string; options?: string[]; textAnswer?: string }>();
     for (const response of responses) {
       uniqueResponses.set(Number(response.problemId), response);
     }
@@ -1439,9 +1452,25 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
 
       if (!problem) continue;
 
-      const selectedOption = optionsMap.get(problemId)?.find((o) => o.id === Number(response.option));
+      const problemOptions = optionsMap.get(problemId) ?? [];
+      const selectedOption = problemOptions.find((o) => o.id === Number(response.option));
+      const isMultipleChoice = Number(problem.quiz_problem_type) === 2;
       
-      if (selectedOption) {
+      if (isMultipleChoice && Array.isArray(response.options) && response.options.length > 0) {
+        const selectedIds = new Set(response.options.map(Number).filter(Number.isInteger));
+        const correctIds = new Set(problemOptions.filter((o) => o.iscorrect).map((o) => Number(o.id)));
+        const exactlyCorrect = selectedIds.size === correctIds.size && [...selectedIds].every((id) => correctIds.has(id));
+        skippedQuestions--;
+        validResponses.push(response);
+        if (exactlyCorrect) {
+          correctAnswers++;
+          score += 1;
+          earnedMarks += Number(problem.marks) || defaultQuestionMarks;
+        } else {
+          wrongAnswers++;
+          if (quizRow?.negative_marking === true) earnedMarks -= Math.abs(Number(problem.negative_marks) || 0);
+        }
+      } else if (selectedOption) {
         skippedQuestions--;
         validResponses.push(response);
         
@@ -1456,9 +1485,24 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
           }
         }
       } else if (response.textAnswer) {
-        // Subjective answers are persisted for manual review. They remain in
-        // the ungraded/skipped bucket until a grading workflow awards marks.
+        skippedQuestions--;
         validResponses.push(response);
+        const autoGradable = [5, 6, 8].includes(Number(problem.quiz_problem_type));
+        if (autoGradable) {
+          const submitted = response.textAnswer.trim().toLowerCase();
+          const accepted = problemOptions
+            .flatMap((option) => [option.matching_target, option.option_statement])
+            .filter(Boolean)
+            .map((value) => String(value).trim().toLowerCase());
+          if (accepted.includes(submitted)) {
+            correctAnswers++;
+            score += 1;
+            earnedMarks += Number(problem.marks) || defaultQuestionMarks;
+          } else {
+            wrongAnswers++;
+            if (quizRow?.negative_marking === true) earnedMarks -= Math.abs(Number(problem.negative_marks) || 0);
+          }
+        }
       }
     }
 
@@ -1477,6 +1521,7 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
           attemptId: Number(attemptId),
           problemId: Number(response.problemId),
           option: response.option,
+          options: response.options,
           textAnswer: response.textAnswer,
         });
       } catch (responseError) {
@@ -2017,7 +2062,12 @@ const attachQuizProblemOptions = async (quizId: string, includeCorrectAnswers: b
       } = problem;
       return {
         ...studentProblem,
-        options: options.map(({ iscorrect, created_at, updated_at, ...option }: any) => option),
+        // Non-choice rows store their expected answer in the option columns.
+        // Never send those rows to students; the attempt UI renders a text
+        // input and grading remains server-side.
+        options: [1, 2, 3].includes(Number(problem.quiz_problem_type))
+          ? options.map(({ iscorrect, created_at, updated_at, ...option }: any) => option)
+          : [],
       };
     })
   );

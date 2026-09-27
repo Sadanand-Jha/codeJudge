@@ -84,7 +84,7 @@ function QuizPageBackground() {
 
 function QuizHome() {
   return (
-    <div className="relative min-h-[calc(100vh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 py-6 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6 sm:py-8">
+    <div className="relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 py-6 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6 sm:py-8">
       <QuizPageBackground />
       <main className="relative z-10 mx-auto w-full max-w-[1320px] space-y-5 sm:w-[calc(100%-48px)] sm:space-y-6">
         {/* ── Page header (no giant card) ── */}

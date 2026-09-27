@@ -5,7 +5,6 @@ const FOCUS_MODE_ENABLED = true;
 
 const FOCUS_ALLOWED_PREFIXES = [
   "/quiz",
-  "/tests",
   "/creator/quizzes",
   "/creator/tests",
   "/creator/series",
@@ -14,6 +13,7 @@ const FOCUS_ALLOWED_PREFIXES = [
   "/creator/problems",
   "/creator/resources",
   "/creator/create",
+  "/creator/rooms",
   "/login",
   "/register",
   "/forgot-password",
@@ -44,10 +44,10 @@ export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (FOCUS_MODE_ENABLED && !isPathAllowed(pathname)) {
-    // Redirect disallowed routes to the Quiz & Test hub with a query flag
+    // Redirect disallowed routes to the Quiz hub with a query flag
     // so the UI can show a "section disabled" toast if desired.
     const url = request.nextUrl.clone();
-    url.pathname = "/tests";
+    url.pathname = "/quiz";
     url.searchParams.set("blocked", pathname);
     return NextResponse.redirect(url);
   }

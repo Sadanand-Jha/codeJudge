@@ -440,7 +440,7 @@ export default function QuizDetailsForm({ onContinue, initialDetails }: QuizDeta
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="sticky bottom-0 mt-16 -mx-6 sm:-mx-8 px-6 sm:px-8 py-5 bg-gradient-to-t from-[#09090B] via-[#09090B]/95 to-transparent"
+          className="mobile-viewport-actions sticky bottom-0 mt-16 -mx-6 bg-gradient-to-t from-[#09090B] via-[#09090B]/95 to-transparent px-6 py-5 sm:-mx-8 sm:px-8"
         >
           <div className="flex items-center justify-between">
             <div className="text-xs text-muted-foreground">

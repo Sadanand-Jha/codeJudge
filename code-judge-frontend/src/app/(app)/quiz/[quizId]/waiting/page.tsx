@@ -235,7 +235,7 @@ function WaitingRoomPageInner({
   ];
 
   return (
-    <div className={`waiting-page h-screen flex flex-col overflow-hidden relative transition-all duration-350 ${
+    <div className={`waiting-page h-dvh flex flex-col overflow-hidden relative transition-all duration-350 ${
       isDark ? 'bg-[#050510]' : 'bg-[#FAFBFF]'
     }`}>
       {/* Theme Background — hidden in Real World, visible in light/dark */}

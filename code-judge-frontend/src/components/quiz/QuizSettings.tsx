@@ -730,7 +730,7 @@ export default function QuizSettings({ quizId, quizName, settings: externalSetti
   };
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="h-dvh bg-background flex flex-col overflow-hidden">
       {/* ===== TOP BAR ===== */}
       <div className="h-14 border-b border-border-hover bg-background/80 backdrop-blur-xl flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0">
         <button

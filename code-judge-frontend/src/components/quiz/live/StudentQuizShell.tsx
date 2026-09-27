@@ -154,7 +154,7 @@ export default function StudentQuizShell({
   hideHeader?: boolean;
 }) {
   return (
-    <div className="relative min-h-[calc(100vh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 py-6 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6 sm:py-8">
+    <div className="relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 py-6 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6 sm:py-8">
       {background === "sky" ? (
         <QuizSkyBackground participants={crowdParticipants} />
       ) : (
@@ -203,7 +203,7 @@ export function QuizStateScreen({
   loading?: boolean;
 }) {
   return (
-    <div className="relative min-h-[calc(100vh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 py-6 dark:bg-[#0B0D10] sm:px-6">
+    <div className="relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 py-6 dark:bg-[#0B0D10] sm:px-6">
       <QuizAmbientBackground />
       <div className="relative z-10 flex min-h-[70vh] items-center justify-center">
         <div className="w-full max-w-md rounded-2xl border border-[#E4E7EC] bg-white p-6 text-center dark:border-[#252D3A] dark:bg-[#151A24] sm:p-8">

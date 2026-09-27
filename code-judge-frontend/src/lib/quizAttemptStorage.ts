@@ -1,4 +1,4 @@
-export type StoredAttemptAnswer = { option?: string; textAnswer?: string };
+export type StoredAttemptAnswer = { option?: string; options?: string[]; textAnswer?: string };
 export type StoredAttemptAnswers = Record<number, StoredAttemptAnswer>;
 
 const STORAGE_PREFIX = "byteclash_quiz_answers_";

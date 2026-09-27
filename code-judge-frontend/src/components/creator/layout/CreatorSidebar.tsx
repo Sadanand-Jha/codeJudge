@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  LayoutDashboard,
   ClipboardList,
   Database,
   FilePlus2,
@@ -53,10 +52,6 @@ export interface CreatorNavItem {
 }
 
 const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
-  {
-    label: "Overview",
-    items: [{ label: "Dashboard", href: "/creator", icon: LayoutDashboard, exact: true }],
-  },
   {
     label: "Quizzes",
     items: [
@@ -143,7 +138,6 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
 // Focus mode: only Problems / Quizzes / Tests (& related question bank) remain visible.
 // Payments, analytics, participants, advertise, AI studio, settings etc. are hidden.
 const FOCUS_CREATOR_ALLOWED = new Set([
-  "/creator",
   // Quizzes / Tests / Series
   "/creator/quizzes",
   "/creator/quizzes/create",
@@ -164,10 +158,6 @@ const FOCUS_CREATOR_ALLOWED = new Set([
 
 function isFocusAllowedHref(href: string): boolean {
   for (const allowed of FOCUS_CREATOR_ALLOWED) {
-    if (allowed === "/creator") {
-      if (href === "/creator") return true;
-      continue;
-    }
     if (href === allowed || href.startsWith(allowed + "/")) return true;
   }
   return false;
@@ -276,7 +266,7 @@ export function CreatorSidebar({
       {/* Creator identity header */}
       <div className="border-b border-border px-4 py-3">
         <Link
-          href={FOCUS_MODE_ENABLED ? "/creator" : "/creator/profile"}
+          href={FOCUS_MODE_ENABLED ? "/creator/quizzes" : "/creator/profile"}
           onClick={onNavigate}
           className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-pink-500/30 hover:bg-white/[0.03]"
         >

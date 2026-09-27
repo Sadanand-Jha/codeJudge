@@ -20,7 +20,7 @@ export class UserQuizRepository {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const conditions: string[] = [];
+    const conditions: string[] = ["q.deleted_at IS NULL"];
     const queryParams: any[] = [];
     let paramCount = 0;
 
@@ -84,7 +84,7 @@ export class UserQuizRepository {
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_difficulty qd ON qd.id = q.difficulty
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.id = $1
+      WHERE q.id = $1 AND q.deleted_at IS NULL
     `, [quizId]);
     return result.rows.length > 0 ? result.rows[0] : null;
   }
@@ -102,7 +102,7 @@ export class UserQuizRepository {
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_difficulty qd ON qd.id = q.difficulty
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.code = $1
+      WHERE q.code = $1 AND q.deleted_at IS NULL
     `, [code]);
     return result.rows.length > 0 ? result.rows[0] : null;
   }
@@ -192,7 +192,7 @@ export class UserQuizRepository {
         ORDER BY candidate.created_at DESC, candidate.id DESC
         LIMIT 1
       ) qa ON true
-      WHERE qr.user_id = $1 ORDER BY q.starttime DESC
+      WHERE qr.user_id = $1 AND q.deleted_at IS NULL ORDER BY q.starttime DESC
     `, [userId]);
     return result.rows;
   }
@@ -201,7 +201,7 @@ export class UserQuizRepository {
 
   async checkQuizAccess(userId: number, quizId: number): Promise<{ allowed: boolean; reason?: string; attemptId?: number; attemptsMade?: number; maxAttempts?: number }> {
     const quiz = await pool.query(
-      `SELECT q.*, qs.name AS status FROM quiz q LEFT JOIN quiz_status qs ON qs.id = q.quiz_status WHERE q.id = $1`,
+      `SELECT q.*, qs.name AS status FROM quiz q LEFT JOIN quiz_status qs ON qs.id = q.quiz_status WHERE q.id = $1 AND q.deleted_at IS NULL`,
       [quizId]
     );
     if (!quiz.rows.length) return { allowed: false, reason: "Quiz not found" };
@@ -398,7 +398,7 @@ export class UserQuizRepository {
   }): Promise<{ quizzes: any[]; total: number }> {
     const { page = 1, limit = 10, search = "", sortBy = "completed_at", sortOrder = "DESC" } = filters;
     const offset = (page - 1) * limit;
-    const conditions: string[] = ["qa.user_id = $1"];
+    const conditions: string[] = ["qa.user_id = $1", "q.deleted_at IS NULL"];
     const queryParams: any[] = [userId];
     let paramCount = 1;
 
@@ -467,7 +467,7 @@ export class UserQuizRepository {
       FROM quiz q
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.id = $1 AND qs.name IN ('scheduled', 'live')
+      WHERE q.id = $1 AND q.deleted_at IS NULL AND qs.name IN ('scheduled', 'live')
     `, [quizId]);
     return result.rows.length > 0 ? result.rows[0] : null;
   }

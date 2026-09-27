@@ -15,6 +15,7 @@ export class QuizService {
     search?: string;
     status?: string;
     visibility?: number;
+    audienceMode?: "public" | "private" | "classroom";
     difficulty?: number;
     sortBy?: string;
     sortOrder?: string;

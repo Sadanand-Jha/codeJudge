@@ -75,7 +75,7 @@ export function ParticipantsDrawer({ open, onClose, participants }: Participants
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 360, damping: 38 }}
-            className="fixed top-0 right-0 h-screen w-[420px] max-w-[90vw] bg-[#0B0D14] border-l border-border-hover z-[100] flex flex-col shadow-2xl shadow-black/50"
+            className="fixed top-0 right-0 h-dvh w-[420px] max-w-[90vw] bg-[#0B0D14] border-l border-border-hover z-[100] flex flex-col shadow-2xl shadow-black/50"
           >
             <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">

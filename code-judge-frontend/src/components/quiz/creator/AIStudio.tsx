@@ -403,7 +403,7 @@ export default function AIStudio({
       initial={{ width: 0, opacity: 0 }}
       animate={{ width: 480, opacity: 1 }}
       exit={{ width: 0, opacity: 0 }}
-      className="fixed right-0 top-0 z-40 h-screen w-[480px] max-w-full border-l border-border bg-background shadow-2xl"
+      className="fixed right-0 top-0 z-40 h-dvh w-[480px] max-w-full border-l border-border bg-background shadow-2xl"
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -501,7 +501,7 @@ export default function AIStudio({
       </div>
 
       {/* Content */}
-      <div className="h-[calc(100vh-220px)] overflow-y-auto p-4">
+      <div className="h-[calc(100dvh-220px)] overflow-y-auto p-4">
         <AnimatePresence mode="wait">
           {sourceMode === "bank" && activeTab === "generate" && (
             <motion.div

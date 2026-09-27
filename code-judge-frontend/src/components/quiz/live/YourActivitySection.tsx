@@ -331,7 +331,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
             {expanded ? "Less" : "Details"}
           </button>
           <Link
-            href={`/quiz/${quiz.code}/results`}
+            href={`/quiz/${quiz.code}/results/${quiz.attempt_id}`}
             className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-[#8B7CFF]/10 px-2.5 text-xs font-semibold text-[#6B5CFF] transition-colors duration-150 hover:bg-[#8B7CFF]/20 dark:bg-[#8B7CFF]/12 dark:text-[#8B7CFF] dark:hover:bg-[#8B7CFF]/20"
           >
             View <ArrowUpRight className="h-3 w-3" />
@@ -395,7 +395,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
             {expanded ? "Less" : "Details"}
           </button>
           <Link
-            href={`/quiz/${quiz.code}/results`}
+            href={`/quiz/${quiz.code}/results/${quiz.attempt_id}`}
             className="inline-flex h-7 items-center gap-1 rounded-lg bg-[#8B7CFF]/10 px-2.5 text-[11px] font-semibold text-[#6B5CFF] transition-colors duration-150 hover:bg-[#8B7CFF]/20 dark:bg-[#8B7CFF]/12 dark:text-[#8B7CFF] dark:hover:bg-[#8B7CFF]/20"
           >
             View <ArrowUpRight className="h-3 w-3" />

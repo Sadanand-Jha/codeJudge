@@ -26,7 +26,7 @@ const menuItems = [
 
 export default function Sidebar() {
   return (
-    <aside data-sidebar="true" className="fixed left-0 top-0 h-screen w-64 bg-background border-r border-border flex flex-col z-50">
+    <aside data-sidebar="true" className="fixed left-0 top-0 h-dvh w-64 bg-background border-r border-border flex flex-col z-50">
       {/* Logo */}
       <div className="px-6 py-6">
         <Link href="/quiz" className="flex items-center gap-2.5">

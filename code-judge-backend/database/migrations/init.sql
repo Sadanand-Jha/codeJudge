@@ -217,6 +217,8 @@ CREATE TABLE IF NOT EXISTS quiz (
     starttime TIMESTAMP,
     endtime TIMESTAMP,
     visibility INTEGER,
+    audience_mode VARCHAR(20) NOT NULL DEFAULT 'public',
+    deleted_at TIMESTAMP WITH TIME ZONE,
     total_marks INTEGER,
     passing_marks INTEGER,
     difficulty INTEGER,
@@ -672,4 +674,3 @@ add column negative_marks integer;
 
 alter table quiz_problems
 add column marks integer;
-

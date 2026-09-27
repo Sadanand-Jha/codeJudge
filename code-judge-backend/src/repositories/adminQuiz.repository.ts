@@ -10,7 +10,7 @@ export class AdminQuizRepository {
     const query = `
       SELECT
         q.id, q.name, q.code, q.createdby, q.starttime, q.endtime,
-        q.subject_id, q.duration, q.total_marks, q.passing_marks,
+        q.subject_id, q.duration, q.total_marks, q.passing_marks, q.audience_mode,
         q.shuffle_questions, q.shuffle_options, q.show_results_immediately,
         q.negative_marking, q.leaderboard,
         qs.name AS status, q.created_at,
@@ -18,7 +18,7 @@ export class AdminQuizRepository {
       FROM quiz q
       LEFT JOIN quiz_difficulty qd ON qd.id = q.difficulty
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.id = $1
+      WHERE q.id = $1 AND q.deleted_at IS NULL
     `;
     const result = await pool.query(query, [quizId]);
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -28,7 +28,7 @@ export class AdminQuizRepository {
     const query = `
       SELECT
         q.id, q.name, q.code, q.createdby, q.starttime, q.endtime,
-        q.subject_id, q.duration, q.total_marks, q.passing_marks,
+        q.subject_id, q.duration, q.total_marks, q.passing_marks, q.audience_mode,
         q.shuffle_questions, q.shuffle_options, q.show_results_immediately,
         q.negative_marking, q.leaderboard,
         qs.name AS status, q.created_at,
@@ -36,7 +36,7 @@ export class AdminQuizRepository {
       FROM quiz q
       LEFT JOIN quiz_difficulty qd ON qd.id = q.difficulty
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.code = $1
+      WHERE q.code = $1 AND q.deleted_at IS NULL
     `;
     const result = await pool.query(query, [code]);
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -83,7 +83,7 @@ export class AdminQuizRepository {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const conditions: string[] = [];
+    const conditions: string[] = ["q.deleted_at IS NULL"];
     const queryParams: any[] = [];
     let paramCount = 0;
 
@@ -131,13 +131,19 @@ export class AdminQuizRepository {
       SELECT
         q.id, q.name, q.duration, qs.name AS status,
         COUNT(DISTINCT qp.id) AS total_questions,
-        COALESCE(AVG(CASE WHEN qsr.answer IS NOT NULL THEN 1 ELSE 0 END), 0) AS completion_rate
+        COUNT(DISTINCT qa_attempt.id) AS attempts,
+        CASE
+          WHEN COUNT(DISTINCT qa_attempt.id) = 0 THEN 0
+          ELSE ROUND(
+            COUNT(DISTINCT CASE WHEN qa_attempt.status = 'completed' THEN qa_attempt.id END)::numeric
+            * 100 / COUNT(DISTINCT qa_attempt.id), 1
+          )
+        END AS completion_rate
       FROM quiz q
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
       LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
       LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
-      LEFT JOIN quiz_attempt qa_attempt ON qa_attempt.quiz_id = q.id AND qa_attempt.user_id = qr.user_id
-      LEFT JOIN quiz_student_response qsr ON qsr.attempt_id = qa_attempt.id AND qsr.problem_id = qp.id
+      LEFT JOIN quiz_attempt qa_attempt ON qa_attempt.quiz_id = q.id
       ${whereClause}
       GROUP BY q.id, qs.name
       ORDER BY q.${safeSortBy} ${safeSortOrder}
@@ -149,7 +155,7 @@ export class AdminQuizRepository {
 
   async createQuiz(data: {
     name: string; code: string; createdby: number; starttime?: Date;
-    visibility?: number; difficulty?: number; subjectId?: number; examId?: number;
+    visibility?: number; audienceMode?: "public" | "private" | "classroom"; difficulty?: number; subjectId?: number; examId?: number;
     duration?: number; totalMarks?: number; passingMarks?: number;
     shuffleQuestions?: boolean; shuffleOptions?: boolean;
     showResultsImmediately?: boolean; negativeMarking?: boolean;
@@ -165,18 +171,18 @@ export class AdminQuizRepository {
 
     const query = `
       INSERT INTO quiz (
-        name, code, createdby, starttime, visibility, difficulty,
+        name, code, createdby, starttime, visibility, audience_mode, difficulty,
         subject_id, exam_cat, duration, total_marks, passing_marks,
         shuffle_questions, shuffle_options, show_results_immediately,
         negative_marking, leaderboard, quiz_status, created_at, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const result = await pool.query(query, [
       data.name, data.code, data.createdby, data.starttime || null,
-      data.visibility || null, data.difficulty || null, data.subjectId || null,
+      data.visibility || null, data.audienceMode || "public", data.difficulty || null, data.subjectId || null,
       data.examId || null, data.duration || null, data.totalMarks || 0,
-      data.passingMarks || 0, data.shuffleQuestions || false, data.shuffleOptions || false,
+      data.passingMarks || 0, data.shuffleQuestions ?? true, data.shuffleOptions ?? true,
       data.showResultsImmediately || false, data.negativeMarking || false,
       data.leaderboard !== false, statusId,
     ]);
@@ -199,7 +205,7 @@ export class AdminQuizRepository {
     }
 
     const updateableFields = [
-      "name", "starttime", "endtime", "visibility", "difficulty",
+      "name", "starttime", "endtime", "visibility", "audience_mode", "difficulty",
       "subject_id", "exam_cat", "duration", "total_marks", "passing_marks",
       "shuffle_questions", "shuffle_options", "show_results_immediately",
       "negative_marking", "leaderboard", "quiz_status",
@@ -210,6 +216,7 @@ export class AdminQuizRepository {
       shuffleQuestions: "shuffle_questions", shuffleOptions: "shuffle_options",
       showResultsImmediately: "show_results_immediately", negativeMarking: "negative_marking",
       passingMarks: "passing_marks", passingPercentage: "passing_marks",
+      audienceMode: "audience_mode",
     };
 
     for (const field of updateableFields) {
@@ -227,14 +234,19 @@ export class AdminQuizRepository {
     paramCount++;
     values.push(quizId);
     const result = await pool.query(
-      `UPDATE quiz SET ${fields.join(", ")}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramCount} RETURNING *`,
+      `UPDATE quiz SET ${fields.join(", ")}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramCount} AND deleted_at IS NULL RETURNING *`,
       values
     );
     return result.rows[0];
   }
 
   async deleteQuiz(quizId: number): Promise<boolean> {
-    const result = await pool.query("DELETE FROM quiz WHERE id = $1", [quizId]);
+    const result = await pool.query(
+      `UPDATE quiz
+       SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND deleted_at IS NULL`,
+      [quizId]
+    );
     return (result.rowCount ?? 0) > 0;
   }
 
@@ -242,7 +254,7 @@ export class AdminQuizRepository {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
-      const originalQuiz = await client.query("SELECT * FROM quiz WHERE id = $1", [quizId]);
+      const originalQuiz = await client.query("SELECT * FROM quiz WHERE id = $1 AND deleted_at IS NULL", [quizId]);
       if (!originalQuiz.rows.length) throw new Error("Quiz not found");
       const original = originalQuiz.rows[0];
 

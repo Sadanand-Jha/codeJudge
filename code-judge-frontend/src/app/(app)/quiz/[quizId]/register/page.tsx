@@ -211,7 +211,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
   const StatusIcon = statusBadge.icon;
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] dark:bg-[#0B0D14]">
+    <div className="has-mobile-viewport-actions min-h-dvh bg-[#F7F8FA] dark:bg-[#0B0D14]">
       <div className="flex">
         {/* Sidebar - hidden on mobile, visible on lg+ */}
         <div className="hidden lg:block w-64 border-r border-border bg-[#F2F4F7] dark:bg-[#0F1117] shrink-0">
@@ -468,7 +468,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 }}
-                      className="space-y-3"
+                      className="mobile-viewport-actions space-y-3 border-t border-border px-4 py-3 sm:static sm:border-0 sm:p-0"
                     >
                       {registered ? (
                         <button

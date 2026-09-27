@@ -35,13 +35,32 @@ export function AudienceStep() {
   const setRooms = useRoomStore((s) => s.setRooms);
   const [selectRoomsOpen, setSelectRoomsOpen] = useState(false);
   const [createRoomOpen, setCreateRoomOpen] = useState(false);
+  const [roomListLoading, setRoomListLoading] = useState(a.mode === "classroom");
+  const [restoringAudience, setRestoringAudience] = useState(
+    a.mode === "classroom" && (a.roomIds?.length ?? 0) === 0 && Boolean(state.serverQuizId)
+  );
+  const [roomLoadsInFlight, setRoomLoadsInFlight] = useState(0);
 
-  const roomIds = a.roomIds ?? [];
+  const roomIds = useMemo(() => a.roomIds ?? [], [a.roomIds]);
   const selections = a.roomStudentSelections ?? {};
   const selectedRooms = useMemo(
     () => rooms.filter((r) => roomIds.includes(r.id) && !r.archived),
     [rooms, roomIds]
   );
+
+  useEffect(() => {
+    if (a.mode !== "classroom") return;
+    let cancelled = false;
+    fetchMyRooms()
+      .then((freshRooms) => {
+        if (!cancelled) setRooms(freshRooms);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setRoomListLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [a.mode, setRooms]);
 
   useEffect(() => {
     if (a.mode !== "classroom") return;
@@ -121,6 +140,8 @@ export function AudienceStep() {
         } else if (!cancelled) {
         }
       } catch (e) {
+      } finally {
+        if (!cancelled) setRestoringAudience(false);
       }
     })();
 
@@ -142,6 +163,7 @@ export function AudienceStep() {
       if ((room.memberCount ?? 0) <= 0) continue;
       if (fetchingRef.current.has(rid)) continue;
       fetchingRef.current.add(rid);
+      setRoomLoadsInFlight((count) => count + 1);
       import("@/services/rooms").then(({ getRoom }) => {
         getRoom(rid)
           .then((res: unknown) => {
@@ -169,13 +191,24 @@ export function AudienceStep() {
             setRooms(updated as never);
           })
           .catch(() => {
+            // The panel still becomes usable when one room fails; reopening
+            // the step can retry that room.
+          })
+          .finally(() => {
             fetchingRef.current.delete(rid);
+            setRoomLoadsInFlight((count) => Math.max(0, count - 1));
           });
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoomIdsKey, rooms, setRooms]);
   const eligibleCount = useMemo(() => getEligibleCount(rooms, roomIds), [rooms, roomIds]);
+  const selectedRoomsNeedMembers = roomIds.some((roomId) => {
+    const room = rooms.find((candidate) => candidate.id === roomId);
+    return Boolean(room && (room.memberCount ?? 0) > 0 && room.students.length === 0);
+  });
+  const audienceLoading = a.mode === "classroom" &&
+    (roomListLoading || restoringAudience || roomLoadsInFlight > 0 || selectedRoomsNeedMembers);
 
   /** Students of a room allowed to attempt — defaults to every active member. */
   const allowedStudentsOf = (roomId: string) => {
@@ -245,14 +278,22 @@ export function AudienceStep() {
               name="accessMode"
               className="sr-only"
               checked={a.mode === m.id}
-              onChange={() => updateAudience({ mode: m.id })}
+              onChange={() => {
+                if (m.id === "classroom") {
+                  setRoomListLoading(true);
+                  setRestoringAudience(roomIds.length === 0 && Boolean(state.serverQuizId));
+                }
+                updateAudience({ mode: m.id });
+              }}
             />
             <span className="text-sm font-bold text-text-primary">{m.label}</span>
           </label>
         ))}
       </motion.div>
 
-      {a.mode === "classroom" && (
+      {audienceLoading && <AudienceLoadingSkeleton />}
+
+      {a.mode === "classroom" && !audienceLoading && (
         <div className="w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-5 space-y-3 sm:space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div className="min-w-0">
@@ -314,7 +355,7 @@ export function AudienceStep() {
         </div>
       )}
 
-      {a.mode === "classroom" && selectedRooms.length > 0 && (
+      {a.mode === "classroom" && !audienceLoading && selectedRooms.length > 0 && (
         <AllStudentsPanel
           selectedRooms={selectedRooms}
           selections={selections}
@@ -327,7 +368,7 @@ export function AudienceStep() {
         />
       )}
 
-      {a.mode === "classroom" && (
+      {a.mode === "classroom" && !audienceLoading && (
         <div className="relative w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 sm:border-border bg-white sm:bg-card p-3 sm:p-5 space-y-3 sm:space-y-4 opacity-60 pointer-events-none select-none">
           <div className="flex min-w-0 items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
@@ -394,6 +435,38 @@ export function AudienceStep() {
         }}
       />
     </StudioStepLayout>
+  );
+}
+
+function AudienceLoadingSkeleton() {
+  return (
+    <div className="w-full space-y-4" aria-label="Loading rooms and students" aria-busy="true">
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+        <div className="h-3 w-16 animate-pulse rounded bg-card-hover" />
+        <div className="mt-2 h-3 w-3/4 animate-pulse rounded bg-card-hover" />
+        <div className="mt-4 h-10 w-full animate-pulse rounded-lg bg-card-hover" />
+        <div className="mt-3 space-y-2 rounded-lg border border-border p-3">
+          <div className="h-10 animate-pulse rounded bg-card-hover" />
+          <div className="h-10 animate-pulse rounded bg-card-hover" />
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-3 w-24 animate-pulse rounded bg-card-hover" />
+            <div className="h-3 w-48 animate-pulse rounded bg-card-hover" />
+          </div>
+          <div className="h-8 w-28 animate-pulse rounded-lg bg-card-hover" />
+        </div>
+        <div className="mt-4 h-10 animate-pulse rounded-xl bg-card-hover" />
+        <div className="mt-3 space-y-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="h-12 animate-pulse rounded-xl bg-card-hover" />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -577,7 +650,7 @@ function AllStudentsPanel({
           No students match &ldquo;{query}&rdquo;
         </p>
       ) : (
-        <ul className="max-h-[55vh] sm:max-h-80 overflow-y-auto divide-y divide-zinc-200 sm:divide-border rounded-xl sm:rounded-lg border border-zinc-200 sm:border-border overflow-hidden">
+        <ul className="max-h-[55vh] sm:max-h-80 overflow-y-auto divide-y divide-zinc-200 dark:divide-white/10 sm:divide-border rounded-xl sm:rounded-lg border border-zinc-200 dark:border-white/10 sm:border-border bg-white dark:bg-[#111827] overflow-hidden">
           {filtered.map((student) => {
             const key = student.rollNumber.toLowerCase();
             return (
@@ -586,8 +659,8 @@ function AllStudentsPanel({
                 className={cn(
                   "flex min-w-0 items-center gap-2 sm:gap-3 px-2.5 sm:px-3 py-2.5 sm:py-2 transition-colors duration-150",
                   student.isAllowed
-                    ? "bg-emerald-50/60 sm:bg-emerald-500/[0.04]"
-                    : "bg-red-50/60 sm:bg-red-500/[0.06]"
+                    ? "bg-emerald-50/60 dark:bg-emerald-400/[0.08] sm:bg-emerald-500/[0.04]"
+                    : "bg-red-50/60 dark:bg-rose-400/[0.08] sm:bg-red-500/[0.06]"
                 )}
               >
                 <input
@@ -612,13 +685,13 @@ function AllStudentsPanel({
                 <img
                   src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
                   alt=""
-                  className="h-8 w-8 sm:h-7 sm:w-7 shrink-0 rounded-full object-cover ring-1 ring-zinc-200 sm:ring-border"
+                  className="h-8 w-8 sm:h-7 sm:w-7 shrink-0 rounded-full object-cover ring-1 ring-zinc-200 dark:ring-white/15 sm:ring-border"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold sm:font-medium text-zinc-900 sm:text-text-primary">
+                  <p className="truncate text-xs font-semibold sm:font-medium text-zinc-900 dark:text-slate-100 sm:text-text-primary">
                     @{student.username ?? student.name}
                   </p>
-                  <p className="truncate text-[11px] sm:text-[10px] text-zinc-500 sm:text-text-muted">
+                  <p className="truncate text-[11px] sm:text-[10px] text-zinc-500 dark:text-slate-400 sm:text-text-muted">
                     {student.rollNumber}
                   </p>
                 </div>
@@ -636,8 +709,8 @@ function AllStudentsPanel({
                   className={cn(
                     "shrink-0 whitespace-nowrap rounded-full sm:rounded px-2 sm:px-1.5 py-1 sm:py-0.5 text-[10px] font-bold sm:font-medium",
                     student.isAllowed
-                      ? "bg-emerald-100 sm:bg-emerald-500/10 text-emerald-700 sm:text-emerald-600 dark:text-emerald-400"
-                      : "bg-zinc-100 sm:bg-card-hover text-zinc-500 sm:text-text-muted"
+                      ? "bg-emerald-100 dark:bg-emerald-400/15 sm:bg-emerald-500/10 text-emerald-700 sm:text-emerald-600 dark:text-emerald-300"
+                      : "bg-zinc-100 dark:bg-white/10 sm:bg-card-hover text-zinc-500 dark:text-slate-300 sm:text-text-muted"
                   )}
                 >
                   <span className="sm:hidden">{student.isAllowed ? "✓" : "✕"}</span>

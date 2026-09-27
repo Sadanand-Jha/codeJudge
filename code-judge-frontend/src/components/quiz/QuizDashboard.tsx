@@ -164,7 +164,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
   // If in question builder fullscreen — redirect to Studio (canonical builder)
   if (showQuestionBuilder) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background p-6">
+      <div className="flex h-dvh items-center justify-center bg-background p-6">
         <div className="max-w-md text-center">
           <h2 className="text-lg font-semibold text-white">Question Builder moved</h2>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -195,7 +195,7 @@ export default function QuizDashboard({ quizId, quizName, initialQuestions, onEx
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="h-dvh bg-background flex flex-col overflow-hidden">
       {/* ===== TOP BAR ===== */}
       <div className="h-14 border-b border-border-hover bg-background/80 backdrop-blur-xl flex items-center px-3 sm:px-4 gap-2 sm:gap-3 shrink-0">
         <button

@@ -269,7 +269,9 @@ export function MobileQuestionEditor({
                     onClick={() => setCorrect(o.id)}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left",
-                      o.isCorrect ? "border-emerald-200 bg-emerald-50" : "border-zinc-200 bg-white"
+                      o.isCorrect
+                        ? "border-emerald-200 bg-emerald-50 dark:border-emerald-400/30 dark:bg-emerald-400/[0.10]"
+                        : "border-zinc-200 bg-white"
                     )}
                   >
                     <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-zinc-300 bg-white")}>
@@ -294,7 +296,9 @@ export function MobileQuestionEditor({
                   }}
                   className={cn(
                     "flex w-full max-w-full min-w-0 items-start gap-1.5 sm:gap-2 rounded-xl border px-2 sm:px-3 py-2.5 overflow-hidden",
-                    o.isCorrect ? "border-emerald-200 bg-emerald-50" : "border-zinc-200 bg-white"
+                    o.isCorrect
+                      ? "border-emerald-200 bg-emerald-50 dark:border-emerald-400/30 dark:bg-emerald-400/[0.10]"
+                      : "border-zinc-200 bg-white"
                   )}
                 >
                   <button

@@ -555,7 +555,7 @@ export default function QuizSettingsPage({
   return (
     <div className="flex min-h-screen bg-background">
       {/* ===== Settings Sidebar ===== */}
-      <aside data-sidebar="true" className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
+      <aside data-sidebar="true" className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
         <nav className="settings-scroll h-full overflow-y-auto p-4">
           <p className="px-3 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
             Quiz Settings
@@ -1346,7 +1346,7 @@ export default function QuizSettingsPage({
         </div>
 
         {/* ===== Sticky Bottom Action Bar ===== */}
-        <div className="sticky bottom-0 z-20 border-t border-border bg-background/90 px-6 py-4 backdrop-blur-xl lg:px-8">
+        <div className="mobile-viewport-actions sticky bottom-0 z-20 border-t border-border bg-background/90 px-6 py-4 backdrop-blur-xl lg:px-8">
           <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
             <button
               onClick={handleSaveDraft}

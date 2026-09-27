@@ -39,7 +39,7 @@ export class QuizRepository {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const conditions: string[] = [];
+    const conditions: string[] = ["q.deleted_at IS NULL"];
     const queryParams: any[] = [];
     let paramCount = 0;
 
@@ -95,6 +95,7 @@ export class QuizRepository {
         q.createdby,
         q.starttime,
         q.visibility,
+        q.audience_mode,
         q.difficulty,
         q.subject_id,
         q.exam_cat,
@@ -114,7 +115,14 @@ export class QuizRepository {
         qd.heading AS difficulty_name,
         COUNT(DISTINCT qr.id) AS participants,
         COUNT(DISTINCT qp.id) AS total_questions,
-        COALESCE(AVG(CASE WHEN qsr.answer IS NOT NULL THEN 1 ELSE 0 END), 0) AS completion_rate
+        COUNT(DISTINCT qa_attempt.id) AS attempts,
+        CASE
+          WHEN COUNT(DISTINCT qa_attempt.id) = 0 THEN 0
+          ELSE ROUND(
+            COUNT(DISTINCT CASE WHEN qa_attempt.status = 'completed' THEN qa_attempt.id END)::numeric
+            * 100 / COUNT(DISTINCT qa_attempt.id), 1
+          )
+        END AS completion_rate
       FROM quiz q
       LEFT JOIN users u ON u.id = q.createdby
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
@@ -122,8 +130,7 @@ export class QuizRepository {
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
       LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
       LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
-      LEFT JOIN quiz_attempt qa_attempt ON qa_attempt.quiz_id = q.id AND qa_attempt.user_id = qr.user_id
-      LEFT JOIN quiz_student_response qsr ON qsr.attempt_id = qa_attempt.id AND qsr.problem_id = qp.id
+      LEFT JOIN quiz_attempt qa_attempt ON qa_attempt.quiz_id = q.id
       ${whereClause}
       GROUP BY q.id, u.username, qv.heading, qd.heading, qs.name
       ORDER BY q.${safeSortBy} ${safeSortOrder}
@@ -147,6 +154,7 @@ export class QuizRepository {
         q.starttime,
         q.endtime,
         q.visibility,
+        q.audience_mode,
         q.difficulty,
         q.subject_id,
         q.exam_cat,
@@ -169,7 +177,7 @@ export class QuizRepository {
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_difficulty qd ON qd.id = q.difficulty
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.id = $1
+      WHERE q.id = $1 AND q.deleted_at IS NULL
     `;
     const result = await pool.query(query, [quizId]);
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -210,6 +218,7 @@ export class QuizRepository {
         q.starttime,
         q.endtime,
         q.visibility,
+        q.audience_mode,
         q.difficulty,
         q.subject_id,
         q.exam_cat,
@@ -232,7 +241,7 @@ export class QuizRepository {
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_difficulty qd ON qd.id = q.difficulty
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.code = $1
+      WHERE q.code = $1 AND q.deleted_at IS NULL
     `;
     const result = await pool.query(query, [code]);
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -429,6 +438,7 @@ export class QuizRepository {
     createdby: number;
     starttime?: Date;
     visibility?: number;
+    audienceMode?: "public" | "private" | "classroom";
     difficulty?: number;
     subjectId?: number;
     examId?: number;
@@ -453,12 +463,12 @@ export class QuizRepository {
 
     const query = `
       INSERT INTO quiz (
-        name, code, createdby, starttime, visibility, difficulty,
+        name, code, createdby, starttime, visibility, audience_mode, difficulty,
         subject_id, exam_cat, duration, total_marks, passing_marks,
         shuffle_questions, shuffle_options, show_results_immediately,
         negative_marking, leaderboard, quiz_status, created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const result = await pool.query(query, [
@@ -467,14 +477,15 @@ export class QuizRepository {
       data.createdby,
       data.starttime || null,
       data.visibility || null,
+      data.audienceMode || "public",
       data.difficulty || null,
       data.subjectId || null,
       data.examId || null,
       data.duration || null,
       data.totalMarks || 0,
       data.passingMarks || 0,
-      data.shuffleQuestions || false,
-      data.shuffleOptions || false,
+      data.shuffleQuestions ?? true,
+      data.shuffleOptions ?? true,
       data.showResultsImmediately || false,
       data.negativeMarking || false,
       data.leaderboard !== false,
@@ -565,7 +576,7 @@ export class QuizRepository {
     }
 
     const updateableFields = [
-      "name", "code", "starttime", "endtime", "visibility", "difficulty",
+      "name", "code", "starttime", "endtime", "visibility", "audience_mode", "difficulty",
       "subject_id", "exam_cat", "duration", "total_marks", "passing_marks", "shuffle_questions", "shuffle_options",
       "show_results_immediately", "negative_marking", "leaderboard", "quiz_status"
     ];
@@ -580,6 +591,7 @@ export class QuizRepository {
       shuffleOptions: "shuffle_options",
       showResultsImmediately: "show_results_immediately",
       negativeMarking: "negative_marking",
+      audienceMode: "audience_mode",
       passingMarks: "passing_marks",
       passingPercentage: "passing_marks",
     };
@@ -603,7 +615,7 @@ export class QuizRepository {
     const query = `
       UPDATE quiz
       SET ${fields.join(", ")}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $${paramCount}
+      WHERE id = $${paramCount} AND deleted_at IS NULL
       RETURNING *
     `;
 
@@ -612,7 +624,9 @@ export class QuizRepository {
   }
 
   async deleteQuiz(quizId: number): Promise<boolean> {
-    const query = `DELETE FROM quiz WHERE id = $1`;
+    const query = `UPDATE quiz
+      SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1 AND deleted_at IS NULL`;
     const result = await pool.query(query, [quizId]);
     return result.rowCount ? true : false;
   }
@@ -622,7 +636,7 @@ export class QuizRepository {
     try {
       await client.query("BEGIN");
 
-      const originalQuiz = await client.query("SELECT * FROM quiz WHERE id = $1", [quizId]);
+      const originalQuiz = await client.query("SELECT * FROM quiz WHERE id = $1 AND deleted_at IS NULL", [quizId]);
       if (!originalQuiz.rows.length) throw new Error("Quiz not found");
 
       const original = originalQuiz.rows[0];
@@ -1017,6 +1031,7 @@ export class QuizRepository {
     problemId: number;
     answer?: unknown;
     option?: string;
+    options?: string[];
     textAnswer?: string;
     timeTaken?: number;
   }): Promise<any> {
@@ -1033,6 +1048,8 @@ export class QuizRepository {
         } else {
           answerJsonb = data.option;
         }
+      } else if (Array.isArray(data.options)) {
+        answerJsonb = { type: "MULTI", selectedOptionIds: data.options.map(Number).filter(Number.isInteger) };
       } else if (data.textAnswer !== undefined && data.textAnswer !== null) {
         answerJsonb = { type: "TEXT", text: data.textAnswer };
       }
@@ -1040,6 +1057,7 @@ export class QuizRepository {
 
     const isAttempted = Boolean(
       (typeof data.option === "string" && data.option.trim()) ||
+      (Array.isArray(data.options) && data.options.length > 0) ||
       (typeof data.textAnswer === "string" && data.textAnswer.trim()) ||
       (data.answer !== undefined && data.answer !== null)
     );
@@ -1335,7 +1353,7 @@ export class QuizRepository {
       SELECT q.*, qs.name AS status
       FROM quiz q
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.id = $1
+      WHERE q.id = $1 AND q.deleted_at IS NULL
     `, [quizId]);
     if (!quiz.rows.length) {
       return { allowed: false, reason: "Quiz not found" };
@@ -1343,10 +1361,10 @@ export class QuizRepository {
 
     const q = quiz.rows[0];
     const status = q.status?.toLowerCase();
-    if (status !== "live") return { allowed: false, reason: "Quiz is not live" };
-    if (status === "ended") return { allowed: false, reason: "Quiz has ended" };
-
     const now = new Date();
+    const scheduledAndStarted = status === "scheduled" && q.starttime && new Date(q.starttime) <= now;
+    if (status === "ended") return { allowed: false, reason: "Quiz has ended" };
+    if (status !== "live" && !scheduledAndStarted) return { allowed: false, reason: "Quiz is not live" };
     if (q.starttime && new Date(q.starttime) > now) {
       return { allowed: false, reason: "Quiz has not started yet" };
     }
@@ -1374,7 +1392,7 @@ export class QuizRepository {
       [quizId, userId]
     );
     const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
-    if (Number(configured) > 0 && Number(allowed) === 0) {
+    if (q.audience_mode === 'classroom' && Number(configured) > 0 && Number(allowed) === 0) {
       return { allowed: false, reason: "You are not invited to this quiz" };
     }
 
@@ -1402,7 +1420,7 @@ export class QuizRepository {
 
   async checkQuizAccessForRegistration(quizId: string, userId?: number): Promise<{ allowed: boolean; reason?: string }> {
     const quiz = await pool.query(
-      `SELECT q.*, qs.name AS status FROM quiz q LEFT JOIN quiz_status qs ON qs.id = q.quiz_status WHERE q.id = $1`,
+      `SELECT q.*, qs.name AS status FROM quiz q LEFT JOIN quiz_status qs ON qs.id = q.quiz_status WHERE q.id = $1 AND q.deleted_at IS NULL`,
       [quizId]
     );
     if (!quiz.rows.length) return { allowed: false, reason: "Quiz not found" };
@@ -1425,7 +1443,7 @@ export class QuizRepository {
         [quizId, userId]
       );
       const { configured, allowed } = audience.rows[0] ?? { configured: 0, allowed: 0 };
-      if (Number(configured) > 0 && Number(allowed) === 0) {
+      if (q.audience_mode === 'classroom' && Number(configured) > 0 && Number(allowed) === 0) {
         return { allowed: false, reason: "You are not invited to this quiz" };
       }
     }
@@ -1438,7 +1456,7 @@ export class QuizRepository {
       FROM quiz q
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.id = $1 AND qs.name IN ('scheduled', 'live')
+      WHERE q.id = $1 AND q.deleted_at IS NULL AND qs.name IN ('scheduled', 'live')
     `;
     const result = await pool.query(query, [quizId]);
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -1460,7 +1478,7 @@ export class QuizRepository {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const conditions: string[] = ["qa.user_id = $1"];
+    const conditions: string[] = ["qa.user_id = $1", "q.deleted_at IS NULL"];
     const queryParams: any[] = [userId];
     let paramCount = 1;
 
@@ -1860,7 +1878,7 @@ export class QuizRepository {
         q.endtime
       FROM quiz q
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
-      WHERE q.id = $1
+      WHERE q.id = $1 AND q.deleted_at IS NULL
     `;
     const quizResult = await pool.query(quizQuery, [quizId]);
     const quiz = quizResult.rows[0] || null;

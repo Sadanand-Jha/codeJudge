@@ -8,7 +8,7 @@ import { CodeEditor } from "@/components/editor";
 export default function EditorPage() {
   return (
     <AppLayout>
-      <div className="h-screen flex flex-col">
+      <div className="h-dvh flex flex-col">
         {/* Editor Header */}
         <div className="shrink-0 border-b border-border-hover bg-[#0B0C0F]">
           <div className="flex w-full min-w-0 items-center gap-3 px-6 py-3">

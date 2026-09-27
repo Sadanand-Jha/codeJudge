@@ -49,7 +49,7 @@ function StudioShellWithRouter({ onDashboard }: { onDashboard: () => void }) {
 
   if (loading) {
     return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center bg-background">
+      <div className="flex h-[calc(100dvh-4rem)] items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-300 border-t-transparent" />
           <p className="text-sm text-text-secondary">Loading quiz…</p>
@@ -60,7 +60,7 @@ function StudioShellWithRouter({ onDashboard }: { onDashboard: () => void }) {
 
   if (loadError) {
     return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center bg-background">
+      <div className="flex h-[calc(100dvh-4rem)] items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
             <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">

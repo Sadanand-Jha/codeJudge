@@ -468,7 +468,7 @@ const handleConvoScroll = useCallback(() => {
 
   return (
     <AppLayout>
-      <div className="flex h-[calc(100vh-56px)] w-full overflow-hidden bg-ai-bg">
+      <div className="flex h-[calc(100dvh-56px)] w-full overflow-hidden bg-ai-bg">
         {sidebarOpen && (
           <ConversationSidebar
             onNewChat={startNewChat}

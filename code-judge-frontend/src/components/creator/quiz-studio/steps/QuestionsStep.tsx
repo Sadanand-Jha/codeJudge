@@ -40,7 +40,7 @@ function hashState(questions: CreatorQuestion[], info: { title: string; shortDes
 }
 
 export function QuestionsStep() {
-  const { state, addQuestion, importQuestions, saveToServer, saveProgress, setActiveQuestion } = useStudio();
+  const { state, addQuestion, importQuestionsAndSave, saveToServer, saveProgress, setActiveQuestion } = useStudio();
   const [aiOpen, setAiOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
@@ -97,8 +97,12 @@ export function QuestionsStep() {
     }
   }, [saving, saveToServer, state.questions, state.info]);
 
-  const handleAiQuestions = (questions: CreatorQuestion[]) => {
-    importQuestions(questions);
+  const handleAiQuestions = async (questions: CreatorQuestion[]) => {
+    await importQuestionsAndSave(questions);
+    snapshotRef.current = hashState([...state.questions.filter((question) =>
+      question.title.trim() || question.options.some((option) => option.content.trim())
+    ), ...questions], state.info);
+    setHasChanges(false);
   };
 
   const handleDownloadPdf = (config: PdfConfig, students: PdfStudent[]) => {
@@ -246,7 +250,7 @@ export function QuestionsStep() {
 
         {/* Mobile bottom action bar — primary actions only */}
         {state.activeQuestionId && (
-          <div className="sticky bottom-0 z-10 mt-2 flex w-full max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+          <div className="mobile-viewport-actions sticky bottom-0 z-10 mt-2 flex w-full max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
             <button
               onClick={handleSave}
               disabled={!hasChanges || saving}

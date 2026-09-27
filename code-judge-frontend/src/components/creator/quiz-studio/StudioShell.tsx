@@ -102,6 +102,16 @@ const STEP_HELP: Record<string, { title: string; intro: string; items: string[] 
   },
 };
 
+// Keep the mobile jump menu focused on the core authoring flow. Desktop keeps
+// the complete Studio navigation, and the original step numbers stay visible.
+const MOBILE_STEPPER_INDEXES = new Set([0, 1, 3, 4, 8]);
+const LIFECYCLE_BADGE = {
+  draft: { label: "Draft", className: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400" },
+  scheduled: { label: "Scheduled", className: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300" },
+  live: { label: "Live", className: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300" },
+  ended: { label: "Ended", className: "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-500/30 dark:bg-slate-500/10 dark:text-slate-300" },
+} as const;
+
 function StudioHelpButton() {
   const { state } = useStudio();
   const [open, setOpen] = useState(false);
@@ -190,6 +200,7 @@ export function StudioHeader() {
   const currentNum = activeIdx >= 0 ? activeIdx + 1 : total > 0 ? 1 : 0;
   const progress = total > 0 ? Math.round((currentNum / Math.max(total, 1)) * 100) : 0;
   const topCounter = total > 0 ? `${currentNum} / ${total} questions` : `0 / ${total} questions`;
+  const lifecycleBadge = LIFECYCLE_BADGE[state.info.quizLifecycle] ?? LIFECYCLE_BADGE.draft;
 
   useEffect(() => setDraft(state.info.title), [state.info.title]);
 
@@ -235,8 +246,8 @@ export function StudioHeader() {
             {label}
           </button>
         )}
-        <span className="inline-flex shrink-0 items-center rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold tracking-wide text-amber-700 sm:px-2 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
-          Draft
+        <span className={cn("inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold tracking-wide sm:px-2 sm:text-[10px]", lifecycleBadge.className)}>
+          {lifecycleBadge.label}
         </span>
       </div>
 
@@ -263,13 +274,15 @@ export function StudioHeader() {
         )}
         {/* Mobile: Save + Continue compact */}
         <div className="flex min-w-0 flex-1 items-center gap-2 lg:hidden">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary disabled:opacity-50 sm:rounded-xl"
-          >
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
-          </button>
+          {!editMode && (
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary disabled:opacity-50 sm:rounded-xl"
+            >
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+            </button>
+          )}
           <button
             onClick={async () => {
               if (continuing) return;
@@ -320,6 +333,11 @@ export function StudioStepper() {
   const display = steps;
   const current = display[stepIndex] ?? display[0];
   const progress = ((stepIndex + 1) / Math.max(display.length, 1)) * 100;
+  const mobileCurrentNumber = [...MOBILE_STEPPER_INDEXES].indexOf(stepIndex) + 1;
+  const mobileStepCount = MOBILE_STEPPER_INDEXES.size;
+  const mobileProgress = mobileCurrentNumber > 0
+    ? (mobileCurrentNumber / mobileStepCount) * 100
+    : progress;
 
   useEffect(() => {
     if (!stepMenuOpen) return;
@@ -336,11 +354,13 @@ export function StudioStepper() {
         <div className="min-w-0 flex-1">
           <div className="mb-1.5 flex items-center justify-between gap-3">
             <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
-              Step {stepIndex + 1} of {display.length}
+              <span className="lg:hidden">Step {mobileCurrentNumber > 0 ? mobileCurrentNumber : stepIndex + 1} of {mobileStepCount}</span>
+              <span className="hidden lg:inline">Step {stepIndex + 1} of {display.length}</span>
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-border">
-            <div className="h-full rounded-full bg-[#E91E63] transition-all" style={{ width: `${progress}%` }} />
+            <div className="h-full rounded-full bg-[#E91E63] transition-all lg:hidden" style={{ width: `${mobileProgress}%` }} />
+            <div className="hidden h-full rounded-full bg-[#E91E63] transition-all lg:block" style={{ width: `${progress}%` }} />
           </div>
         </div>
         <div ref={stepMenuRef} className="relative shrink-0">
@@ -354,7 +374,10 @@ export function StudioStepper() {
               stepMenuOpen ? "border-pink-500 text-pink-500" : "border-border text-text-primary"
             )}
           >
-            <span className="truncate">{stepIndex + 1}. {current?.label}</span>
+            <span className="truncate">
+              <span className="lg:hidden">{mobileCurrentNumber > 0 ? mobileCurrentNumber : stepIndex + 1}.</span>
+              <span className="hidden lg:inline">{stepIndex + 1}.</span>{" "}{current?.label}
+            </span>
             <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 rotate-90 transition-transform", stepMenuOpen && "-rotate-90")} />
           </button>
           <AnimatePresence>
@@ -369,6 +392,7 @@ export function StudioStepper() {
               >
                 {display.map((step, index) => {
                   const active = step.id === state.step;
+                  const mobileNumber = [...MOBILE_STEPPER_INDEXES].indexOf(index) + 1;
                   return (
                     <button
                       key={step.id}
@@ -380,10 +404,14 @@ export function StudioStepper() {
                       }}
                       className={cn(
                         "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium",
+                        !MOBILE_STEPPER_INDEXES.has(index) && "hidden lg:flex",
                         active ? "bg-pink-500/10 text-pink-500" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
                       )}
                     >
-                      <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", active ? "bg-pink-500 text-white" : "bg-card-hover text-text-muted")}>{index + 1}</span>
+                      <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", active ? "bg-pink-500 text-white" : "bg-card-hover text-text-muted")}>
+                        <span className="lg:hidden">{mobileNumber}</span>
+                        <span className="hidden lg:inline">{index + 1}</span>
+                      </span>
                       <span className="truncate">{step.label}</span>
                       {active && <Check className="ml-auto h-3.5 w-3.5" />}
                     </button>

@@ -18,7 +18,6 @@ import {
   Target,
   Plus,
   Minus,
-  Brain,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { generateQuestionsFromFiles, generateFromQuestionBank } from "@/services/ai";
@@ -145,7 +144,7 @@ export function AiGenerateModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onQuestionsAdded: (questions: CreatorQuestion[]) => void;
+  onQuestionsAdded: (questions: CreatorQuestion[]) => Promise<void>;
 }) {
   const [mode, setMode] = useState<"own" | "bank">("own");
   const [files, setFiles] = useState<File[]>([]);
@@ -159,7 +158,6 @@ export function AiGenerateModal({
   const [bankEasy, setBankEasy] = useState(4);
   const [bankMedium, setBankMedium] = useState(3);
   const [bankHard, setBankHard] = useState(3);
-  const [bankHint, setBankHint] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const syncBankDistribution = (total: number) => {
@@ -242,9 +240,9 @@ export function AiGenerateModal({
       setProgress(70);
       const questions = rawQuestions.map((q, i) => mapToCreatorQuestion(q, i));
       setProgress(100);
+      await onQuestionsAdded(questions);
       setAddedCount(questions.length);
       setDone(true);
-      onQuestionsAdded(questions);
       toast.success(`Added ${questions.length} questions from AI`);
     } catch (err) {
       setError((err as Error).message || "AI generation failed. Please try again.");
@@ -268,15 +266,14 @@ export function AiGenerateModal({
         easyCount: bankEasy,
         mediumCount: bankMedium,
         hardCount: bankHard,
-        hardnessHint: bankHint || undefined,
       });
       setProgress(70);
       const questions = rawQuestions.map((q, i) => mapToCreatorQuestion(q, i));
       setProgress(100);
+      await onQuestionsAdded(questions);
       setAddedCount(questions.length);
       setDone(true);
-      onQuestionsAdded(questions);
-      toast.success(`Selected ${questions.length} questions from bank (E${bankEasy}·M${bankMedium}·H${bankHard})`);
+      toast.success(`AI selected ${questions.length} questions (E${bankEasy}·M${bankMedium}·H${bankHard})`);
     } catch (err) {
       setError((err as Error).message || "Bank selection failed. Please try again.");
       setGenerating(false);
@@ -290,26 +287,24 @@ export function AiGenerateModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4"
           onClick={handleClose}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl flex flex-col max-h-[90vh]"
+            className="flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl sm:max-h-[90dvh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-border px-5 py-4 shrink-0">
+            <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3 sm:px-5 sm:py-4">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/10">
                   <Sparkles className="h-4 w-4 text-pink-500" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-text-primary">Generate with AI</h3>
-                  <p className="text-[11px] text-text-secondary">
-                    {mode === "own" ? "Upload study materials to extract questions" : "AI-curated balanced selection"}
-                  </p>
+                  <p className="text-[11px] text-text-secondary">Choose a source</p>
                 </div>
               </div>
               <button
@@ -322,12 +317,12 @@ export function AiGenerateModal({
             </div>
 
             {/* Mode selector */}
-            <div className="grid grid-cols-2 gap-2 px-5 pt-4 shrink-0">
+            <div className="grid shrink-0 grid-cols-2 gap-2 px-4 pt-3 sm:px-5 sm:pt-4">
               <button
                 type="button"
                 onClick={() => { setMode("own"); setError(""); }}
                 className={cn(
-                  "rounded-xl border p-3 text-left transition-all",
+                  "rounded-xl border p-2.5 text-left transition-all sm:p-3",
                   mode === "own" ? "border-pink-500 bg-pink-500/10 shadow-sm" : "border-border bg-card-hover hover:border-pink-500/20"
                 )}
               >
@@ -335,35 +330,23 @@ export function AiGenerateModal({
                   <Upload className={cn("h-4 w-4", mode === "own" ? "text-pink-500" : "text-text-muted")} />
                   <span className={cn("text-xs font-bold", mode === "own" ? "text-pink-600" : "text-text-primary")}>From Your Material</span>
                 </div>
-                <p className="text-[10px] text-text-muted mt-1">Upload PDF/DOC/PPT etc.</p>
               </button>
               <button
                 type="button"
                 onClick={() => { setMode("bank"); setError(""); }}
                 className={cn(
-                  "rounded-xl border p-3 text-left transition-all",
+                  "rounded-xl border p-2.5 text-left transition-all sm:p-3",
                   mode === "bank" ? "border-pink-500 bg-pink-500/10 shadow-sm" : "border-border bg-card-hover hover:border-pink-500/20"
                 )}
               >
                 <div className="flex items-center gap-2">
                   <BookOpen className={cn("h-4 w-4", mode === "bank" ? "text-pink-500" : "text-text-muted")} />
-                  <span className={cn("text-xs font-bold", mode === "bank" ? "text-pink-600" : "text-text-primary")}>From Question Bank</span>
+                  <span className={cn("text-xs font-bold", mode === "bank" ? "text-pink-600" : "text-text-primary")}>Let AI Choose</span>
                 </div>
-                <p className="text-[10px] text-text-muted mt-1">Curated · balanced</p>
               </button>
             </div>
 
-            {mode === "bank" && !done && !generating && (
-              <div className="mx-5 mt-3 rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/5 to-pink-500/5 p-3 flex items-start gap-2 shrink-0">
-                <BookOpen className="h-4 w-4 text-violet-500 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-text-primary">Curated Operating Systems Bank</p>
-                  <p className="text-[11px] text-text-secondary">200 single-correct MCQs · Balanced difficulty · Theory + Numerical</p>
-                </div>
-              </div>
-            )}
-
-            <div className="px-5 py-4 overflow-y-auto flex-1 min-h-0">
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4">
               {done ? (
                 <div className="py-6 text-center">
                   <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
@@ -388,10 +371,10 @@ export function AiGenerateModal({
                   <div className="text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-pink-500" />
                     <p className="mt-3 text-sm font-semibold text-text-primary">
-                      {mode === "bank" ? "Selecting balanced questions..." : "Analyzing your files..."}
+                      {mode === "bank" ? "AI is choosing your problems…" : "Creating your questions…"}
                     </p>
                     <p className="mt-1 text-xs text-text-secondary">
-                      {mode === "bank" ? `Picking ${bankNumber} (E${bankEasy}·M${bankMedium}·H${bankHard}) with chapter spread` : "Extracting text and generating questions"}
+                      {mode === "bank" ? "Finding the best mix for your quiz." : "Please wait a moment."}
                     </p>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-border">
@@ -404,9 +387,9 @@ export function AiGenerateModal({
                   </div>
                 </div>
               ) : mode === "bank" ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* Assessment size */}
-                  <div className="rounded-xl border border-border bg-card p-3 space-y-3">
+                  <div className="space-y-2 rounded-xl border border-border bg-card p-3">
                     <label className="text-xs font-bold text-text-primary flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-pink-500" /> Assessment size</label>
                     <div className="flex items-center gap-3">
                       <button type="button" onClick={() => { const v = Math.max(1, bankNumber - 1); setBankNumber(v); syncBankDistribution(v); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border"><Minus className="h-3.5 w-3.5" /></button>
@@ -417,11 +400,10 @@ export function AiGenerateModal({
                       <button type="button" onClick={() => { const v = Math.min(50, bankNumber + 1); setBankNumber(v); syncBankDistribution(v); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border"><Plus className="h-3.5 w-3.5" /></button>
                     </div>
                     <input type="range" min={5} max={20} value={bankNumber} onChange={(e) => { const v = parseInt(e.target.value); setBankNumber(v); syncBankDistribution(v); }} className="w-full h-2 bg-border rounded-lg appearance-none cursor-pointer accent-pink-500" />
-                    <p className="text-[10px] text-text-muted">Typical balanced OS paper is 10 questions (5–20 allowed).</p>
                   </div>
 
                   {/* Difficulty distribution */}
-                  <div className="rounded-xl border border-border bg-card p-3 space-y-3">
+                  <div className="space-y-2 rounded-xl border border-border bg-card p-3">
                     <label className="text-xs font-bold text-text-primary flex items-center gap-1.5"><SlidersHorizontal className="h-3.5 w-3.5 text-pink-500" /> Difficulty distribution — must sum to {bankNumber}</label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
@@ -439,24 +421,9 @@ export function AiGenerateModal({
                         </div>
                       ))}
                     </div>
-                    <div className={cn("text-xs font-medium px-2 py-1.5 rounded text-center border", bankEasy + bankMedium + bankHard === bankNumber ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-rose-500/10 text-rose-600 border-rose-500/20")}>
+                    <div className={cn("rounded border px-2 py-1 text-center text-[11px] font-medium", bankEasy + bankMedium + bankHard === bankNumber ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-rose-500/10 text-rose-600 border-rose-500/20")}>
                       {bankEasy} + {bankMedium} + {bankHard} = {bankEasy + bankMedium + bankHard} {bankEasy + bankMedium + bankHard === bankNumber ? "✓ Balanced" : `≠ ${bankNumber} — adjust`}
                     </div>
-                    <div className="flex gap-1.5 flex-wrap">
-                      <button type="button" onClick={() => syncBankDistribution(bankNumber)} className="text-xs font-medium px-2.5 py-1 rounded-full bg-pink-500/10 text-pink-600 border border-pink-500/20">Auto 40/30/30</button>
-                      <button type="button" onClick={() => { const e = Math.floor(bankNumber/3); setBankEasy(e); setBankMedium(e); setBankHard(bankNumber - 2*e); }} className="text-xs font-medium px-2.5 py-1 rounded-full bg-card-hover border border-border">Equal split</button>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-border bg-card p-3 space-y-2">
-                    <label className="text-xs font-bold text-text-primary flex items-center gap-1.5"><Brain className="h-3.5 w-3.5 text-pink-500" /> Hardness hint (optional)</label>
-                    <input value={bankHint} onChange={(e) => setBankHint(e.target.value)} placeholder="e.g. Make it a hard paper, focus on numerical…" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:border-pink-500 outline-none" />
-                    <p className="text-[11px] text-text-muted">Guides overall hardness beyond counts. Leave blank for default balanced paper.</p>
-                  </div>
-
-                  <div className="rounded-xl border border-violet-500/20 bg-gradient-to-br from-violet-500/10 to-pink-500/10 p-3">
-                    <p className="text-xs font-bold text-text-primary mb-1">How it works</p>
-                    <p className="text-xs text-text-secondary leading-relaxed">AI curates {bankNumber} questions for you — balanced across chapters, difficulty ({bankEasy}·{bankMedium}·{bankHard}) and theory / numerical mix for a fair assessment.</p>
                   </div>
 
                   {error && (
@@ -471,14 +438,14 @@ export function AiGenerateModal({
                     onClick={handleGenerateFromBank}
                     disabled={bankEasy + bankMedium + bankHard !== bankNumber}
                     className={cn(
-                      "flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all",
+                      "sticky bottom-0 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all",
                       bankEasy + bankMedium + bankHard === bankNumber
                         ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-500/20 hover:brightness-110"
                         : "cursor-not-allowed bg-card-hover text-text-muted"
                     )}
                   >
                     <Sparkles className="h-4 w-4" />
-                    Generate {bankNumber} from Bank
+                    Let AI Pick {bankNumber} Questions
                   </button>
                 </div>
               ) : (

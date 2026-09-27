@@ -15,6 +15,7 @@ export interface Quiz {
   endtime: string | null;
   visibility: number | null;
   visibility_name: string | null;
+  audience_mode?: "public" | "private" | "classroom" | null;
   difficulty: number | null;
   difficulty_name: string | null;
   subject_id: number | null;
@@ -65,6 +66,7 @@ export interface CreateQuizPayload {
   code: string;
   difficulty?: string;
   visibility?: number;
+  audienceMode?: "public" | "private" | "classroom";
   timeLimit?: number;
   starttime?: string;
   endtime?: string;
@@ -219,6 +221,7 @@ export interface QuizBasic {
   starttime: string | null;
   endtime: string | null;
   visibility: number | null;
+  audience_mode?: "public" | "private" | "classroom" | null;
   difficulty: number | null;
   difficulty_name?: string | null;
   subject_id: number | null;
@@ -276,18 +279,15 @@ export async function loadQuizForEdit(quizId: string): Promise<{
   quiz: QuizBasic & { subject_name?: string; exam_cat_name?: string };
   problems: QuizProblemWithOptions[];
 }> {
-  const [quiz, problems] = await Promise.all([
+  // All four requests are independent. Start them together so opening Setup
+  // costs one network round trip instead of quiz/problems followed by refs.
+  const [quiz, problems, referenceData] = await Promise.all([
     getQuizById(quizId),
     getQuizProblems(quizId).catch(() => [] as QuizProblem[]),
+    Promise.all([getAllSubjects(), getAllExamCategories()])
+      .catch(() => [[], []] as [QuizSubject[], QuizExamCategory[]]),
   ]);
-
-  let subjects: { id: number; subject_name: string }[] = [];
-  let exams: { id: number; exam_cat: string }[] = [];
-  try {
-    [subjects, exams] = await Promise.all([getAllSubjects(), getAllExamCategories()]);
-  } catch {
-    // non-critical — continue without subject/exam names
-  }
+  const [subjects, exams] = referenceData;
 
   const subjectName = quiz.subject_id
     ? subjects.find((s) => s.id === quiz.subject_id)?.subject_name ?? ""
@@ -451,6 +451,7 @@ export async function updateQuiz(quizId: string, data: Partial<{
   endtime: string | null;
   status: string;
   visibility: number;
+  audienceMode: "public" | "private" | "classroom";
   difficulty: number;
   subjectId: number;
   examId: number;
@@ -675,6 +676,7 @@ export async function startQuizAttempt(quizId: string): Promise<StartQuizRespons
 export async function saveQuizResponse(attemptId: string, data: {
   problemId: number;
   option?: string;
+  options?: string[];
   textAnswer?: string;
   timeTaken?: number;
 }): Promise<void> {
@@ -689,7 +691,7 @@ export async function saveQuizResponse(attemptId: string, data: {
  */
 export async function submitQuizAttempt(
   attemptId: string,
-  responses: Array<{ problemId: number; option?: string; textAnswer?: string }>,
+  responses: Array<{ problemId: number; option?: string; options?: string[]; textAnswer?: string }>,
   proctor?: { violations?: number; flagged?: boolean; flagReason?: string }
 ): Promise<QuizAttempt> {
   const response = await apiClient.post<QuizAttempt>(`/v1/user/quiz/attempt/${attemptId}/submit`, {

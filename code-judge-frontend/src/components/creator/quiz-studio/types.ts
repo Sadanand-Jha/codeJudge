@@ -247,8 +247,8 @@ export const DEFAULT_QUIZ_INFO: StudioQuizInfo = {
 };
 
 export const DEFAULT_SETTINGS: StudioSettings = {
-  randomizeQuestions: false,
-  randomizeOptions: false,
+  randomizeQuestions: true,
+  randomizeOptions: true,
   negativeMarking: false,
   negativeMarkValue: 1,
   showResultsImmediately: true,

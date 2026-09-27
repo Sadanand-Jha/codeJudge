@@ -134,7 +134,7 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
               <Detail icon={Clock} label="Duration" value={quiz.duration ? `${quiz.duration} min` : "Not set"} />
               <Detail icon={Target} label="Total marks" value={quiz.total_marks?.toString() || "—"} />
               <Detail icon={Award} label="Passing marks" value={quiz.passing_marks?.toString() || "—"} />
-              <Detail icon={BookOpen} label="Difficulty" value={quiz.difficulty?.toString() || "—"} />
+              <Detail icon={BookOpen} label="Difficulty" value={quiz.difficulty_name || "Not specified"} />
             </div>
 
             <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#F7F8FA] p-4 dark:border-[#252D3A] dark:bg-[#111722]">

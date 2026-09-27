@@ -84,7 +84,7 @@ export function LiveAssessmentRoom({ data, onBack }: LiveAssessmentRoomProps) {
   }, [data.quizId]);
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="h-dvh bg-background flex flex-col overflow-hidden">
       <HeaderControls
         quizName={data.quizName}
         status={status}

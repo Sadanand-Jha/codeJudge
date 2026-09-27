@@ -19,7 +19,7 @@ import type { GeneratorStep, UploadedFile, AiQuizConfig } from "./types";
 
 const STEPS: { id: GeneratorStep; label: string; icon: typeof Upload }[] = [
   { id: "upload", label: "Upload", icon: Upload },
-  { id: "analyzing", label: "Analyze", icon: Brain },
+  { id: "analyzing", label: "Generate", icon: Brain },
   { id: "review", label: "Review", icon: Check },
   { id: "create", label: "Create", icon: Sparkles },
 ];

@@ -242,7 +242,7 @@ function mapBackendProblem(
 }
 
 function mapQuizToStudioInfo(quiz: QuizBasic & { subject_name?: string; exam_cat_name?: string }): StudioState["info"] {
-  const raw = ((quiz as any).status as string | null)?.toLowerCase() ?? "";
+  const raw = ((quiz as any).status as string | null)?.trim().toLowerCase() ?? "";
   let quizLifecycle: "draft" | "scheduled" | "live" | "ended" = "draft";
   if (raw === "live") quizLifecycle = "live";
   else if (raw === "scheduled") quizLifecycle = "scheduled";
@@ -310,6 +310,7 @@ interface StudioContextValue {
   updateQuestion: (id: string, patch: Partial<CreatorQuestion>) => void;
   addQuestion: () => Promise<string>;
   importQuestions: (questions: CreatorQuestion[]) => void;
+  importQuestionsAndSave: (questions: CreatorQuestion[]) => Promise<void>;
   removeQuestion: (id: string) => void;
   duplicateQuestion: (id: string) => void;
   reorderQuestions: (ids: string[]) => void;
@@ -423,7 +424,20 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
     let cancelled = false;
     (async () => {
       try {
-        const { quiz, problems } = await loadQuizForEdit(initialQuizId);
+        // Metadata, questions, mechanics, and audience are independent reads.
+        // Fetch them in one batch so Studio Setup is not blocked by a request
+        // waterfall. Optional endpoints degrade to their defaults on failure.
+        const [{ quiz, problems }, serverMechanics, participants] = await Promise.all([
+          loadQuizForEdit(initialQuizId),
+          getQuizGameMechanics(initialQuizId).catch((error) => {
+            console.warn("Failed to load game mechanics (non-critical):", error);
+            return [];
+          }),
+          getQuizParticipants(initialQuizId).catch((error) => {
+            console.error("[StudioProvider] Failed to load participants:", error);
+            return [];
+          }),
+        ]);
         if (cancelled) return;
         const info = mapQuizToStudioInfo(quiz);
         const settings = mapQuizToStudioSettings(quiz);
@@ -442,6 +456,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           startDate: info.startDate,
           endDate: info.endDate,
           tags: info.tags,
+          audienceMode:
+            quiz.audience_mode ??
+            (participants.some((p) => p.source === 4 || p.source === 2) ? "classroom" : DEFAULT_AUDIENCE.mode),
           settings: {
             randomizeQuestions: settings.randomizeQuestions,
             randomizeOptions: settings.randomizeOptions,
@@ -451,11 +468,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         });
         quizSnapshotRef.current = quizSnapshot;
 
-        // Load game mechanics from server
-        let loadedGameMechanics = JSON.parse(JSON.stringify(DEFAULT_GAME_MECHANICS));
-        try {
-          const serverMechanics = await getQuizGameMechanics(initialQuizId);
-          const CODE_TO_ID: Record<string, string> = {
+        // Apply the already-fetched game mechanics to local defaults.
+        const loadedGameMechanics = JSON.parse(JSON.stringify(DEFAULT_GAME_MECHANICS));
+        const CODE_TO_ID: Record<string, string> = {
             FIFTY_FIFTY: "fiftyFifty",
             AUDIENCE_POLL: "audiencePoll",
             HINT: "hint",
@@ -468,40 +483,36 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
             SPEED_BONUS: "speedBonus",
             SECOND_CHANCE: "secondChance",
             DECAYING_POINTS: "decayingPoints",
-          };
-          for (const sm of serverMechanics) {
-            const id = CODE_TO_ID[sm.code];
-            if (!id) continue;
-            const m: any = (loadedGameMechanics as any)[id];
-            if (!m) continue;
-            m.enabled = sm.enabled;
-            if ("uses" in m) m.uses = sm.quantity;
-          }
-        } catch (e) {
-          console.warn("Failed to load game mechanics (non-critical):", e);
+        };
+        for (const sm of serverMechanics) {
+          const id = CODE_TO_ID[sm.code];
+          if (!id) continue;
+          const m: any = (loadedGameMechanics as any)[id];
+          if (!m) continue;
+          m.enabled = sm.enabled;
+          if ("uses" in m) m.uses = sm.quantity;
         }
 
-        // ─── Load audience from backend ────────────────────────────────────
-        let loadedAudience = { ...DEFAULT_AUDIENCE, accessCode: generateQuizCode() };
-        try {
-          const participants = await getQuizParticipants(initialQuizId);
-          if (!cancelled && participants && participants.length > 0) {
-            const hasRoomSource = participants.some((p) => p.source === 4);
-            const hasInviteSource = participants.some((p) => p.source === 2);
-
-            if (hasRoomSource || hasInviteSource) {
-              loadedAudience = { ...loadedAudience, mode: "classroom" };
-            }
-
-            // Set audience snapshot so save doesn't overwrite loaded data
-            const snapshotParticipants = participants.map((p) => ({
-              userId: p.user_id,
-              source: p.source,
-            }));
-            audienceSnapshotRef.current = JSON.stringify(snapshotParticipants);
+        // ─── Apply the already-fetched audience ────────────────────────────
+        let loadedAudience = {
+          ...DEFAULT_AUDIENCE,
+          accessCode: generateQuizCode(),
+          mode: quiz.audience_mode ?? DEFAULT_AUDIENCE.mode,
+        };
+        if (participants.length > 0) {
+          // Legacy quizzes did not store audience_mode. Preserve their old
+          // room-restricted behaviour, while respecting the explicit mode for
+          // newly migrated/saved quizzes.
+          if (!quiz.audience_mode && participants.some((p) => p.source === 4 || p.source === 2)) {
+            loadedAudience = { ...loadedAudience, mode: "classroom" };
           }
-        } catch (e) {
-          console.error("[StudioProvider] Failed to load participants:", e);
+
+          // Set audience snapshot so save doesn't overwrite loaded data
+          const snapshotParticipants = participants.map((p) => ({
+            userId: p.user_id,
+            source: p.source,
+          }));
+          audienceSnapshotRef.current = JSON.stringify(snapshotParticipants);
         }
 
         gameMechanicsSnapshotRef.current = JSON.stringify(loadedGameMechanics);
@@ -535,6 +546,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   const quizSnapshotRef = useRef<string>("");
   const audienceSnapshotRef = useRef<string>("");
   const gameMechanicsSnapshotRef = useRef<string>("");
+  const databaseAutosaveSnapshotRef = useRef<string | null>(null);
+  const audienceModeSnapshotRef = useRef<StudioState["audience"]["mode"] | null>(null);
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -620,6 +633,39 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       const updated = [...s.questions, ...questions];
       return { ...s, questions: updated, activeQuestionId: questions[0]?.id ?? s.activeQuestionId };
     });
+  };
+
+  const importQuestionsAndSave = async (questions: CreatorQuestion[]) => {
+    if (questions.length === 0) return;
+    if (savingToServer) throw new Error("Save already in progress");
+    if (!state.serverQuizId) throw new Error("Save the quiz setup before generating questions.");
+
+    // Drop only untouched empty placeholders; preserve every authored question.
+    const existingQuestions = state.questions.filter((question) =>
+      question.title.trim() || question.options.some((option) => option.content.trim())
+    );
+    const updatedQuestions = [...existingQuestions, ...questions];
+    const generatedIds = new Set(questions.map((question) => question.id));
+
+    setSavingToServer(true);
+    setSaveProgress({ saved: 0, total: generatedIds.size });
+    try {
+      await syncQuizQuestions(
+        state.serverQuizId,
+        updatedQuestions,
+        generatedIds,
+        (saved, total) => setSaveProgress({ saved, total })
+      );
+      snapshotRef.current = buildQuestionSnapshot(updatedQuestions);
+      setState((current) => ({
+        ...current,
+        questions: updatedQuestions,
+        activeQuestionId: questions[0]?.id ?? current.activeQuestionId,
+      }));
+    } finally {
+      setSavingToServer(false);
+      setSaveProgress(null);
+    }
   };
 
   const removeQuestion = (id: string) =>
@@ -926,6 +972,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         starttime: state.info.startDate || undefined,
         endtime: state.info.endDate || undefined,
         status: state.info.startDate ? "scheduled" : "live",
+        audienceMode: state.audience.mode,
 
         randomizeQuestions: state.settings.randomizeQuestions,
         randomizeOptions: state.settings.randomizeOptions,
@@ -952,6 +999,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           startDate: state.info.startDate,
           endDate: state.info.endDate,
           tags: state.info.tags,
+          audienceMode: state.audience.mode,
           settings: {
             randomizeQuestions: state.settings.randomizeQuestions,
             randomizeOptions: state.settings.randomizeOptions,
@@ -965,6 +1013,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
             starttime: payload.starttime,
             endtime: payload.endtime,
             status: payload.status,
+            audienceMode: payload.audienceMode,
             subjectId: payload.subjectId,
             examId: payload.examId,
             difficulty: payload.difficultyId,
@@ -1078,6 +1127,73 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       setSaveProgress(null);
     }
   };
+
+  useEffect(() => {
+    if (!editMode || loading || !state.serverQuizId) return;
+    if (audienceModeSnapshotRef.current === null) {
+      audienceModeSnapshotRef.current = state.audience.mode;
+      return;
+    }
+    if (audienceModeSnapshotRef.current === state.audience.mode) return;
+
+    const nextMode = state.audience.mode;
+    // Persist only the active type. Room participants are deliberately not
+    // touched, so switching back to Rooms restores the creator's edits.
+    void updateQuiz(state.serverQuizId, { audienceMode: nextMode })
+      .then(() => {
+        audienceModeSnapshotRef.current = nextMode;
+      })
+      .catch((error) => console.warn("Could not save audience mode:", error));
+  }, [editMode, loading, state.serverQuizId, state.audience.mode]);
+
+  useEffect(() => {
+    if (!editMode || loading || !state.serverQuizId) return;
+
+    const snapshot = JSON.stringify({
+      info: state.info,
+      settings: state.settings,
+      questions: state.questions,
+      audience: state.audience,
+      pricing: state.pricing,
+      branding: state.branding,
+      gameMechanics: state.gameMechanics,
+    });
+
+    // The first complete server-loaded state is the baseline, not a change.
+    if (databaseAutosaveSnapshotRef.current === null) {
+      databaseAutosaveSnapshotRef.current = snapshot;
+      return;
+    }
+    if (databaseAutosaveSnapshotRef.current === snapshot) return;
+
+    setState((current) => ({ ...current, saveStatus: "saving" }));
+    const timer = window.setTimeout(() => {
+      void saveToServer()
+        .then(() => {
+          databaseAutosaveSnapshotRef.current = snapshot;
+          setState((current) => ({ ...current, saveStatus: "saved", lastSaved: new Date() }));
+        })
+        .catch((error) => {
+          console.warn("Studio autosave deferred:", error);
+          setState((current) => ({ ...current, saveStatus: "unsaved" }));
+        });
+    }, 450);
+
+    return () => window.clearTimeout(timer);
+  // saveToServer intentionally captures the state represented by this snapshot.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    editMode,
+    loading,
+    state.serverQuizId,
+    state.info,
+    state.settings,
+    state.questions,
+    state.audience,
+    state.pricing,
+    state.branding,
+    state.gameMechanics,
+  ]);
 
   const saveGameMechanicsOnly = useCallback(async () => {
     const quizId = state.serverQuizId;
@@ -1196,6 +1312,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       updateQuestion,
       addQuestion,
       importQuestions,
+      importQuestionsAndSave,
       removeQuestion,
       duplicateQuestion,
       reorderQuestions,

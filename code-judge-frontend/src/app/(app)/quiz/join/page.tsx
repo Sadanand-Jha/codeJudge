@@ -244,7 +244,7 @@ export default function JoinQuizPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
-              className="space-y-5"
+              className="has-mobile-viewport-actions space-y-5"
             >
               <div className="rounded-2xl border border-[#E4E7EC]/60 bg-white/50 overflow-hidden backdrop-blur-lg dark:border-[#252D3A]/60 dark:bg-[#151A24]/45">
                 <div className="bg-gradient-to-r from-[#8B7CFF]/10 to-[#4F9DFF]/10 px-6 py-5 border-b border-[#E4E7EC] dark:border-[#252D3A]">
@@ -285,7 +285,7 @@ export default function JoinQuizPage() {
                     <InfoCard
                       icon={BookOpen}
                       label="Difficulty"
-                      value={quiz.difficulty?.toString() || "—"}
+                      value={quiz.difficulty_name || "Not specified"}
                       color="#F59E0B"
                     />
                   </div>
@@ -322,22 +322,24 @@ export default function JoinQuizPage() {
                 </div>
               </div>
 
-              <button
-                onClick={handleJoin}
-                disabled={joining || status?.label === "Ended"}
-                className="w-full h-12 rounded-xl bg-[#8B7CFF] text-sm font-semibold text-white hover:bg-[#7A6BF5] transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {joining ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : status?.label === "Ended" ? (
-                  "Quiz Has Ended"
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    Join Quiz
-                  </>
-                )}
-              </button>
+              <div className="mobile-viewport-actions border-t border-[#E4E7EC] px-4 py-3 dark:border-[#252D3A] sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+                <button
+                  onClick={handleJoin}
+                  disabled={joining || status?.label === "Ended"}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#8B7CFF] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#7A6BF5] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {joining ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : status?.label === "Ended" ? (
+                    "Quiz Has Ended"
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Join Quiz
+                    </>
+                  )}
+                </button>
+              </div>
             </motion.div>
           ) : null}
         </AnimatePresence>

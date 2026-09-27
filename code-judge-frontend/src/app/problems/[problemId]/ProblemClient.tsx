@@ -197,7 +197,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
   }, [layoutEditor]);
 
   return (
-    <div className="problem-solve-page h-screen flex flex-col bg-background overflow-hidden">
+    <div className="problem-solve-page h-dvh flex flex-col bg-background overflow-hidden">
       {/* Problem Header */}
       <div className="problem-solve-header shrink-0 border-b border-border bg-card relative z-20">
         <div className="px-5 py-3 md:px-6 md:py-3">

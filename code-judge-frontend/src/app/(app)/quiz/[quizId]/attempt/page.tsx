@@ -6,6 +6,7 @@ import { AlertCircle, ChevronLeft, ChevronRight, Clock, Loader2, Send, ShieldChe
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
 import {
   getQuizByCode,
+  saveQuizResponse,
   startQuizAttempt,
   submitQuizAttempt,
   type PublicQuizProblem,
@@ -22,6 +23,43 @@ import {
 } from "@/lib/quizAttemptStorage";
 
 type AnswerValue = StoredAttemptAnswer;
+
+function stableShuffle<T>(items: T[], seed: number): T[] {
+  const shuffled = [...items];
+  let state = seed || 1;
+  for (let index = shuffled.length - 1; index > 0; index--) {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    const swapIndex = state % (index + 1);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
+function shuffleStudentAttempt(problems: PublicQuizProblem[], attemptId: number): PublicQuizProblem[] {
+  return stableShuffle(problems, attemptId * 31 + 17).map((problem) => ({
+    ...problem,
+    options: stableShuffle(problem.options ?? [], attemptId * 31 + Number(problem.id)),
+  }));
+}
+
+function responsesToAnswers(responses: Array<{ problem_id: number; answer: unknown }>): Record<number, AnswerValue> {
+  const restored: Record<number, AnswerValue> = {};
+  for (const response of responses) {
+    const answer = response.answer as Record<string, unknown> | string | null;
+    if (answer && typeof answer === "object" && "selectedOptionId" in answer) {
+      restored[response.problem_id] = { option: String(answer.selectedOptionId) };
+    } else if (answer && typeof answer === "object" && "selectedOptionIds" in answer) {
+      restored[response.problem_id] = {
+        options: Array.isArray(answer.selectedOptionIds) ? answer.selectedOptionIds.map(String) : [],
+      };
+    } else if (answer && typeof answer === "object" && "text" in answer) {
+      restored[response.problem_id] = { textAnswer: String(answer.text ?? "") };
+    } else if (typeof answer === "string") {
+      restored[response.problem_id] = { option: answer };
+    }
+  }
+  return restored;
+}
 
 export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = use(params);
@@ -148,9 +186,16 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       const started = await startQuizAttempt(String(quiz.id));
       const id = started.attempt.id as number;
       setAttemptId(id);
-      setQuestions(started.problems ?? []);
+      // Shuffle only the student attempt view. A deterministic attempt-based
+      // seed preserves the same order after refresh/resume.
+      setQuestions(shuffleStudentAttempt(started.problems ?? [], id));
       if (started.resumed) {
-        setAnswers(readQuizAttemptAnswers(id));
+        // Server responses make resume work across devices; the local draft is
+        // applied last because it may contain a newer offline edit.
+        setAnswers({
+          ...responsesToAnswers(started.savedResponses ?? []),
+          ...readQuizAttemptAnswers(id),
+        });
       } else {
         // A genuinely new attempt must always start blank. Create its local
         // draft immediately so only this attempt can restore these answers.
@@ -167,7 +212,13 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
 
   const persistAnswer = useCallback((problemId: number, answer: AnswerValue) => {
     setAnswers((previous) => ({ ...previous, [problemId]: answer }));
-  }, []);
+    if (attemptId !== null) {
+      void saveQuizResponse(String(attemptId), { problemId, ...answer }).catch(() => {
+        // The local draft remains authoritative while offline; final submit
+        // sends the complete answer set again.
+      });
+    }
+  }, [attemptId]);
 
   const handleManualSubmit = useCallback(() => {
     void submit();
@@ -231,14 +282,26 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {current.options.map((option) => {
-              const selected = answers[current.id]?.option === String(option.id);
+              const multiple = current.quiz_problem_type === 2;
+              const optionId = String(option.id);
+              const selected = multiple
+                ? (answers[current.id]?.options ?? []).includes(optionId)
+                : answers[current.id]?.option === optionId;
               return (
                 <button
                   key={option.id}
                   type="button"
                   onClick={() => {
-                    const value = String(option.id);
-                    persistAnswer(current.id, { option: value });
+                    if (multiple) {
+                      const currentOptions = answers[current.id]?.options ?? [];
+                      persistAnswer(current.id, {
+                        options: selected
+                          ? currentOptions.filter((id) => id !== optionId)
+                          : [...currentOptions, optionId],
+                      });
+                    } else {
+                      persistAnswer(current.id, { option: optionId });
+                    }
                   }}
                   className={`min-h-14 rounded-xl border p-3 text-left text-sm leading-5 transition ${selected ? "border-pink-500 bg-pink-500/[0.08] text-text-primary ring-2 ring-pink-500/10" : "border-border bg-background text-text-secondary hover:border-pink-500/30 hover:text-text-primary"}`}
                 >

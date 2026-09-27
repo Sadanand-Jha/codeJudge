@@ -612,7 +612,7 @@ function StepFooter({
 }) {
   const isReview = step === 4;
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="sticky bottom-0 rounded-xl border border-border bg-card/90 p-3 backdrop-blur-xl lg:static lg:bg-card">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mobile-viewport-actions sticky bottom-0 rounded-xl border border-border bg-card/90 p-3 backdrop-blur-xl lg:static lg:bg-card">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3 text-xs text-text-muted">
           <span className="inline-flex items-center gap-1.5">

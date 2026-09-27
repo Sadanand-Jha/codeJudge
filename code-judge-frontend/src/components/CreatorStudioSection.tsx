@@ -30,7 +30,7 @@ export default function CreatorStudioSection({ progress }: Props) {
   return (
     <motion.section
       style={{ opacity, y, scale }}
-      className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden px-6"
+      className="relative flex h-dvh w-full flex-col items-center justify-center overflow-hidden px-6"
       aria-label="Creator Studio"
     >
       {/* Holographic grid backdrop */}

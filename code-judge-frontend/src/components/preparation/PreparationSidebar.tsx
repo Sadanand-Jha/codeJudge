@@ -108,7 +108,7 @@ export function PreparationSidebarContent({ onNavigate }: { onNavigate?: () => v
  */
 export default function PreparationSidebar() {
   return (
-    <aside data-sidebar="true" className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
+    <aside data-sidebar="true" className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
       <PreparationSidebarContent />
     </aside>
   );
@@ -128,7 +128,7 @@ export function PreparationMobileNav({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] bg-black/60 lg:hidden"
+      className="fixed inset-x-0 top-0 z-[60] h-dvh bg-black/60 lg:hidden"
       onClick={onClose}
     >
       <motion.div

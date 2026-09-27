@@ -135,14 +135,14 @@ export function TimingSection() {
       if (nextManual.endBehavior === "auto_duration" && nextManual.sessionDuration > 0) {
         const end = new Date(now.getTime() + nextManual.sessionDuration * 60 * 1000);
         const endStr = end.toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
-        updateInfo({ startDate: startStr, endDate: endStr });
+        updateInfo({ startDate: startStr, endDate: endStr, quizLifecycle: "live" });
       } else {
-        updateInfo({ startDate: startStr, endDate: "" });
+        updateInfo({ startDate: startStr, endDate: "", quizLifecycle: "live" });
       }
     } else if (patch.status === "ended" || (nextManual.status === "ended" && patch.endedAt)) {
       const now = new Date();
       const endStr = now.toLocaleString("sv-SE", { timeZone: "Asia/Kolkata" }).replace(" ", "T");
-      updateInfo({ endDate: endStr });
+      updateInfo({ endDate: endStr, quizLifecycle: "ended" });
     } else if (nextManual.status === "live" && nextManual.endBehavior === "auto_duration" && patch.sessionDuration !== undefined) {
       const startedAt = nextManual.startedAt ? new Date(nextManual.startedAt) : new Date();
       const end = new Date(startedAt.getTime() + nextManual.sessionDuration * 60 * 1000);

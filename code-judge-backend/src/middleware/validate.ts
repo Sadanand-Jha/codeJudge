@@ -105,6 +105,7 @@ export const quizSchema = z.object({
   endtime: z.string().nullable().optional(),
 
   visibility: z.number().int().positive().optional(),
+  audienceMode: z.enum(["public", "private", "classroom"]).optional(),
   difficulty: z.union([z.string(), z.number().int().positive()]).optional(),
   difficultyId: z.number().int().positive().optional(),
   subjectId: z.number().int().positive().optional(),
@@ -196,6 +197,7 @@ export const reorderQuizProblemsSchema = z.object({
 export const saveQuizResponseSchema = z.object({
   problemId: z.number().int().positive(),
   option: z.string().trim().optional(),
+  options: z.array(z.string().trim()).max(100).optional(),
   textAnswer: z.string().trim().max(20000).optional(),
   timeTaken: z.number().int().nonnegative().optional(),
 }).strict();
@@ -208,6 +210,7 @@ export const submitQuizAttemptSchema = z.object({
   responses: z.array(z.object({
     problemId: z.number().int().positive(),
     option: z.string().trim().optional(),
+    options: z.array(z.string().trim()).max(100).optional(),
     textAnswer: z.string().trim().max(20000).optional(),
   }).strict()).max(1000),
   violations: z.number().int().nonnegative().max(1000).optional(),
