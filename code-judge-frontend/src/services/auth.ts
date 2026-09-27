@@ -114,6 +114,14 @@ export async function resetPassword(payload: {
   reset_token: string;
 }): Promise<AuthResponse> {
   const response = await apiClient.post<AuthResponse>("/auth/reset-password", payload);
+  // The axios interceptor unwraps { success, data } → data on success,
+  // so response.data may be just { email }. Reconstruct AuthResponse for
+  // consistent handling (same as requestPasswordReset above) — otherwise
+  // `res.success` is undefined and the UI reports failure even when the
+  // backend succeeded (and a retry then 401s on the consumed single-use token).
+  if (response.data && typeof response.data === "object" && "email" in response.data && !("success" in response.data)) {
+    return { success: true, message: "Password reset successfully", data: response.data };
+  }
   return response.data;
 }
 

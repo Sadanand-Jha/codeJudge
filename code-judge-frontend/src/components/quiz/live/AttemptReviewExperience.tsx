@@ -242,7 +242,7 @@ function ScoreRing({ percentage }: { percentage: number }) {
   return (
     <div className="relative h-[112px] w-[112px] shrink-0 sm:h-[128px] sm:w-[128px]" role="img" aria-label={`Score ${clamped}%`}>
       <svg viewBox={`0 0 ${size} ${size}`} className="h-full w-full -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#16233C" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" style={{ stroke: "var(--border)" }} strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -890,7 +890,7 @@ function DonutBreakdown({ correct, wrong, skipped }: { correct: number; wrong: n
     <div className="flex items-center gap-3">
       <div className="relative h-[72px] w-[72px] shrink-0">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-          <circle cx="50" cy="50" r="40" fill="none" stroke="#1D3150" strokeWidth="12" />
+          <circle cx="50" cy="50" r="40" fill="none" style={{ stroke: "var(--border)" }} strokeWidth="12" />
           {(() => {
             let cumulative = 0;
             const segs = [
