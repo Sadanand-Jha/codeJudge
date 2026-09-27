@@ -4632,3 +4632,55 @@ svg {
   color: #9ca3af;
   pointer-events: none;
 }
+
+/* ============================================
+   Quiz Attempt Review — Light Theme Support
+   AttemptReviewExperience renders a hardcoded dark-navy palette
+   (bg-[#050A14] page, bg-[#0B1220] cards, bg-[#0F192B] inset boxes,
+   border-[#1D3150], text-[#F5F7FB], ...). Without overrides the page
+   stays dark while the header/sidebar switch to white, producing the
+   mixed-theme screenshot. These rules map those surfaces + text to
+   the light system. Dark theme is untouched — everything is scoped
+   to [data-theme="light"].
+   ============================================ */
+
+/* Page + card surfaces */
+[data-theme="light"] .bg-\[\#050A14\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#0B1220\] {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.04) !important;
+}
+[data-theme="light"] .bg-\[\#0F192B\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#111D31\] { background-color: #F8FAFC !important; }
+[data-theme="light"] .bg-\[\#182235\] { background-color: #F1F5F9 !important; }
+[data-theme="light"] .bg-\[\#1A2740\] { background-color: #F1F5F9 !important; }
+/* Divider line + progress-track fill reuse the border hex as a bg */
+[data-theme="light"] .bg-\[\#1D3150\] { background-color: #E2E8F0 !important; }
+
+/* Borders */
+[data-theme="light"] .border-\[\#1D3150\] { border-color: #E2E8F0 !important; }
+[data-theme="light"] .border-\[\#34435B\] { border-color: #E2E8F0 !important; }
+[data-theme="light"] .hover\:border-\[\#2A4160\]:hover { border-color: #CBD5E1 !important; }
+[data-theme="light"] .hover\:border-\[\#4A5D7E\]:hover { border-color: #CBD5E1 !important; }
+
+/* Primary / secondary / muted text */
+[data-theme="light"] .text-\[\#F5F7FB\] { color: #0F172A !important; }
+[data-theme="light"] .hover\:text-\[\#F5F7FB\]:hover { color: #0F172A !important; }
+[data-theme="light"] .text-\[\#9AAAC3\] { color: #475569 !important; }
+[data-theme="light"] .text-\[\#6F819D\] { color: #64748B !important; }
+[data-theme="light"] .text-\[\#91A0B7\] { color: #64748B !important; }
+[data-theme="light"] .text-\[\#34435B\] { color: #CBD5E1 !important; }
+
+/* Status + accent text — bright dark-mode hues become readable light-mode hues */
+[data-theme="light"] .text-\[\#20D889\] { color: #039855 !important; }
+[data-theme="light"] .text-\[\#FF6572\] { color: #D92D20 !important; }
+[data-theme="light"] .text-\[\#FF4D5D\] { color: #D92D20 !important; }
+[data-theme="light"] .text-\[\#FFB84D\] { color: #B54708 !important; }
+[data-theme="light"] .text-\[\#8B7CFF\] { color: #7C3AED !important; }
+[data-theme="light"] .text-\[\#8FA7FF\] { color: #4338CA !important; }
+[data-theme="light"] .text-\[\#B9AEFF\] { color: #6D28D9 !important; }
+
+/* Keep white glyphs white on the solid red answer circle — the global
+   [data-theme="light"] .text-white rule would otherwise turn them dark. */
+[data-theme="light"] .bg-\[\#FF4D5D\].text-white,
+[data-theme="light"] .bg-\[\#FF4D5D\] .text-white { color: #FFFFFF !important; }
