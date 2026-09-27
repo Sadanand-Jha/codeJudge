@@ -16,6 +16,8 @@ interface AnimatedCrowdProps {
   onArmHide?: () => void;
   /** Force an immediate hide (e.g. window blur). */
   onHideNow?: () => void;
+  /** Render a big soft glow halo behind every avatar (decorative backgrounds). */
+  glow?: boolean;
 }
 
 const MIN_VISIBLE = 25;
@@ -54,6 +56,15 @@ function createRoamingState(): RoamingState {
   };
 }
 
+// Big soft halo colors, cycled per avatar (decorative background glow).
+const GLOW_PALETTE: Array<[string, string]> = [
+  ["rgba(139,124,255,0.55)", "rgba(236,72,153,0.35)"],
+  ["rgba(236,72,153,0.55)", "rgba(139,124,255,0.35)"],
+  ["rgba(79,157,255,0.55)", "rgba(139,124,255,0.35)"],
+  ["rgba(34,211,238,0.50)", "rgba(79,157,255,0.35)"],
+  ["rgba(245,158,11,0.45)", "rgba(236,72,153,0.30)"],
+];
+
 // Memoized avatar - uses single motion.div for smooth position transitions
 const MemoizedAvatar = React.memo<{
   participant: LiveParticipant;
@@ -62,7 +73,9 @@ const MemoizedAvatar = React.memo<{
   size: "xs" | "sm" | "md" | "lg";
   state: RoamingState;
   isHovered: boolean;
-}>(function AvatarItem({ participant, index, count, size, state, isHovered }) {
+  glow: boolean;
+}>(function AvatarItem({ participant, index, count, size, state, isHovered, glow }) {
+  const [glowC1, glowC2] = GLOW_PALETTE[index % GLOW_PALETTE.length];
   return (
     <motion.div
       className="absolute pointer-events-auto"
@@ -102,6 +115,23 @@ const MemoizedAvatar = React.memo<{
         zIndex: { duration: 0 },
       }}
     >
+      {/* Big ambient halo — sits behind the avatar, gently breathing */}
+      {glow && (
+        <motion.div
+          aria-hidden
+          className="absolute left-1/2 top-1/2 -z-10 rounded-full"
+          style={{
+            width: "220%",
+            height: "220%",
+            x: "-50%",
+            y: "-50%",
+            background: `radial-gradient(circle, ${glowC1} 0%, ${glowC2} 45%, transparent 70%)`,
+            filter: "blur(18px)",
+          }}
+          animate={{ opacity: [0.7, 1, 0.7], scale: [1, 1.12, 1] }}
+          transition={{ duration: 4 + (index % 5), repeat: Infinity, ease: "easeInOut" }}
+        />
+      )}
       {/* Inner div for breathing/bobbing while moving (transform-based, GPU accelerated) */}
       <motion.div
         animate={{
@@ -160,11 +190,12 @@ const MemoizedAvatar = React.memo<{
     prev.size === next.size &&
     prev.state.targetX === next.state.targetX &&
     prev.state.targetY === next.state.targetY &&
-    prev.isHovered === next.isHovered
+    prev.isHovered === next.isHovered &&
+    prev.glow === next.glow
   );
 });
 
-export function AnimatedCrowd({ participants, className = "", onShow, onArmHide, onHideNow }: AnimatedCrowdProps) {
+export function AnimatedCrowd({ participants, className = "", onShow, onArmHide, onHideNow, glow = false }: AnimatedCrowdProps) {
   const [visibleParticipants, setVisibleParticipants] = useState<LiveParticipant[]>([]);
   const [roamingStates, setRoamingStates] = useState<Map<string, RoamingState>>(new Map());
   const [isVisible, setIsVisible] = useState(true);
@@ -213,6 +244,7 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
     if (!imagesReady) return;
     if (fullPool.length === 0) return;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial spawn seeds visible avatars once images are decoded
     setVisibleParticipants((prev) => {
       if (prev.length === 0) return [...fullPool];
       // Add only newcomers
@@ -405,6 +437,7 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
                 size={size}
                 state={state}
                 isHovered={isHovered}
+                glow={glow}
               />
             );
           })}

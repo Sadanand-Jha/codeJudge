@@ -30,6 +30,10 @@ export class UserService {
         return this.repository.createUser(email, password, finalUsername);
     }
 
+    async updatePasswordByEmail(email: string, hashedPassword: string): Promise<boolean> {
+        return this.repository.updatePasswordByEmail(email, hashedPassword);
+    }
+
     async getUserProfileById(userId: string): Promise<any> {
         return this.repository.getUserProfileById(userId);
     }

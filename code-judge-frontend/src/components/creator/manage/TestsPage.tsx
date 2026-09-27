@@ -19,6 +19,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { useBillingData } from "@/components/creator/billing/hooks";
+import ComingSoonOverlay from "@/components/common/ComingSoonOverlay";
 import {
   PageHeader,
   MockDataTag,
@@ -98,7 +99,13 @@ export function TestsPage({ demoState }: { demoState?: "empty" | "error" }) {
   }, [filtered]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      <ComingSoonOverlay
+        title="Tests — Coming Soon"
+        description="We’re rebuilding the Tests section to focus on Problems, Quizzes & Tests. Stay tuned — use the sidebar to manage quizzes and question bank meanwhile."
+        primaryHref="/creator/quizzes"
+        primaryLabel="Go to Quizzes"
+      />
       <PageHeader
         title="Your Tests"
         subtitle="Create, manage and publish your tests"

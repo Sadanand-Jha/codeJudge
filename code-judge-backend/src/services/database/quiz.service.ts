@@ -149,6 +149,10 @@ export class QuizService {
     return this.repository.reorderQuizProblems(quizId, problemIds);
   }
 
+  async getQuizAttemptCount(userId: number, quizId: number): Promise<number> {
+    return this.repository.getQuizAttemptCount(userId, quizId);
+  }
+
   async getQuizAttempt(userId: number, quizId: number): Promise<any | null> {
     return this.repository.getQuizAttempt(userId, quizId);
   }
@@ -192,7 +196,7 @@ export class QuizService {
     return this.repository.getQuizAnalytics(quizId);
   }
 
-  async checkQuizAccess(userId: number, quizId: number): Promise<{ allowed: boolean; reason?: string; attemptId?: number }> {
+  async checkQuizAccess(userId: number, quizId: number): Promise<{ allowed: boolean; reason?: string; attemptId?: number; attemptsMade?: number; maxAttempts?: number }> {
     return this.repository.checkQuizAccess(userId, quizId);
   }
 

@@ -431,3 +431,276 @@ export async function register(email: string, password: string, registrationToke
     return errorResponse('Internal server error during registration', 500);
   }
 }
+
+// --- Password Reset OTP Cache Operations ---
+// Same shape as registration OTPs but under an isolated `pwdreset:` namespace
+// so reset attempts never interfere with registration attempts.
+
+async function cacheResetOtp(email: string, otp: string): Promise<void> {
+  const key = `pwdreset_otp:${email.toLowerCase()}`;
+  await redisClient.hSet(key, 'otp', otp);
+  await redisClient.hSet(key, 'attempts_remaining', String(OTP_MAX_VERIFY_ATTEMPTS));
+  await redisClient.expire(key, OTP_TTL_SECONDS);
+}
+
+async function getCachedResetOtp(email: string): Promise<string | null> {
+  const key = `pwdreset_otp:${email.toLowerCase()}`;
+  return await redisClient.hGet(key, 'otp');
+}
+
+async function getResetRemainingAttempts(email: string): Promise<number> {
+  const key = `pwdreset_otp:${email.toLowerCase()}`;
+  const attempts = await redisClient.hGet(key, 'attempts_remaining');
+  return attempts ? parseInt(attempts, 10) : 0;
+}
+
+async function decrementResetAttempts(email: string): Promise<number> {
+  const key = `pwdreset_otp:${email.toLowerCase()}`;
+  return await redisClient.hIncrBy(key, 'attempts_remaining', -1);
+}
+
+async function deleteCachedResetOtp(email: string): Promise<void> {
+  const key = `pwdreset_otp:${email.toLowerCase()}`;
+  await redisClient.del(key);
+}
+
+async function cacheResetToken(token: string, email: string): Promise<void> {
+  const key = `pwdreset_token:${token}`;
+  await redisClient.setEx(key, REGISTRATION_TOKEN_TTL_SECONDS, email.toLowerCase());
+}
+
+async function getCachedResetToken(token: string): Promise<string | null> {
+  const key = `pwdreset_token:${token}`;
+  return await redisClient.get(key);
+}
+
+async function deleteCachedResetToken(token: string): Promise<void> {
+  const key = `pwdreset_token:${token}`;
+  await redisClient.del(key);
+}
+
+/**
+ * POST /api/auth/forgot-password
+ * Validates email, requires an existing account, generates OTP, caches it,
+ * sends the OTP email. Mirrors send-otp rate limiting under isolated keys.
+ */
+export async function requestPasswordReset(email: string, clientIp?: string): Promise<ServiceResponse> {
+  try {
+    if (!email || !isValidEmail(email)) {
+      return errorResponse('Invalid email format', 400);
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    // Account must exist for a reset (opposite of registration).
+    const existingUser = await userService.checkUserExistsByEmail(normalizedEmail);
+    if (!existingUser) {
+      return errorResponse('No account found with this email', 404);
+    }
+
+    const normalizedIp = clientIp ? clientIp.replace(/^::ffff:/, '').trim() : undefined;
+    const ipCooldownKey = normalizedIp && normalizedIp !== 'unknown' ? `pwdreset_cooldown_ip:${normalizedIp}` : null;
+    const ipRateLimitKey = normalizedIp && normalizedIp !== 'unknown' ? `pwdreset_requests_ip:${normalizedIp}` : null;
+    const ipRateLimitKey2hr = normalizedIp && normalizedIp !== 'unknown' ? `pwdreset_requests_ip_2hr:${normalizedIp}` : null;
+
+    if (ipCooldownKey) {
+      const ipCooldownExists = await redisClient.get(ipCooldownKey);
+      if (ipCooldownExists) {
+        return errorResponse(
+          `Too many OTP requests from this network. Please wait ${IP_COOLDOWN_SECONDS} seconds before trying again.`,
+          429
+        );
+      }
+    }
+
+    const cooldownKey = `pwdreset_cooldown:${normalizedEmail}`;
+    const cooldownExists = await redisClient.get(cooldownKey);
+    if (cooldownExists) {
+      return errorResponse(
+        `Please wait before requesting a new OTP. You can resend after ${OTP_RESEND_COOLDOWN_SECONDS} seconds.`,
+        429
+      );
+    }
+
+    if (ipRateLimitKey2hr) {
+      const ipRequestCount2hr = await redisClient.incr(ipRateLimitKey2hr);
+      if (ipRequestCount2hr === 1) {
+        await redisClient.expire(ipRateLimitKey2hr, IP_REQUEST_WINDOW_2HR_SECONDS);
+      }
+      if (ipRequestCount2hr > IP_MAX_REQUESTS_2HR) {
+        return errorResponse(
+          `Too many OTP requests from this network. Maximum ${IP_MAX_REQUESTS_2HR} requests per 2 hours. Please try again later.`,
+          429
+        );
+      }
+    }
+
+    if (ipRateLimitKey) {
+      const ipRequestCount = await redisClient.incr(ipRateLimitKey);
+      if (ipRequestCount === 1) {
+        await redisClient.expire(ipRateLimitKey, IP_REQUEST_WINDOW_SECONDS);
+      }
+      if (ipRequestCount > IP_MAX_REQUESTS) {
+        return errorResponse(
+          `Too many OTP requests from this network. Maximum ${IP_MAX_REQUESTS} requests per 5 minutes. Please try again later.`,
+          429
+        );
+      }
+    }
+
+    const rateLimitKey2hr = `pwdreset_requests_2hr:${normalizedEmail}`;
+    const requestCount2hr = await redisClient.incr(rateLimitKey2hr);
+    if (requestCount2hr === 1) {
+      await redisClient.expire(rateLimitKey2hr, OTP_REQUEST_WINDOW_2HR_SECONDS);
+    }
+    if (requestCount2hr > OTP_MAX_REQUESTS_2HR) {
+      return errorResponse(
+        `You have reached the maximum of ${OTP_MAX_REQUESTS_2HR} OTP requests within 2 hours. Please try again later.`,
+        429
+      );
+    }
+
+    const rateLimitKey = `pwdreset_requests:${normalizedEmail}`;
+    const requestCount = await redisClient.incr(rateLimitKey);
+    if (requestCount === 1) {
+      await redisClient.expire(rateLimitKey, OTP_REQUEST_WINDOW_SECONDS);
+    }
+    if (requestCount > OTP_MAX_REQUESTS) {
+      return errorResponse(
+        `You have reached the maximum of ${OTP_MAX_REQUESTS} OTP requests within 5 minutes. Please try again later.`,
+        429
+      );
+    }
+
+    const otp = generateSixDigitOtp();
+    await cacheResetOtp(normalizedEmail, otp);
+    await redisClient.setEx(cooldownKey, OTP_RESEND_COOLDOWN_SECONDS, '1');
+    if (ipCooldownKey) {
+      await redisClient.setEx(ipCooldownKey, IP_COOLDOWN_SECONDS, '1');
+    }
+
+    // Send email asynchronously (non-blocking) - serverless-friendly
+    sendOtpEmail({ to: normalizedEmail, otp }).catch((err: any) => {
+      console.error('Failed to send password-reset OTP email (non-blocking):', err.message || err);
+    });
+
+    return successResponse({ email: normalizedEmail }, 'Password reset OTP sent successfully');
+  } catch (error) {
+    console.error('Error in requestPasswordReset:', error);
+    return errorResponse('Internal server error while sending OTP', 500);
+  }
+}
+
+/**
+ * POST /api/auth/verify-reset-otp
+ * Validates OTP, returns a single-use reset token on success.
+ * Rate-limited: max 3 failed attempts before the OTP is invalidated.
+ */
+export async function verifyResetOtp(email: string, otp: string): Promise<ServiceResponse> {
+  try {
+    if (!email || !isValidEmail(email)) {
+      return errorResponse('Invalid email format', 400);
+    }
+    if (!otp || otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+      return errorResponse('Invalid OTP format', 400);
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    const cachedOtp = await getCachedResetOtp(normalizedEmail);
+    if (!cachedOtp) {
+      return errorResponse('OTP expired or never requested. Please request a new OTP.', 400);
+    }
+
+    const remaining = await getResetRemainingAttempts(normalizedEmail);
+    if (remaining <= 0) {
+      await deleteCachedResetOtp(normalizedEmail);
+      return errorResponse(
+        'Too many failed OTP attempts. Please request a new OTP.',
+        429
+      );
+    }
+
+    if (String(cachedOtp).trim() !== String(otp).trim()) {
+      const newRemaining = await decrementResetAttempts(normalizedEmail);
+      if (newRemaining <= 0) {
+        await deleteCachedResetOtp(normalizedEmail);
+        return errorResponse(
+          'Too many failed OTP attempts. Please request a new OTP.',
+          429
+        );
+      }
+      return errorResponse(
+        `Invalid OTP. ${newRemaining} attempt(s) remaining.`,
+        401
+      );
+    }
+
+    await deleteCachedResetOtp(normalizedEmail);
+
+    const resetToken = uuidv4();
+    await cacheResetToken(resetToken, normalizedEmail);
+
+    return successResponse(
+      { reset_token: resetToken, email: normalizedEmail },
+      'OTP verified successfully'
+    );
+  } catch (error) {
+    console.error('Error in verifyResetOtp:', error);
+    return errorResponse('Internal server error while verifying OTP', 500);
+  }
+}
+
+/**
+ * POST /api/auth/reset-password
+ * Resets the password with a validated reset token. Token is single-use.
+ */
+export async function resetPassword(email: string, newPassword: string, resetToken: string): Promise<ServiceResponse> {
+  try {
+    if (!email || !isValidEmail(email)) {
+      return errorResponse('Invalid email format', 400);
+    }
+    if (!newPassword || !isValidPassword(newPassword)) {
+      return errorResponse(
+        'Password must be at least 8 characters with 1 uppercase, 1 lowercase, 1 digit, and 1 special character',
+        400
+      );
+    }
+    if (!resetToken) {
+      return errorResponse('Reset token is required', 400);
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    const tokenEmail = await getCachedResetToken(resetToken);
+    if (!tokenEmail) {
+      return errorResponse('Reset token expired or invalid', 401);
+    }
+    if (tokenEmail !== normalizedEmail) {
+      return errorResponse('Email mismatch: token does not match the provided email', 401);
+    }
+
+    const existingUser = await userService.checkUserExistsByEmail(normalizedEmail);
+    if (!existingUser) {
+      await deleteCachedResetToken(resetToken);
+      return errorResponse('No account found with this email', 404);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
+    const updated = await userService.updatePasswordByEmail(normalizedEmail, hashedPassword);
+    if (!updated) {
+      await deleteCachedResetToken(resetToken);
+      return errorResponse('No account found with this email', 404);
+    }
+
+    await deleteCachedResetToken(resetToken);
+
+    return successResponse(
+      { email: normalizedEmail },
+      'Password reset successfully'
+    );
+  } catch (error) {
+    console.error('Error in resetPassword:', error);
+    return errorResponse('Internal server error during password reset', 500);
+  }
+}

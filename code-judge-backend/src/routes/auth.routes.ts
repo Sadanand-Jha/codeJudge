@@ -1,5 +1,7 @@
 // Auth routes. Defines endpoints for /api/auth/check-username, /api/auth/send-otp,
-// /api/auth/verify-otp, /api/auth/register, /api/auth/login, /api/auth/me, /api/auth/logout.
+// /api/auth/verify-otp, /api/auth/register, /api/auth/login, /api/auth/me,
+// /api/auth/logout, /api/auth/forgot-password, /api/auth/verify-reset-otp,
+// /api/auth/reset-password.
 import { Router } from 'express';
 import {
   sendOtpController,
@@ -9,6 +11,9 @@ import {
   meController,
   logoutController,
   checkUsernameController,
+  forgotPasswordController,
+  verifyResetOtpController,
+  resetPasswordController,
 } from '../controllers/auth.controller.js';
 
 const router = Router();
@@ -59,5 +64,26 @@ router.post('/me', meController);
  * Clears the session_token cookie and revokes the current JWT token
  */
 router.post('/logout', logoutController);
+
+/**
+ * POST /api/auth/forgot-password
+ * Body: { "email": "user@example.com" }
+ * Response: 200 OK on success (OTP sent, account must exist)
+ */
+router.post('/forgot-password', forgotPasswordController);
+
+/**
+ * POST /api/auth/verify-reset-otp
+ * Body: { "email": "user@example.com", "otp": "123456" }
+ * Response: { "reset_token": "..." } on success
+ */
+router.post('/verify-reset-otp', verifyResetOtpController);
+
+/**
+ * POST /api/auth/reset-password
+ * Body: { "email": "user@example.com", "password": "NewSecurePassword123", "reset_token": "..." }
+ * Response: 200 OK on success
+ */
+router.post('/reset-password', resetPasswordController);
 
 export default router;

@@ -3,6 +3,14 @@
 // exam categories, and more.
 import { pool } from "../app.ts";
 
+/**
+ * Maximum number of attempts a single user may start for the same quiz,
+ * i.e. 1 initial attempt + up to 4 reattempts. Enforced in
+ * `checkQuizAccess` (fast path) and re-checked atomically in
+ * `createQuizAttempt` to close the concurrent-start race.
+ */
+export const MAX_QUIZ_ATTEMPTS = 5;
+
 export class QuizRepository {
   /**
    * Get all quizzes with filters and pagination
@@ -893,6 +901,14 @@ export class QuizRepository {
     }
   }
 
+  async getQuizAttemptCount(userId: number, quizId: number): Promise<number> {
+    const result = await pool.query(
+      "SELECT COUNT(*)::int AS count FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2",
+      [userId, quizId]
+    );
+    return result.rows[0]?.count ?? 0;
+  }
+
   async getQuizAttempt(userId: number, quizId: number): Promise<any | null> {
     const query = `
       SELECT * FROM quiz_attempt
@@ -917,13 +933,46 @@ export class QuizRepository {
     quizId: number;
     totalQuestions: number;
   }): Promise<any> {
-    const query = `
-      INSERT INTO quiz_attempt (user_id, quiz_id, total_questions, status, created_at, updated_at)
-      VALUES ($1, $2, $3, 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      RETURNING *
-    `;
-    const result = await pool.query(query, [data.userId, data.quizId, data.totalQuestions]);
-    return result.rows[0];
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      // Lock the user's attempt rows for this quiz so concurrent starts
+      // cannot both slip past the limit check.
+      await client.query(
+        "SELECT 1 FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2 FOR UPDATE",
+        [data.userId, data.quizId]
+      );
+      const countResult = await client.query(
+        "SELECT COUNT(*)::int AS count FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2",
+        [data.userId, data.quizId]
+      );
+      const attemptCount = countResult.rows[0]?.count ?? 0;
+      if (attemptCount >= MAX_QUIZ_ATTEMPTS) {
+        const err: any = new Error(
+          `Maximum ${MAX_QUIZ_ATTEMPTS} attempts reached for this quiz`
+        );
+        err.code = "MAX_ATTEMPTS_REACHED";
+        err.attemptsMade = attemptCount;
+        throw err;
+      }
+      const result = await client.query(
+        `INSERT INTO quiz_attempt (user_id, quiz_id, total_questions, status, created_at, updated_at)
+         VALUES ($1, $2, $3, 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         RETURNING *`,
+        [data.userId, data.quizId, data.totalQuestions]
+      );
+      await client.query("COMMIT");
+      return result.rows[0];
+    } catch (error) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        // Ignore rollback errors — original error is what matters.
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async updateQuizAttempt(attemptId: number, data: any): Promise<any> {
@@ -1278,7 +1327,10 @@ export class QuizRepository {
     };
   }
 
-  async checkQuizAccess(userId: number, quizId: number): Promise<{ allowed: boolean; reason?: string; attemptId?: number }> {
+  async checkQuizAccess(
+    userId: number,
+    quizId: number
+  ): Promise<{ allowed: boolean; reason?: string; attemptId?: number; attemptsMade?: number; maxAttempts?: number }> {
     const quiz = await pool.query(`
       SELECT q.*, qs.name AS status
       FROM quiz q
@@ -1334,7 +1386,18 @@ export class QuizRepository {
       return { allowed: true, reason: "resume", attemptId: existingAttempt.rows[0].id };
     }
 
-    return { allowed: true };
+    // Reattempt cap: at most MAX_QUIZ_ATTEMPTS attempts per user per quiz.
+    const attemptsMade = await this.getQuizAttemptCount(userId, quizId);
+    if (attemptsMade >= MAX_QUIZ_ATTEMPTS) {
+      return {
+        allowed: false,
+        reason: `Maximum ${MAX_QUIZ_ATTEMPTS} attempts reached for this quiz`,
+        attemptsMade,
+        maxAttempts: MAX_QUIZ_ATTEMPTS,
+      };
+    }
+
+    return { allowed: true, attemptsMade, maxAttempts: MAX_QUIZ_ATTEMPTS };
   }
 
   async checkQuizAccessForRegistration(quizId: string, userId?: number): Promise<{ allowed: boolean; reason?: string }> {

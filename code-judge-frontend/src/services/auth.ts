@@ -85,11 +85,35 @@ export async function register(payload: {
   return response.data;
 }
 
-export async function forgotPassword(email: string): Promise<AuthResponse> {
-  const response = await apiClient.post<AuthResponse>("/auth/forgot-password", { email });
-  if (response.data && typeof response.data === "object" && "success" in response.data) {
-    return response.data as AuthResponse;
+export interface VerifyResetOtpResponse extends AuthResponse {
+  data?: {
+    reset_token: string;
+    email: string;
+  };
+}
+
+export async function requestPasswordReset(payload: { email: string }): Promise<AuthResponse> {
+  const response = await apiClient.post<AuthResponse>("/auth/forgot-password", payload);
+  if (response.data && typeof response.data === "object" && "email" in response.data && !("success" in response.data)) {
+    return { success: true, message: "OTP sent successfully", data: response.data };
   }
+  return response.data;
+}
+
+export async function verifyResetOtp(payload: VerifyOtpPayload): Promise<VerifyResetOtpResponse> {
+  const response = await apiClient.post<VerifyResetOtpResponse>("/auth/verify-reset-otp", payload);
+  if (response.data && typeof response.data === "object" && "reset_token" in response.data && !("success" in response.data)) {
+    return { success: true, message: "OTP verified successfully", data: response.data };
+  }
+  return response.data;
+}
+
+export async function resetPassword(payload: {
+  email: string;
+  password: string;
+  reset_token: string;
+}): Promise<AuthResponse> {
+  const response = await apiClient.post<AuthResponse>("/auth/reset-password", payload);
   return response.data;
 }
 

@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft,
   Clock,
   Calendar,
   Target,
@@ -14,13 +13,14 @@ import {
   ChevronRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getQuizByCode, joinQuiz, startQuizAttempt, type Quiz } from "@/services/quiz";
+import { getQuizByCode, getQuizLeaderboard, joinQuiz, startQuizAttempt, type Quiz } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { writeQuizAttemptAnswers } from "@/lib/quizAttemptStorage";
+import StudentQuizShell from "@/components/quiz/live/StudentQuizShell";
+import type { LiveParticipant } from "@/types/liveAssessment";
 
 type Step = "code" | "details";
 
@@ -33,6 +33,9 @@ export default function JoinQuizPage() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clockMs, setClockMs] = useState<number | null>(null);
+  // Exact avatars of users who already attempted this quiz (attempt table
+  // via leaderboard). Undefined/empty → ambient decorative avatars.
+  const [attemptUsers, setAttemptUsers] = useState<LiveParticipant[] | undefined>(undefined);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClockMs(Date.now()), 1000);
@@ -47,10 +50,46 @@ export default function JoinQuizPage() {
     if (!valid || loading) return;
     setLoading(true);
     setError(null);
+    setAttemptUsers(undefined);
     try {
       const data = await getQuizByCode(code);
       setQuiz(data as unknown as Quiz);
       setStep("details");
+      // Pull the exact users (with their exact avatars) who already
+      // attempted this quiz. Falls back to ambient avatars on any failure.
+      try {
+        const board = await getQuizLeaderboard(String((data as unknown as Quiz).id));
+        // One row per attempt → same user repeats. Keep only the first
+        // occurrence per user (leaderboard is ranked, so this is their best).
+        const seen = new Set<number>();
+        const unique = (board ?? []).filter((entry) => {
+          if (seen.has(entry.user_id)) return false;
+          seen.add(entry.user_id);
+          return true;
+        });
+        const users: LiveParticipant[] = unique.slice(0, 24).map((entry, i, list) => {
+          const name =
+            [entry.first_name, entry.last_name].filter(Boolean).join(" ") || entry.username;
+          return {
+            id: `attempt-user-${entry.user_id}`,
+            username: name,
+            avatar: (name.charAt(0) || "S").toUpperCase(),
+            avatarUrl: entry.avatar_url ?? undefined,
+            status: "idle",
+            progress: 0,
+            questionsAnswered: 0,
+            totalQuestions: 0,
+            currentQuestion: 0,
+            timeSpent: 0,
+            connection: "good",
+            joinedAt: entry.completed_at,
+            positionSeed: (i + 1) / (list.length + 1),
+          } satisfies LiveParticipant;
+        });
+        if (users.length > 0) setAttemptUsers(users);
+      } catch {
+        // Attempt table unavailable — ambient avatars stay.
+      }
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, "Quiz not found. Please check the code and try again."));
     } finally {
@@ -120,20 +159,17 @@ export default function JoinQuizPage() {
   const status = getQuizStatus();
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="max-w-2xl mx-auto flex items-center gap-3 px-4 h-14">
-          <Link
-            href="/quiz"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <h1 className="text-sm font-bold text-text-primary">Join Quiz</h1>
-        </div>
-      </header>
-
-      <div className="max-w-2xl mx-auto px-4 py-6 sm:py-10">
+    <StudentQuizShell
+      eyebrow="ByteClash"
+      title="Join Quiz"
+      subtitle="Enter a valid quiz code to verify access."
+      backHref="/quiz"
+      backLabel="Back"
+      maxWidth="max-w-2xl"
+      background="sky"
+      crowdParticipants={attemptUsers}
+      hideHeader
+    >
         <AnimatePresence mode="wait">
           {step === "code" ? (
             <motion.div
@@ -143,20 +179,20 @@ export default function JoinQuizPage() {
               exit={{ opacity: 0, y: -12 }}
               className="space-y-5 sm:space-y-6"
             >
-              <div className="text-center space-y-3">
-                <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#EC4899] to-[#BE185D] mx-auto">
+              <div className="mx-auto w-fit max-w-full rounded-2xl border border-[#E4E7EC]/80 bg-white/85 px-6 py-5 text-center backdrop-blur-md dark:border-[#252D3A]/80 dark:bg-[#151A24]/85">
+                <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#8B7CFF] to-[#6B5CFF] mx-auto">
                   <Sparkles className="h-7 w-7 text-white" />
                 </div>
-                <div>
-                  <h2 className="text-xl font-bold text-text-primary">Enter Quiz Code</h2>
-                  <p className="text-sm text-text-muted mt-1">
+                <div className="mt-3">
+                  <h2 className="text-xl font-bold text-[#101828] dark:text-[#F4F6FA]">Enter Quiz Code</h2>
+                  <p className="text-sm text-[#475467] dark:text-[#9AA4B5] mt-1">
                     Enter the 16-character code shared by your teacher
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-4 rounded-2xl border border-border bg-card p-4 sm:p-6">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted">
+              <div className="space-y-4 rounded-2xl border border-[#E4E7EC] bg-white p-4 dark:border-[#252D3A] dark:bg-[#151A24] sm:p-6">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#98A2B3] dark:text-[#687386]">
                   Quiz Code
                 </label>
                 <input
@@ -173,7 +209,7 @@ export default function JoinQuizPage() {
                   autoCapitalize="characters"
                   autoComplete="off"
                   spellCheck={false}
-                  className="w-full rounded-xl border border-border bg-input-bg px-2 py-4 text-center font-mono text-lg font-bold tracking-[0.08em] text-text-primary placeholder:text-text-muted focus:border-[#EC4899]/40 focus:outline-none focus:ring-2 focus:ring-[#EC4899]/10 sm:px-4 sm:text-2xl sm:tracking-[0.2em]"
+                  className="w-full rounded-xl border border-[#E4E7EC] bg-[#F7F8FA] px-2 py-4 text-center font-mono text-lg font-bold tracking-[0.08em] text-[#101828] placeholder:text-[#98A2B3] focus:border-[#8B7CFF]/60 focus:outline-none focus:ring-2 focus:ring-[#8B7CFF]/15 dark:border-[#252D3A] dark:bg-[#111722] dark:text-[#F4F6FA] dark:placeholder:text-[#687386] sm:px-4 sm:text-2xl sm:tracking-[0.2em]"
                   autoFocus
                 />
 
@@ -184,7 +220,7 @@ export default function JoinQuizPage() {
                 )}
 
                 {!valid && code.length > 0 && (
-                  <p className="text-[11px] text-text-muted text-center">
+                  <p className="text-[11px] text-[#98A2B3] dark:text-[#687386] text-center">
                     Enter the full 16-letter code ({code.length}/16)
                   </p>
                 )}
@@ -192,7 +228,7 @@ export default function JoinQuizPage() {
                 <button
                   onClick={handleLookup}
                   disabled={!valid || loading}
-                  className="w-full h-11 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] text-sm font-bold text-white hover:shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full h-11 rounded-xl bg-[#8B7CFF] text-sm font-semibold text-white hover:bg-[#7A6BF5] transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -210,19 +246,12 @@ export default function JoinQuizPage() {
               exit={{ opacity: 0, y: -12 }}
               className="space-y-5"
             >
-              <button
-                onClick={() => { setStep("code"); setQuiz(null); setError(null); setRaw(""); }}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-text-primary transition-colors"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" /> Change code
-              </button>
-
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                <div className="bg-gradient-to-r from-[#EC4899]/10 to-[#BE185D]/10 px-6 py-5 border-b border-border">
+              <div className="rounded-2xl border border-[#E4E7EC]/60 bg-white/50 overflow-hidden backdrop-blur-lg dark:border-[#252D3A]/60 dark:bg-[#151A24]/45">
+                <div className="bg-gradient-to-r from-[#8B7CFF]/10 to-[#4F9DFF]/10 px-6 py-5 border-b border-[#E4E7EC] dark:border-[#252D3A]">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1 min-w-0">
-                      <h2 className="break-words text-xl font-bold text-text-primary">{quiz.name}</h2>
-                      <p className="text-xs text-text-muted">Secure assessment</p>
+                      <h2 className="break-words text-xl font-bold text-[#101828] dark:text-[#F4F6FA]">{quiz.name}</h2>
+                      <p className="text-xs text-[#98A2B3] dark:text-[#687386]">Secure assessment</p>
                     </div>
                     {status && (
                       <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${status.color}`}>
@@ -261,28 +290,28 @@ export default function JoinQuizPage() {
                     />
                   </div>
 
-                  <div className="rounded-xl border border-border bg-background p-4 space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted">Schedule</h3>
+                  <div className="rounded-xl border border-[#E4E7EC] bg-[#F7F8FA]/50 p-4 space-y-3 backdrop-blur-sm dark:border-[#252D3A] dark:bg-[#111722]/40">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#98A2B3] dark:text-[#687386]">Schedule</h3>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs text-text-muted">
+                        <div className="flex items-center gap-2 text-xs text-[#98A2B3] dark:text-[#687386]">
                           <Calendar className="h-3.5 w-3.5" />
                           Starts
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-medium text-text-primary">{formatDateTime(quiz.starttime)}</p>
+                          <p className="text-xs font-medium text-[#101828] dark:text-[#F4F6FA]">{formatDateTime(quiz.starttime)}</p>
                           {quiz.starttime && (
-                            <p className="text-[10px] text-text-muted">{getTimeRemaining(quiz.starttime)}</p>
+                            <p className="text-[10px] text-[#98A2B3] dark:text-[#687386]">{getTimeRemaining(quiz.starttime)}</p>
                           )}
                         </div>
                       </div>
-                      <div className="h-px bg-border" />
+                      <div className="h-px bg-[#E4E7EC] dark:bg-[#252D3A]" />
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs text-text-muted">
+                        <div className="flex items-center gap-2 text-xs text-[#98A2B3] dark:text-[#687386]">
                           <Calendar className="h-3.5 w-3.5" />
                           Ends
                         </div>
-                        <p className="text-xs font-medium text-text-primary">{formatDateTime(quiz.endtime)}</p>
+                        <p className="text-xs font-medium text-[#101828] dark:text-[#F4F6FA]">{formatDateTime(quiz.endtime)}</p>
                       </div>
                     </div>
                   </div>
@@ -296,7 +325,7 @@ export default function JoinQuizPage() {
               <button
                 onClick={handleJoin}
                 disabled={joining || status?.label === "Ended"}
-                className="w-full h-12 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(236,72,153,0.3)] transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full h-12 rounded-xl bg-[#8B7CFF] text-sm font-semibold text-white hover:bg-[#7A6BF5] transition-colors flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {joining ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -312,14 +341,13 @@ export default function JoinQuizPage() {
             </motion.div>
           ) : null}
         </AnimatePresence>
-      </div>
-    </div>
+    </StudentQuizShell>
   );
 }
 
 function InfoCard({ icon: Icon, label, value, color }: { icon: LucideIcon; label: string; value: string; color: string }) {
   return (
-    <div className="rounded-xl border border-border bg-background p-3 space-y-1.5">
+    <div className="rounded-xl border border-[#E4E7EC] bg-[#F7F8FA]/50 p-3 space-y-1.5 backdrop-blur-sm dark:border-[#252D3A] dark:bg-[#111722]/40">
       <div className="flex items-center gap-2">
         <div
           className="h-7 w-7 rounded-lg flex items-center justify-center"
@@ -327,9 +355,9 @@ function InfoCard({ icon: Icon, label, value, color }: { icon: LucideIcon; label
         >
           <Icon className="h-3.5 w-3.5" style={{ color }} />
         </div>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#98A2B3] dark:text-[#687386]">{label}</span>
       </div>
-      <p className="text-sm font-bold text-text-primary pl-0.5">{value}</p>
+      <p className="text-sm font-bold text-[#101828] dark:text-[#F4F6FA] pl-0.5">{value}</p>
     </div>
   );
 }

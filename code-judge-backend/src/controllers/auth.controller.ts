@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import redisClient from "../config/redis.js";
-import { sendOtp, verifyOtp, register } from "../services/auth.js";
+import { sendOtp, verifyOtp, register, requestPasswordReset, verifyResetOtp, resetPassword } from "../services/auth.js";
 import { UserService } from "../services/database/user.database.js";
 import { userRepository } from "../repositories/user.repository.js";
 import { authenticate } from "../middleware/auth.js";
@@ -225,6 +225,115 @@ export const registerController = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: error.message || "Internal server error during registration",
+      statusCode: 500,
+    });
+  }
+};
+
+/**
+ * POST /api/auth/forgot-password
+ * Body: { "email": "user@example.com" }
+ */
+export const forgotPasswordController = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        message: "Email is required",
+        statusCode: 400,
+      });
+      return;
+    }
+
+    const clientIp = getClientIp(req);
+    const result = await requestPasswordReset(email, clientIp);
+
+    if (!result.success) {
+      if (result.statusCode === 429) {
+        res.setHeader("Retry-After", "60");
+      }
+      res.status(result.statusCode || 400).json(result);
+      return;
+    }
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error in forgotPasswordController:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error while sending OTP",
+      statusCode: 500,
+    });
+  }
+};
+
+/**
+ * POST /api/auth/verify-reset-otp
+ * Body: { "email": "user@example.com", "otp": "123456" }
+ */
+export const verifyResetOtpController = async (req: Request, res: Response) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      res.status(400).json({
+        success: false,
+        message: "Email and OTP are required",
+        statusCode: 400,
+      });
+      return;
+    }
+
+    const result = await verifyResetOtp(email, otp);
+
+    if (!result.success) {
+      res.status(result.statusCode || 400).json(result);
+      return;
+    }
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error in verifyResetOtpController:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error while verifying OTP",
+      statusCode: 500,
+    });
+  }
+};
+
+/**
+ * POST /api/auth/reset-password
+ * Body: { "email": "user@example.com", "password": "NewSecurePassword123", "reset_token": "..." }
+ */
+export const resetPasswordController = async (req: Request, res: Response) => {
+  try {
+    const { email, password, reset_token } = req.body;
+
+    if (!email || !password || !reset_token) {
+      res.status(400).json({
+        success: false,
+        message: "Email, password, and reset_token are required",
+        statusCode: 400,
+      });
+      return;
+    }
+
+    const result = await resetPassword(email, password, reset_token);
+
+    if (!result.success) {
+      res.status(result.statusCode || 400).json(result);
+      return;
+    }
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error in resetPasswordController:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error during password reset",
       statusCode: 500,
     });
   }

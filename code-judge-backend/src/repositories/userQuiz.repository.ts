@@ -3,6 +3,9 @@
 // reviews, leaderboard, and student quiz history.
 import { pool } from "../app.ts";
 
+/** Keep in sync with QuizRepository.MAX_QUIZ_ATTEMPTS (max attempts per user per quiz). */
+export const MAX_QUIZ_ATTEMPTS = 5;
+
 export class UserQuizRepository {
   // ==================== QUIZ BROWSING ====================
 
@@ -196,7 +199,7 @@ export class UserQuizRepository {
 
   // ==================== ATTEMPTS ====================
 
-  async checkQuizAccess(userId: number, quizId: number): Promise<{ allowed: boolean; reason?: string; attemptId?: number }> {
+  async checkQuizAccess(userId: number, quizId: number): Promise<{ allowed: boolean; reason?: string; attemptId?: number; attemptsMade?: number; maxAttempts?: number }> {
     const quiz = await pool.query(
       `SELECT q.*, qs.name AS status FROM quiz q LEFT JOIN quiz_status qs ON qs.id = q.quiz_status WHERE q.id = $1`,
       [quizId]
@@ -236,7 +239,29 @@ export class UserQuizRepository {
       [userId, quizId]
     );
     if (existingAttempt.rows.length > 0) return { allowed: true, reason: "resume", attemptId: existingAttempt.rows[0].id };
-    return { allowed: true };
+
+    const countResult = await pool.query(
+      "SELECT COUNT(*)::int AS count FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2",
+      [userId, quizId]
+    );
+    const attemptsMade = countResult.rows[0]?.count ?? 0;
+    if (attemptsMade >= MAX_QUIZ_ATTEMPTS) {
+      return {
+        allowed: false,
+        reason: `Maximum ${MAX_QUIZ_ATTEMPTS} attempts reached for this quiz`,
+        attemptsMade,
+        maxAttempts: MAX_QUIZ_ATTEMPTS,
+      };
+    }
+    return { allowed: true, attemptsMade, maxAttempts: MAX_QUIZ_ATTEMPTS };
+  }
+
+  async getQuizAttemptCount(userId: number, quizId: number): Promise<number> {
+    const result = await pool.query(
+      "SELECT COUNT(*)::int AS count FROM quiz_attempt WHERE user_id = $1 AND quiz_id = $2",
+      [userId, quizId]
+    );
+    return result.rows[0]?.count ?? 0;
   }
 
   async getQuizAttempt(userId: number, quizId: number): Promise<any | null> {
@@ -253,6 +278,12 @@ export class UserQuizRepository {
   }
 
   async createQuizAttempt(data: { userId: number; quizId: number; totalQuestions: number }): Promise<any> {
+    const count = await this.getQuizAttemptCount(data.userId, data.quizId);
+    if (count >= MAX_QUIZ_ATTEMPTS) {
+      const err: any = new Error(`Maximum ${MAX_QUIZ_ATTEMPTS} attempts reached for this quiz`);
+      err.code = "MAX_ATTEMPTS_REACHED";
+      throw err;
+    }
     const result = await pool.query(
       `INSERT INTO quiz_attempt (user_id, quiz_id, total_questions, status, created_at, updated_at)
        VALUES ($1,$2,$3,'in_progress',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING *`,

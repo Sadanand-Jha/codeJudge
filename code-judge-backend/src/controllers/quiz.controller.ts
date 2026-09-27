@@ -1084,6 +1084,9 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
       res.status(403).json({
         success: false,
         message: access.reason || "You are not allowed to access this quiz",
+        ...(typeof access.attemptsMade === "number"
+          ? { data: { attemptsMade: access.attemptsMade, maxAttempts: access.maxAttempts ?? 5 } }
+          : {}),
       });
       return;
     }
@@ -1174,7 +1177,14 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
         ...(await buildAttemptPayload(attempt, false)),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "MAX_ATTEMPTS_REACHED") {
+      res.status(403).json({
+        success: false,
+        message: error.message || "Maximum 5 attempts reached for this quiz",
+      });
+      return;
+    }
     console.error("Error starting quiz:", error);
     res.status(500).json({
       success: false,
