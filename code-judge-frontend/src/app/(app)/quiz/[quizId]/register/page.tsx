@@ -37,6 +37,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 import { loadQuizAudience } from "@/utils/quizStorage";
 import { useRoomStore, isUserEligible } from "@/store/roomStore";
+import { QuizPrimaryButton, QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
 
 export default function QuizRegisterPage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = use(params);
@@ -152,73 +153,34 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0B0D14]">
-        <div className="flex">
-          <div className="hidden lg:block w-64 border-r border-border bg-[#0F1117] p-4">
-            <div className="h-8 w-32 bg-white/[0.06] animate-pulse rounded-lg mb-4" />
-            <div className="space-y-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-10 bg-white/[0.06] animate-pulse rounded-lg" />
-              ))}
-            </div>
-          </div>
-          <div className="flex-1 p-6 sm:p-8">
-            <div className="max-w-7xl mx-auto">
-              <div className="h-10 w-64 bg-white/[0.06] animate-pulse rounded-lg mb-6" />
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-48 bg-white/[0.06] animate-pulse rounded-2xl" />
-                  ))}
-                </div>
-                <div className="h-96 bg-white/[0.06] animate-pulse rounded-2xl" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <QuizStateScreen loading text="Loading quiz…" />;
   }
 
   if (!quiz) {
     return (
-      <div className="min-h-screen bg-[#0B0D14] p-6">
-        <div className="max-w-4xl mx-auto text-center py-16">
-          <p className="text-sm text-muted-foreground">Quiz not found.</p>
-          <Link href="/quiz" className="text-foreground text-sm mt-2 inline-block">← Back to Quizzes</Link>
-        </div>
-      </div>
+      <QuizStateScreen
+        text="Quiz not found."
+        action={
+          <QuizPrimaryButton href="/quiz">Back to Quizzes</QuizPrimaryButton>
+        }
+      />
     );
   }
 
   if (!eligible) {
     return (
-      <div className="min-h-screen bg-[#0B0D14]">
-        <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col items-center justify-center px-6 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-danger/10 ring-1 ring-inset ring-danger/25">
+      <QuizStateScreen
+        icon={
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-danger/10 ring-1 ring-inset ring-danger/25">
             <Lock className="h-8 w-8 text-danger" />
           </div>
-          <h1 className="mt-5 text-2xl font-bold tracking-tight text-white">
-            Registration Restricted
-          </h1>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            This quiz is available only to students belonging to the selected rooms.
-          </p>
-          <div className="mt-6 flex items-center gap-2 rounded-xl border border-danger/20 bg-danger/[0.06] px-4 py-2.5">
-            <AlertCircle className="h-4 w-4 shrink-0 text-danger" />
-            <p className="text-xs text-[#D1D5DB]">
-              You are not part of an eligible room for &quot;{quiz.name}&quot;.
-            </p>
-          </div>
-          <Link
-            href={quizCodePath(quizCode)}
-            className="mt-6 inline-flex h-11 items-center justify-center rounded-xl border border-border-hover bg-white/[0.03] px-6 text-sm font-semibold text-white transition-colors hover:bg-white/[0.06]"
-          >
-            Back to Quiz
-          </Link>
-        </div>
-      </div>
+        }
+        title="Registration Restricted"
+        text={`This quiz is available only to students belonging to the selected rooms. You are not part of an eligible room for "${quiz.name}".`}
+        action={
+          <QuizPrimaryButton href={quizCodePath(quizCode)}>Back to Quiz</QuizPrimaryButton>
+        }
+      />
     );
   }
 
@@ -249,16 +211,16 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
   const StatusIcon = statusBadge.icon;
 
   return (
-    <div className="min-h-screen bg-[#0B0D14]">
+    <div className="min-h-screen bg-[#F7F8FA] dark:bg-[#0B0D14]">
       <div className="flex">
         {/* Sidebar - hidden on mobile, visible on lg+ */}
-        <div className="hidden lg:block w-64 border-r border-border bg-[#0F1117] shrink-0">
+        <div className="hidden lg:block w-64 border-r border-border bg-[#F2F4F7] dark:bg-[#0F1117] shrink-0">
           <div className="p-4">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
-                <BookOpen className="w-4 h-4 text-white" />
+                <BookOpen className="w-4 h-4 text-[#101828] dark:text-white" />
               </div>
-              <span className="text-sm font-bold text-white">Quiz</span>
+              <span className="text-sm font-bold text-[#101828] dark:text-white">Quiz</span>
             </div>
             <nav className="space-y-1">
               <NavItem icon={BookOpen} label="Overview" href={`/quiz/${quizCode}`} />
@@ -269,18 +231,18 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
 
         {/* Main Content */}
         <div className="flex-1 min-w-0">
-          <div className="sticky top-0 z-10 border-b border-border bg-[#0B0D14]/80 backdrop-blur-xl">
+          <div className="sticky top-0 z-10 border-b border-border bg-[#F7F8FA] dark:bg-[#F7F8FA]/80 dark:bg-[#0B0D14]/80 backdrop-blur-xl">
             <div className="px-4 sm:px-6 lg:px-8 py-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <Link
                     href={quizCodePath(quizCode)}
-                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors mb-2"
+                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#101828] dark:text-white transition-colors mb-2"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     Back to Quiz
                   </Link>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-[#101828] dark:text-white tracking-tight">
                     {registered ? "Registration Confirmed" : "Register for Quiz"}
                   </h1>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -310,15 +272,15 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                   >
                     <div className="flex items-start gap-4 mb-6">
                       <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center shrink-0">
-                        <BookOpen className="w-7 h-7 text-white" />
+                        <BookOpen className="w-7 h-7 text-[#101828] dark:text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">{quiz.name}</h2>
+                        <h2 className="text-xl sm:text-2xl font-bold text-[#101828] dark:text-white mb-1">{quiz.name}</h2>
                         <p className="text-sm text-muted-foreground">Secure assessment</p>
                       </div>
                     </div>
 
-                    <p className="text-sm text-[#D1D5DB] mb-6 leading-relaxed">
+                    <p className="text-sm text-[#344054] dark:text-[#D1D5DB] mb-6 leading-relaxed">
                       Test your knowledge and skills with this comprehensive assessment.
                     </p>
 
@@ -338,7 +300,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     transition={{ delay: 0.1 }}
                     className="rounded-2xl border border-border-hover bg-card p-6 sm:p-8"
                   >
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-[#101828] dark:text-white mb-4 flex items-center gap-2">
                       <Info className="w-5 h-5 text-foreground" />
                       Important Instructions
                     </h3>
@@ -359,7 +321,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     transition={{ delay: 0.2 }}
                     className="rounded-2xl border border-border-hover bg-card p-6 sm:p-8"
                   >
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-[#101828] dark:text-white mb-4 flex items-center gap-2">
                       <Layers3 className="w-5 h-5 text-foreground" />
                       Question Distribution
                     </h3>
@@ -369,7 +331,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                         return (
                           <div
                             key={type.label}
-                            className="rounded-xl border border-border-hover bg-[#0F1117] p-4 hover:border-white/[0.15] transition-colors"
+                            className="rounded-xl border border-border-hover bg-[#F2F4F7] dark:bg-[#0F1117] p-4 hover:border-[#D0D5DD] dark:hover:border-white/[0.15] transition-colors"
                           >
                             <div className="flex items-center gap-3 mb-2">
                               <div
@@ -380,7 +342,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                               </div>
                               <div>
                                 <p className="text-xs text-muted-foreground">{type.label}</p>
-                                <p className="text-lg font-bold text-white">{type.count}</p>
+                                <p className="text-lg font-bold text-[#101828] dark:text-white">{type.count}</p>
                               </div>
                             </div>
                           </div>
@@ -396,7 +358,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     transition={{ delay: 0.3 }}
                     className="rounded-2xl border border-border-hover bg-card p-6 sm:p-8"
                   >
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-[#101828] dark:text-white mb-4 flex items-center gap-2">
                       <Award className="w-5 h-5 text-foreground" />
                       Marks & Timing
                     </h3>
@@ -423,7 +385,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                           <p className="text-xs font-semibold text-emerald-400">
                             You are eligible for this quiz
                           </p>
-                          <p className="mt-0.5 text-[11px] leading-relaxed text-[#D1D5DB]">
+                          <p className="mt-0.5 text-[11px] leading-relaxed text-[#344054] dark:text-[#D1D5DB]">
                             You belong to one of the rooms selected by the quiz creator.
                           </p>
                         </div>
@@ -437,7 +399,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       transition={{ delay: 0.1 }}
                       className="rounded-2xl border border-border-hover bg-card p-6"
                     >
-                      <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-[#101828] dark:text-white mb-4 flex items-center gap-2">
                         <UserCheck className="w-4 h-4 text-foreground" />
                         Student Information
                       </h3>
@@ -447,13 +409,13 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                             {user?.username?.charAt(0) || "S"}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white truncate">{user?.username || "Student"}</p>
+                            <p className="text-sm font-semibold text-[#101828] dark:text-white truncate">{user?.username || "Student"}</p>
                             <p className="text-xs text-muted-foreground">@{user?.email || "student"}</p>
                           </div>
                         </div>
                         {registered ? (
                           <div className="space-y-2 text-sm">
-                            <p className="font-semibold text-white">{registration?.studentName}</p>
+                            <p className="font-semibold text-[#101828] dark:text-white">{registration?.studentName}</p>
                             <p className="text-muted-foreground">{registration?.rollNumber}</p>
                           </div>
                         ) : (
@@ -472,7 +434,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       transition={{ delay: 0.2 }}
                       className="rounded-2xl border border-border-hover bg-card p-6"
                     >
-                      <h3 className="text-sm font-bold text-white mb-4">Quiz Details</h3>
+                      <h3 className="text-sm font-bold text-[#101828] dark:text-white mb-4">Quiz Details</h3>
                       <div className="space-y-2.5">
                         <DetailRow label="Quiz Code" value={quizCode} />
                         <DetailRow label="Duration" value={quizDuration} />
@@ -490,7 +452,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       transition={{ delay: 0.3 }}
                       className="rounded-2xl border border-border-hover bg-card p-6"
                     >
-                      <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-[#101828] dark:text-white mb-4 flex items-center gap-2">
                         <Shield className="w-4 h-4 text-foreground" />
                         Eligibility Status
                       </h3>
@@ -528,7 +490,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                       )}
                       <Link
                         href={quizCodePath(quizCode)}
-                        className="block w-full h-12 rounded-xl border border-border-hover bg-white/[0.03] text-sm font-semibold text-white hover:border-white/[0.16] hover:bg-white/[0.06] transition-all text-center"
+                        className="block w-full h-12 rounded-xl border border-border-hover bg-[#F2F4F7] dark:bg-white/[0.03] text-sm font-semibold text-[#101828] dark:text-white hover:border-[#D0D5DD] hover:bg-[#E4E7EC] dark:hover:border-white/[0.16] dark:hover:bg-white/[0.06] transition-all text-center"
                       >
                         Back to Quiz
                       </Link>
@@ -567,7 +529,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center">
                   <X className="w-8 h-8 text-[#F59E0B]" />
                 </div>
-                <h3 className="text-xl font-bold text-white text-center mb-2">Unregister from Quiz?</h3>
+                <h3 className="text-xl font-bold text-[#101828] dark:text-white text-center mb-2">Unregister from Quiz?</h3>
                 <p className="text-sm text-muted-foreground text-center mb-6">
                   This will remove you from the registered participants list for &quot;{quiz.name}&quot;.
                   You can register again later if the quiz is still open.
@@ -576,7 +538,7 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowUnregisterModal(false)}
-                    className="flex-1 h-12 rounded-xl border border-border-hover bg-white/[0.03] text-sm font-semibold text-white hover:border-white/[0.16] hover:bg-white/[0.06] transition-all"
+                    className="flex-1 h-12 rounded-xl border border-border-hover bg-[#F2F4F7] dark:bg-white/[0.03] text-sm font-semibold text-[#101828] dark:text-white hover:border-[#D0D5DD] hover:bg-[#E4E7EC] dark:hover:border-white/[0.16] dark:hover:bg-white/[0.06] transition-all"
                   >
                     Cancel
                   </button>
@@ -601,7 +563,7 @@ function NavItem({ icon: Icon, label, href }: { icon: LucideIcon; label: string;
   return (
     <Link
       href={href}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-white hover:bg-white/[0.04] transition-colors"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#475467] hover:text-[#101828] hover:bg-[#F2F4F7] dark:text-muted-foreground dark:hover:text-white dark:hover:bg-white/[0.04] transition-colors"
     >
       <Icon className="w-4 h-4" />
       {label}
@@ -611,11 +573,11 @@ function NavItem({ icon: Icon, label, href }: { icon: LucideIcon; label: string;
 
 function InfoItem({ icon: Icon, label, value, mono }: { icon: LucideIcon; label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-border-hover bg-[#0F1117] p-3">
+    <div className="flex items-start gap-3 rounded-xl border border-border-hover bg-[#F2F4F7] dark:bg-[#0F1117] p-3">
       <Icon className="w-4 h-4 text-foreground mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-0.5">{label}</p>
-        <p className={`text-sm text-white ${mono ? "font-mono" : ""}`}>{value}</p>
+        <p className={`text-sm text-[#101828] dark:text-white ${mono ? "font-mono" : ""}`}>{value}</p>
       </div>
     </div>
   );
@@ -623,32 +585,32 @@ function InfoItem({ icon: Icon, label, value, mono }: { icon: LucideIcon; label:
 
 function InstructionItem({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-border-hover bg-[#0F1117] p-3">
+    <div className="flex items-start gap-3 rounded-xl border border-border-hover bg-[#F2F4F7] dark:bg-[#0F1117] p-3">
       <div className="w-8 h-8 rounded-lg bg-[#C7DDEC]/10 border border-[#C7DDEC]/20 flex items-center justify-center shrink-0">
         <Icon className="w-4 h-4 text-foreground" />
       </div>
-      <p className="text-xs text-[#D1D5DB] leading-relaxed">{text}</p>
+      <p className="text-xs text-[#344054] dark:text-[#D1D5DB] leading-relaxed">{text}</p>
     </div>
   );
 }
 
 function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: LucideIcon; color: string }) {
   return (
-    <div className="rounded-xl border border-border-hover bg-[#0F1117] p-4">
+    <div className="rounded-xl border border-border-hover bg-[#F2F4F7] dark:bg-[#0F1117] p-4">
       <div className="flex items-center gap-2 mb-2">
         <Icon className="w-4 h-4" style={{ color }} />
         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
       </div>
-      <p className="text-lg font-bold text-white">{value}</p>
+      <p className="text-lg font-bold text-[#101828] dark:text-white">{value}</p>
     </div>
   );
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border-hover bg-[#0F1117] p-3">
+    <div className="flex items-center justify-between rounded-xl border border-border-hover bg-[#F2F4F7] dark:bg-[#0F1117] p-3">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-sm font-semibold text-white">{value}</span>
+      <span className="text-sm font-semibold text-[#101828] dark:text-white">{value}</span>
     </div>
   );
 }
@@ -662,7 +624,7 @@ function InputField({ label, value, onChange, placeholder }: { label: string; va
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2.5 rounded-xl border border-border-hover bg-[#0F1117] text-sm text-white placeholder-[#71717A] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all"
+        className="w-full px-3 py-2.5 rounded-xl border border-border-hover bg-[#F2F4F7] dark:bg-[#0F1117] text-sm text-[#101828] dark:text-white placeholder-[#71717A] focus:outline-none focus:border-[#C7DDEC]/50 focus:ring-2 focus:ring-[#C7DDEC]/10 transition-all"
       />
     </div>
   );
@@ -683,7 +645,7 @@ function EligibilityItem({ status, text }: { status: "eligible" | "info" | "succ
   return (
     <div className={`flex items-center gap-2 rounded-xl border ${config.border} ${config.bg} p-2.5`}>
       <Icon className={`w-4 h-4 ${config.color} shrink-0`} />
-      <span className="text-xs text-[#D1D5DB]">{text}</span>
+      <span className="text-xs text-[#344054] dark:text-[#D1D5DB]">{text}</span>
     </div>
   );
 }

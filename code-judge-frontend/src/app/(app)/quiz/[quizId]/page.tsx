@@ -1,10 +1,8 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Award,
   BookOpen,
   Calendar,
@@ -19,10 +17,8 @@ import { getQuizByCode, joinQuiz, startQuizAttempt, type Quiz } from "@/services
 import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
-import { ThemeBackground } from "@/components/quiz/live/ThemeBackground";
-import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/WaitingRoomThemeContext";
-import { useTheme } from "@/context/ThemeContext";
 import { writeQuizAttemptAnswers } from "@/lib/quizAttemptStorage";
+import StudentQuizShell, { QuizPrimaryButton, QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
 
 export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = use(params);
@@ -86,36 +82,23 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
   };
 
   if (!isValidQuizCode(code)) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
-        <p className="text-sm text-text-secondary">This quiz code is invalid.</p>
-      </div>
-    );
+    return <QuizStateScreen text="This quiz code is invalid." />;
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-7 w-7 animate-spin text-pink-500" />
-          <p className="mt-3 text-sm text-text-secondary">Verifying quiz access…</p>
-        </div>
-      </div>
-    );
+    return <QuizStateScreen loading text="Verifying quiz access…" />;
   }
 
   if (error || !quiz) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 text-center sm:p-8">
-          <LockKeyhole className="mx-auto h-10 w-10 text-text-muted" />
-          <h1 className="mt-4 text-xl font-bold text-text-primary">Quiz unavailable</h1>
-          <p className="mt-2 text-sm leading-6 text-text-secondary">{error}</p>
-          <Link href="/quiz/join" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-pink-600 px-5 text-sm font-semibold text-white hover:bg-pink-700">
-            Enter another code
-          </Link>
-        </div>
-      </div>
+      <QuizStateScreen
+        icon={<LockKeyhole className="mx-auto h-10 w-10 text-[#98A2B3] dark:text-[#687386]" />}
+        title="Quiz unavailable"
+        text={error ?? "Quiz not found or no longer available."}
+        action={
+          <QuizPrimaryButton href="/quiz/join">Enter another code</QuizPrimaryButton>
+        }
+      />
     );
   }
 
@@ -126,27 +109,23 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
   const upcoming = Boolean(start && start > now);
 
   return (
-    <WaitingRoomThemeProvider>
-    <div className="relative min-h-screen overflow-hidden bg-background px-4 py-5 sm:px-6 sm:py-8">
-      <AdaptiveQuizBackground />
-      <main className="relative z-10 mx-auto max-w-3xl space-y-4 sm:space-y-6">
-        <Link href="/quiz/join" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-secondary hover:bg-card-hover hover:text-text-primary">
-          <ArrowLeft className="h-3.5 w-3.5" /> Change code
-        </Link>
-
-        <section className="overflow-hidden rounded-2xl border border-border bg-card/90 shadow-2xl shadow-black/10 backdrop-blur-xl dark:shadow-black/40">
-          <div className="border-b border-border bg-gradient-to-br from-pink-500/[0.08] to-violet-500/[0.05] p-5 sm:p-7">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Verified assessment
-                </div>
-                <h1 className="break-words text-xl font-bold tracking-tight text-text-primary sm:text-2xl">{quiz.name}</h1>
-                <p className="mt-2 font-mono text-xs text-text-muted">{formatQuizCode(code)}</p>
-              </div>
-              <span className={`w-fit rounded-full border px-2.5 py-1 text-[11px] font-semibold ${ended ? "border-rose-500/20 bg-rose-500/10 text-rose-600" : upcoming ? "border-amber-500/20 bg-amber-500/10 text-amber-600" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-600"}`}>
-                {ended ? "Ended" : upcoming ? "Upcoming" : "Live"}
-              </span>
+    <StudentQuizShell
+      eyebrow="Verified Assessment"
+      title={quiz.name}
+      subtitle={formatQuizCode(code)}
+      backHref="/quiz/join"
+      backLabel="Change code"
+      maxWidth="max-w-3xl"
+      actions={
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${ended ? "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400" : upcoming ? "border-[#F79009]/30 bg-[#F79009]/10 text-[#B54708] dark:border-[#FFB84D]/25 dark:bg-[#FFB84D]/10 dark:text-[#FFB84D]" : "border-[#12B76A]/30 bg-[#12B76A]/10 text-[#039855] dark:border-[#20D889]/25 dark:bg-[#20D889]/10 dark:text-[#20D889]"}`}>
+          {ended ? "Ended" : upcoming ? "Upcoming" : "Live"}
+        </span>
+      }
+    >
+        <section className="overflow-hidden rounded-2xl border border-[#E4E7EC] bg-white dark:border-[#252D3A] dark:bg-[#151A24]">
+          <div className="border-b border-[#E4E7EC] bg-gradient-to-r from-[#8B7CFF]/10 to-[#4F9DFF]/10 p-5 dark:border-[#252D3A] sm:p-7">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[#12B76A]/30 bg-[#12B76A]/10 px-2.5 py-1 text-[11px] font-semibold text-[#039855] dark:border-[#20D889]/25 dark:bg-[#20D889]/10 dark:text-[#20D889]">
+              <ShieldCheck className="h-3.5 w-3.5" /> Verified assessment
             </div>
           </div>
 
@@ -158,15 +137,15 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
               <Detail icon={BookOpen} label="Difficulty" value={quiz.difficulty?.toString() || "—"} />
             </div>
 
-            <div className="mt-4 rounded-xl border border-border bg-background/80 p-4 backdrop-blur">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-text-muted">Schedule</h2>
+            <div className="mt-4 rounded-xl border border-[#E4E7EC] bg-[#F7F8FA] p-4 dark:border-[#252D3A] dark:bg-[#111722]">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[#98A2B3] dark:text-[#687386]">Schedule</h2>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <Schedule label="Starts" value={formatDate(quiz.starttime)} />
                 <Schedule label="Ends" value={formatDate(quiz.endtime)} />
               </div>
             </div>
 
-            <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-xs leading-5 text-emerald-800 dark:text-emerald-200">
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-[#12B76A]/25 bg-[#12B76A]/[0.06] p-3 text-xs leading-5 text-[#039855] dark:border-[#20D889]/25 dark:text-[#20D889]">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
               Only approved participants can enter. Questions and private configuration remain hidden until the quiz starts.
             </div>
@@ -177,50 +156,21 @@ export default function QuizDetailsPage({ params }: { params: Promise<{ quizId: 
           type="button"
           onClick={handleJoin}
           disabled={joining || ended}
-          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-pink-700 px-5 text-sm font-bold text-white shadow-lg shadow-pink-500/15 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#8B7CFF] px-5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#7A6BF5] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : ended ? "Quiz has ended" : upcoming ? "Join waiting room" : "Join quiz"}
         </button>
-      </main>
-    </div>
-    </WaitingRoomThemeProvider>
-  );
-}
-
-function AdaptiveQuizBackground() {
-  const { theme } = useTheme();
-  const { setTheme, setStudentOverride } = useWaitingRoomTheme();
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setTheme(theme === "dark" ? "deep-space" : "ai-cloud");
-      setStudentOverride(undefined);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [setStudentOverride, setTheme, theme]);
-
-  return (
-    <div className="pointer-events-none fixed inset-0 z-0">
-      <ThemeBackground />
-      {theme === "light" && (
-        <>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(236,72,153,0.16),transparent_30%),radial-gradient(circle_at_85%_18%,rgba(99,102,241,0.16),transparent_32%),radial-gradient(circle_at_50%_85%,rgba(59,130,246,0.12),transparent_36%)]" />
-          <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(99,102,241,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.08)_1px,transparent_1px)] [background-size:44px_44px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
-          <div className="absolute inset-0 bg-white/5" />
-        </>
-      )}
-      {theme === "dark" && <div className="absolute inset-0 bg-black/15" />}
-    </div>
+    </StudentQuizShell>
   );
 }
 
 function Detail({ icon: Icon, label, value }: { icon: typeof Clock; label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-xl border border-border bg-background p-3 sm:p-4">
-      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">
-        <Icon className="h-3.5 w-3.5 shrink-0 text-pink-500" /> {label}
+    <div className="min-w-0 rounded-xl border border-[#E4E7EC] bg-[#F7F8FA] p-3 dark:border-[#252D3A] dark:bg-[#111722] sm:p-4">
+      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#98A2B3] dark:text-[#687386]">
+        <Icon className="h-3.5 w-3.5 shrink-0 text-[#8B7CFF]" /> {label}
       </div>
-      <p className="mt-2 break-words text-sm font-bold text-text-primary">{value}</p>
+      <p className="mt-2 break-words text-sm font-bold text-[#101828] dark:text-[#F4F6FA]">{value}</p>
     </div>
   );
 }
@@ -228,10 +178,10 @@ function Detail({ icon: Icon, label, value }: { icon: typeof Clock; label: strin
 function Schedule({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start gap-2">
-      <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-text-muted" />
+      <Calendar className="mt-0.5 h-4 w-4 shrink-0 text-[#98A2B3] dark:text-[#687386]" />
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">{label}</p>
-        <p className="mt-0.5 text-xs font-medium text-text-primary">{value}</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-[#98A2B3] dark:text-[#687386]">{label}</p>
+        <p className="mt-0.5 text-xs font-medium text-[#101828] dark:text-[#F4F6FA]">{value}</p>
       </div>
     </div>
   );

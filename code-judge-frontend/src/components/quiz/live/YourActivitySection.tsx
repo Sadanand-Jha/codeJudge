@@ -281,25 +281,82 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
 
   return (
     <div className="transition-colors duration-150 hover:bg-[#F2F4F7] dark:hover:bg-[#19202C]/60">
-      {/* Desktop: 6-column grid · Mobile: stacked */}
-      <div className="grid grid-cols-1 gap-2 px-4 py-3 sm:px-5 lg:grid-cols-[minmax(0,1.6fr)_110px_76px_64px_72px_92px] lg:items-center lg:gap-3">
+      {/* Mobile: stacked multi-line card — one piece of info per line */}
+      <div className="space-y-2.5 px-4 py-3.5 lg:hidden">
+        {/* Line 1: quiz identity */}
+        <div className="flex min-w-0 items-start gap-2.5">
+          <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#E4E7EC] bg-[#F2F4F7] dark:border-[#252D3A] dark:bg-[#19202C]", subject.color)}>
+            <subject.icon className="h-4 w-4" strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="break-words text-sm font-semibold leading-snug text-[#101828] dark:text-[#F4F6FA]">{quiz.name}</p>
+            <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-[#98A2B3] dark:text-[#687386]">
+              {subject.label} ·
+              <CodeCopyChip code={quiz.code} />
+            </p>
+          </div>
+        </div>
+        {/* Line 2: status */}
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusChip status={quiz.status} />
+          {quiz.rank != null && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[#F79009]/30 bg-[#F79009]/10 px-2 py-0.5 text-[11px] font-semibold text-[#B54708] dark:border-[#FFB84D]/25 dark:bg-[#FFB84D]/10 dark:text-[#FFB84D]">
+              <Trophy className="h-3 w-3" />#{quiz.rank}
+            </span>
+          )}
+        </div>
+        {/* Line 3: score */}
+        <div className="flex flex-wrap items-baseline gap-x-1.5">
+          <span className={cn("text-lg font-bold tabular-nums", scoreColor(pct))}>{pct}%</span>
+          <span className="text-[11px] text-[#98A2B3] tabular-nums dark:text-[#687386]">{quiz.score}/{quiz.total_marks} marks</span>
+        </div>
+        {/* Line 4: time + date */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#475467] dark:text-[#9AA4B5]">
+          <span className="inline-flex items-center gap-1.5 tabular-nums">
+            <Timer className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" />
+            {timeTaken}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" />
+            {dateFormatted}
+          </span>
+        </div>
+        {/* Line 5: actions */}
+        <div className="flex items-center gap-2 pt-0.5">
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-[#E4E7EC] bg-[#F2F4F7] px-2.5 text-xs font-semibold text-[#475467] transition-colors duration-150 hover:border-[#D0D5DD] hover:text-[#101828] dark:border-[#252D3A] dark:bg-[#19202C] dark:text-[#9AA4B5] dark:hover:border-[#353f52] dark:hover:text-[#F4F6FA]"
+          >
+            {expanded ? "Less" : "Details"}
+          </button>
+          <Link
+            href={`/quiz/${quiz.code}/results`}
+            className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-[#8B7CFF]/10 px-2.5 text-xs font-semibold text-[#6B5CFF] transition-colors duration-150 hover:bg-[#8B7CFF]/20 dark:bg-[#8B7CFF]/12 dark:text-[#8B7CFF] dark:hover:bg-[#8B7CFF]/20"
+          >
+            View <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Desktop (≥1024px): wide table row */}
+      <div className="hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] items-center gap-3 px-5 py-3 lg:grid">
         {/* Quiz */}
         <div className="flex min-w-0 items-center gap-2.5">
           <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E4E7EC] bg-[#F2F4F7] dark:border-[#252D3A] dark:bg-[#19202C]", subject.color)}>
             <subject.icon className="h-4 w-4" strokeWidth={1.8} />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-[13px] font-semibold text-[#101828] dark:text-[#F4F6FA] sm:text-sm">{quiz.name}</p>
+            <p className="truncate text-sm font-semibold text-[#101828] dark:text-[#F4F6FA]">{quiz.name}</p>
             <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[#98A2B3] dark:text-[#687386]">
-              <span className="hidden sm:inline">{subject.label} ·</span>
+              {subject.label} ·
               <CodeCopyChip code={quiz.code} />
             </p>
           </div>
         </div>
 
         {/* Status */}
-        <div className="flex items-center gap-2 lg:justify-start">
-          <span className="text-[11px] text-[#98A2B3] dark:text-[#687386] lg:hidden">Status</span>
+        <div className="flex items-center gap-2">
           <StatusChip status={quiz.status} />
           {quiz.rank != null && (
             <span className="inline-flex items-center gap-1 rounded-full border border-[#F79009]/30 bg-[#F79009]/10 px-2 py-0.5 text-[11px] font-semibold text-[#B54708] dark:border-[#FFB84D]/25 dark:bg-[#FFB84D]/10 dark:text-[#FFB84D]">
@@ -309,32 +366,27 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
         </div>
 
         {/* Score */}
-        <div className="flex items-center gap-2 lg:block">
-          <span className="text-[11px] text-[#98A2B3] dark:text-[#687386] lg:hidden">Score</span>
+        <div className="min-w-0">
           <span className={cn("text-sm font-bold tabular-nums", scoreColor(pct))}>{pct}%</span>
           <span className="text-[11px] text-[#98A2B3] tabular-nums dark:text-[#687386]"> · {quiz.score}/{quiz.total_marks}</span>
         </div>
 
         {/* Time */}
-        <div className="flex items-center gap-2 lg:block">
-          <span className="text-[11px] text-[#98A2B3] dark:text-[#687386] lg:hidden">Time</span>
-          <span className="inline-flex items-center gap-1 text-xs text-[#475467] tabular-nums dark:text-[#9AA4B5]">
-            <Timer className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386] lg:hidden" />
+        <div>
+          <span className="text-xs text-[#475467] tabular-nums dark:text-[#9AA4B5]">
             {timeTaken}
           </span>
         </div>
 
         {/* Date */}
-        <div className="flex items-center gap-2 lg:block">
-          <span className="text-[11px] text-[#98A2B3] dark:text-[#687386] lg:hidden">Date</span>
-          <span className="inline-flex items-center gap-1 text-xs text-[#475467] dark:text-[#9AA4B5]">
-            <Calendar className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386] lg:hidden" />
+        <div>
+          <span className="text-xs text-[#475467] dark:text-[#9AA4B5]">
             {dateFormatted}
           </span>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 lg:justify-end">
+        <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={() => setExpanded((e) => !e)}
@@ -352,7 +404,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
       </div>
 
       {/* Score bar (visual density, same data) */}
-      <div className="px-4 pb-1 sm:px-5 lg:pl-[68px] lg:pr-[220px]">
+      <div className="px-4 pb-1 sm:px-5 lg:pl-[68px] lg:pr-[190px]">
         <div className="h-1 overflow-hidden rounded-full bg-[#E4E7EC] dark:bg-[#252D3A]/60">
           <div className={cn("h-full rounded-full", scoreBar(pct))} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
         </div>
@@ -491,21 +543,22 @@ export default function YourActivitySection() {
   }, [recentQuizzes]);
 
   return (
-    <section aria-label="My activity">
-      {/* ── Analytics header ── */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+    <section aria-label="My activity" className="mx-auto w-full max-w-[1280px]">
+      {/* ── Analytics header: title left, Filter + Sort right (same row on desktop) ── */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">My Activity</p>
           <h2 className="mt-1 text-[22px] font-bold leading-tight tracking-tight text-[#101828] dark:text-[#F4F6FA] sm:text-[24px]">
             Your Activity
           </h2>
           <p className="mt-1 text-[13px] text-[#475467] dark:text-[#9AA4B5] sm:text-sm">
-            Track attempts, scores and progress across your assessments.
+            Track your quiz attempts, scores and progress.
           </p>
         </div>
-        <p className="text-xs text-[#98A2B3] tabular-nums dark:text-[#687386]">
-          {filtered.length} attempt{filtered.length === 1 ? "" : "s"}
-        </p>
+        <div className="flex items-center gap-2">
+          <FilterSelect icon={Filter} value={recentStatus} options={STATUS_OPTIONS} onChange={setRecentStatus} label="Filter by status" />
+          <FilterSelect icon={TrendingUp} value={recentSort} options={SORT_OPTIONS} onChange={setRecentSort} label="Sort attempts" />
+        </div>
       </div>
 
       {/* ── Stat cards (compact, 100–120px) ── */}
@@ -516,29 +569,28 @@ export default function YourActivitySection() {
         <StatCard icon={TrendingUp} label="Average Score" value={overview.avgScore === null ? "—" : `${overview.avgScore}%`} hint="across attempts" accent="text-[#B54708] dark:text-[#FFB84D]" />
       </div>
 
-      {/* ── Two-column: recent activity + performance overview ── */}
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-        {/* LEFT: recent attempts */}
-        <div className="min-w-0 overflow-hidden rounded-xl border border-[#E4E7EC] bg-white dark:border-[#252D3A] dark:bg-[#151A24]">
-          <div className="flex flex-col gap-2 border-b border-[#E4E7EC] p-3 dark:border-[#252D3A] sm:p-4">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA]">Recent Quiz Activity</h3>
-              <span className="hidden items-center gap-1 text-[11px] text-[#98A2B3] dark:text-[#687386] sm:inline-flex">
-                <BarChart2 className="h-3.5 w-3.5" /> Latest first
-              </span>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      {/* ── Recent attempts: full-width table (no narrow side column) ── */}
+      <div className="mt-4 min-w-0 overflow-hidden rounded-xl border border-[#E4E7EC] bg-white dark:border-[#252D3A] dark:bg-[#151A24]">
+        <div className="flex flex-col gap-2 border-b border-[#E4E7EC] p-3 dark:border-[#252D3A] sm:p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2">
+            <h3 className="text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA]">Recent Attempts</h3>
+            <span className="text-xs text-[#98A2B3] tabular-nums dark:text-[#687386]">
+              {filtered.length} attempt{filtered.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <span className="hidden items-center gap-1 text-[11px] text-[#98A2B3] dark:text-[#687386] lg:inline-flex">
+              <BarChart2 className="h-3.5 w-3.5" /> Latest first
+            </span>
+            <div className="lg:w-72">
               <SearchField value={recentSearch} onChange={setRecentSearch} placeholder="Search quizzes..." />
-              <div className="flex items-center gap-2">
-                <FilterSelect icon={Filter} value={recentStatus} options={STATUS_OPTIONS} onChange={setRecentStatus} label="Filter by status" />
-                <FilterSelect icon={TrendingUp} value={recentSort} options={SORT_OPTIONS} onChange={setRecentSort} label="Sort attempts" />
-              </div>
             </div>
           </div>
+        </div>
 
           {/* Desktop column labels */}
           {filtered.length > 0 && (
-            <div className="hidden grid-cols-[minmax(0,1.6fr)_110px_76px_64px_72px_92px] gap-3 border-b border-[#E4E7EC] px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:border-[#252D3A] dark:text-[#687386] lg:grid">
+            <div className="hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] gap-3 border-b border-[#E4E7EC] px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:border-[#252D3A] dark:text-[#687386] lg:grid">
               <span>Quiz</span>
               <span>Status</span>
               <span>Score</span>
@@ -557,11 +609,12 @@ export default function YourActivitySection() {
           </div>
         </div>
 
-        {/* RIGHT: performance overview */}
-        <aside className="flex min-w-0 flex-col gap-4 rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#252D3A] dark:bg-[#111722] sm:p-5 lg:sticky lg:top-20 lg:self-start">
-          <h3 className="text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA]">Performance Overview</h3>
+        {/* ── Performance strip: full-width panels below the table ── */}
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <section className="min-w-0 rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#252D3A] dark:bg-[#151A24] sm:p-5">
+            <h3 className="text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA]">Score Summary</h3>
 
-          <div>
+          <div className="mt-3">
             <div className="flex items-baseline justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">Average Score</span>
               <span className="text-[26px] font-bold leading-none text-[#101828] tabular-nums dark:text-[#F4F6FA]">
@@ -598,8 +651,10 @@ export default function YourActivitySection() {
             </div>
           </div>
 
+          </section>
+
           {/* Score distribution (derived from existing data) */}
-          <div className="border-t border-[#E4E7EC] pt-3 dark:border-[#252D3A]">
+          <section className="min-w-0 rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#252D3A] dark:bg-[#151A24] sm:p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">Score distribution</p>
             <div className="mt-4 flex items-end gap-2 pb-1 pt-1">
               {[
@@ -620,11 +675,11 @@ export default function YourActivitySection() {
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
           {/* Latest trend (same attempts, compact) */}
           {performance.recent.length > 0 && (
-            <div className="border-t border-[#E4E7EC] pt-3 dark:border-[#252D3A]">
+            <section className="min-w-0 rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#252D3A] dark:bg-[#151A24] sm:p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">Latest results</p>
               <ul className="mt-2 space-y-2">
                 {performance.recent.map((q) => {
@@ -648,11 +703,10 @@ export default function YourActivitySection() {
               >
                 Join another quiz <ArrowRight className="h-3.5 w-3.5" />
               </Link>
-            </div>
+            </section>
           )}
 
-        </aside>
-      </div>
+        </div>
     </section>
   );
 }

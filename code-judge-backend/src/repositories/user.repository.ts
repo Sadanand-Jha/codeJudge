@@ -176,4 +176,12 @@ export class userRepository {
         const result = await pool.query(query, [username, email, password]);
         return result.rows[0];
     }
+
+    async updatePasswordByEmail(email: string, hashedPassword: string): Promise<boolean> {
+        const query = `
+            UPDATE users SET password = $1 WHERE email = $2
+        `;
+        const result = await pool.query(query, [hashedPassword, email]);
+        return (result.rowCount ?? 0) > 0;
+    }
 }

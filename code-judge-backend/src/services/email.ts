@@ -1,6 +1,6 @@
-// General-purpose email sender using Resend. Serverless-friendly (no SMTP).
-import { Resend } from 'resend';
+// General-purpose email sender using Nodemailer/SMTP.
 import logger from '../utils/logger.js';
+import { getTransporter, getFromAddress } from './smtp.js';
 
 interface EmailOptions {
   to: string;
@@ -9,44 +9,34 @@ interface EmailOptions {
   html?: string;
 }
 
-function getResend(): Resend | null {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    logger.warn('RESEND_API_KEY is missing - email will be mocked (not sent). Set RESEND_API_KEY in .env / Vercel Dashboard.');
+function requireTransport() {
+  const transporter = getTransporter();
+  const from = getFromAddress();
+  if (!transporter || !from) {
+    logger.warn('SMTP is not configured - email will be mocked (not sent). Set SMTP_HOST/SMTP_USER/SMTP_PASS (or EMAIL1/GMAIL_APP_PASSWORD1) in .env / Vercel Dashboard.');
     return null;
   }
-  return new Resend(key);
-}
-
-function getFrom(): string {
-  return process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  return { transporter, from };
 }
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  const resend = getResend();
-  if (!resend) {
-    logger.warn(`[MOCK EMAIL] to=${options.to} subject="${options.subject}" - RESEND_API_KEY missing, skipping send`);
+  const ctx = requireTransport();
+  if (!ctx) {
+    logger.warn(`[MOCK EMAIL] to=${options.to} subject="${options.subject}" - SMTP missing, skipping send`);
     return;
   }
 
   try {
-    // Resend requires at least one of html/text/react - ensure html is always string
     const htmlContent = options.html || (options.text ? `<p>${options.text}</p>` : '<p></p>');
-    const payload: any = {
-      from: getFrom(),
+    const info = await ctx.transporter.sendMail({
+      from: ctx.from,
       to: options.to,
       subject: options.subject,
       html: htmlContent,
-    };
-    if (options.text) payload.text = options.text;
-    const { data, error } = await resend.emails.send(payload);
+      ...(options.text ? { text: options.text } : {}),
+    });
 
-    if (error) {
-      logger.error(`Resend API error for ${options.to}:`, error);
-      throw new Error(error.message || 'Resend API error');
-    }
-
-    logger.info(`Email sent successfully to ${options.to}: ${data?.id}`);
+    logger.info(`Email sent successfully to ${options.to}: ${info.messageId}`);
   } catch (error) {
     logger.error(`Failed to send email to ${options.to}:`, error);
     throw error;
@@ -54,7 +44,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
 }
 
 /**
- * Sends OTP email - Primary OTP method for Resend.
+ * Sends OTP email - Primary OTP method.
  * Required signature per spec: sendOtpEmail({ to, otp })
  * Also supports legacy call: sendOtpEmail(email, otp) for backward compat.
  */
@@ -69,9 +59,9 @@ export async function sendOtpEmail(
     throw new Error('sendOtpEmail requires { to, otp }');
   }
 
-  const resend = getResend();
-  if (!resend) {
-    logger.warn(`[MOCK OTP] to=${to} otp=${otp} - RESEND_API_KEY missing, skipping send`);
+  const ctx = requireTransport();
+  if (!ctx) {
+    logger.warn(`[MOCK OTP] to=${to} otp=${otp} - SMTP missing, skipping send`);
     return;
   }
 
@@ -141,24 +131,15 @@ export async function sendOtpEmail(
   const text = `Your OTP for verification is: ${otp}\n\nThis OTP is valid for 5 minutes.\n\nIf you did not request this, please ignore this email.`;
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: getFrom(),
+    const info = await ctx.transporter.sendMail({
+      from: ctx.from,
       to,
       subject,
       html,
       text,
     });
 
-    if (error) {
-      // Handle invalid/missing API key gracefully
-      if ((error as any).statusCode === 401 || String(error.message).toLowerCase().includes('api key')) {
-        logger.error('Resend API key is missing or invalid. Check RESEND_API_KEY env var.');
-      }
-      logger.error(`Resend OTP email failed to ${to}:`, error);
-      throw new Error(error.message || 'Failed to send OTP email');
-    }
-
-    logger.info(`OTP email sent to ${to}: ${data?.id}`);
+    logger.info(`OTP email sent to ${to}: ${info.messageId}`);
   } catch (error) {
     logger.error(`Failed to send OTP email to ${to}:`, error);
     throw error;
@@ -176,9 +157,9 @@ export async function sendCollaboratorInviteEmail(payload: {
   inviteUrl: string;
 }): Promise<void> {
   const { to, quizName, inviterUsername, inviteUrl } = payload;
-  const resend = getResend();
-  if (!resend) {
-    logger.warn(`[MOCK INVITE] to=${to} quiz="${quizName}" - RESEND_API_KEY missing`);
+  const ctx = requireTransport();
+  if (!ctx) {
+    logger.warn(`[MOCK INVITE] to=${to} quiz="${quizName}" - SMTP missing`);
     return;
   }
 
@@ -199,15 +180,14 @@ export async function sendCollaboratorInviteEmail(payload: {
   `;
 
   try {
-    const { error, data } = await resend.emails.send({
-      from: getFrom(),
+    const info = await ctx.transporter.sendMail({
+      from: ctx.from,
       to,
       subject,
       html,
       text,
     });
-    if (error) throw new Error(error.message);
-    logger.info(`Collaborator invite sent to ${to}: ${data?.id}`);
+    logger.info(`Collaborator invite sent to ${to}: ${info.messageId}`);
   } catch (error) {
     logger.error(`Failed to send collaborator invite to ${to}:`, error);
     throw error;

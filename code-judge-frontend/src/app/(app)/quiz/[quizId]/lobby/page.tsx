@@ -1,10 +1,10 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import Link from "next/link";
-import { BookOpen, CheckCircle2, Clock, Loader2, Monitor, ShieldCheck, Wifi } from "lucide-react";
+import { BookOpen, CheckCircle2, Clock, Monitor, ShieldCheck, Wifi } from "lucide-react";
 import { getQuizByCode, type QuizBasic } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
+import StudentQuizShell, { QuizPrimaryButton, QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
 
 export default function QuizLobbyPage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = use(params);
@@ -23,9 +23,9 @@ export default function QuizLobbyPage({ params }: { params: Promise<{ quizId: st
     return () => { cancelled = true; };
   }, [code]);
 
-  if (!isValidQuizCode(code)) return <Screen icon={<ShieldCheck className="h-8 w-8 text-rose-500" />} text="Invalid quiz code." />;
-  if (loading) return <Screen icon={<Loader2 className="h-7 w-7 animate-spin text-pink-500" />} text="Checking quiz access…" />;
-  if (error || !quiz) return <Screen icon={<ShieldCheck className="h-8 w-8 text-rose-500" />} text={error || "Quiz unavailable."} />;
+  if (!isValidQuizCode(code)) return <QuizStateScreen icon={<ShieldCheck className="mx-auto h-8 w-8 text-rose-500" />} text="Invalid quiz code." />;
+  if (loading) return <QuizStateScreen loading text="Checking quiz access…" />;
+  if (error || !quiz) return <QuizStateScreen icon={<ShieldCheck className="mx-auto h-8 w-8 text-rose-500" />} text={error || "Quiz unavailable."} />;
 
   const checks = [
     { label: "Browser ready", icon: Monitor },
@@ -35,38 +35,40 @@ export default function QuizLobbyPage({ params }: { params: Promise<{ quizId: st
   ];
 
   return (
-    <div className="min-h-screen bg-background px-4 py-6 sm:px-6 sm:py-10">
-      <main className="mx-auto max-w-2xl space-y-4">
-        <Link href={`/quiz/${code}`} className="text-xs font-semibold text-text-secondary hover:text-text-primary">← Back to quiz</Link>
-        <section className="rounded-2xl border border-border bg-card p-5 sm:p-8">
-          <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-pink-500/10 text-pink-500"><BookOpen className="h-6 w-6" /></div>
-            <h1 className="mt-4 break-words text-xl font-bold text-text-primary">{quiz.name}</h1>
-            <p className="mt-1 text-sm text-text-secondary">Assessment lobby</p>
+    <StudentQuizShell
+      eyebrow="Assessment Lobby"
+      title={quiz.name}
+      subtitle="Verify your setup, then enter the assessment."
+      backHref={`/quiz/${code}`}
+      backLabel="Back to quiz"
+      maxWidth="max-w-2xl"
+    >
+      <section className="rounded-2xl border border-[#E4E7EC] bg-white p-5 dark:border-[#252D3A] dark:bg-[#151A24] sm:p-8">
+        <div className="text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#8B7CFF]/12 text-[#6B5CFF] dark:text-[#8B7CFF]"><BookOpen className="h-6 w-6" /></div>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#12B76A]/30 bg-[#12B76A]/10 px-2.5 py-1 text-[11px] font-semibold text-[#039855] dark:border-[#20D889]/25 dark:bg-[#20D889]/10 dark:text-[#20D889]">
+              <ShieldCheck className="h-3.5 w-3.5" /> Access verified
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E4E7EC] bg-[#F2F4F7] px-2.5 py-1 text-[11px] font-semibold text-[#475467] dark:border-[#252D3A] dark:bg-[#19202C] dark:text-[#9AA4B5]">
+              <Clock className="h-3.5 w-3.5" /> {quiz.duration ? `${quiz.duration} minutes` : "No fixed duration"}
+            </span>
           </div>
+        </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            {checks.map(({ label, icon: Icon }) => (
-              <div key={label} className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-background p-3">
-                <Icon className="h-4 w-4 shrink-0 text-emerald-500" />
-                <span className="text-xs font-medium text-text-primary">{label}</span>
-              </div>
-            ))}
-          </div>
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          {checks.map(({ label, icon: Icon }) => (
+            <div key={label} className="flex min-w-0 items-center gap-2 rounded-xl border border-[#E4E7EC] bg-[#F7F8FA] p-3 dark:border-[#252D3A] dark:bg-[#111722]">
+              <Icon className="h-4 w-4 shrink-0 text-[#039855] dark:text-[#20D889]" />
+              <span className="text-xs font-medium text-[#101828] dark:text-[#F4F6FA]">{label}</span>
+            </div>
+          ))}
+        </div>
 
-          <div className="mt-5 flex items-center justify-center gap-2 text-xs text-text-secondary">
-            <Clock className="h-4 w-4" /> {quiz.duration ? `${quiz.duration} minutes` : "No fixed duration"}
-          </div>
-
-          <Link href={`/quiz/${code}/attempt`} className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-pink-600 px-5 text-sm font-bold text-white hover:bg-pink-700">
-            Enter assessment
-          </Link>
-        </section>
-      </main>
-    </div>
+        <QuizPrimaryButton href={`/quiz/${code}/attempt`} className="mt-6 w-full min-h-12">
+          Enter assessment
+        </QuizPrimaryButton>
+      </section>
+    </StudentQuizShell>
   );
-}
-
-function Screen({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return <div className="flex min-h-[70vh] items-center justify-center bg-background px-4"><div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 text-center">{icon}<p className="mt-3 text-sm text-text-secondary">{text}</p></div></div>;
 }

@@ -1,8 +1,8 @@
 // Marksheet email service. Sends a formatted email to the quiz creator with the
 // generated marksheet Excel file as an attachment and quiz statistics.
-// Migrated from Nodemailer/SMTP to Resend SDK for Vercel serverless.
-import { Resend } from "resend";
+// Sends via Nodemailer/SMTP (see ./smtp.ts for env configuration).
 import logger from "../utils/logger.ts";
+import { getTransporter, getFromAddress } from "./smtp.ts";
 
 export interface MarksheetEmailPayload {
   to: string;
@@ -22,31 +22,22 @@ export interface MarksheetEmailPayload {
   };
 }
 
-function getResend(): Resend {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    throw new Error("RESEND_API_KEY is missing. Set it in .env and Vercel Dashboard.");
+function requireTransport() {
+  const transporter = getTransporter();
+  const from = getFromAddress();
+  if (!transporter || !from) {
+    throw new Error("Email configuration is incomplete. Please set SMTP_HOST/SMTP_USER/SMTP_PASS (or EMAIL1/GMAIL_APP_PASSWORD1) environment variables.");
   }
-  return new Resend(key);
-}
-
-function getFrom(): string {
-  return process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+  return { transporter, from };
 }
 
 /**
- * Send marksheet email to quiz creator via Resend
+ * Send marksheet email to quiz creator via SMTP
  */
 export async function sendMarksheetEmail(payload: MarksheetEmailPayload): Promise<void> {
   const { to, quizName, quizCode, endTime, marksheetBuffer, stats } = payload;
 
-  // Validate Resend configuration
-  if (!process.env.RESEND_API_KEY) {
-    throw new Error("Email configuration is incomplete. Please set RESEND_API_KEY and RESEND_FROM_EMAIL environment variables.");
-  }
-
-  const resend = getResend();
-  const fromEmail = getFrom();
+  const { transporter, from } = requireTransport();
 
   // Email subject
   const subject = `Quiz Report - ${quizName}`;
@@ -129,30 +120,23 @@ export async function sendMarksheetEmail(payload: MarksheetEmailPayload): Promis
     </div>
   `;
 
-  // Send email via Resend with attachment (base64)
+  // Send email via SMTP with attachment
   try {
-    const { data, error } = await resend.emails.send({
-      from: `Quiz System <${fromEmail}>`,
+    const info = await transporter.sendMail({
+      from: `Quiz System <${from}>`,
       to,
       subject,
       html: htmlBody,
       attachments: [
         {
           filename: `marksheet_${quizCode}_${new Date().toISOString().split("T")[0]}.xlsx`,
-          content: marksheetBuffer.toString("base64"),
+          content: marksheetBuffer,
+          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         },
       ],
     });
 
-    if (error) {
-      if ((error as any).statusCode === 401 || String(error.message).toLowerCase().includes("api key")) {
-        logger.error("Resend API key is missing or invalid. Check RESEND_API_KEY env var.");
-      }
-      logger.error(`Failed to send marksheet email to ${to} for quiz ${quizCode}:`, error);
-      throw new Error(`Failed to send email: ${error.message}`);
-    }
-
-    logger.info(`Marksheet email sent to ${to} for quiz ${quizCode}: ${data?.id}`);
+    logger.info(`Marksheet email sent to ${to} for quiz ${quizCode}: ${info.messageId}`);
   } catch (error) {
     logger.error(`Failed to send marksheet email to ${to} for quiz ${quizCode}:`, error);
     throw new Error(`Failed to send email: ${error instanceof Error ? error.message : String(error)}`);
