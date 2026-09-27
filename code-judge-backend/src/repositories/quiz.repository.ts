@@ -1594,13 +1594,21 @@ export class QuizRepository {
    * Check if a user is an accepted collaborator on a quiz.
    */
   async isAcceptedCollaborator(userId: number, quizId: number): Promise<boolean> {
-    const query = `
-      SELECT 1 FROM quiz_collaborator_request
-      WHERE quiz_id = $1 AND user_id = $2 AND status = 'accepted'
-      LIMIT 1
-    `;
-    const result = await pool.query(query, [quizId, userId]);
-    return result.rows.length > 0;
+    // The quiz_collaborator_request table does not exist yet (collaboration
+    // requests are disabled) — treat as "not a collaborator" instead of
+    // throwing, otherwise every owner/collaborator-gated endpoint 500s.
+    try {
+      const query = `
+        SELECT 1 FROM quiz_collaborator_request
+        WHERE quiz_id = $1 AND user_id = $2 AND status = 'accepted'
+        LIMIT 1
+      `;
+      const result = await pool.query(query, [quizId, userId]);
+      return result.rows.length > 0;
+    } catch (error: any) {
+      if (error?.code === '42P01') return false;
+      throw error;
+    }
   }
 
   /**

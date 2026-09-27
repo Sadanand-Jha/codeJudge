@@ -66,8 +66,10 @@ export async function sendOtpEmail(
   }
 
   const subject = 'Your OTP Verification Code';
-  // OTP digits with spaced letters for the image look "4 2 4 5 9 5"
-  const spacedOtp = otp.split('').join(' ');
+  // OTP digits separated with non-breaking spaces + nowrap styling.
+  // Regular spaces let narrow clients (e.g. Gmail app) line-break mid-code,
+  // rendering "6 9 9 1" over "2 3" on two lines.
+  const spacedOtp = otp.split('').join('&nbsp;');
   const html = `
   <div style="background-color:#f8f7ff;padding:32px 16px;font-family:Inter,Arial,Helvetica,sans-serif;">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #ede9fe;border-radius:16px;box-shadow:0 8px 24px rgba(124,58,237,0.08);">
@@ -87,8 +89,8 @@ export async function sendOtpEmail(
 
         <!-- OTP box -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f3ff;border:1px solid #ede9fe;border-radius:12px;margin:0 0 20px 0;"><tr>
-          <td style="padding:18px 16px;text-align:center;vertical-align:middle;">
-            <span style="font-size:32px;font-weight:800;letter-spacing:10px;color:#7c3aed;line-height:1;display:inline-block;">${spacedOtp}</span>
+          <td style="padding:18px 16px;text-align:center;vertical-align:middle;white-space:nowrap;">
+            <span style="font-size:30px;font-weight:800;letter-spacing:8px;text-indent:8px;color:#7c3aed;line-height:1.2;display:inline-block;white-space:nowrap;word-break:keep-all;">${spacedOtp}</span>
           </td>
           <td style="width:50px;text-align:center;vertical-align:middle;padding-right:12px;">
             <div style="display:inline-block;width:36px;height:36px;background:#ede9fe;border-radius:8px;text-align:center;line-height:36px;">

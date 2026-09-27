@@ -795,6 +795,8 @@ export interface QuizAnalyticsStats {
   highest_score: number;
   lowest_score: number;
   average_completion_time: number;
+  fastest_time?: number | string | null;
+  slowest_time?: number | string | null;
   completion_rate: string;
   total_registrations: number;
 }
@@ -1097,13 +1099,48 @@ export async function respondToCollaboratorRequest(
 export interface QuizResponseStudent {
   user_id: number;
   rollno: string | null;
+  is_registered: boolean;
+  registered_at: string | null;
   username: string | null;
   first_name: string | null;
   last_name: string | null;
+  email: string | null;
+  attempt_id: number | null;
+  score: number | null;
+  percentage: number | null;
+  rank: number | null;
+  attempt_status: string | null;
+  completed_at: string | null;
+  time_taken: number | string | null;
+  total_questions: number | null;
+  correct_answers: number | null;
+  wrong_answers: number | null;
+  skipped_questions: number | null;
+}
+
+export interface QuizResponsesSummary {
+  total: number;
+  submitted: number;
+  not_submitted: number;
+  average_score: number;
+  highest_score: number;
+  lowest_score: number | null;
+  total_marks: number;
 }
 
 export interface QuizResponsesData {
+  quiz: {
+    id: number;
+    name: string;
+    code: string;
+    total_marks: number;
+    passing_marks: number | null;
+    status: string | null;
+    starttime: string | null;
+    endtime: string | null;
+  } | null;
   students: QuizResponseStudent[];
+  summary: QuizResponsesSummary;
 }
 
 /**

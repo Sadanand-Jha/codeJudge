@@ -11,7 +11,7 @@ export function Toaster() {
     <div
       aria-live="polite"
       aria-atomic="false"
-      className="pointer-events-none fixed inset-x-0 top-0 z-[9999] flex flex-col items-center gap-3 p-4 sm:items-end"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[9999] hidden flex-col items-center gap-3 p-4 sm:flex sm:items-end"
     >
       <div className="flex w-full flex-col gap-3 sm:w-auto">
         <AnimatePresence mode="popLayout" initial={false}>
