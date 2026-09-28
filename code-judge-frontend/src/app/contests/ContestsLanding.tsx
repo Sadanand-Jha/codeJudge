@@ -670,14 +670,14 @@ function ContestsContent() {
       <AppLayout>
         <div className={LAYOUT_CLASSES}>
           <div className="pt-8" />
-          <div className="h-64 animate-pulse rounded-3xl border border-border bg-card" />
+          <div className="app-skeleton h-64 rounded-3xl border border-border" />
           <div className="mt-6 grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-            <div className="h-36 animate-pulse rounded-2xl border border-border bg-card" />
-            <div className="h-36 animate-pulse rounded-2xl border border-border bg-card" />
+            <div className="app-skeleton h-36 rounded-2xl border border-border" />
+            <div className="app-skeleton h-36 rounded-2xl border border-border" />
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-60 animate-pulse rounded-2xl border border-border bg-card" />
+              <div key={i} className="app-skeleton h-60 rounded-2xl border border-border" />
             ))}
           </div>
         </div>

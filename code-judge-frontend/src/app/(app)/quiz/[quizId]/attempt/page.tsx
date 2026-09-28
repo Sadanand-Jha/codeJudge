@@ -2,7 +2,7 @@
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ChevronLeft, ChevronRight, Clock, Loader2, Send, ShieldCheck } from "lucide-react";
+import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileCheck2, Loader2, Send, ShieldCheck, Sparkles, Volume2, VolumeX } from "lucide-react";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
 import {
   getQuizByCode,
@@ -22,6 +22,7 @@ import {
   writeQuizAttemptAnswers,
   type StoredAttemptAnswer,
 } from "@/lib/quizAttemptStorage";
+import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
 
 type AnswerValue = StoredAttemptAnswer;
 
@@ -77,6 +78,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const [submitting, setSubmitting] = useState(false);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { soundEnabled, playQuizSound, toggleQuizSounds } = useQuizSounds();
   const answersRef = useRef<Record<number, AnswerValue>>({});
   // Ref mirror of `submitting` so the submit guard never goes stale inside
   // the long-lived polling loop (state in the useCallback closure would).
@@ -123,29 +125,38 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     submittingRef.current = true;
     setSubmitting(true);
     setError(null);
+    const submissionStartedAt = Date.now();
     const finishSubmission = () => {
-      // Backend confirmed — answers are safely stored, drop the local copy.
-      try {
-        clearQuizAttemptAnswers(id);
-      } catch {
-        // Ignore storage errors on cleanup.
-      }
-      const resultsAvailable = quiz?.show_results_immediately === true ||
-        String(quiz?.status ?? "").toLowerCase() === "ended" ||
-        Boolean(quiz?.endtime && new Date(quiz.endtime).getTime() <= Date.now());
-      // Release the button before navigating: if router.replace is slow or
-      // blocked, the spinner must not stick forever.
-      submittingRef.current = false;
-      setSubmitting(false);
-      if (resultsAvailable) {
-        router.replace(`/quiz/${code}/results/${id}`);
-      } else {
-        toast.success({
-          title: "Quiz submitted",
-          description: "Your answers are secure. Results will be available after the quiz ends.",
-        });
-        router.replace("/quiz#activity");
-      }
+      const complete = () => {
+        // Backend confirmed — answers are safely stored, drop the local copy.
+        try {
+          clearQuizAttemptAnswers(id);
+        } catch {
+          // Ignore storage errors on cleanup.
+        }
+        const resultsAvailable = quiz?.show_results_immediately === true ||
+          String(quiz?.status ?? "").toLowerCase() === "ended" ||
+          Boolean(quiz?.endtime && new Date(quiz.endtime).getTime() <= Date.now());
+        // Release the button before navigating: if router.replace is slow or
+        // blocked, the spinner must not stick forever.
+        submittingRef.current = false;
+        setSubmitting(false);
+        playQuizSound("success");
+        if (resultsAvailable) {
+          router.replace(`/quiz/${code}/results/${id}`);
+        } else {
+          toast.success({
+            title: "Quiz submitted",
+            description: "Your answers are secure. Results will be available after the quiz ends.",
+          });
+          router.replace("/quiz#activity");
+        }
+      };
+      // Let students perceive the confirmation sequence even when grading is
+      // near-instant; the API has already confirmed success before this delay.
+      const remaining = Math.max(0, 2400 - (Date.now() - submissionStartedAt));
+      if (remaining > 0) window.setTimeout(complete, remaining);
+      else complete();
     };
     const buildResponses = () =>
       Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer }));
@@ -207,6 +218,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         // Worker is slow but answers are safely queued; stop blocking the UI.
         submittingRef.current = false;
         setSubmitting(false);
+        playQuizSound("success");
         toast.success({
           title: "Quiz submitted",
           description: "Grading is taking longer than usual. Results will appear shortly.",
@@ -220,8 +232,9 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       submittingRef.current = false;
       setError(getApiErrorMessage(err, "Your attempt could not be submitted. Your answers are saved on this device — try again."));
       setSubmitting(false);
+      playQuizSound("error");
     }
-  }, [attemptId, code, quiz, router]);
+  }, [attemptId, code, playQuizSound, quiz, router]);
 
   // Exam-cell: after 3 violations the attempt is auto-submitted and flagged.
   const handleTerminate = useCallback((summary: ViolationSummary) => {
@@ -296,8 +309,9 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   }, [attemptId]);
 
   const handleManualSubmit = useCallback(() => {
+    playQuizSound("submit");
     void submit();
-  }, [submit]);
+  }, [playQuizSound, submit]);
 
   const formattedTime = useMemo(() => {
     if (timeLeft === null) return "No limit";
@@ -321,6 +335,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       onExitPreview={() => router.replace(`/quiz/${code}`)}
       onTerminate={handleTerminate}
     >
+      {submitting && <SubmissionProgressOverlay soundEnabled={soundEnabled} onSound={playQuizSound} />}
       {starting || (!attemptId && !error) ? (
         <div className="flex h-full items-center justify-center p-6">
           <StatusScreen loading text="Starting your secure attempt…" />
@@ -341,8 +356,13 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
               <h1 className="mt-1 break-words text-base font-bold text-text-primary sm:text-lg">{quiz.name}</h1>
               <p className="mt-1 text-xs text-text-secondary">Question {index + 1} of {questions.length} · {answered} answered</p>
             </div>
-            <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 font-mono text-sm font-bold text-text-primary">
-              <Clock className="h-4 w-4 text-pink-500" /> {formattedTime}
+            <div className="flex shrink-0 items-center gap-2">
+              <button type="button" onClick={toggleQuizSounds} className="grid h-9 w-9 place-items-center rounded-xl border border-border bg-background text-text-secondary transition hover:border-pink-500/30 hover:text-text-primary" aria-label={soundEnabled ? "Mute quiz sounds" : "Enable quiz sounds"} title={soundEnabled ? "Quiz sounds on" : "Quiz sounds off"}>
+                {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </button>
+              <div className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 font-mono text-sm font-bold text-text-primary">
+                <Clock className="h-4 w-4 text-pink-500" /> {formattedTime}
+              </div>
             </div>
           </div>
           <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-card-hover">
@@ -367,6 +387,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
                   key={option.id}
                   type="button"
                   onClick={() => {
+                    playQuizSound("select");
                     if (multiple) {
                       const currentOptions = answers[current.id]?.options ?? [];
                       persistAnswer(current.id, {
@@ -408,16 +429,16 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         )}
 
         <footer className="grid grid-cols-2 gap-3 sm:grid-cols-[auto_1fr_auto]">
-          <button type="button" onClick={() => setIndex((value) => Math.max(0, value - 1))} disabled={index === 0} className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-text-primary disabled:opacity-40">
+          <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-text-primary disabled:opacity-40">
             <ChevronLeft className="h-4 w-4" /> Previous
           </button>
           {index < questions.length - 1 ? (
-            <button type="button" onClick={() => setIndex((value) => Math.min(questions.length - 1, value + 1))} className="col-start-2 inline-flex min-h-11 items-center justify-center gap-1 rounded-xl bg-pink-600 px-4 text-sm font-semibold text-white sm:col-start-3">
+            <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.min(questions.length - 1, value + 1)); }} className="col-start-2 inline-flex min-h-11 items-center justify-center gap-1 rounded-xl bg-pink-600 px-4 text-sm font-semibold text-white sm:col-start-3">
               Next <ChevronRight className="h-4 w-4" />
             </button>
           ) : (
             <button type="button" onClick={handleManualSubmit} disabled={submitting} className="col-start-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-50 sm:col-start-3">
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Submit
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> : <Send className="h-4 w-4" />} {submitting ? "Submitting…" : "Submit"}
             </button>
           )}
         </footer>
@@ -425,6 +446,90 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       </div>
       )}
     </ExamModeShell>
+  );
+}
+
+const SUBMISSION_STAGES = [
+  { after: 0, title: "Securing your answers", detail: "Saving every response safely…", icon: ShieldCheck },
+  { after: 600, title: "Checking your exam", detail: "Making sure your submission is complete…", icon: FileCheck2 },
+  { after: 1200, title: "Analyzing your responses", detail: "Reviewing your answers question by question…", icon: BrainCircuit },
+  { after: 1800, title: "Generating your result", detail: "Turning your attempt into meaningful feedback…", icon: Sparkles },
+] as const;
+
+function SubmissionProgressOverlay({ soundEnabled, onSound }: { soundEnabled: boolean; onSound: (sound: QuizSound) => void }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => setElapsed(Date.now() - startedAt), 200);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const stageIndex = SUBMISSION_STAGES.reduce(
+    (active, stage, index) => elapsed >= stage.after ? index : active,
+    0,
+  );
+  const stage = SUBMISSION_STAGES[stageIndex];
+  const StageIcon = stage.icon;
+  // Deliberately stops short of 100%; completion is controlled by the real API.
+  const progress = Math.min(94, 12 + (1 - Math.exp(-elapsed / 4800)) * 84);
+
+  useEffect(() => {
+    if (soundEnabled && stageIndex > 0) onSound("stage");
+  }, [onSound, soundEnabled, stageIndex]);
+
+  return (
+    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-md" role="status" aria-live="polite" aria-label={stage.title}>
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-white p-6 text-slate-950 shadow-[0_30px_100px_rgba(0,0,0,.45)] dark:bg-[#101016] dark:text-white sm:p-8">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-pink-500/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-violet-500/15 blur-3xl" />
+
+        <div className="relative">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-[0_12px_36px_rgba(236,72,153,.3)]">
+            <StageIcon key={stageIndex} className="h-8 w-8 animate-[quiz-submit-pop_.35s_ease-out] motion-reduce:animate-none" />
+          </div>
+          <p className="mt-5 text-center text-[11px] font-bold uppercase tracking-[0.22em] text-pink-600 dark:text-pink-400">Submission in progress</p>
+          <h2 key={`title-${stageIndex}`} className="mt-2 animate-[quiz-submit-rise_.3s_ease-out] text-center text-xl font-bold tracking-tight motion-reduce:animate-none sm:text-2xl">
+            {stage.title}
+          </h2>
+          <p key={`detail-${stageIndex}`} className="mt-2 min-h-10 animate-[quiz-submit-rise_.3s_ease-out] text-center text-sm leading-5 text-slate-500 motion-reduce:animate-none dark:text-white/55">
+            {stage.detail}
+          </p>
+
+          <div className="mt-6 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+            <div className="h-full rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-500 transition-[width] duration-500 ease-out motion-reduce:transition-none" style={{ width: `${progress}%` }} />
+          </div>
+
+          <div className="mt-5 grid grid-cols-4 gap-2" aria-hidden="true">
+            {SUBMISSION_STAGES.map((item, itemIndex) => (
+              <div key={item.title} className="flex flex-col items-center gap-2">
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-bold transition-colors duration-300 ${itemIndex < stageIndex ? "border-emerald-500 bg-emerald-500 text-white" : itemIndex === stageIndex ? "border-pink-500 bg-pink-500 text-white" : "border-slate-200 bg-slate-50 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white/30"}`}>
+                  {itemIndex < stageIndex ? <CheckCircle2 className="h-3.5 w-3.5" /> : itemIndex + 1}
+                </span>
+                <span className={`hidden text-center text-[9px] leading-3 sm:block ${itemIndex <= stageIndex ? "text-slate-600 dark:text-white/65" : "text-slate-400 dark:text-white/30"}`}>
+                  {item.title.replace(" your", "")}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-6 text-center text-[11px] text-slate-400 dark:text-white/35">Please keep this window open. Your answers are safe.</p>
+        </div>
+      </div>
+      <style jsx>{`
+        @keyframes quiz-submit-pop {
+          from { opacity: 0; transform: scale(.72) rotate(-8deg); }
+          to { opacity: 1; transform: scale(1) rotate(0); }
+        }
+        @keyframes quiz-submit-rise {
+          from { opacity: 0; transform: translateY(5px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          * { scroll-behavior: auto !important; }
+        }
+      `}</style>
+    </div>
   );
 }
 

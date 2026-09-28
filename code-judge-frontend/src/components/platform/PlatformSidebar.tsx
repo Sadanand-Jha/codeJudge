@@ -5,10 +5,10 @@ import Link from "next/link";
 import {
   LayoutDashboard, Radio, Activity, FlaskConical, ListOrdered, Users,
   Sparkles, Server, AlertTriangle, Cpu, ShieldCheck, ScrollText,
-  ArrowLeft, type LucideIcon,
+  ArrowLeft, LogOut, type LucideIcon,
 } from "lucide-react";
-import { useAuthStore } from "@/store/authStore";
-import { getPlatformEmail } from "@/lib/platformToken";
+import { ownerLogout } from "@/services/auth";
+import { clearPlatformSession, getPlatformEmail, notifyPlatformSessionInvalid } from "@/lib/platformToken";
 import { StatusDot } from "@/components/platform/ui";
 
 export const PLATFORM_SECTION_IDS = [
@@ -79,9 +79,21 @@ function scrollTo(id: string) {
 }
 
 function SidebarBody({ active, onNavigate, healthOk }: { active: string; onNavigate?: () => void; healthOk: boolean | null }) {
-  const user = useAuthStore((s) => s.user);
   const [platformEmail] = useState(() => getPlatformEmail());
-  const name = user?.displayName || user?.username || platformEmail || "Owner";
+  const [signingOut, setSigningOut] = useState(false);
+  const name = platformEmail || "Owner";
+  const signOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await ownerLogout();
+    } finally {
+      clearPlatformSession();
+      notifyPlatformSessionInvalid(401);
+      setSigningOut(false);
+      onNavigate?.();
+    }
+  };
   return (
     <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-[var(--border)] px-4 pb-4 pt-4">
@@ -150,6 +162,15 @@ function SidebarBody({ active, onNavigate, healthOk }: { active: string; onNavig
           <ArrowLeft size={15} className="text-[var(--text-muted)]" />
           Back to Quiz
         </Link>
+        <button
+          type="button"
+          onClick={signOut}
+          disabled={signingOut}
+          className="mt-0.5 flex w-full items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-left text-[13px] text-[var(--text-secondary)] hover:bg-[var(--danger)]/8 hover:text-[var(--danger)] disabled:opacity-50"
+        >
+          <LogOut size={15} />
+          {signingOut ? "Signing out…" : "Sign out"}
+        </button>
       </div>
     </div>
   );

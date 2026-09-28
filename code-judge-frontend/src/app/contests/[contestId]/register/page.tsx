@@ -97,8 +97,8 @@ function ContestRegisterContent({ params }: { params: { contestId: string } }) {
       <AppLayout>
         <div className="px-6 py-6">
           <div className="max-w-4xl mx-auto space-y-6">
-            <div className="h-8 w-48 bg-card animate-pulse rounded-lg" />
-            <div className="h-64 rounded-2xl bg-card animate-pulse" />
+            <div className="app-skeleton h-8 w-48 rounded-lg" />
+            <div className="app-skeleton h-64 rounded-2xl" />
           </div>
         </div>
       </AppLayout>

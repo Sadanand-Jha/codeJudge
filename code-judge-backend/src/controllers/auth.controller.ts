@@ -537,7 +537,6 @@ export const ownerVerifyOtpController = async (req: Request, res: Response) => {
       message: "Owner login successful",
       data: {
         user: mergedData,
-        platform_token: platformToken,
       },
     });
   } catch (error: any) {

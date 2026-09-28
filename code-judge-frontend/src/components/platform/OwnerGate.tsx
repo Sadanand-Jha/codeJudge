@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { ShieldCheck } from "lucide-react";
-import { logout as logoutSession, ownerSendOtp, ownerVerifyOtp, ownerLogout } from "@/services/auth";
+import { ownerSendOtp, ownerVerifyOtp, ownerLogout } from "@/services/auth";
 import { platformApi } from "@/services/platform";
-import { getPlatformToken, setPlatformSession, clearPlatformSession } from "@/lib/platformToken";
+import { PLATFORM_SESSION_INVALID_EVENT, setPlatformSession, clearPlatformSession } from "@/lib/platformToken";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export type GateState = "checking" | "otp" | "denied" | "unavailable" | "open";
@@ -21,10 +21,11 @@ export function usePlatformGate(): { gate: GateState; setGate: (g: GateState) =>
 
   useEffect(() => {
     let cancelled = false;
-    if (!getPlatformToken()) {
-      queueMicrotask(() => { if (!cancelled) setGate("otp"); });
-      return () => { cancelled = true; };
-    }
+    const handleInvalid = (event: Event) => {
+      const status = (event as CustomEvent<{ status?: number }>).detail?.status;
+      setGate(status === 403 ? "denied" : "otp");
+    };
+    window.addEventListener(PLATFORM_SESSION_INVALID_EVENT, handleInvalid);
     platformApi
       .session()
       .then(() => { if (!cancelled) setGate("open"); })
@@ -40,7 +41,10 @@ export function usePlatformGate(): { gate: GateState; setGate: (g: GateState) =>
           setGate("unavailable");
         }
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      window.removeEventListener(PLATFORM_SESSION_INVALID_EVENT, handleInvalid);
+    };
   }, []);
 
   return { gate, setGate };
@@ -70,12 +74,16 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
 
   const send = () => {
     const v = email.trim().toLowerCase();
-    if (!v) return;
+    if (!/^\S+@\S+\.\S+$/.test(v)) {
+      setError("Enter a valid owner email address.");
+      return;
+    }
     setBusy(true);
     setError(null);
     ownerSendOtp({ email: v })
       .then((r) => {
         setStep("code");
+        setCode("");
         setInfo(r.message || "If an owner account exists for this email, an OTP has been sent.");
         setCooldown(60);
       })
@@ -93,19 +101,16 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
     setError(null);
     try {
       const r = await ownerVerifyOtp({ email: v, otp: code.trim() });
-      const d = (r.data ?? r) as { user?: { email?: string }; platform_token?: string };
-      const platformToken = d.platform_token;
-      if (!platformToken) {
-        setError("Login succeeded but no platform session was returned. Please try again.");
-        return;
-      }
-      // Persist the dedicated platform token (isolated from regular auth),
-      // then prove it against the server before opening the gate.
-      setPlatformSession(platformToken, d.user?.email ?? v);
+      const d = (r.data ?? r) as { user?: { email?: string } };
+      // The credential is an HttpOnly cookie; JavaScript stores only the
+      // non-sensitive display email, then proves the cookie against the API.
+      setPlatformSession(d.user?.email ?? v);
       try {
         await platformApi.session();
       } catch {
         clearPlatformSession();
+        setStep("email");
+        setCode("");
         setError("Platform authorization failed for this session. Please try again.");
         return;
       }
@@ -124,12 +129,6 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
       await ownerLogout();
     } catch {
       // Clear local credentials even if the server session already expired.
-    }
-    try {
-      // Also end any regular user session so no credential lingers.
-      await logoutSession();
-    } catch {
-      // ignore
     }
     clearPlatformSession();
     setStep("email");
@@ -186,7 +185,7 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
               placeholder="owner@example.com"
               className="pf-focus h-10 w-full rounded-[9px] border border-[var(--border)] bg-[var(--platform-input)] px-3 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
             />
-            {error && <p className="text-[12px] text-[var(--danger)]">{error}</p>}
+            {error && <p role="alert" aria-live="polite" className="text-[12px] text-[var(--danger)]">{error}</p>}
             <button
               onClick={send}
               disabled={busy || !email.trim()}
@@ -216,8 +215,8 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
               placeholder="••••••"
               className="pf-focus h-11 w-full rounded-[9px] border border-[var(--border)] bg-[var(--platform-input)] px-3 text-center text-[16px] tracking-[0.4em] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
             />
-            {info && <p className="text-[12px] text-[var(--text-secondary)]">{info}</p>}
-            {error && <p className="text-[12px] text-[var(--danger)]">{error}</p>}
+            {info && <p role="status" aria-live="polite" className="text-[12px] text-[var(--text-secondary)]">{info}</p>}
+            {error && <p role="alert" aria-live="polite" className="text-[12px] text-[var(--danger)]">{error}</p>}
             <button
               onClick={verify}
               disabled={busy || code.trim().length !== 6}
@@ -233,7 +232,7 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
               >
                 {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
               </button>
-              <button onClick={() => { setStep("email"); setError(null); }} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              <button onClick={() => { setStep("email"); setCode(""); setInfo(null); setError(null); }} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                 Change email
               </button>
             </div>

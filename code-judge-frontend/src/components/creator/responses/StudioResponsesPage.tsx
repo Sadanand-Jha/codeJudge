@@ -404,8 +404,8 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
           {loading ? (
             Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="rounded-xl border border-border bg-card p-3">
-                <div className="h-3 w-16 animate-pulse rounded bg-card-hover" />
-                <div className="mt-2 h-6 w-12 animate-pulse rounded bg-card-hover" />
+                <div className="app-skeleton h-3 w-16 rounded" />
+                <div className="app-skeleton mt-2 h-6 w-12 rounded" />
               </div>
             ))
           ) : (
@@ -636,7 +636,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="border-b border-border/50">
                       <td colSpan={10} className="px-4 py-3">
-                        <div className="h-5 animate-pulse rounded bg-card-hover" />
+                        <div className="app-skeleton h-5 rounded" />
                       </td>
                     </tr>
                   ))
@@ -750,7 +750,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   {detailLoading ? (
                     <div className="space-y-2">
                       {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-14 animate-pulse rounded-lg bg-card-hover" />
+                        <div key={i} className="app-skeleton h-14 rounded-lg" />
                       ))}
                     </div>
                   ) : detailPanel.attemptId === null ? (

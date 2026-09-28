@@ -193,6 +193,10 @@
   --profile-accent-soft: rgba(232, 90, 173, 0.10);
   --profile-purple: #8B7CF6;
   --profile-purple-soft: rgba(139, 124, 246, 0.10);
+
+  /* Shared API-loading treatment */
+  --skeleton-base: rgba(255, 255, 255, 0.055);
+  --skeleton-highlight: rgba(255, 255, 255, 0.075);
 }
 
 /* ============================================
@@ -281,6 +285,34 @@
   --profile-accent-soft: rgba(236, 72, 153, 0.08);
   --profile-purple: #EC4899;
   --profile-purple-soft: rgba(236, 72, 153, 0.08);
+  --skeleton-base: rgba(15, 23, 42, 0.065);
+  --skeleton-highlight: rgba(255, 255, 255, 0.7);
+}
+
+/* Shared skeleton primitive for API-backed content across student and creator UI. */
+.app-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--skeleton-base);
+}
+
+.app-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(90deg, transparent 12%, var(--skeleton-highlight) 50%, transparent 88%);
+  animation: app-skeleton-shimmer 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes app-skeleton-shimmer {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-skeleton::after { animation: none; opacity: .35; }
 }
 
 @theme inline {

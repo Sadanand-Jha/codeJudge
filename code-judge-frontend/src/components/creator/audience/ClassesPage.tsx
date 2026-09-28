@@ -81,11 +81,11 @@ export function ClassesPage({ demoState }: { demoState?: "empty" | "error" }) {
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="animate-pulse rounded-2xl border border-border bg-card p-5">
-                <div className="h-4 w-32 rounded-lg bg-white/[0.06]" />
-                <div className="mt-3 h-3 w-full rounded-lg bg-white/[0.06]" />
-                <div className="mt-4 h-3 w-2/3 rounded-lg bg-white/[0.06]" />
-                <div className="mt-6 h-24 w-full rounded-xl bg-white/[0.05]" />
+              <div key={i} className="rounded-2xl border border-border bg-card p-5">
+                <div className="app-skeleton h-4 w-32 rounded-lg" />
+                <div className="app-skeleton mt-3 h-3 w-full rounded-lg" />
+                <div className="app-skeleton mt-4 h-3 w-2/3 rounded-lg" />
+                <div className="app-skeleton mt-6 h-24 w-full rounded-xl" />
               </div>
             ))}
           </div>

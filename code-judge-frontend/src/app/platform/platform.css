@@ -17,6 +17,8 @@
   --platform-input: rgba(0,0,0,.12);
   --platform-grid-line: rgba(255,255,255,.025);
   --platform-skeleton: rgba(255,255,255,.06);
+  --platform-skeleton-strong: rgba(255,255,255,.13);
+  --platform-shimmer: rgba(255,255,255,.055);
   --platform-shadow: 0 1px 0 rgba(255,255,255,.025), 0 18px 48px rgba(0,0,0,.10);
   color-scheme: dark;
 }
@@ -40,6 +42,8 @@
   --platform-input: #fafafa;
   --platform-grid-line: rgba(24,24,27,.04);
   --platform-skeleton: rgba(24,24,27,.07);
+  --platform-skeleton-strong: rgba(24,24,27,.14);
+  --platform-shimmer: rgba(255,255,255,.62);
   --platform-shadow: 0 1px 2px rgba(24,24,27,.035), 0 14px 38px rgba(24,24,27,.055);
   color-scheme: light;
 }
@@ -69,6 +73,28 @@
 .pf-card:hover {
   border-color: var(--border-hover);
   box-shadow: 0 12px 34px rgba(0,0,0,.16);
+}
+
+.pf-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--platform-skeleton);
+}
+
+.pf-skeleton::after,
+.pf-skeleton-chart::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  transform: translateX(-120%);
+  background: linear-gradient(90deg, transparent 15%, var(--platform-shimmer) 50%, transparent 85%);
+  animation: pf-shimmer 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.pf-loaded {
+  animation: pf-loaded 180ms ease-out both;
 }
 
 .pf-focus:focus-visible {
@@ -105,7 +131,18 @@
   50% { opacity: 0.35; }
 }
 
+@keyframes pf-shimmer {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+
+@keyframes pf-loaded {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pf-pulse, .pf-reveal, .pf-chart-path { animation: none; }
+  .pf-pulse, .pf-reveal, .pf-chart-path, .pf-loaded,
+  .pf-skeleton::after, .pf-skeleton-chart::after { animation: none; }
 
 }

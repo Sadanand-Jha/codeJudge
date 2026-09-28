@@ -1,12 +1,11 @@
 import axios from "axios";
-import { getPlatformToken } from "@/lib/platformToken";
+import { clearPlatformSession, notifyPlatformSessionInvalid } from "@/lib/platformToken";
 
 /**
  * Owner-only platform API client.
- * Uses a DEDICATED axios instance that sends ONLY the platform token
- * (platform_session cookie + Bearer fallback). The regular user session is
- * never attached here, and the platform token is never sent to non-platform
- * endpoints. All endpoints are server-side gated by requireOwner.
+ * Uses a DEDICATED axios instance authenticated only by the HttpOnly
+ * platform_session cookie. The regular user session is never attached here.
+ * All endpoints are server-side gated by requireOwner.
  */
 
 const rawBase =
@@ -23,16 +22,6 @@ const platformClient = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-platformClient.interceptors.request.use((config) => {
-  const token = getPlatformToken();
-  if (token) {
-    (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
-  } else {
-    delete (config.headers as Record<string, string>).Authorization;
-  }
-  return config;
-});
-
 platformClient.interceptors.response.use(
   (response) => {
     if (response.data && typeof response.data === "object" && "success" in response.data) {
@@ -42,7 +31,14 @@ platformClient.interceptors.response.use(
     }
     return response;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    const status = error?.response?.status;
+    if (status === 401 || status === 403) {
+      clearPlatformSession();
+      notifyPlatformSessionInvalid(status);
+    }
+    return Promise.reject(error);
+  }
 );
 
 export type PlatformRange = "today" | "7d" | "30d" | "90d";

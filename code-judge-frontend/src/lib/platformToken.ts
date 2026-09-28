@@ -2,15 +2,13 @@ import { STORAGE_KEYS } from "@/utils/storageKeys";
 
 /**
  * Isolated platform session storage.
- * The platform token (minted only by owner OTP verification) is kept
- * COMPLETELY separate from the regular user auth (`byteclash_auth`):
- * it is never written to the auth store and never sent to non-platform
- * endpoints. The httpOnly `platform_session` cookie is the primary
- * credential; this stored copy is the Bearer fallback.
+ * The platform JWT lives only in the httpOnly `platform_session` cookie.
+ * JavaScript stores the display email, never the credential itself. This
+ * keeps the owner session isolated from regular auth and inaccessible to XSS.
  */
 
-const TOKEN_KEY = STORAGE_KEYS.PLATFORM_TOKEN;
 const EMAIL_KEY = STORAGE_KEYS.PLATFORM_EMAIL;
+export const PLATFORM_SESSION_INVALID_EVENT = "platform-session-invalid";
 
 function safeGet(key: string): string | null {
   try {
@@ -21,17 +19,15 @@ function safeGet(key: string): string | null {
   }
 }
 
-export function getPlatformToken(): string | null {
-  return safeGet(TOKEN_KEY);
-}
-
 export function getPlatformEmail(): string | null {
   return safeGet(EMAIL_KEY);
 }
 
-export function setPlatformSession(token: string, email: string): void {
+export function setPlatformSession(email: string): void {
   try {
-    localStorage.setItem(TOKEN_KEY, token);
+    // Remove the legacy JS-readable token during migration. Authentication is
+    // now cookie-only; only this non-sensitive label remains in storage.
+    localStorage.removeItem(STORAGE_KEYS.PLATFORM_TOKEN);
     localStorage.setItem(EMAIL_KEY, email);
   } catch {
     // Storage unavailable — the httpOnly cookie still carries the session.
@@ -40,9 +36,14 @@ export function setPlatformSession(token: string, email: string): void {
 
 export function clearPlatformSession(): void {
   try {
-    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(STORAGE_KEYS.PLATFORM_TOKEN);
     localStorage.removeItem(EMAIL_KEY);
   } catch {
     // ignore
   }
+}
+
+export function notifyPlatformSessionInvalid(status: 401 | 403 = 401): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(PLATFORM_SESSION_INVALID_EVENT, { detail: { status } }));
 }

@@ -180,10 +180,10 @@ export default function ProfileOverview() {
     return (
       <div className="px-4 py-6 sm:px-6">
         <div className="mx-auto max-w-7xl space-y-6">
-          <div className="h-64 animate-pulse rounded-3xl border border-border bg-card" />
+          <div className="app-skeleton h-64 rounded-3xl border border-border" />
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="h-72 animate-pulse rounded-2xl border border-border bg-card lg:col-span-2" />
-            <div className="h-72 animate-pulse rounded-2xl border border-border bg-card" />
+            <div className="app-skeleton h-72 rounded-2xl border border-border lg:col-span-2" />
+            <div className="app-skeleton h-72 rounded-2xl border border-border" />
           </div>
         </div>
       </div>

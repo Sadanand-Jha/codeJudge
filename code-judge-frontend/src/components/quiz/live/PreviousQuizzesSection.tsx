@@ -723,14 +723,14 @@ function AttemptSkeletonGrid() {
     <div className="grid grid-cols-1 gap-2">
       {Array.from({ length: 6 }).map((_, index) => (
         <div key={index} className="rounded-lg border border-border bg-card-hover p-2.5">
-          <div className="animate-pulse space-y-2">
+          <div className="space-y-2" role="status" aria-label="Loading previous quiz">
             <div className="flex items-center gap-2">
-              <div className="h-4 w-16 rounded bg-border" />
-              <div className="h-4 w-20 rounded bg-border" />
-              <div className="h-4 w-10 rounded bg-border" />
+              <div className="app-skeleton h-4 w-16 rounded" />
+              <div className="app-skeleton h-4 w-20 rounded" />
+              <div className="app-skeleton h-4 w-10 rounded" />
             </div>
-            <div className="h-3.5 w-2/3 rounded bg-border" />
-            <div className="h-2.5 w-1/2 rounded bg-border" />
+            <div className="app-skeleton h-3.5 w-2/3 rounded" />
+            <div className="app-skeleton h-2.5 w-1/2 rounded" />
           </div>
         </div>
       ))}

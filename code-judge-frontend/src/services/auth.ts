@@ -154,16 +154,9 @@ export async function ownerVerifyOtp(payload: { email: string; otp: string }): P
 }
 
 export async function ownerLogout(): Promise<void> {
-  // Revokes the platform token server-side. The platform_session cookie is
-  // sent automatically (same-origin); the Bearer fallback covers the rest.
-  const { getPlatformToken } = await import("@/lib/platformToken");
-  const token = getPlatformToken();
+  // Revokes the cookie-only platform session server-side.
   try {
-    await apiClient.post(
-      "/auth/owner/logout",
-      {},
-      token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
-    );
+    await apiClient.post("/auth/owner/logout", {});
   } catch {
     // Revocation is best-effort; local platform credentials are cleared anyway.
   }

@@ -468,7 +468,7 @@ export function DateRangePicker({
    Loading skeletons
    ============================================================ */
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-lg bg-white/[0.06] dark:bg-white/[0.05]", className)} />;
+  return <div className={cn("app-skeleton rounded-lg", className)} aria-hidden="true" />;
 }
 
 export function StatCardSkeleton() {

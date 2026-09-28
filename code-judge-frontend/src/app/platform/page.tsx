@@ -8,7 +8,7 @@ import { usePlatformGate, OwnerGate } from "@/components/platform/OwnerGate";
 import { PlatformSidebar, PlatformSidebarDrawer } from "@/components/platform/PlatformSidebar";
 import { platformApi } from "@/services/platform";
 import type { OverviewData, LiveData, ActivityItem, PlatformRange } from "@/services/platform";
-import { SectionCard, SectionSkeleton, EmptyState, ErrorState, StatusDot, fmtInt, fmtPct, fmtDuration, timeAgo } from "@/components/platform/ui";
+import { ChartSkeleton, FeedSkeleton, HealthSkeleton, HeartbeatSkeleton, HeatmapSkeleton, KpiGridSkeleton, MiniStatsSkeleton, ProgressSkeleton, SectionCard, SectionSkeleton, TableSkeleton, EmptyState, ErrorState, StatusDot, fmtInt, fmtPct, fmtDuration, timeAgo } from "@/components/platform/ui";
 import { SeriesChart } from "@/components/platform/charts";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
@@ -224,12 +224,12 @@ function PlatformDashboard() {
         </div>
 
         {/* Platform heartbeat */}
-        {overview.loading ? <SectionSkeleton rows={2} /> : overview.error ? <ErrorState message={overview.error.message} onRetry={overview.retry} /> : o && (
+        {overview.loading ? <HeartbeatSkeleton /> : overview.error ? <ErrorState message={overview.error.message} onRetry={overview.retry} /> : o && (
           <HeartbeatPanel overview={o} live={live} points={series.data?.points ?? []} />
         )}
 
         {/* KPI grid */}
-        {overview.loading ? <SectionSkeleton rows={2} /> :
+        {overview.loading ? <KpiGridSkeleton /> :
           overview.error ? <ErrorState message={overview.error.message} onRetry={overview.retry} /> : o && (
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <KpiCard
@@ -281,7 +281,7 @@ function PlatformDashboard() {
             right={<span className="pf-pulse inline-block h-1.5 w-1.5 rounded-full bg-[var(--success)]" aria-hidden="true" />}
             id="live"
           >
-            {!live && !liveError ? <SectionSkeleton rows={3} /> : liveError || !live ? <EmptyState message="Data unavailable" /> : (
+            {!live && !liveError ? <FeedSkeleton rows={4} stats /> : liveError || !live ? <EmptyState message="Data unavailable" /> : (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <LiveStat value={live.online} label="users online" />
@@ -323,7 +323,7 @@ function PlatformDashboard() {
             <h2 className="text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">Quiz analytics</h2>
             <p className="text-[13px] text-[var(--text-secondary)]">How assessments are being created and consumed.</p>
           </div>
-          {quizzesQ.loading ? <SectionSkeleton rows={3} /> : quizzesQ.error ? <ErrorState message={quizzesQ.error.message} onRetry={quizzesQ.retry} /> : quizzesQ.data && (
+          {quizzesQ.loading ? <div className="space-y-4"><MiniStatsSkeleton /><div className="grid gap-4 lg:grid-cols-2"><SectionCard title="Attempts over time" subtitle="Quiz attempts"><ChartSkeleton heightClass="h-[170px]" /></SectionCard><SectionCard title="Assessment Journey" subtitle="Student completion path"><SectionSkeleton rows={5} /></SectionCard></div></div> : quizzesQ.error ? <ErrorState message={quizzesQ.error.message} onRetry={quizzesQ.retry} /> : quizzesQ.data && (
             <>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 <MiniStat label="Total quizzes" value={fmtInt(quizzesQ.data.byStatus?.reduce((s, x) => s + x.n, 0) ?? null)} />
@@ -355,7 +355,7 @@ function PlatformDashboard() {
 
         {/* Top quizzes */}
         <SectionCard id="top-quizzes" title="Top quizzes" subtitle="Select a row to open quiz details">
-          {quizzesQ.loading ? <SectionSkeleton rows={4} /> : quizzesQ.error ? <ErrorState message={quizzesQ.error.message} onRetry={quizzesQ.retry} /> :
+          {quizzesQ.loading ? <TableSkeleton rows={5} columns={7} /> : quizzesQ.error ? <ErrorState message={quizzesQ.error.message} onRetry={quizzesQ.retry} /> :
             !quizzesQ.data?.top?.length ? <EmptyState message="No quizzes yet" /> : <TopQuizzesTable rows={quizzesQ.data.top} />}
         </SectionCard>
 
@@ -364,7 +364,7 @@ function PlatformDashboard() {
           <h2 className="text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">User analytics</h2>
           <div className="grid gap-4 lg:grid-cols-2">
             <SectionCard title="User growth" subtitle={`New users per day · last ${rangeKey}`}>
-              {growth.loading ? <SectionSkeleton /> : growth.error ? <ErrorState message={growth.error.message} onRetry={growth.retry} /> :
+              {growth.loading ? <ChartSkeleton heightClass="h-[180px]" /> : growth.error ? <ErrorState message={growth.error.message} onRetry={growth.retry} /> :
                 !growth.data?.points ? <EmptyState message="Data unavailable" /> : (
                 <SeriesChart
                   points={growth.data.points.map((p) => ({ label: String(p.date).slice(5), users: p.new_users }))}
@@ -373,13 +373,13 @@ function PlatformDashboard() {
               )}
             </SectionCard>
             <SectionCard title="Most active students" subtitle="Recent assessment participation, not a leaderboard">
-              {usersQ.loading ? <SectionSkeleton rows={4} /> : usersQ.error ? <ErrorState message={usersQ.error.message} onRetry={usersQ.retry} /> : usersQ.data && (
+              {usersQ.loading ? <FeedSkeleton rows={6} /> : usersQ.error ? <ErrorState message={usersQ.error.message} onRetry={usersQ.retry} /> : usersQ.data && (
                 <ActiveStudents rows={usersQ.data.topUsers.slice(0, 6)} />
               )}
             </SectionCard>
           </div>
           <SectionCard title="Most active creators" subtitle="Teachers by quizzes created">
-            {usersQ.loading ? <SectionSkeleton rows={3} /> : usersQ.error ? <ErrorState message={usersQ.error.message} onRetry={usersQ.retry} /> : usersQ.data && (
+            {usersQ.loading ? <TableSkeleton rows={6} columns={4} /> : usersQ.error ? <ErrorState message={usersQ.error.message} onRetry={usersQ.retry} /> : usersQ.data && (
               <Table
                 head={["Teacher", "Quizzes", "Published", "Attempts"]}
                 rows={usersQ.data.topTeachers.slice(0, 6).map((t) => [t.username ?? `#${t.id}`, String(t.created), String(t.live), String(t.attempts_generated)])}
@@ -401,7 +401,7 @@ function PlatformDashboard() {
             )}
           </SectionCard>
           <SectionCard id="health" title="Platform health" subtitle="Service status and latency">
-            {healthQ.loading ? <SectionSkeleton rows={2} /> : healthQ.error ? <ErrorState message={healthQ.error.message} onRetry={healthQ.retry} /> : healthQ.data && (
+            {healthQ.loading ? <HealthSkeleton /> : healthQ.error ? <ErrorState message={healthQ.error.message} onRetry={healthQ.retry} /> : healthQ.data && (
               <HealthGrid services={healthQ.data.services} />
             )}
           </SectionCard>
@@ -429,7 +429,7 @@ function PlatformDashboard() {
             <div className="rounded-[10px] border border-[var(--border)] bg-[var(--card)] px-4 py-3.5"><div className="flex items-center gap-2 text-[12px] font-medium text-[var(--text-primary)]"><ShieldIndicator /> Privacy-aware telemetry</div><p className="mt-1.5 text-[11px] leading-relaxed text-[var(--text-muted)]">IP address, device fingerprint, and location are intentionally not collected.</p></div>
           </div>
           <SectionCard title="Authentication activity" subtitle="Recent logins. IP, device and location are not stored.">
-            {securityQ.loading ? <SectionSkeleton rows={3} /> : securityQ.error ? <ErrorState message={securityQ.error.message} onRetry={securityQ.retry} /> : securityQ.data && (
+            {securityQ.loading ? <TableSkeleton rows={5} columns={5} /> : securityQ.error ? <ErrorState message={securityQ.error.message} onRetry={securityQ.retry} /> : securityQ.data && (
               <Table
                 head={["User", "Event", "Device", "Time", "Result"]}
                 rows={securityQ.data.recentLogins.slice(0, 8).map((l) => [l.username ?? `#${l.id}`, "login", "—", timeAgo(l.at), "success"])}
@@ -603,7 +603,7 @@ function liveVerb(kind: string): string {
 }
 
 function EngagementHeatmap({ points, loading }: { points: Array<{ label: string; dau: number; attempts: number; new_users: number; completed: number }>; loading: boolean }) {
-  if (loading) return <SectionSkeleton rows={3} />;
+  if (loading) return <HeatmapSkeleton />;
   if (!points.length) return <EmptyState message="Student activity will appear here" detail="Once students begin taking assessments, daily engagement patterns will become visible." />;
   const visible = points.slice(-21);
   const rows = [
@@ -682,7 +682,7 @@ function ActiveStudents({ rows }: { rows: { id: number; username: string; attemp
 }
 
 function StudentProgress({ overview, users, loading }: { overview: OverviewData | null; users: { attempts: number; completed: number }[]; loading: boolean }) {
-  if (loading) return <SectionSkeleton rows={2} />;
+  if (loading) return <ProgressSkeleton />;
   const participating = users.filter((u) => u.attempts > 0);
   const consistent = participating.filter((u) => u.attempts >= 3 && u.completed / u.attempts >= .7).length;
   const incomplete = participating.filter((u) => u.attempts >= 2 && u.completed / u.attempts < .5).length;
@@ -708,7 +708,7 @@ function statusLabel(s: string): string {
 }
 
 function AttentionPanel({ loading, items }: { loading: boolean; items: { severity: string; message: string; link: string }[] }) {
-  if (loading) return <SectionSkeleton rows={1} />;
+  if (loading) return <div className="rounded-[10px] border border-[var(--border)] bg-[var(--card)] px-4 py-3"><div className="pf-skeleton h-2.5 w-28 rounded" /><div className="pf-skeleton mt-2.5 h-3 w-56 max-w-full rounded" /></div>;
   if (!items.length) {
     return (
       <div className="flex items-center gap-2 rounded-[10px] border border-[var(--success)]/25 bg-[var(--success)]/5 px-4 py-2.5 text-[13px] text-[var(--text-secondary)]">
@@ -763,7 +763,7 @@ function ActivityChart({ series }: {
         ))}
         {mode !== "dau" && <span className="self-center text-[11px] text-[var(--text-muted)]">trailing avg</span>}
       </div>
-      {series.loading ? <SectionSkeleton /> : series.error ? <ErrorState message={series.error.message} onRetry={series.retry} /> :
+      {series.loading ? <ChartSkeleton /> : series.error ? <ErrorState message={series.error.message} onRetry={series.retry} /> :
         points.length === 0 ? <EmptyState message="No activity yet" /> : (
         <SeriesChart points={points} keys={[{ key: "active", label: `${mode.toUpperCase()} students` }, { key: "attempts", label: "Attempts" }, { key: "completed", label: "Completed" }]} height={240} />
       )}
@@ -774,7 +774,7 @@ function ActivityChart({ series }: {
 function AttemptsMiniChart({ series }: {
   series: { data: { points: { label: string; attempts: number }[] | null } | null; loading: boolean; error: { message: string } | null; retry: () => void };
 }) {
-  if (series.loading) return <SectionSkeleton />;
+  if (series.loading) return <ChartSkeleton heightClass="h-[170px]" />;
   if (series.error) return <ErrorState message={series.error.message} onRetry={series.retry} />;
   const pts = series.data?.points ?? [];
   if (!pts.length) return <EmptyState message="No quiz activity yet" />;
@@ -910,7 +910,7 @@ function ActivityFeed() {
           </button>
         ))}
       </div>
-      {q.loading ? <SectionSkeleton rows={4} /> : q.error ? <ErrorState message={q.error.message} onRetry={q.retry} /> :
+      {q.loading ? <FeedSkeleton rows={6} /> : q.error ? <ErrorState message={q.error.message} onRetry={q.retry} /> :
         !q.data?.items.length ? <EmptyState message="No activity yet" /> : (
         <div>
           <div className="divide-y divide-[var(--border)]">

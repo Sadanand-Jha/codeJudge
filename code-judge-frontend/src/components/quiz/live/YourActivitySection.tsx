@@ -469,14 +469,14 @@ function EmptyState() {
 
 function SkeletonRow() {
   return (
-    <div className="animate-pulse px-4 py-3 sm:px-5">
+    <div className="px-4 py-3 sm:px-5" role="status" aria-label="Loading quiz activity">
       <div className="flex items-center gap-3">
-        <div className="h-8 w-8 rounded-lg bg-[#E4E7EC] dark:bg-[#252D3A]" />
+        <div className="app-skeleton h-8 w-8 rounded-lg" />
         <div className="flex-1 space-y-1.5">
-          <div className="h-3.5 w-1/2 rounded bg-[#E4E7EC] dark:bg-[#252D3A]" />
-          <div className="h-2.5 w-1/4 rounded bg-[#E4E7EC]/70 dark:bg-[#252D3A]/70" />
+          <div className="app-skeleton h-3.5 w-1/2 rounded" />
+          <div className="app-skeleton h-2.5 w-1/4 rounded" />
         </div>
-        <div className="h-6 w-16 rounded-full bg-[#E4E7EC] dark:bg-[#252D3A]" />
+        <div className="app-skeleton h-6 w-16 rounded-full" />
       </div>
     </div>
   );

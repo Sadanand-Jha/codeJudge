@@ -442,27 +442,27 @@ function AudienceLoadingSkeleton() {
   return (
     <div className="w-full space-y-4" aria-label="Loading rooms and students" aria-busy="true">
       <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-        <div className="h-3 w-16 animate-pulse rounded bg-card-hover" />
-        <div className="mt-2 h-3 w-3/4 animate-pulse rounded bg-card-hover" />
-        <div className="mt-4 h-10 w-full animate-pulse rounded-lg bg-card-hover" />
+        <div className="app-skeleton h-3 w-16 rounded" />
+        <div className="app-skeleton mt-2 h-3 w-3/4 rounded" />
+        <div className="app-skeleton mt-4 h-10 w-full rounded-lg" />
         <div className="mt-3 space-y-2 rounded-lg border border-border p-3">
-          <div className="h-10 animate-pulse rounded bg-card-hover" />
-          <div className="h-10 animate-pulse rounded bg-card-hover" />
+          <div className="app-skeleton h-10 rounded" />
+          <div className="app-skeleton h-10 rounded" />
         </div>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-4 sm:p-5">
         <div className="flex items-center justify-between gap-4">
           <div className="space-y-2">
-            <div className="h-3 w-24 animate-pulse rounded bg-card-hover" />
-            <div className="h-3 w-48 animate-pulse rounded bg-card-hover" />
+            <div className="app-skeleton h-3 w-24 rounded" />
+            <div className="app-skeleton h-3 w-48 rounded" />
           </div>
-          <div className="h-8 w-28 animate-pulse rounded-lg bg-card-hover" />
+          <div className="app-skeleton h-8 w-28 rounded-lg" />
         </div>
-        <div className="mt-4 h-10 animate-pulse rounded-xl bg-card-hover" />
+        <div className="app-skeleton mt-4 h-10 rounded-xl" />
         <div className="mt-3 space-y-2">
           {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="h-12 animate-pulse rounded-xl bg-card-hover" />
+            <div key={index} className="app-skeleton h-12 rounded-xl" />
           ))}
         </div>
       </div>
