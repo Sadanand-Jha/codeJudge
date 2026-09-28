@@ -1,6 +1,6 @@
 // Contest data access layer. SQL queries for listing, fetching by ID, fetching
 // contest problems, checking user registration, and registering users for contests.
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 
 export class ContestRepository {
   /**

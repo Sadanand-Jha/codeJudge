@@ -2,7 +2,7 @@
 // problem management, options, attempts, submissions, game config, collaboration
 // invites, result generation, and student-facing quiz endpoints.
 import type { Request, Response } from "express";
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 import { QuizService } from "../services/database/quiz.service.ts";
 import { ResultGenerationService } from "../services/resultGeneration.service.ts";
 import { sendCollaboratorInviteEmail } from "../services/email.ts";

@@ -1,7 +1,7 @@
 // User Quiz Repository — student-facing data access. Contains quiz browsing,
 // registration, attempt management, response saving, submissions, results,
 // reviews, leaderboard, and student quiz history.
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 
 /** Keep in sync with QuizRepository.MAX_QUIZ_ATTEMPTS (max attempts per user per quiz). */
 export const MAX_QUIZ_ATTEMPTS = 5;

@@ -32,6 +32,10 @@ function platformSecret(): string | null {
   return s;
 }
 
+export function isPlatformAuthConfigured(): boolean {
+  return platformSecret() !== null;
+}
+
 export function platformExpiry(): string {
   return process.env.PLATFORM_JWT_EXPIRY || "12h";
 }

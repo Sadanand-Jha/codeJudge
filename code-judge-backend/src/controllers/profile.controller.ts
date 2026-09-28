@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 
 // ================================================
 // Profile Location Controllers
@@ -284,4 +284,3 @@ export const updateUserLocation = async (req: Request, res: Response) => {
     });
   }
 };
-

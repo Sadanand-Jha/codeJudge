@@ -10,7 +10,8 @@ import { UserService } from "../services/database/user.database.js";
 import { userRepository } from "../repositories/user.repository.js";
 import { authenticate } from "../middleware/auth.js";
 import { getClientIp } from "../utils/getClientIp.js";
-import { PLATFORM_COOKIE, mintPlatformToken, revokePlatformToken } from "../services/platformSession.js";
+import { PLATFORM_COOKIE, isPlatformAuthConfigured, mintPlatformToken, revokePlatformToken } from "../services/platformSession.js";
+import { isDatabaseUnavailableError } from "../utils/databaseError.ts";
 
 const userService = new UserService();
 const userRepo = new userRepository();
@@ -455,6 +456,17 @@ export const ownerSendOtpController = async (req: Request, res: Response) => {
       return;
     }
 
+    // Do not send a code that the server cannot exchange for a platform
+    // session. This also gives operators an immediate configuration signal.
+    if (!isPlatformAuthConfigured()) {
+      res.status(503).json({
+        success: false,
+        message: "Platform authentication is not configured",
+        statusCode: 503,
+      });
+      return;
+    }
+
     const clientIp = getClientIp(req);
     const result = await requestOwnerLoginOtp(email, clientIp);
 
@@ -495,6 +507,18 @@ export const ownerVerifyOtpController = async (req: Request, res: Response) => {
         success: false,
         message: "Email and OTP are required",
         statusCode: 400,
+      });
+      return;
+    }
+
+    // Fail before redeeming the single-use OTP. Previously an unconfigured
+    // signing secret was detected only after verifyOwnerLoginOtp had deleted
+    // the valid code, forcing the owner to request another OTP.
+    if (!isPlatformAuthConfigured()) {
+      res.status(503).json({
+        success: false,
+        message: "Platform authentication is not configured",
+        statusCode: 503,
       });
       return;
     }
@@ -578,61 +602,11 @@ export const ownerLogoutController = async (req: Request, res: Response) => {
  * Shared by /auth/login and /auth/me so both return the same shape.
  */
 const buildUserProfile = async (userId: string) => {
-  // Fetch both profile and info data in parallel
-  // userInfo now includes the avatar column from the users table
-  const [userProfile, userInfo] = await Promise.all([
-    userService.getUserProfileById(userId),
-    userRepo.getUserInfo(userId)
-  ]);
-
-  if (!userProfile && !userInfo) {
-    return null;
-  }
-
-  // Merge the data from both sources
-  return {
-    // From profile
-    id: userProfile?.id || userInfo?.id,
-    username: userProfile?.username || userInfo?.username,
-    email: userProfile?.email || userInfo?.email,
-    role: userProfile?.role_name || userInfo?.role_name || null,
-    createdAt: userProfile?.createdat || userInfo?.created_at,
-    updatedAt: userProfile?.updatedat || userInfo?.updated_at,
-
-    // Additional fields from info
-    firstName: userInfo?.first_name || null,
-    lastName: userInfo?.last_name || null,
-    displayName: userProfile?.display_name || userInfo?.display_name || null,
-    mobile: userInfo?.mobile || null,
-    avatarUrl: userProfile?.avatar_url || userInfo?.avatar_url || null,
-    avatarIsMale: userProfile?.avatar_is_male ?? userInfo?.avatar_is_male ?? null,
-    bio: userInfo?.bio || null,
-    country: userInfo?.country || null,
-    state: userInfo?.state || null,
-    college: userInfo?.college || null,
-    company: userInfo?.company || null,
-    rating: userInfo?.rating || 0,
-    maxRating: userInfo?.max_rating || 0,
-    isVerified: userInfo?.is_verified || false,
-    isActive: userInfo?.is_active ?? userProfile?.isactive ?? true,
-    lastLogin: userInfo?.last_login || null,
-
-    // Preferences from info
-    preferences: userInfo?.preferences || {
-      theme: "system",
-      accentColor: "blue",
-      compactMode: false,
-      animationSpeed: "normal",
-      preferredLanguage: "cpp",
-      editorTheme: "one-dark",
-      editorFontSize: 14,
-      tabWidth: 4,
-      wordWrap: false,
-      autoSave: true,
-      vimMode: false,
-      emacsMode: false,
-    },
-  };
+  // getUserInfo already returns the complete normalized profile (identity,
+  // role, avatar, location and preferences). The old Promise.all issued a
+  // second redundant query on every login and /auth/me request, doubling
+  // connection pressure during page hydration.
+  return userRepo.getUserInfo(userId);
 };
 
 /**
@@ -694,6 +668,14 @@ export const meController = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("Error in meController:", error);
+    if (isDatabaseUnavailableError(error)) {
+      res.status(503).json({
+        success: false,
+        message: "Authentication service is temporarily busy. Please retry.",
+        statusCode: 503,
+      });
+      return;
+    }
     res.status(401).json({
       success: false,
       message: "Invalid or expired session_token",

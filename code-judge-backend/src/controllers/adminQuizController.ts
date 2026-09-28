@@ -2,10 +2,11 @@
 // is the quiz creator. This keeps the admin surface completely isolated from
 // student-facing quiz logic.
 import type { Request, Response } from "express";
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 import { AdminQuizService } from "../services/database/adminQuiz.service.ts";
 import { ResultGenerationService } from "../services/resultGeneration.service.ts";
 import { sendCollaboratorInviteEmail } from "../services/email.ts";
+import { isDatabaseUnavailableError } from "../utils/databaseError.ts";
 
 const quizService = new AdminQuizService();
 const resultGenerationService = new ResultGenerationService();
@@ -1023,6 +1024,10 @@ export const getQuizParticipantsController = async (req: Request, res: Response)
     res.status(200).json({ success: true, data: participants });
   } catch (error) {
     console.error("Error fetching quiz participants:", error);
+    if (isDatabaseUnavailableError(error)) {
+      res.status(503).json({ success: false, message: "Database is temporarily busy. Please retry." });
+      return;
+    }
     res.status(500).json({ success: false, message: "Internal server error while fetching quiz participants" });
   }
 };

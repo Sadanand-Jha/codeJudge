@@ -1,7 +1,7 @@
 // Quiz result generation orchestrator. Evaluates all student answers (objective
 // + subjective/AI), computes scores with marks/negative marking, generates the
 // marksheet, and optionally sends it via email.
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 import { generateMarksheet } from "./marksheet.service.ts";
 import { sendMarksheetEmail } from "./email.service.ts";
 import logger from "../utils/logger.ts";

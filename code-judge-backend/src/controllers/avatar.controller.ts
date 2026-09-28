@@ -1,7 +1,7 @@
 // Avatar controller. Serves predefined avatar images from disk, handles avatar URL
 // validation, and provides updateAvatar / getAvatar endpoints for user profile pictures.
 import type { Request, Response } from "express";
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 import { isValidPredefinedAvatar, PREDEFINED_AVATARS } from "../constants/avatars.ts";
 import path from "path";
 import fs from "fs";

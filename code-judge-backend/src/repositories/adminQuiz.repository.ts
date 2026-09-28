@@ -1,7 +1,7 @@
 // Admin Quiz Repository — all data-access for the creator/admin quiz surface.
 // Contains quiz CRUD, problem management, responses, analytics, game config,
 // collaborators, participants, and result-generation helpers.
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 
 export class AdminQuizRepository {
   // ==================== SHARED LOOKUPS ====================

@@ -69,7 +69,7 @@
  * ================================================================
  */
 
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 import type { ProblemListItem, ProblemDetail, ProblemDetailRow, SampleTestcase } from "../types/index.ts";
 
 /**

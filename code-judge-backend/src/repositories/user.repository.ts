@@ -1,6 +1,6 @@
 // User data access layer. SQL queries for user lookup, email/username checks,
 // user creation, avatar updates, profile info, and preferences.
-import { pool } from "./../app.ts";
+import { pool } from "../config/database.ts";
 
 export class userRepository {
     async getEmailByUsername(username: string): Promise<string | null> {

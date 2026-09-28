@@ -7,6 +7,15 @@ import dns from 'dns';
 
 const { Pool } = pg;
 
+// Prefer a transaction-pooler URL in serverless deployments. A direct
+// DATABASE_URL gives every warm function its own physical Postgres connection,
+// which can exhaust small Supabase/Neon plans even when every client is
+// correctly released back to its local pool.
+const connectionString =
+  process.env.DATABASE_POOL_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.DATABASE_URL;
+
 dns.setDefaultResultOrder('ipv4first');
 process.env.TZ = 'Asia/Kolkata';
 
@@ -19,8 +28,8 @@ declare global {
 //    Without this, every request creates a new Pool => connection exhaustion.
 function createPool(): pg.Pool {
   const pool = new Pool({
-    ...(process.env.DATABASE_URL ? { connectionString: process.env.DATABASE_URL } : {}),
-    ssl: process.env.DATABASE_URL?.includes('localhost') || process.env.DATABASE_URL?.includes('127.0.0.1')
+    ...(connectionString ? { connectionString } : {}),
+    ssl: connectionString?.includes('localhost') || connectionString?.includes('127.0.0.1')
       ? false
       : { rejectUnauthorized: false }, // Required for Neon/Supabase/RDS on Vercel
     // 2. Limit Pool Size: max 1 per container — Vercel spawns many containers, each holding 1 conn
@@ -28,6 +37,11 @@ function createPool(): pg.Pool {
     // 3. Timeout Configs: close idle quickly, fail fast on connect
     idleTimeoutMillis: 10000, // 10s — close idle client quickly (was 30000)
     connectionTimeoutMillis: 5000, // 5s — fail fast if DB unreachable (was 10000)
+    query_timeout: 35000,
+    statement_timeout: 30000,
+    idle_in_transaction_session_timeout: 15000,
+    application_name: 'codejudge-api',
+    maxLifetimeSeconds: 300,
     allowExitOnIdle: false, // keep event loop alive in dev, Vercel freezes anyway
   });
 
@@ -48,6 +62,17 @@ function createPool(): pg.Pool {
   });
 
   return pool;
+}
+
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.DATABASE_URL &&
+  !process.env.DATABASE_POOL_URL &&
+  !process.env.POSTGRES_PRISMA_URL
+) {
+  console.warn(
+    '⚠️ DATABASE_POOL_URL is not configured. Serverless functions are using a direct Postgres connection; configure the provider transaction-pooler URL to prevent connection-slot exhaustion.'
+  );
 }
 
 // Singleton — reuse if already on globalThis (warm invocation)

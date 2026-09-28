@@ -157,11 +157,15 @@ code-judge-backend/
 | `NODE_ENV` | Environment (development/production) |
 | `PORT` | Server port |
 | `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_POOL_URL` | Transaction-pooler connection string used by the API in serverless production (recommended; keep `DATABASE_URL` for migrations) |
 | `REDIS_URL` | Redis connection string |
 | `JUDGE0_API_URL` | Judge0 API URL |
 | `JUDGE0_API_KEY` | Judge0 API key |
 | `JWT_SECRET` | JWT secret key |
 | `JWT_EXPIRY` | JWT expiry time |
+| `PLATFORM_JWT_SECRET` | Separate 256-bit secret for owner-only platform sessions; must not equal `JWT_SECRET` |
+| `PLATFORM_JWT_EXPIRY` | Platform session lifetime (defaults to `12h`) |
+| `PLATFORM_OWNER_EMAILS` | Optional comma-separated owner email allowlist |
 | `AI_API_KEY` | AI service API key |
 
 ## Supported Languages

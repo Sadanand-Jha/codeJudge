@@ -2,7 +2,7 @@
 // results sorted by roll number, with headers, per-student rows, and a summary
 // statistics sheet.
 import ExcelJS from "exceljs";
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 
 export interface MarksheetStats {
   totalParticipants: number;

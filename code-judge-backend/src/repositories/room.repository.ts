@@ -1,6 +1,6 @@
 // Room data access layer. SQL queries for creating/listing rooms, managing members
 // (add/remove/status), searching users, and generating unique room codes.
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 import crypto from "crypto";
 
 function generateRoomCode(length = 8): string {

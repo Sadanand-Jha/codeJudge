@@ -2,7 +2,7 @@
 // password reset, profile update, and user lookup by username.
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 import { OTPService } from "../services/otpService.ts";
 import { UserService } from "../services/database/user.database.ts";
 import { userRepository } from "../repositories/user.repository.ts";
