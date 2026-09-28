@@ -844,12 +844,14 @@ export class QuizRepository {
           paramCount++;
           fields.push(`updated_at = CURRENT_TIMESTAMP`);
           values.push(data.problemId);
+          paramCount++;
+          values.push(data.quizId);
 
-          const query = `UPDATE quiz_problems SET ${fields.join(", ")} WHERE id = $${paramCount} AND deleted_at IS NULL RETURNING *`;
+          const query = `UPDATE quiz_problems SET ${fields.join(", ")} WHERE id = $${paramCount - 1} AND quiz_id = $${paramCount} AND deleted_at IS NULL RETURNING *`;
           const result = await client.query(query, values);
           problem = result.rows[0];
         } else {
-          const result = await client.query("SELECT * FROM quiz_problems WHERE id = $1 AND deleted_at IS NULL", [data.problemId]);
+          const result = await client.query("SELECT * FROM quiz_problems WHERE id = $1 AND quiz_id = $2 AND deleted_at IS NULL", [data.problemId, data.quizId]);
           problem = result.rows[0];
         }
       } else {

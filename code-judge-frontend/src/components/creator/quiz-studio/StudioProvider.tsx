@@ -20,9 +20,11 @@ import {
   updateQuizStatus,
   setQuizParticipants,
   getQuizParticipants,
-  loadQuizForEdit,
+  loadQuizMetadataForEdit,
+  getQuizProblems,
   updateQuizGameMechanics,
   getQuizGameMechanics,
+  deleteQuizProblem,
   type QuizParticipantInput,
   type QuizBasic,
   type QuizProblemWithOptions,
@@ -311,7 +313,7 @@ interface StudioContextValue {
   addQuestion: () => Promise<string>;
   importQuestions: (questions: CreatorQuestion[]) => void;
   importQuestionsAndSave: (questions: CreatorQuestion[]) => Promise<void>;
-  removeQuestion: (id: string) => void;
+  removeQuestion: (id: string) => Promise<void>;
   duplicateQuestion: (id: string) => void;
   reorderQuestions: (ids: string[]) => void;
   setActiveQuestion: (id: string | null) => void;
@@ -327,6 +329,8 @@ interface StudioContextValue {
   saveProgress: { saved: number; total: number } | null;
   loading: boolean;
   loadError: string | null;
+  /** True while /problems is still fetching in the background (setup is already interactive). */
+  questionsLoading: boolean;
   editMode: boolean;
   summary: {
     questionCount: number;
@@ -411,6 +415,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
 
   const [loading, setLoading] = useState(editMode && !!initialQuizId);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [questionsLoading, setQuestionsLoading] = useState(editMode && !!initialQuizId);
 
   /**
    * Snapshot of question content hashes captured when questions are loaded from
@@ -418,17 +423,22 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
    * content has actually changed (or are newly added) get sent to the backend.
    */
   const snapshotRef = useRef<Map<string, string>>(new Map());
+  const quizSnapshotRef = useRef<string>("");
+  const audienceSnapshotRef = useRef<string>("");
+  const gameMechanicsSnapshotRef = useRef<string>("");
+  const databaseAutosaveSnapshotRef = useRef<string | null>(null);
+  const audienceModeSnapshotRef = useRef<StudioState["audience"]["mode"] | null>(null);
 
   useEffect(() => {
     if (!editMode || !initialQuizId) return;
     let cancelled = false;
     (async () => {
       try {
-        // Metadata, questions, mechanics, and audience are independent reads.
-        // Fetch them in one batch so Studio Setup is not blocked by a request
-        // waterfall. Optional endpoints degrade to their defaults on failure.
-        const [{ quiz, problems }, serverMechanics, participants] = await Promise.all([
-          loadQuizForEdit(initialQuizId),
+        // Phase 1 (blocking, fast): quiz metadata + mechanics + audience.
+        // /problems is intentionally NOT awaited here so the Setup page
+        // renders without waiting for the slowest endpoint.
+        const [{ quiz }, serverMechanics, participants] = await Promise.all([
+          loadQuizMetadataForEdit(initialQuizId),
           getQuizGameMechanics(initialQuizId).catch((error) => {
             console.warn("Failed to load game mechanics (non-critical):", error);
             return [];
@@ -441,9 +451,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         if (cancelled) return;
         const info = mapQuizToStudioInfo(quiz);
         const settings = mapQuizToStudioSettings(quiz);
-        const questions = problems.map((p, i) => mapBackendProblem(p, i));
-        // Capture content hashes for change detection on future saves
-        snapshotRef.current = buildQuestionSnapshot(questions);
         const quizSnapshot = JSON.stringify({
           title: info.title,
           shortDescription: info.shortDescription,
@@ -520,9 +527,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           ...s,
           info: { ...DEFAULT_QUIZ_INFO, ...info },
           settings: { ...DEFAULT_SETTINGS, ...settings },
-          questions: questions.length > 0 ? questions : [createEmptyQuestion("q_1")],
-          activeQuestionId:
-            questions.length > 0 ? questions[0].id : createEmptyQuestion("q_1").id,
           serverQuizId: initialQuizId,
           gameMechanics: loadedGameMechanics,
           audience: loadedAudience,
@@ -535,6 +539,31 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       } finally {
         if (!cancelled) setLoading(false);
       }
+
+      // Phase 2 (background): /problems. Never blocks Setup; merges in when done.
+      if (cancelled) return;
+      try {
+        const problems = await getQuizProblems(initialQuizId).catch(() => []);
+        if (cancelled) return;
+        const questions = (problems as QuizProblemWithOptions[]).map((p, i) => mapBackendProblem(p, i));
+        snapshotRef.current = buildQuestionSnapshot(questions);
+        // Re-baseline autosave so the bg merge itself isn't treated as a change.
+        databaseAutosaveSnapshotRef.current = null;
+        setState((s) => {
+          // Preserve any locally-created (unsaved) questions made before bg finished.
+          const localOnly = s.questions.filter((q) => q.serverId == null && (q.title.trim() || q.options.some((o) => o.content.trim())));
+          const merged = questions.length > 0 || localOnly.length > 0 ? [...questions, ...localOnly] : [createEmptyQuestion("q_1")];
+          return {
+            ...s,
+            questions: merged,
+            activeQuestionId: s.activeQuestionId ?? merged[0]?.id ?? null,
+          };
+        });
+      } catch (err) {
+        console.warn("Failed to load quiz problems in background:", err);
+      } finally {
+        if (!cancelled) setQuestionsLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
@@ -543,11 +572,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialMount = useRef(true);
-  const quizSnapshotRef = useRef<string>("");
-  const audienceSnapshotRef = useRef<string>("");
-  const gameMechanicsSnapshotRef = useRef<string>("");
-  const databaseAutosaveSnapshotRef = useRef<string | null>(null);
-  const audienceModeSnapshotRef = useRef<StudioState["audience"]["mode"] | null>(null);
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -668,7 +692,13 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
     }
   };
 
-  const removeQuestion = (id: string) =>
+  const removeQuestion = async (id: string) => {
+    const targetIdx = state.questions.findIndex((q) => q.id === id);
+    if (targetIdx === -1) return;
+    const target = state.questions[targetIdx];
+    const serverId = target.serverId;
+
+    // Optimistic local removal so the list updates instantly.
     setState((s) => {
       const questions = s.questions.filter((q) => q.id !== id);
       return {
@@ -680,6 +710,30 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
             : s.activeQuestionId,
       };
     });
+    // Drop its change-tracking entry so a later save doesn't try to upsert it.
+    snapshotRef.current.delete(id);
+
+    // Never persisted to the backend — local-only removal, no API needed.
+    if (!serverId) return;
+
+    // Persisted question — soft-delete on the server immediately
+    // (backend sets deleted_at, keeps the row for audit/history).
+    try {
+      await deleteQuizProblem(String(serverId));
+    } catch (err) {
+      // Roll back the optimistic removal so the question isn't lost.
+      setState((s) => {
+        if (s.questions.some((q) => q.id === id)) return s;
+        const restored = [...s.questions];
+        restored.splice(Math.min(targetIdx, restored.length), 0, target);
+        return { ...s, questions: restored };
+      });
+      toast.error({
+        title: "Could not delete question",
+        description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+      });
+    }
+  };
 
   const duplicateQuestion = (id: string) => {
     const src = state.questions.find((q) => q.id === id);
@@ -1328,12 +1382,13 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       saveProgress,
       loading,
       loadError,
+      questionsLoading,
       editMode,
       summary,
       saveAudienceParticipants,
       audienceDirty,
     }),
-    [state, stepIndex, summary, savingToServer, saveProgress, loading, loadError, editMode, steps, saveAudienceParticipants, audienceDirty]
+    [state, stepIndex, summary, savingToServer, saveProgress, loading, loadError, questionsLoading, editMode, steps, saveAudienceParticipants, audienceDirty]
   );
 
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;

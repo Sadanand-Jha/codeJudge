@@ -40,7 +40,7 @@ export function QuestionList({
   saveProgress?: { saved: number; total: number } | null;
   onToggleSidebar?: () => void;
 }) {
-  const { state, reorderQuestions, duplicateQuestion, removeQuestion, setActiveQuestion, addQuestion } = useStudio();
+  const { state, reorderQuestions, duplicateQuestion, removeQuestion, setActiveQuestion, addQuestion, questionsLoading } = useStudio();
   const [search, setSearch] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
@@ -100,7 +100,12 @@ export function QuestionList({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 space-y-1" onDragOver={handleDragOver}>
-        {visible.length === 0 ? (
+        {questionsLoading && state.questions.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border px-3 py-6">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-pink-300 border-t-transparent" />
+            <p className="text-xs text-text-muted">Loading questions…</p>
+          </div>
+        ) : visible.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-text-muted">No matching questions.</p>
         ) : (
           <ul className="space-y-1">

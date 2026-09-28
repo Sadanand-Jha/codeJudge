@@ -272,6 +272,33 @@ export interface QuizProblemWithOptions extends QuizProblem {
 }
 
 /**
+ * Load only quiz metadata for editing (no /problems call).
+ * Used for the fast first paint of the Setup page — problems are fetched
+ * separately in the background via getQuizProblems().
+ */
+export async function loadQuizMetadataForEdit(quizId: string): Promise<{
+  quiz: QuizBasic & { subject_name?: string; exam_cat_name?: string };
+}> {
+  const [quiz, referenceData] = await Promise.all([
+    getQuizById(quizId),
+    Promise.all([getAllSubjects(), getAllExamCategories()])
+      .catch(() => [[], []] as [QuizSubject[], QuizExamCategory[]]),
+  ]);
+  const [subjects, exams] = referenceData;
+
+  const subjectName = quiz.subject_id
+    ? subjects.find((s) => s.id === quiz.subject_id)?.subject_name ?? ""
+    : "";
+  const examName = quiz.exam_cat
+    ? exams.find((e) => e.id === quiz.exam_cat)?.exam_cat ?? ""
+    : "";
+
+  return {
+    quiz: { ...quiz, subject_name: subjectName, exam_cat_name: examName },
+  };
+}
+
+/**
  * Load a quiz and its problems for editing in the studio.
  * Returns quiz metadata + resolved subject/exam names + problems.
  */

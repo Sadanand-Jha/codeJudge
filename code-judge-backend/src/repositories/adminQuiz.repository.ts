@@ -507,10 +507,12 @@ export class AdminQuizRepository {
         }
         if (fields.length > 0) {
           pc++; fields.push("updated_at = CURRENT_TIMESTAMP"); values.push(data.problemId);
-          const result = await client.query(`UPDATE quiz_problems SET ${fields.join(", ")} WHERE id = $${pc} AND deleted_at IS NULL RETURNING *`, values);
+          pc++; values.push(data.quizId);
+          // quiz_id scoped: only updates when the problem belongs to this quiz
+          const result = await client.query(`UPDATE quiz_problems SET ${fields.join(", ")} WHERE id = $${pc - 1} AND quiz_id = $${pc} AND deleted_at IS NULL RETURNING *`, values);
           problem = result.rows[0];
         } else {
-          const result = await client.query("SELECT * FROM quiz_problems WHERE id = $1 AND deleted_at IS NULL", [data.problemId]);
+          const result = await client.query("SELECT * FROM quiz_problems WHERE id = $1 AND quiz_id = $2 AND deleted_at IS NULL", [data.problemId, data.quizId]);
           problem = result.rows[0];
         }
       } else {

@@ -443,7 +443,7 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
       return;
     }
 
-    const access = await assertQuizAccess(quizId, userId);
+    const access = await assertQuizOwnership(quizId, userId);
     if (!access.ok) {
       res.status(access.status).json({ success: false, message: access.message });
       return;
@@ -752,6 +752,21 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
       return;
     }
 
+    // Own-quiz constraint: a problemId may only be upserted when it already
+    // belongs to this quiz. Without this, a caller owning quiz A could pass
+    // quizId=A with problemId from quiz B and overwrite someone else's question.
+    if (body.problemId) {
+      const target = await quizService.getQuizProblemById(body.problemId);
+      if (!target) {
+        res.status(404).json({ success: false, message: "Question not found" });
+        return;
+      }
+      if (String(target.quiz_id) !== String(quizId)) {
+        res.status(403).json({ success: false, message: "You can only modify questions of your own quiz" });
+        return;
+      }
+    }
+
     const MAX_PROBLEMS = 25;
     if (!body.problemId) {
       const problemCount = await quizService.getQuizProblemCount(String(quizId));
@@ -1046,7 +1061,7 @@ export const upsertQuizGameConfig = async (req: Request, res: Response) => {
     }
 
     const { quizId } = req.params;
-    const access = await assertQuizAccess(quizId, userId);
+    const access = await assertQuizOwnership(quizId, userId);
     if (!access.ok) {
       res.status(access.status).json({ success: false, message: access.message });
       return;
@@ -1147,7 +1162,7 @@ export const upsertQuizGameMechanics = async (req: Request, res: Response) => {
     }
 
     const { quizId } = req.params;
-    const access = await assertQuizAccess(quizId, userId);
+    const access = await assertQuizOwnership(quizId, userId);
     if (!access.ok) {
       res.status(access.status).json({ success: false, message: access.message });
       return;

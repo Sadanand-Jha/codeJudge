@@ -605,11 +605,10 @@ export const updateQuizStatus = async (req: Request, res: Response) => {
     }
 
     const isOwner = quiz.createdby === Number(userId);
-    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), Number(quizId));
-    if (!isOwner && !isCollaborator) {
+    if (!isOwner) {
       res.status(403).json({
         success: false,
-        message: "You are not authorized to update this quiz",
+        message: "Only the quiz owner can update this quiz",
       });
       return;
     }
@@ -803,6 +802,26 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
         message: "You are not authorized to save questions for this quiz",
       });
       return;
+    }
+
+    // Own-quiz constraint: a problemId may only be upserted when it already
+    // belongs to this quiz, preventing cross-quiz overwrites.
+    if (body.problemId) {
+      const target = await quizService.getQuizProblemById(body.problemId);
+      if (!target) {
+        res.status(404).json({
+          success: false,
+          message: "Question not found",
+        });
+        return;
+      }
+      if (String(target.quiz_id) !== String(quizId)) {
+        res.status(403).json({
+          success: false,
+          message: "You can only modify questions of your own quiz",
+        });
+        return;
+      }
     }
 
     const MAX_PROBLEMS = 25;
@@ -2592,14 +2611,31 @@ export const getStudentResponseDetail = async (req: Request, res: Response) => {
  */
 export const setQuizParticipants = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
     const { quizId } = req.params;
     const participants = req.body?.participants;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+    }
 
     if (!Array.isArray(participants)) {
       return res.status(400).json({
         success: false,
         message: "participants must be an array",
       });
+    }
+
+    // Owner-only: only the quiz creator may replace the participant list.
+    const quiz = await quizService.getQuizById(String(quizId));
+    if (!quiz) {
+      return res.status(404).json({ success: false, message: "Quiz not found" });
+    }
+    if (quiz.createdby !== Number(userId)) {
+      return res.status(403).json({ success: false, message: "Only the quiz owner can modify participants" });
     }
 
     const saved = await quizService.replaceQuizParticipants(Number(quizId), participants);
@@ -2618,7 +2654,18 @@ export const setQuizParticipants = async (req: Request, res: Response) => {
  */
 export const getQuizParticipantsController = async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.userId;
     const { quizId } = req.params;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized access" });
+    }
+    const quiz = await quizService.getQuizById(String(quizId));
+    if (!quiz) {
+      return res.status(404).json({ success: false, message: "Quiz not found" });
+    }
+    if (quiz.createdby !== Number(userId)) {
+      return res.status(403).json({ success: false, message: "Only the quiz owner can view participants" });
+    }
     const participants = await quizService.getQuizParticipants(quizId);
     res.status(200).json({ success: true, data: participants });
   } catch (error) {
@@ -2663,7 +2710,7 @@ export const getQuizGameConfig = async (req: Request, res: Response) => {
 
 /**
  * PUT /api/v1/user/quiz/:quizId/game-config
- * Upsert with validation. Only quiz owner / accepted collaborator may write.
+ * Upsert with validation. Only the quiz owner may write.
  */
 export const upsertQuizGameConfig = async (req: Request, res: Response) => {
   try {
@@ -2679,9 +2726,8 @@ export const upsertQuizGameConfig = async (req: Request, res: Response) => {
       return;
     }
     const isOwner = quiz.createdby === Number(userId);
-    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), Number(quizId));
-    if (!isOwner && !isCollaborator) {
-      res.status(403).json({ success: false, message: "You are not authorized to update this quiz configuration" });
+    if (!isOwner) {
+      res.status(403).json({ success: false, message: "Only the quiz owner can update this quiz configuration" });
       return;
     }
 
@@ -2787,9 +2833,8 @@ export const upsertQuizGameMechanics = async (req: Request, res: Response) => {
       return;
     }
     const isOwner = quiz.createdby === Number(userId);
-    const isCollaborator = await quizService.isAcceptedCollaborator(Number(userId), Number(quizId));
-    if (!isOwner && !isCollaborator) {
-      res.status(403).json({ success: false, message: "You are not authorized to update this quiz's game mechanics" });
+    if (!isOwner) {
+      res.status(403).json({ success: false, message: "Only the quiz owner can update this quiz's game mechanics" });
       return;
     }
 

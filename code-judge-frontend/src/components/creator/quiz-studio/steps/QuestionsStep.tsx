@@ -40,7 +40,7 @@ function hashState(questions: CreatorQuestion[], info: { title: string; shortDes
 }
 
 export function QuestionsStep() {
-  const { state, addQuestion, importQuestionsAndSave, saveToServer, saveProgress, setActiveQuestion } = useStudio();
+  const { state, addQuestion, importQuestionsAndSave, saveToServer, saveProgress, setActiveQuestion, questionsLoading } = useStudio();
   const [aiOpen, setAiOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
@@ -217,7 +217,12 @@ export function QuestionsStep() {
 
         {/* Main editor */}
         <div className="w-full max-w-full min-w-0 overflow-hidden">
-          {state.questions.length === 0 || !state.activeQuestionId ? (
+          {questionsLoading && state.questions.length === 0 ? (
+            <div className="flex w-full max-w-full min-w-0 flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white px-4 py-10 text-center shadow-sm">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-300 border-t-transparent" />
+              <p className="text-sm font-medium text-zinc-500">Loading questions…</p>
+            </div>
+          ) : state.questions.length === 0 || !state.activeQuestionId ? (
             <div className="flex w-full max-w-full min-w-0 flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border border-zinc-200 bg-white px-4 py-10 text-center shadow-sm">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-50 border border-zinc-200">
                 <ListChecks className="h-7 w-7 text-zinc-500" />
@@ -250,7 +255,7 @@ export function QuestionsStep() {
 
         {/* Mobile bottom action bar — primary actions only */}
         {state.activeQuestionId && (
-          <div className="mobile-viewport-actions sticky bottom-0 z-10 mt-2 flex w-full max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+          <div className="mt-2 flex w-full max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
             <button
               onClick={handleSave}
               disabled={!hasChanges || saving}
@@ -333,7 +338,12 @@ export function QuestionsStep() {
             </div>
           </div>
 
-          {state.questions.length === 0 || !state.activeQuestionId ? (
+          {questionsLoading && state.questions.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-10 text-center bg-background">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-300 border-t-transparent" />
+              <p className="text-sm text-text-secondary">Loading questions…</p>
+            </div>
+          ) : state.questions.length === 0 || !state.activeQuestionId ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10 text-center bg-background">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-card border border-border shadow-sm">
                 <ListChecks className="h-6 w-6 text-text-secondary" />

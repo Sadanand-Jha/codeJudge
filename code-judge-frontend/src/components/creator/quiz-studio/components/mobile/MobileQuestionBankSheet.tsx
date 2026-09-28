@@ -26,7 +26,7 @@ interface Props {
 }
 
 export function MobileQuestionBankSheet({ open, onClose, onAiGenerate }: Props) {
-  const { state, setActiveQuestion, duplicateQuestion, removeQuestion, addQuestion } = useStudio();
+  const { state, setActiveQuestion, duplicateQuestion, removeQuestion, addQuestion, questionsLoading } = useStudio();
   const [search, setSearch] = useState("");
 
   const visible = state.questions.filter((q) => {
@@ -103,7 +103,12 @@ export function MobileQuestionBankSheet({ open, onClose, onAiGenerate }: Props) 
 
             {/* list */}
             <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-              {visible.length === 0 ? (
+              {questionsLoading && state.questions.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-3 py-8">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-pink-300 border-t-transparent" />
+                  <p className="text-sm text-text-muted">Loading questions…</p>
+                </div>
+              ) : visible.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-border px-3 py-8 text-center text-sm text-text-muted">
                   No matching questions.
                 </p>
