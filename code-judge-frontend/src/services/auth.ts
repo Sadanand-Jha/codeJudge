@@ -132,3 +132,39 @@ export async function logout(): Promise<AuthResponse> {
   }
   return response.data;
 }
+
+// ── Owner OTP login (private /platform control center only) ──
+// Only role_id = 2 accounts receive/verify codes. Password login is never
+// accepted on /platform — the gate below is the single entry point.
+
+export async function ownerSendOtp(payload: { email: string }): Promise<AuthResponse> {
+  const response = await apiClient.post<AuthResponse>("/auth/owner/send-otp", payload);
+  if (response.data && typeof response.data === "object" && "email" in response.data && !("success" in response.data)) {
+    return { success: true, message: "OTP sent successfully", data: response.data };
+  }
+  return response.data;
+}
+
+export async function ownerVerifyOtp(payload: { email: string; otp: string }): Promise<AuthResponse> {
+  const response = await apiClient.post<AuthResponse>("/auth/owner/verify-otp", payload);
+  if (response.data && typeof response.data === "object" && "user" in response.data && !("success" in response.data)) {
+    return { success: true, message: "Owner login successful", data: response.data };
+  }
+  return response.data;
+}
+
+export async function ownerLogout(): Promise<void> {
+  // Revokes the platform token server-side. The platform_session cookie is
+  // sent automatically (same-origin); the Bearer fallback covers the rest.
+  const { getPlatformToken } = await import("@/lib/platformToken");
+  const token = getPlatformToken();
+  try {
+    await apiClient.post(
+      "/auth/owner/logout",
+      {},
+      token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
+    );
+  } catch {
+    // Revocation is best-effort; local platform credentials are cleared anyway.
+  }
+}

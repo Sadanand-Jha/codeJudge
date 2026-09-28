@@ -25,5 +25,11 @@ export default function AppGroupLayout({ children }: { children: React.ReactNode
     return <AppLayout>{null}</AppLayout>;
   }
 
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <AppLayout>
+      <div className={pathname.startsWith("/quiz") ? "student-quiz-theme contents" : "contents"}>
+        {children}
+      </div>
+    </AppLayout>
+  );
 }

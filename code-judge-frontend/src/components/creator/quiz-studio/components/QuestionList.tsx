@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Trash2, Search, CheckCircle2, XCircle, GripVertical, X, Sparkles, Download } from "lucide-react";
+import { Copy, Trash2, Search, GripVertical, X, Sparkles, Download } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { toast } from "@/lib/toast";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { useStudio } from "../StudioProvider";
 
@@ -68,7 +67,7 @@ export function QuestionList({
   };
 
   return (
-    <div className="flex h-full w-70 shrink-0 flex-col overflow-hidden bg-card rounded">
+    <div className="flex h-[calc(100dvh-13rem)] max-h-full min-h-0 w-70 shrink-0 flex-col overflow-hidden rounded bg-card">
       <div className="px-3 pt-4 pb-3 border-b border-border shrink-0">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-semibold text-text-primary">Questions Bank</h3>
@@ -100,21 +99,18 @@ export function QuestionList({
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1" onDragOver={handleDragOver}>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 space-y-1" onDragOver={handleDragOver}>
         {visible.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-text-muted">No matching questions.</p>
         ) : (
           <ul className="space-y-1">
-            {visible.map((q, i) => {
+            {visible.map((q) => {
               const realIdx = state.questions.findIndex((x) => x.id === q.id);
               const active = state.activeQuestionId === q.id;
               const status = getQuestionStatus(q);
               return (
                 <li
                   key={q.id}
-                  draggable
-                  onDragStart={() => handleDragStart(q.id)}
-                  onDragEnd={handleDragEnd}
                   onDrop={(e) => handleDrop(e, q.id)}
                   onClick={() => setActiveQuestion(q.id)}
                   className={cn(
@@ -125,6 +121,26 @@ export function QuestionList({
                   )}
                 >
                   <div className="flex items-start gap-2">
+                    <button
+                      type="button"
+                      draggable
+                      aria-label={`Reorder question ${realIdx + 1}`}
+                      title="Drag to reorder"
+                      onClick={(e) => e.stopPropagation()}
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", q.id);
+                        handleDragStart(q.id);
+                      }}
+                      onDragEnd={(e) => {
+                        e.stopPropagation();
+                        handleDragEnd();
+                      }}
+                      className="-ml-1 mt-0.5 flex h-5 w-5 shrink-0 cursor-grab items-center justify-center rounded text-text-muted hover:bg-card-hover hover:text-text-primary active:cursor-grabbing"
+                    >
+                      <GripVertical className="h-3.5 w-3.5" />
+                    </button>
                     <span className={cn("text-[11px] font-bold tabular-nums mt-0.5", active ? "text-[#E91E63]" : "text-text-muted")}>
                       {String(realIdx + 1).padStart(2, "0")}
                     </span>
@@ -157,9 +173,6 @@ export function QuestionList({
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
-                    <span className="p-1 text-text-muted cursor-grab">
-                      <GripVertical className="h-3 w-3" />
-                    </span>
                   </div>
                 </li>
               );

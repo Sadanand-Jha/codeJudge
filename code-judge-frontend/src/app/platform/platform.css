@@ -1,0 +1,111 @@
+.platform-shell {
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  --card: #0d0f12;
+  --card-hover: #15171c;
+  --popover: #15171c;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --border: rgba(255,255,255,.07);
+  --border-hover: rgba(255,255,255,.13);
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --platform-soft: rgba(255,255,255,.04);
+  --platform-soft-strong: rgba(255,255,255,.08);
+  --platform-input: rgba(0,0,0,.12);
+  --platform-grid-line: rgba(255,255,255,.025);
+  --platform-skeleton: rgba(255,255,255,.06);
+  --platform-shadow: 0 1px 0 rgba(255,255,255,.025), 0 18px 48px rgba(0,0,0,.10);
+  color-scheme: dark;
+}
+
+[data-theme="light"] .platform-shell {
+  --background: #f7f8fa;
+  --foreground: #18181b;
+  --card: #ffffff;
+  --card-hover: #f1f2f4;
+  --popover: #ffffff;
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #71717a;
+  --border: rgba(24,24,27,.10);
+  --border-hover: rgba(24,24,27,.20);
+  --success: #15803d;
+  --warning: #b45309;
+  --danger: #dc2626;
+  --platform-soft: rgba(24,24,27,.045);
+  --platform-soft-strong: rgba(24,24,27,.08);
+  --platform-input: #fafafa;
+  --platform-grid-line: rgba(24,24,27,.04);
+  --platform-skeleton: rgba(24,24,27,.07);
+  --platform-shadow: 0 1px 2px rgba(24,24,27,.035), 0 14px 38px rgba(24,24,27,.055);
+  color-scheme: light;
+}
+
+.pf-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+
+.pf-pulse {
+  animation: pf-pulse 2s ease-in-out infinite;
+}
+
+.pf-reveal {
+  animation: pf-reveal 360ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+.pf-chart-path {
+  animation: pf-chart-in 700ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+.pf-card {
+  box-shadow: var(--platform-shadow);
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.pf-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 12px 34px rgba(0,0,0,.16);
+}
+
+.pf-focus:focus-visible {
+  outline: 2px solid rgba(236,72,153,.5);
+  outline-offset: 2px;
+}
+
+.pf-grid {
+  background-image:
+    linear-gradient(var(--platform-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--platform-grid-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.pf-canvas {
+  background-image:
+    radial-gradient(circle at 78% 0%, rgba(236,72,153,.055), transparent 26rem),
+    radial-gradient(circle at 35% 12%, rgba(59,130,246,.035), transparent 30rem);
+  background-attachment: fixed;
+}
+
+@keyframes pf-reveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pf-chart-in {
+  from { opacity: 0; stroke-dasharray: 900; stroke-dashoffset: 900; }
+  to { opacity: 1; stroke-dasharray: 900; stroke-dashoffset: 0; }
+}
+
+@keyframes pf-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-pulse, .pf-reveal, .pf-chart-path { animation: none; }
+
+}

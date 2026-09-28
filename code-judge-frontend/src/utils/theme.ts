@@ -25,7 +25,9 @@ export function getInitialTheme(): Theme {
 // Duration must match the CSS transition set in globals.css under the
 // `html.theme-transition` scoped rule.
 const THEME_TRANSITION_CLASS = "theme-transition";
-const THEME_TRANSITION_MS = 320;
+// Keep the class alive through the longest scoped transition. Student quiz
+// pages use a 460ms crossfade for their layered ambient backgrounds.
+const THEME_TRANSITION_MS = 500;
 
 let themeTransitionTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -60,6 +62,9 @@ export function applyThemeToDOM(theme: Theme): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   if (root.getAttribute("data-theme") === theme) return;
-  root.setAttribute("data-theme", theme);
+  // Install the transition rules before changing any theme tokens. This
+  // guarantees that the first painted frame participates in the animation,
+  // including data-heavy screens such as the platform student analytics.
   startThemeTransition();
+  root.setAttribute("data-theme", theme);
 }

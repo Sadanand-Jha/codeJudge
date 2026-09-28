@@ -59,7 +59,7 @@ export class UserQuizRepository {
       LEFT JOIN quiz_difficulty qd ON qd.id = q.difficulty
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
       LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
-      LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
+      LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id AND qp.deleted_at IS NULL
       LEFT JOIN quiz_attempt qa_attempt ON qa_attempt.quiz_id = q.id AND qa_attempt.user_id = qr.user_id
       LEFT JOIN quiz_student_response qsr ON qsr.attempt_id = qa_attempt.id AND qsr.problem_id = qp.id
       ${whereClause}
@@ -131,7 +131,7 @@ export class UserQuizRepository {
       FROM quiz_problems qp
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
-      WHERE qp.quiz_id = $1 ORDER BY qp.question_number ASC, qp.id ASC
+      WHERE qp.quiz_id = $1 AND qp.deleted_at IS NULL ORDER BY qp.question_number ASC, qp.id ASC
     `, [quizId]);
     return result.rows;
   }
@@ -365,7 +365,7 @@ export class UserQuizRepository {
         qp.explaination, qp.hint, qpt.name AS problem_type,
         qpo.option_statement AS correct_answer, qsr.answer AS selected_option, qsr.created_at AS answered_at
       FROM quiz_attempt qa
-      JOIN quiz_problems qp ON qp.quiz_id = qa.quiz_id
+      JOIN quiz_problems qp ON qp.quiz_id = qa.quiz_id AND qp.deleted_at IS NULL
       LEFT JOIN quiz_student_response qsr ON qsr.attempt_id = qa.id AND qsr.problem_id = qp.id
       LEFT JOIN quiz_problem_options qpo ON qpo.problem_id = qp.id AND qpo.iscorrect = true
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type

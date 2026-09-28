@@ -184,4 +184,8 @@ export class userRepository {
         const result = await pool.query(query, [hashedPassword, email]);
         return (result.rowCount ?? 0) > 0;
     }
+
+    async updateLastLogin(userId: string): Promise<void> {
+        await pool.query(`UPDATE users SET lastlogin = NOW() WHERE id = $1`, [userId]);
+    }
 }

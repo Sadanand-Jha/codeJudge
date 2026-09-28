@@ -538,12 +538,31 @@ html.theme-transition *::after {
   transition-delay: 0s !important;
 }
 
+/* Student quiz surfaces carry more layered backgrounds than the rest of the
+   app. Give those layers a slightly softer coordinated palette change while
+   preserving the faster navigation chrome around them. */
+html.theme-transition .student-quiz-theme,
+html.theme-transition .student-quiz-theme *,
+html.theme-transition .student-quiz-theme *::before,
+html.theme-transition .student-quiz-theme *::after {
+  transition-duration: 460ms !important;
+  transition-timing-function: cubic-bezier(.22, 1, .36, 1) !important;
+  transition-delay: 0s !important;
+}
+
 /* Instant theme switch for users who disable animations. */
 @media (prefers-reduced-motion: reduce) {
   html.theme-transition,
   html.theme-transition *,
   html.theme-transition *::before,
   html.theme-transition *::after {
+    transition: none !important;
+  }
+
+  html.theme-transition .student-quiz-theme,
+  html.theme-transition .student-quiz-theme *,
+  html.theme-transition .student-quiz-theme *::before,
+  html.theme-transition .student-quiz-theme *::after {
     transition: none !important;
   }
 

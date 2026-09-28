@@ -129,7 +129,7 @@ export class QuizRepository {
       LEFT JOIN quiz_difficulty qd ON qd.id = q.difficulty
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
       LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
-      LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
+      LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id AND qp.deleted_at IS NULL
       LEFT JOIN quiz_attempt qa_attempt ON qa_attempt.quiz_id = q.id
       ${whereClause}
       GROUP BY q.id, u.username, qv.heading, qd.heading, qs.name
@@ -271,7 +271,7 @@ export class QuizRepository {
       FROM quiz_problems qp
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
-      WHERE qp.quiz_id = $1
+      WHERE qp.quiz_id = $1 AND qp.deleted_at IS NULL
       ORDER BY qp.question_number ASC, qp.id ASC
     `;
     const result = await pool.query(query, [quizId]);
@@ -302,7 +302,7 @@ export class QuizRepository {
       FROM quiz_problems qp
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
-      WHERE qp.id = $1
+      WHERE qp.id = $1 AND qp.deleted_at IS NULL
       LIMIT 1
     `;
     const result = await pool.query(query, [problemId]);
@@ -313,7 +313,7 @@ export class QuizRepository {
    * Count problems for a quiz
    */
   async getQuizProblemCount(quizId: string): Promise<number> {
-    const query = `SELECT COUNT(*)::int AS count FROM quiz_problems WHERE quiz_id = $1`;
+    const query = `SELECT COUNT(*)::int AS count FROM quiz_problems WHERE quiz_id = $1 AND deleted_at IS NULL`;
     const result = await pool.query(query, [quizId]);
     return result.rows[0]?.count ?? 0;
   }
@@ -509,28 +509,31 @@ export class QuizRepository {
     referenceNotes?: string;
     internalComments?: string;
   }): Promise<any> {
-    const query = `
-      INSERT INTO quiz_problems (
-        quiz_id, problem_statement, problem_description, quiz_problem_type,
-        question_number, explaination, hint, difficulty, reference_notes, internal_comments,
-        created_at, updated_at
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      RETURNING *
-    `;
-    const result = await pool.query(query, [
-      data.quizId,
-      data.problemStatement,
-      data.problemDescription || null,
-      data.quizProblemType || null,
-      data.questionNumber || 1,
-      data.explanation || null,
-      data.hint || null,
-      data.difficulty || null,
-      data.referenceNotes || null,
-      data.internalComments || null,
-    ]);
-    return result.rows[0];
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock($1)", [data.quizId]);
+      const result = await client.query(`
+        INSERT INTO quiz_problems (
+          quiz_id, problem_statement, problem_description, quiz_problem_type,
+          question_number, explaination, hint, difficulty, reference_notes, internal_comments,
+          created_at, updated_at
+        )
+        SELECT $1, $2, $3, $4, COALESCE(MAX(question_number), 0) + 1,
+          $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        FROM quiz_problems WHERE quiz_id = $1
+        RETURNING *
+      `, [data.quizId, data.problemStatement, data.problemDescription || null,
+        data.quizProblemType || null, data.explanation || null, data.hint || null,
+        data.difficulty || null, data.referenceNotes || null, data.internalComments || null]);
+      await client.query("COMMIT");
+      return result.rows[0];
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   /**
@@ -662,7 +665,7 @@ export class QuizRepository {
 
       const newQuizId = newQuiz.rows[0].id;
 
-      const problems = await client.query("SELECT * FROM quiz_problems WHERE quiz_id = $1", [quizId]);
+      const problems = await client.query("SELECT * FROM quiz_problems WHERE quiz_id = $1 AND deleted_at IS NULL", [quizId]);
       for (const problem of problems.rows) {
         const newProblem = await client.query(
           `INSERT INTO quiz_problems (quiz_id, problem_statement, problem_description, quiz_problem_type,
@@ -725,7 +728,7 @@ export class QuizRepository {
     const query = `
       UPDATE quiz_problems
       SET ${fields.join(", ")}
-      WHERE id = $${paramCount}
+      WHERE id = $${paramCount} AND deleted_at IS NULL
       RETURNING *
     `;
 
@@ -734,50 +737,53 @@ export class QuizRepository {
   }
 
   async deleteQuizProblem(problemId: number): Promise<boolean> {
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      await client.query("DELETE FROM quiz_problem_options WHERE problem_id = $1", [problemId]);
-      await client.query("DELETE FROM quiz_student_response WHERE problem_id = $1", [problemId]);
-      const result = await client.query("DELETE FROM quiz_problems WHERE id = $1", [problemId]);
-      await client.query("COMMIT");
-      return (result.rowCount ?? 0) > 0;
-    } catch (e) {
-      await client.query("ROLLBACK");
-      throw e;
-    } finally {
-      client.release();
-    }
+    const result = await pool.query(
+      "UPDATE quiz_problems SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NULL",
+      [problemId]
+    );
+    return (result.rowCount ?? 0) > 0;
   }
 
   async duplicateQuizProblem(problemId: number): Promise<any> {
-    const original = await pool.query("SELECT * FROM quiz_problems WHERE id = $1", [problemId]);
+    const original = await pool.query("SELECT * FROM quiz_problems WHERE id = $1 AND deleted_at IS NULL", [problemId]);
     if (!original.rows.length) return null;
 
     const problem = original.rows[0];
-    const newProblem = await pool.query(
-      `INSERT INTO quiz_problems (quiz_id, problem_statement, problem_description, quiz_problem_type,
-       question_number, explaination, hint, difficulty, reference_notes, internal_comments, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       RETURNING *`,
-      [
-        problem.quiz_id, problem.problem_statement, problem.problem_description, problem.quiz_problem_type,
-        problem.question_number + 1, problem.explaination, problem.hint, problem.difficulty,
-        problem.reference_notes, problem.internal_comments
-      ]
-    );
-
-    const newProblemId = newProblem.rows[0].id;
-    const options = await pool.query("SELECT * FROM quiz_problem_options WHERE problem_id = $1", [problemId]);
-    for (const option of options.rows) {
-      await pool.query(
-        `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-        [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect]
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT pg_advisory_xact_lock($1)", [problem.quiz_id]);
+      const newProblem = await client.query(
+        `INSERT INTO quiz_problems (quiz_id, problem_statement, problem_description, quiz_problem_type,
+         question_number, explaination, hint, difficulty, reference_notes, internal_comments, created_at, updated_at)
+         SELECT $1, $2, $3, $4, COALESCE(MAX(question_number), 0) + 1, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+         FROM quiz_problems WHERE quiz_id = $1
+         RETURNING *`,
+        [
+          problem.quiz_id, problem.problem_statement, problem.problem_description, problem.quiz_problem_type,
+          problem.explaination, problem.hint, problem.difficulty,
+          problem.reference_notes, problem.internal_comments
+        ]
       );
-    }
 
-    return newProblem.rows[0];
+      const newProblemId = newProblem.rows[0].id;
+      const options = await client.query("SELECT * FROM quiz_problem_options WHERE problem_id = $1", [problemId]);
+      for (const option of options.rows) {
+        await client.query(
+          `INSERT INTO quiz_problem_options (problem_id, option_statement, option_description, matching_target, iscorrect, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          [newProblemId, option.option_statement, option.option_description, (option as any).matching_target ?? null, option.iscorrect]
+        );
+      }
+
+      await client.query("COMMIT");
+      return newProblem.rows[0];
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async saveQuizProblemFull(data: {
@@ -839,27 +845,29 @@ export class QuizRepository {
           fields.push(`updated_at = CURRENT_TIMESTAMP`);
           values.push(data.problemId);
 
-          const query = `UPDATE quiz_problems SET ${fields.join(", ")} WHERE id = $${paramCount} RETURNING *`;
+          const query = `UPDATE quiz_problems SET ${fields.join(", ")} WHERE id = $${paramCount} AND deleted_at IS NULL RETURNING *`;
           const result = await client.query(query, values);
           problem = result.rows[0];
         } else {
-          const result = await client.query("SELECT * FROM quiz_problems WHERE id = $1", [data.problemId]);
+          const result = await client.query("SELECT * FROM quiz_problems WHERE id = $1 AND deleted_at IS NULL", [data.problemId]);
           problem = result.rows[0];
         }
       } else {
+        await client.query("SELECT pg_advisory_xact_lock($1)", [data.quizId]);
         const result = await client.query(
           `INSERT INTO quiz_problems (
             quiz_id, problem_statement, problem_description, quiz_problem_type,
             question_number, explaination, hint, difficulty, reference_notes, internal_comments,
             marks, negative_marks, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          ) SELECT $1, $2, $3, $4, COALESCE(MAX(question_number), 0) + 1,
+            $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            FROM quiz_problems WHERE quiz_id = $1
           RETURNING *`,
           [
             data.quizId,
             data.problemStatement,
             data.problemDescription || null,
             data.quizProblemType || null,
-            data.questionNumber || 1,
             data.explanation || null,
             data.hint || null,
             data.difficulty || null,
@@ -902,7 +910,7 @@ export class QuizRepository {
       await client.query("BEGIN");
       for (let i = 0; i < problemIds.length; i++) {
         await client.query(
-          "UPDATE quiz_problems SET question_number = $1 WHERE id = $2 AND quiz_id = $3",
+          "UPDATE quiz_problems SET question_number = $1 WHERE id = $2 AND quiz_id = $3 AND deleted_at IS NULL",
           [i + 1, problemIds[i], quizId]
         );
       }
@@ -1198,12 +1206,12 @@ export class QuizRepository {
       LEFT JOIN quiz_difficulty qd ON qd.id = qp.difficulty
       LEFT JOIN quiz_student_response qsr ON qsr.problem_id = qp.id
       LEFT JOIN quiz_problem_options qpo ON qpo.id::text = qsr.answer::text AND qpo.iscorrect = true
-      WHERE qp.quiz_id = $1
+      WHERE qp.quiz_id = $1 AND qp.deleted_at IS NULL
       GROUP BY qp.id, qpt.name, qd.heading
       ORDER BY qp.question_number ASC
     `;
     let questionStats: any[] = [];
-    try { const r = await pool.query(questionStatsQuery, [quizId]); questionStats = r.rows; } catch { const r2 = await pool.query(`SELECT qp.id, qp.question_number, qp.problem_statement, qpt.name AS problem_type, qp.difficulty, qd.heading AS difficulty_name, COUNT(DISTINCT qsr.id) AS total_responses, 0 as correct_responses FROM quiz_problems qp LEFT JOIN quiz_problem_type qpt ON qpt.id=qp.quiz_problem_type LEFT JOIN quiz_difficulty qd ON qd.id=qp.difficulty LEFT JOIN quiz_student_response qsr ON qsr.problem_id=qp.id WHERE qp.quiz_id=$1 GROUP BY qp.id,qpt.name,qd.heading ORDER BY qp.question_number`, [quizId]); questionStats = r2.rows; }
+    try { const r = await pool.query(questionStatsQuery, [quizId]); questionStats = r.rows; } catch { const r2 = await pool.query(`SELECT qp.id, qp.question_number, qp.problem_statement, qpt.name AS problem_type, qp.difficulty, qd.heading AS difficulty_name, COUNT(DISTINCT qsr.id) AS total_responses, 0 as correct_responses FROM quiz_problems qp LEFT JOIN quiz_problem_type qpt ON qpt.id=qp.quiz_problem_type LEFT JOIN quiz_difficulty qd ON qd.id=qp.difficulty LEFT JOIN quiz_student_response qsr ON qsr.problem_id=qp.id WHERE qp.quiz_id=$1 AND qp.deleted_at IS NULL GROUP BY qp.id,qpt.name,qd.heading ORDER BY qp.question_number`, [quizId]); questionStats = r2.rows; }
 
     // Enrich question stats with skipped (total_attempts - responses) and derived fields
     const totalAttemptsNum = parseInt(s.total_attempts) || 0;
@@ -1243,7 +1251,7 @@ export class QuizRepository {
         LEFT JOIN quiz_difficulty qd ON qd.id=qp.difficulty
         LEFT JOIN quiz_student_response qsr ON qsr.problem_id=qp.id
         LEFT JOIN quiz_problem_options qpo ON qpo.id::text = qsr.answer::text
-        WHERE qp.quiz_id=$1 GROUP BY qd.heading, qd.id ORDER BY qd.id
+        WHERE qp.quiz_id=$1 AND qp.deleted_at IS NULL GROUP BY qd.heading, qd.id ORDER BY qd.id
       `, [quizId]);
       difficultyStats = r.rows.map((r:any)=>({...r, accuracy: r.responses>0 ? (r.correct/r.responses*100) : 0}));
     } catch {}
@@ -1542,7 +1550,35 @@ export class QuizRepository {
       WHERE qa.id = $1 AND qa.user_id = $2
     `;
     const result = await pool.query(query, [attemptId, userId]);
-    return result.rows.length > 0 ? result.rows[0] : null;
+    if (!result.rows.length) return null;
+    const attempt = result.rows[0];
+    // Rank is computed on read so every student (including historical
+    // attempts, where rank was never persisted) sees a rank. Standard
+    // competition ranking among completed attempts of the same quiz:
+    // higher percentage wins; ties break on faster time, earlier
+    // completion, then lower attempt id. NULL-safe via COALESCE.
+    if (attempt.rank == null && attempt.status === "completed") {
+      const rankRes = await pool.query(
+        `SELECT (COUNT(*)::int + 1) AS computed_rank
+         FROM quiz_attempt c
+         WHERE c.quiz_id = $1 AND c.status = 'completed' AND c.id <> $2
+           AND (
+             COALESCE(c.percentage, -1) > COALESCE($3::numeric, -1)
+             OR (COALESCE(c.percentage, -1) = COALESCE($3::numeric, -1)
+                 AND COALESCE(c.time_taken, 2147483647) < COALESCE($4::int, 2147483647))
+             OR (COALESCE(c.percentage, -1) = COALESCE($3::numeric, -1)
+                 AND COALESCE(c.time_taken, 2147483647) = COALESCE($4::int, 2147483647)
+                 AND COALESCE(c.completed_at, '9999-01-01'::timestamptz) < COALESCE($5::timestamptz, '9999-01-01'::timestamptz))
+             OR (COALESCE(c.percentage, -1) = COALESCE($3::numeric, -1)
+                 AND COALESCE(c.time_taken, 2147483647) = COALESCE($4::int, 2147483647)
+                 AND COALESCE(c.completed_at, '9999-01-01'::timestamptz) = COALESCE($5::timestamptz, '9999-01-01'::timestamptz)
+                 AND c.id < $2)
+           )`,
+        [attempt.quiz_id, attempt.id, attempt.percentage, attempt.time_taken, attempt.completed_at]
+      );
+      attempt.rank = rankRes.rows[0]?.computed_rank ?? null;
+    }
+    return attempt;
   }
 
   async getQuestionWiseReview(attemptId: number, userId: number): Promise<any[]> {
@@ -1572,7 +1608,7 @@ export class QuizRepository {
         qsr.answer AS selected_option,
         qsr.created_at AS answered_at
       FROM quiz_attempt qa
-      JOIN quiz_problems qp ON qp.quiz_id = qa.quiz_id
+      JOIN quiz_problems qp ON qp.quiz_id = qa.quiz_id AND qp.deleted_at IS NULL
       LEFT JOIN quiz_student_response qsr ON qsr.attempt_id = qa.id AND qsr.problem_id = qp.id
       LEFT JOIN quiz_problem_options qpo ON qpo.problem_id = qp.id AND qpo.iscorrect = true
       LEFT JOIN quiz_problem_type qpt ON qpt.id = qp.quiz_problem_type
@@ -1842,7 +1878,7 @@ export class QuizRepository {
       LEFT JOIN avatar a ON a.id = u.avatar_id
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
       LEFT JOIN collaborator_lists cl ON cl.quiz_id = q.id
-      LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id
+      LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id AND qp.deleted_at IS NULL
       WHERE qcr.user_id = $1 AND qcr.status = 'accepted'
       GROUP BY q.id, u.username, u.first_name, u.last_name, a.url, qcr.invited_by, qcr.updated_at, cl.collaborators, qs.name
       ORDER BY qcr.updated_at DESC NULLS LAST, q.id DESC
@@ -2008,6 +2044,7 @@ export class QuizRepository {
       LEFT JOIN quiz_problem_options correct ON correct.problem_id = qp.id AND correct.iscorrect = true
       LEFT JOIN quiz_problem_options selected ON selected.id = (qsr.answer->>'selectedOptionId')::int
       WHERE qp.quiz_id = (SELECT quiz_id FROM quiz_attempt WHERE id = $1)
+        AND qp.deleted_at IS NULL
       ORDER BY qp.question_number ASC
     `;
     const result = await pool.query(query, [attemptId]);

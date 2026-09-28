@@ -163,13 +163,15 @@ export default function RegistrationForm() {
 
   const handleUsernameChange = useCallback(
     (value: string) => {
-      updateField("username", value);
+      // Usernames are lowercase-only — convert as the user types.
+      const lower = value.toLowerCase();
+      updateField("username", lower);
 
       if (usernameDebounceRef.current) {
         clearTimeout(usernameDebounceRef.current);
       }
 
-      const validationErr = validateUsername(value);
+      const validationErr = validateUsername(lower);
       if (validationErr) {
         setUsernameStatus({ checking: false, available: null, message: "" });
         return;
@@ -179,7 +181,7 @@ export default function RegistrationForm() {
 
       usernameDebounceRef.current = setTimeout(async () => {
         try {
-          const res = await checkUsername(value);
+          const res = await checkUsername(lower);
           setUsernameStatus({
             checking: false,
             available: res.available,
@@ -431,6 +433,9 @@ export default function RegistrationForm() {
                 <input
                   type="text"
                   value={form.username.value}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   onChange={(e) => handleUsernameChange(e.target.value)}
                   onBlur={() => {
                     const err = validateUsernameField(form.username.value);

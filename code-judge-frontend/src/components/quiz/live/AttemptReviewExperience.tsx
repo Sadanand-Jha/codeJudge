@@ -58,6 +58,7 @@ interface AttemptReviewData {
   percentage: number;
   rank?: number;
   submittedAt: string;
+  submittedAtShort: string;
   totalQuestions: number;
   correct: number;
   wrong: number;
@@ -101,6 +102,19 @@ function formatDateTime(value: string | null | undefined): string {
     month: "short",
     day: "numeric",
     year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/** Compact variant for narrow metric cards (drops the year so it fits on mobile). */
+function formatDateTimeShort(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
     hour: "numeric",
     minute: "2-digit",
   });
@@ -205,6 +219,7 @@ function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): A
     percentage,
     rank: result.rank ?? undefined,
     submittedAt: formatDateTime(result.completed_at),
+    submittedAtShort: formatDateTimeShort(result.completed_at),
     totalQuestions,
     correct,
     wrong,
@@ -446,10 +461,10 @@ export default function AttemptReviewExperience({
                   />
                   <MetricCard
                     label="Submitted"
-                    value={data.submittedAt}
+                    value={data.submittedAtShort}
+                    titleValue={data.submittedAt}
                     icon={Upload}
                     iconColor="#38BDF8"
-                    truncate
                   />
                 </div>
               </div>
@@ -767,12 +782,14 @@ function MetricCard({
   icon: Icon,
   iconColor,
   truncate = false,
+  titleValue,
 }: {
   label: string;
   value: string;
   icon: LucideIcon;
   iconColor: string;
   truncate?: boolean;
+  titleValue?: string;
 }) {
   return (
     <div className="box-border min-w-0 rounded-[12px] border border-[#1D3150] bg-[#0F192B] p-2.5 sm:p-3">
@@ -781,7 +798,7 @@ function MetricCard({
         <span className="truncate">{label}</span>
       </div>
       <div
-        title={value}
+        title={titleValue ?? value}
         className={`mt-1 text-[16px] font-semibold text-[#F5F7FB] sm:text-[18px] ${
           truncate ? "truncate" : "break-words"
         }`}

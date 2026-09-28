@@ -5,11 +5,12 @@ import jwt from "jsonwebtoken";
 import type { SignOptions } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import redisClient from "../config/redis.js";
-import { sendOtp, verifyOtp, register, requestPasswordReset, verifyResetOtp, resetPassword } from "../services/auth.js";
+import { sendOtp, verifyOtp, register, requestPasswordReset, verifyResetOtp, resetPassword, requestOwnerLoginOtp, verifyOwnerLoginOtp } from "../services/auth.js";
 import { UserService } from "../services/database/user.database.js";
 import { userRepository } from "../repositories/user.repository.js";
 import { authenticate } from "../middleware/auth.js";
 import { getClientIp } from "../utils/getClientIp.js";
+import { PLATFORM_COOKIE, mintPlatformToken, revokePlatformToken } from "../services/platformSession.js";
 
 const userService = new UserService();
 const userRepo = new userRepository();
@@ -41,7 +42,7 @@ export const checkUsernameController = async (req: Request, res: Response) => {
       return;
     }
 
-    const trimmed = username.trim();
+    const trimmed = username.trim().toLowerCase();
 
     if (trimmed.length < 3 || trimmed.length > 20) {
       res.status(400).json({
@@ -52,11 +53,11 @@ export const checkUsernameController = async (req: Request, res: Response) => {
       return;
     }
 
-    if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+    if (!/^[a-z0-9_]+$/.test(trimmed)) {
       res.status(400).json({
         success: false,
         available: false,
-        message: "Username can only contain letters, numbers, and underscores",
+        message: "Username can only contain lowercase letters, numbers, and underscores",
       });
       return;
     }
@@ -174,7 +175,7 @@ export const registerController = async (req: Request, res: Response) => {
       return;
     }
 
-    const trimmedUsername = username.trim();
+    const trimmedUsername = username.trim().toLowerCase();
 
     if (trimmedUsername.length < 3 || trimmedUsername.length > 20) {
       res.status(400).json({
@@ -185,10 +186,10 @@ export const registerController = async (req: Request, res: Response) => {
       return;
     }
 
-    if (!/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) {
+    if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
       res.status(400).json({
         success: false,
-        message: "Username can only contain letters, numbers, and underscores",
+        message: "Username can only contain lowercase letters, numbers, and underscores",
         statusCode: 400,
       });
       return;
@@ -402,6 +403,13 @@ export const loginController = async (req: Request, res: Response) => {
       maxAge: 10 * 24 * 60 * 60 * 1000,
     });
 
+    // Record login time for activity analytics (best-effort, never fails login)
+    try {
+      await userRepo.updateLastLogin(String(user.id));
+    } catch {
+      // ignore
+    }
+
     // Return the full merged profile so the frontend can persist it in zustand
     // and render it on every page without a follow-up /auth/me call.
     // Also return token as fallback for Authorization header when cookies are
@@ -421,6 +429,146 @@ export const loginController = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: error.message || "Internal server error during login",
+      statusCode: 500,
+    });
+  }
+};
+
+/**
+ * POST /api/auth/owner/send-otp
+ * Body: { "email": "owner@example.com" }
+ * Sends a one-time login code only to role_id = 2 (owner/admin) accounts.
+ * Always responds generically so owner emails cannot be enumerated.
+ * This is the ONLY login path for the private /platform control center —
+ * password login is never accepted there (see requireOwner + frontend gate).
+ */
+export const ownerSendOtpController = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        message: "Email is required",
+        statusCode: 400,
+      });
+      return;
+    }
+
+    const clientIp = getClientIp(req);
+    const result = await requestOwnerLoginOtp(email, clientIp);
+
+    if (!result.success) {
+      if (result.statusCode === 429) {
+        res.setHeader("Retry-After", "60");
+      }
+      res.status(result.statusCode || 400).json(result);
+      return;
+    }
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error in ownerSendOtpController:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error while sending OTP",
+      statusCode: 500,
+    });
+  }
+};
+
+/**
+ * POST /api/auth/owner/verify-otp
+ * Body: { "email": "owner@example.com", "otp": "123456" }
+ * Redeems the owner login OTP and mints a DEDICATED platform token
+ * (platform_session cookie + JWT scoped to "platform", signed with
+ * PLATFORM_JWT_SECRET). No regular user session is created — password-login
+ * sessions can never access /platform. Rejects non-owner accounts even with
+ * a valid OTP.
+ */
+export const ownerVerifyOtpController = async (req: Request, res: Response) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      res.status(400).json({
+        success: false,
+        message: "Email and OTP are required",
+        statusCode: 400,
+      });
+      return;
+    }
+
+    const result = await verifyOwnerLoginOtp(email, otp);
+
+    if (!result.success) {
+      res.status(result.statusCode || 400).json(result);
+      return;
+    }
+
+    const ownerId = String(result.data.userId);
+    const normalizedEmail = String(result.data.email);
+
+    const platformToken = mintPlatformToken(ownerId, normalizedEmail);
+    if (!platformToken) {
+      res.status(503).json({
+        success: false,
+        message: "Platform authentication is not configured",
+        statusCode: 503,
+      });
+      return;
+    }
+
+    res.cookie(PLATFORM_COOKIE, platformToken, {
+      ...cookieOptions,
+      maxAge: 12 * 60 * 60 * 1000,
+    });
+
+    try {
+      await userRepo.updateLastLogin(ownerId);
+    } catch {
+      // ignore
+    }
+
+    const mergedData = await buildUserProfile(ownerId);
+
+    res.status(200).json({
+      success: true,
+      message: "Owner login successful",
+      data: {
+        user: mergedData,
+        platform_token: platformToken,
+      },
+    });
+  } catch (error: any) {
+    console.error("Error in ownerVerifyOtpController:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error during owner login",
+      statusCode: 500,
+    });
+  }
+};
+
+/**
+ * POST /api/auth/owner/logout
+ * Revokes the platform token (Redis blacklist) and clears the
+ * platform_session cookie. Regular user sessions are untouched.
+ */
+export const ownerLogoutController = async (req: Request, res: Response) => {
+  try {
+    const token =
+      req.cookies?.[PLATFORM_COOKIE] || req.headers.authorization?.replace(/^Bearer\s+/i, "");
+    if (token) {
+      await revokePlatformToken(token);
+    }
+    res.clearCookie(PLATFORM_COOKIE, cookieOptions);
+    res.status(200).json({ success: true, message: "Platform session revoked" });
+  } catch (error: any) {
+    console.error("Error in ownerLogoutController:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error during platform logout",
       statusCode: 500,
     });
   }

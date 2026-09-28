@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useWaitingRoomTheme } from '@/context/WaitingRoomThemeContext'
 
 /**
@@ -15,9 +15,18 @@ export function ThemeBackground() {
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <AnimatePresence initial={false} mode="sync">
+      <motion.div
+        key={themeId}
+        className="absolute inset-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      >
       {/* Base gradient */}
       <div
-        className="absolute inset-0 transition-colors duration-1000"
+        className="absolute inset-0"
         style={{
           background: `linear-gradient(135deg, ${activeConfig.bgGradient[0]}, ${activeConfig.bgGradient[1]}, ${activeConfig.bgGradient[2]})`,
         }}
@@ -41,6 +50,8 @@ export function ThemeBackground() {
       {activeEvents.map((event) => (
         <DynamicEventOverlay key={event.id} type={event.type} intensity={event.intensity} />
       ))}
+      </motion.div>
+      </AnimatePresence>
     </div>
   )
 }

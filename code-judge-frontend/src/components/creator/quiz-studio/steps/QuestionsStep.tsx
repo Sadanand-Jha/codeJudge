@@ -302,7 +302,7 @@ export function QuestionsStep() {
 
         <aside
           className={`
-            fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] shrink-0 flex-col border border-border bg-card rounded-xl transition-transform duration-200 xl:static xl:z-auto xl:flex overflow-visible
+            fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] shrink-0 flex-col overflow-hidden border border-border bg-card rounded-xl transition-transform duration-200 xl:static xl:z-auto xl:flex xl:h-[calc(100dvh-13rem)] xl:max-h-full xl:min-h-0
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"}
           `}
         >

@@ -14,6 +14,9 @@ import {
   forgotPasswordController,
   verifyResetOtpController,
   resetPasswordController,
+  ownerSendOtpController,
+  ownerVerifyOtpController,
+  ownerLogoutController,
 } from '../controllers/auth.controller.js';
 
 const router = Router();
@@ -51,6 +54,26 @@ router.post('/register', registerController);
  * Response: 200 OK with session_token cookie set on success
  */
 router.post('/login', loginController);
+
+/**
+ * POST /api/auth/owner/send-otp
+ * Body: { "email": "owner@example.com" }
+ * Owner-only OTP login (role_id = 2). Generic response, rate-limited.
+ */
+router.post('/owner/send-otp', ownerSendOtpController);
+
+/**
+ * POST /api/auth/owner/verify-otp
+ * Body: { "email": "owner@example.com", "otp": "123456" }
+ * Verifies the owner OTP and mints a session on success.
+ */
+router.post('/owner/verify-otp', ownerVerifyOtpController);
+
+/**
+ * POST /api/auth/owner/logout
+ * Revokes the platform token and clears the platform_session cookie.
+ */
+router.post('/owner/logout', ownerLogoutController);
 
 /**
  * POST /api/auth/me

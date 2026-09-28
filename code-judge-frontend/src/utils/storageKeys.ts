@@ -9,6 +9,9 @@ export const STORAGE_KEYS = {
   AUTH_USER: "byteclash_user",
   /** Combined auth state (token + user) persisted by zustand persist. */
   AUTH: "byteclash_auth",
+  /** Dedicated platform (owner) session — isolated from regular auth. */
+  PLATFORM_TOKEN: "byteclash_platform_token",
+  PLATFORM_EMAIL: "byteclash_platform_email",
   THEME: "byteclash_theme",
   QUIZ_CREATION: "byteclash_quiz_creation",
   QUIZ_PROGRESS_PREFIX: "byteclash_quiz_progress_",

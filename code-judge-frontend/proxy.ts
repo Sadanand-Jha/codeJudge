@@ -5,6 +5,7 @@ const FOCUS_MODE_ENABLED = true;
 
 const FOCUS_ALLOWED_PREFIXES = [
   "/quiz",
+  "/platform",
   "/creator/quizzes",
   "/creator/tests",
   "/creator/series",

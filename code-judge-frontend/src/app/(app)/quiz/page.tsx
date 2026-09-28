@@ -32,13 +32,13 @@ function QuizPageBackground() {
   return (
     <>
       {/* Light theme mesh + blobs */}
-      <div className="pricing-bg-light pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+      <div className="pricing-bg-light pointer-events-none absolute inset-0 z-0 opacity-100 transition-opacity duration-500 ease-out dark:opacity-0" aria-hidden="true">
         <div className="pricing-blob pricing-blob-1" />
         <div className="pricing-blob pricing-blob-2" />
         <div className="pricing-blob pricing-blob-3" />
       </div>
       {/* Dark deep-space + stars + nebulas */}
-      <div className="pricing-bg-space pointer-events-none absolute inset-0 z-0 hidden dark:block" aria-hidden="true">
+      <div className="pricing-bg-space pointer-events-none absolute inset-0 z-0 opacity-0 transition-opacity duration-500 ease-out dark:opacity-100" aria-hidden="true">
         <div className="pricing-stars">
           {stars.map((s) => (
             <span

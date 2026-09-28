@@ -432,6 +432,197 @@ export async function register(email: string, password: string, registrationToke
   }
 }
 
+// --- Owner Login OTP Cache Operations ---
+// Isolated `ownerlogin:` namespace so owner sign-in attempts never interfere
+// with registration or password-reset attempts. Only users with role_id = 2
+// (admin/owner) may receive and redeem an owner login OTP.
+
+async function cacheOwnerLoginOtp(email: string, otp: string): Promise<void> {
+  const key = `ownerlogin_otp:${email.toLowerCase()}`;
+  await redisClient.hSet(key, 'otp', otp);
+  await redisClient.hSet(key, 'attempts_remaining', String(OTP_MAX_VERIFY_ATTEMPTS));
+  await redisClient.expire(key, OTP_TTL_SECONDS);
+}
+
+async function getCachedOwnerLoginOtp(email: string): Promise<string | null> {
+  const key = `ownerlogin_otp:${email.toLowerCase()}`;
+  return await redisClient.hGet(key, 'otp');
+}
+
+async function getOwnerLoginRemainingAttempts(email: string): Promise<number> {
+  const key = `ownerlogin_otp:${email.toLowerCase()}`;
+  const attempts = await redisClient.hGet(key, 'attempts_remaining');
+  return attempts ? parseInt(attempts, 10) : 0;
+}
+
+async function decrementOwnerLoginAttempts(email: string): Promise<number> {
+  const key = `ownerlogin_otp:${email.toLowerCase()}`;
+  return await redisClient.hIncrBy(key, 'attempts_remaining', -1);
+}
+
+async function deleteCachedOwnerLoginOtp(email: string): Promise<void> {
+  const key = `ownerlogin_otp:${email.toLowerCase()}`;
+  await redisClient.del(key);
+}
+
+function isOwnerRole(user: any): boolean {
+  return user != null && Number(user.role_id) === 2;
+}
+
+/**
+ * POST /api/auth/owner/send-otp
+ * Sends a login OTP only if the email belongs to a role_id = 2 account.
+ * Always returns a generic message so the endpoint cannot be used to
+ * enumerate which emails hold owner access.
+ */
+export async function requestOwnerLoginOtp(email: string, clientIp?: string): Promise<ServiceResponse> {
+  try {
+    if (!email || !isValidEmail(email)) {
+      return errorResponse('Invalid email format', 400);
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    // IP-based cooldown (same shape as other OTP flows)
+    const normalizedIp = clientIp ? clientIp.replace(/^::ffff:/, '').trim() : undefined;
+    const ipCooldownKey = normalizedIp && normalizedIp !== 'unknown' ? `ownerlogin_cooldown_ip:${normalizedIp}` : null;
+    const ipRateLimitKey = normalizedIp && normalizedIp !== 'unknown' ? `ownerlogin_requests_ip:${normalizedIp}` : null;
+    const ipRateLimitKey2hr = normalizedIp && normalizedIp !== 'unknown' ? `ownerlogin_requests_ip_2hr:${normalizedIp}` : null;
+
+    if (ipCooldownKey) {
+      const ipCooldownExists = await redisClient.get(ipCooldownKey);
+      if (ipCooldownExists) {
+        return errorResponse(
+          `Too many OTP requests from this network. Please wait ${IP_COOLDOWN_SECONDS} seconds before trying again.`,
+          429
+        );
+      }
+    }
+
+    const cooldownKey = `ownerlogin_cooldown:${normalizedEmail}`;
+    const cooldownExists = await redisClient.get(cooldownKey);
+    if (cooldownExists) {
+      return errorResponse(
+        `Please wait before requesting a new OTP. You can resend after ${OTP_RESEND_COOLDOWN_SECONDS} seconds.`,
+        429
+      );
+    }
+
+    if (ipRateLimitKey2hr) {
+      const n = await redisClient.incr(ipRateLimitKey2hr);
+      if (n === 1) await redisClient.expire(ipRateLimitKey2hr, IP_REQUEST_WINDOW_2HR_SECONDS);
+      if (n > IP_MAX_REQUESTS_2HR) {
+        return errorResponse(`Too many OTP requests from this network. Please try again later.`, 429);
+      }
+    }
+
+    if (ipRateLimitKey) {
+      const n = await redisClient.incr(ipRateLimitKey);
+      if (n === 1) await redisClient.expire(ipRateLimitKey, IP_REQUEST_WINDOW_SECONDS);
+      if (n > IP_MAX_REQUESTS) {
+        return errorResponse(`Too many OTP requests from this network. Please try again later.`, 429);
+      }
+    }
+
+    const rateLimitKey2hr = `ownerlogin_requests_2hr:${normalizedEmail}`;
+    const count2hr = await redisClient.incr(rateLimitKey2hr);
+    if (count2hr === 1) await redisClient.expire(rateLimitKey2hr, OTP_REQUEST_WINDOW_2HR_SECONDS);
+    if (count2hr > OTP_MAX_REQUESTS_2HR) {
+      return errorResponse(`You have reached the maximum OTP requests. Please try again later.`, 429);
+    }
+
+    const rateLimitKey = `ownerlogin_requests:${normalizedEmail}`;
+    const count = await redisClient.incr(rateLimitKey);
+    if (count === 1) await redisClient.expire(rateLimitKey, OTP_REQUEST_WINDOW_SECONDS);
+    if (count > OTP_MAX_REQUESTS) {
+      return errorResponse(`You have reached the maximum OTP requests. Please try again later.`, 429);
+    }
+
+    // Only role_id = 2 accounts receive an OTP — but respond generically.
+    // Both branches are logged (without the OTP value) so email delivery
+    // to non-admins can be audited from server logs.
+    const user = await userService.getUserByEmail(normalizedEmail);
+    if (isOwnerRole(user)) {
+      const otp = generateSixDigitOtp();
+      await cacheOwnerLoginOtp(normalizedEmail, otp);
+      console.log(`[owner-otp] code issued for admin ${normalizedEmail}`);
+      sendOtpEmail({ to: normalizedEmail, otp }).catch((err: any) => {
+        console.error('Failed to send owner-login OTP email (non-blocking):', err.message || err);
+      });
+    } else {
+      console.log(`[owner-otp] code suppressed for non-admin ${normalizedEmail}`);
+    }
+
+    await redisClient.setEx(cooldownKey, OTP_RESEND_COOLDOWN_SECONDS, '1');
+    if (ipCooldownKey) {
+      await redisClient.setEx(ipCooldownKey, IP_COOLDOWN_SECONDS, '1');
+    }
+
+    return successResponse({ email: normalizedEmail }, 'If an owner account exists for this email, an OTP has been sent.');
+  } catch (error) {
+    console.error('Error in requestOwnerLoginOtp:', error);
+    return errorResponse('Internal server error while sending OTP', 500);
+  }
+}
+
+/**
+ * POST /api/auth/owner/verify-otp
+ * Redeems an owner login OTP. Only succeeds for role_id = 2 accounts.
+ * Returns the user id + email so the controller can mint a session.
+ */
+export async function verifyOwnerLoginOtp(email: string, otp: string): Promise<ServiceResponse> {
+  try {
+    // Redis/JSON may hand back a numeric OTP (leading zero dropped) — normalize.
+    const code = String(otp ?? "").trim();
+    if (!email || !isValidEmail(email)) {
+      return errorResponse('Invalid email format', 400);
+    }
+    if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
+      return errorResponse('Invalid OTP format', 400);
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    const cachedOtp = await getCachedOwnerLoginOtp(normalizedEmail);
+    if (!cachedOtp) {
+      return errorResponse('OTP expired or never requested. Please request a new OTP.', 400);
+    }
+
+    const remaining = await getOwnerLoginRemainingAttempts(normalizedEmail);
+    if (remaining <= 0) {
+      await deleteCachedOwnerLoginOtp(normalizedEmail);
+      return errorResponse('Too many failed OTP attempts. Please request a new OTP.', 429);
+    }
+
+    if (String(cachedOtp).trim() !== code) {
+      const newRemaining = await decrementOwnerLoginAttempts(normalizedEmail);
+      if (newRemaining <= 0) {
+        await deleteCachedOwnerLoginOtp(normalizedEmail);
+        return errorResponse('Too many failed OTP attempts. Please request a new OTP.', 429);
+      }
+      return errorResponse(`Invalid OTP. ${newRemaining} attempt(s) remaining.`, 401);
+    }
+
+    await deleteCachedOwnerLoginOtp(normalizedEmail);
+
+    const user = await userService.getUserByEmail(normalizedEmail);
+    if (!isOwnerRole(user)) {
+      // Do not reveal whether the account exists or its role.
+      return errorResponse('Invalid email or OTP', 401);
+    }
+
+    return successResponse(
+      { userId: String(user.id), email: normalizedEmail },
+      'Owner OTP verified successfully'
+    );
+  } catch (error) {
+    console.error('Error in verifyOwnerLoginOtp:', error);
+    return errorResponse('Internal server error while verifying OTP', 500);
+  }
+}
+// Same shape as registration OTPs but under an isolated `pwdreset:` namespace
+// so reset attempts never interfere with registration attempts.
+
 // --- Password Reset OTP Cache Operations ---
 // Same shape as registration OTPs but under an isolated `pwdreset:` namespace
 // so reset attempts never interfere with registration attempts.
