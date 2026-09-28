@@ -10,8 +10,32 @@ import { processQuizSubmission } from "../services/quizSubmission.service.ts";
 import {
   enqueueQuizSubmission,
   getQuizSubmissionJob,
+  getQuizSubmissionQueue,
   type QuizSubmissionJobData,
 } from "../queues/quizSubmission.queue.ts";
+
+/**
+ * Best-effort check for a live BullMQ worker on the quiz-submissions queue.
+ * On serverless (Vercel) there is no long-lived worker, so an enqueue can
+ * succeed (Redis reachable) yet never be consumed — the client would poll
+ * `queued` forever. When no workers are detected we grade inline instead.
+ * Times out fast so submit never blocks on this probe.
+ */
+const hasLiveQuizWorkers = async (): Promise<boolean> => {
+  try {
+    const count = await Promise.race([
+      getQuizSubmissionQueue().getWorkersCount(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("worker probe timeout")), 2000)
+      ),
+    ]);
+    return typeof count === "number" && count > 0;
+  } catch {
+    // Cannot prove a worker exists (Redis slow / probe timeout) — treat as
+    // no live worker so submit degrades to inline grading instead of hanging.
+    return false;
+  }
+};
 
 const quizService = new QuizService();
 const resultGenerationService = new ResultGenerationService();
@@ -1477,6 +1501,28 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
         });
         return;
       }
+      // Redis accepted the job but nothing may consume it (serverless deploy
+      // with no `npm run worker` running, worker crashed, or web/worker on
+      // different Redis DBs). Polling `queued` forever leaves the submit
+      // button spinning — grade inline when no live worker is detected.
+      // Grading is idempotent (already-completed attempts are a no-op), so a
+      // late-starting worker cannot double-grade.
+      if (state !== "active") {
+        const liveWorkers = await hasLiveQuizWorkers();
+        if (!liveWorkers) {
+          console.warn(
+            `No live quiz-submission workers detected for attempt ${attemptId}; grading inline instead of leaving job ${job.id} queued`
+          );
+          await job.remove().catch(() => undefined);
+          const updatedAttempt = await processQuizSubmission(jobData);
+          res.status(200).json({
+            success: true,
+            message: "Quiz submitted successfully",
+            data: updatedAttempt,
+          });
+          return;
+        }
+      }
       res.status(202).json({
         success: true,
         message: "Submission queued for grading",
@@ -1541,6 +1587,7 @@ export const getSubmitStatus = async (req: Request, res: Response) => {
     let jobState: string | null = null;
     let returnvalue: unknown = null;
     let failedReason: string | null = null;
+    let stuckJobData: QuizSubmissionJobData | null = null;
     try {
       const job = await getQuizSubmissionJob(attemptId);
       if (job) {
@@ -1549,6 +1596,9 @@ export const getSubmitStatus = async (req: Request, res: Response) => {
           returnvalue = job.returnvalue ?? null;
         } else if (jobState === "failed") {
           failedReason = job.failedReason ?? "Grading failed";
+        } else if (jobState !== "active") {
+          // Waiting/delayed/paused — candidate for inline recovery below.
+          stuckJobData = job.data as QuizSubmissionJobData;
         }
       }
     } catch {
@@ -1569,6 +1619,32 @@ export const getSubmitStatus = async (req: Request, res: Response) => {
       : jobState === "failed" ? "failed"
       : jobState === "active" ? "processing"
       : "queued";
+
+    // Self-healing for jobs queued before this fix (or while the worker was
+    // down): a poll arriving with no live worker grades inline from the
+    // stored job payload instead of leaving the client spinning. The submit
+    // endpoint already does this for new submits; this covers in-flight jobs.
+    if (status === "queued" && stuckJobData) {
+      const liveWorkers = await hasLiveQuizWorkers();
+      if (!liveWorkers) {
+        try {
+          console.warn(
+            `Recovering stuck quiz-submission job for attempt ${attemptId} inline (no live workers)`
+          );
+          const recovered = await processQuizSubmission(stuckJobData);
+          await getQuizSubmissionJob(attemptId)
+            .then((job) => job?.remove().catch(() => undefined))
+            .catch(() => undefined);
+          res.status(200).json({
+            success: true,
+            data: { attemptId: Number(attemptId), status: "completed", attempt: recovered },
+          });
+          return;
+        } catch (recoveryError) {
+          console.error("Stuck quiz-submission recovery failed, still queued:", recoveryError);
+        }
+      }
+    }
 
     res.status(200).json({
       success: true,

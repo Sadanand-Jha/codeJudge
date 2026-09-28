@@ -78,6 +78,9 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const answersRef = useRef<Record<number, AnswerValue>>({});
+  // Ref mirror of `submitting` so the submit guard never goes stale inside
+  // the long-lived polling loop (state in the useCallback closure would).
+  const submittingRef = useRef(false);
   useEffect(() => {
     answersRef.current = answers;
     // Persist locally on every change so a refresh/resume never loses answers.
@@ -116,8 +119,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
 
   const submit = useCallback(async (proctor?: { violations?: number; flagged?: boolean; flagReason?: string }) => {
     const id = attemptId;
-    if (!id || submitting) return;
+    if (!id || submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
+    setError(null);
     const finishSubmission = () => {
       // Backend confirmed — answers are safely stored, drop the local copy.
       try {
@@ -128,6 +133,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       const resultsAvailable = quiz?.show_results_immediately === true ||
         String(quiz?.status ?? "").toLowerCase() === "ended" ||
         Boolean(quiz?.endtime && new Date(quiz.endtime).getTime() <= Date.now());
+      // Release the button before navigating: if router.replace is slow or
+      // blocked, the spinner must not stick forever.
+      submittingRef.current = false;
+      setSubmitting(false);
       if (resultsAvailable) {
         router.replace(`/quiz/${code}/results/${id}`);
       } else {
@@ -138,18 +147,32 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         router.replace("/quiz#activity");
       }
     };
+    const buildResponses = () =>
+      Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer }));
     try {
-      const result = await submitQuizAttempt(
-        String(id),
-        Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer })),
-        proctor
-      );
+      const result = await submitQuizAttempt(String(id), buildResponses(), proctor);
       if (result && typeof result === "object" && "jobId" in result) {
         // Async path (202): grading runs in a BullMQ worker — poll until done.
-        const deadline = Date.now() + 60000;
+        // The backend now grades inline when no worker is live, so a healthy
+        // submit resolves in one or two polls. Anything longer means the
+        // worker is slow or the job record was lost — recover instead of
+        // spinning forever.
+        const deadline = Date.now() + 45000;
+        let noneCount = 0;
+        let pollErrors = 0;
+        let retriedSubmit = false;
         for (;;) {
           await new Promise((resolve) => setTimeout(resolve, 1500));
-          const status = await getSubmitStatus(String(id));
+          let status;
+          try {
+            status = await getSubmitStatus(String(id));
+          } catch (pollErr: unknown) {
+            pollErrors += 1;
+            if (pollErrors >= 3) throw pollErr;
+            if (Date.now() > deadline) break;
+            continue;
+          }
+          pollErrors = 0;
           if (status.status === "completed") {
             finishSubmission();
             return;
@@ -157,24 +180,48 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           if (status.status === "failed") {
             throw new Error(status.error || "Grading failed on the server. Your answers are saved — try again.");
           }
+          if (status.status === "none") {
+            // No job tracked (Redis flush/eviction or split-brain Redis) while
+            // the attempt is still ungraded — re-submit once to re-enqueue
+            // (backend grades inline if no worker), instead of polling `none`.
+            noneCount += 1;
+            if (!retriedSubmit && noneCount >= 2) {
+              retriedSubmit = true;
+              noneCount = 0;
+              const retry = await submitQuizAttempt(String(id), buildResponses(), proctor);
+              if (!(retry && typeof retry === "object" && "jobId" in retry)) {
+                finishSubmission();
+                return;
+              }
+              continue;
+            }
+            if (Date.now() > deadline || noneCount >= 6) {
+              throw new Error("Submission status is unclear. Your answers are saved on this device — try submitting again.");
+            }
+            continue;
+          }
           if (Date.now() > deadline) {
-            // Worker is slow but answers are safely queued; stop blocking the UI.
-            toast.success({
-              title: "Quiz submitted",
-              description: "Grading is taking longer than usual. Results will appear shortly.",
-            });
-            router.replace("/quiz#activity");
-            return;
+            break;
           }
         }
+        // Worker is slow but answers are safely queued; stop blocking the UI.
+        submittingRef.current = false;
+        setSubmitting(false);
+        toast.success({
+          title: "Quiz submitted",
+          description: "Grading is taking longer than usual. Results will appear shortly.",
+        });
+        router.replace("/quiz#activity");
+        return;
       }
       finishSubmission();
     } catch (err: unknown) {
       // Keep the local copy so nothing is lost; the student can retry.
+      submittingRef.current = false;
       setError(getApiErrorMessage(err, "Your attempt could not be submitted. Your answers are saved on this device — try again."));
       setSubmitting(false);
     }
-  }, [attemptId, submitting, code, quiz, router]);
+  }, [attemptId, code, quiz, router]);
 
   // Exam-cell: after 3 violations the attempt is auto-submitted and flagged.
   const handleTerminate = useCallback((summary: ViolationSummary) => {
