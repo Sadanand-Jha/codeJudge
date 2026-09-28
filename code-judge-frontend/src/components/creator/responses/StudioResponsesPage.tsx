@@ -33,7 +33,6 @@ interface Student {
   userId: number;
   attemptId: number | null;
   name: string;
-  email: string | null;
   rollNo: string;
   status: StudentStatus;
   marks: number | null;
@@ -66,7 +65,7 @@ const PIE_COLORS: Record<string, string> = {
 
 function displayName(s: QuizResponseStudent): string {
   const full = [s.first_name, s.last_name].filter(Boolean).join(" ").trim();
-  return full || s.username || s.email || `User #${s.user_id}`;
+  return full || s.username || `User #${s.user_id}`;
 }
 
 function initials(name: string): string {
@@ -135,7 +134,6 @@ function mapStudent(row: QuizResponseStudent, totalMarks: number): Student {
     userId: row.user_id,
     attemptId: row.attempt_id,
     name,
-    email: row.email,
     rollNo: row.rollno || "—",
     status,
     marks,
@@ -302,8 +300,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
       const q = search.toLowerCase();
       list = list.filter(s =>
         s.name.toLowerCase().includes(q) ||
-        s.rollNo.toLowerCase().includes(q) ||
-        (s.email || "").toLowerCase().includes(q)
+        s.rollNo.toLowerCase().includes(q)
       );
     }
     return list;
@@ -660,10 +657,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="flex h-7 w-7 items-center justify-center rounded-full bg-pink-500/10 text-[10px] font-bold text-pink-400">{s.avatar}</div>
-                          <div>
-                            <span className="block text-xs font-semibold text-text-primary">{s.name}</span>
-                            {s.email && <span className="block text-[10px] text-text-muted">{s.email}</span>}
-                          </div>
+                          <span className="block text-xs font-semibold text-text-primary">{s.name}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
@@ -717,8 +711,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500/10 text-lg font-bold text-pink-400">{detailPanel.avatar}</div>
                   <div>
                     <h4 className="text-base font-bold text-text-primary">{detailPanel.name}</h4>
-                    <p className="text-xs text-text-muted">{detailPanel.rollNo}{detailPanel.email ? ` · ${detailPanel.email}` : ""}</p>
-                    {detailPanel.email && <p className="text-xs text-text-muted">{detailPanel.email}</p>}
+                    <p className="text-xs text-text-muted">{detailPanel.rollNo}</p>
                     <div className="mt-1"><StatusBadge status={detailPanel.status} /></div>
                   </div>
                 </div>

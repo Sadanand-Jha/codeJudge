@@ -1153,7 +1153,6 @@ export interface QuizResponseStudent {
   username: string | null;
   first_name: string | null;
   last_name: string | null;
-  email: string | null;
   attempt_id: number | null;
   score: number | null;
   percentage: number | null;
@@ -1219,7 +1218,6 @@ export interface StudentResponseDetail {
     username: string | null;
     first_name: string | null;
     last_name: string | null;
-    email: string | null;
   };
   review: Array<{
     problem_id: number;

@@ -187,7 +187,7 @@ const lookupUser = async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(
-      `SELECT u.id, u.username, u.avatar_id, a.url as avatar_url, u.display_name, u.first_name, u.last_name, u.email
+      `SELECT u.id, u.username, u.avatar_id, a.url as avatar_url, u.display_name, u.first_name, u.last_name
        FROM users u LEFT JOIN avatar a ON u.avatar_id = a.id
        WHERE u.id::text = $1 OR LOWER(u.username) = LOWER($1) LIMIT 1`,
       [userId]
@@ -212,7 +212,6 @@ const lookupUser = async (req: Request, res: Response) => {
         displayName: user.display_name,
         firstName: user.first_name,
         lastName: user.last_name,
-        email: user.email,
       },
     });
   } catch (error) {

@@ -1290,7 +1290,7 @@ export class QuizRepository {
     // --- Student leaderboard (top 50) for analytics table ---
     let students: any[] = [];
     try {
-      const r = await pool.query(`SELECT qa.id as attempt_id, qa.user_id, u.username, u.email, qa.score, qa.percentage, qa.correct_answers, qa.wrong_answers, qa.skipped_questions, qa.time_taken, qa.rank, qa.status, qa.completed_at FROM quiz_attempt qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC LIMIT 50`, [quizId]);
+      const r = await pool.query(`SELECT qa.id as attempt_id, qa.user_id, u.username, qa.score, qa.percentage, qa.correct_answers, qa.wrong_answers, qa.skipped_questions, qa.time_taken, qa.rank, qa.status, qa.completed_at FROM quiz_attempt qa LEFT JOIN users u ON u.id=qa.user_id WHERE qa.quiz_id=$1 ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC LIMIT 50`, [quizId]);
       students = r.rows;
     } catch {}
 
@@ -1931,7 +1931,6 @@ export class QuizRepository {
         u.username,
         u.first_name,
         u.last_name,
-        u.email,
         qa.id AS attempt_id,
         qa.score,
         qa.percentage,
@@ -2003,8 +2002,7 @@ export class QuizRepository {
         qa.skipped_questions,
         u.username,
         u.first_name,
-        u.last_name,
-        u.email
+        u.last_name
       FROM quiz_attempt qa
       JOIN users u ON u.id = qa.user_id
       WHERE qa.quiz_id = $1 AND qa.user_id = $2

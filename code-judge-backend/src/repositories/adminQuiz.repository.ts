@@ -742,7 +742,7 @@ export class AdminQuizRepository {
       `SELECT qa.id AS attempt_id, qa.user_id, qa.quiz_id, qa.score, qa.percentage, qa.rank,
         qa.status AS attempt_status, qa.completed_at, qa.time_taken, qa.total_questions,
         qa.correct_answers, qa.wrong_answers, qa.skipped_questions,
-        u.username, u.first_name, u.last_name, u.email
+        u.username, u.first_name, u.last_name
        FROM quiz_attempt qa JOIN users u ON u.id = qa.user_id
        WHERE qa.quiz_id = $1 AND qa.user_id = $2 ORDER BY qa.created_at DESC LIMIT 1`,
       [quizId, userId]
