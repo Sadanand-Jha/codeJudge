@@ -371,7 +371,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         </header>
 
         <section className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Question {current.question_number ?? index + 1}</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Question {index + 1}</p>
           <h2 className="mt-3 whitespace-pre-wrap text-sm font-semibold leading-6 text-text-primary sm:text-base">{current.problem_statement}</h2>
           {current.problem_description && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-text-secondary">{current.problem_description}</p>}
 
