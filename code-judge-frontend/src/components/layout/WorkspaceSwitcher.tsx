@@ -5,10 +5,11 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronDown, GraduationCap, Shapes, ArrowUpRight } from "lucide-react";
+import { Check, ChevronDown, GraduationCap, Shapes, ArrowUpRight, Rocket, IceCreamCone } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { IS_DEMO_CREATOR } from "@/components/creator/workspace/mockData";
 import { isNestedQuizPath } from "@/lib/quizWorkspace";
+import { useTheme } from "@/context/ThemeContext";
 
 type Workspace = "student" | "studio";
 
@@ -31,8 +32,12 @@ export default function WorkspaceSwitcher() {
     width: 240,
   });
   const pathname = usePathname();
+  const { theme } = useTheme();
 
   const workspace: Workspace = pathname.startsWith("/creator") || isNestedQuizPath(pathname) ? "studio" : "student";
+  const quizThemeMode = pathname.startsWith("/quiz") && !isNestedQuizPath(pathname) && pathname !== "/quiz/create";
+  const missionMode = quizThemeMode && theme === "dark";
+  const partyMode = quizThemeMode && theme === "light";
   const canAccessStudio = IS_DEMO_CREATOR === true;
 
   useEffect(() => {
@@ -74,16 +79,18 @@ export default function WorkspaceSwitcher() {
         title="Switch workspace"
         className={cn(
           "flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-text-primary transition-colors hover:bg-white/[0.04]",
+          missionMode && "border-violet-400/20 bg-violet-500/[0.06] shadow-[0_0_20px_rgba(124,92,255,.08)]",
+          partyMode && "border-pink-300/45 bg-pink-100/55 shadow-[0_0_20px_rgba(244,114,182,.1)]",
           open && "border-border-hover bg-white/[0.04]"
         )}
       >
         {workspace === "studio" ? (
           <Shapes className="h-3.5 w-3.5 shrink-0 text-pink-500 dark:text-ai-accent" />
         ) : (
-          <GraduationCap className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
+          missionMode ? <Rocket className="h-3.5 w-3.5 shrink-0 text-violet-500 dark:text-violet-300" /> : partyMode ? <IceCreamCone className="h-3.5 w-3.5 shrink-0 text-pink-500" /> : <GraduationCap className="h-3.5 w-3.5 shrink-0 text-text-secondary" />
         )}
         <span className="hidden whitespace-nowrap min-[380px]:inline">
-          {workspace === "studio" ? "Studio" : "Student"}
+          {workspace === "studio" ? "Studio" : missionMode ? "Cadet" : partyMode ? "Player" : "Student"}
         </span>
         <ChevronDown className={cn("h-3 w-3 shrink-0 text-text-muted transition-transform", open && "rotate-180")} />
       </button>
@@ -105,9 +112,9 @@ export default function WorkspaceSwitcher() {
                 >
                   <WorkspaceOption
                     active={workspace === "student"}
-                    icon={<GraduationCap className="h-4 w-4 shrink-0 text-text-secondary" />}
-                    label="Student"
-                    description="Student Workspace"
+                    icon={missionMode ? <Rocket className="h-4 w-4 shrink-0 text-violet-500 dark:text-violet-300" /> : partyMode ? <IceCreamCone className="h-4 w-4 shrink-0 text-pink-500" /> : <GraduationCap className="h-4 w-4 shrink-0 text-text-secondary" />}
+                    label={missionMode ? "Cadet" : partyMode ? "Player" : "Student"}
+                    description={missionMode ? "Student mission workspace" : partyMode ? "Colorful quiz party" : "Student Workspace"}
                     href="/quiz"
                     onSelect={() => setOpen(false)}
                   />

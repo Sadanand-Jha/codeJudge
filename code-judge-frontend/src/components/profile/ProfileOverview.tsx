@@ -191,26 +191,26 @@ export default function ProfileOverview() {
   }
 
   return (
-    <div className="px-4 py-6 sm:px-6">
+    <div className="relative px-4 py-6 sm:px-6">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* ============ Main identity card ============ */}
         <motion.section
           {...fade}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-[var(--card-shadow)]"
+          className="relative overflow-hidden rounded-[30px] border border-pink-200/70 bg-white/76 shadow-[0_30px_90px_-48px_rgba(244,114,182,.85)] backdrop-blur-2xl dark:border-white/[0.09] dark:bg-[#111624]/82 dark:shadow-[0_34px_100px_-44px_rgba(82,60,180,.78)]"
         >
-          {/* Soft gradient backdrop — fire theme */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#F59E0B]/15 via-transparent to-[#DC2626]/10" />
-          <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-[#F97316]/10 blur-[100px]" />
-          <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[#F59E0B]/10 blur-[100px]" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-pink-400/[0.14] via-transparent to-cyan-400/[0.1] dark:from-violet-500/[0.16] dark:to-cyan-400/[0.05]" />
+          <div className="pointer-events-none absolute inset-0 opacity-[0.035] dark:opacity-[0.055]" style={{ backgroundImage: "linear-gradient(rgba(139,124,255,.8) 1px, transparent 1px), linear-gradient(90deg, rgba(139,124,255,.8) 1px, transparent 1px)", backgroundSize: "34px 34px" }} />
+          <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-cyan-400/15 blur-[90px] dark:bg-violet-500/20" />
+          <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-pink-400/15 blur-[90px] dark:bg-fuchsia-500/10" />
 
           <div className="relative z-10 flex flex-col gap-8 p-6 sm:p-10 md:flex-row md:items-center md:justify-between">
             {/* Avatar + identity */}
             <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
               {/* Perfectly circular avatar with gradient ring + glow */}
               <div className="relative shrink-0">
-                <div className="absolute -inset-3 rounded-full bg-gradient-to-br from-[#F59E0B] via-[#F97316] to-[#DC2626] opacity-50 blur-2xl" />
-                <div className="relative h-32 w-32 rounded-full bg-gradient-to-br from-[#F59E0B] via-[#F97316] to-[#DC2626] p-[3px] shadow-lg sm:h-36 sm:w-36">
+                <div className="absolute -inset-4 rounded-full bg-gradient-to-br from-pink-400 via-orange-300 to-cyan-300 opacity-45 blur-2xl dark:from-violet-500 dark:via-fuchsia-500 dark:to-cyan-400" />
+                <div className="relative h-32 w-32 rounded-full bg-gradient-to-br from-pink-500 via-orange-400 to-cyan-400 p-[4px] shadow-[0_20px_55px_-22px_rgba(244,114,182,.9)] dark:from-violet-500 dark:via-fuchsia-500 dark:to-cyan-400 dark:shadow-[0_20px_60px_-20px_rgba(124,92,255,.9)] sm:h-36 sm:w-36">
                   <img
                     src={resolveAvatar(profile?.avatarUrl)}
                     alt={profile?.username || "User"}
@@ -226,8 +226,16 @@ export default function ProfileOverview() {
 
               {/* Name + info */}
               <div className="text-center sm:text-left">
+                <div className="mb-3 flex justify-center sm:justify-start">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-pink-300/60 bg-pink-100/70 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-pink-600 dark:hidden">
+                    <Sparkles className="h-3 w-3" /> Player passport
+                  </span>
+                  <span className="hidden items-center gap-1.5 rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-violet-300 dark:inline-flex">
+                    <Rocket className="h-3 w-3" /> Mission identity
+                  </span>
+                </div>
                 <div className="flex flex-wrap items-center justify-center gap-2.5 sm:justify-start">
-                  <h1 className="fire-text text-2xl font-bold tracking-tight sm:text-3xl">
+                  <h1 className="bg-gradient-to-r from-pink-600 via-orange-500 to-cyan-600 bg-clip-text text-2xl font-black tracking-tight text-transparent dark:from-violet-300 dark:via-fuchsia-300 dark:to-cyan-300 sm:text-3xl">
                     {profile?.username || "User"}
                   </h1>
                   <span
@@ -316,7 +324,7 @@ export default function ProfileOverview() {
             <motion.section
               {...fade}
               transition={{ duration: 0.4, delay: 0.05, ease: "easeOut" }}
-              className="rounded-2xl border border-border bg-card p-6"
+              className="rounded-[22px] border border-pink-200/70 bg-white/75 p-6 shadow-[0_22px_60px_-46px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#111624]/80"
             >
               <SectionTitle icon={Quote} tone="from-[#F59E0B] to-[#F97316]" title="About Me" />
               <div className="mt-4">
@@ -345,7 +353,7 @@ export default function ProfileOverview() {
             <motion.section
               {...fade}
               transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-              className="rounded-2xl border border-border bg-card p-6"
+              className="rounded-[22px] border border-pink-200/70 bg-white/75 p-6 shadow-[0_22px_60px_-46px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#111624]/80"
             >
               <SectionTitle icon={Target} tone="from-[#F97316] to-[#DC2626]" title="Current Focus" />
               <p className="mt-4 text-sm leading-relaxed text-text-secondary">
@@ -362,7 +370,7 @@ export default function ProfileOverview() {
             <motion.section
               {...fade}
               transition={{ duration: 0.4, delay: 0.12, ease: "easeOut" }}
-              className="rounded-2xl border border-border bg-card p-6"
+              className="rounded-[22px] border border-cyan-200/70 bg-white/75 p-6 shadow-[0_22px_60px_-46px_rgba(34,199,232,.7)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#111624]/80"
             >
               <SectionTitle icon={Code2} tone="from-[#FBBF24] to-[#F59E0B]" title="Skills" />
               <div className="mt-4 flex flex-wrap gap-2">
@@ -385,7 +393,7 @@ export default function ProfileOverview() {
             <motion.section
               {...fade}
               transition={{ duration: 0.4, delay: 0.16, ease: "easeOut" }}
-              className="rounded-2xl border border-border bg-card p-6"
+              className="rounded-[22px] border border-cyan-200/70 bg-white/75 p-6 shadow-[0_22px_60px_-46px_rgba(34,199,232,.7)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#111624]/80"
             >
               <SectionTitle icon={Link2} tone="from-[#F59E0B] to-[#EA580C]" title="Coding Platforms" />
               <div className="mt-4 space-y-2.5">
@@ -412,7 +420,7 @@ export default function ProfileOverview() {
         <motion.section
           {...fade}
           transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
-          className="rounded-2xl border border-border bg-card p-6"
+          className="rounded-[24px] border border-pink-200/70 bg-white/76 p-6 shadow-[0_24px_70px_-48px_rgba(244,114,182,.8)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#111624]/82"
         >
           <div className="flex flex-wrap items-center justify-between gap-4">
             <SectionTitle icon={Award} tone="from-[#FBBF24] to-[#F59E0B]" title="Highlights" />
@@ -452,7 +460,7 @@ export default function ProfileOverview() {
         <motion.section
           {...fade}
           transition={{ duration: 0.4, delay: 0.24, ease: "easeOut" }}
-          className="relative overflow-hidden rounded-2xl border border-border bg-card p-6 sm:p-8"
+          className="relative overflow-hidden rounded-[24px] border border-pink-200/70 bg-white/76 p-6 shadow-[0_24px_70px_-48px_rgba(244,114,182,.8)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#111624]/82 sm:p-8"
         >
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#F59E0B]/10 via-transparent to-[#DC2626]/10" />
           <div className="relative z-10 flex flex-col items-center gap-6 sm:flex-row sm:justify-between">

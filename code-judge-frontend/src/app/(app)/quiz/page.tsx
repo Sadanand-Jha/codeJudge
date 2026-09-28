@@ -2,10 +2,13 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ArrowRight, History, KeyRound, Plus, ShieldCheck, ClipboardCheck } from "lucide-react";
+import { ArrowRight, History, KeyRound, ShieldCheck, Rocket, Radar, Gauge, Satellite, IceCreamCone, PartyPopper } from "lucide-react";
 import GuestGuard from "@/components/guards/GuestGuard";
 
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
+import AstronautAvatarFleet from "@/components/quiz/live/AstronautAvatarFleet";
+import QuizPartyAtmosphere from "@/components/quiz/live/QuizPartyAtmosphere";
+import { useTheme } from "@/context/ThemeContext";
 
 /* ── Same ambient background as the upgrade/pricing page ── */
 function QuizPageBackground() {
@@ -71,6 +74,12 @@ function QuizPageBackground() {
         <div className="pricing-nebula -left-20 top-20 h-[320px] w-[320px] bg-[#7C3AED]/20" />
         <div className="pricing-nebula -right-20 bottom-20 h-[380px] w-[380px] bg-[#EC4899]/20" style={{ animationDelay: "6s" }} />
         <div className="pricing-nebula left-1/3 top-1/2 h-[300px] w-[300px] bg-[#6366F1]/15" style={{ animationDelay: "12s" }} />
+        <div className="absolute -right-20 top-20 h-52 w-52 rounded-full bg-gradient-to-br from-violet-300/45 via-violet-600/40 to-[#21104D] opacity-70 shadow-[inset_-24px_-18px_40px_rgba(5,3,25,.7),0_0_90px_rgba(124,58,237,.22)]">
+          <span className="absolute left-[22%] top-[26%] h-5 w-5 rounded-full bg-white/[0.07]" />
+          <span className="absolute left-1/2 top-1/2 h-[145%] w-[195%] -translate-x-1/2 -translate-y-1/2 rotate-[-17deg] rounded-[50%] border-[4px] border-violet-100/10 border-l-violet-100/35" />
+        </div>
+        <div className="absolute left-1/2 top-[36%] h-[46rem] w-[46rem] -translate-x-1/2 rounded-full border border-violet-100/[0.045]" />
+        <div className="absolute left-1/2 top-[45%] h-[28rem] w-[70rem] -translate-x-1/2 rotate-[-10deg] rounded-[50%] border border-cyan-100/[0.04]" />
       </div>
       {/* Local ambient orbs — clearly visible soft color balloons in both themes */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
@@ -83,30 +92,60 @@ function QuizPageBackground() {
 }
 
 function QuizHome() {
+  const { theme } = useTheme();
+  const partyMode = theme === "light";
+
   return (
     <div className="relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 py-6 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6 sm:py-8">
       <QuizPageBackground />
+      <QuizPartyAtmosphere />
+      <AstronautAvatarFleet />
       <main className="relative z-10 mx-auto w-full max-w-[1320px] space-y-5 sm:w-[calc(100%-48px)] sm:space-y-6">
-        {/* ── Page header (no giant card) ── */}
-        <header className="flex flex-col gap-4 border-b border-[#E4E7EC] pb-5 dark:border-[#252D3A] sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">
-              ByteClash
-            </p>
-            <h1 className="mt-1 text-[26px] font-bold leading-tight tracking-tight sm:text-[32px]">
-              Quizzes
-            </h1>
-            <p className="mt-1.5 max-w-xl text-[13px] leading-5 text-[#475467] dark:text-[#9AA4B5] sm:text-[14px] sm:leading-6">
-              Join assessments, review your attempts, and track your performance.
-            </p>
+        <header className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/75 px-5 py-6 shadow-[0_28px_90px_-42px_rgba(65,44,155,.7)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#101421]/78 dark:shadow-[0_32px_100px_-36px_rgba(3,2,18,.95)] sm:px-8 sm:py-8 lg:grid lg:grid-cols-[1.25fr_.75fr] lg:items-center lg:gap-8">
+          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+            <div className="absolute -left-28 -top-36 h-80 w-80 rounded-full bg-violet-500/15 blur-3xl" />
+            <div className="absolute -bottom-40 right-0 h-80 w-80 rounded-full bg-cyan-400/[0.08] blur-3xl" />
+            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.055]" style={{ backgroundImage: "linear-gradient(rgba(139,124,255,.75) 1px, transparent 1px), linear-gradient(90deg, rgba(139,124,255,.75) 1px, transparent 1px)", backgroundSize: "34px 34px" }} />
           </div>
-          <Link
-            href="/quiz/join"
-            className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#8B7CFF] px-4 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#7A6BF5] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8B7CFF]/50 sm:self-start"
-          >
-            <Plus className="h-4 w-4" />
-            Join Quiz
-          </Link>
+
+          <div className="relative min-w-0">
+            <div className="inline-flex items-center gap-2 rounded-full border border-pink-300/60 bg-pink-100/65 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-pink-600 dark:border-violet-500/20 dark:bg-violet-500/[0.08] dark:text-violet-300">
+              {partyMode ? <IceCreamCone className="h-3.5 w-3.5" /> : <span className="relative flex h-1.5 w-1.5"><span className="absolute h-full w-full animate-ping rounded-full bg-violet-500 opacity-50" /><span className="relative h-1.5 w-1.5 rounded-full bg-violet-500" /></span>}
+              {partyMode ? "ByteClash Ice Cream Party" : "ByteClash Mission Control"}
+            </div>
+            <h1 className="mt-4 max-w-3xl text-[34px] font-black leading-[1.05] tracking-[-0.045em] text-[#101828] dark:text-white sm:text-[46px] lg:text-[54px]">
+              {partyMode ? "Quiz time just got sweeter." : "This is not just a quiz."}
+              <span className="block bg-gradient-to-r from-pink-500 via-orange-400 to-cyan-500 bg-clip-text text-transparent dark:from-violet-600 dark:via-fuchsia-500 dark:to-cyan-500">{partyMode ? "Grab a scoop and join the party!" : "It’s your next space mission."}</span>
+            </h1>
+            <p className="mt-4 max-w-2xl text-[13px] leading-6 text-[#475467] dark:text-[#A1ABBC] sm:text-[15px]">
+              {partyMode ? "Pop the balloons, splash some color, and turn every question into a cheerful little celebration." : "Receive your launch code, enter the assessment cockpit, and prove your skills beyond the classroom. Every attempt is a new destination."}
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link href="/quiz/join" className="group inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-6 text-sm font-bold text-white shadow-[0_14px_32px_-14px_rgba(244,114,182,.9)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-12px_rgba(244,114,182,.95)] dark:from-[#705CF1] dark:via-[#8B7CFF] dark:to-[#A46EFF] dark:shadow-[0_14px_32px_-14px_rgba(124,92,255,.95)] dark:hover:shadow-[0_18px_40px_-12px_rgba(124,92,255,1)]">
+                {partyMode ? <PartyPopper className="h-4 w-4" /> : <Rocket className="h-4 w-4" />} {partyMode ? "Join the quiz party" : "Launch a mission"} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              <Link href="#activity" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#DDE2EA] bg-white/55 px-5 text-sm font-semibold text-[#344054] transition hover:border-violet-500/30 hover:text-violet-600 dark:border-white/[0.09] dark:bg-white/[0.035] dark:text-[#BAC3D3] dark:hover:text-violet-300">
+                <History className="h-4 w-4" /> {partyMode ? "See my quiz treats" : "Open mission logs"}
+              </Link>
+            </div>
+          </div>
+
+          {!partyMode && <div className="relative mx-auto mt-8 hidden h-[260px] w-full max-w-[360px] lg:block" aria-hidden="true">
+            <div className="absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full border border-violet-500/15" />
+            <div className="absolute left-1/2 top-1/2 h-32 w-64 -translate-x-1/2 -translate-y-1/2 rotate-[-18deg] rounded-[50%] border border-cyan-400/15" />
+            <div className="absolute left-1/2 top-1/2 grid h-28 w-28 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-violet-300/20 bg-gradient-to-br from-[#2D2368] via-[#5B45C4] to-[#171333] text-5xl shadow-[inset_-16px_-12px_28px_rgba(5,3,25,.55),0_0_60px_rgba(124,92,255,.28)]">🧑‍🚀</div>
+            <div className="absolute left-[8%] top-[18%] rounded-xl border border-cyan-300/10 bg-[#081226]/50 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.13em] text-cyan-200/65 backdrop-blur-md"><Radar className="mr-1.5 inline h-3.5 w-3.5" />Signal locked</div>
+            <div className="absolute bottom-[12%] right-[2%] rounded-xl border border-violet-300/10 bg-[#120d29]/55 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.13em] text-violet-200/70 backdrop-blur-md"><Gauge className="mr-1.5 inline h-3.5 w-3.5" />Systems ready</div>
+            <div className="absolute right-[12%] top-[6%] h-3 w-3 rounded-full bg-amber-400 shadow-[0_0_18px_rgba(251,191,36,.75)]" />
+          </div>}
+          {partyMode && <div className="relative mx-auto mt-8 hidden h-[260px] w-full max-w-[360px] lg:block" aria-hidden="true">
+            <div className="absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-pink-200/70 via-amber-100/70 to-cyan-100/70 blur-sm" />
+            <div className="absolute left-1/2 top-[42%] grid h-28 w-28 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-[38px] border-4 border-white bg-gradient-to-br from-pink-300 to-pink-500 text-6xl shadow-[0_20px_45px_-18px_rgba(244,114,182,.65)]">🍨</div>
+            <span className="absolute left-[8%] top-[14%] text-5xl drop-shadow-lg">🎈</span>
+            <span className="absolute right-[7%] top-[18%] text-4xl drop-shadow-lg">🍭</span>
+            <span className="absolute bottom-[12%] left-[15%] text-4xl drop-shadow-lg">💦</span>
+            <span className="absolute bottom-[10%] right-[12%] text-4xl drop-shadow-lg">🎉</span>
+          </div>}
         </header>
 
         {/* ── Primary actions (compact) ── */}
@@ -114,40 +153,42 @@ function QuizHome() {
           <ActionCard
             href="/quiz/join"
             icon={KeyRound}
-            title="Join a quiz"
-            description="Enter a valid quiz code to verify access."
-            cta="Join quiz"
+            title={partyMode ? "Enter your party code" : "Enter launch code"}
+            description={partyMode ? "Use your 16-letter quiz pass and step into the celebration." : "Use your secure 16-letter mission key and prepare for departure."}
+            cta={partyMode ? "Join the fun" : "Begin launch sequence"}
             primary
+            party={partyMode}
           />
           <ActionCard
             href="#activity"
             icon={History}
-            title="My activity"
-            description="Review attempts and performance history."
-            cta="View activity"
+            title={partyMode ? "My quiz treats" : "Mission archive"}
+            description={partyMode ? "Revisit your scores, happy wins, and colorful quiz memories." : "Review completed expeditions, scores, ranks, and flight history."}
+            cta={partyMode ? "Open treat shelf" : "Open mission logs"}
+            party={partyMode}
           />
         </section>
 
         {/* ── Trust strip (existing content, compact) ── */}
-        <section className="flex flex-col gap-2 rounded-xl border border-[#E4E7EC] bg-white px-4 py-3 dark:border-[#252D3A] dark:bg-[#151A24] sm:flex-row sm:items-center sm:gap-6">
+        <section className="flex flex-col gap-2 rounded-2xl border border-[#E4E7EC] bg-white/75 px-4 py-3 backdrop-blur-xl dark:border-white/[0.07] dark:bg-[#111622]/75 sm:flex-row sm:items-center sm:gap-6">
           <span className="inline-flex items-center gap-2 text-xs text-[#475467] dark:text-[#9AA4B5]">
-            <ClipboardCheck className="h-4 w-4 shrink-0 text-[#039855] dark:text-[#20D889]" />
+            <Satellite className="h-4 w-4 shrink-0 text-[#039855] dark:text-[#20D889]" />
             <span>
-              <strong className="font-semibold text-[#101828] dark:text-[#F4F6FA]">Verified entry — </strong>
-              Invalid, draft, expired, and unauthorized quiz codes are rejected.
+              <strong className="font-semibold text-[#101828] dark:text-[#F4F6FA]">{partyMode ? "Party pass — " : "Flight clearance — "}</strong>
+              {partyMode ? "Every quiz code is checked before the fun begins." : "Every launch code is verified before boarding begins."}
             </span>
           </span>
           <span className="inline-flex items-center gap-2 text-xs text-[#475467] dark:text-[#9AA4B5] sm:border-l sm:border-[#E4E7EC] sm:pl-6 sm:dark:border-[#252D3A]">
             <ShieldCheck className="h-4 w-4 shrink-0 text-[#1570EF] dark:text-[#4F9DFF]" />
             <span>
-              <strong className="font-semibold text-[#101828] dark:text-[#F4F6FA]">Private by design — </strong>
-              Creator identity and internal quiz configuration are never shown here.
+              <strong className="font-semibold text-[#101828] dark:text-[#F4F6FA]">{partyMode ? "Safe play — " : "Protected cockpit — "}</strong>
+              {partyMode ? "Your answers stay private while the colors and confetti fly." : "Your assessment session and answers remain secure throughout the mission."}
             </span>
           </span>
         </section>
 
         <div id="activity" className="scroll-mt-20">
-          <YourActivitySection />
+          <YourActivitySection missionMode={!partyMode} />
         </div>
       </main>
     </div>
@@ -169,6 +210,7 @@ function ActionCard({
   description,
   cta,
   primary = false,
+  party = false,
 }: {
   href: string;
   icon: typeof KeyRound;
@@ -176,26 +218,44 @@ function ActionCard({
   description: string;
   cta: string;
   primary?: boolean;
+  party?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className={`group flex items-start gap-3.5 rounded-2xl border p-4 transition-colors duration-150 sm:p-5 ${
-        primary
-          ? "border-[#8B7CFF]/40 bg-white shadow-[0_0_24px_rgba(139,124,255,0.12)] hover:border-[#8B7CFF]/60 dark:border-[#8B7CFF]/30 dark:bg-[#19202C] dark:shadow-[0_0_24px_rgba(139,124,255,0.08)] dark:hover:border-[#8B7CFF]/50"
-          : "border-[#E4E7EC] bg-white hover:border-[#D0D5DD] dark:border-[#252D3A] dark:bg-[#151A24] dark:hover:border-[#353f52]"
+      className={`group relative flex items-start gap-4 overflow-hidden rounded-[24px] border p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 sm:p-6 ${
+        party
+          ? primary
+            ? "border-pink-300/60 bg-gradient-to-br from-white/90 to-pink-50/85 shadow-[0_20px_55px_-32px_rgba(244,114,182,.8)] hover:border-pink-400/70"
+            : "border-cyan-200/70 bg-gradient-to-br from-white/85 to-cyan-50/75 shadow-[0_20px_55px_-36px_rgba(34,199,232,.6)] hover:border-cyan-300"
+          : primary
+          ? "border-[#8B7CFF]/40 bg-white/85 shadow-[0_20px_55px_-32px_rgba(109,77,255,.8)] hover:border-[#8B7CFF]/65 hover:shadow-[0_24px_60px_-30px_rgba(109,77,255,.9)] dark:border-[#8B7CFF]/30 dark:bg-[#121725]/80 dark:shadow-[0_20px_60px_-34px_rgba(109,77,255,.7)]"
+          : "border-[#E4E7EC] bg-white/75 shadow-[0_20px_55px_-38px_rgba(16,24,40,.45)] hover:border-[#BDB4FF]/60 hover:shadow-[0_24px_60px_-34px_rgba(109,77,255,.5)] dark:border-white/[0.08] dark:bg-[#101520]/75 dark:hover:border-violet-400/30"
       }`}
     >
       <span
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
-          primary
-            ? "border-[#8B7CFF]/25 bg-[#8B7CFF]/12 text-[#6B5CFF] dark:text-[#8B7CFF]"
-            : "border-[#E4E7EC] bg-[#F2F4F7] text-[#475467] dark:border-[#252D3A] dark:bg-[#19202C] dark:text-[#9AA4B5]"
+        aria-hidden="true"
+        className={`pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full blur-3xl transition-opacity duration-300 group-hover:opacity-100 ${
+          party ? (primary ? "bg-pink-400/25 opacity-80" : "bg-cyan-400/20 opacity-70") : primary ? "bg-violet-500/20 opacity-70" : "bg-cyan-400/10 opacity-40"
+        }`}
+      />
+      <span
+        className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border shadow-inner ${
+          party
+            ? primary
+              ? "border-pink-300/50 bg-pink-100/70 text-pink-600"
+              : "border-cyan-300/50 bg-cyan-100/65 text-cyan-600"
+            : primary
+            ? "border-[#8B7CFF]/25 bg-[#8B7CFF]/12 text-[#6B5CFF] dark:bg-violet-500/10 dark:text-[#A99FFF]"
+            : "border-[#DDE2EA] bg-[#F2F4F7] text-[#475467] dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-cyan-300"
         }`}
       >
         <Icon className="h-5 w-5" strokeWidth={1.8} />
       </span>
-      <span className="min-w-0 flex-1">
+      <span className="relative min-w-0 flex-1">
+        <span className="mb-2 block text-[9px] font-bold uppercase tracking-[0.17em] text-[#98A2B3] dark:text-[#68758A]">
+          {party ? (primary ? "Your party pass" : "Sweet memories") : (primary ? "Primary flight path" : "Mission intelligence")}
+        </span>
         <span className="block text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA] sm:text-base">
           {title}
         </span>
@@ -204,7 +264,9 @@ function ActionCard({
         </span>
         <span
           className={`mt-2.5 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors duration-150 ${
-            primary
+            party && primary
+              ? "bg-gradient-to-r from-pink-500 to-orange-400 text-white group-hover:from-pink-600 group-hover:to-orange-500"
+              : primary
               ? "bg-[#8B7CFF] text-white group-hover:bg-[#7A6BF5]"
               : "border border-[#E4E7EC] bg-[#F2F4F7] text-[#475467] group-hover:border-[#D0D5DD] group-hover:text-[#101828] dark:border-[#252D3A] dark:bg-[#19202C] dark:text-[#9AA4B5] dark:group-hover:border-[#353f52] dark:group-hover:text-[#F4F6FA]"
           }`}

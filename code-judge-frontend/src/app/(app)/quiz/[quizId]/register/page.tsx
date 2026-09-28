@@ -38,6 +38,7 @@ import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 import { loadQuizAudience } from "@/utils/quizStorage";
 import { useRoomStore, isUserEligible } from "@/store/roomStore";
 import { QuizPrimaryButton, QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
+import QuizSpaceAtmosphere from "@/components/quiz/live/QuizSpaceAtmosphere";
 
 export default function QuizRegisterPage({ params }: { params: Promise<{ quizId: string }> }) {
   const { quizId } = use(params);
@@ -211,8 +212,9 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
   const StatusIcon = statusBadge.icon;
 
   return (
-    <div className="has-mobile-viewport-actions min-h-dvh bg-[#F7F8FA] dark:bg-[#0B0D14]">
-      <div className="flex">
+    <div className="has-mobile-viewport-actions relative min-h-dvh overflow-hidden bg-[#F7F8FA] dark:bg-[#0B0D14]">
+      <QuizSpaceAtmosphere className="fixed" />
+      <div className="relative flex">
         {/* Sidebar - hidden on mobile, visible on lg+ */}
         <div className="hidden lg:block w-64 border-r border-border bg-[#F2F4F7] dark:bg-[#0F1117] shrink-0">
           <div className="p-4">

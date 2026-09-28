@@ -24,6 +24,7 @@ import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { ParticipantsDrawer } from "@/components/quiz/live/ParticipantsDrawer";
 import type { LiveParticipant } from "@/types/liveAssessment";
 import { ThemeBackground } from "@/components/quiz/live/ThemeBackground";
+import QuizPartyAtmosphere from "@/components/quiz/live/QuizPartyAtmosphere";
 import { WaitingRoomToast } from "@/components/quiz/live/WaitingRoomToast";
 import { AvatarHoverPreview } from "@/components/quiz/live/AvatarHoverPreview";
 import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/WaitingRoomThemeContext";
@@ -242,6 +243,7 @@ function WaitingRoomPageInner({
       {viewMode !== "real" && (
         <div className="fixed inset-0 z-0 pointer-events-none">
           <ThemeBackground />
+          {viewMode === "light" && <QuizPartyAtmosphere />}
         </div>
       )}
 
@@ -249,6 +251,7 @@ function WaitingRoomPageInner({
       <div className="fixed inset-0 z-[5] pointer-events-none">
         <AnimatedCrowd
           participants={participants}
+          speedMultiplier={2}
           onShow={showHovered}
           onArmHide={armHideHover}
           onHideNow={hideNowHover}

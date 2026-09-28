@@ -12,7 +12,6 @@ import {
   Activity,
   BarChart3,
   Settings,
-  UsersRound,
   ShoppingBag,
   History,
   X,
@@ -68,8 +67,8 @@ function ProfileNavLinks({ onNavigate }: { onNavigate?: () => void }) {
             className={cn(
               "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
               isActive
-                ? "bg-[#F59E0B]/10 text-text-primary shadow-[inset_0_0_0_1px_rgba(245,158,11,0.25)]"
-                : "text-text-secondary hover:bg-accent/5 hover:text-text-primary"
+                ? "bg-gradient-to-r from-pink-500/12 to-orange-400/8 text-text-primary shadow-[inset_0_0_0_1px_rgba(244,114,182,0.24)] dark:from-violet-500/15 dark:to-cyan-400/[0.04] dark:shadow-[inset_0_0_0_1px_rgba(139,124,255,0.2)]"
+                : "text-text-secondary hover:bg-pink-500/[0.055] hover:text-text-primary dark:hover:bg-violet-500/[0.07]"
             )}
           >
             <span
@@ -97,7 +96,7 @@ function ProfileNavLinks({ onNavigate }: { onNavigate?: () => void }) {
             {isActive && (
               <motion.span
                 layoutId="profileNavActive"
-                className="absolute right-2 h-1.5 w-1.5 rounded-full bg-[#F59E0B] shadow-[0_0_8px_rgba(249,115,22,0.8)]"
+                className="absolute right-2 h-1.5 w-1.5 rounded-full bg-pink-500 shadow-[0_0_9px_rgba(236,72,153,.8)] dark:bg-violet-400 dark:shadow-[0_0_10px_rgba(139,124,255,.9)]"
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
               />
             )}
@@ -120,7 +119,7 @@ export function ProfileSidebarContent({ onNavigate }: { onNavigate?: () => void 
 
       <ProfileNavLinks onNavigate={onNavigate} />
 
-      <div className="my-4 border-t border-border" />
+      <div className="my-4 border-t border-pink-200/60 dark:border-white/[0.07]" />
 
       <p className="px-3 pb-3 pt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted">
         Account
@@ -150,7 +149,8 @@ export function ProfileSidebarContent({ onNavigate }: { onNavigate?: () => void 
         )}
       </Link>
 
-      <div className="mt-6 rounded-xl border border-border bg-card-hover/60 p-4">
+      <div className="relative mt-6 overflow-hidden rounded-2xl border border-pink-200/70 bg-gradient-to-br from-pink-50/90 to-cyan-50/70 p-4 shadow-sm dark:border-white/[0.07] dark:from-violet-500/[0.09] dark:to-cyan-400/[0.035]">
+        <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-pink-300/25 blur-2xl dark:bg-violet-500/20" />
         <p className="text-[10px] font-medium leading-relaxed text-text-muted">
           Your profile is your identity across ByteClash. Customize it from{" "}
           <Link href="/settings" onClick={onNavigate} className="font-semibold text-[#F59E0B] hover:underline">
@@ -173,7 +173,7 @@ export default function ProfileSidebar({ onNavigate }: { onNavigate?: () => void
   }, []);
 
   return (
-    <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
+    <aside className="sticky top-14 z-20 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r border-pink-200/65 bg-white/72 shadow-[12px_0_45px_-38px_rgba(244,114,182,.8)] backdrop-blur-2xl dark:border-white/[0.07] dark:bg-[#0d111d]/82 dark:shadow-[12px_0_55px_-38px_rgba(91,70,190,.7)] lg:block">
       <ProfileSidebarContent onNavigate={onNavigate} />
     </aside>
   );
@@ -208,12 +208,12 @@ export function ProfileMobileNav({
         animate={{ x: 0 }}
         exit={{ x: "-100%" }}
         transition={{ type: "spring", stiffness: 320, damping: 32 }}
-        className="absolute left-0 top-0 h-full w-72 max-w-[85vw] border-r border-border bg-card shadow-2xl"
+        className="absolute left-0 top-0 h-full w-72 max-w-[85vw] border-r border-pink-200/70 bg-white/90 shadow-2xl backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#0d111d]/95"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <div className="flex items-center justify-between border-b border-pink-200/60 px-5 py-4 dark:border-white/[0.07]">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#F97316] to-[#F59E0B]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-orange-400 dark:from-violet-600 dark:to-indigo-500">
               <User className="h-3.5 w-3.5 text-white" />
             </span>
             <span className="text-sm font-bold text-text-primary">Profile</span>

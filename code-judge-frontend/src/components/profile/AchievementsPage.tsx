@@ -52,7 +52,7 @@ export default function AchievementsPage() {
   ).length;
 
   return (
-    <div className="relative min-h-full bg-[#FAF8FF] px-4 py-6 sm:px-6 dark:bg-[#09090B]">
+    <div className="relative min-h-full bg-transparent px-4 py-6 sm:px-6">
       {/* Soft ambient lavender glow */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-44 overflow-hidden">
         <div className="absolute left-1/2 top-[-90px] h-60 w-[30rem] -translate-x-1/2 rounded-full bg-[#A78BFA]/15 blur-3xl dark:bg-[#8B5CF6]/10" />

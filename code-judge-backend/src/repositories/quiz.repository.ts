@@ -170,10 +170,12 @@ export class QuizRepository {
         q.created_at,
         q.updated_at,
         u.username AS creator_name,
+        a.url AS creator_avatar_url,
         qv.heading AS visibility_name,
         qd.heading AS difficulty_name
       FROM quiz q
       LEFT JOIN users u ON u.id = q.createdby
+      LEFT JOIN avatar a ON a.id = u.avatar_id
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_difficulty qd ON qd.id = q.difficulty
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
@@ -234,10 +236,12 @@ export class QuizRepository {
         q.created_at,
         q.updated_at,
         u.username AS creator_name,
+        creator_avatar.url AS creator_avatar_url,
         qv.heading AS visibility_name,
         qd.heading AS difficulty_name
       FROM quiz q
       LEFT JOIN users u ON u.id = q.createdby
+      LEFT JOIN avatar creator_avatar ON creator_avatar.id = u.avatar_id
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
       LEFT JOIN quiz_difficulty qd ON qd.id = q.difficulty
       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status

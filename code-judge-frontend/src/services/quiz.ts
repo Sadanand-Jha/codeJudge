@@ -32,6 +32,7 @@ export interface Quiz {
   created_at: string | null;
   updated_at: string | null;
   creator_name: string | null;
+  creator_avatar_url?: string | null;
 }
 
 export interface QuizVisibilityOption {
@@ -238,6 +239,7 @@ export interface QuizBasic {
   created_at: string | null;
   updated_at: string | null;
   creator_name: string | null;
+  creator_avatar_url?: string | null;
 }
 
 /**

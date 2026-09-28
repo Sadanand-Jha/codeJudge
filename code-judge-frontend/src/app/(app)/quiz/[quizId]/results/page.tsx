@@ -7,6 +7,7 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 import { getPreviousQuizzes } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
+import QuizSpaceAtmosphere from "@/components/quiz/live/QuizSpaceAtmosphere";
 
 const LOOKUP_TIMEOUT_MS = 15000;
 
@@ -147,8 +148,9 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
 
 function ResultState({ icon, text, action }: { icon: React.ReactNode; text: string; action?: React.ReactNode }) {
   return (
-    <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 text-center">
+    <div className="relative flex min-h-[70vh] items-center justify-center overflow-hidden bg-background px-4">
+      <QuizSpaceAtmosphere />
+      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card/90 p-6 text-center backdrop-blur-xl">
         {icon}
         <p className="mt-3 text-sm leading-6 text-text-secondary">{text}</p>
         {action}

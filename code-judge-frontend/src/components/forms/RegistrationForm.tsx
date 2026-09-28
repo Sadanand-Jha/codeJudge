@@ -15,6 +15,10 @@ import {
   validateUsername,
 } from "@/lib/validators";
 import AuthBackground from "@/components/auth/AuthBackground";
+import { AuthBrandMark, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
+import { getApiErrorMessage } from "@/lib/apiError";
+
+const AUTH_PRIMARY_BUTTON = "flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_-16px_rgba(244,114,182,.8)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_12px_28px_-16px_rgba(124,92,255,.8)]";
 
 type Step = "email" | "verify" | "register";
 
@@ -215,8 +219,8 @@ export default function RegistrationForm() {
         } else {
           toast.error(res.message || "Failed to send OTP");
         }
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message || "Something went wrong");
+      } catch (err: unknown) {
+        toast.error(getApiErrorMessage(err, "Something went wrong"));
       } finally {
         setSendingOtp(false);
       }
@@ -235,8 +239,8 @@ export default function RegistrationForm() {
       } else {
         toast.error(res.message || "Failed to resend OTP");
       }
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Something went wrong");
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, "Something went wrong"));
     } finally {
       setSendingOtp(false);
     }
@@ -261,8 +265,8 @@ export default function RegistrationForm() {
         } else {
           toast.error(res.message || "Failed to verify OTP");
         }
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message || "Something went wrong");
+      } catch (err: unknown) {
+        toast.error(getApiErrorMessage(err, "Something went wrong"));
       } finally {
         setVerifyingOtp(false);
       }
@@ -306,13 +310,13 @@ export default function RegistrationForm() {
         } else {
           toast.error(res.message || "Registration failed");
         }
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message || "Something went wrong");
+      } catch (err: unknown) {
+        toast.error(getApiErrorMessage(err, "Something went wrong"));
       } finally {
         setSubmitting(false);
       }
     },
-    [form.username.value, form.email.value, form.password.value, form.confirmPassword.value, registrationToken, usernameStatus.available, validateUsernameField, validatePasswordField, validateConfirmPasswordField]
+    [form.username.value, form.email.value, form.password.value, form.confirmPassword.value, registrationToken, usernameStatus.available, validateUsernameField, validatePasswordField, validateConfirmPasswordField, router, setAuth]
   );
 
   const isRegisterEnabled =
@@ -324,17 +328,13 @@ export default function RegistrationForm() {
     !submitting;
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-6">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FFF9F1] px-6 py-20 dark:bg-[#050510]">
       <AuthBackground />
+      <AuthThemeControls />
       <div className="relative z-10 w-full max-w-sm">
         {/* Brand */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-secondary flex items-center justify-center">
-              <span className="text-white text-xs font-bold">B</span>
-            </div>
-            <span className="text-base font-semibold text-text-primary tracking-tight">ByteClash</span>
-          </div>
+        <div className="mb-8 text-center">
+          <AuthBrandMark className="mb-4" />
           <h1 className="text-xl font-bold text-text-primary">
             {step === "email" && "Create your account"}
             {step === "verify" && "Check your email"}
@@ -348,7 +348,7 @@ export default function RegistrationForm() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="rounded-[28px] border border-pink-200/80 bg-white/82 p-6 shadow-[0_30px_80px_-42px_rgba(244,114,182,.75)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/88 dark:shadow-[0_30px_90px_-40px_rgba(91,69,196,.8)]">
           {/* Step 1: Email */}
           {step === "email" && (
             <form className="space-y-5" onSubmit={handleSendOtp}>
@@ -374,7 +374,7 @@ export default function RegistrationForm() {
               <button
                 type="submit"
                 disabled={sendingOtp}
-                className="w-full py-3 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-accent to-accent-secondary hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className={AUTH_PRIMARY_BUTTON}
               >
                 {sendingOtp && <Loader2 className="w-4 h-4 animate-spin" />}
                 {sendingOtp ? "Sending..." : "Continue"}
@@ -407,7 +407,7 @@ export default function RegistrationForm() {
               <button
                 type="submit"
                 disabled={verifyingOtp || form.otp.value.length !== 6}
-                className="w-full py-3 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-accent to-accent-secondary hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className={AUTH_PRIMARY_BUTTON}
               >
                 {verifyingOtp && <Loader2 className="w-4 h-4 animate-spin" />}
                 {verifyingOtp ? "Verifying..." : "Verify"}
@@ -545,7 +545,7 @@ export default function RegistrationForm() {
               <button
                 type="submit"
                 disabled={!isRegisterEnabled}
-                className="w-full py-3 rounded-xl text-sm font-medium text-white bg-gradient-to-r from-accent to-accent-secondary hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-1"
+                className={`${AUTH_PRIMARY_BUTTON} mt-1`}
               >
                 {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 {submitting ? "Creating..." : "Create account"}

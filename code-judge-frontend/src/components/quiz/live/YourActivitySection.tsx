@@ -73,14 +73,14 @@ function getSubjectInfo(name: string): SubjectInfo {
 
 /* ─── Status → compact tone (readable on white + dark) ─── */
 function statusTone(status: string): { text: string; dot: string; chip: string } {
-  switch (status) {
-    case "Completed":
+  switch (status.trim().toLowerCase()) {
+    case "completed":
       return { text: "text-[#039855] dark:text-[#20D889]", dot: "bg-[#12B76A] dark:bg-[#20D889]", chip: "border-[#12B76A]/30 bg-[#12B76A]/10 text-[#039855] dark:border-[#20D889]/25 dark:bg-[#20D889]/10 dark:text-[#20D889]" };
-    case "Submitted":
+    case "submitted":
       return { text: "text-[#6B5CFF] dark:text-[#8B7CFF]", dot: "bg-[#8B7CFF]", chip: "border-[#8B7CFF]/30 bg-[#8B7CFF]/10 text-[#6B5CFF] dark:text-[#8B7CFF]" };
-    case "Timed Out":
+    case "timed out":
       return { text: "text-[#B54708] dark:text-[#FFB84D]", dot: "bg-[#F79009] dark:bg-[#FFB84D]", chip: "border-[#F79009]/30 bg-[#F79009]/10 text-[#B54708] dark:border-[#FFB84D]/25 dark:bg-[#FFB84D]/10 dark:text-[#FFB84D]" };
-    case "Left Early":
+    case "left early":
       return { text: "text-[#D92D20] dark:text-[#FF4D5D]", dot: "bg-[#F04438] dark:bg-[#FF4D5D]", chip: "border-[#F04438]/30 bg-[#F04438]/10 text-[#D92D20] dark:border-[#FF4D5D]/25 dark:bg-[#FF4D5D]/10 dark:text-[#FF4D5D]" };
     default:
       return { text: "text-[#039855] dark:text-[#20D889]", dot: "bg-[#12B76A] dark:bg-[#20D889]", chip: "border-[#12B76A]/30 bg-[#12B76A]/10 text-[#039855] dark:border-[#20D889]/25 dark:bg-[#20D889]/10 dark:text-[#20D889]" };
@@ -107,10 +107,15 @@ function scoreBar(pct: number): string {
 
 function StatusChip({ status }: { status: string }) {
   const t = statusTone(status);
+  const label = status
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
   return (
     <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold", t.chip)}>
       <span className={cn("h-1.5 w-1.5 rounded-full", t.dot)} />
-      {status}
+      {label}
     </span>
   );
 }
@@ -171,12 +176,15 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className="flex min-h-[104px] flex-col justify-between rounded-xl border border-[#E4E7EC] bg-white p-3.5 transition-colors duration-150 hover:border-[#D0D5DD] dark:border-[#252D3A] dark:bg-[#151A24] dark:hover:border-[#353f52] sm:p-4">
+    <div className="group relative flex min-h-[116px] flex-col justify-between overflow-hidden rounded-[20px] border border-pink-200/65 bg-white/78 p-4 shadow-[0_18px_50px_-38px_rgba(244,114,182,.7)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-pink-300 dark:border-white/[0.08] dark:bg-gradient-to-br dark:from-[#171D2A]/95 dark:to-[#111622]/95 dark:shadow-[0_20px_55px_-38px_rgba(95,72,210,.65)] dark:hover:border-violet-400/25 sm:p-4.5">
+      <span className="pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full bg-gradient-to-br from-pink-300/25 to-cyan-300/15 blur-2xl transition-transform duration-300 group-hover:scale-125 dark:from-violet-500/20 dark:to-cyan-400/10" />
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">{label}</span>
-        <Icon className={cn("h-4 w-4", accent)} strokeWidth={1.8} />
+        <span className="relative grid h-8 w-8 place-items-center rounded-xl border border-white/80 bg-white/70 shadow-sm dark:border-white/[0.07] dark:bg-white/[0.04]">
+          <Icon className={cn("h-4 w-4", accent)} strokeWidth={1.8} />
+        </span>
       </div>
-      <div>
+      <div className="relative">
         <p className="text-[26px] font-bold leading-none tracking-tight text-[#101828] tabular-nums dark:text-[#F4F6FA] sm:text-[28px]">{value}</p>
         <p className="mt-1.5 text-[11px] text-[#98A2B3] dark:text-[#687386]">{hint}</p>
       </div>
@@ -280,7 +288,8 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
   const pct = Math.round(Number(quiz.percentage) || 0);
 
   return (
-    <div className="transition-colors duration-150 hover:bg-[#F2F4F7] dark:hover:bg-[#19202C]/60">
+    <div className="group/row relative transition-all duration-200 hover:bg-pink-50/55 dark:hover:bg-violet-500/[0.035]">
+      <span className={cn("absolute bottom-3 left-0 top-3 w-[3px] scale-y-50 rounded-r-full opacity-0 transition-all duration-200 group-hover/row:scale-y-100 group-hover/row:opacity-100", scoreBar(pct))} />
       {/* Mobile: stacked multi-line card — one piece of info per line */}
       <div className="space-y-2.5 px-4 py-3.5 lg:hidden">
         {/* Line 1: quiz identity */}
@@ -340,10 +349,10 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
       </div>
 
       {/* Desktop (≥1024px): wide table row */}
-      <div className="hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] items-center gap-3 px-5 py-3 lg:grid">
+      <div className="hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] items-center gap-3 px-5 py-4 lg:grid">
         {/* Quiz */}
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E4E7EC] bg-[#F2F4F7] dark:border-[#252D3A] dark:bg-[#19202C]", subject.color)}>
+          <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-pink-200/65 bg-gradient-to-br from-white to-pink-50 shadow-sm transition-transform duration-200 group-hover/row:scale-105 dark:border-white/[0.07] dark:from-white/[0.055] dark:to-white/[0.025]", subject.color)}>
             <subject.icon className="h-4 w-4" strokeWidth={1.8} />
           </span>
           <div className="min-w-0">
@@ -367,7 +376,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
 
         {/* Score */}
         <div className="min-w-0">
-          <span className={cn("text-sm font-bold tabular-nums", scoreColor(pct))}>{pct}%</span>
+          <span className={cn("inline-flex rounded-lg border border-current/10 bg-current/[0.055] px-2 py-1 text-sm font-extrabold tabular-nums", scoreColor(pct))}>{pct}%</span>
           <span className="text-[11px] text-[#98A2B3] tabular-nums dark:text-[#687386]"> · {quiz.score}/{quiz.total_marks}</span>
         </div>
 
@@ -390,13 +399,13 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
           <button
             type="button"
             onClick={() => setExpanded((e) => !e)}
-            className="inline-flex h-7 items-center rounded-lg border border-[#E4E7EC] bg-[#F2F4F7] px-2.5 text-[11px] font-semibold text-[#475467] transition-colors duration-150 hover:border-[#D0D5DD] hover:text-[#101828] dark:border-[#252D3A] dark:bg-[#19202C] dark:text-[#9AA4B5] dark:hover:border-[#353f52] dark:hover:text-[#F4F6FA]"
+            className="inline-flex h-8 items-center rounded-xl border border-[#E4E7EC] bg-white/70 px-3 text-[11px] font-semibold text-[#475467] shadow-sm transition-all duration-150 hover:border-pink-300 hover:text-pink-600 dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-[#9AA4B5] dark:hover:border-violet-400/25 dark:hover:text-white"
           >
             {expanded ? "Less" : "Details"}
           </button>
           <Link
             href={`/quiz/${quiz.code}/results/${quiz.attempt_id}`}
-            className="inline-flex h-7 items-center gap-1 rounded-lg bg-[#8B7CFF]/10 px-2.5 text-[11px] font-semibold text-[#6B5CFF] transition-colors duration-150 hover:bg-[#8B7CFF]/20 dark:bg-[#8B7CFF]/12 dark:text-[#8B7CFF] dark:hover:bg-[#8B7CFF]/20"
+            className="inline-flex h-8 items-center gap-1 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 px-3 text-[11px] font-bold text-white shadow-[0_10px_22px_-13px_rgba(244,114,182,.9)] transition-all duration-150 hover:-translate-y-0.5 dark:from-violet-600 dark:to-indigo-500 dark:shadow-[0_10px_22px_-13px_rgba(124,92,255,.9)]"
           >
             View <ArrowUpRight className="h-3 w-3" />
           </Link>
@@ -404,9 +413,9 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
       </div>
 
       {/* Score bar (visual density, same data) */}
-      <div className="px-4 pb-1 sm:px-5 lg:pl-[68px] lg:pr-[190px]">
-        <div className="h-1 overflow-hidden rounded-full bg-[#E4E7EC] dark:bg-[#252D3A]/60">
-          <div className={cn("h-full rounded-full", scoreBar(pct))} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
+      <div className="px-4 pb-2 sm:px-5 lg:pl-[76px] lg:pr-[210px]">
+        <div className="h-1.5 overflow-hidden rounded-full bg-[#E9EDF3] shadow-inner dark:bg-[#252D3A]/70">
+          <div className={cn("h-full rounded-full shadow-[0_0_10px_currentColor] transition-[width] duration-500", scoreBar(pct))} style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
         </div>
       </div>
 
@@ -447,21 +456,23 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
 /* ═══════════════════════════════════════════════════════════════
    EMPTY + SKELETON (compact)
    ═══════════════════════════════════════════════════════════════ */
-function EmptyState() {
+function EmptyState({ missionMode = false }: { missionMode?: boolean }) {
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center">
       <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#E4E7EC] bg-[#F2F4F7] dark:border-[#252D3A] dark:bg-[#19202C]">
         <History className="h-5 w-5 text-[#6B5CFF] dark:text-[#8B7CFF]" strokeWidth={1.8} />
       </span>
-      <h3 className="mt-3 text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA]">No quiz attempts yet</h3>
+      <h3 className="mt-3 text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA]">
+        {missionMode ? "No missions launched yet" : "No quiz attempts yet"}
+      </h3>
       <p className="mt-1 max-w-xs text-[13px] leading-5 text-[#475467] dark:text-[#9AA4B5]">
-        Join your first assessment to start building your activity history.
+        {missionMode ? "Enter your first launch code to begin your mission history." : "Join your first assessment to start building your activity history."}
       </p>
       <Link
         href="/quiz/join"
         className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#8B7CFF] px-4 text-[13px] font-semibold text-white transition-colors duration-150 hover:bg-[#7A6BF5]"
       >
-        Join a quiz <ArrowRight className="h-3.5 w-3.5" />
+        {missionMode ? "Launch first mission" : "Join a quiz"} <ArrowRight className="h-3.5 w-3.5" />
       </Link>
     </div>
   );
@@ -485,7 +496,7 @@ function SkeletonRow() {
 /* ═══════════════════════════════════════════════════════════════
    MAIN SECTION
    ═══════════════════════════════════════════════════════════════ */
-export default function YourActivitySection() {
+export default function YourActivitySection({ missionMode = false }: { missionMode?: boolean }) {
   const [recentQuizzes, setRecentQuizzes] = useState<RecentQuiz[]>([]);
   const [recentLoading, setRecentLoading] = useState(false);
   const [recentSearch, setRecentSearch] = useState("");
@@ -512,7 +523,7 @@ export default function YourActivitySection() {
 
   const overview = useMemo(() => {
     const list = recentQuizzes || [];
-    const completed = list.filter((q) => q.status === "Completed").length;
+    const completed = list.filter((q) => q.status.trim().toLowerCase() === "completed").length;
     const scores = list.map((q) => Number(q.percentage)).filter((v) => Number.isFinite(v));
     const avgScore = scores.length ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length) : null;
     const bestScore = scores.length ? Math.round(Math.max(...scores)) : null;
@@ -521,7 +532,7 @@ export default function YourActivitySection() {
 
   const filtered = useMemo(() => {
     if (recentStatus === "All") return recentQuizzes;
-    return recentQuizzes.filter((q) => q.status === recentStatus);
+    return recentQuizzes.filter((q) => q.status.trim().toLowerCase() === recentStatus.trim().toLowerCase());
   }, [recentQuizzes, recentStatus]);
 
   const performance = useMemo(() => {
@@ -539,20 +550,21 @@ export default function YourActivitySection() {
       else buckets[0] += 1;
     }
     const maxBucket = Math.max(1, ...buckets);
-    return { recent: list, buckets, maxBucket };
+    const totalScores = buckets.reduce((sum, count) => sum + count, 0);
+    return { recent: list, buckets, maxBucket, totalScores };
   }, [recentQuizzes]);
 
   return (
-    <section aria-label="My activity" className="mx-auto w-full max-w-[1280px]">
+    <section aria-label={missionMode ? "Mission logs" : "My activity"} className="mx-auto w-full max-w-[1280px]">
       {/* ── Analytics header: title left, Filter + Sort right (same row on desktop) ── */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">My Activity</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">{missionMode ? "Mission Archive" : "My Activity"}</p>
           <h2 className="mt-1 text-[22px] font-bold leading-tight tracking-tight text-[#101828] dark:text-[#F4F6FA] sm:text-[24px]">
-            Your Activity
+            {missionMode ? "Your Mission Logs" : "Your Activity"}
           </h2>
           <p className="mt-1 text-[13px] text-[#475467] dark:text-[#9AA4B5] sm:text-sm">
-            Track your quiz attempts, scores and progress.
+            {missionMode ? "Review completed expeditions, scores, and flight performance." : "Track your quiz attempts, scores and progress."}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -563,35 +575,39 @@ export default function YourActivitySection() {
 
       {/* ── Stat cards (compact, 100–120px) ── */}
       <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard icon={BookOpen} label="Total Attempts" value={overview.totalAttempts} hint="quizzes attempted" accent="text-[#6B5CFF] dark:text-[#8B7CFF]" />
-        <StatCard icon={CheckCircle2} label="Completed" value={overview.completed} hint="finished attempts" accent="text-[#039855] dark:text-[#20D889]" />
-        <StatCard icon={Trophy} label="Best Score" value={overview.bestScore === null ? "—" : `${overview.bestScore}%`} hint="highest score" accent="text-[#6B5CFF] dark:text-[#8B7CFF]" />
-        <StatCard icon={TrendingUp} label="Average Score" value={overview.avgScore === null ? "—" : `${overview.avgScore}%`} hint="across attempts" accent="text-[#B54708] dark:text-[#FFB84D]" />
+        <StatCard icon={BookOpen} label={missionMode ? "Total Missions" : "Total Attempts"} value={overview.totalAttempts} hint={missionMode ? "missions attempted" : "quizzes attempted"} accent="text-[#6B5CFF] dark:text-[#8B7CFF]" />
+        <StatCard icon={CheckCircle2} label={missionMode ? "Successful Landings" : "Completed"} value={overview.completed} hint={missionMode ? "completed missions" : "finished attempts"} accent="text-[#039855] dark:text-[#20D889]" />
+        <StatCard icon={Trophy} label={missionMode ? "Best Mission Score" : "Best Score"} value={overview.bestScore === null ? "—" : `${overview.bestScore}%`} hint="highest score" accent="text-[#6B5CFF] dark:text-[#8B7CFF]" />
+        <StatCard icon={TrendingUp} label={missionMode ? "Average Flight Score" : "Average Score"} value={overview.avgScore === null ? "—" : `${overview.avgScore}%`} hint={missionMode ? "across missions" : "across attempts"} accent="text-[#B54708] dark:text-[#FFB84D]" />
       </div>
 
       {/* ── Recent attempts: full-width table (no narrow side column) ── */}
-      <div className="mt-4 min-w-0 overflow-hidden rounded-xl border border-[#E4E7EC] bg-white dark:border-[#252D3A] dark:bg-[#151A24]">
-        <div className="flex flex-col gap-2 border-b border-[#E4E7EC] p-3 dark:border-[#252D3A] sm:p-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="relative mt-5 min-w-0 overflow-hidden rounded-[26px] border border-pink-200/70 bg-white/80 shadow-[0_28px_80px_-48px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-gradient-to-br dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_28px_85px_-44px_rgba(80,55,170,.65)]">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-cyan-300/10 blur-3xl dark:bg-violet-500/10" />
+        <div className="relative flex flex-col gap-3 border-b border-pink-200/60 bg-gradient-to-r from-pink-50/70 via-white/30 to-cyan-50/55 p-4 dark:border-white/[0.07] dark:from-violet-500/[0.055] dark:via-transparent dark:to-cyan-400/[0.035] sm:p-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA]">Recent Attempts</h3>
-            <span className="text-xs text-[#98A2B3] tabular-nums dark:text-[#687386]">
-              {filtered.length} attempt{filtered.length === 1 ? "" : "s"}
+            <span className="grid h-9 w-9 place-items-center rounded-xl border border-pink-200/70 bg-white/75 text-pink-500 shadow-sm dark:border-violet-400/15 dark:bg-violet-500/10 dark:text-violet-300"><History className="h-4 w-4" /></span>
+            <div>
+            <h3 className="text-[15px] font-bold text-[#101828] dark:text-[#F4F6FA]">{missionMode ? "Recent Missions" : "Recent Attempts"}</h3>
+            <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.1em] text-[#98A2B3] tabular-nums dark:text-[#687386]">
+              {filtered.length} {missionMode ? `mission${filtered.length === 1 ? "" : "s"}` : `attempt${filtered.length === 1 ? "" : "s"}`}
             </span>
+            </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <span className="hidden items-center gap-1 text-[11px] text-[#98A2B3] dark:text-[#687386] lg:inline-flex">
               <BarChart2 className="h-3.5 w-3.5" /> Latest first
             </span>
             <div className="lg:w-72">
-              <SearchField value={recentSearch} onChange={setRecentSearch} placeholder="Search quizzes..." />
+              <SearchField value={recentSearch} onChange={setRecentSearch} placeholder={missionMode ? "Search missions..." : "Search quizzes..."} />
             </div>
           </div>
         </div>
 
           {/* Desktop column labels */}
           {filtered.length > 0 && (
-            <div className="hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] gap-3 border-b border-[#E4E7EC] px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:border-[#252D3A] dark:text-[#687386] lg:grid">
-              <span>Quiz</span>
+            <div className="relative hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] gap-3 border-b border-pink-100 bg-white/30 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.13em] text-[#98A2B3] dark:border-white/[0.06] dark:bg-black/[0.08] dark:text-[#687386] lg:grid">
+              <span>{missionMode ? "Mission" : "Quiz"}</span>
               <span>Status</span>
               <span>Score</span>
               <span>Time</span>
@@ -600,34 +616,37 @@ export default function YourActivitySection() {
             </div>
           )}
 
-          <div className="divide-y divide-[#E4E7EC] dark:divide-[#252D3A]">
+          <div className="relative divide-y divide-pink-100/80 dark:divide-white/[0.06]">
             {recentLoading
               ? Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)
               : filtered.length === 0
-                ? <EmptyState />
+                ? <EmptyState missionMode={missionMode} />
                 : filtered.map((quiz, i) => <AttemptRow key={quiz.attempt_id} quiz={quiz} index={i} />)}
           </div>
         </div>
 
         {/* ── Performance strip: full-width panels below the table ── */}
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <section className="min-w-0 rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#252D3A] dark:bg-[#151A24] sm:p-5">
-            <h3 className="text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA]">Score Summary</h3>
+        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <section className="group relative min-w-0 overflow-hidden rounded-[24px] border border-pink-200/70 bg-gradient-to-br from-white/90 to-pink-50/75 p-5 shadow-[0_24px_65px_-44px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_24px_70px_-42px_rgba(80,55,170,.65)]">
+            <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-pink-300/20 blur-3xl dark:bg-violet-500/15" />
+            <h3 className="relative flex items-center gap-2 text-[15px] font-bold text-[#101828] dark:text-[#F4F6FA]"><span className="grid h-8 w-8 place-items-center rounded-xl bg-pink-100 text-pink-500 dark:bg-violet-500/10 dark:text-violet-300"><TrendingUp className="h-4 w-4" /></span>{missionMode ? "Flight Performance" : "Score Summary"}</h3>
 
-          <div className="mt-3">
-            <div className="flex items-baseline justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">Average Score</span>
-              <span className="text-[26px] font-bold leading-none text-[#101828] tabular-nums dark:text-[#F4F6FA]">
-                {overview.avgScore === null ? "—" : `${overview.avgScore}%`}
-              </span>
-            </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E4E7EC] dark:bg-[#252D3A]/70">
+          <div className="relative mt-5">
+            <div className="flex items-center gap-4">
               <div
-                className={cn("h-full rounded-full", scoreBar(overview.avgScore ?? 0))}
-                style={{ width: `${Math.min(100, Math.max(0, overview.avgScore ?? 0))}%` }}
-              />
+                className="relative grid h-24 w-24 shrink-0 place-items-center rounded-full p-[8px] shadow-[0_16px_38px_-24px_rgba(244,114,182,.8)] dark:shadow-[0_16px_38px_-22px_rgba(124,92,255,.75)]"
+                style={{ background: `conic-gradient(${(overview.avgScore ?? 0) >= 50 ? "#8B7CFF" : "#FF5B72"} ${Math.min(100, Math.max(0, overview.avgScore ?? 0)) * 3.6}deg, rgba(148,163,184,.16) 0deg)` }}
+              >
+                <div className="grid h-full w-full place-items-center rounded-full bg-white dark:bg-[#151B28]">
+                  <span className="text-xl font-black tabular-nums text-[#101828] dark:text-white">{overview.avgScore === null ? "—" : `${overview.avgScore}%`}</span>
+                </div>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#687386]">Average score</p>
+                <p className="mt-1 text-xs leading-5 text-[#667085] dark:text-[#8F9AAF]">{missionMode ? "Your combined flight accuracy across recent missions." : "Your combined score across recent quiz attempts."}</p>
+              </div>
             </div>
-            <div className="mt-3 space-y-2 border-t border-[#E4E7EC] pt-3 text-[13px] dark:border-[#252D3A]">
+            <div className="mt-4 space-y-2.5 border-t border-pink-200/65 pt-4 text-[13px] dark:border-white/[0.07]">
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 text-[#475467] dark:text-[#9AA4B5]">
                   <Award className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" /> Best score
@@ -654,24 +673,28 @@ export default function YourActivitySection() {
           </section>
 
           {/* Score distribution (derived from existing data) */}
-          <section className="min-w-0 rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#252D3A] dark:bg-[#151A24] sm:p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">Score distribution</p>
-            <div className="mt-4 flex items-end gap-2 pb-1 pt-1">
+          <section className="group relative min-w-0 overflow-hidden rounded-[24px] border border-cyan-200/70 bg-gradient-to-br from-white/90 to-cyan-50/70 p-5 shadow-[0_24px_65px_-44px_rgba(34,199,232,.65)] backdrop-blur-xl dark:border-white/[0.08] dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_24px_70px_-42px_rgba(80,55,170,.65)]">
+            <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-400/10" />
+            <div className="relative flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-xl bg-cyan-100 text-cyan-600 dark:bg-cyan-400/10 dark:text-cyan-300"><BarChart2 className="h-4 w-4" /></span><div className="min-w-0"><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#667085] dark:text-[#8F9AAF]">{missionMode ? "Mission score distribution" : "Score distribution"}</p><p className="mt-0.5 text-[10px] text-[#98A2B3] dark:text-[#687386]">{performance.totalScores} scored {performance.totalScores === 1 ? "attempt" : "attempts"}</p></div></div>
+            <div className="relative mt-5 space-y-4">
               {[
-                { label: "<50", count: performance.buckets[0], cls: "bg-[#F04438]/70 dark:bg-[#FF4D5D]/70" },
-                { label: "50–69", count: performance.buckets[1], cls: "bg-[#F79009]/70 dark:bg-[#FFB84D]/70" },
-                { label: "70–89", count: performance.buckets[2], cls: "bg-[#8B7CFF]/70" },
-                { label: "90+", count: performance.buckets[3], cls: "bg-[#12B76A]/70 dark:bg-[#20D889]/70" },
+                { label: "Below 50", short: "Needs practice", count: performance.buckets[0], cls: "from-rose-500 to-pink-400", dot: "bg-rose-500" },
+                { label: "50–69", short: "Getting there", count: performance.buckets[1], cls: "from-amber-500 to-orange-400", dot: "bg-amber-500" },
+                { label: "70–89", short: "Strong score", count: performance.buckets[2], cls: "from-violet-500 to-indigo-400", dot: "bg-violet-500" },
+                { label: "90–100", short: "Outstanding", count: performance.buckets[3], cls: "from-emerald-500 to-teal-400", dot: "bg-emerald-500" },
               ].map((b) => (
-                <div key={b.label} className="flex min-w-0 flex-1 flex-col items-center">
-                  <span className="mb-1.5 text-[11px] font-semibold leading-none text-[#475467] tabular-nums dark:text-[#9AA4B5]">{b.count}</span>
-                  <div className="flex h-12 w-full items-end rounded-md bg-[#F2F4F7] p-1 dark:bg-[#252D3A]/40">
+                <div key={b.label} className="grid grid-cols-[84px_minmax(0,1fr)_32px] items-center gap-3">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-1.5 text-[11px] font-bold text-[#344054] dark:text-[#CDD4DF]"><span className={cn("h-2 w-2 rounded-full", b.dot)} />{b.label}</p>
+                    <p className="mt-0.5 truncate pl-3.5 text-[9px] text-[#98A2B3] dark:text-[#687386]">{b.short}</p>
+                  </div>
+                  <div className="h-3 overflow-hidden rounded-full border border-white/80 bg-white/70 p-0.5 shadow-inner dark:border-white/[0.05] dark:bg-black/[0.16]">
                     <div
-                      className={cn("w-full rounded-sm", b.cls)}
-                      style={{ height: `${Math.max(b.count > 0 ? 12 : 4, (b.count / performance.maxBucket) * 100)}%` }}
+                      className={cn("h-full rounded-full bg-gradient-to-r transition-[width] duration-700 ease-out", b.cls)}
+                      style={{ width: `${b.count === 0 ? 0 : Math.max(10, (b.count / performance.maxBucket) * 100)}%` }}
                     />
                   </div>
-                  <span className="mt-1.5 text-[10px] leading-none text-[#98A2B3] dark:text-[#687386]">{b.label}</span>
+                  <span className="grid h-7 w-7 place-items-center rounded-lg border border-white/80 bg-white/70 text-[11px] font-black tabular-nums text-[#344054] shadow-sm dark:border-white/[0.06] dark:bg-white/[0.04] dark:text-white">{b.count}</span>
                 </div>
               ))}
             </div>
@@ -679,18 +702,19 @@ export default function YourActivitySection() {
 
           {/* Latest trend (same attempts, compact) */}
           {performance.recent.length > 0 && (
-            <section className="min-w-0 rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#252D3A] dark:bg-[#151A24] sm:p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">Latest results</p>
-              <ul className="mt-2 space-y-2">
+            <section className="group relative min-w-0 overflow-hidden rounded-[24px] border border-amber-200/75 bg-gradient-to-br from-white/90 to-amber-50/70 p-5 shadow-[0_24px_65px_-44px_rgba(245,158,11,.6)] backdrop-blur-xl dark:border-white/[0.08] dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_24px_70px_-42px_rgba(80,55,170,.65)]">
+              <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-amber-300/20 blur-3xl dark:bg-violet-500/12" />
+              <div className="relative flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-xl bg-amber-100 text-amber-600 dark:bg-violet-500/10 dark:text-violet-300"><Trophy className="h-4 w-4" /></span><p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#667085] dark:text-[#8F9AAF]">Latest results</p></div>
+              <ul className="relative mt-4 space-y-3">
                 {performance.recent.map((q) => {
                   const p = Math.round(Number(q.percentage) || 0);
                   return (
-                    <li key={q.attempt_id}>
+                    <li key={q.attempt_id} className="rounded-xl border border-white/80 bg-white/55 px-3 py-2 shadow-sm dark:border-white/[0.05] dark:bg-white/[0.025]">
                       <div className="flex items-center justify-between gap-2 text-xs">
-                        <span className="min-w-0 truncate text-[#475467] dark:text-[#9AA4B5]">{q.name}</span>
+                        <span className="min-w-0 truncate font-medium text-[#475467] dark:text-[#9AA4B5]">{q.name}</span>
                         <span className={cn("shrink-0 font-bold tabular-nums", scoreColor(p))}>{p}%</span>
                       </div>
-                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-[#E4E7EC] dark:bg-[#252D3A]/60">
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E4E7EC] shadow-inner dark:bg-[#252D3A]/60">
                         <div className={cn("h-full rounded-full", scoreBar(p))} style={{ width: `${Math.min(100, Math.max(0, p))}%` }} />
                       </div>
                     </li>
@@ -699,9 +723,9 @@ export default function YourActivitySection() {
               </ul>
               <Link
                 href="/quiz/join"
-                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#6B5CFF] transition-colors duration-150 hover:text-[#5248d4] dark:text-[#8B7CFF] dark:hover:text-[#a394ff]"
+                className="relative mt-4 inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 px-3 py-2 text-xs font-bold text-white shadow-[0_10px_22px_-14px_rgba(244,114,182,.9)] transition-all duration-150 hover:-translate-y-0.5 dark:from-violet-600 dark:to-indigo-500 dark:shadow-[0_10px_22px_-14px_rgba(124,92,255,.9)]"
               >
-                Join another quiz <ArrowRight className="h-3.5 w-3.5" />
+                {missionMode ? "Launch another mission" : "Join another quiz"} <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </section>
           )}

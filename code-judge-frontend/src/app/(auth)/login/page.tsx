@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Code2, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { login } from "@/services/auth";
 import { toast } from "@/lib/toast";
 import AuthBackground from "@/components/auth/AuthBackground";
+import { AuthBrandMark, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
+import { getApiErrorMessage } from "@/lib/apiError";
+import type { UserProfile } from "@/store/authStore";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -47,38 +50,37 @@ export default function LoginPage() {
     try {
       const res = await login({ email, password });
       if (res.success && res.data) {
-        const { token, user } = res.data as any;
+        const { token, user } = res.data as { token?: string; user?: UserProfile };
         // The backend authenticates via an httpOnly cookie; the body carries no
         // token, so store a sentinel to keep the session local.
+        if (!user) throw new Error("Login response did not include a user profile");
         setAuth(token || "session", user);
         toast.success("Logged in successfully");
         router.push("/quiz");
       } else {
         toast.error(res.data?.message || "Login failed");
       }
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Login failed");
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, "Login failed"));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-6">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FFF9F1] px-6 py-20 dark:bg-[#050510]">
       <AuthBackground />
-      <div className="w-full max-w-sm">
+      <AuthThemeControls />
+      <div className="relative z-10 w-full max-w-sm">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-accent to-accent-secondary flex items-center justify-center">
-            <Code2 className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-lg font-bold text-text-primary tracking-tight">ByteClash</span>
+        <div className="mb-7 flex justify-center">
+          <AuthBrandMark />
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="rounded-[28px] border border-pink-200/80 bg-white/82 p-6 shadow-[0_30px_80px_-42px_rgba(244,114,182,.75)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/88 dark:shadow-[0_30px_90px_-40px_rgba(91,69,196,.8)]">
           <h1 className="text-lg font-bold text-text-primary text-center mb-1">Welcome back</h1>
-          <p className="text-xs text-text-secondary text-center mb-6">Sign in to your account</p>
+          <p className="text-xs text-text-secondary text-center mb-6"><span className="dark:hidden">Your colorful quiz party is waiting!</span><span className="hidden dark:inline">Your next space mission is waiting.</span></p>
 
           <form className="space-y-4" onSubmit={submit}>
             <div>
@@ -110,7 +112,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-accent hover:shadow-[0_0_12px_rgba(37,99,235,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_-16px_rgba(244,114,182,.8)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_12px_28px_-16px_rgba(124,92,255,.8)]"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? "Signing in..." : "Sign in"}

@@ -26,8 +26,8 @@ export function getInitialTheme(): Theme {
 // `html.theme-transition` scoped rule.
 const THEME_TRANSITION_CLASS = "theme-transition";
 // Keep the class alive through the longest scoped transition. Student quiz
-// pages use a 460ms crossfade for their layered ambient backgrounds.
-const THEME_TRANSITION_MS = 500;
+// pages use a 560ms crossfade for their layered ambient backgrounds.
+const THEME_TRANSITION_MS = 650;
 
 let themeTransitionTimer: ReturnType<typeof setTimeout> | null = null;
 

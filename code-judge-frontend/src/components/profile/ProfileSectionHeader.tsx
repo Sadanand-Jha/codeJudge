@@ -31,11 +31,11 @@ export default function ProfileSectionHeader({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className={cn("mb-6 flex flex-wrap items-start justify-between gap-4", className)}
+      className={cn("mb-6 flex flex-wrap items-start justify-between gap-4 rounded-[22px] border border-pink-200/70 bg-white/72 p-4 shadow-[0_20px_60px_-44px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#111624]/78 dark:shadow-[0_22px_65px_-42px_rgba(91,70,190,.65)] sm:p-5", className)}
     >
       <div className="flex items-center gap-3.5">
         {Icon && (
-          <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-lg", iconTone)}>
+          <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] bg-gradient-to-br shadow-lg ring-4 ring-white/60 dark:ring-white/[0.04]", iconTone)}>
             <Icon className="h-5 w-5 text-white" strokeWidth={2.2} />
           </span>
         )}

@@ -577,9 +577,37 @@ html.theme-transition .student-quiz-theme,
 html.theme-transition .student-quiz-theme *,
 html.theme-transition .student-quiz-theme *::before,
 html.theme-transition .student-quiz-theme *::after {
-  transition-duration: 460ms !important;
+  transition-duration: 560ms !important;
   transition-timing-function: cubic-bezier(.22, 1, .36, 1) !important;
   transition-delay: 0s !important;
+}
+
+/* Full-scene theme handoff. The browser snapshots the old and new interface,
+   so conditional theme artwork (party ↔ space) also fades instead of popping. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 620ms;
+  animation-timing-function: cubic-bezier(.22, 1, .36, 1);
+  animation-fill-mode: both;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  animation-name: theme-scene-out;
+}
+
+::view-transition-new(root) {
+  animation-name: theme-scene-in;
+}
+
+@keyframes theme-scene-out {
+  from { opacity: 1; filter: blur(0); transform: scale(1); }
+  to { opacity: 0; filter: blur(2px); transform: scale(1.008); }
+}
+
+@keyframes theme-scene-in {
+  from { opacity: 0; filter: blur(2px); transform: scale(.994); }
+  to { opacity: 1; filter: blur(0); transform: scale(1); }
 }
 
 /* Instant theme switch for users who disable animations. */
@@ -596,6 +624,11 @@ html.theme-transition .student-quiz-theme *::after {
   html.theme-transition .student-quiz-theme *::before,
   html.theme-transition .student-quiz-theme *::after {
     transition: none !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 
   *,
@@ -4760,3 +4793,56 @@ svg {
    [data-theme="light"] .text-white rule would otherwise turn them dark. */
 [data-theme="light"] .bg-\[\#FF4D5D\].text-white,
 [data-theme="light"] .bg-\[\#FF4D5D\] .text-white { color: #FFFFFF !important; }
+
+/* ============================================
+   Profile workspace — party / mission surfaces
+   Shared rules make every profile sub-page inherit the same visual language
+   without changing the behavior of its cards, lists, drawers, or forms.
+   ============================================ */
+.profile-theme {
+  transition-property: background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 420ms;
+  transition-timing-function: cubic-bezier(.22, 1, .36, 1);
+}
+
+[data-theme="light"] .profile-theme .bg-card {
+  background-color: rgba(255, 255, 255, .78) !important;
+  backdrop-filter: blur(18px);
+}
+
+[data-theme="light"] .profile-theme .bg-card\/50,
+[data-theme="light"] .profile-theme .bg-card\/85 {
+  background-color: rgba(255, 255, 255, .66) !important;
+  backdrop-filter: blur(16px);
+}
+
+[data-theme="light"] .profile-theme .bg-card-hover,
+[data-theme="light"] .profile-theme .bg-card-hover\/50,
+[data-theme="light"] .profile-theme .bg-card-hover\/60 {
+  background-color: rgba(255, 240, 247, .68) !important;
+}
+
+[data-theme="light"] .profile-theme .border-border {
+  border-color: rgba(244, 114, 182, .24) !important;
+}
+
+[data-theme="dark"] .profile-theme .bg-card {
+  background-color: rgba(17, 22, 36, .82) !important;
+  backdrop-filter: blur(18px);
+}
+
+[data-theme="dark"] .profile-theme .bg-card-hover,
+[data-theme="dark"] .profile-theme .bg-card-hover\/50,
+[data-theme="dark"] .profile-theme .bg-card-hover\/60 {
+  background-color: rgba(139, 124, 255, .055) !important;
+}
+
+[data-theme="dark"] .profile-theme .border-border {
+  border-color: rgba(255, 255, 255, .085) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-theme {
+    transition-duration: 0.01ms !important;
+  }
+}

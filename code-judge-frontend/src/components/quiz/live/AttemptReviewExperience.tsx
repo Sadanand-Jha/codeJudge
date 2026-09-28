@@ -32,6 +32,7 @@ import {
   type ReviewOption,
 } from "@/services/quiz";
 import { getApiErrorMessage } from "@/lib/apiError";
+import QuizSpaceAtmosphere from "./QuizSpaceAtmosphere";
 
 type QuestionStatus = "correct" | "wrong" | "skipped";
 
@@ -390,6 +391,7 @@ export default function AttemptReviewExperience({
 
   return (
     <div className="relative min-h-screen bg-[#050A14] text-[#F5F7FB]">
+      <QuizSpaceAtmosphere className="fixed" />
       {/* Subtle top glows — background stays mostly solid */}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[320px] overflow-hidden">
         <div

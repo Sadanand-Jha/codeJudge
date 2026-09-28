@@ -41,8 +41,8 @@ const quizService = new QuizService();
 const resultGenerationService = new ResultGenerationService();
 
 /**
- * Student-safe quiz DTO. Never send ownership identifiers, creator profile
- * data, internal timestamps, or creator-only configuration to participants.
+ * Student-safe quiz DTO. Creator identity is limited to public display fields;
+ * never send email/contact data, internal timestamps, or private configuration.
  */
 const toStudentQuiz = (quiz: Record<string, any>) => {
   const now = Date.now();
@@ -66,6 +66,8 @@ const toStudentQuiz = (quiz: Record<string, any>) => {
   passing_marks: quiz.passing_marks,
   difficulty: quiz.difficulty,
   difficulty_name: quiz.difficulty_name ?? null,
+  creator_name: quiz.creator_name ?? null,
+  creator_avatar_url: quiz.creator_avatar_url ?? null,
   status: effectiveStatus,
   show_results_immediately: quiz.show_results_immediately === true,
   leaderboard: quiz.leaderboard === true,

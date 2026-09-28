@@ -10,11 +10,8 @@ import {
   Code2,
   Settings,
   Menu,
-  Flame,
   LogOut,
   BookOpen,
-  Briefcase,
-  Sparkles,
   Trophy,
   Loader2,
   ChevronDown,
@@ -22,6 +19,10 @@ import {
   Waypoints,
   Repeat,
   UserPlus,
+  Rocket,
+  Radio,
+  IceCreamCone,
+  PartyPopper,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -41,9 +42,9 @@ import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import { ChatProvider } from "@/context/ChatContext";
 import AuthModal from "@/components/modals/AuthModal";
 import NavbarRightActions from "./NavbarRightActions";
-import { useTheme } from "@/context/ThemeContext";
 import LowCreditNotification from "@/components/ai/LowCreditNotification";
 import AiAssistantStrip from "@/components/ai/AiAssistantStrip";
+import { useTheme } from "@/context/ThemeContext";
 
 function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -141,9 +142,9 @@ const _fullNavGroups: { label: string; items: NavItemData[] }[] = [
 // Focus mode: only Quiz (and Home which becomes quiz hub)
 const _focusNavGroups: { label: string; items: NavItemData[] }[] = [
   {
-    label: "QUIZ",
+    label: "FLIGHT DECK",
     items: [
-      { label: "Join Quiz", icon: UserPlus, href: "/quiz" },
+      { label: "Mission Control", icon: Rocket, href: "/quiz" },
     ],
   },
 ];
@@ -172,6 +173,13 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   // only Studio's navigation is visible.
   const isStudioRoute = pathname.startsWith("/creator");
   const isQuizWorkspace = isNestedQuizPath(pathname);
+  const { theme } = useTheme();
+  const isStudentQuizRoute = pathname.startsWith("/quiz") && !isQuizWorkspace && pathname !== "/quiz/create";
+  const isStudentMissionRoute = isStudentQuizRoute && theme === "dark";
+  const isStudentPartyRoute = isStudentQuizRoute && theme === "light";
+  const visibleNavGroups = FOCUS_MODE_ENABLED && theme === "light"
+    ? [{ label: "SWEET SPOT", items: [{ label: "Quiz Party", icon: IceCreamCone, href: "/quiz" }] }]
+    : navGroups;
   const homeHref = isStudioRoute || isQuizWorkspace ? "/creator/quizzes" : "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -191,7 +199,6 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   const hydrate = useAuthStore((s) => s.hydrate);
   const savedAvatar = useSavedAvatar();
   const { isGuest } = useGuestMode();
-  const { theme } = useTheme();
 
   // The desktop nav is an icon rail by default. Hovering the rail expands it
   // and moving the cursor away collapses it back. Labels appear only while
@@ -233,7 +240,12 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
     if (isNestedQuizPath(pathname)) return "Quiz Settings";
     if (FOCUS_MODE_ENABLED) {
       if (pathname === "/") return "Quiz";
-      if (pathname.startsWith("/quiz")) return "Quiz";
+      if (pathname === "/quiz") return isStudentPartyRoute ? "Quiz Party" : "Mission Control";
+      if (pathname === "/quiz/join") return isStudentPartyRoute ? "Party Pass" : "Launch Bay";
+      if (pathname.includes("/attempt")) return isStudentPartyRoute ? "Quiz Playtime" : "Mission in Progress";
+      if (pathname.includes("/results")) return isStudentPartyRoute ? "Sweet Results" : "Mission Debrief";
+      if (pathname.includes("/register")) return isStudentPartyRoute ? "Party Check-in" : "Crew Check-in";
+      if (pathname.startsWith("/quiz")) return isStudentPartyRoute ? "Celebration Zone" : "Flight Deck";
       return navItems.find((n) => pathname.startsWith(n.href))?.label || "Quiz";
     }
     if (pathname === PREPARATION_BASE) return "Preparation";
@@ -303,11 +315,31 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
           // `100vh` can extend behind mobile browser chrome. `100dvh` tracks
           // the actually visible viewport, keeping the account action onscreen.
           "fixed left-0 top-0 h-dvh bg-ai-sidebar/75 backdrop-blur-xl backdrop-saturate-150 border-r border-ai-border flex flex-col z-50 overflow-hidden",
+          isStudentMissionRoute && "border-violet-400/15 bg-white/80 shadow-[12px_0_55px_-34px_rgba(91,69,196,.7)] dark:bg-[#080B18]/90 dark:shadow-[12px_0_60px_-32px_rgba(69,48,155,.65)]",
+          isStudentPartyRoute && "border-pink-300/50 bg-[#FFF9F2]/88 shadow-[12px_0_55px_-34px_rgba(244,114,182,.65)]",
           "transition-[width,transform] duration-200 ease-out",
           "w-[var(--rail-w)]",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
+        {isStudentQuizRoute && (
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+            {isStudentMissionRoute ? <>
+              <div className="absolute -left-20 -top-16 h-48 w-48 rounded-full bg-violet-500/15 blur-3xl" />
+              <div className="absolute -right-24 top-[38%] h-44 w-44 rounded-full bg-cyan-400/[0.07] blur-3xl" />
+              <div className="absolute left-1/2 top-24 h-56 w-56 -translate-x-1/2 rounded-full border border-violet-400/[0.06]" />
+              <span className="absolute left-[18%] top-[16%] h-1 w-1 rounded-full bg-violet-300/60 shadow-[0_0_8px_rgba(196,181,253,.8)]" />
+              <span className="absolute right-[20%] top-[31%] h-1 w-1 rounded-full bg-cyan-200/60 shadow-[0_0_8px_rgba(165,243,252,.8)]" />
+            </> : <>
+              <div className="absolute -left-16 -top-14 h-44 w-44 rounded-full bg-pink-300/30 blur-3xl" />
+              <div className="absolute -right-20 top-[38%] h-48 w-48 rounded-full bg-cyan-300/20 blur-3xl" />
+              <div className="absolute bottom-[8%] left-[12%] h-36 w-36 rounded-full bg-amber-300/20 blur-3xl" />
+              <span className="absolute right-3 top-24 text-2xl opacity-35">🎈</span>
+              <span className="absolute left-3 top-[42%] text-xl opacity-30">🍭</span>
+              <span className="absolute right-4 top-[68%] text-xl opacity-30">🎉</span>
+            </>}
+          </div>
+        )}
         <div
           onMouseEnter={() => {
             suppressHoverRef.current = false;
@@ -317,26 +349,32 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             setSidebarExpanded(false);
             setAccountMenuOpen(false);
           }}
-          className="flex flex-col h-full"
+          className="relative z-10 flex h-full flex-col"
         >
         {/* Logo */}
         <div className={cn("shrink-0 py-4 flex items-center", showLabels ? "px-6 justify-start" : "px-0 justify-center")}>
           <Link href={homeHref} className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center shrink-0">
-              <Code2 className="w-4 h-4 text-accent-foreground" />
+            <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6]", isStudentMissionRoute && "rounded-xl from-[#8B7CFF] via-[#765AEF] to-[#366ED8] shadow-[0_0_22px_rgba(124,92,255,.35)]", isStudentPartyRoute && "rounded-xl from-[#FF79B0] via-[#FF9E57] to-[#FFD34E] shadow-[0_0_22px_rgba(255,121,176,.3)]")}>
+              {isStudentMissionRoute ? <Rocket className="h-4 w-4 text-white" /> : isStudentPartyRoute ? <IceCreamCone className="h-4 w-4 text-white" /> : <Code2 className="h-4 w-4 text-accent-foreground" />}
             </div>
             {showLabels && (
-              <span className="text-base font-bold text-ai-text tracking-tight whitespace-nowrap">ByteClash</span>
+              <span className="min-w-0 whitespace-nowrap">
+                <span className="block text-base font-bold tracking-tight text-ai-text">{isStudentMissionRoute ? "Mission Control" : isStudentPartyRoute ? "Quiz Party" : "ByteClash"}</span>
+                {isStudentQuizRoute && <span className={cn("mt-0.5 block text-[8px] font-bold uppercase tracking-[0.18em]", isStudentPartyRoute ? "text-pink-500" : "text-violet-500 dark:text-violet-300/70")}>{isStudentPartyRoute ? "Sprinkles & Smiles" : "ByteClash Flight Deck"}</span>}
+              </span>
             )}
           </Link>
         </div>
 
         {/* Navigation */}
         <nav className={cn("flex-1 overflow-y-auto", showLabels ? "px-2.5 py-3 space-y-1" : "px-0 py-3 space-y-1")}>
-          {navGroups.map((group, groupIndex) => (
+          {visibleNavGroups.map((group, groupIndex) => (
             <div key={group.label} className="space-y-1">
               {groupIndex > 0 && (
                 <div className={cn("my-2 h-px shrink-0 bg-ai-border", showLabels ? "mx-1" : "mx-2.5")} />
+              )}
+              {showLabels && isStudentQuizRoute && (
+                <p className="px-3 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-ai-text-mut">{group.label}</p>
               )}
               {group.items.map((item) => (
                 <NavItem
@@ -348,6 +386,8 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
                   showLabels={showLabels}
                   setSidebarExpanded={setSidebarExpanded}
                   collapseSidebar={collapseSidebar}
+                  missionMode={isStudentMissionRoute}
+                  partyMode={isStudentPartyRoute}
                   onClick={() => {
                     setMobileMenuOpen(false);
                     setAccountMenuOpen(false);
@@ -360,6 +400,14 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
         {/* Bottom: Account + Collapse */}
         <div className="shrink-0 border-t border-ai-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] space-y-1">
+          {isStudentQuizRoute && showLabels && (
+            <div className={cn("mx-1 mb-2 rounded-xl px-3 py-2.5", isStudentPartyRoute ? "border border-pink-300/45 bg-gradient-to-r from-pink-100/75 to-amber-100/75" : "border border-emerald-400/15 bg-emerald-400/[0.055]")}>
+              <div className={cn("flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em]", isStudentPartyRoute ? "text-pink-600" : "text-emerald-600 dark:text-emerald-300")}>
+                {isStudentPartyRoute ? <PartyPopper className="h-3.5 w-3.5" /> : <Radio className="h-3.5 w-3.5" />} {isStudentPartyRoute ? "Party is ready" : "Flight systems online"}
+              </div>
+              <p className="mt-1 text-[9px] leading-4 text-ai-text-mut">{isStudentPartyRoute ? "Color, treats and quiz-time fun" : "Secure assessment channel connected"}</p>
+            </div>
+          )}
           {!isAuthenticated && showLabels && (
             <div className="px-3 py-2 rounded-lg bg-ai-accent-soft border border-ai-accent/20">
               <div className="text-[10px] text-ai-text-sec mb-1">{"You're browsing as a guest"}</div>
@@ -409,7 +457,11 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
           onContextMenu={(e) => e.preventDefault()}
           onCopy={(e) => e.preventDefault()}
           onCut={(e) => e.preventDefault()}
-          className="h-14 min-w-0 w-full border-b border-ai-border bg-ai-bg/60 backdrop-blur-2xl backdrop-saturate-150 flex items-center px-3 sm:px-4 gap-2 sm:gap-4 sticky top-0 z-30 select-none"
+          className={cn(
+            "sticky top-0 z-30 flex h-14 min-w-0 w-full select-none items-center gap-2 border-b border-ai-border bg-ai-bg/60 px-3 backdrop-blur-2xl backdrop-saturate-150 sm:gap-4 sm:px-4",
+            isStudentMissionRoute && "border-violet-400/15 bg-white/72 shadow-[0_14px_44px_-34px_rgba(91,69,196,.8)] dark:bg-[#080C18]/78",
+            isStudentPartyRoute && "border-pink-300/45 bg-[#FFF9F2]/80 shadow-[0_14px_44px_-34px_rgba(244,114,182,.7)]"
+          )}
         >
           {/* Left: menu + brand + page title */}
           <div className="flex items-center gap-4 min-w-0 flex-1">
@@ -422,12 +474,17 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             </button>
 
             {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
-            <Link href={homeHref} className="flex items-center gap-2 shrink-0" aria-label="ByteClash home">
-              <span className="hidden sm:block text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
+            <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label={isStudentMissionRoute ? "Mission Control home" : isStudentPartyRoute ? "Quiz Party home" : "ByteClash home"}>
+              {isStudentQuizRoute && <span className={cn("grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br", isStudentPartyRoute ? "from-pink-400 via-orange-400 to-amber-300 shadow-[0_0_18px_rgba(244,114,182,.28)]" : "from-violet-500 to-blue-600 shadow-[0_0_18px_rgba(124,92,255,.3)]")}>{isStudentPartyRoute ? <IceCreamCone className="h-3.5 w-3.5 text-white" /> : <Rocket className="h-3.5 w-3.5 text-white" />}</span>}
+              <span className="hidden text-sm font-bold tracking-tight text-text-primary sm:block">{isStudentMissionRoute ? "ByteClash Space Program" : isStudentPartyRoute ? "ByteClash Ice Cream Party" : "ByteClash"}</span>
             </Link>
 
             {/* Page title — show on mobile too, truncated */}
-            <h1 className="text-sm font-semibold text-text-primary whitespace-nowrap truncate min-w-0 max-w-[40vw] sm:max-w-none">{pageTitle}</h1>
+            <div className="flex min-w-0 items-center gap-2">
+              {isStudentQuizRoute && <span className={cn("hidden h-4 w-px sm:block", isStudentPartyRoute ? "bg-pink-400/30" : "bg-violet-400/20")} />}
+              <h1 className="min-w-0 max-w-[40vw] truncate whitespace-nowrap text-sm font-semibold text-text-primary sm:max-w-none">{pageTitle}</h1>
+              {isStudentQuizRoute && <span className={cn("hidden items-center gap-1.5 rounded-full px-2 py-1 text-[8px] font-bold uppercase tracking-[0.13em] md:inline-flex", isStudentPartyRoute ? "border border-pink-300/45 bg-pink-100/70 text-pink-600" : "border border-emerald-400/15 bg-emerald-400/[0.06] text-emerald-600 dark:text-emerald-300")}><span className={cn("h-1.5 w-1.5 animate-pulse rounded-full", isStudentPartyRoute ? "bg-pink-400" : "bg-emerald-400")} /> {isStudentPartyRoute ? "Party time" : "Online"}</span>}
+            </div>
           </div>
 
           {/* Center spacer */}
@@ -476,13 +533,13 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
 // Shared icon slot: consistent size/stroke + right-side status dot, aligned to
 // the icon so it never floats. Active/hover colors come from the parent group.
-function NavIcon({ Icon, isActive, showDot }: { Icon: LucideIcon; isActive: boolean; showDot?: boolean }) {
+function NavIcon({ Icon, isActive, showDot, missionMode = false, partyMode = false }: { Icon: LucideIcon; isActive: boolean; showDot?: boolean; missionMode?: boolean; partyMode?: boolean }) {
   return (
     <span className="relative z-10 inline-flex shrink-0">
       <Icon
         className={cn(
           "h-5 w-5 transition-colors duration-150",
-          isActive ? "text-ai-accent" : "text-ai-text-sec group-hover:text-ai-text"
+          isActive ? (missionMode ? "text-violet-500 dark:text-violet-300" : partyMode ? "text-pink-500" : "text-ai-accent") : "text-ai-text-sec group-hover:text-ai-text"
         )}
       />
       {showDot && (
@@ -632,7 +689,7 @@ function ProfileMenu({ showLabels, sidebarExpanded, setSidebarExpanded, open, on
 
 // Standard nav link — same pill, spacing and active state for every item so the
 // rail reads as one unified navigation system.
-function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels, setSidebarExpanded, collapseSidebar }: {
+function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels, setSidebarExpanded, collapseSidebar, missionMode = false, partyMode = false }: {
   item: (typeof navItems)[number];
   pathname: string;
   isGuest: boolean;
@@ -641,6 +698,8 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
   showLabels: boolean;
   setSidebarExpanded: (v: boolean) => void;
   collapseSidebar: () => void;
+  missionMode?: boolean;
+  partyMode?: boolean;
 }) {
   const isQuizWorkspace = isNestedQuizPath(pathname);
   // Join Quiz (/quiz) should not appear active while inside creator quiz workspace
@@ -678,13 +737,15 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
       className={cn(
         "relative group w-full flex items-center gap-3 rounded-lg text-sm font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ai-accent/40",
         "transition-colors duration-150 hover:bg-ai-accent/10",
+        missionMode && "hover:bg-violet-500/10",
+        partyMode && "hover:bg-pink-400/10",
         showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5"
       )}
     >
       {isActive && (
-        <div className="absolute inset-0 rounded-lg bg-ai-accent-soft pointer-events-none" />
+        <div className={cn("pointer-events-none absolute inset-0 rounded-lg bg-ai-accent-soft", missionMode && "border border-violet-400/15 bg-gradient-to-r from-violet-500/15 to-blue-500/[0.06] shadow-[0_0_24px_rgba(124,92,255,.08)]", partyMode && "border border-pink-300/40 bg-gradient-to-r from-pink-200/55 via-orange-100/45 to-cyan-100/45 shadow-[0_0_24px_rgba(244,114,182,.12)]")} />
       )}
-      <NavIcon Icon={item.icon} isActive={isActive} showDot={isProtected} />
+      <NavIcon Icon={item.icon} isActive={isActive} showDot={isProtected} missionMode={missionMode} partyMode={partyMode} />
       {showLabels && (
         <span className={cn("relative z-10 transition-colors duration-150", isActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text")}>
           {item.label}

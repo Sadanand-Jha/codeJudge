@@ -18,10 +18,9 @@ interface AnimatedCrowdProps {
   onHideNow?: () => void;
   /** Render a big soft glow halo behind every avatar (decorative backgrounds). */
   glow?: boolean;
+  /** Multiplier for roaming and idle animation speed. */
+  speedMultiplier?: number;
 }
-
-const MIN_VISIBLE = 25;
-const MAX_VISIBLE = 35;
 
 interface RoamingState {
   // Current target position (percentages)
@@ -43,16 +42,17 @@ function randomPosition(): { x: number; y: number } {
   };
 }
 
-function createRoamingState(): RoamingState {
+function createRoamingState(speedMultiplier = 1): RoamingState {
+  const speed = Math.max(0.25, speedMultiplier);
   const pos = randomPosition();
   return {
     targetX: pos.x,
     targetY: pos.y,
-    duration: 25 + Math.random() * 1, // 8-14 seconds to reach destination (slow, calm)
-    delay: Math.random() * 1.5,
-    breathDuration: 12 + Math.random() * 3, // 4-7 seconds per breath (slower bobbing)
-    breathDelay: Math.random() * 12,
-    rotateRange: 56 + Math.random() * 1, // 0.5-1.5 degrees (subtler sway)
+    duration: (25 + Math.random()) / speed,
+    delay: (Math.random() * 1.5) / speed,
+    breathDuration: (12 + Math.random() * 3) / speed,
+    breathDelay: (Math.random() * 12) / speed,
+    rotateRange: 0.5 + Math.random(),
   };
 }
 
@@ -101,14 +101,16 @@ const MemoizedAvatar = React.memo<{
       exit={{ opacity: 0, scale: 0.7 }}
       transition={{
         left: {
+          type: "tween",
           duration: isHovered ? 0 : state.duration,
           delay: isHovered ? 0 : state.delay,
-          ease: [0.4, 0, 0.2, 1],
+          ease: [0.45, 0, 0.55, 1],
         },
         top: {
+          type: "tween",
           duration: isHovered ? 0 : state.duration,
           delay: isHovered ? 0 : state.delay,
-          ease: [0.4, 0, 0.2, 1],
+          ease: [0.45, 0, 0.55, 1],
         },
         opacity: { duration: 0.5 },
         scale: { duration: 0.2, ease: "easeOut" },
@@ -195,7 +197,7 @@ const MemoizedAvatar = React.memo<{
   );
 });
 
-export function AnimatedCrowd({ participants, className = "", onShow, onArmHide, onHideNow, glow = false }: AnimatedCrowdProps) {
+export function AnimatedCrowd({ participants, className = "", onShow, onArmHide, onHideNow, glow = false, speedMultiplier = 1 }: AnimatedCrowdProps) {
   const [visibleParticipants, setVisibleParticipants] = useState<LiveParticipant[]>([]);
   const [roamingStates, setRoamingStates] = useState<Map<string, RoamingState>>(new Map());
   const [isVisible, setIsVisible] = useState(true);
@@ -259,12 +261,12 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
       const next = new Map(prev);
       fullPool.forEach((p) => {
         if (!next.has(p.id)) {
-          next.set(p.id, createRoamingState());
+          next.set(p.id, createRoamingState(speedMultiplier));
         }
       });
       return next;
     });
-  }, [fullPool, imagesReady]);
+  }, [fullPool, imagesReady, speedMultiplier]);
 
   // Roaming: move random avatars to new destinations every 8 seconds
   // Each avatar smoothly travels to its new position (no teleporting)
@@ -293,14 +295,14 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
           const p = visibleParticipants[idx];
           if (!next.has(p.id)) return;
           // Give them a new random destination with new speed/duration
-          next.set(p.id, createRoamingState());
+          next.set(p.id, createRoamingState(speedMultiplier));
         });
         return next;
       });
-    }, 8000);
+    }, 12000 / Math.max(0.25, speedMultiplier));
 
     return () => clearInterval(roamingTimer);
-  }, [visibleParticipants, isVisible]);
+  }, [visibleParticipants, isVisible, speedMultiplier]);
 
   const count = visibleParticipants.length;
 

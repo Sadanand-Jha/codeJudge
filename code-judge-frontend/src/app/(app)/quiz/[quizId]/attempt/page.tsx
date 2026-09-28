@@ -3,6 +3,7 @@
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileCheck2, Loader2, Send, ShieldCheck, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
 import {
   getQuizByCode,
@@ -23,6 +24,7 @@ import {
   type StoredAttemptAnswer,
 } from "@/lib/quizAttemptStorage";
 import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
+import QuizSpaceAtmosphere from "@/components/quiz/live/QuizSpaceAtmosphere";
 
 type AnswerValue = StoredAttemptAnswer;
 
@@ -267,9 +269,11 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const progress = questions.length ? ((index + 1) / questions.length) * 100 : 0;
 
   // Starts the backend attempt when the student enters exam mode.
-  const handleEnterExam = useCallback(async () => {
-    if (!quiz || attemptId || starting) return;
+  const handleEnterExam = useCallback(async (): Promise<boolean> => {
+    if (!quiz || starting) return false;
+    if (attemptId) return true;
     setStarting(true);
+    setError(null);
     try {
       const started = await startQuizAttempt(String(quiz.id));
       const id = started.attempt.id as number;
@@ -291,8 +295,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         setAnswers({});
       }
       setTimeLeft(started.remainingSeconds);
+      return true;
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, "Quiz attempt could not be started."));
+      return false;
     } finally {
       setStarting(false);
     }
@@ -331,8 +337,9 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       timeLeft={timeLeft}
       isLive
       attemptId={attemptId !== null ? String(attemptId) : null}
-      onEnterExam={() => void handleEnterExam()}
-      onExitPreview={() => router.replace(`/quiz/${code}`)}
+      onEnterExam={handleEnterExam}
+      onExitPreview={() => router.replace("/quiz")}
+      entryError={error}
       onTerminate={handleTerminate}
     >
       {submitting && <SubmissionProgressOverlay soundEnabled={soundEnabled} onSound={playQuizSound} />}
@@ -345,38 +352,65 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           <StatusScreen text={error || "This quiz has no available questions."} />
         </div>
       ) : (
-      <div className="min-h-full bg-background px-4 py-4 sm:px-6 sm:py-6">
-      <main className="mx-auto max-w-4xl space-y-4">
-        <header className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-300">
-                <ShieldCheck className="h-3.5 w-3.5" /> Secure attempt{autoSubmitted ? " · auto-submitted" : ""}
-              </div>
-              <h1 className="mt-1 break-words text-base font-bold text-text-primary sm:text-lg">{quiz.name}</h1>
-              <p className="mt-1 text-xs text-text-secondary">Question {index + 1} of {questions.length} · {answered} answered</p>
+      <div className="relative min-h-full overflow-hidden bg-[#F7F7FB] px-4 py-4 dark:bg-[#090A10] sm:px-6 sm:py-6">
+      <QuizSpaceAtmosphere />
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="absolute -left-24 top-12 h-72 w-72 rounded-full bg-violet-500/[0.06] blur-3xl dark:bg-violet-500/[0.09]" />
+        <div className="absolute -right-28 bottom-0 h-80 w-80 rounded-full bg-pink-500/[0.05] blur-3xl dark:bg-pink-500/[0.08]" />
+        <div className="absolute -right-24 top-[18%] hidden h-56 w-56 rounded-full border border-violet-200/[0.05] dark:block" />
+        <div className="absolute -right-10 top-[23%] hidden h-28 w-44 rotate-[-18deg] rounded-[50%] border border-cyan-100/[0.045] dark:block" />
+        <span className="absolute left-[8%] top-[16%] hidden h-1 w-1 rounded-full bg-white/45 shadow-[0_0_8px_rgba(255,255,255,.55)] dark:block" />
+        <span className="absolute right-[12%] top-[9%] hidden h-1.5 w-1.5 rounded-full bg-violet-200/50 shadow-[0_0_10px_rgba(196,181,253,.55)] dark:block" />
+        <span className="absolute bottom-[18%] left-[14%] hidden h-1 w-1 rounded-full bg-cyan-100/50 shadow-[0_0_9px_rgba(165,243,252,.5)] dark:block" />
+      </div>
+      <main className="relative mx-auto max-w-4xl space-y-4">
+        <div className="overflow-hidden rounded-2xl border border-border/80 bg-card/85 shadow-[0_12px_34px_-28px_rgba(38,22,80,.65)] backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3 px-3.5 py-3 sm:px-4">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/15 bg-emerald-500/[0.08] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
+                <ShieldCheck className="h-3 w-3" /> Secure{autoSubmitted ? " · submitted" : ""}
+              </span>
+              <span className="truncate text-[11px] font-semibold text-text-secondary">Question {index + 1} of {questions.length}</span>
+              <span className="hidden text-[11px] text-text-muted sm:inline">• {answered} answered</span>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <button type="button" onClick={toggleQuizSounds} className="grid h-9 w-9 place-items-center rounded-xl border border-border bg-background text-text-secondary transition hover:border-pink-500/30 hover:text-text-primary" aria-label={soundEnabled ? "Mute quiz sounds" : "Enable quiz sounds"} title={soundEnabled ? "Quiz sounds on" : "Quiz sounds off"}>
-                {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              <button type="button" onClick={toggleQuizSounds} className="grid h-8 w-8 place-items-center rounded-xl border border-border bg-background/70 text-text-secondary transition hover:border-pink-500/30 hover:text-text-primary" aria-label={soundEnabled ? "Mute quiz sounds" : "Enable quiz sounds"} title={soundEnabled ? "Quiz sounds on" : "Quiz sounds off"}>
+                {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
               </button>
-              <div className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 font-mono text-sm font-bold text-text-primary">
-                <Clock className="h-4 w-4 text-pink-500" /> {formattedTime}
+              <div className="flex h-8 items-center gap-1.5 rounded-xl border border-border bg-background/70 px-2.5 font-mono text-xs font-bold text-text-primary">
+                <Clock className="h-3.5 w-3.5 text-pink-500" /> {formattedTime}
               </div>
             </div>
           </div>
-          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-card-hover">
-            <div className="h-full rounded-full bg-pink-500 transition-[width]" style={{ width: `${progress}%` }} />
+          <div className="h-1 overflow-hidden bg-card-hover">
+            <motion.div className="h-full rounded-r-full bg-gradient-to-r from-violet-500 via-pink-500 to-rose-400" animate={{ width: `${progress}%` }} transition={{ duration: 0.45, ease: "easeOut" }} />
           </div>
-        </header>
+        </div>
 
-        <section className="rounded-2xl border border-border bg-card p-4 sm:p-6">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Question {index + 1}</p>
-          <h2 className="mt-3 whitespace-pre-wrap text-sm font-semibold leading-6 text-text-primary sm:text-base">{current.problem_statement}</h2>
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.section
+          key={current.id}
+          initial={{ opacity: 0, x: 18, scale: 0.995 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={{ opacity: 0, x: -14, scale: 0.995 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className="relative overflow-hidden rounded-[24px] border border-border/80 bg-card/90 p-4 shadow-[0_18px_60px_-42px_rgba(42,23,90,.75)] backdrop-blur-xl sm:p-6"
+        >
+          <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-violet-500/[0.06] blur-3xl" />
+          <div className="relative flex items-center justify-between gap-3">
+            <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-300">
+              <span className="grid h-6 w-6 place-items-center rounded-lg bg-violet-500/10 text-[10px]">{index + 1}</span>
+              Question
+            </p>
+            <span className="rounded-full border border-border bg-background/65 px-2.5 py-1 text-[9px] font-semibold text-text-muted">
+              {current.quiz_problem_type === 2 ? "Select all that apply" : current.options.length ? "Choose one answer" : "Written response"}
+            </span>
+          </div>
+          <h2 className="relative mt-4 whitespace-pre-wrap text-base font-semibold leading-7 tracking-[-0.01em] text-text-primary sm:text-lg">{current.problem_statement}</h2>
           {current.problem_description && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-text-secondary">{current.problem_description}</p>}
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {current.options.map((option) => {
+          <div className="relative mt-5 grid gap-3 sm:grid-cols-2">
+            {current.options.map((option, optionIndex) => {
               const multiple = current.quiz_problem_type === 2;
               const optionId = String(option.id);
               const selected = multiple
@@ -399,9 +433,13 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
                       persistAnswer(current.id, { option: optionId });
                     }
                   }}
-                  className={`min-h-14 rounded-xl border p-3 text-left text-sm leading-5 transition ${selected ? "border-pink-500 bg-pink-500/[0.08] text-text-primary ring-2 ring-pink-500/10" : "border-border bg-background text-text-secondary hover:border-pink-500/30 hover:text-text-primary"}`}
+                  className={`group flex min-h-16 items-center gap-3 rounded-2xl border p-3 text-left text-sm leading-5 transition-all duration-200 ${selected ? "border-pink-500/70 bg-gradient-to-r from-pink-500/[0.11] to-violet-500/[0.06] text-text-primary shadow-[0_8px_24px_-18px_rgba(236,72,153,.9)] ring-2 ring-pink-500/10" : "border-border bg-background/65 text-text-secondary hover:-translate-y-0.5 hover:border-violet-500/30 hover:bg-card-hover/60 hover:text-text-primary"}`}
                 >
-                  {option.option_statement}
+                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border text-[11px] font-bold transition-colors ${selected ? "border-pink-500 bg-pink-500 text-white" : "border-border bg-card text-text-muted group-hover:border-violet-500/30 group-hover:text-violet-500"}`}>
+                    {String.fromCharCode(65 + optionIndex)}
+                  </span>
+                  <span className="flex-1">{option.option_statement}</span>
+                  <CheckCircle2 className={`h-4 w-4 shrink-0 transition-opacity ${selected ? "text-pink-500 opacity-100" : "opacity-0"}`} />
                 </button>
               );
             })}
@@ -420,7 +458,8 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
               className="mt-5 w-full resize-y rounded-xl border border-border bg-background p-4 text-sm leading-6 text-text-primary outline-none focus:border-pink-500"
             />
           )}
-        </section>
+        </motion.section>
+        </AnimatePresence>
 
         {error && (
           <div className="flex items-start gap-2 rounded-xl border border-rose-500/20 bg-rose-500/[0.06] p-3 text-xs text-rose-600 dark:text-rose-300">
@@ -428,12 +467,12 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           </div>
         )}
 
-        <footer className="grid grid-cols-2 gap-3 sm:grid-cols-[auto_1fr_auto]">
-          <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-text-primary disabled:opacity-40">
+        <footer className="sticky bottom-3 grid grid-cols-2 gap-3 rounded-2xl border border-border/80 bg-card/85 p-2.5 shadow-[0_14px_38px_-18px_rgba(17,12,40,.55)] backdrop-blur-xl sm:grid-cols-[auto_1fr_auto]">
+          <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-border bg-background/70 px-4 text-sm font-semibold text-text-primary transition hover:border-violet-500/30 disabled:opacity-40">
             <ChevronLeft className="h-4 w-4" /> Previous
           </button>
           {index < questions.length - 1 ? (
-            <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.min(questions.length - 1, value + 1)); }} className="col-start-2 inline-flex min-h-11 items-center justify-center gap-1 rounded-xl bg-pink-600 px-4 text-sm font-semibold text-white sm:col-start-3">
+            <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.min(questions.length - 1, value + 1)); }} className="col-start-2 inline-flex min-h-11 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-violet-600 to-pink-600 px-5 text-sm font-semibold text-white shadow-[0_10px_24px_-12px_rgba(219,39,119,.8)] transition hover:-translate-y-0.5 sm:col-start-3">
               Next <ChevronRight className="h-4 w-4" />
             </button>
           ) : (

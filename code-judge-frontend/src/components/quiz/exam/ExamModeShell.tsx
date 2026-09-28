@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Clock, Maximize2, ShieldAlert, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock, Loader2, Maximize2, ShieldAlert, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { reportViolation } from "@/services/quiz";
 
@@ -31,8 +31,10 @@ interface ExamModeShellProps {
   /** Attempt id — when provided, every violation is reported to the backend. */
   attemptId?: string | null;
   /** Called (after user gesture) when exam mode is entered. */
-  onEnterExam?: () => void;
+  onEnterExam?: () => boolean | void | Promise<boolean | void>;
   onExitPreview: () => void;
+  /** An access/start failure shown before Exam Mode is activated. */
+  entryError?: string | null;
   /** Called with the violation summary once maxViolations is reached. */
   onTerminate?: (summary: ViolationSummary) => void;
   autoEnter?: boolean;
@@ -49,6 +51,7 @@ export default function ExamModeShell({
   attemptId = null,
   onEnterExam,
   onExitPreview,
+  entryError = null,
   onTerminate,
   autoEnter = false,
   fullWidth = false,
@@ -56,6 +59,7 @@ export default function ExamModeShell({
 }: ExamModeShellProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [examActive, setExamActive] = useState(false);
+  const [entering, setEntering] = useState(false);
   const [violations, setViolations] = useState(0);
   const [activeViolation, setActiveViolation] = useState<{ type: ViolationType; title: string; desc: string } | null>(null);
   const [terminated, setTerminated] = useState(false);
@@ -118,27 +122,39 @@ export default function ExamModeShell({
   );
 
   const enterExamMode = useCallback(async () => {
-    setExamActive(true);
-    violationCountRef.current = 0;
-    violationTypesRef.current = [];
-    setViolations(0);
-    setTerminated(false);
-    setActiveViolation(null);
-    // push dummy history to trap back
+    if (entering) return;
+    setEntering(true);
+
     try {
-      window.history.pushState(null, "", window.location.href);
-    } catch {}
-    // request fullscreen on container
-    const el = containerRef.current;
-    if (el && el.requestFullscreen) {
+      // Access and attempt-limit checks must finish before the protected exam
+      // UI is activated. Returning false keeps the student on this screen.
+      const canEnter = await onEnterExam?.();
+      if (canEnter === false) return;
+
+      setExamActive(true);
+      violationCountRef.current = 0;
+      violationTypesRef.current = [];
+      setViolations(0);
+      setTerminated(false);
+      setActiveViolation(null);
+      // Push dummy history to trap back navigation during the attempt.
       try {
-        await el.requestFullscreen();
-      } catch {
-        // if denied, still continue but record as violation? For preview we allow
+        window.history.pushState(null, "", window.location.href);
+      } catch {}
+
+      // Request fullscreen when the active exam container is already mounted.
+      const el = containerRef.current;
+      if (el && el.requestFullscreen) {
+        try {
+          await el.requestFullscreen();
+        } catch {
+          // If denied, the protected exam UI still remains usable.
+        }
       }
+    } finally {
+      setEntering(false);
     }
-    onEnterExam?.();
-  }, [onEnterExam]);
+  }, [entering, onEnterExam]);
 
   const exitExamMode = useCallback(async () => {
     setExamActive(false);
@@ -311,14 +327,22 @@ export default function ExamModeShell({
             <div className="mt-4 flex flex-col gap-2 sm:mt-6 sm:flex-row sm:justify-center">
               <button
                 onClick={enterExamMode}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-pink-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(236,72,153,0.35)] hover:bg-pink-600 sm:px-6 sm:py-3"
+                disabled={entering}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-pink-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(236,72,153,0.35)] hover:bg-pink-600 disabled:cursor-wait disabled:opacity-70 sm:px-6 sm:py-3"
               >
-                <Maximize2 className="h-4 w-4" /> Enter Exam Mode
+                {entering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Maximize2 className="h-4 w-4" />}
+                {entering ? "Checking eligibility…" : "Enter Exam Mode"}
               </button>
               <button onClick={onExitPreview} className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold hover:bg-card-hover sm:px-6 sm:py-3">
                 Cancel
               </button>
             </div>
+            {entryError && (
+              <div className="mx-auto mt-3 flex max-w-md items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/[0.07] px-3.5 py-3 text-left text-xs leading-5 text-red-600 dark:text-red-300">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{entryError}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
