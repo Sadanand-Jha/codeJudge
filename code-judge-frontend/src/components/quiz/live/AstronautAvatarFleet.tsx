@@ -4,6 +4,7 @@ import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
 import { cn } from "@/lib/helpers";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const FLIGHT_PATHS = [
   { left: ["5%", "14%", "8%", "5%"], top: ["16%", "27%", "43%", "16%"], duration: 24, delay: 0, scale: 0.9, className: "hidden sm:block" },
@@ -81,6 +82,12 @@ function Astronaut({ index }: { index: number }) {
 
 export default function AstronautAvatarFleet() {
   const reduceMotion = useReducedMotion();
+  const isMobile = useIsMobile();
+
+  // Mobile / touch: skip the fleet entirely. Five astronauts × nested
+  // infinite y/rotate/thruster loops plus 24–34s layout-property (left/top)
+  // flight paths thrash the mobile compositor for pure decoration.
+  if (isMobile) return null;
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[1] hidden overflow-hidden dark:block" aria-hidden="true">

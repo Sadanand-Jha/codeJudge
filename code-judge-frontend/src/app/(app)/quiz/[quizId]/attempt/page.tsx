@@ -24,7 +24,9 @@ import {
   type StoredAttemptAnswer,
 } from "@/lib/quizAttemptStorage";
 import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizSpaceAtmosphere from "@/components/quiz/live/QuizSpaceAtmosphere";
+import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 
 type AnswerValue = StoredAttemptAnswer;
 
@@ -81,6 +83,9 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { soundEnabled, playQuizSound, toggleQuizSounds } = useQuizSounds();
+  // Mobile: static exam surface — no space atmosphere behind the questions,
+  // opacity-only transitions, no layout-property animation while answering.
+  const isMobile = useIsMobile();
   const answersRef = useRef<Record<number, AnswerValue>>({});
   // Ref mirror of `submitting` so the submit guard never goes stale inside
   // the long-lived polling loop (state in the useCallback closure would).
@@ -353,7 +358,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         </div>
       ) : (
       <div className="relative min-h-full overflow-hidden bg-[#F7F7FB] px-4 py-4 dark:bg-[#090A10] sm:px-6 sm:py-6">
-      <QuizSpaceAtmosphere />
+      {!isMobile && <QuizSpaceAtmosphere />}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div className="absolute -left-24 top-12 h-72 w-72 rounded-full bg-violet-500/[0.06] blur-3xl dark:bg-violet-500/[0.09]" />
         <div className="absolute -right-28 bottom-0 h-80 w-80 rounded-full bg-pink-500/[0.05] blur-3xl dark:bg-pink-500/[0.08]" />
@@ -363,7 +368,8 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         <span className="absolute right-[12%] top-[9%] hidden h-1.5 w-1.5 rounded-full bg-violet-200/50 shadow-[0_0_10px_rgba(196,181,253,.55)] dark:block" />
         <span className="absolute bottom-[18%] left-[14%] hidden h-1 w-1 rounded-full bg-cyan-100/50 shadow-[0_0_9px_rgba(165,243,252,.5)] dark:block" />
       </div>
-      <main className="relative mx-auto max-w-4xl space-y-4">
+      <QuizPageReady className="relative mx-auto max-w-4xl" label="Loading question">
+      <main className="relative space-y-4">
         <div className="overflow-hidden rounded-2xl border border-border/80 bg-card/85 shadow-[0_12px_34px_-28px_rgba(38,22,80,.65)] backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3 px-3.5 py-3 sm:px-4">
             <div className="flex min-w-0 items-center gap-2.5">
@@ -383,17 +389,17 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
             </div>
           </div>
           <div className="h-1 overflow-hidden bg-card-hover">
-            <motion.div className="h-full rounded-r-full bg-gradient-to-r from-violet-500 via-pink-500 to-rose-400" animate={{ width: `${progress}%` }} transition={{ duration: 0.45, ease: "easeOut" }} />
+            <motion.div className="h-full rounded-r-full bg-gradient-to-r from-violet-500 via-pink-500 to-rose-400" animate={{ width: `${progress}%` }} transition={isMobile ? { duration: 0 } : { duration: 0.45, ease: "easeOut" }} />
           </div>
         </div>
 
         <AnimatePresence mode="wait" initial={false}>
         <motion.section
           key={current.id}
-          initial={{ opacity: 0, x: 18, scale: 0.995 }}
+          initial={{ opacity: 0, x: isMobile ? 0 : 18, scale: 1 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}
-          exit={{ opacity: 0, x: -14, scale: 0.995 }}
-          transition={{ duration: 0.22, ease: "easeOut" }}
+          exit={{ opacity: 0, x: isMobile ? 0 : -14, scale: 1 }}
+          transition={isMobile ? { duration: 0.12 } : { duration: 0.22, ease: "easeOut" }}
           className="relative overflow-hidden rounded-[24px] border border-border/80 bg-card/90 p-4 shadow-[0_18px_60px_-42px_rgba(42,23,90,.75)] backdrop-blur-xl sm:p-6"
         >
           <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-violet-500/[0.06] blur-3xl" />
@@ -482,6 +488,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           )}
         </footer>
       </main>
+      </QuizPageReady>
       </div>
       )}
     </ExamModeShell>

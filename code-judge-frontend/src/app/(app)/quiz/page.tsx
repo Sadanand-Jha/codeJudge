@@ -8,10 +8,13 @@ import GuestGuard from "@/components/guards/GuestGuard";
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
 import AstronautAvatarFleet from "@/components/quiz/live/AstronautAvatarFleet";
 import QuizPartyAtmosphere from "@/components/quiz/live/QuizPartyAtmosphere";
+import QuizPageReady from "@/components/quiz/live/QuizPageReady";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTheme } from "@/context/ThemeContext";
 
 /* ── Same ambient background as the upgrade/pricing page ── */
 function QuizPageBackground() {
+  const isMobile = useIsMobile();
   const stars = useMemo(
     () =>
       Array.from({ length: 48 }).map((_, i) => ({
@@ -32,6 +35,17 @@ function QuizPageBackground() {
     ],
     []
   );
+  // Mobile: flat mesh only (all hooks above stay unconditional). The desktop
+  // version mounts 48 twinkling stars, shooting stars, 3 animated nebulas,
+  // a planet and 3 blur-[100px] orbs.
+  if (isMobile) {
+    return (
+      <>
+        <div className="pricing-bg-light pointer-events-none absolute inset-0 z-0 opacity-100 dark:opacity-0" aria-hidden="true" />
+        <div className="pricing-bg-space pointer-events-none absolute inset-0 z-0 opacity-0 dark:opacity-100" aria-hidden="true" />
+      </>
+    );
+  }
   return (
     <>
       {/* Light theme mesh + blobs */}
@@ -100,7 +114,8 @@ function QuizHome() {
       <QuizPageBackground />
       <QuizPartyAtmosphere />
       <AstronautAvatarFleet />
-      <main className="relative z-10 mx-auto w-full max-w-[1320px] space-y-5 sm:w-[calc(100%-48px)] sm:space-y-6">
+      <QuizPageReady className="relative z-10 mx-auto w-full max-w-[1320px] sm:w-[calc(100%-48px)]">
+      <main className="w-full space-y-5 sm:space-y-6">
         <header className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/75 px-5 py-6 shadow-[0_28px_90px_-42px_rgba(65,44,155,.7)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#101421]/78 dark:shadow-[0_32px_100px_-36px_rgba(3,2,18,.95)] sm:px-8 sm:py-8 lg:grid lg:grid-cols-[1.25fr_.75fr] lg:items-center lg:gap-8">
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
             <div className="absolute -left-28 -top-36 h-80 w-80 rounded-full bg-violet-500/15 blur-3xl" />
@@ -191,6 +206,7 @@ function QuizHome() {
           <YourActivitySection missionMode={!partyMode} />
         </div>
       </main>
+      </QuizPageReady>
     </div>
   );
 }

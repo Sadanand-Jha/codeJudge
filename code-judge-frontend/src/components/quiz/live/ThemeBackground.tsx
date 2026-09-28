@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useWaitingRoomTheme } from '@/context/WaitingRoomThemeContext'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 /**
  * ThemeBackground — renders the animated background for the active waiting room theme.
@@ -12,6 +13,23 @@ import { useWaitingRoomTheme } from '@/context/WaitingRoomThemeContext'
 export function ThemeBackground() {
   const { activeConfig, activeEvents } = useWaitingRoomTheme()
   const themeId = activeConfig.id
+  const isMobile = useIsMobile()
+
+  // Mobile / touch: static base gradient only. The 12 theme layers run
+  // 60+ simultaneous infinite loops with large blurs — the heaviest
+  // background on the waiting / join screens.
+  if (isMobile) {
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(135deg, ${activeConfig.bgGradient[0]}, ${activeConfig.bgGradient[1]}, ${activeConfig.bgGradient[2]})`,
+          }}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">

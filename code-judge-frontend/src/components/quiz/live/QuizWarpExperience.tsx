@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Rocket, ShieldCheck, IceCreamCone, PartyPopper } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface QuizWarpExperienceProps {
   code: string;
@@ -52,6 +53,7 @@ export function QuizWarpExperience({
 }: QuizWarpExperienceProps) {
   const router = useRouter();
   const { theme } = useTheme();
+  const isMobile = useIsMobile();
   const [phase, setPhase] = useState<"warp" | "portal" | "arrival">("warp");
   const [showFlash, setShowFlash] = useState(false);
   const warpRef = useRef<NodeJS.Timeout | null>(null);
@@ -114,6 +116,21 @@ export function QuizWarpExperience({
       return;
     }
 
+    // Mobile fast-path: skip the 5.6s warp cinematic (dozens of full-screen
+    // loops + blurred portal). Brief static splash, then straight through.
+    if (isMobile) {
+      if (!completedRef.current) {
+        completedRef.current = true;
+        flashRef.current = setTimeout(() => {
+          onCompleteRef.current();
+          router.push(destination);
+        }, 600);
+      }
+      return () => {
+        if (flashRef.current) clearTimeout(flashRef.current);
+      };
+    }
+
     // Phase 1: Pure warp speed
     warpRef.current = setTimeout(() => {
       setPhase("portal");
@@ -142,7 +159,29 @@ export function QuizWarpExperience({
       if (arrivalRef.current) clearTimeout(arrivalRef.current);
       if (flashRef.current) clearTimeout(flashRef.current);
     };
-  }, [destination, router, duration, warpDuration, portalDuration, arrivalDuration, forceComplete]);
+  }, [destination, router, duration, warpDuration, portalDuration, arrivalDuration, forceComplete, isMobile]);
+
+  // Mobile: static handoff splash — no stars, emojis, portal blur or letterbox.
+  if (isMobile) {
+    const light = theme === "light";
+    return (
+      <div
+        className={`fixed inset-0 z-[100] flex items-center justify-center px-6 text-center ${light ? "bg-[#FFF8EF]" : "bg-[#000005]"}`}
+        role="status"
+        aria-label="Entering quiz"
+      >
+        <div>
+          <span className="mx-auto block h-9 w-9 animate-spin rounded-full border-[3px] border-violet-500/20 border-t-violet-500" />
+          <p className={`mt-5 text-[10px] font-bold uppercase tracking-[0.3em] ${light ? "text-pink-600" : "text-cyan-200/70"}`}>
+            Entering quiz
+          </p>
+          <p className={`mx-auto mt-3 max-w-md text-xl font-bold tracking-tight ${light ? "text-slate-900" : "text-white"}`}>
+            {quizName || "Your quiz is ready"}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (theme === "light") {
     return (

@@ -10,6 +10,8 @@ import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
 import type { LiveParticipant } from "@/types/liveAssessment";
 import QuizSpaceAtmosphere from "./QuizSpaceAtmosphere";
+import QuizPageReady from "./QuizPageReady";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 /* ═══════════════════════════════════════════════════════════════
    Shared student-quiz page shell — same design language as the
@@ -24,6 +26,17 @@ import QuizSpaceAtmosphere from "./QuizSpaceAtmosphere";
    ═══════════════════════════════════════════════════════════════ */
 
 export function QuizAmbientBackground() {
+  const isMobile = useIsMobile();
+  // Mobile: two small static orbs, no blur-[100px] layers, no space/party
+  // atmosphere. Large blurs force full-screen GPU readback every frame.
+  if (isMobile) {
+    return (
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[#8B7CFF]/10 dark:bg-[#7C3AED]/20" />
+        <div className="absolute -right-16 top-16 h-44 w-44 rounded-full bg-[#EC4899]/10 dark:bg-[#EC4899]/15" />
+      </div>
+    );
+  }
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
       <div className="absolute -left-28 -top-28 h-[360px] w-[360px] rounded-full bg-[#8B7CFF]/15 blur-[100px] dark:bg-[#7C3AED]/30" />
@@ -75,6 +88,16 @@ export function QuizSkyBackground({
 }) {
   const ambient = useAmbientParticipants();
   const pool = participants && participants.length > 0 ? participants : ambient;
+  const isMobile = useIsMobile();
+  // Mobile: static gradient only — no ThemeBackground canvas-loops, no party
+  // confetti, no roaming AnimatedCrowd. Content reveals via QuizPageReady.
+  if (isMobile) {
+    return (
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-transparent dark:from-white/[0.03] dark:via-transparent dark:to-transparent" />
+      </div>
+    );
+  }
   return (
     <WaitingRoomThemeProvider>
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
@@ -197,7 +220,8 @@ export default function StudentQuizShell({
           )}
         </header>
         )}
-        {children}
+        {/* Mobile: render fully first, then reveal — no half-painted jank. */}
+        <QuizPageReady>{children}</QuizPageReady>
       </main>
     </div>
   );

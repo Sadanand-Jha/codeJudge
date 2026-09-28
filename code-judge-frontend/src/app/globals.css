@@ -4846,3 +4846,42 @@ svg {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================
+   Mobile / touch kill-switch for decorative loops
+   Phones and coarse-pointer devices get static quiz
+   surfaces (see QuizPageReady + useIsMobile). This is the
+   safety net for any remaining infinite CSS loops and the
+   expensive backdrop-blur layers behind quiz content.
+   ============================================ */
+@media (max-width: 640px), (pointer: coarse) {
+  .pricing-star,
+  .pricing-shooting-star,
+  .pricing-nebula,
+  .pricing-blob,
+  .pricing-float,
+  .pricing-twinkle,
+  .pricing-drift,
+  .pricing-shoot,
+  .pricing-pulse-glow,
+  .pricing-fade-in,
+  .pricing-ripple,
+  .pricing-gradient-text,
+  .pricing-ultimate-shimmer,
+  .pricing-blob-drift,
+  .app-skeleton-shimmer,
+  .animate-ping {
+    animation: none !important;
+  }
+
+  /* Backdrop blur forces full-screen GPU readback per frame on
+     mobile GPUs — drop it on quiz ambient layers, keep translucency. */
+  .quiz-ambient-no-blur,
+  .pricing-card-inner,
+  .pricing-billing-toggle,
+  .pricing-feature-card,
+  .pricing-faq-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}

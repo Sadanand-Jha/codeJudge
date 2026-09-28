@@ -27,6 +27,7 @@ import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quiz
 import { getApiErrorMessage } from "@/lib/apiError";
 import StudentQuizShell from "@/components/quiz/live/StudentQuizShell";
 import { QuizWarpExperience } from "@/components/quiz/live/QuizWarpExperience";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import type { LiveParticipant } from "@/types/liveAssessment";
 
 type Step = "code" | "details";
@@ -45,6 +46,7 @@ export default function JoinQuizPage() {
   const [attemptUsers, setAttemptUsers] = useState<LiveParticipant[] | undefined>(undefined);
   const lookupInFlightRef = useRef(false);
   const initialCodeHandledRef = useRef(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const timer = window.setInterval(() => setClockMs(Date.now()), 1000);
@@ -211,9 +213,10 @@ export default function JoinQuizPage() {
           {step === "code" ? (
             <motion.div
               key="code"
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: isMobile ? 0 : 12 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
+              exit={{ opacity: 0, y: isMobile ? 0 : -12 }}
+              transition={isMobile ? { duration: 0.15 } : undefined}
               className="mx-auto w-full max-w-xl"
             >
               <div className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/75 shadow-[0_28px_90px_-34px_rgba(64,44,155,.6)] backdrop-blur-2xl dark:border-white/[0.09] dark:bg-[#111526]/82 dark:shadow-[0_32px_100px_-30px_rgba(5,3,25,.95)]">
@@ -229,7 +232,8 @@ export default function JoinQuizPage() {
                   </div>
                   <div className="relative mx-auto mt-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-pink-300/40 bg-gradient-to-br from-pink-400 via-orange-400 to-amber-300 text-white shadow-[0_14px_34px_-12px_rgba(244,114,182,.8)] dark:border-violet-300/25 dark:from-[#8B7CFF] dark:via-[#7562EB] dark:to-[#5B4CE2] dark:shadow-[0_14px_34px_-12px_rgba(124,92,255,.95)]">
                     <KeyRound className="h-7 w-7" />
-                    <motion.span className="absolute -inset-2 rounded-[22px] border border-violet-400/20" animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0, 0.5] }} transition={{ duration: 2.4, repeat: Infinity }} />
+                    {/* Infinite pulse ring skipped on mobile — one less permanent loop. */}
+                    {!isMobile && <motion.span className="absolute -inset-2 rounded-[22px] border border-violet-400/20" animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0, 0.5] }} transition={{ duration: 2.4, repeat: Infinity }} />}
                   </div>
                   <p className="mt-4 text-[9px] font-bold uppercase tracking-[0.22em] text-violet-600 dark:text-violet-300">Secure access terminal</p>
                   <h2 className="mt-1.5 text-2xl font-extrabold tracking-[-0.03em] text-[#101828] dark:text-white sm:text-[28px]">Enter your quiz code</h2>
@@ -313,9 +317,10 @@ export default function JoinQuizPage() {
           ) : quiz ? (
             <motion.div
               key="details"
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: isMobile ? 0 : 12 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
+              exit={{ opacity: 0, y: isMobile ? 0 : -12 }}
+              transition={isMobile ? { duration: 0.15 } : undefined}
               className="has-mobile-viewport-actions relative space-y-3 sm:space-y-4"
             >
               <div className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/75 shadow-[0_24px_80px_-28px_rgba(60,46,140,0.45)] backdrop-blur-2xl dark:border-white/[0.09] dark:bg-[#111526]/80 dark:shadow-[0_28px_90px_-24px_rgba(7,5,30,0.9)]">
@@ -499,6 +504,18 @@ export default function JoinQuizPage() {
 }
 
 function JoinPageBackdrop() {
+  const isMobile = useIsMobile();
+  // Mobile: three static dots. The desktop backdrop runs five permanent
+  // orbital/bobbing loops plus blurred orbs behind the code-entry form.
+  if (isMobile) {
+    return (
+      <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden" aria-hidden="true">
+        <div className="absolute left-[20%] top-[14%] h-1 w-1 rounded-full bg-white/50" />
+        <div className="absolute right-[23%] top-[30%] h-1.5 w-1.5 rounded-full bg-violet-300/50" />
+        <div className="absolute bottom-[21%] left-[29%] h-1 w-1 rounded-full bg-cyan-200/50" />
+      </div>
+    );
+  }
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden" aria-hidden="true">
       {/* Dark-mode space details: intentionally soft so the quiz remains the focus. */}

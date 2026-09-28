@@ -6,6 +6,7 @@ import type { LiveParticipant } from "@/types/liveAssessment";
 import { StudentAvatar } from "./StudentAvatar";
 import { PREDEFINED_AVATARS, DEFAULT_AVATAR_URL } from "@/config/dicebear";
 import { preloadImages } from "@/hooks/useImagePreload";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface AnimatedCrowdProps {
   participants: LiveParticipant[];
@@ -217,6 +218,10 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
   const lastMoveRef = useRef<{ x: number; y: number } | null>(null);
 
   const fullPool = useMemo(() => participants, [participants]);
+  // Mobile / touch: static decorative avatars only (see render below).
+  // Roaming tweens, breathing loops, glow halos, image preloading and the
+  // document-level pointermove hit-testing are all skipped.
+  const isMobile = useIsMobile();
 
   // Page Visibility API - pause when tab inactive
   useEffect(() => {
@@ -226,7 +231,9 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
   }, []);
 
   // Preload all avatar images once — page waits until decoded (sab aajaye phir dikhe)
+  // Skipped on mobile: the static fallback renders without waiting.
   useEffect(() => {
+    if (isMobile) return;
     const urls = PREDEFINED_AVATARS.map((a) => a.url);
     // Also include any participant-specific avatarUrls that may be custom
     const custom = fullPool.map((p) => p.avatarUrl).filter(Boolean) as string[];
@@ -238,11 +245,12 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
     return () => {
       cancelled = true;
     };
-  }, [fullPool]);
+  }, [fullPool, isMobile]);
 
   // Initial spawn — only after images are decoded, so no empty rings / lazy pop-in
   // After initial gate, incrementally add new participants (waiting room streams via interval)
   useEffect(() => {
+    if (isMobile) return;
     if (!imagesReady) return;
     if (fullPool.length === 0) return;
 
@@ -266,11 +274,13 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
       });
       return next;
     });
-  }, [fullPool, imagesReady, speedMultiplier]);
+  }, [fullPool, imagesReady, speedMultiplier, isMobile]);
 
   // Roaming: move random avatars to new destinations every 8 seconds
   // Each avatar smoothly travels to its new position (no teleporting)
+  // Disabled on mobile — avatars are static decoration there.
   useEffect(() => {
+    if (isMobile) return;
     if (visibleParticipants.length === 0 || !isVisible) return;
 
     const roamingTimer = setInterval(() => {
@@ -302,7 +312,7 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
     }, 12000 / Math.max(0.25, speedMultiplier));
 
     return () => clearInterval(roamingTimer);
-  }, [visibleParticipants, isVisible, speedMultiplier]);
+  }, [visibleParticipants, isVisible, speedMultiplier, isMobile]);
 
   const count = visibleParticipants.length;
 
@@ -390,7 +400,10 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
   );
 
   // Bind the document-level pointer tracking once.
+  // Skipped on mobile: hover previews are a mouse/pen concept and the
+  // per-frame elementFromPoint hit-testing wastes touch-device battery.
   useEffect(() => {
+    if (isMobile) return;
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     // If the window loses focus, hide immediately.
     const handleBlur = () => onHideNow?.();
@@ -401,7 +414,37 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     };
-  }, [handlePointerMove, onHideNow]);
+  }, [handlePointerMove, onHideNow, isMobile]);
+
+  // Mobile static fallback: deterministic scattered avatars, zero motion,
+  // zero timers, zero listeners. Renders immediately from the prop pool.
+  if (isMobile) {
+    const statics = participants.slice(0, 8);
+    return (
+      <div className={`relative w-full h-full pointer-events-none opacity-70 ${className}`} aria-hidden="true">
+        {statics.map((p, i) => (
+          <div
+            key={p.id}
+            className="absolute"
+            style={{
+              left: `${8 + ((i * 37 + 11) % 84)}%`,
+              top: `${10 + ((i * 53 + 7) % 75)}%`,
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <StudentAvatar
+              participant={p}
+              index={i}
+              count={statics.length}
+              size={i % 4 === 0 ? "md" : "sm"}
+              showName={false}
+              showHoverCard={false}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   if (!imagesReady) {
     // Gated skeleton — keeps layout stable until avatars decoded, then fades in

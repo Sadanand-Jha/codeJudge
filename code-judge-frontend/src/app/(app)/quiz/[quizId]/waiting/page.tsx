@@ -29,6 +29,8 @@ import { WaitingRoomToast } from "@/components/quiz/live/WaitingRoomToast";
 import { AvatarHoverPreview } from "@/components/quiz/live/AvatarHoverPreview";
 import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/WaitingRoomThemeContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 import { useToast } from "@/hooks/useToast";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
 import { getMyQuizzes, getQuizByCode, getQuizCode, quizCodePath, type Quiz } from "@/services/quiz";
@@ -193,6 +195,9 @@ function WaitingRoomPageInner({
   const { setTheme } = useTheme();
   const [viewMode, setViewMode] = useState<"light"|"dark"|"real">(isDark ? "dark" : "light");
   const [clockMs, setClockMs] = useState<number | null>(null);
+  // Mobile: static waiting room — no ThemeBackground loops, no party
+  // confetti; AnimatedCrowd renders its own static fallback.
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (started && registered) router.replace(`/quiz/${quizCode}/attempt`);
@@ -239,8 +244,9 @@ function WaitingRoomPageInner({
     <div className={`waiting-page h-dvh flex flex-col overflow-hidden relative transition-all duration-350 ${
       isDark ? 'bg-[#050510]' : 'bg-[#FAFBFF]'
     }`}>
-      {/* Theme Background — hidden in Real World, visible in light/dark */}
-      {viewMode !== "real" && (
+      {/* Theme Background — hidden in Real World, visible in light/dark.
+          Skipped on mobile: static page background instead of 60+ loops. */}
+      {viewMode !== "real" && !isMobile && (
         <div className="fixed inset-0 z-0 pointer-events-none">
           <ThemeBackground />
           {viewMode === "light" && <QuizPartyAtmosphere />}
@@ -358,7 +364,7 @@ function WaitingRoomPageInner({
 
       {/* Waiting Room UI — hidden in Real World mode */}
       {viewMode !== "real" && (
-        <>
+        <QuizPageReady className="flex min-h-0 flex-1 flex-col" label="Loading waiting room">
       {/* Centered Header */}
       <div className="relative z-20 flex flex-col items-center text-center pt-6 pb-4 px-4">
         <motion.div
@@ -596,7 +602,7 @@ function WaitingRoomPageInner({
         {/* Countdown */}
         <CountdownCard targetAt={quiz.starttime ?? undefined} onStarted={handleStarted} />
       </div>
-        </>
+        </QuizPageReady>
       )}
 
       {/* Exit Confirmation Modal */}
