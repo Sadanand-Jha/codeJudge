@@ -9,6 +9,7 @@ import {
   saveQuizResponse,
   startQuizAttempt,
   submitQuizAttempt,
+  getSubmitStatus,
   type PublicQuizProblem,
   type QuizBasic,
 } from "@/services/quiz";
@@ -117,13 +118,8 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     const id = attemptId;
     if (!id || submitting) return;
     setSubmitting(true);
-    try {
-      await submitQuizAttempt(
-        String(id),
-        Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer })),
-        proctor
-      );
-      // Backend confirmed (200) — answers are safely stored, drop the local copy.
+    const finishSubmission = () => {
+      // Backend confirmed — answers are safely stored, drop the local copy.
       try {
         clearQuizAttemptAnswers(id);
       } catch {
@@ -141,6 +137,38 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         });
         router.replace("/quiz#activity");
       }
+    };
+    try {
+      const result = await submitQuizAttempt(
+        String(id),
+        Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer })),
+        proctor
+      );
+      if (result && typeof result === "object" && "jobId" in result) {
+        // Async path (202): grading runs in a BullMQ worker — poll until done.
+        const deadline = Date.now() + 60000;
+        for (;;) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          const status = await getSubmitStatus(String(id));
+          if (status.status === "completed") {
+            finishSubmission();
+            return;
+          }
+          if (status.status === "failed") {
+            throw new Error(status.error || "Grading failed on the server. Your answers are saved — try again.");
+          }
+          if (Date.now() > deadline) {
+            // Worker is slow but answers are safely queued; stop blocking the UI.
+            toast.success({
+              title: "Quiz submitted",
+              description: "Grading is taking longer than usual. Results will appear shortly.",
+            });
+            router.replace("/quiz#activity");
+            return;
+          }
+        }
+      }
+      finishSubmission();
     } catch (err: unknown) {
       // Keep the local copy so nothing is lost; the student can retry.
       setError(getApiErrorMessage(err, "Your attempt could not be submitted. Your answers are saved on this device — try again."));

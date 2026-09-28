@@ -27,6 +27,7 @@ import {
   saveQuizResponse,
   reportViolation,
   submitQuizAttempt,
+  getSubmitStatus,
   getQuizResult,
   getQuizReview,
   getQuizLeaderboard,
@@ -174,8 +175,11 @@ router.post("/attempt/:attemptId/save", validate(saveQuizResponseSchema), saveQu
 // POST /api/v1/user/quiz/attempt/:attemptId/violation — report an exam-cell violation
 router.post("/attempt/:attemptId/violation", validate(reportViolationSchema), reportViolation);
 
-// POST /api/v1/user/quiz/attempt/:attemptId/submit — submit a quiz
+// POST /api/v1/user/quiz/attempt/:attemptId/submit — submit a quiz (async, BullMQ)
 router.post("/attempt/:attemptId/submit", validate(submitQuizAttemptSchema), submitQuizAttempt);
+
+// GET /api/v1/user/quiz/attempt/:attemptId/submit-status — poll grading status
+router.get("/attempt/:attemptId/submit-status", getSubmitStatus);
 
 // ==================== RESULTS & REVIEW ====================
 

@@ -715,18 +715,38 @@ export async function saveQuizResponse(attemptId: string, data: {
  * POST /api/v1/user/quiz/attempt/:attemptId/submit
  * proctor is the exam-cell fallback: violations counted on-device in case
  * live violation reports failed, plus the flagged state for auto-submit.
+ *
+ * Async flow: grading runs in a BullMQ worker. Returns the graded attempt
+ * directly (200, inline fallback) or { attemptId, jobId, status: "queued" }
+ * (202) — poll getSubmitStatus() until completed.
  */
 export async function submitQuizAttempt(
   attemptId: string,
   responses: Array<{ problemId: number; option?: string; options?: string[]; textAnswer?: string }>,
   proctor?: { violations?: number; flagged?: boolean; flagReason?: string }
-): Promise<QuizAttempt> {
-  const response = await apiClient.post<QuizAttempt>(`/v1/user/quiz/attempt/${attemptId}/submit`, {
+): Promise<QuizAttempt | { attemptId: number; jobId: string; status: string }> {
+  const response = await apiClient.post<QuizAttempt | { attemptId: number; jobId: string; status: string }>(`/v1/user/quiz/attempt/${attemptId}/submit`, {
     responses,
     ...(proctor?.violations !== undefined ? { violations: proctor.violations } : {}),
     ...(proctor?.flagged !== undefined ? { flagged: proctor.flagged } : {}),
     ...(proctor?.flagReason ? { flagReason: proctor.flagReason } : {}),
   });
+  return response.data;
+}
+
+export interface SubmitStatus {
+  attemptId: number;
+  status: "queued" | "processing" | "completed" | "failed" | "none";
+  attempt?: QuizAttempt;
+  error?: string;
+}
+
+/**
+ * Poll the grading status of a submission
+ * GET /api/v1/user/quiz/attempt/:attemptId/submit-status
+ */
+export async function getSubmitStatus(attemptId: string): Promise<SubmitStatus> {
+  const response = await apiClient.get<SubmitStatus>(`/v1/user/quiz/attempt/${attemptId}/submit-status`);
   return response.data;
 }
 

@@ -102,9 +102,8 @@ const STEP_HELP: Record<string, { title: string; intro: string; items: string[] 
   },
 };
 
-// Keep the mobile jump menu focused on the core authoring flow. Desktop keeps
-// the complete Studio navigation, and the original step numbers stay visible.
-const MOBILE_STEPPER_INDEXES = new Set([0, 1, 3, 4, 8]);
+// Mobile follows a focused subset of the Studio flow (see MOBILE_STEP_IDS).
+// Desktop keeps the complete Studio navigation.
 const LIFECYCLE_BADGE = {
   draft: { label: "Draft", className: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400" },
   scheduled: { label: "Scheduled", className: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300" },
@@ -187,13 +186,13 @@ function StudioHelpButton() {
 
 export function StudioHeader() {
   const router = useRouter();
-  const { state, updateInfo, nextStep, saveToServer, stepIndex, steps, editMode } = useStudio();
+  const { state, updateInfo, nextStep, nextMobileStep, saveToServer, mobileSteps, mobileStepIndex, editMode } = useStudio();
   const { status, lastSaved } = useSaveStatus();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(state.info.title);
   const [continuing, setContinuing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const isLast = stepIndex === steps.length - 1;
+  const isMobileLast = mobileStepIndex !== -1 && mobileStepIndex === mobileSteps.length - 1;
   const label = state.info.title.trim() === "" ? "Untitled Quiz" : state.info.title;
   const activeIdx = state.questions.findIndex((q) => q.id === state.activeQuestionId);
   const total = state.questions.length;
@@ -288,13 +287,13 @@ export function StudioHeader() {
               if (continuing) return;
               setContinuing(true);
               try {
-                if (isLast && editMode) {
+                if (isMobileLast && editMode) {
                   await saveToServer();
                   toast.success({ title: "Saved", description: "Your quiz has been saved." });
                   router.push("/creator/quizzes");
                   return;
                 }
-                await nextStep();
+                await nextMobileStep();
               } finally {
                 setContinuing(false);
               }
@@ -327,16 +326,19 @@ export function StudioHeader() {
 }
 
 export function StudioStepper() {
-  const { state, goToStep, stepIndex, steps } = useStudio();
+  const { state, goToStep, stepIndex, steps, mobileSteps, mobileStepIndex } = useStudio();
   const [stepMenuOpen, setStepMenuOpen] = useState(false);
   const stepMenuRef = useRef<HTMLDivElement>(null);
   const display = steps;
   const current = display[stepIndex] ?? display[0];
   const progress = ((stepIndex + 1) / Math.max(display.length, 1)) * 100;
-  const mobileCurrentNumber = [...MOBILE_STEPPER_INDEXES].indexOf(stepIndex) + 1;
-  const mobileStepCount = MOBILE_STEPPER_INDEXES.size;
-  const mobileProgress = mobileCurrentNumber > 0
-    ? (mobileCurrentNumber / mobileStepCount) * 100
+  // Mobile follows only the mobile subset. If the current step isn't part of
+  // it (e.g. reached via a Review "Fix" link), fall back to full numbering so
+  // we never render nonsense like "Step 8 of 5".
+  const onMobilePath = mobileStepIndex !== -1;
+  const mobileCurrent = mobileSteps[mobileStepIndex] ?? current;
+  const mobileProgress = onMobilePath
+    ? ((mobileStepIndex + 1) / Math.max(mobileSteps.length, 1)) * 100
     : progress;
 
   useEffect(() => {
@@ -354,7 +356,11 @@ export function StudioStepper() {
         <div className="min-w-0 flex-1">
           <div className="mb-1.5 flex items-center justify-between gap-3">
             <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
-              <span className="lg:hidden">Step {mobileCurrentNumber > 0 ? mobileCurrentNumber : stepIndex + 1} of {mobileStepCount}</span>
+              {onMobilePath ? (
+                <span className="lg:hidden">Step {mobileStepIndex + 1} of {mobileSteps.length}</span>
+              ) : (
+                <span className="lg:hidden">Step {stepIndex + 1} of {display.length}</span>
+              )}
               <span className="hidden lg:inline">Step {stepIndex + 1} of {display.length}</span>
             </span>
           </div>
@@ -375,8 +381,12 @@ export function StudioStepper() {
             )}
           >
             <span className="truncate">
-              <span className="lg:hidden">{mobileCurrentNumber > 0 ? mobileCurrentNumber : stepIndex + 1}.</span>
-              <span className="hidden lg:inline">{stepIndex + 1}.</span>{" "}{current?.label}
+              {onMobilePath ? (
+                <span className="lg:hidden">{mobileStepIndex + 1}.</span>
+              ) : (
+                <span className="lg:hidden">{stepIndex + 1}.</span>
+              )}
+              <span className="hidden lg:inline">{stepIndex + 1}.</span>{" "}{onMobilePath ? mobileCurrent?.label : current?.label}
             </span>
             <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 rotate-90 transition-transform", stepMenuOpen && "-rotate-90")} />
           </button>
@@ -390,33 +400,60 @@ export function StudioStepper() {
                 role="menu"
                 className="absolute right-0 top-full z-50 mt-1.5 w-52 overflow-hidden rounded-xl border border-border bg-card p-1.5 shadow-2xl"
               >
-                {display.map((step, index) => {
-                  const active = step.id === state.step;
-                  const mobileNumber = [...MOBILE_STEPPER_INDEXES].indexOf(index) + 1;
-                  return (
-                    <button
-                      key={step.id}
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        goToStep(step.id);
-                        setStepMenuOpen(false);
-                      }}
-                      className={cn(
-                        "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium",
-                        !MOBILE_STEPPER_INDEXES.has(index) && "hidden lg:flex",
-                        active ? "bg-pink-500/10 text-pink-500" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
-                      )}
-                    >
-                      <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", active ? "bg-pink-500 text-white" : "bg-card-hover text-text-muted")}>
-                        <span className="lg:hidden">{mobileNumber}</span>
-                        <span className="hidden lg:inline">{index + 1}</span>
-                      </span>
-                      <span className="truncate">{step.label}</span>
-                      {active && <Check className="ml-auto h-3.5 w-3.5" />}
-                    </button>
-                  );
-                })}
+                {/* Mobile menu: only the mobile subset */}
+                <div className="lg:hidden">
+                  {mobileSteps.map((step, index) => {
+                    const active = step.id === state.step;
+                    return (
+                      <button
+                        key={step.id}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          goToStep(step.id);
+                          setStepMenuOpen(false);
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium",
+                          active ? "bg-pink-500/10 text-pink-500" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                        )}
+                      >
+                        <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", active ? "bg-pink-500 text-white" : "bg-card-hover text-text-muted")}>
+                          {index + 1}
+                        </span>
+                        <span className="truncate">{step.label}</span>
+                        {active && <Check className="ml-auto h-3.5 w-3.5" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Desktop menu: full Studio navigation */}
+                <div className="hidden lg:block">
+                  {display.map((step, index) => {
+                    const active = step.id === state.step;
+                    return (
+                      <button
+                        key={step.id}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          goToStep(step.id);
+                          setStepMenuOpen(false);
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium",
+                          active ? "bg-pink-500/10 text-pink-500" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                        )}
+                      >
+                        <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", active ? "bg-pink-500 text-white" : "bg-card-hover text-text-muted")}>
+                          {index + 1}
+                        </span>
+                        <span className="truncate">{step.label}</span>
+                        {active && <Check className="ml-auto h-3.5 w-3.5" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

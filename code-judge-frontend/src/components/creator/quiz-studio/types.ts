@@ -315,6 +315,20 @@ export const STEPS: Array<{ id: StudioStepId; label: string }> = [
   { id: "publish", label: "Publish" },
 ];
 
+/**
+ * Mobile shows a focused subset of the Studio flow (the dropdown + Continue
+ * only move through these). `publish` is included so create-flow stays
+ * reachable on mobile; editMode filters it out, leaving exactly 5 steps.
+ */
+export const MOBILE_STEP_IDS: StudioStepId[] = [
+  "setup",
+  "questions",
+  "settings",
+  "audience",
+  "review",
+  "publish",
+];
+
 export const EXAMS = [
   "JEE",
   "NEET",

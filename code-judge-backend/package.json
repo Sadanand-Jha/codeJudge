@@ -10,6 +10,8 @@
     "dev": "concurrently \"npm run start-redis\" \"npm run dev:server\"",
     "build": "tsc",
     "start": "node dist/server.js",
+    "worker": "tsx src/queues/startWorker.ts",
+    "worker:prod": "node dist/queues/startWorker.js",
     "migrate": "tsx src/migrate.ts",
     "migration:dry": "tsx src/migrate.ts --dry-run",
     "prepare-avatars": "tsx src/utils/avatarProcessor.ts"
@@ -19,6 +21,7 @@
     "@upstash/redis": "^1.39.0",
     "axios": "^1.18.1",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^6.3.9",
     "cheerio": "^1.2.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

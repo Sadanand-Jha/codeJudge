@@ -39,6 +39,7 @@ import {
   type CreatorOption,
   type GameMechanicsConfig,
   STEPS,
+  MOBILE_STEP_IDS,
   DEFAULT_QUIZ_INFO,
   DEFAULT_SETTINGS,
   DEFAULT_AUDIENCE,
@@ -84,6 +85,22 @@ const DIFFICULTY_MAP: Record<string, CreatorQuestion["difficulty"]> = {
   Medium: "Medium",
   Hard: "Hard",
   Expert: "Expert",
+};
+
+/** Backend mechanic code → frontend game-mechanics id (shared by initial + bg load). */
+const MECHANIC_CODE_TO_ID: Record<string, string> = {
+  FIFTY_FIFTY: "fiftyFifty",
+  AUDIENCE_POLL: "audiencePoll",
+  HINT: "hint",
+  SKIP_QUESTION: "skip",
+  EXTRA_TIME: "extraTime",
+  ELIMINATE_ONE: "eliminateOne",
+  DOUBLE_SCORE: "doublePoints",
+  FREEZE_TIME: "freezeTimer",
+  STREAK_BONUS: "streakBonus",
+  SPEED_BONUS: "speedBonus",
+  SECOND_CHANCE: "secondChance",
+  DECAYING_POINTS: "decayingPoints",
 };
 
 function mapBackendProblem(
@@ -319,9 +336,15 @@ interface StudioContextValue {
   setActiveQuestion: (id: string | null) => void;
   stepIndex: number;
   steps: Array<{ id: StudioStepId; label: string }>;
+  /** Mobile-visible subset of steps (dropdown + mobile Continue stay within these). */
+  mobileSteps: Array<{ id: StudioStepId; label: string }>;
+  mobileStepIndex: number;
   goToStep: (id: StudioState["step"]) => void;
   nextStep: () => void;
   prevStep: () => void;
+  /** Continue/Back restricted to the mobile step subset. */
+  nextMobileStep: () => void;
+  prevMobileStep: () => void;
   publish: () => void;
   saveToServer: (opts?: { publish?: boolean }) => Promise<{ quizId: string; code: string }>;
   savingToServer: boolean;
@@ -386,6 +409,10 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
     return editMode ? STEPS.filter((s) => s.id !== "publish") : STEPS;
   }, [editMode]);
 
+  const mobileSteps = useMemo(() => {
+    return steps.filter((s) => MOBILE_STEP_IDS.includes(s.id));
+  }, [steps]);
+
   const [state, setState] = useState<StudioState>(() => {
     if (editMode && initialQuizId) {
       return {
@@ -428,27 +455,25 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   const gameMechanicsSnapshotRef = useRef<string>("");
   const databaseAutosaveSnapshotRef = useRef<string | null>(null);
   const audienceModeSnapshotRef = useRef<StudioState["audience"]["mode"] | null>(null);
+  /**
+   * Tracks which background payloads have landed. Save paths must not persist
+   * mechanics/participants until their bg fetch completes — otherwise local
+   * defaults would overwrite real server data.
+   */
+  const bgReadyRef = useRef({ mechanics: false, participants: false });
 
   useEffect(() => {
     if (!editMode || !initialQuizId) return;
     let cancelled = false;
     (async () => {
+      let loadedQuiz: (QuizBasic & { subject_name?: string; exam_cat_name?: string }) | null = null;
       try {
-        // Phase 1 (blocking, fast): quiz metadata + mechanics + audience.
-        // /problems is intentionally NOT awaited here so the Setup page
-        // renders without waiting for the slowest endpoint.
-        const [{ quiz }, serverMechanics, participants] = await Promise.all([
-          loadQuizMetadataForEdit(initialQuizId),
-          getQuizGameMechanics(initialQuizId).catch((error) => {
-            console.warn("Failed to load game mechanics (non-critical):", error);
-            return [];
-          }),
-          getQuizParticipants(initialQuizId).catch((error) => {
-            console.error("[StudioProvider] Failed to load participants:", error);
-            return [];
-          }),
-        ]);
+        // Phase 1 (blocking, minimal): only quiz metadata — everything the
+        // Setup page needs. Mechanics, participants and /problems all load
+        // in the background afterwards without blocking Setup.
+        const { quiz } = await loadQuizMetadataForEdit(initialQuizId);
         if (cancelled) return;
+        loadedQuiz = quiz;
         const info = mapQuizToStudioInfo(quiz);
         const settings = mapQuizToStudioSettings(quiz);
         const quizSnapshot = JSON.stringify({
@@ -463,9 +488,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           startDate: info.startDate,
           endDate: info.endDate,
           tags: info.tags,
-          audienceMode:
-            quiz.audience_mode ??
-            (participants.some((p) => p.source === 4 || p.source === 2) ? "classroom" : DEFAULT_AUDIENCE.mode),
+          // Participants load in bg; audienceMode is reconciled there for
+          // legacy quizzes without a stored mode.
+          audienceMode: quiz.audience_mode ?? DEFAULT_AUDIENCE.mode,
           settings: {
             randomizeQuestions: settings.randomizeQuestions,
             randomizeOptions: settings.randomizeOptions,
@@ -475,52 +500,17 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         });
         quizSnapshotRef.current = quizSnapshot;
 
-        // Apply the already-fetched game mechanics to local defaults.
+        // Local defaults for now — the background fetch overwrites with
+        // server values when it lands (see Phase 2 below).
         const loadedGameMechanics = JSON.parse(JSON.stringify(DEFAULT_GAME_MECHANICS));
-        const CODE_TO_ID: Record<string, string> = {
-            FIFTY_FIFTY: "fiftyFifty",
-            AUDIENCE_POLL: "audiencePoll",
-            HINT: "hint",
-            SKIP_QUESTION: "skip",
-            EXTRA_TIME: "extraTime",
-            ELIMINATE_ONE: "eliminateOne",
-            DOUBLE_SCORE: "doublePoints",
-            FREEZE_TIME: "freezeTimer",
-            STREAK_BONUS: "streakBonus",
-            SPEED_BONUS: "speedBonus",
-            SECOND_CHANCE: "secondChance",
-            DECAYING_POINTS: "decayingPoints",
-        };
-        for (const sm of serverMechanics) {
-          const id = CODE_TO_ID[sm.code];
-          if (!id) continue;
-          const m: any = (loadedGameMechanics as any)[id];
-          if (!m) continue;
-          m.enabled = sm.enabled;
-          if ("uses" in m) m.uses = sm.quantity;
-        }
 
-        // ─── Apply the already-fetched audience ────────────────────────────
-        let loadedAudience = {
+        // Audience defaults for now — reconciled with server participants
+        // in the background (legacy quizzes infer "classroom").
+        const loadedAudience = {
           ...DEFAULT_AUDIENCE,
           accessCode: generateQuizCode(),
           mode: quiz.audience_mode ?? DEFAULT_AUDIENCE.mode,
         };
-        if (participants.length > 0) {
-          // Legacy quizzes did not store audience_mode. Preserve their old
-          // room-restricted behaviour, while respecting the explicit mode for
-          // newly migrated/saved quizzes.
-          if (!quiz.audience_mode && participants.some((p) => p.source === 4 || p.source === 2)) {
-            loadedAudience = { ...loadedAudience, mode: "classroom" };
-          }
-
-          // Set audience snapshot so save doesn't overwrite loaded data
-          const snapshotParticipants = participants.map((p) => ({
-            userId: p.user_id,
-            source: p.source,
-          }));
-          audienceSnapshotRef.current = JSON.stringify(snapshotParticipants);
-        }
 
         gameMechanicsSnapshotRef.current = JSON.stringify(loadedGameMechanics);
         setState((s) => ({
@@ -540,8 +530,84 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         if (!cancelled) setLoading(false);
       }
 
-      // Phase 2 (background): /problems. Never blocks Setup; merges in when done.
+      // Phase 2 (background): mechanics, participants, /problems — all
+      // independent, none block Setup. Each merges into state when it lands.
       if (cancelled) return;
+
+      // — Game mechanics in bg —
+      void (async () => {
+        try {
+          const serverMechanics = await getQuizGameMechanics(initialQuizId).catch((error) => {
+            console.warn("Failed to load game mechanics (non-critical):", error);
+            return [];
+          });
+          if (cancelled) return;
+          const loadedGameMechanics = JSON.parse(JSON.stringify(DEFAULT_GAME_MECHANICS));
+          for (const sm of serverMechanics) {
+            const id = MECHANIC_CODE_TO_ID[sm.code];
+            if (!id) continue;
+            const m: any = (loadedGameMechanics as any)[id];
+            if (!m) continue;
+            m.enabled = sm.enabled;
+            if ("uses" in m) m.uses = sm.quantity;
+          }
+          gameMechanicsSnapshotRef.current = JSON.stringify(loadedGameMechanics);
+          // Re-baseline autosave so the bg merge itself isn't treated as a change.
+          databaseAutosaveSnapshotRef.current = null;
+          setState((s) => ({ ...s, gameMechanics: loadedGameMechanics }));
+        } finally {
+          bgReadyRef.current.mechanics = true;
+        }
+      })();
+
+      // — Participants / audience in bg —
+      void (async () => {
+        try {
+          if (!loadedQuiz) return;
+          const quiz = loadedQuiz;
+          const participants = await getQuizParticipants(initialQuizId).catch((error) => {
+            console.error("[StudioProvider] Failed to load participants:", error);
+            return [];
+          });
+          if (cancelled) return;
+          let loadedAudience = {
+            ...DEFAULT_AUDIENCE,
+            accessCode: generateQuizCode(),
+            mode: quiz.audience_mode ?? DEFAULT_AUDIENCE.mode,
+          };
+          if (participants.length > 0) {
+            // Legacy quizzes did not store audience_mode. Preserve their old
+            // room-restricted behaviour, while respecting the explicit mode for
+            // newly migrated/saved quizzes.
+            if (!quiz.audience_mode && participants.some((p) => p.source === 4 || p.source === 2)) {
+              loadedAudience = { ...loadedAudience, mode: "classroom" };
+            }
+
+            // Set audience snapshot so save doesn't overwrite loaded data
+            const snapshotParticipants = participants.map((p) => ({
+              userId: p.user_id,
+              source: p.source,
+            }));
+            audienceSnapshotRef.current = JSON.stringify(snapshotParticipants);
+          }
+          // Keep the quiz-metadata snapshot consistent with the inferred mode
+          // so a later save doesn't see a phantom audienceMode change.
+          try {
+            const parsed = JSON.parse(quizSnapshotRef.current);
+            if (parsed && parsed.audienceMode !== loadedAudience.mode) {
+              parsed.audienceMode = loadedAudience.mode;
+              quizSnapshotRef.current = JSON.stringify(parsed);
+            }
+          } catch {}
+          // Re-baseline autosave so the bg merge itself isn't treated as a change.
+          databaseAutosaveSnapshotRef.current = null;
+          setState((s) => ({ ...s, audience: loadedAudience }));
+        } finally {
+          bgReadyRef.current.participants = true;
+        }
+      })();
+
+      // — /problems in bg. Merges in when done.
       try {
         const problems = await getQuizProblems(initialQuizId).catch(() => []);
         if (cancelled) return;
@@ -776,6 +842,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   };
 
   const stepIndex = steps.findIndex((s) => s.id === state.step);
+  const mobileStepIndex = mobileSteps.findIndex((s) => s.id === state.step);
 
   const isMcqType = (t: CreatorQuestion["type"]) =>
     t === "single_choice" || t === "multiple_choice" || t === "true_false";
@@ -878,8 +945,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
     return errs;
   };
 
-  const nextStep = async () => {
-    const i = steps.findIndex((st) => st.id === state.step);
+  const advanceInList = async (list: Array<{ id: StudioStepId; label: string }>) => {
+    const i = list.findIndex((st) => st.id === state.step);
 
     // Review step: block if errors exist (publishing blocked until resolved)
     if (state.step === "review") {
@@ -891,8 +958,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         });
         return;
       }
-      // Review is last on mobile-edit (publish hidden) — treat Continue as Save & exit
-      const isLast = i === steps.length - 1;
+      // Review is last (mobile-edit, or desktop-edit with publish hidden) — treat Continue as Save & exit
+      const isLast = i === list.length - 1;
       if (isLast) {
         if (editMode) {
           try {
@@ -961,13 +1028,28 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       if (!validateAllQuestions()) return;
     }
 
+    // Unknown current step for this list (e.g. a desktop-only step while on
+    // mobile): jump to the nearest following entry instead of getting stuck.
     setState((s) => {
-      const idx = steps.findIndex((st) => st.id === s.step);
-      return { ...s, step: idx < steps.length - 1 ? steps[idx + 1].id : s.step };
+      const idx = list.findIndex((st) => st.id === s.step);
+      if (idx === -1) {
+        const fullIdx = steps.findIndex((st) => st.id === s.step);
+        const next = list.find((st) => steps.findIndex((x) => x.id === st.id) > fullIdx);
+        return { ...s, step: next ? next.id : list[list.length - 1].id };
+      }
+      return { ...s, step: idx < list.length - 1 ? list[idx + 1].id : s.step };
     });
   };
 
-  const prevStep = async () => {
+  const nextStep = async () => {
+    await advanceInList(steps);
+  };
+
+  const nextMobileStep = async () => {
+    await advanceInList(mobileSteps);
+  };
+
+  const retreatInList = async (list: Array<{ id: StudioStepId; label: string }>) => {
     if (state.step === "questions") {
       // Validate and save the problems to the server before going back.
       if (!validateAllQuestions()) return;
@@ -984,9 +1066,22 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       }
     }
     setState((s) => {
-      const i = steps.findIndex((st) => st.id === s.step);
-      return { ...s, step: i > 0 ? steps[i - 1].id : s.step };
+      const i = list.findIndex((st) => st.id === s.step);
+      if (i === -1) {
+        const fullIdx = steps.findIndex((st) => st.id === s.step);
+        const prev = [...list].reverse().find((st) => steps.findIndex((x) => x.id === st.id) < fullIdx);
+        return { ...s, step: prev ? prev.id : list[0].id };
+      }
+      return { ...s, step: i > 0 ? list[i - 1].id : s.step };
     });
+  };
+
+  const prevStep = async () => {
+    await retreatInList(steps);
+  };
+
+  const prevMobileStep = async () => {
+    await retreatInList(mobileSteps);
   };
   const publish = () =>
     setState((s) => ({ ...s, published: true }));
@@ -1105,7 +1200,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         // Update snapshot so subsequent saves only diff against the new baseline
         snapshotRef.current = buildQuestionSnapshot(state.questions);
 
-        if (!opts?.skipParticipants) {
+        // Skip until the bg participants fetch lands — otherwise local
+        // defaults would wipe real server data.
+        if (!opts?.skipParticipants && bgReadyRef.current.participants) {
         const audience = state.audience;
         const selRoomIds = audience.roomIds ?? [];
         const selections = audience.roomStudentSelections ?? {};
@@ -1142,7 +1239,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         }
         } // skipParticipants
 
-        // Save game mechanics to backend
+        // Save game mechanics to backend (skip until bg load lands, so
+        // local defaults never overwrite real server values).
+        if (bgReadyRef.current.mechanics) {
         try {
           const gm = state.gameMechanics;
           const mechanicMap: Record<string, { enabled: boolean; quantity: number }> = {
@@ -1167,6 +1266,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           await updateQuizGameMechanics(quizId, mechanicsPayload);
         } catch (mechanicsErr) {
           console.warn("Failed to save game mechanics (non-critical):", mechanicsErr);
+        }
         }
       }
 
@@ -1252,6 +1352,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   const saveGameMechanicsOnly = useCallback(async () => {
     const quizId = state.serverQuizId;
     if (!quizId) throw new Error("Quiz not saved yet — save the quiz first");
+    if (!bgReadyRef.current.mechanics) throw new Error("Game mechanics are still loading — please wait a moment and retry.");
 
     setSavingToServer(true);
     try {
@@ -1284,6 +1385,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   const saveAudienceParticipants = useCallback(async () => {
     const quizId = state.serverQuizId;
     if (!quizId) throw new Error("Quiz not saved yet — save the quiz first");
+    if (!bgReadyRef.current.participants) throw new Error("Participants are still loading — please wait a moment and retry.");
 
     const audience = state.audience;
     const selRoomIds = audience.roomIds ?? [];
@@ -1373,9 +1475,13 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       setActiveQuestion,
       stepIndex,
       steps,
+      mobileSteps,
+      mobileStepIndex,
       goToStep,
       nextStep,
       prevStep,
+      nextMobileStep,
+      prevMobileStep,
       publish,
       saveToServer,
       savingToServer,
@@ -1388,7 +1494,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
       saveAudienceParticipants,
       audienceDirty,
     }),
-    [state, stepIndex, summary, savingToServer, saveProgress, loading, loadError, questionsLoading, editMode, steps, saveAudienceParticipants, audienceDirty]
+    [state, stepIndex, mobileStepIndex, summary, savingToServer, saveProgress, loading, loadError, questionsLoading, editMode, steps, mobileSteps, saveAudienceParticipants, audienceDirty]
   );
 
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;

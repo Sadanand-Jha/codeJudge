@@ -1,7 +1,7 @@
 // Quiz data access layer (largest repository). Comprehensive SQL for quizzes,
 // problems, options, attempts, responses, game config, collaborators, subjects,
 // exam categories, and more.
-import { pool } from "../app.ts";
+import { pool } from "../config/database.ts";
 
 /**
  * Maximum number of attempts a single user may start for the same quiz,

@@ -179,6 +179,7 @@ export class QuizService {
     problemId: number;
     answer?: unknown;
     option?: string;
+    options?: string[];
     textAnswer?: string;
     timeTaken?: number;
   }): Promise<any> {

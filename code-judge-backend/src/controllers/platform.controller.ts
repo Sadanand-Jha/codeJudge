@@ -435,6 +435,14 @@ export const getHealth = async (_req: Request, res: Response) => {
     return { status: "operational" as const, latencyMs: Date.now() - s };
   });
   const api = { status: "operational" as const, latencyMs: Date.now() - t0 };
+  const bullmq = await safe(async () => {
+    const s = Date.now();
+    const { getQuizSubmissionQueue } = await import("../queues/quizSubmission.queue.js");
+    const queue = getQuizSubmissionQueue();
+    await queue.waitUntilReady();
+    const counts = await queue.getJobCounts("waiting", "active", "completed", "failed", "delayed");
+    return { status: "operational" as const, latencyMs: Date.now() - s, counts };
+  });
   const unavailable = (name: string) => ({ status: "unknown" as const, note: `${name} has no health probe wired yet` });
   res.json({
     success: true,
@@ -442,7 +450,8 @@ export const getHealth = async (_req: Request, res: Response) => {
       services: {
         api, database: db ?? { status: "down" as const, latencyMs: null },
         redis: redis ?? { status: "down" as const, latencyMs: null },
-        bullmq: unavailable("BullMQ"), websocket: unavailable("WebSocket"),
+        bullmq: bullmq ?? { status: "down" as const, latencyMs: null, note: "quiz-submissions queue unreachable (Redis down?)" },
+        websocket: unavailable("WebSocket"),
         ai: unavailable("AI service"), storage: unavailable("Storage"),
       },
       errors: { today5xx: null as number | null, today4xx: null as number | null, note: "No error ledger yet — see server logs" },
@@ -452,14 +461,40 @@ export const getHealth = async (_req: Request, res: Response) => {
 
 // ── Jobs ──────────────────────────────────────────────────
 export const getJobs = async (_req: Request, res: Response) => {
-  // The backend has no BullMQ/queue dependency (pg + Upstash Redis only).
-  res.json({
-    success: true,
-    data: {
-      available: false, reason: "No background-job system (BullMQ) wired in the backend yet.",
-      queued: null, processing: null, completed: null, failed: null, delayed: null, failedJobs: [],
-    },
-  });
+  try {
+    const { getQuizSubmissionQueue } = await import("../queues/quizSubmission.queue.js");
+    const queue = getQuizSubmissionQueue();
+    await queue.waitUntilReady();
+    const counts = await queue.getJobCounts("waiting", "active", "completed", "failed", "delayed");
+    const failedJobs = await queue.getFailed(0, 9);
+    res.json({
+      success: true,
+      data: {
+        available: true,
+        queued: counts.waiting,
+        processing: counts.active,
+        completed: counts.completed,
+        failed: counts.failed,
+        delayed: counts.delayed,
+        failedJobs: failedJobs.map((j) => ({
+          id: j.id,
+          name: j.name,
+          attemptsMade: j.attemptsMade,
+          failedReason: j.failedReason,
+          finishedOn: j.finishedOn,
+        })),
+      },
+    });
+  } catch (err: any) {
+    res.json({
+      success: true,
+      data: {
+        available: false,
+        reason: `quiz-submissions queue unreachable: ${err.message}`,
+        queued: null, processing: null, completed: null, failed: null, delayed: null, failedJobs: [],
+      },
+    });
+  }
 };
 
 // ── Errors ────────────────────────────────────────────────

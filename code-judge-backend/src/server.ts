@@ -2,6 +2,7 @@
 // HTTP server ONLY when running locally. On Vercel, the app is imported via
 // api/index.js and handled as a serverless function (no listen).
 import app from './app.ts';
+import { startQuizSubmissionWorker } from './queues/quizSubmission.worker.ts';
 
 const PORT = process.env.PORT || 8000;
 
@@ -14,6 +15,14 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`✅ Server is running locally on port ${PORT}`);
     console.log(`   → http://localhost:${PORT}/health`);
   });
+  // Long-lived process: grade quiz submissions in-process. Vercel serverless
+  // cannot host a worker — use `npm run worker` on a persistent host, or the
+  // submit endpoint falls back to inline grading.
+  try {
+    startQuizSubmissionWorker();
+  } catch (err: any) {
+    console.warn('⚠️ Quiz submission worker failed to start (submit falls back to inline grading):', err.message);
+  }
 }
 
 export default app;
