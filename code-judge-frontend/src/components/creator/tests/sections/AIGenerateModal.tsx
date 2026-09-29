@@ -31,11 +31,19 @@ interface AIGenerateModalProps {
 }
 
 const PROGRESS_STEPS = [
-  { key: "uploading", label: "PDF uploaded" },
-  { key: "extracting", label: "Extracting document with Docling" },
+  { key: "uploading", label: "File uploaded safely" },
+  { key: "extracting", label: "Extracting document" },
   { key: "analyzing", label: "Identifying question-paper structure" },
   { key: "building", label: "Building sections" },
 ] as const;
+
+const SUPPORTED_EXTENSIONS = new Set([
+  "pdf", "docx", "pptx", "xlsx", "txt", "md", "csv", "tsv", "json",
+  "png", "jpg", "jpeg", "webp",
+]);
+const SUPPORTED_ACCEPT = ".pdf,.docx,.pptx,.xlsx,.txt,.md,.csv,.tsv,.json,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/markdown,text/csv,application/json,image/png,image/jpeg,image/webp";
+const MAX_FILES = 5;
+const MAX_TOTAL_BYTES = 2 * 1024 * 1024;
 
 export function AIGenerateModal({
   open,
@@ -47,7 +55,7 @@ export function AIGenerateModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [status, setStatus] = useState<AIGenerateStatus>("idle");
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState<AIGenerateError | null>(null);
@@ -55,7 +63,7 @@ export function AIGenerateModal({
   const [dragOver, setDragOver] = useState(false);
 
   const reset = useCallback(() => {
-    setFile(null);
+    setFiles([]);
     setStatus("idle");
     setCurrentStep(0);
     setError(null);
@@ -72,17 +80,32 @@ export function AIGenerateModal({
     onClose();
   }, [status, reset, onClose]);
 
-  const handleFileSelect = useCallback((selected: File | null) => {
-    if (!selected) return;
-    if (selected.type !== "application/pdf") {
-      setError({ type: "upload", message: "Please upload a valid PDF." });
+  const addFiles = useCallback((incoming: FileList | File[]) => {
+    const selected = Array.from(incoming);
+    if (selected.length === 0) return;
+    const invalid = selected.find((file) => !SUPPORTED_EXTENSIONS.has(file.name.split(".").pop()?.toLocaleLowerCase() ?? ""));
+    if (invalid) {
+      setError({ type: "upload", message: "Upload PDF, Word, PowerPoint, Excel, text, or PNG/JPEG/WebP images only." });
       return;
     }
-    if (selected.size > 20 * 1024 * 1024) {
-      setError({ type: "upload", message: "File size must be under 20MB." });
-      return;
-    }
-    setFile(selected);
+    setFiles((current) => {
+      const next = [...current, ...selected.filter((file) => !current.some((existing) => existing.name === file.name && existing.size === file.size))];
+      if (next.length > MAX_FILES) {
+        setError({ type: "upload", message: `Add up to ${MAX_FILES} files at a time.` });
+        return current;
+      }
+      const total = next.reduce((sum, file) => sum + file.size, 0);
+      if (total > MAX_TOTAL_BYTES) {
+        setError({ type: "upload", message: "All selected files together must be 2MB or less." });
+        return current;
+      }
+      setError(null);
+      return next;
+    });
+  }, []);
+
+  const removeFile = useCallback((index: number) => {
+    setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index));
     setError(null);
   }, []);
 
@@ -90,10 +113,9 @@ export function AIGenerateModal({
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragOver(false);
-      const dropped = e.dataTransfer.files[0];
-      handleFileSelect(dropped);
+      addFiles(e.dataTransfer.files);
     },
-    [handleFileSelect]
+    [addFiles]
   );
 
   const simulateProgress = useCallback(async () => {
@@ -114,7 +136,7 @@ export function AIGenerateModal({
   }, []);
 
   const handleGenerate = useCallback(async () => {
-    if (!file) return;
+    if (files.length === 0) return;
 
     if (existingSectionCount > 0) {
       setShowReplaceConfirm(true);
@@ -122,10 +144,10 @@ export function AIGenerateModal({
     }
 
     await startGeneration();
-  }, [file, existingSectionCount]);
+  }, [files, existingSectionCount]);
 
   const startGeneration = useCallback(async () => {
-    if (!file) return;
+    if (files.length === 0) return;
 
     setShowReplaceConfirm(false);
     setError(null);
@@ -135,7 +157,7 @@ export function AIGenerateModal({
 
     try {
       const response = await generateTestSectionsFromPDF(
-        file,
+        files,
         abortRef.current.signal
       );
 
@@ -178,7 +200,7 @@ export function AIGenerateModal({
 
       if (err?.response?.status === 400) {
         errorType = "upload";
-        errorMessage = "Please upload a valid PDF.";
+        errorMessage = "Please upload a supported file that passes our safety checks.";
       } else if (err?.response?.status === 422) {
         errorType = "validation";
         errorMessage =
@@ -186,7 +208,7 @@ export function AIGenerateModal({
       } else if (err?.response?.status === 500) {
         errorType = "extraction";
         errorMessage =
-          "We couldn't extract content from this document. Please try another PDF.";
+          "We couldn't extract content from this file. Please try another supported document or image.";
       } else if (err?.response?.data?.message) {
         errorMessage = err.response.data.message;
       }
@@ -194,7 +216,7 @@ export function AIGenerateModal({
       setError({ type: errorType, message: errorMessage });
       setStatus("error");
     }
-  }, [file, simulateProgress, onGenerate, toast, handleClose, reset]);
+  }, [files, simulateProgress, onGenerate, toast, handleClose, reset]);
 
   const isProcessing =
     status === "uploading" ||
@@ -239,7 +261,7 @@ export function AIGenerateModal({
                       Generate Test Structure with AI
                     </h2>
                     <p className="text-[11px] text-text-muted">
-                      Powered by Docling + LLM
+                      Powered by AI
                     </p>
                   </div>
                 </div>
@@ -281,34 +303,37 @@ export function AIGenerateModal({
                         "flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-all cursor-pointer",
                         dragOver
                           ? "border-pink-500 bg-pink-500/5"
-                          : file
+                          : files.length > 0
                             ? "border-emerald-500/40 bg-emerald-500/5"
                             : "border-border bg-card-hover/20 hover:border-pink-500/30 hover:bg-pink-500/5"
                       )}
                     >
-                      {file ? (
+                      {files.length > 0 ? (
                         <>
                           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
                             <FileText className="h-6 w-6" />
                           </div>
                           <p className="mt-3 text-sm font-semibold text-text-primary">
-                            {file.name}
+                            {files.length} file{files.length === 1 ? "" : "s"} selected
                           </p>
                           <p className="mt-1 text-[11px] text-text-muted">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                            {(files.reduce((sum, file) => sum + file.size, 0) / 1024 / 1024).toFixed(2)} MB of 2 MB
                           </p>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setFile(null);
-                              setError(null);
-                            }}
-                            className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-rose-500 hover:text-rose-600"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            Remove
-                          </button>
+                          <div className="mt-3 max-h-24 w-full space-y-1 overflow-y-auto text-left">
+                            {files.map((file, index) => (
+                              <div key={`${file.name}-${file.size}-${index}`} className="flex items-center justify-between gap-2 rounded-lg bg-card px-2 py-1.5 text-[11px]">
+                                <span className="min-w-0 truncate text-text-secondary">{file.name}</span>
+                                <button type="button" onClick={(event) => { event.stopPropagation(); removeFile(index); }} className="shrink-0 text-rose-500 hover:text-rose-600" aria-label={`Remove ${file.name}`}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          {files.length < MAX_FILES && (
+                            <button type="button" onClick={(event) => { event.stopPropagation(); fileInputRef.current?.click(); }} className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-pink-500 hover:text-pink-600">
+                              <Upload className="h-3 w-3" /> Add more files
+                            </button>
+                          )}
                         </>
                       ) : (
                         <>
@@ -316,10 +341,10 @@ export function AIGenerateModal({
                             <Upload className="h-6 w-6" />
                           </div>
                           <p className="mt-3 text-sm font-semibold text-text-primary">
-                            Drop your PDF here or click to browse
+                            Drop a document or image here, or click to browse
                           </p>
                           <p className="mt-1 text-[11px] text-text-muted">
-                            Supported format: PDF (max 20MB)
+                            PDF, Word, PowerPoint, Excel, text, PNG/JPEG/WebP · up to 5 files, 2MB total
                           </p>
                         </>
                       )}
@@ -328,9 +353,10 @@ export function AIGenerateModal({
                     <input
                       ref={fileInputRef}
                       type="file"
-                      accept=".pdf,application/pdf"
+                      accept={SUPPORTED_ACCEPT}
+                      multiple
                       className="hidden"
-                      onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+                      onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }}
                     />
 
                     {/* Error */}
@@ -346,7 +372,7 @@ export function AIGenerateModal({
                               type="button"
                               onClick={() => {
                                 setError(null);
-                                setFile(null);
+                                setFiles([]);
                               }}
                               className="text-[11px] font-semibold text-rose-500 hover:text-rose-600"
                             >
@@ -546,7 +572,7 @@ export function AIGenerateModal({
                   <button
                     type="button"
                     onClick={handleGenerate}
-                    disabled={!file}
+                    disabled={files.length === 0}
                     className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
                   >
                     <Sparkles className="h-3.5 w-3.5" />

@@ -12,6 +12,8 @@ import {
   FileText,
   GraduationCap,
   Layers,
+  HelpCircle,
+  ListChecks,
   Wallet,
   Eye,
   Rocket,
@@ -25,6 +27,7 @@ import { EXAMS, LANGUAGES } from "@/components/tests/mockData";
 import { PrimaryButton, GhostButton } from "@/components/tests/ui";
 import { SectionCard } from "./sections/SectionCard";
 import { AIGenerateModal } from "./sections/AIGenerateModal";
+import { QuestionsStep } from "./sections/QuestionsStep";
 import {
   type Section,
   createDefaultSection,
@@ -36,12 +39,15 @@ const STEPS = [
   { id: "basic", label: "Basic Information", icon: FileText },
   { id: "exam", label: "Exam & Subjects", icon: GraduationCap },
   { id: "sections", label: "Sections", icon: Layers },
+  { id: "questions", label: "Questions", icon: HelpCircle },
   { id: "pricing", label: "Pricing", icon: Wallet },
   { id: "preview", label: "Preview", icon: Eye },
   { id: "publish", label: "Submit / Publish", icon: Rocket },
 ];
 
-const SUBJECT_POOL = ["Physics", "Chemistry", "Mathematics", "Biology", "Quant", "Reasoning", "English", "GK", "VARC", "DILR"];
+// The current curated question bank is Operating Systems only. Keep the UI
+// aligned with the backend rather than presenting unavailable mock subjects.
+const SUBJECT_POOL = ["Operating System"];
 
 export type CreationType = "test" | "quiz" | "assessment";
 
@@ -79,7 +85,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const [instructions, setInstructions] = useState("");
   const [duration, setDuration] = useState(180);
   const [examId, setExamId] = useState("");
-  const [subjects, setSubjects] = useState<string[]>([]);
+  const [subjects, setSubjects] = useState<string[]>(["Operating System"]);
   const [language, setLanguage] = useState<string>("english");
   const [difficulty, setDifficulty] = useState("medium");
   const [sections, setSections] = useState<Section[]>([createDefaultSection(0)]);
@@ -105,12 +111,10 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
     if (step === 0) return title.trim().length > 3 && description.trim().length > 10;
     if (step === 1) return examId !== "" && subjects.length > 0;
     if (step === 2) return sections.length > 0 && totalQuestions > 0;
-    if (step === 3) return mode === "free" || price > 0;
+    if (step === 3) return true;
+    if (step === 4) return mode === "free" || price > 0;
     return true;
   };
-
-  const toggleSubject = (s: string) =>
-    setSubjects((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
   const updateSection = useCallback((id: string, patch: Partial<Section>) => {
     setSections((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
@@ -169,16 +173,40 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   };
 
   return (
-    <div className="mx-auto w-full max-w-[900px]">
-      <div className="mb-6">
-        <h1 className="text-xl font-extrabold tracking-tight text-text-primary sm:text-2xl">{meta.title}</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          {meta.subtitle}
-        </p>
+    <div className="mx-auto w-full max-w-[980px] px-4 pb-28 pt-4 sm:px-6 sm:py-8 lg:px-0">
+      <header className="mb-5 rounded-2xl border border-border bg-card px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:mb-7 sm:flex sm:items-center sm:justify-between sm:px-6 sm:py-5">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-[0_8px_20px_rgba(168,85,247,0.22)]">
+            <FileText className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="text-lg font-extrabold tracking-tight text-text-primary sm:text-xl">{meta.title}</h1>
+              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Draft</span>
+            </div>
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-text-secondary sm:text-sm">{meta.subtitle}</p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-3 border-t border-border pt-3 text-xs text-text-secondary sm:mt-0 sm:border-0 sm:pt-0">
+          <span><strong className="text-text-primary">{totalQuestions}</strong> questions</span>
+          <span className="h-3 w-px bg-border" />
+          <span><strong className="text-text-primary">{duration || 0}</strong> min</span>
+        </div>
+      </header>
+
+      {/* Mobile progress keeps the active task clear without a tiny, overflowing stepper. */}
+      <div className="mb-5 rounded-xl border border-border bg-card p-3 sm:hidden">
+        <div className="flex items-center justify-between gap-3 text-xs">
+          <span className="font-bold text-text-primary">{STEPS[step].label}</span>
+          <span className="shrink-0 font-semibold text-text-secondary">{step + 1} / {STEPS.length}</span>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-gradient-to-r from-pink-500 to-violet-600 transition-all duration-300" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+        </div>
       </div>
 
-      {/* Stepper */}
-      <div className="-mx-5 flex items-center gap-1 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+      {/* Desktop stepper */}
+      <div className="mb-6 hidden items-center gap-1 overflow-x-auto pb-1 sm:flex">
         {STEPS.map((s, i) => {
           const done = i < step || (i === step && publishing);
           const active = i === step && !publishing;
@@ -215,7 +243,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.25 }}
           className={cn(
-            "mt-8 rounded-3xl border border-border bg-card p-6 sm:p-8",
+            "rounded-2xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:rounded-3xl sm:p-8",
             step === 2 && "overflow-hidden"
           )}
         >
@@ -298,9 +326,9 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                     <button
                       key={s}
                       type="button"
-                      onClick={() => toggleSubject(s)}
+                      disabled
                       className={cn(
-                        "rounded-full border px-3.5 py-1.5 text-xs font-bold transition-all",
+                        "cursor-default rounded-full border px-3.5 py-1.5 text-xs font-bold",
                         subjects.includes(s)
                           ? "border-transparent bg-gradient-to-r from-pink-500 to-violet-600 text-white"
                           : "border-border bg-card-hover/40 text-text-secondary hover:border-pink-500/30"
@@ -310,6 +338,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                     </button>
                   ))}
                 </div>
+                <p className="mt-2 text-[11px] text-text-muted">More subjects will appear here when their question banks are ready.</p>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
@@ -362,6 +391,20 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                 <span className="font-semibold text-text-secondary">{totalMarks} Total Marks</span>
               </div>
 
+              <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-violet-500/20 bg-violet-500/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold text-text-primary">Need a single question instead?</p>
+                  <p className="mt-1 text-xs leading-5 text-text-secondary">Open the AI question generator directly. You do not need to create sections or a full paper first.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push("/creator/problems/create")}
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-violet-500/25 bg-card px-4 text-xs font-bold text-violet-600 transition-colors hover:bg-violet-500/10 dark:text-violet-300"
+                >
+                  <ListChecks className="h-4 w-4" /> Generate questions
+                </button>
+              </div>
+
               {/* Section Cards */}
               <div className="space-y-4">
                 <AnimatePresence initial={false}>
@@ -395,6 +438,14 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           )}
 
           {step === 3 && (
+            <QuestionsStep
+              sections={sections}
+              paperTitle={title}
+              onPaperTitleChange={setTitle}
+            />
+          )}
+
+          {step === 4 && (
             <div className="space-y-6">
               <div>
                 <label className="mb-1.5 block text-xs font-bold text-text-primary">Pricing Model</label>
@@ -467,7 +518,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
             </div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <div>
               <div className="mx-auto max-w-md overflow-hidden rounded-2xl border border-border bg-card">
                 <div
@@ -523,7 +574,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
             </div>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <div className="text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-[0_12px_36px_rgba(236,72,153,0.4)]">
                 <Rocket className="h-8 w-8" />
@@ -535,7 +586,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                 {mode === "free" ? "free" : `₹${price}`}. Once published it will be visible to all students.
               </p>
               <div className="mt-6 flex items-center justify-center gap-3">
-                <GhostButton onClick={() => setStep(4)}>Back to Preview</GhostButton>
+                <GhostButton onClick={() => setStep(5)}>Back to Preview</GhostButton>
                 <PrimaryButton onClick={handlePublish} disabled={publishing} className="px-6 py-3">
                   <Rocket className="h-4 w-4" />
                   {publishing ? "Publishing…" : "Publish Test"}
@@ -547,19 +598,23 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
       </AnimatePresence>
 
       {/* Footer nav */}
-      <div className="mt-6 flex items-center justify-between">
-        <GhostButton onClick={() => setStep((s) => Math.max(0, s - 1))} className={cn(step === 0 && "invisible")}>
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:mt-6 sm:flex sm:items-center sm:justify-between sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+        <GhostButton onClick={() => setStep((s) => Math.max(0, s - 1))} className={cn("hidden sm:inline-flex", step === 0 && "invisible")}>
           <ChevronLeft className="h-4 w-4" /> Back
         </GhostButton>
-        <div className="flex items-center gap-2">
-          <div className="text-xs text-text-muted">Step {Math.min(step + 1, 6)} of {STEPS.length}</div>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          {step > 0 && <GhostButton onClick={() => setStep((s) => Math.max(0, s - 1))} className="shrink-0 sm:hidden"><ChevronLeft className="h-4 w-4" /> Back</GhostButton>}
+          <div className="hidden text-xs text-text-muted sm:block">Step {Math.min(step + 1, STEPS.length)} of {STEPS.length}</div>
           {step < STEPS.length - 1 && (
             <PrimaryButton
-              onClick={() => canContinue() && setStep((s) => s + 1)}
+              onClick={() => {
+                if (!canContinue()) return;
+                setStep((s) => s + 1);
+              }}
               disabled={!canContinue()}
-              className="px-6 py-3"
+              className="min-h-11 flex-1 justify-center px-5 py-3 sm:flex-none sm:px-6"
             >
-              Continue <ChevronRight className="h-4 w-4" />
+              <span className="sm:hidden">Continue: {STEPS[step + 1].label}</span><span className="hidden sm:inline">Continue</span> <ChevronRight className="h-4 w-4" />
             </PrimaryButton>
           )}
         </div>

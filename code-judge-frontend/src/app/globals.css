@@ -484,9 +484,9 @@ body {
   overflow-y: auto;
 }
 
-/* Keep primary workflow actions reachable on short mobile viewports (for
-   example iPhone SE) without requiring the user to first scroll to them. */
-@media (max-width: 640px) {
+/* Keep primary workflow actions reachable on every phone and tablet viewport
+   without requiring the user to first scroll to the bottom of long forms. */
+@media (max-width: 1023px) {
   .mobile-viewport-actions {
     position: fixed !important;
     right: 0 !important;
@@ -505,7 +505,7 @@ body {
   }
 
   .has-mobile-viewport-actions {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)) !important;
   }
 }
 

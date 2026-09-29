@@ -16,6 +16,8 @@
  */
 import { Router } from "express";
 import multer from "multer";
+import { authenticate } from "../../../middleware/auth.ts";
+import { requireActiveAiUser } from "../../../middleware/requireActiveAiUser.ts";
 import {
   chat,
   chatWithFiles,
@@ -24,6 +26,10 @@ import {
 } from "../../../controllers/ai.controller.ts";
 
 const router = Router();
+
+// AI requests are never anonymous: only currently active user accounts may
+// invoke generation, document analysis, or chat capabilities.
+router.use(authenticate, requireActiveAiUser);
 
 /**
  * Multer upload config shared by the two multipart endpoints.

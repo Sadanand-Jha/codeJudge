@@ -1752,7 +1752,7 @@ export const getMyQuizzes = async (req: Request, res: Response) => {
 export const registerForQuiz = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
-    const { quizId, rollno } = req.body;
+    const { quizId } = req.body;
 
     if (!userId) {
       res.status(401).json({
@@ -1779,21 +1779,12 @@ export const registerForQuiz = async (req: Request, res: Response) => {
       return;
     }
 
-    const alreadyRegistered = await quizService.isUserRegistered(userId, quizId);
-    if (alreadyRegistered) {
-      res.status(409).json({
-        success: false,
-        message: "User is already registered for this quiz",
-      });
-      return;
-    }
-
-    const registration = await quizService.registerUser(userId, quizId, rollno);
-
-    res.status(201).json({
+    // Student registration is temporarily disabled. Keep this legacy endpoint
+    // compatible for older clients, but do not create quiz_registration rows.
+    res.status(200).json({
       success: true,
-      message: "Successfully registered for quiz",
-      data: registration,
+      message: "Registration is not required for this quiz",
+      data: null,
     });
   } catch (error) {
     console.error("Error registering for quiz:", error);
@@ -2322,14 +2313,15 @@ export const joinQuiz = async (req: Request, res: Response) => {
       return;
     }
 
-    const registration = await quizService.registerUser(userId, String(quiz.id), "");
-
     res.status(200).json({
       success: true,
-      message: "Successfully joined quiz",
+      message: "Quiz is ready to join",
       data: {
         quiz: toStudentQuiz(quiz),
-        registration,
+        // Joining an assessment must never silently register a student.
+        // Registration fields are currently disabled, so an authenticated,
+        // eligible student can proceed directly to the waiting room/attempt.
+        registration: null,
         attempt: null,
       },
     });

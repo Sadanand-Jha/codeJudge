@@ -225,8 +225,8 @@ export function SectionCard({
       className="rounded-2xl border border-border bg-card shadow-[0_1px_3px_rgba(17,24,39,0.04),0_4px_12px_rgba(17,24,39,0.03)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.25)]"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-        <div className="flex flex-col gap-0.5">
+      <div className="flex items-start gap-2 border-b border-border px-3 py-3 sm:items-center sm:gap-3 sm:px-5 sm:py-4">
+        <div className="hidden flex-col gap-0.5 sm:flex">
           <button
             type="button"
             onClick={() => onMoveUp(section.id)}
@@ -245,10 +245,10 @@ export function SectionCard({
           </button>
         </div>
 
-        <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-text-muted active:cursor-grabbing" />
+        <GripVertical className="hidden h-4 w-4 shrink-0 cursor-grab text-text-muted active:cursor-grabbing sm:block" />
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="text-sm font-extrabold text-text-primary">{section.name}</span>
             {section.title && (
               <>
@@ -257,7 +257,7 @@ export function SectionCard({
               </>
             )}
           </div>
-          <div className="mt-0.5 flex items-center gap-3 text-[11px] text-text-muted">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-text-muted sm:gap-3">
             <span>{qCount} Questions</span>
             <span>·</span>
             <span>{availableMarks} Available</span>
@@ -266,7 +266,7 @@ export function SectionCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
@@ -305,7 +305,7 @@ export function SectionCard({
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="space-y-5 px-5 py-5">
+            <div className="space-y-5 px-3 py-4 sm:px-5 sm:py-5">
               {/* Section Details */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">

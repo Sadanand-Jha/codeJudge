@@ -251,7 +251,7 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
  * POST /api/v1/user/ai/generate-from-bank
  *
  * JSON body. Curated balanced selection from internal OS question bank.
- * Body: { numberOfQuestions?: number, easyCount?: number, mediumCount?: number, hardCount?: number }
+ * Body: { numberOfQuestions?: number, easyCount?: number, mediumCount?: number, hardCount?: number, syllabus?: string }
  * Returns: { success: true, data: { questions, extractedText, usage } }
  */
 export const generateFromQuestionBankHandler = async (req: Request, res: Response) => {
@@ -261,6 +261,7 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
     const mediumCount = req.body.mediumCount != null ? Number(req.body.mediumCount) : undefined;
     const hardCount = req.body.hardCount != null ? Number(req.body.hardCount) : undefined;
     const hardnessHint = req.body.hardnessHint ? String(req.body.hardnessHint) : undefined;
+    const syllabus = req.body.syllabus ? String(req.body.syllabus).trim().slice(0, 4000) : undefined;
 
     // validate counts sum if all provided
     if (easyCount != null && mediumCount != null && hardCount != null) {
@@ -279,6 +280,7 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
       mediumCount: mediumCount != null ? Math.max(0, Number(mediumCount)) : undefined,
       hardCount: hardCount != null ? Math.max(0, Number(hardCount)) : undefined,
       hardnessHint,
+      syllabus,
     });
 
     return res.status(200).json({ success: true, data: result });

@@ -40,7 +40,13 @@ import { useTheme } from "@/context/ThemeContext";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
-type QuestionStatus = "correct" | "wrong" | "skipped";
+type QuestionStatus = "correct" | "wrong" | "skipped" | "answered";
+
+/** All answer shapes the attempt screen persists (see attempt page restore logic). */
+type SelectedAnswer =
+  | { kind: "single"; id: string }
+  | { kind: "multi"; ids: string[] }
+  | { kind: "text"; text: string };
 
 interface AttemptReviewQuestion {
   id: string;
@@ -49,7 +55,10 @@ interface AttemptReviewQuestion {
   difficulty: "Easy" | "Medium" | "Hard";
   options: Array<{ id: string; label: string; text: string }>;
   correctOptionId: string;
-  selectedOptionId?: string;
+  correctOptionIds: string[];
+  selected?: SelectedAnswer;
+  /** For text answers: whether the response matches an accepted answer. */
+  textMatched?: boolean;
   explanation?: string;
   marksObtained: number;
   maxMarks: number;
@@ -88,8 +97,22 @@ interface AttemptReviewData {
 /* ─── Data helpers — unchanged logic ─── */
 
 function questionStatus(question: AttemptReviewQuestion): QuestionStatus {
-  if (!question.selectedOptionId) return "skipped";
-  return question.selectedOptionId === question.correctOptionId ? "correct" : "wrong";
+  const selected = question.selected;
+  if (!selected) return "skipped";
+  if (selected.kind === "single") {
+    return selected.id === question.correctOptionId ? "correct" : "wrong";
+  }
+  if (selected.kind === "multi") {
+    const correct = new Set(question.correctOptionIds);
+    const picked = new Set(selected.ids);
+    const exact =
+      picked.size === correct.size && [...picked].every((id) => correct.has(id));
+    return exact ? "correct" : "wrong";
+  }
+  // Text answers are only auto-verified against the visible accepted answers
+  // (the backend also checks hidden matching targets). A non-matching text
+  // response was still attempted, so it is "answered", never "skipped".
+  return question.textMatched ? "correct" : "answered";
 }
 
 function formatDuration(totalSeconds: number | null | undefined): string {
@@ -135,25 +158,40 @@ function normalizeDifficulty(value: unknown): "Easy" | "Medium" | "Hard" {
 }
 
 /**
- * The saved answer is stored as JSONB. Autosave/submit persist
- * `{ type: "MCQ", selectedOptionId }` (or a legacy raw option id), so resolve
- * it back to the option id string used by the review UI.
+ * The saved answer is stored as JSONB. Autosave/submit persist one of:
+ * `{ type: "MCQ", selectedOptionId }`, `{ type: "MULTI", selectedOptionIds }`,
+ * `{ type: "TEXT", text }` (or the same keys without `type`, or a legacy raw
+ * option id), so resolve all of them back to a structured selected answer.
  */
-function parseSelectedOptionId(selected: unknown): string | undefined {
+function parseSelectedAnswer(selected: unknown): SelectedAnswer | undefined {
   if (selected === null || selected === undefined) return undefined;
+  let value: unknown;
   try {
-    const value = typeof selected === "string" ? JSON.parse(selected) : selected;
-    if (value && typeof value === "object") {
-      if ("selectedOptionId" in value && (value as { selectedOptionId: unknown }).selectedOptionId != null) {
-        return String((value as { selectedOptionId: unknown }).selectedOptionId);
-      }
-      return undefined;
-    }
-    if (typeof value === "number" || typeof value === "string") return String(value);
-    return undefined;
+    value = typeof selected === "string" ? JSON.parse(selected) : selected;
   } catch {
-    return typeof selected === "string" && selected.length > 0 ? selected : undefined;
+    return typeof selected === "string" && selected.length > 0
+      ? { kind: "single", id: selected }
+      : undefined;
   }
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    if (obj.selectedOptionId != null) {
+      return { kind: "single", id: String(obj.selectedOptionId) };
+    }
+    if (Array.isArray(obj.selectedOptionIds)) {
+      const ids = obj.selectedOptionIds.map(String).filter(Boolean);
+      return ids.length > 0 ? { kind: "multi", ids } : undefined;
+    }
+    if (obj.text != null) {
+      const text = String(obj.text);
+      return text.trim().length > 0 ? { kind: "text", text } : undefined;
+    }
+    return undefined;
+  }
+  if (typeof value === "number" || (typeof value === "string" && value.length > 0)) {
+    return { kind: "single", id: String(value) };
+  }
+  return undefined;
 }
 
 const OPTION_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -179,11 +217,19 @@ function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): A
 
   const questions: AttemptReviewQuestion[] = review.map((row, index) => {
     const options: ReviewOption[] = Array.isArray(row.options) ? row.options : [];
-    const correctOption = options.find((option) => option.iscorrect);
-    const correctOptionId = correctOption ? String(correctOption.id) : "";
-    const selectedOptionId = parseSelectedOptionId(row.selected_option);
-    const isCorrect = !!selectedOptionId && !!correctOptionId && selectedOptionId === correctOptionId;
-    return {
+    const correctIds = options.filter((option) => option.iscorrect).map((option) => String(option.id));
+    const correctOptionId = correctIds[0] ?? "";
+    const selected = parseSelectedAnswer(row.selected_option);
+    let textMatched: boolean | undefined;
+    if (selected?.kind === "text") {
+      const submitted = selected.text.trim().toLowerCase();
+      const accepted = options
+        .map((option) => option.option_statement)
+        .filter(Boolean)
+        .map((value) => String(value).trim().toLowerCase());
+      textMatched = accepted.includes(submitted);
+    }
+    const built: AttemptReviewQuestion = {
       id: String(row.problem_id),
       // Review numbering is positional. Database question numbers can be
       // sparse, reused after soft deletion, or reflect the quiz's original
@@ -198,21 +244,25 @@ function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): A
         text: option.option_statement,
       })),
       correctOptionId,
-      selectedOptionId,
+      correctOptionIds: correctIds,
+      selected,
+      textMatched,
       explanation: row.explaination ?? undefined,
-      marksObtained: isCorrect ? perQuestionMarks : 0,
+      marksObtained: 0,
       maxMarks: perQuestionMarks,
       // Per-question time is not tracked by the backend (time_spent_seconds
       // is never written), so there is no real value to show here.
       timeSpent: "—",
     };
+    built.marksObtained = questionStatus(built) === "correct" ? perQuestionMarks : 0;
+    return built;
   });
 
   const difficultyGroups = new Map<string, { total: number; correct: number }>();
   for (const question of questions) {
     const group = difficultyGroups.get(question.difficulty) ?? { total: 0, correct: 0 };
     group.total += 1;
-    if (question.selectedOptionId && question.selectedOptionId === question.correctOptionId) {
+    if (questionStatus(question) === "correct") {
       group.correct += 1;
     }
     difficultyGroups.set(question.difficulty, group);
@@ -500,7 +550,7 @@ export default function AttemptReviewExperience({
                 </div>
               </div>
               <p className="mt-1.5 text-xs text-[#6F819D]">
-                Green = correct, red = wrong, gray = skipped, blue = current
+                Green = correct, red = wrong, amber = answered, gray = skipped, blue = current
               </p>
               <div className="mt-3 grid grid-cols-6 gap-1.5 min-[420px]:grid-cols-8 sm:gap-2" role="group" aria-label="Question palette">
                 {data.questions.map((question, index) => {
@@ -519,7 +569,9 @@ export default function AttemptReviewExperience({
                             ? "border-[#20D889]/60 bg-[#20D889]/10 text-[#20D889] hover:border-[#20D889]"
                             : state === "wrong"
                               ? "border-[#FF4D5D]/60 bg-[#FF4D5D]/10 text-[#FF6572] hover:border-[#FF4D5D]"
-                              : "border-[#34435B] bg-[#182235] text-[#91A0B7] hover:border-[#4A5D7E]"
+                              : state === "answered"
+                                ? "border-[#F5A524]/60 bg-[#F5A524]/10 text-[#F5A524] hover:border-[#F5A524]"
+                                : "border-[#34435B] bg-[#182235] text-[#91A0B7] hover:border-[#4A5D7E]"
                       }`}
                     >
                       {question.number}
@@ -565,9 +617,24 @@ export default function AttemptReviewExperience({
                   </h3>
 
                   <div className="mt-4 space-y-2.5">
+                    {currentQuestion.selected?.kind === "text" && (
+                      <div className="rounded-[12px] border border-[#F5A524]/40 bg-[#F5A524]/5 p-3 sm:p-3.5">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5A524]">
+                          Your response
+                        </p>
+                        <p className="mt-1 break-words text-[14px] font-medium leading-relaxed text-[#F5F7FB] sm:text-[15px]">
+                          {currentQuestion.selected.text}
+                        </p>
+                      </div>
+                    )}
                     {currentQuestion.options.map((option) => {
-                      const isCorrect = option.id === currentQuestion.correctOptionId;
-                      const isSelected = option.id === currentQuestion.selectedOptionId;
+                      const isCorrect = currentQuestion.correctOptionIds.includes(option.id);
+                      const isSelected =
+                        currentQuestion.selected?.kind === "single"
+                          ? option.id === currentQuestion.selected.id
+                          : currentQuestion.selected?.kind === "multi"
+                            ? currentQuestion.selected.ids.includes(option.id)
+                            : false;
                       const selectedWrong = isSelected && !isCorrect;
                       return (
                         <div
@@ -632,21 +699,34 @@ export default function AttemptReviewExperience({
                   <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-2.5">
                     <StatBlock
                       label="Your Answer"
-                      value={
-                        currentQuestion.selectedOptionId
-                          ? (currentQuestion.options.find((o) => o.id === currentQuestion.selectedOptionId)?.label ??
-                            currentQuestion.selectedOptionId)
-                          : "Skipped"
-                      }
+                      value={(() => {
+                        const selected = currentQuestion.selected;
+                        if (!selected) return "Skipped";
+                        if (selected.kind === "text") return selected.text;
+                        if (selected.kind === "multi") {
+                          const labels = selected.ids.map(
+                            (id) => currentQuestion.options.find((o) => o.id === id)?.label ?? id
+                          );
+                          return labels.join(", ");
+                        }
+                        return (
+                          currentQuestion.options.find((o) => o.id === selected.id)?.label ??
+                          selected.id
+                        );
+                      })()}
                       icon={Check}
                       iconBg="bg-[#20D889]/15 text-[#20D889]"
                     />
                     <StatBlock
                       label="Correct Answer"
-                      value={
-                        currentQuestion.options.find((o) => o.id === currentQuestion.correctOptionId)?.label ??
-                        currentQuestion.correctOptionId.toUpperCase()
-                      }
+                      value={(() => {
+                        const labels = currentQuestion.correctOptionIds.map(
+                          (id) => currentQuestion.options.find((o) => o.id === id)?.label ?? id
+                        );
+                        return labels.length > 0
+                          ? labels.join(", ")
+                          : currentQuestion.correctOptionId.toUpperCase();
+                      })()}
                       icon={CheckCircle2}
                       iconBg="bg-[#4EA1FF]/15 text-[#4EA1FF]"
                     />
@@ -844,6 +924,12 @@ function StatusBadge({ status }: { status: QuestionStatus }) {
     return (
       <span className="inline-flex items-center gap-1 rounded-[8px] border border-[#FF4D5D]/30 bg-[#FF4D5D]/10 px-2 py-1 text-[11px] font-semibold text-[#FF6572]">
         <XCircle className="h-3 w-3" /> Wrong
+      </span>
+    );
+  if (status === "answered")
+    return (
+      <span className="inline-flex items-center gap-1 rounded-[8px] border border-[#F5A524]/30 bg-[#F5A524]/10 px-2 py-1 text-[11px] font-semibold text-[#F5A524]">
+        <Check className="h-3 w-3" /> Answered
       </span>
     );
   return (

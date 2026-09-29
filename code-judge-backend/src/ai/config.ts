@@ -28,7 +28,17 @@ export const CONVERSATION_TTL_SECONDS = Number(
 );
 
 /** Model id served by the OpenAI-compatible endpoint. */
-export const AI_MODEL = process.env.LM_STUDIO_MODEL;
+export const AI_MODEL =
+  process.env.AI_MODEL ||
+  process.env.LM_STUDIO_MODEL_CODER ||
+  process.env.LM_STUDIO_MODEL;
 
 /** Base URL of the OpenAI-compatible endpoint. */
-export const AI_BASE_URL = process.env.LM_STUDIO_URL;
+export const AI_BASE_URL =
+  process.env.AI_BASE_URL ||
+  process.env.OPENAI_BASE_URL ||
+  process.env.GROQ_BASE_URL ||
+  process.env.TOGETHER_BASE_URL ||
+  process.env.DEEPSEEK_BASE_URL ||
+  process.env.OPENROUTER_BASE_URL ||
+  process.env.LM_STUDIO_URL;

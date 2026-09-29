@@ -1,15 +1,133 @@
 /**
  * Test Section Generation Service
  *
- * Pipeline: PDF → Docling extraction → LLM streaming (logged to terminal) → Zod validation
+ * Pipeline: verified document → local extraction → LLM streaming → Zod validation
  */
 import { z } from "zod";
+import ExcelJS from "exceljs";
+import mammoth from "mammoth";
+import sharp from "sharp";
 import { streamChatWithAI } from "./ai.service.js";
-import type { LiveUsage } from "./ai.service.js";
-import {
-  extractTextWithDocling,
-  isDoclingAvailable,
-} from "./docling-extract.service.js";
+import type { ChatContentPart, LiveUsage } from "./ai.service.js";
+
+/* ================================================================== */
+/*  Local text extraction (no Docling)                                  */
+/* ================================================================== */
+
+const TEXT_EXTENSIONS = new Set(["txt", "md", "markdown", "csv", "tsv", "json"]);
+const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
+
+const decodeText = (buffer: Buffer): string => {
+  const raw = buffer.toString("utf-8");
+  let controlChars = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const code = raw.charCodeAt(i);
+    if (code === 0) controlChars += 10;
+    else if (code < 9 || (code > 13 && code < 32)) controlChars++;
+  }
+  if (controlChars / Math.max(raw.length, 1) > 0.02) return "";
+  return raw;
+};
+
+const extractExcel = async (buffer: Buffer): Promise<string> => {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer as never);
+  const lines: string[] = [];
+  workbook.eachSheet((sheet) => {
+    if (lines.length >= 3000) return;
+    lines.push(`${sheet.name} (${sheet.actualRowCount} rows):`);
+    sheet.eachRow({ includeEmpty: false }, (row) => {
+      const text = ((row.values as unknown[] | undefined) ?? [])
+        .slice(1)
+        .map((cell) => {
+          if (cell && typeof cell === "object") {
+            const c = cell as { text?: string; richText?: { text: string }[] };
+            if (typeof c.text === "string") return c.text;
+            if (Array.isArray(c.richText)) return c.richText.map((r) => r.text).join("");
+          }
+          return cell == null ? "" : String(cell);
+        })
+        .filter((v) => String(v).trim().length > 0)
+        .join(" | ");
+      if (text) lines.push(text);
+    });
+  });
+  return lines.slice(0, 3000).join("\n");
+};
+
+const extractDocx = async (buffer: Buffer): Promise<string> => {
+  const result = await mammoth.extractRawText({ buffer });
+  return result.value ?? "";
+};
+
+/** Best-effort text pull from uncompressed PDF content streams. */
+const extractPdfNaive = (buffer: Buffer): string => {
+  const raw = buffer.toString("latin1");
+  const parts: string[] = [];
+  const tjRegex = /\((?:\\.|[^\\()])*\)\s*Tj/g;
+  const tjArrayRegex = /\[((?:[^\[\]]|\[(?:[^\[\]])*\])*)\]\s*TJ/g;
+  let m: RegExpExecArray | null;
+  while ((m = tjRegex.exec(raw)) !== null) {
+    parts.push(
+      m[0]
+        .slice(1, m[0].lastIndexOf(")"))
+        .replace(/\\n/g, "\n")
+        .replace(/\\r/g, "\r")
+        .replace(/\\t/g, "\t")
+        .replace(/\\\(/g, "(")
+        .replace(/\\\)/g, ")")
+        .replace(/\\\\/g, "\\")
+    );
+  }
+  while ((m = tjArrayRegex.exec(raw)) !== null) {
+    const inner = m[1];
+    const strRegex = /\((?:\\.|[^\\()])*\)/g;
+    let s: RegExpExecArray | null;
+    while ((s = strRegex.exec(inner)) !== null) {
+      parts.push(
+        s[0]
+          .slice(1, -1)
+          .replace(/\\n/g, "\n")
+          .replace(/\\r/g, "\r")
+          .replace(/\\t/g, "\t")
+          .replace(/\\\(/g, "(")
+          .replace(/\\\)/g, ")")
+          .replace(/\\\\/g, "\\")
+      );
+    }
+  }
+  return parts.join(" ").replace(/[ \t]+/g, " ").trim();
+};
+
+const extractLocalText = async (buffer: Buffer, filename: string): Promise<string> => {
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+  if (ext === "xlsx") return extractExcel(buffer);
+  if (ext === "docx") return extractDocx(buffer);
+  if (TEXT_EXTENSIONS.has(ext)) return decodeText(buffer);
+  if (ext === "pdf") return extractPdfNaive(buffer) || decodeText(buffer);
+  if (ext === "pptx") {
+    throw new Error(
+      `Unsupported file type ".pptx" for test creation. Please upload a PDF, DOCX, XLSX, text, or image file instead.`
+    );
+  }
+  return decodeText(buffer);
+};
+
+/** Downscale + JPEG-compress an image and return it as a data URL for vision input. */
+const toVisionDataUrl = async (buffer: Buffer): Promise<string> => {
+  try {
+    const out = await sharp(buffer)
+      .rotate()
+      .resize({ width: 1568, height: 1568, fit: "inside", withoutEnlargement: true })
+      .flatten({ background: "#ffffff" })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    return `data:image/jpeg;base64,${out.toString("base64")}`;
+  } catch {
+    // Fall back to the raw bytes if sharp can't process the image.
+    return `data:image/jpeg;base64,${buffer.toString("base64")}`;
+  }
+};
 
 /* ================================================================== */
 /*  Zod schemas                                                        */
@@ -395,33 +513,64 @@ const computeGroupMarks = (g: NormalizedQuestionGroup) => {
 /* ================================================================== */
 
 export const generateSectionsFromPDF = async (
-  buffer: Buffer,
-  filename: string
+  files: Array<{ buffer: Buffer; filename: string }>
 ): Promise<SectionGenerationResult> => {
-  // 1. Check Docling
-  const doclingAvailable = await isDoclingAvailable();
-  if (!doclingAvailable) {
-    throw new Error("Document extraction service is unavailable. Please try again later.");
-  }
+  // 1. Split uploads: documents are extracted to text locally, images are
+  // sent to the AI directly as vision input (no text extraction).
+  const isImageFile = (filename: string) =>
+    IMAGE_EXTENSIONS.has(filename.split(".").pop()?.toLowerCase() ?? "");
+  const docFiles = files.filter((f) => !isImageFile(f.filename));
+  const imgFiles = files.filter((f) => isImageFile(f.filename));
 
-  // 2. Extract text with Docling
-  let extractedText: string;
+  let extractedText = "";
   try {
-    extractedText = await extractTextWithDocling(new Uint8Array(buffer), filename);
+    const extracted = await Promise.all(docFiles.map(async (file) => {
+      const text = await extractLocalText(file.buffer, file.filename);
+      return `--- ${file.filename} ---\n${text}`;
+    }));
+    extractedText = extracted.join("\n\n");
   } catch (err) {
-    console.error("Docling extraction failed:", err);
-    throw new Error("We couldn't extract content from this document. Please try another PDF.");
+    console.error("Local extraction failed:", err);
+    throw new Error("We couldn't extract content from this file. Please try another supported document.");
   }
 
-  if (!extractedText?.trim()) {
+  // 2. Images go straight to the model as vision input.
+  let imageUrls: string[] = [];
+  try {
+    imageUrls = await Promise.all(imgFiles.map((f) => toVisionDataUrl(f.buffer)));
+  } catch (err) {
+    console.error("Image prep failed:", err);
+    throw new Error("We couldn't read the uploaded image. Please try another image file.");
+  }
+
+  if (!extractedText?.trim() && imageUrls.length === 0) {
     throw new Error("No usable content was found in this document.");
   }
 
   // 3. Truncate
   const truncated = extractedText.length > 150_000 ? extractedText.slice(0, 150_000) : extractedText;
 
-  // 4. Stream LLM response and log to terminal
-  const userMessage = `Analyze this document and return the question-paper structure as raw JSON only.\n\nDOCUMENT:\n${truncated}`;
+  // 4. Ask the LLM to reason over the complete, labelled source set. A
+  // syllabus constrains scope; a paper provides its expected structure; and
+  // supporting notes/textbooks provide topic context. Images are attached
+  // as vision parts so the model reads the paper/photo directly.
+  const userText = `Analyze the complete uploaded source set and return one balanced question-paper structure as raw JSON only.
+
+Use every relevant file together:
+- Treat any syllabus/unit-outline as the scope for the paper.
+- Treat an existing question paper (text or attached images) as the preferred format and section pattern.
+- Treat textbooks, notes, and images as supporting context only.
+- Do not invent sections that are unsupported by the supplied material.
+- If sources conflict, prefer the syllabus for scope and the question paper for structure.
+${truncated.trim() ? `\nUPLOADED SOURCE SET:\n${truncated}` : "\nThe question paper is attached as image(s) — read them directly."}`;
+
+  const userContent: ChatContentPart[] = [
+    { type: "text", text: userText },
+    ...imgFiles.map((f, i) => ({
+      type: "image_url" as const,
+      image_url: { url: imageUrls[i], detail: "high" as const },
+    })),
+  ];
 
   console.log("\n" + "=".repeat(80));
   console.log("[SECTION-GEN] Starting LLM streaming...");
@@ -434,7 +583,7 @@ export const generateSectionsFromPDF = async (
   try {
     const stream = streamChatWithAI([
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: userMessage },
+      { role: "user", content: userContent },
     ]);
 
     for await (const chunk of stream) {
@@ -469,6 +618,9 @@ export const generateSectionsFromPDF = async (
 
   } catch (err) {
     console.error("\n[SECTION-GEN] LLM stream failed:", err);
+    if (imageUrls.length > 0 && err instanceof Error && /image|vision|multimodal|content part/i.test(err.message)) {
+      throw new Error("The configured AI model doesn't support image input. Please use a vision-capable model or upload a PDF/DOCX/text file.");
+    }
     throw new Error("We couldn't identify the test structure from this document.");
   }
 

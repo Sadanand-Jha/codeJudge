@@ -82,6 +82,8 @@ export interface RawAIGeneratedQuestion {
   difficulty?: string;
   options?: string[];
   answer?: string;
+  correctAnswer?: string;
+  correctOptionIndex?: number;
   explanation?: string;
   hint?: string;
   tags?: string[];
@@ -133,24 +135,29 @@ export const mapRawQuestionsToPreview = (
       ? (raw.difficulty as AIDifficulty)
       : "medium";
 
+    const declaredAnswer = (raw.correctAnswer ?? raw.answer ?? "").trim();
+    const declaredIndex = Number.isInteger(raw.correctOptionIndex)
+      ? Number(raw.correctOptionIndex)
+      : -1;
+    const answerTextIndex = raw.options?.findIndex(
+      (content) => content.trim().toLocaleLowerCase() === declaredAnswer.toLocaleLowerCase()
+    ) ?? -1;
+    const resolvedCorrectIndex = answerTextIndex >= 0 ? answerTextIndex : declaredIndex;
     const options = raw.options?.length
       ? raw.options.map((content, oi) => ({
           id: String.fromCharCode(65 + oi),
           content,
-          isCorrect: content.trim() === (raw.answer ?? "").trim(),
+          isCorrect: oi === resolvedCorrectIndex,
         }))
       : undefined;
 
-    // Safety net: ensure exactly one option is marked correct. Prefer the model
-    // answer (by exact text, then by letter e.g. "A"); if none resolves, mark
-    // "A" so the review overlay always has a highlighted correct answer.
+    // Backward compatibility for older responses that returned only an option
+    // letter. Never silently mark A when no answer was supplied.
     if (options && options.length > 0 && !options.some((o) => o.isCorrect)) {
-      const answer = typeof raw.answer === "string" ? raw.answer.trim() : "";
-      const byLetter = answer
-        ? options.find((o) => o.id === answer.toUpperCase().replace(/[^A-Z:.]/g, "")[0])
+      const byLetter = declaredAnswer
+        ? options.find((o) => o.id === declaredAnswer.toUpperCase().replace(/[^A-Z:.]/g, "")[0])
         : undefined;
       if (byLetter) byLetter.isCorrect = true;
-      else options[0].isCorrect = true;
     }
 
     return {
@@ -159,7 +166,7 @@ export const mapRawQuestionsToPreview = (
       title: raw.question || `Generated Question ${i + 1}`,
       content: raw.question || "",
       options,
-      correctAnswer: options?.find((o) => o.isCorrect)?.id ?? raw.answer,
+      correctAnswer: options?.find((o) => o.isCorrect)?.id ?? declaredAnswer,
       explanation: raw.explanation,
       hint: raw.hint,
       difficulty,
@@ -225,6 +232,7 @@ export interface GenerateFromBankOptions {
   mediumCount?: number;
   hardCount?: number;
   hardnessHint?: string;
+  syllabus?: string;
 }
 
 export interface GenerateFromBankResponse {
@@ -245,6 +253,7 @@ export const generateFromQuestionBank = async (
       mediumCount: options.mediumCount,
       hardCount: options.hardCount,
       hardnessHint: options.hardnessHint,
+      syllabus: options.syllabus,
     }),
     credentials: "include",
   });

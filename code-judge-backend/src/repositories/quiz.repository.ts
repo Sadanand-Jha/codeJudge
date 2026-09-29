@@ -1660,12 +1660,15 @@ export class QuizRepository {
   }
 
   async getAllSubjects(search?: string): Promise<any[]> {
-    if (search) {
-      const query = `SELECT * FROM subjects WHERE subject_name ILIKE $1`;
-      const result = await pool.query(query, [`%${search}%`]);
-      return result.rows;
-    }
-    const query = `SELECT * FROM subjects ORDER BY subject_name`;
+    // Only Operating System has a curated question bank at present. Do not
+    // expose placeholder subjects until their banks are ready.
+    const query = `
+      SELECT *
+      FROM subjects
+      WHERE subject_name ILIKE '%operating system%'
+      ORDER BY CASE WHEN LOWER(subject_name) = 'operating system' THEN 0 ELSE 1 END, subject_name
+      LIMIT 1
+    `;
     const result = await pool.query(query);
     return result.rows;
   }
@@ -1959,11 +1962,15 @@ export class QuizRepository {
     const quiz = quizResult.rows[0] || null;
     if (!quiz) throw new Error("Quiz not found");
 
+    // Registration is optional for open quizzes. Start with both registered
+    // students and every user who actually has an attempt, otherwise a valid
+    // attempt created after registration was disabled disappears from this
+    // dashboard.
     const studentsQuery = `
       SELECT
-        qr.user_id,
+        COALESCE(qr.user_id, qa.user_id) AS user_id,
         qr.rollno,
-        qr.is_registered,
+        COALESCE(qr.is_registered, false) AS is_registered,
         qr.created_at AS registered_at,
         u.username,
         u.first_name,
@@ -1971,7 +1978,7 @@ export class QuizRepository {
         a.url AS avatar_url,
         qa.id AS attempt_id,
         CASE WHEN qa.id IS NULL THEN NULL ELSE
-          ROW_NUMBER() OVER (PARTITION BY qr.user_id ORDER BY qa.created_at ASC, qa.id ASC)
+          ROW_NUMBER() OVER (PARTITION BY COALESCE(qr.user_id, qa.user_id) ORDER BY qa.created_at ASC, qa.id ASC)
         END AS attempt_number,
         qa.score,
         qa.percentage,
@@ -1985,26 +1992,41 @@ export class QuizRepository {
         qa.wrong_answers,
         qa.skipped_questions
       FROM quiz_registration qr
-      JOIN users u ON u.id = qr.user_id
+      FULL OUTER JOIN quiz_attempt qa
+        ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
+      JOIN users u ON u.id = COALESCE(qr.user_id, qa.user_id)
       LEFT JOIN avatar a ON a.id = u.avatar_id
-      LEFT JOIN quiz_attempt qa ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
-      WHERE qr.quiz_id = $1 AND qr.is_registered = true
+      WHERE COALESCE(qr.quiz_id, qa.quiz_id) = $1
+        AND (qa.id IS NOT NULL OR qr.is_registered = true)
       ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC NULLS LAST, u.first_name ASC
     `;
     const studentsResult = await pool.query(studentsQuery, [quizId]);
     const students = studentsResult.rows;
 
     const counts = await pool.query(
-      `SELECT
+      `WITH response_users AS (
+         SELECT qr.user_id
+         FROM quiz_registration qr
+         WHERE qr.quiz_id = $1 AND qr.is_registered = true
+         UNION
+         SELECT qa.user_id
+         FROM quiz_attempt qa
+         WHERE qa.quiz_id = $1
+       )
+       SELECT
          COUNT(*) AS total,
-         COUNT(qa.id) FILTER (WHERE qa.status = 'completed') AS submitted,
-         COUNT(*) FILTER (WHERE qa.id IS NULL OR qa.status <> 'completed') AS not_submitted,
+         COUNT(DISTINCT qa.id) FILTER (WHERE qa.status = 'completed') AS submitted,
+         COUNT(*) FILTER (WHERE NOT EXISTS (
+           SELECT 1 FROM quiz_attempt completed
+           WHERE completed.quiz_id = $1
+             AND completed.user_id = response_users.user_id
+             AND completed.status = 'completed'
+         )) AS not_submitted,
          AVG(qa.score) AS average_score,
          MAX(qa.score) AS highest_score,
          MIN(qa.score) AS lowest_score
-       FROM quiz_registration qr
-       LEFT JOIN quiz_attempt qa ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
-       WHERE qr.quiz_id = $1 AND qr.is_registered = true`,
+       FROM response_users
+       LEFT JOIN quiz_attempt qa ON qa.quiz_id = $1 AND qa.user_id = response_users.user_id`,
       [quizId]
     );
 

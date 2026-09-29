@@ -4,13 +4,18 @@
  * Everything that touches the actual language model goes through this module:
  *   - `streamChatWithAI` : streaming completion (used by `/ai/chat` and
  *                          `/ai/chat-files`, which forward deltas over SSE).
- *   - `chatWithAI`       : one-shot completion (used by question generation).
+ *   - `chatWithAI`       : one-shot completion (used by question generation
+ *                          and Word-bank problem selection).
  *
  * The client is OpenAI-compatible and points at a local/remote LLM endpoint
- * configured through env vars:
- *   - `LM_STUDIO_URL`   → base URL of the OpenAI-compatible server
- *     (e.g. LM Studio / llama.cpp / DeepSeek-compatible endpoint).
- *   - `LM_STUDIO_MODEL` → the model id to serve completions from.
+ * configured through env vars (first set wins):
+ *   - Base URL: `AI_BASE_URL` → provider `*_BASE_URL` → `LM_STUDIO_URL`
+ *     (e.g. LM Studio / Groq / Together / DeepSeek / OpenRouter / OpenAI).
+ *   - API key: `AI_API_KEY` → `GROQ_API_KEY` / `TOGETHER_API_KEY` /
+ *     `DEEPSEEK_API_KEY` / `OPENROUTER_API_KEY` / `OPENAI_API_KEY`
+ *     (falls back to `"lm-studio"` for local servers that skip auth).
+ *   - Coder model: `AI_MODEL` → `LM_STUDIO_MODEL_CODER` → `LM_STUDIO_MODEL`.
+ *   - Testor model: `AI_TESTOR_MODEL` → `LM_STUDIO_MODEL_TESTOR` → coder model.
  *
  * Token usage is normalized into a provider-agnostic `LiveUsage` shape before
  * it ever crosses the wire, and reasoning (chain-of-thought) text is read from
@@ -18,9 +23,52 @@
  */
 import OpenAI from "openai";
 
+const resolveBaseURL = (): string =>
+  process.env.AI_BASE_URL ||
+  process.env.OPENAI_BASE_URL ||
+  process.env.GROQ_BASE_URL ||
+  process.env.TOGETHER_BASE_URL ||
+  process.env.DEEPSEEK_BASE_URL ||
+  process.env.OPENROUTER_BASE_URL ||
+  process.env.LM_STUDIO_URL ||
+  "http://localhost:1234/v1";
+
+const resolveApiKey = (): string =>
+  process.env.AI_API_KEY ||
+  process.env.OPENAI_API_KEY ||
+  process.env.GROQ_API_KEY ||
+  process.env.TOGETHER_API_KEY ||
+  process.env.DEEPSEEK_API_KEY ||
+  process.env.OPENROUTER_API_KEY ||
+  "lm-studio";
+
+const resolveCoderModel = (): string =>
+  process.env.AI_MODEL ||
+  process.env.LM_STUDIO_MODEL_CODER ||
+  process.env.LM_STUDIO_MODEL ||
+  "";
+
+const resolveTestorModel = (): string =>
+  process.env.AI_TESTOR_MODEL ||
+  process.env.LM_STUDIO_MODEL_TESTOR ||
+  resolveCoderModel();
+
+const baseURL = resolveBaseURL();
+
+// OpenRouter recommends identifying headers; harmless for other providers.
+const defaultHeaders: Record<string, string> =
+  baseURL.includes("openrouter.ai")
+    ? {
+        "HTTP-Referer":
+          process.env.OPENROUTER_SITE_URL || process.env.FRONTEND_URL || "http://localhost:3000",
+        "X-Title": process.env.OPENROUTER_APP_NAME || "CodeJudge",
+      }
+    : {};
+
 const client = new OpenAI({
-  baseURL: process.env.LM_STUDIO_URL,
-  apiKey: "lm-studio",
+  baseURL,
+  apiKey: resolveApiKey(),
+  defaultHeaders,
 });
 
 export interface AIStreamChunk {
@@ -58,9 +106,13 @@ type StreamDelta = OpenAI.ChatCompletionChunk.Choice.Delta & ReasoningDelta;
 type Message = OpenAI.ChatCompletionMessage & ReasoningDelta;
 
 /** A single conversation turn as accepted by `/ai/chat`. */
+export type ChatContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } };
+
 export interface ChatMessageInput {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | ChatContentPart[];
 }
 
 const DEFAULT_SYSTEM_MESSAGE =
@@ -74,15 +126,16 @@ const DEFAULT_SYSTEM_MESSAGE =
  */
 const toModelMessages = (
   input: ChatMessageInput[] | string
-): ChatMessageInput[] => {
-  const messages =
+): OpenAI.ChatCompletionMessageParam[] => {
+  const messages: ChatMessageInput[] =
     typeof input === "string"
       ? [{ role: "user" as const, content: input }]
       : input;
   const hasSystem = messages.some((m) => m.role === "system");
-  return hasSystem
+  const full: ChatMessageInput[] = hasSystem
     ? messages
     : [{ role: "system" as const, content: DEFAULT_SYSTEM_MESSAGE }, ...messages];
+  return full as unknown as OpenAI.ChatCompletionMessageParam[];
 };
 
 /**
@@ -115,9 +168,15 @@ export const streamChatWithAI = async function* (
   messages: ChatMessageInput[] | string,
   signal?: AbortSignal
 ): AsyncGenerator<AIStreamChunk> {
+  const model = resolveCoderModel();
+  if (!model) {
+    throw new Error(
+      "AI model is not configured. Set AI_MODEL (or LM_STUDIO_MODEL_CODER) in the backend .env."
+    );
+  }
   const stream = await client.chat.completions.create(
     {
-      model: process.env.LM_STUDIO_MODEL_CODER!,
+      model,
       messages: toModelMessages(messages),
       temperature: 0.7,
       stream: true,
@@ -154,9 +213,15 @@ export const chatWithAI = async (
   messages: ChatMessageInput[] | string,
   signal?: AbortSignal
 ): Promise<AIResponse> => {
+  const model = resolveCoderModel();
+  if (!model) {
+    throw new Error(
+      "AI model is not configured. Set AI_MODEL (or LM_STUDIO_MODEL_CODER) in the backend .env."
+    );
+  }
   const response = await client.chat.completions.create(
     {
-      model: process.env.LM_STUDIO_MODEL_CODER!,
+      model,
       messages: toModelMessages(messages),
       temperature: 0.7,
     },
@@ -176,9 +241,15 @@ export const chatWithAI_testor = async (
   messages: ChatMessageInput[] | string,
   signal?: AbortSignal
 ): Promise<AIResponse> => {
+  const model = resolveTestorModel();
+  if (!model) {
+    throw new Error(
+      "AI testor model is not configured. Set AI_TESTOR_MODEL (or LM_STUDIO_MODEL_TESTOR) in the backend .env."
+    );
+  }
   const response = await client.chat.completions.create(
     {
-      model: process.env.LM_STUDIO_MODEL_TESTOR!,
+      model,
       messages: toModelMessages(messages),
       temperature: 0.7,
     },

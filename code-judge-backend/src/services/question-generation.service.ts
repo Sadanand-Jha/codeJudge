@@ -36,6 +36,10 @@ export interface GeneratedQuestionPayload {
   question: string;
   options: string[];
   answer: string;
+  /** Canonical answer text returned to clients. Kept alongside `answer` for compatibility. */
+  correctAnswer?: string;
+  /** Zero-based index of the correct option for choice questions. */
+  correctOptionIndex?: number;
   explanation?: string;
   hint?: string;
   type?: string;
@@ -300,7 +304,14 @@ export const parseQuestionsJSON = (
       options: Array.isArray(q.options)
         ? (q.options as unknown[]).map((o) => String(o).trim()).filter(Boolean)
         : [],
-      answer: q.answer != null ? String(q.answer).trim() : "",
+      answer: q.correctAnswer != null
+        ? String(q.correctAnswer).trim()
+        : q.answer != null
+          ? String(q.answer).trim()
+          : "",
+      correctOptionIndex: Number.isInteger(Number(q.correctOptionIndex))
+        ? Number(q.correctOptionIndex)
+        : undefined,
       explanation: typeof q.explanation === "string" ? q.explanation : undefined,
       hint: typeof q.hint === "string" ? q.hint : undefined,
       type: typeof q.type === "string" ? q.type : undefined,
@@ -309,7 +320,35 @@ export const parseQuestionsJSON = (
         ? (q.tags as unknown[]).map((t) => String(t)).filter(Boolean)
         : undefined,
     }))
-    .filter((q) => q.question.length > 0);
+    .filter((q) => q.question.length > 0)
+    .map((q) => {
+      if (q.options.length === 0) {
+        return { ...q, correctAnswer: q.answer };
+      }
+
+      const normalizedAnswer = q.answer.toLocaleLowerCase().trim();
+      const textMatch = q.options.find(
+        (option) => option.toLocaleLowerCase().trim() === normalizedAnswer
+      );
+      const letterIndex = /^[A-Z]$/i.test(q.answer)
+        ? q.answer.toUpperCase().charCodeAt(0) - 65
+        : -1;
+      const index = q.correctOptionIndex;
+      const canonicalAnswer = textMatch
+        ?? (index != null && index >= 0 && index < q.options.length ? q.options[index] : undefined)
+        ?? (letterIndex >= 0 && letterIndex < q.options.length ? q.options[letterIndex] : undefined)
+        ?? q.answer;
+      const canonicalIndex = q.options.findIndex(
+        (option) => option.toLocaleLowerCase().trim() === canonicalAnswer.toLocaleLowerCase().trim()
+      );
+
+      return {
+        ...q,
+        answer: canonicalAnswer,
+        correctAnswer: canonicalAnswer,
+        correctOptionIndex: canonicalIndex >= 0 ? canonicalIndex : q.correctOptionIndex,
+      };
+    });
 
   if (questions.length === 0) {
     throw new Error("AI response did not contain any questions");
@@ -395,7 +434,8 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this
       "type": "mcq" | "true_false" | "short",
       "difficulty": "easy" | "medium" | "hard" | "expert",
       "options": ["option 1", "option 2", "option 3", "option 4"],
-      "answer": "the correct option text (or the exact expected answer for non-choice types)",
+      "correctAnswer": "the exact correct option text (or the exact expected answer for non-choice types)",
+      "correctOptionIndex": 0,
       "explanation": "why this is correct",
       "hint": "a small hint",
       "tags": ["tag1", "tag2"]
@@ -404,7 +444,8 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this
 }
 
 Rules:
-- For multiple-choice questions always provide 4 options and ensure "answer" exactly matches one of them.
+- Every question MUST include "correctAnswer". Never omit it and never return an empty value.
+- For multiple-choice questions always provide 4 options, make "correctAnswer" exactly match one option, and provide its zero-based "correctOptionIndex" (0=A, 1=B, 2=C, 3=D).
 - For true/false use options ["True", "False"].
 - Do not invent facts not present in the material.
 

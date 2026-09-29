@@ -139,11 +139,8 @@ export default function JoinQuizPage() {
     if (!quiz || joining) return;
     setJoining(true);
     playQuizSound("submit");
-    // REGISTRATION STEP COMMENTED OUT — students go straight to the waiting room.
-    // Registration is intentionally deferred until the student explicitly
-    // presses Join Quiz. The registration page performs the authoritative
-    // audience check and collects creator-configured fields.
-    // setLaunchDestination(`/quiz/${code}/register`);
+    // Registration is disabled for students. Joining goes straight to the
+    // waiting room; the server still enforces quiz availability and audience.
     setLaunchDestination(`/quiz/${code}/waiting`);
   };
 

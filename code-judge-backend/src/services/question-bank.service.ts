@@ -21,6 +21,8 @@ export interface QuestionBankSelectionRequest {
   hardCount?: number;
   /** Optional free-form hardness hint like "Hard paper" */
   hardnessHint?: string;
+  /** Creator-provided syllabus/topics used to constrain and balance selection. */
+  syllabus?: string;
 }
 
 export interface QuestionBankSelectionResult {
@@ -146,6 +148,71 @@ function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n));
 }
 
+type ParsedBankQuestion = {
+  num: number;
+  difficulty: string;
+  question: string;
+  options: string[];
+  answer: string;
+  raw: string;
+  chapter: string;
+};
+
+const normalizeQuestionText = (value: string) =>
+  value.replace(/^Q\d+\.\s*/i, "").replace(/\s+/g, " ").trim().toLocaleLowerCase();
+
+/**
+ * Parse the answer-marked MCQs directly from the Word document. The model is
+ * allowed to choose questions, but it is never trusted as the answer key.
+ */
+function parseMarkedBankQuestions(bankText: string): ParsedBankQuestion[] {
+  const lines = bankText.split("\n").map((line) => line.trim()).filter(Boolean);
+  const parsed: ParsedBankQuestion[] = [];
+  let currentChapter = "Operating Systems";
+
+  for (let i = 0; i < lines.length; i++) {
+    const chapterMatch = lines[i].match(/^Chapter\s+\d+:\s*(.+)$/i);
+    if (chapterMatch) {
+      currentChapter = chapterMatch[1].trim();
+      continue;
+    }
+    const questionMatch = lines[i].match(/^Q(\d+)\.\s*(.+)/i);
+    if (!questionMatch) continue;
+
+    const num = Number(questionMatch[1]);
+    const question = questionMatch[2].trim();
+    let difficulty = "medium";
+    const options: string[] = [];
+    let answer = "";
+
+    for (let j = i + 1; j < Math.min(i + 12, lines.length); j++) {
+      const line = lines[j];
+      if (/^Q\d+\./i.test(line) || /^Chapter\s+\d+:/i.test(line)) break;
+
+      const difficultyMatch = line.match(/^Difficulty:\s*(Easy|Medium|Hard)/i);
+      if (difficultyMatch) difficulty = difficultyMatch[1].toLocaleLowerCase();
+
+      const optionMatch = line.match(/^([A-D])\.\s*(.+)/);
+      if (optionMatch && options.length < 4) options.push(optionMatch[2].trim());
+
+      const markedAnswer = line.match(/^Correct Answer:\s*([A-D])\.?(?:\s+(.+))?$/i);
+      if (markedAnswer) {
+        const markedIndex = markedAnswer[1].toUpperCase().charCodeAt(0) - 65;
+        const markedText = markedAnswer[2]?.trim();
+        answer = options[markedIndex] ?? markedText ?? "";
+        i = j;
+        break;
+      }
+    }
+
+    if (options.length === 4 && answer && options.includes(answer)) {
+      parsed.push({ num, difficulty, question, options, answer, raw: question, chapter: currentChapter });
+    }
+  }
+
+  return parsed;
+}
+
 export const generateFromQuestionBank = async (
   request: QuestionBankSelectionRequest
 ): Promise<QuestionBankSelectionResult> => {
@@ -197,14 +264,52 @@ export const generateFromQuestionBank = async (
   }
   // truncate to keep prompt small but keep all 100 Qs (approx 30k chars)
   const truncated = bankText.length > 180_000 ? bankText.slice(0, 180_000) : bankText;
+  const parsedBank = parseMarkedBankQuestions(truncated);
+  if (parsedBank.length === 0) {
+    throw new Error("The question bank does not contain a readable marked answer key.");
+  }
+  const syllabus = request.syllabus?.trim() ?? "";
+  const ignoredSyllabusWords = new Set([
+    "and", "the", "with", "from", "into", "unit", "chapter", "topic", "topics",
+    "module", "modules", "include", "including", "about", "basics", "introduction",
+  ]);
+  const syllabusTerms = syllabus
+    .toLocaleLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((term) => term.length >= 3 && !ignoredSyllabusWords.has(term));
+  const eligibleBank = syllabusTerms.length === 0
+    ? parsedBank
+    : parsedBank.filter((question) => {
+        const searchable = `${question.chapter} ${question.question}`.toLocaleLowerCase();
+        return syllabusTerms.some((term) => searchable.includes(term));
+      });
+  if (eligibleBank.length < numberOfQuestions) {
+    throw new Error(
+      `Only ${eligibleBank.length} marked questions matched this syllabus. Add broader syllabus topics or request fewer questions.`
+    );
+  }
+  const bankByQuestion = new Map(
+    eligibleBank.map((question) => [normalizeQuestionText(question.question), question])
+  );
+  const bankForPrompt = eligibleBank.map((question) => {
+    const optionLines = question.options
+      .map((option, index) => `${String.fromCharCode(65 + index)}. ${option}`)
+      .join("\n");
+    const answerIndex = question.options.indexOf(question.answer);
+    return `Chapter: ${question.chapter}\nQ${question.num}. ${question.question}\nDifficulty: ${question.difficulty}\n${optionLines}\nCorrect Answer: ${String.fromCharCode(65 + answerIndex)}. ${question.answer}`;
+  }).join("\n\n");
 
   const distributionLine = `Requested: exactly ${numberOfQuestions} questions — Easy=${easy}, Medium=${medium}, Hard=${hard}.`;
   const hardnessHintLine = request.hardnessHint ? `Overall hardness hint: ${request.hardnessHint}.` : "";
+  const syllabusLine = syllabus
+    ? `CREATOR SYLLABUS (strict scope):\n${syllabus}\nSelect questions ONLY from these syllabus topics. Balance the paper across the distinct syllabus topics instead of overusing one topic.`
+    : "No syllabus was supplied; balance coverage across the full question bank.";
 
   const prompt = `${SYSTEM_PROMPT}
 
 ${distributionLine}
 ${hardnessHintLine}
+${syllabusLine}
 You must select exactly ${numberOfQuestions} questions from the bank below with the difficulty counts Easy=${easy}, Medium=${medium}, Hard=${hard}.
 
 Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this shape:
@@ -215,7 +320,8 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this
       "type": "mcq",
       "difficulty": "easy" | "medium" | "hard",
       "options": ["option A text (without leading A. label)", "option B text", "option C text", "option D text"],
-      "answer": "exact correct option text (must exactly match one of the 4 options, without leading label)",
+      "correctAnswer": "exact correct option text (must exactly match one of the 4 options, without leading label)",
+      "correctOptionIndex": 0,
       "explanation": "brief note why selected (optional)",
       "hint": "small hint (optional)",
       "tags": ["OS", "chapter-topic"]
@@ -224,28 +330,53 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this
 }
 Rules:
 - Each selected question is a single-correct MCQ: always provide exactly 4 options (strip leading labels like "A. ", "B. ").
-- "answer" must be the exact text of the correct option and must match one of the provided options. The bank shows the correct answer on the line "Correct Answer: X. <text>" — resolve that to the actual option text.
+- "correctAnswer" is REQUIRED for every question. It must be the exact text of the correct option and must match one of the provided options.
+- "correctOptionIndex" is REQUIRED and zero-based: 0=A, 1=B, 2=C, 3=D. It must identify the same option as "correctAnswer".
+- The bank shows the answer on the line "Correct Answer: X. <text>". Copy that answer faithfully; do not guess, infer, or substitute a different option.
 - Preserve the question wording exactly; do not rephrase or add facts not in the bank.
 - Ensure difficulty field matches the bank label for that question.
 - Do NOT invent questions not in the bank.
+- Do NOT select a question outside the creator syllabus when a syllabus is provided.
+- Cover the supplied syllabus topics as evenly as the available bank and requested difficulty counts allow.
 - No subjective handling — all are MCQs.
 
 QUESTION BANK:
-${truncated}`;
+${bankForPrompt}`;
 
   // Try LLM selection; fallback to deterministic local selection if LLM unavailable/fails
   try {
     const { content, usage } = await chatWithAI(prompt);
     const questions = parseQuestionsJSON(content);
 
-    if (questions.length !== numberOfQuestions) {
-      console.warn(`[question-bank] model returned ${questions.length} vs requested ${numberOfQuestions}, slicing`);
-      if (questions.length > numberOfQuestions) {
-        questions.length = numberOfQuestions;
+    // Rehydrate every selected question from the parsed Word document. This
+    // guarantees that options and answers come from the marked source even if
+    // the model omits, changes, or hallucinates an answer field.
+    const canonicalQuestions = questions.map((question) => {
+      const source = bankByQuestion.get(normalizeQuestionText(question.question));
+      if (!source) {
+        throw new Error(`AI selected a question that is not in the Word question bank: ${question.question}`);
+      }
+      const correctOptionIndex = source.options.indexOf(source.answer);
+      return {
+        ...question,
+        question: source.question,
+        type: "mcq",
+        difficulty: source.difficulty,
+        options: source.options,
+        answer: source.answer,
+        correctAnswer: source.answer,
+        correctOptionIndex,
+      } satisfies GeneratedQuestionPayload;
+    });
+
+    if (canonicalQuestions.length !== numberOfQuestions) {
+      console.warn(`[question-bank] model returned ${canonicalQuestions.length} vs requested ${numberOfQuestions}, slicing`);
+      if (canonicalQuestions.length > numberOfQuestions) {
+        canonicalQuestions.length = numberOfQuestions;
       }
     }
 
-    if (questions.length > 0) return { questions, extractedText: truncated, usage };
+    if (canonicalQuestions.length > 0) return { questions: canonicalQuestions, extractedText: truncated, usage };
     throw new Error("AI returned zero questions");
   } catch (aiError) {
     console.warn("[question-bank] AI selection failed, using deterministic fallback:", aiError);
@@ -258,77 +389,11 @@ ${truncated}`;
     //   C. ...
     //   D. ...
     //   Correct Answer: X. <text>
-    const lines = truncated.split("\n").map((l) => l.trim()).filter(Boolean);
-    type Parsed = { num: number; difficulty: string; question: string; options: string[]; answer: string; raw: string };
-    const parsed: Parsed[] = [];
-    for (let i = 0; i < lines.length; i++) {
-      const qMatch = lines[i].match(/^Q(\d+)\.\s*(.+)/i);
-      if (!qMatch) continue;
-      const num = parseInt(qMatch[1], 10);
-      const question = qMatch[2].trim();
-      let difficulty = "medium";
-      let options: string[] = [];
-      let answer = "";
-      // Look ahead up to ~8 lines for Difficulty, options, Correct Answer
-      for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
-        const line = lines[j];
-        const diffMatch = line.match(/^Difficulty:\s*(Easy|Medium|Hard)/i);
-        if (diffMatch) difficulty = diffMatch[1].toLowerCase();
-        const optMatch = line.match(/^[A-D]\.\s*(.+)/);
-        if (optMatch && options.length < 4) options.push(optMatch[1].trim());
-        const ansMatch = line.match(/^Correct Answer:\s*[A-D]\.\s*(.+)/i);
-        if (ansMatch) {
-          answer = ansMatch[1].trim();
-          // also advance i to avoid re-parsing
-          i = j;
-          break;
-        }
-        // Handle "Correct Answer: B." without dot text fallback -> use options letter
-        const ansLetterOnly = line.match(/^Correct Answer:\s*([A-D])\.?\s*$/i);
-        if (ansLetterOnly && options.length === 4) {
-          const idx = ansLetterOnly[1].toUpperCase().charCodeAt(0) - 65;
-          answer = options[idx] ?? "";
-          i = j;
-          break;
-        }
-        if (/^Q\d+\./.test(line)) break;
-        if (/^Chapter \d+:/.test(line)) break;
-      }
-      if (options.length === 4 && answer) {
-        parsed.push({ num, difficulty, question, options, answer, raw: question });
-      } else if (options.length === 4) {
-        // if answer not found but options present, use first option as fallback
-        parsed.push({ num, difficulty, question, options, answer: options[0], raw: question });
-      }
-    }
-    // Legacy fallback for subjective format if MCQ parse found nothing
+    const parsed = eligibleBank;
+    // Never manufacture a correct answer. If the bank could not be parsed with
+    // its answer key intact, fail instead of silently marking option A.
     if (parsed.length === 0) {
-      const qPattern = /^(\d+)\.\s*\[(Easy|Medium|Hard)\s*\|\s*([^\]]+)\]\s*(.+)/i;
-      type LegacyParsed = { num: number; difficulty: string; raw: string; question: string; options: string[]; answer: string };
-      const legacy: LegacyParsed[] = [];
-      for (const line of lines) {
-        const m = line.match(qPattern);
-        if (m) legacy.push({ num: parseInt(m[1], 10), difficulty: m[2].toLowerCase(), raw: m[4].trim(), question: m[4].trim(), options: [], answer: "" });
-      }
-      if (legacy.length === 0) throw aiError;
-      const bucket = (diff: string) => legacy.filter((p) => p.difficulty === diff);
-      const pickLegacy = (pool: LegacyParsed[], count: number) => {
-        if (count <= 0) return [];
-        const shuffled = [...pool].sort((a, b) => ((a.num * 7) % 97) - ((b.num * 7) % 97));
-        const step = Math.max(1, Math.floor(shuffled.length / Math.max(count, 1)));
-        const out: LegacyParsed[] = [];
-        for (let k = 0; k < count && k * step < shuffled.length; k++) out.push(shuffled[(k * step) % shuffled.length]);
-        let idx = 0;
-        while (out.length < count && idx < shuffled.length) { if (!out.includes(shuffled[idx])) out.push(shuffled[idx]); idx++; }
-        return out.slice(0, count);
-      };
-      const sel = [...pickLegacy(bucket("easy"), easy!), ...pickLegacy(bucket("medium"), medium!), ...pickLegacy(bucket("hard"), hard!)];
-      if (sel.length < numberOfQuestions) {
-        const remaining = legacy.filter((p) => !sel.includes(p));
-        sel.push(...remaining.slice(0, numberOfQuestions - sel.length));
-      }
-      const questions: GeneratedQuestionPayload[] = sel.slice(0, numberOfQuestions).map((p) => ({ question: p.raw, type: "short", difficulty: p.difficulty, options: [], answer: "", explanation: `Selected for balanced coverage`, hint: "", tags: [p.difficulty] }));
-      return { questions, extractedText: truncated, usage: undefined };
+      throw new Error("Question bank answer key could not be parsed safely", { cause: aiError });
     }
 
     const bucket = (diff: string) => parsed.filter((p) => p.difficulty === diff);
@@ -336,23 +401,36 @@ ${truncated}`;
     const medPool = bucket("medium");
     const hardPool = bucket("hard");
 
-    const pick = (pool: Parsed[], count: number): Parsed[] => {
+    const pick = (pool: ParsedBankQuestion[], count: number): ParsedBankQuestion[] => {
       if (count <= 0) return [];
-      const shuffled = [...pool].sort((a, b) => ((a.num * 7) % 97) - ((b.num * 7) % 97));
-      const step = Math.max(1, Math.floor(shuffled.length / Math.max(count, 1)));
-      const out: Parsed[] = [];
-      for (let k = 0; k < count && k * step < shuffled.length; k++) {
-        out.push(shuffled[(k * step) % shuffled.length]);
+      const byChapter = new Map<string, ParsedBankQuestion[]>();
+      for (const question of pool) {
+        const chapterQuestions = byChapter.get(question.chapter) ?? [];
+        chapterQuestions.push(question);
+        byChapter.set(question.chapter, chapterQuestions);
       }
-      let idx = 0;
-      while (out.length < count && idx < shuffled.length) {
-        if (!out.includes(shuffled[idx])) out.push(shuffled[idx]);
-        idx++;
+      const chapterPools = [...byChapter.values()].map((questions) =>
+        questions.sort((a, b) => ((a.num * 7) % 97) - ((b.num * 7) % 97))
+      );
+      const out: ParsedBankQuestion[] = [];
+      let round = 0;
+      while (out.length < count) {
+        let addedThisRound = false;
+        for (const chapterPool of chapterPools) {
+          const candidate = chapterPool[round];
+          if (candidate) {
+            out.push(candidate);
+            addedThisRound = true;
+            if (out.length === count) break;
+          }
+        }
+        if (!addedThisRound) break;
+        round++;
       }
       return out.slice(0, count);
     };
 
-    const selected: Parsed[] = [...pick(easyPool, easy!), ...pick(medPool, medium!), ...pick(hardPool, hard!)];
+    const selected: ParsedBankQuestion[] = [...pick(easyPool, easy!), ...pick(medPool, medium!), ...pick(hardPool, hard!)];
     if (selected.length < numberOfQuestions) {
       const remaining = parsed.filter((p) => !selected.includes(p));
       selected.push(...remaining.slice(0, numberOfQuestions - selected.length));
@@ -364,6 +442,8 @@ ${truncated}`;
       difficulty: p.difficulty,
       options: p.options,
       answer: p.answer,
+      correctAnswer: p.answer,
+      correctOptionIndex: p.options.findIndex((option) => option === p.answer),
       explanation: `Selected for balanced coverage`,
       hint: "",
       tags: [p.difficulty],

@@ -1,4 +1,11 @@
 import type { AIGenerateResponse } from "@/components/creator/tests/sections/aiTypes";
+import type {
+  GeneratePaperPayload,
+  GeneratePaperResponse,
+  GenerateQuestionsPayload,
+  GenerateQuestionsResponse,
+  QuestionPaper,
+} from "@/components/creator/tests/sections/paperTypes";
 
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -7,7 +14,7 @@ const rawBase =
 const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
 
 /**
- * Upload a PDF and generate a test structure using AI.
+ * Upload one or more verified study files and generate a test structure using AI.
  *
  * Uses native fetch instead of the shared axios client to ensure
  * multipart/form-data boundary is set correctly by the browser.
@@ -15,15 +22,109 @@ const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
  * POST /api/v1/admin/tests/generate-sections
  */
 export async function generateTestSectionsFromPDF(
-  file: File,
+  files: File[],
   signal?: AbortSignal
 ): Promise<AIGenerateResponse> {
   const formData = new FormData();
-  formData.append("file", file);
+  for (const file of files) formData.append("files", file);
 
   const response = await fetch(`${API_BASE}/v1/admin/tests/generate-sections`, {
     method: "POST",
     body: formData,
+    credentials: "include",
+    signal,
+  });
+
+  const json = await response.json();
+
+  if (!response.ok || json.success === false) {
+    throw new Error(json.message || `Request failed with status ${response.status}`);
+  }
+
+  return json.data;
+}
+
+/**
+ * Generate a full question paper from created sections + syllabus.
+ * The backend pairs the sections with the curated subjective bank and
+ * asks the AI to select questions per section/group.
+ *
+ * POST /api/v1/admin/tests/generate-paper
+ */
+export async function generateQuestionPaper(
+  payload: GeneratePaperPayload,
+  signal?: AbortSignal
+): Promise<GeneratePaperResponse> {
+  const response = await fetch(`${API_BASE}/v1/admin/tests/generate-paper`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    credentials: "include",
+    signal,
+  });
+
+  const json = await response.json();
+
+  if (!response.ok || json.success === false) {
+    throw new Error(json.message || `Request failed with status ${response.status}`);
+  }
+
+  return json.data;
+}
+
+/**
+ * Download a generated paper as a printable HTML file.
+ *
+ * POST /api/v1/admin/tests/paper-download
+ */
+export async function downloadQuestionPaper(
+  paper: QuestionPaper,
+  signal?: AbortSignal
+): Promise<void> {
+  const response = await fetch(`${API_BASE}/v1/admin/tests/paper-download`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paper }),
+    credentials: "include",
+    signal,
+  });
+
+  if (!response.ok) {
+    let message = `Request failed with status ${response.status}`;
+    try {
+      const json = await response.json();
+      message = json.message || message;
+    } catch {
+      // keep default message
+    }
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "question-paper.html";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/**
+ * Pick N subjective questions with a hardness split + topic.
+ * The backend asks the AI to select the perfect questions from the bank.
+ *
+ * POST /api/v1/admin/tests/generate-questions
+ */
+export async function generateSubjectiveQuestions(
+  payload: GenerateQuestionsPayload,
+  signal?: AbortSignal
+): Promise<GenerateQuestionsResponse> {
+  const response = await fetch(`${API_BASE}/v1/admin/tests/generate-questions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
     credentials: "include",
     signal,
   });

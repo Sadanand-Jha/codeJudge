@@ -950,7 +950,7 @@ export async function getPreviousQuizzes(params: {
 
 export interface JoinQuizResponse {
   quiz: Quiz;
-  registration: QuizRegistration;
+  registration: QuizRegistration | null;
 }
 
 /**

@@ -72,26 +72,34 @@ function mapToCreatorQuestion(
   const isMcq =
     raw.options && raw.options.length > 0 && raw.type !== "true_false";
   const isTrueFalse = raw.type === "true_false";
+  const declaredAnswer = (raw.correctAnswer ?? raw.answer ?? "").trim();
+  const declaredIndex = Number.isInteger(raw.correctOptionIndex)
+    ? Number(raw.correctOptionIndex)
+    : -1;
+  const answerTextIndex = raw.options?.findIndex(
+    (content) => content.trim().toLowerCase() === declaredAnswer.toLowerCase()
+  ) ?? -1;
+  const resolvedCorrectIndex = answerTextIndex >= 0 ? answerTextIndex : declaredIndex;
 
   let options: CreatorQuestion["options"];
   let correctAnswer: number;
 
   if (isTrueFalse) {
     options = [
-      { id: `${id}_a`, label: "A", content: "True", isCorrect: raw.answer?.toLowerCase() === "true" },
-      { id: `${id}_b`, label: "B", content: "False", isCorrect: raw.answer?.toLowerCase() === "false" },
+      { id: `${id}_a`, label: "A", content: "True", isCorrect: resolvedCorrectIndex === 0 },
+      { id: `${id}_b`, label: "B", content: "False", isCorrect: resolvedCorrectIndex === 1 },
     ];
-    correctAnswer = raw.answer?.toLowerCase() === "true" ? 0 : 1;
+    correctAnswer = options.findIndex((option) => option.isCorrect);
   } else if (isMcq) {
     options = raw.options!.map((content, oi) => {
       const label = String.fromCharCode(65 + oi);
       const isCorrect =
-        content.trim().toLowerCase() === (raw.answer ?? "").trim().toLowerCase() ||
-        label === (raw.answer ?? "").trim().toUpperCase().replace(/[^A-Z]/g, "");
+        oi === resolvedCorrectIndex ||
+        (resolvedCorrectIndex < 0 && label === declaredAnswer.toUpperCase().replace(/[^A-Z]/g, ""));
       return { id: `${id}_${label.toLowerCase()}`, label, content, isCorrect };
     });
     const correctIdx = options.findIndex((o) => o.isCorrect);
-    correctAnswer = correctIdx >= 0 ? correctIdx : 0;
+    correctAnswer = correctIdx;
   } else {
     // Subjective / short — no choices; keep placeholder options hidden in editor
     options = [
@@ -158,6 +166,7 @@ export function AiGenerateModal({
   const [bankEasy, setBankEasy] = useState(4);
   const [bankMedium, setBankMedium] = useState(3);
   const [bankHard, setBankHard] = useState(3);
+  const [bankSyllabus, setBankSyllabus] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const syncBankDistribution = (total: number) => {
@@ -176,6 +185,7 @@ export function AiGenerateModal({
     setProgress(0);
     setDone(false);
     setAddedCount(0);
+    setBankSyllabus("");
   };
 
   const handleClose = () => {
@@ -266,6 +276,7 @@ export function AiGenerateModal({
         easyCount: bankEasy,
         mediumCount: bankMedium,
         hardCount: bankHard,
+        syllabus: bankSyllabus.trim() || undefined,
       });
       setProgress(70);
       const questions = rawQuestions.map((q, i) => mapToCreatorQuestion(q, i));
@@ -388,6 +399,26 @@ export function AiGenerateModal({
                 </div>
               ) : mode === "bank" ? (
                 <div className="space-y-3">
+                  {/* Syllabus scope */}
+                  <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+                    <label htmlFor="ai-bank-syllabus" className="flex items-center gap-1.5 text-xs font-bold text-text-primary">
+                      <BookOpen className="h-3.5 w-3.5 text-pink-500" /> Syllabus / topics
+                    </label>
+                    <textarea
+                      id="ai-bank-syllabus"
+                      value={bankSyllabus}
+                      onChange={(event) => setBankSyllabus(event.target.value)}
+                      maxLength={4000}
+                      rows={4}
+                      placeholder={"Example:\nProcesses and threads\nCPU scheduling\nDeadlocks\nMemory management"}
+                      className="w-full resize-y rounded-lg border border-border bg-card-hover px-3 py-2 text-xs leading-5 text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-pink-500 focus:ring-2 focus:ring-pink-500/10"
+                    />
+                    <div className="flex items-center justify-between gap-3 text-[10px] text-text-muted">
+                      <span>AI will balance questions across the topics you provide.</span>
+                      <span className="shrink-0 tabular-nums">{bankSyllabus.length}/4000</span>
+                    </div>
+                  </div>
+
                   {/* Assessment size */}
                   <div className="space-y-2 rounded-xl border border-border bg-card p-3">
                     <label className="text-xs font-bold text-text-primary flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-pink-500" /> Assessment size</label>

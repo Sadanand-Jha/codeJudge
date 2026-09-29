@@ -34,9 +34,8 @@ import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useToast } from "@/hooks/useToast";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
-import { getMyQuizzes, getQuizByCode, getQuizCode, quizCodePath, type Quiz } from "@/services/quiz";
+import { getQuizByCode, getQuizCode, quizCodePath, type Quiz } from "@/services/quiz";
 import { isValidQuizCode } from "@/utils/quizCode";
-import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 import dynamic from "next/dynamic";
 import { Sun, Moon, Globe } from "lucide-react";
 const LiveCampus = dynamic(() => import("@/components/quiz/live/live-campus/LiveCampus"), { ssr: false });
@@ -49,14 +48,8 @@ export default function WaitingRoomPage() {
   const toast = useToast();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  // REGISTRATION STEP COMMENTED OUT — `isRegistered` no longer gates entry.
-  // const { isRegistered, getRegistration } = useQuizRegistrationStore();
-  const { getRegistration } = useQuizRegistrationStore();
-
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
-  const [serverRegistered, setServerRegistered] = useState(false);
-  const [serverRollNo, setServerRollNo] = useState<string | undefined>();
 
   useEffect(() => {
     let cancelled = false;
@@ -80,26 +73,15 @@ export default function WaitingRoomPage() {
     return () => { cancelled = true; };
   }, [quizCode]);
 
-  const registration = getRegistration(quizCode);
-  // REGISTRATION STEP COMMENTED OUT — treat every student as registered
-  // so the waiting room flows straight to the attempt without check-in.
-  // const registered = isRegistered(quizCode) || serverRegistered;
-  const registered = true;
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
       try {
-        const [latestQuiz, registrations] = await Promise.all([
-          getQuizByCode(quizCode),
-          getMyQuizzes(),
-        ]);
+        const latestQuiz = await getQuizByCode(quizCode);
         if (cancelled) return;
         setQuiz(latestQuiz as unknown as Quiz);
-        const own = registrations.find((item) => item.code === quizCode);
-        setServerRegistered(own?.is_registered === true);
-        setServerRollNo(own?.rollno ?? undefined);
         if (String(latestQuiz.status).toLowerCase() === "live") setStarted(true);
       } catch {
         // Keep the last verified state during transient network failures.
@@ -149,8 +131,6 @@ export default function WaitingRoomPage() {
         router={router}
         toast={toast}
         isDark={isDark}
-        registered={registered}
-        registration={registration ?? (serverRegistered ? { studentName: "Student", rollNumber: serverRollNo } : null)}
       />
     </WaitingRoomThemeProvider>
   );
@@ -173,8 +153,6 @@ function WaitingRoomPageInner({
   router,
   toast,
   isDark,
-  registered,
-  registration,
 }: {
   quizCode: string;
   quiz: Quiz;
@@ -192,8 +170,6 @@ function WaitingRoomPageInner({
   router: ReturnType<typeof useRouter>;
   toast: ReturnType<typeof useToast>;
   isDark: boolean;
-  registered: boolean;
-  registration: { studentName?: string; rollNumber?: string } | null;
 }) {
   const { activeConfig, setTheme: setWaitingTheme, setStudentOverride } = useWaitingRoomTheme();
   const { playQuizSound } = useQuizSounds();
@@ -207,12 +183,11 @@ function WaitingRoomPageInner({
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    // REGISTRATION STEP COMMENTED OUT — was `if (started && registered)`.
     if (started) {
       playQuizSound("success");
       router.replace(`/quiz/${quizCode}/attempt`);
     }
-  }, [quizCode, playQuizSound, registered, router, started]);
+  }, [quizCode, playQuizSound, router, started]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClockMs(Date.now()), 1000);
@@ -239,7 +214,6 @@ function WaitingRoomPageInner({
   }, [clockMs, quiz.starttime]);
 
   const handleStarted = () => {
-    // REGISTRATION STEP COMMENTED OUT — was `... && registered`.
     if (String(quiz.status).toLowerCase() === "live") {
       router.replace(`/quiz/${quizCode}/attempt`);
     }
@@ -575,7 +549,7 @@ function WaitingRoomPageInner({
         </motion.div>
       </div>
 
-      {/* Bottom Center: Announcement + Register/Registered + Countdown */}
+      {/* Bottom Center: announcement and countdown */}
       <div className="relative z-[200] flex flex-col items-center gap-3 px-4 pb-4">
         {/* Announcement Card */}
         <motion.div
@@ -595,26 +569,6 @@ function WaitingRoomPageInner({
             <p className="waiting-announcement-sub text-[10px] text-muted-foreground">Get ready and stay here! 🚀</p>
           </div>
         </motion.div>
-
-        {/* REGISTRATION STEP COMMENTED OUT — waiting room no longer asks students to register.
-        {registered ? (
-          <button
-            className="inline-flex items-center gap-2 px-6 h-10 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/30 text-sm font-bold text-[#22C55E] hover:bg-[#22C55E]/20 transition-all"
-            disabled
-          >
-            <Check className="w-4 h-4" />
-            Registered
-          </button>
-        ) : (
-          <Link
-            href={quizCodePath(quizCode, "register")}
-            className="inline-flex items-center gap-2 px-6 h-10 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#BE185D] text-sm font-bold text-white hover:shadow-[0_0_24px_rgba(236,72,153,0.3)] transition-all"
-          >
-            <UserPlus className="w-4 h-4" />
-            Register for Quiz
-          </Link>
-        )}
-        */}
 
         {/* Countdown */}
         <CountdownCard targetAt={quiz.starttime ?? undefined} onStarted={handleStarted} />
@@ -649,7 +603,7 @@ function WaitingRoomPageInner({
                 </div>
                 <div>
                   <h3 className={`waiting-exit-modal-title text-lg font-semibold transition-colors duration-350 ${isDark ? 'text-white' : 'text-[#1a1a2e]'}`}>Leave Waiting Room?</h3>
-                  <p className="waiting-exit-modal-sub text-xs text-muted-foreground">You won&apos;t be unregistered from the quiz</p>
+                  <p className="waiting-exit-modal-sub text-xs text-muted-foreground">Leaving will not affect your quiz access</p>
                 </div>
               </div>
 
@@ -663,8 +617,8 @@ function WaitingRoomPageInner({
                   <span className="waiting-exit-value text-sm font-bold text-[#F59E0B]">{remainingTime}</span>
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="waiting-exit-modal-label text-sm text-muted-foreground">Your registration:</span>
-                  <span className="waiting-exit-value text-sm font-bold text-[#22C55E]">Will be saved</span>
+                  <span className="waiting-exit-modal-label text-sm text-muted-foreground">Quiz access:</span>
+                  <span className="waiting-exit-value text-sm font-bold text-[#22C55E]">Ready when it starts</span>
                 </div>
               </div>
 

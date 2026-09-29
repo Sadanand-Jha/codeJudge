@@ -190,7 +190,7 @@ export default function StudentQuizShell({
     <div className={cn(
       "relative bg-[#FFF9F1] px-4 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6",
       fitViewport
-        ? "min-h-[calc(100dvh-3.5rem)] overflow-x-hidden overflow-y-visible py-3 sm:h-[calc(100dvh-3.5rem)] sm:min-h-0 sm:overflow-hidden sm:py-4"
+        ? "min-h-[calc(100dvh-3.5rem)] overflow-x-hidden overflow-y-auto py-3 lg:h-[calc(100dvh-3.5rem)] lg:min-h-0 lg:overflow-hidden lg:py-4"
         : "min-h-[calc(100dvh-3.5rem)] overflow-hidden py-6 sm:py-8"
     )}>
       {background === "sky" ? (
@@ -198,7 +198,7 @@ export default function StudentQuizShell({
       ) : (
         <QuizAmbientBackground />
       )}
-      <main className={cn("relative z-10 mx-auto w-full", fitViewport ? "space-y-3 sm:h-full sm:space-y-4" : "space-y-5 sm:space-y-6", maxWidth)}>
+      <main className={cn("relative z-10 mx-auto w-full", fitViewport ? "space-y-3 lg:h-full lg:space-y-4" : "space-y-5 sm:space-y-6", maxWidth)}>
         {(backHref || actions) && (
           <div className="flex items-center justify-between gap-3">
             <div>{backHref && <QuizBackLink href={backHref} label={backLabel} />}</div>
