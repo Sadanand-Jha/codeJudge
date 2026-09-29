@@ -38,6 +38,16 @@ export class userRepository {
         return result.rows.length > 0 ? result.rows[0] : null;
     }
 
+    async getUserByIdentifier(identifier: string): Promise<any> {
+        const query = `
+            SELECT * FROM users
+            WHERE LOWER(email) = $1 OR username = $1
+            LIMIT 1
+        `;
+        const result = await pool.query(query, [identifier]);
+        return result.rows.length > 0 ? result.rows[0] : null;
+    }
+
     async getUserProfileById(userId: string): Promise<any> {
         const query = `
             SELECT
@@ -168,12 +178,19 @@ export class userRepository {
         };
     }
 
-    async createUser(email: string, password: string, username: string): Promise<any> {
+    async createUser(email: string, password: string, username: string, avatarUrl: string): Promise<any> {
         const query = `
+            WITH chosen_avatar AS (
+                INSERT INTO avatar (is_male, url, created_at, updated_at)
+                VALUES (true, $4, NOW(), NOW())
+                ON CONFLICT (url) DO UPDATE SET url = EXCLUDED.url
+                RETURNING id
+            )
             INSERT INTO users (Username, Email, Password, role_id, avatar_id)
-            VALUES ($1, $2, $3, 1, 85) RETURNING *
+            SELECT $1, $2, $3, 1, id FROM chosen_avatar
+            RETURNING *
         `;
-        const result = await pool.query(query, [username, email, password]);
+        const result = await pool.query(query, [username, email, password, avatarUrl]);
         return result.rows[0];
     }
 

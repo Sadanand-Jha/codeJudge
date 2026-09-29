@@ -2,11 +2,12 @@
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Loader2, Send, ShieldCheck, Sparkles, Target, Volume2, VolumeX } from "lucide-react";
+import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Loader2, PartyPopper, Send, ShieldCheck, Sparkles, Target, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
 import {
   getQuizByCode,
+  heartbeatQuizAttempt,
   saveQuizResponse,
   startQuizAttempt,
   submitQuizAttempt,
@@ -80,6 +81,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submissionComplete, setSubmissionComplete] = useState(false);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { soundEnabled, playQuizSound, toggleQuizSounds } = useQuizSounds();
@@ -131,6 +133,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     if (!id || submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
+    setSubmissionComplete(false);
     setError(null);
     const submissionStartedAt = Date.now();
     const finishSubmission = () => {
@@ -148,7 +151,6 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         // blocked, the spinner must not stick forever.
         submittingRef.current = false;
         setSubmitting(false);
-        playQuizSound("success");
         if (resultsAvailable) {
           router.replace(`/quiz/${code}/results/${id}`);
         } else {
@@ -162,8 +164,13 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       // Let students perceive the confirmation sequence even when grading is
       // near-instant; the API has already confirmed success before this delay.
       const remaining = Math.max(0, 2400 - (Date.now() - submissionStartedAt));
-      if (remaining > 0) window.setTimeout(complete, remaining);
-      else complete();
+      const celebrate = () => {
+        setSubmissionComplete(true);
+        playQuizSound("success");
+        window.setTimeout(complete, isMobile ? 450 : 1350);
+      };
+      if (remaining > 0) window.setTimeout(celebrate, remaining);
+      else celebrate();
     };
     const buildResponses = () =>
       Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer }));
@@ -223,14 +230,17 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           }
         }
         // Worker is slow but answers are safely queued; stop blocking the UI.
-        submittingRef.current = false;
-        setSubmitting(false);
+        setSubmissionComplete(true);
         playQuizSound("success");
-        toast.success({
-          title: "Quiz submitted",
-          description: "Grading is taking longer than usual. Results will appear shortly.",
-        });
-        router.replace("/quiz#activity");
+        window.setTimeout(() => {
+          submittingRef.current = false;
+          setSubmitting(false);
+          toast.success({
+            title: "Quiz submitted",
+            description: "Grading is taking longer than usual. Results will appear shortly.",
+          });
+          router.replace("/quiz#activity");
+        }, isMobile ? 450 : 1350);
         return;
       }
       finishSubmission();
@@ -241,7 +251,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       setSubmitting(false);
       playQuizSound("error");
     }
-  }, [attemptId, code, playQuizSound, quiz, router]);
+  }, [attemptId, code, isMobile, playQuizSound, quiz, router]);
 
   // Exam-cell: after 3 violations the attempt is auto-submitted and flagged.
   const handleTerminate = useCallback((summary: ViolationSummary) => {
@@ -319,6 +329,32 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     }
   }, [attemptId]);
 
+  // A creator should only see this student as "Live" while this exam tab is
+  // actually active. Hidden/closed tabs stop sending heartbeats and naturally
+  // age out of the creator dashboard's freshness window.
+  useEffect(() => {
+    if (attemptId === null || submitting) return;
+    let cancelled = false;
+    const heartbeat = () => {
+      if (cancelled || document.visibilityState !== "visible") return;
+      void heartbeatQuizAttempt(String(attemptId)).catch(() => {
+        // Presence is best-effort; quiz answers and final submission remain
+        // independent of this non-critical signal.
+      });
+    };
+    heartbeat();
+    const interval = window.setInterval(heartbeat, 25_000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") heartbeat();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [attemptId, submitting]);
+
   const handleManualSubmit = useCallback(() => {
     playQuizSound("submit");
     void submit();
@@ -340,7 +376,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       entryError={error}
       onTerminate={handleTerminate}
     >
-      {submitting && <SubmissionProgressOverlay soundEnabled={soundEnabled} onSound={playQuizSound} />}
+      {submitting && <SubmissionProgressOverlay complete={submissionComplete} soundEnabled={soundEnabled} onSound={playQuizSound} />}
       {starting || (!attemptId && !error) ? (
         <div className="flex h-full items-center justify-center p-6">
           <StatusScreen loading text="Starting your secure attempt…" />
@@ -500,8 +536,21 @@ const SUBMISSION_STAGES = [
   { after: 1800, title: "Generating your result", detail: "Turning your attempt into meaningful feedback…", icon: Sparkles },
 ] as const;
 
-function SubmissionProgressOverlay({ soundEnabled, onSound }: { soundEnabled: boolean; onSound: (sound: QuizSound) => void }) {
+const SUBMIT_PARTY_BITS = Array.from({ length: 30 }, (_, index) => {
+  const angle = (index / 30) * Math.PI * 2;
+  const distance = 150 + (index % 6) * 24;
+  return {
+    x: Math.cos(angle) * distance,
+    y: Math.sin(angle) * distance - 45,
+    rotate: 160 + index * 31,
+    color: ["#FF5FA2", "#7C6CFF", "#22C8E5", "#FFB62E", "#43D39E"][index % 5],
+    delay: (index % 5) * 0.025,
+  };
+});
+
+function SubmissionProgressOverlay({ complete, soundEnabled, onSound }: { complete: boolean; soundEnabled: boolean; onSound: (sound: QuizSound) => void }) {
   const [elapsed, setElapsed] = useState(0);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const startedAt = Date.now();
@@ -521,6 +570,42 @@ function SubmissionProgressOverlay({ soundEnabled, onSound }: { soundEnabled: bo
   useEffect(() => {
     if (soundEnabled && stageIndex > 0) onSound("stage");
   }, [onSound, soundEnabled, stageIndex]);
+
+  if (complete) {
+    return (
+      <div className="fixed inset-0 z-[140] flex items-center justify-center overflow-hidden bg-slate-950/80 px-4 backdrop-blur-md" role="status" aria-live="polite" aria-label="Quiz submitted successfully">
+        {!isMobile && (
+          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+            {SUBMIT_PARTY_BITS.map((bit, index) => (
+              <motion.span
+                key={index}
+                className="absolute left-1/2 top-1/2 h-2 w-4 rounded-full"
+                style={{ backgroundColor: bit.color }}
+                initial={{ x: 0, y: 0, rotate: 0, scale: 0, opacity: 0 }}
+                animate={{ x: bit.x, y: bit.y, rotate: bit.rotate, scale: [0, 1.15, 1], opacity: [0, 1, 1, 0] }}
+                transition={{ duration: 1.2, delay: bit.delay, ease: "easeOut" }}
+              />
+            ))}
+            <motion.div initial={{ x: -120, y: 120, rotate: -28, opacity: 0 }} animate={{ x: -210, y: 50, rotate: -12, opacity: [0, 1, 1] }} transition={{ duration: 0.55 }} className="absolute left-1/2 top-1/2 text-pink-400">
+              <PartyPopper className="h-20 w-20" />
+            </motion.div>
+            <motion.div initial={{ x: 60, y: 120, rotate: 28, opacity: 0 }} animate={{ x: 135, y: 50, rotate: 12, opacity: [0, 1, 1] }} transition={{ duration: 0.55 }} className="absolute left-1/2 top-1/2 text-amber-400">
+              <PartyPopper className="h-20 w-20 -scale-x-100" />
+            </motion.div>
+          </div>
+        )}
+
+        <motion.div initial={{ opacity: 0, scale: 0.75, y: 18 }} animate={{ opacity: 1, scale: [0.75, 1.06, 1], y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }} className="relative w-full max-w-md rounded-[2rem] border border-white/70 bg-white/95 px-6 py-8 text-center text-slate-950 shadow-[0_35px_120px_rgba(236,72,153,.35)] dark:border-white/15 dark:bg-[#11101a]/95 dark:text-white sm:px-9 sm:py-10">
+          <div className="mx-auto grid h-20 w-20 place-items-center rounded-[1.65rem] bg-gradient-to-br from-emerald-400 via-cyan-400 to-violet-500 text-white shadow-[0_18px_45px_-15px_rgba(34,197,94,.8)]">
+            {isMobile ? <CheckCircle2 className="h-10 w-10" /> : <PartyPopper className="h-10 w-10" />}
+          </div>
+          <p className="mt-5 text-[11px] font-black uppercase tracking-[0.24em] text-emerald-600 dark:text-emerald-300">Submission complete</p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">You did it!</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-white/55">Your answers are safe. Preparing your result now…</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-md" role="status" aria-live="polite" aria-label={stage.title}>

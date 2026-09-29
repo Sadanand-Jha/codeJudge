@@ -29,7 +29,7 @@ const userService = new UserService();
 
 const userRegister = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, username } = req.body;
 
     const existingUser = await userService.checkUserExistsByEmail(email);
 
@@ -61,7 +61,7 @@ const userRegister = async (req: Request, res: Response) => {
     //   $3 = hashedPassword (bcrypt output, safe)
     //   $4 = role (hardcoded, not user-supplied)
     
-    const newUser: any = await userService.createUser(email, hashedPassword);
+    const newUser: any = await userService.createUser(email, hashedPassword, username, "/images/avatar-1.png");
 
     // --------------------------------------------------
     // Step 4: Return success response

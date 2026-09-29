@@ -373,7 +373,7 @@ export async function verifyOtp(email: string, otp: string): Promise<ServiceResp
  * POST /api/auth/register
  * Finalizes user registration with validated token
  */
-export async function register(email: string, password: string, registrationToken: string, username?: string): Promise<ServiceResponse> {
+export async function register(email: string, password: string, registrationToken: string, username: string, avatarUrl: string): Promise<ServiceResponse> {
   try {
     // 1. Validate inputs
     if (!email || !isValidEmail(email)) {
@@ -416,7 +416,7 @@ export async function register(email: string, password: string, registrationToke
     const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     // 6. Save user to database and get the created user record (includes id)
-    const createdUser = await userService.createUser(normalizedEmail, hashedPassword, username);
+    const createdUser = await userService.createUser(normalizedEmail, hashedPassword, username, avatarUrl);
 
     // 7. Delete registration token from Redis
     await deleteCachedRegistrationToken(registrationToken);

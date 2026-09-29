@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Download, Mail, Square, Search, ChevronDown, X, Users,
@@ -27,11 +27,13 @@ import {
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type StudentStatus = "SUBMITTED" | "IN_PROGRESS" | "NOT_STARTED" | "TIMED_OUT";
+const LIVE_ACTIVITY_WINDOW_MS = 75_000;
 
 interface Student {
   id: string;
   userId: number;
   attemptId: number | null;
+  attemptNumber: number | null;
   name: string;
   rollNo: string;
   status: StudentStatus;
@@ -41,7 +43,9 @@ interface Student {
   timeTakenSec: number | null;
   timeTaken: string | null;
   submittedAt: string | null;
+  lastActivityAt: string | null;
   avatar: string;
+  avatarUrl: string | null;
   rank: number | null;
   questionsAnswered: number | null;
   totalQuestions: number | null;
@@ -51,14 +55,14 @@ const STATUS_CONFIG: Record<StudentStatus, { label: string; color: string; bg: s
   SUBMITTED:    { label: "Submitted",    color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20", dot: "bg-emerald-400" },
   IN_PROGRESS:  { label: "In Progress",  color: "text-blue-400",    bg: "bg-blue-500/10 border-blue-500/20",    dot: "bg-blue-400" },
   NOT_STARTED:  { label: "Not Started",  color: "text-amber-400",   bg: "bg-amber-500/10 border-amber-500/20",   dot: "bg-amber-400" },
-  TIMED_OUT:    { label: "Timed Out",    color: "text-red-400",     bg: "bg-red-500/10 border-red-500/20",     dot: "bg-red-400" },
+  TIMED_OUT:    { label: "Auto Submitted", color: "text-red-400",   bg: "bg-red-500/10 border-red-500/20",     dot: "bg-red-400" },
 };
 
 const PIE_COLORS: Record<string, string> = {
   Submitted: "#22C55E",
   "In Progress": "#3B82F6",
   "Not Started": "#EAB308",
-  "Timed Out": "#EF4444",
+  "Auto Submitted": "#EF4444",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -116,6 +120,12 @@ function apiErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+function isLiveAttempt(student: Student, now: number): boolean {
+  if (student.status !== "IN_PROGRESS" || !student.lastActivityAt) return false;
+  const lastActivity = new Date(student.lastActivityAt).getTime();
+  return Number.isFinite(lastActivity) && now - lastActivity >= 0 && now - lastActivity <= LIVE_ACTIVITY_WINDOW_MS;
+}
+
 function mapStudent(row: QuizResponseStudent, totalMarks: number): Student {
   const name = displayName(row);
   const status: StudentStatus =
@@ -130,9 +140,10 @@ function mapStudent(row: QuizResponseStudent, totalMarks: number): Student {
   const wrong = toNumber(row.wrong_answers) ?? 0;
   const hasAttempt = row.attempt_id != null;
   return {
-    id: String(row.user_id),
+    id: row.attempt_id === null ? `${row.user_id}-registered` : `${row.user_id}-attempt-${row.attempt_id}`,
     userId: row.user_id,
     attemptId: row.attempt_id,
+    attemptNumber: toNumber(row.attempt_number),
     name,
     rollNo: row.rollno || "—",
     status,
@@ -142,41 +153,13 @@ function mapStudent(row: QuizResponseStudent, totalMarks: number): Student {
     timeTakenSec,
     timeTaken: formatTaken(timeTakenSec),
     submittedAt: formatDateTime(row.completed_at),
+    lastActivityAt: row.last_activity,
     avatar: initials(name),
+    avatarUrl: row.avatar_url,
     rank: row.rank,
     questionsAnswered: hasAttempt ? correct + wrong : status === "NOT_STARTED" ? 0 : null,
     totalQuestions: toNumber(row.total_questions),
   };
-}
-
-/**
- * Backend returns one row per attempt, so a student with multiple attempts
- * appears multiple times. Keep a single row per student: prefer a submitted
- * attempt, then timed-out, then in-progress — breaking ties by higher marks.
- */
-const STATUS_RANK: Record<StudentStatus, number> = {
-  SUBMITTED: 0,
-  TIMED_OUT: 1,
-  IN_PROGRESS: 2,
-  NOT_STARTED: 3,
-};
-
-function pickBestAttempt(group: Student[]): Student {
-  return [...group].sort((a, b) => {
-    const byStatus = STATUS_RANK[a.status] - STATUS_RANK[b.status];
-    if (byStatus !== 0) return byStatus;
-    return (b.marks ?? -1) - (a.marks ?? -1);
-  })[0];
-}
-
-function dedupeStudents(rows: Student[]): Student[] {
-  const byUser = new Map<string, Student[]>();
-  rows.forEach((s) => {
-    const list = byUser.get(s.id);
-    if (list) list.push(s);
-    else byUser.set(s.id, [s]);
-  });
-  return [...byUser.values()].map(pickBestAttempt);
 }
 
 function StatusBadge({ status }: { status: StudentStatus }) {
@@ -189,11 +172,28 @@ function StatusBadge({ status }: { status: StudentStatus }) {
   );
 }
 
-function RankBadge({ rank }: { rank: number }) {
+function RankBadge({ rank }: { rank: number | null }) {
+  if (rank === null) return <span className="grid h-7 w-7 place-items-center text-xs font-semibold text-text-muted">—</span>;
   if (rank === 1) return <span className="flex items-center justify-center w-6 h-6"><Crown className="h-4 w-4 text-amber-400" /></span>;
   if (rank === 2) return <span className="flex items-center justify-center w-6 h-6"><Medal className="h-4 w-4 text-gray-300" /></span>;
   if (rank === 3) return <span className="flex items-center justify-center w-6 h-6"><Medal className="h-4 w-4 text-amber-600" /></span>;
   return <span className="text-xs font-semibold text-text-muted w-6 text-center">{rank}</span>;
+}
+
+function StudentAvatar({ student, size = "sm" }: { student: Student; size?: "sm" | "lg" }) {
+  return (
+    <div className={cn(
+      "relative shrink-0 overflow-hidden bg-pink-500/10 font-bold text-pink-500 ring-1 ring-pink-500/10",
+      size === "lg" ? "h-14 w-14 rounded-2xl text-lg" : "h-9 w-9 rounded-xl text-[10px]"
+    )}>
+      {student.avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- avatar URLs are user-configured and may be remote
+        <img src={student.avatarUrl} alt={`${student.name} avatar`} className="h-full w-full object-cover" />
+      ) : (
+        <span className="grid h-full w-full place-items-center">{student.avatar}</span>
+      )}
+    </div>
+  );
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -215,9 +215,11 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const [pauseOpen, setPauseOpen] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
+  const [presenceNow, setPresenceNow] = useState(() => Date.now());
+  const firstResponsesLoadRef = useRef(true);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    if (firstResponsesLoadRef.current) setLoading(true);
     setError(null);
     try {
       // Route param is usually the numeric id, but may be the quiz code
@@ -235,13 +237,13 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
       const marks = resp.quiz?.total_marks ?? 0;
       setQuizName(resp.quiz?.name || "Responses");
       setTotalMarks(marks);
-      const unique = dedupeStudents((resp.students || []).map((r) => mapStudent(r, marks)));
-      setStudents(unique);
-      const scored = unique.filter((s) => s.marks !== null);
+      const attempts = (resp.students || []).map((row) => mapStudent(row, marks));
+      setStudents(attempts);
+      const scored = attempts.filter((student) => student.marks !== null);
       setSummary({
-        total: unique.length,
-        submitted: unique.filter((s) => s.status === "SUBMITTED").length,
-        notSubmitted: unique.filter((s) => s.status !== "SUBMITTED").length,
+        total: new Set(attempts.map((student) => student.userId)).size,
+        submitted: attempts.filter((student) => student.status === "SUBMITTED").length,
+        notSubmitted: attempts.filter((student) => student.status !== "SUBMITTED").length,
         avg: scored.length ? scored.reduce((a, b) => a + (b.marks ?? 0), 0) / scored.length : 0,
         highest: scored.length ? Math.max(...scored.map((s) => s.marks ?? 0)) : 0,
         lowest: scored.length ? Math.min(...scored.map((s) => s.marks ?? 0)) : null,
@@ -269,13 +271,25 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     } catch (err) {
       setError(apiErrorMessage(err, "Failed to load responses"));
     } finally {
-      setLoading(false);
+      if (firstResponsesLoadRef.current) {
+        firstResponsesLoadRef.current = false;
+        setLoading(false);
+      }
     }
   }, [quizId]);
 
   useEffect(() => {
-    load();
+    void load();
+    const interval = window.setInterval(() => void load(), 30_000);
+    return () => window.clearInterval(interval);
   }, [load]);
+
+  // Let stale attempts disappear from "Live Now" without requiring a manual
+  // creator refresh. The server heartbeat itself remains the source of truth.
+  useEffect(() => {
+    const interval = window.setInterval(() => setPresenceNow(Date.now()), 15_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const openDetail = useCallback(async (s: Student) => {
     setDetailPanel(s);
@@ -284,7 +298,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     setDetailLoading(true);
     try {
       const numericId = /^\d+$/.test(quizId) ? quizId : String((await getQuizByCode(quizId)).id);
-      const detail = await getStudentResponseDetail(numericId, s.userId);
+      const detail = await getStudentResponseDetail(numericId, s.userId, s.attemptId ?? undefined);
       setDetailReview(detail);
     } catch {
       setDetailReview(null);
@@ -306,16 +320,16 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     return list;
   }, [students, filter, search]);
 
-  const liveStudents = useMemo(() => students.filter(s => s.status === "IN_PROGRESS"), [students]);
+  const liveStudents = useMemo(() => students.filter((student) => isLiveAttempt(student, presenceNow)), [students, presenceNow]);
   const inProgressCount = useMemo(() => students.filter(s => s.status === "IN_PROGRESS").length, [students]);
   const timedOutCount = useMemo(() => students.filter(s => s.status === "TIMED_OUT").length, [students]);
-  const notStartedCount = useMemo(() => Math.max(0, summary.total - summary.submitted - inProgressCount - timedOutCount), [summary, inProgressCount, timedOutCount]);
+  const notStartedCount = useMemo(() => students.filter((student) => student.status === "NOT_STARTED").length, [students]);
 
   const submissionData = useMemo(() => ([
     { name: "Submitted", value: summary.submitted, color: PIE_COLORS.Submitted },
     { name: "In Progress", value: inProgressCount, color: PIE_COLORS["In Progress"] },
     { name: "Not Started", value: notStartedCount, color: PIE_COLORS["Not Started"] },
-    { name: "Timed Out", value: timedOutCount, color: PIE_COLORS["Timed Out"] },
+    { name: "Auto Submitted", value: timedOutCount, color: PIE_COLORS["Auto Submitted"] },
   ]), [summary, inProgressCount, notStartedCount, timedOutCount]);
 
   const scoreData = useMemo(() => {
@@ -411,7 +425,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               { icon: CheckCircle2, label: "Submitted", value: summary.submitted, sub: "completed", accent: "text-emerald-400" },
               { icon: Clock, label: "In Progress", value: inProgressCount, sub: "currently taking", accent: "text-blue-400" },
               { icon: AlertTriangle, label: "Not Started", value: notStartedCount, sub: "waiting", accent: "text-amber-400" },
-              { icon: XCircle, label: "Timed Out", value: timedOutCount, sub: "expired", accent: "text-red-400" },
+              { icon: XCircle, label: "Auto Submitted", value: timedOutCount, sub: "time expired", accent: "text-red-400" },
               { icon: BarChart3, label: "Avg Score", value: summary.avg.toFixed(1), sub: `/ ${totalMarks}`, accent: "text-purple-400" },
               { icon: TrendingUp, label: "Highest", value: summary.highest, sub: "score", accent: "text-emerald-400" },
               { icon: TrendingDown, label: "Lowest", value: summary.lowest ?? "—", sub: "score", accent: "text-rose-400" },
@@ -469,7 +483,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             <div className="flex items-center gap-4 overflow-x-auto">
               {liveStudents.map(s => (
                 <div key={s.id} onClick={() => openDetail(s)} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 min-w-[200px] cursor-pointer hover:border-blue-500/30 transition-colors">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500/10 text-[10px] font-bold text-blue-400">{s.avatar}</div>
+                  <StudentAvatar student={s} />
                   <div>
                     <p className="text-xs font-semibold text-text-primary">{s.name}</p>
                     <p className="text-[10px] text-text-muted">{s.timeTaken ? `Elapsed ${s.timeTaken}` : "Just started"}</p>
@@ -554,7 +568,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
           {/* Submission Status */}
           <div className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm">
             <h3 className="text-sm font-bold tracking-tight text-text-primary">Submission Status</h3>
-            <p className="mt-1 text-xs text-text-muted">Breakdown of {summary.total} students</p>
+            <p className="mt-1 text-xs text-text-muted">Breakdown of {students.length} student attempt records</p>
             <div className="mt-5 flex flex-1 items-center gap-7">
               <div className="relative h-[148px] w-[148px] shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -576,8 +590,8 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[24px] font-extrabold leading-none tracking-tight text-text-primary">{summary.total}</span>
-                  <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Total</span>
+                  <span className="text-[24px] font-extrabold leading-none tracking-tight text-text-primary">{students.length}</span>
+                  <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Records</span>
                 </div>
               </div>
               <div className="flex min-w-0 flex-1 flex-col justify-center">
@@ -620,10 +634,24 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             <p className="text-[11px] text-text-muted mt-0.5">Monitor every student&apos;s quiz activity and performance in real time.</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-left">
+            <table className="w-full min-w-[980px] table-fixed text-left">
+              <colgroup>
+                <col className="w-[68px]" />
+                <col className="w-[220px]" />
+                <col className="w-[88px]" />
+                <col className="w-[120px]" />
+                <col className="w-[120px]" />
+                <col className="w-[76px]" />
+                <col className="w-[72px]" />
+                <col className="w-[72px]" />
+                <col className="w-[104px]" />
+                <col className="w-[132px]" />
+                <col className="w-[64px]" />
+              </colgroup>
               <thead>
                 <tr className="border-b border-border">
-                  {["Rank", "Roll No.", "Student", "Status", "Marks", "Total", "%", "Time Taken", "Submitted At", "Actions"].map(h => (
+                  <th className="px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-text-muted">Rank</th>
+                  {["Student", "Attempt", "Roll No.", "Status", "Marks", "Total", "%", "Time Taken", "Submitted At", "Actions"].map(h => (
                     <th key={h} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-text-muted whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -632,34 +660,37 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="border-b border-border/50">
-                      <td colSpan={10} className="px-4 py-3">
+                      <td colSpan={11} className="px-4 py-3">
                         <div className="app-skeleton h-5 rounded" />
                       </td>
                     </tr>
                   ))
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-4 py-10 text-center">
+                    <td colSpan={11} className="px-4 py-10 text-center">
                       <p className="text-sm font-semibold text-text-secondary">
                         {students.length === 0 ? "No responses yet — students haven't been registered or attempted this quiz." : "No students match your search/filter."}
                       </p>
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((s, i) => (
+                  filtered.map((s) => (
                     <tr
                       key={s.id}
                       onClick={() => openDetail(s)}
-                      className="border-b border-border/50 hover:bg-card-hover/50 cursor-pointer transition-colors"
+                      className="h-[68px] border-b border-border/50 align-middle hover:bg-card-hover/50 cursor-pointer transition-colors"
                     >
-                      <td className="px-4 py-3"><RankBadge rank={s.rank ?? i + 1} /></td>
-                      <td className="px-4 py-3 text-xs font-mono text-text-secondary">{s.rollNo}</td>
+                      <td className="px-3 py-3 text-center"><div className="flex justify-center"><RankBadge rank={s.rank} /></div></td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-pink-500/10 text-[10px] font-bold text-pink-400">{s.avatar}</div>
-                          <span className="block text-xs font-semibold text-text-primary">{s.name}</span>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <StudentAvatar student={s} />
+                          <div className="min-w-0">
+                            <span className="block truncate text-xs font-semibold text-text-primary">{s.name}</span>
+                          </div>
                         </div>
                       </td>
+                      <td className="px-4 py-3 text-xs font-bold text-text-secondary">{s.attemptNumber ? `#${s.attemptNumber}` : "—"}</td>
+                      <td className="px-4 py-3 truncate text-xs font-mono text-text-secondary">{s.rollNo}</td>
                       <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
                       <td className="px-4 py-3 text-xs font-bold text-text-primary">{s.marks !== null ? s.marks : "—"}</td>
                       <td className="px-4 py-3 text-xs text-text-muted">{s.total}</td>
@@ -708,10 +739,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               <div className="p-5 space-y-5">
                 {/* Profile */}
                 <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500/10 text-lg font-bold text-pink-400">{detailPanel.avatar}</div>
+                  <StudentAvatar student={detailPanel} size="lg" />
                   <div>
                     <h4 className="text-base font-bold text-text-primary">{detailPanel.name}</h4>
-                    <p className="text-xs text-text-muted">{detailPanel.rollNo}</p>
+                    <p className="text-xs text-text-muted">{detailPanel.rollNo}{detailPanel.attemptNumber ? ` · Attempt #${detailPanel.attemptNumber}` : ""}</p>
                     <div className="mt-1"><StatusBadge status={detailPanel.status} /></div>
                   </div>
                 </div>

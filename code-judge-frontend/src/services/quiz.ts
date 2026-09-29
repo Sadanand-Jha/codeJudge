@@ -349,6 +349,9 @@ export interface QuizProblemListItem {
  */
 export async function getQuizProblems(quizId: string): Promise<QuizProblemListItem[]> {
   const response = await apiClient.get<QuizProblemListItem[]>(`/v1/admin/quiz/${quizId}/problems`);
+  if (response.status !== 200) {
+    throw new Error(`Quiz problems request returned HTTP ${response.status}`);
+  }
   return response.data;
 }
 
@@ -424,13 +427,21 @@ export async function getOldQuizzes(params: {
   page?: number;
   limit?: number;
   search?: string;
+  status?: string;
   sortBy?: string;
   sortOrder?: string;
-}): Promise<{ quizzes: PreviousQuiz[]; total: number }> {
+}): Promise<{ quizzes: PreviousQuiz[]; total: number; page: number; totalPages: number }> {
   const response = await apiClient.get("/v1/user/quiz/old-quizzes", { params });
-  // After interceptor, response.data is the quizzes array
+  // The interceptor unwraps `data` but preserves pagination on the Axios
+  // response object so list views can still use server-side totals.
   const quizzes = (response.data || []) as PreviousQuiz[];
-  return { quizzes, total: quizzes.length };
+  const pagination = (response as typeof response & { pagination?: { page?: number; total?: number; totalPages?: number } }).pagination;
+  return {
+    quizzes,
+    total: Number(pagination?.total ?? quizzes.length),
+    page: Number(pagination?.page ?? params.page ?? 1),
+    totalPages: Math.max(1, Number(pagination?.totalPages ?? 1)),
+  };
 }
 
 /**
@@ -710,6 +721,11 @@ export async function saveQuizResponse(attemptId: string, data: {
   timeTaken?: number;
 }): Promise<void> {
   await apiClient.post(`/v1/user/quiz/attempt/${attemptId}/save`, data);
+}
+
+/** Confirms that the student's active exam screen is still open. */
+export async function heartbeatQuizAttempt(attemptId: string): Promise<void> {
+  await apiClient.post(`/v1/user/quiz/attempt/${attemptId}/heartbeat`, {});
 }
 
 /**
@@ -1155,11 +1171,14 @@ export interface QuizResponseStudent {
   username: string | null;
   first_name: string | null;
   last_name: string | null;
+  avatar_url: string | null;
   attempt_id: number | null;
+  attempt_number: number | string | null;
   score: number | null;
   percentage: number | null;
   rank: number | null;
   attempt_status: string | null;
+  last_activity: string | null;
   completed_at: string | null;
   time_taken: number | string | null;
   total_questions: number | null;
@@ -1240,8 +1259,10 @@ export interface StudentResponseDetail {
  * Get a single student's response detail with question-wise review (owner/collaborator only).
  * GET /api/v1/user/quiz/:quizId/responses/:userId
  */
-export async function getStudentResponseDetail(quizId: string, userId: string | number): Promise<StudentResponseDetail> {
-  const response = await apiClient.get<StudentResponseDetail>(`/v1/user/quiz/${quizId}/responses/${userId}`);
+export async function getStudentResponseDetail(quizId: string, userId: string | number, attemptId?: number): Promise<StudentResponseDetail> {
+  const response = await apiClient.get<StudentResponseDetail>(`/v1/user/quiz/${quizId}/responses/${userId}`, {
+    params: attemptId ? { attemptId } : undefined,
+  });
   return response.data;
 }
 

@@ -45,14 +45,30 @@ export function StudioRouter() {
 }
 
 function StudioShellWithRouter({ onDashboard }: { onDashboard: () => void }) {
-  const { state, loading, loadError } = useStudio();
+  const { state, loading, loadError, questionsLoading, editMode } = useStudio();
 
-  if (loading) {
+  if (loading || (editMode && questionsLoading && !loadError)) {
     return (
-      <div className="flex h-[calc(100dvh-4rem)] items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-300 border-t-transparent" />
-          <p className="text-sm text-text-secondary">Loading quiz…</p>
+      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-background px-5">
+        <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-7 text-center shadow-[0_18px_60px_rgba(17,24,39,0.08)] dark:shadow-[0_18px_60px_rgba(0,0,0,0.3)]">
+          <div className="relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-violet-500/15">
+            <div className="h-9 w-9 animate-spin rounded-full border-[3px] border-pink-500/20 border-t-pink-500" />
+            <span className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-pink-500/10" />
+          </div>
+          <h2 className="mt-5 text-base font-bold text-text-primary">
+            {loading ? "Loading quiz" : "Loading quiz questions"}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-text-secondary">
+            {loading
+              ? "Preparing your Creator Studio workspace…"
+              : "Waiting for the questions service. We’ll retry automatically until everything is ready."}
+          </p>
+          {!loading && (
+            <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-text-muted">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+              Your saved questions remain protected
+            </div>
+          )}
         </div>
       </div>
     );

@@ -469,7 +469,7 @@ export default function AttemptReviewExperience({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
+              className="box-border flex h-[min(720px,calc(100dvh-6rem))] min-h-[480px] w-full max-w-full flex-col rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:h-[680px] sm:p-5"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <h2 className="flex items-center gap-2 text-[15px] font-semibold text-[#F5F7FB]">
@@ -528,7 +528,7 @@ export default function AttemptReviewExperience({
               transition={{ delay: 0.08 }}
               className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex shrink-0 items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <span className="inline-flex items-center rounded-[8px] bg-[#5C7CFF]/12 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#8FA7FF]">
                     Question {currentQuestion.number}
@@ -547,7 +547,7 @@ export default function AttemptReviewExperience({
               </div>
 
               {!collapsed && (
-                <>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1.5 [scrollbar-gutter:stable]">
                   <h3 className="mt-3 text-[18px] font-semibold leading-snug text-[#F5F7FB] sm:text-[22px]">
                     {currentQuestion.statement}
                   </h3>
@@ -663,11 +663,11 @@ export default function AttemptReviewExperience({
                       </p>
                     </div>
                   )}
-                </>
+                </div>
               )}
 
               {/* Prev / Next */}
-              <div className="review-question-nav sticky bottom-2 z-20 mt-4 flex items-center justify-between gap-2 rounded-xl border border-[#1D3150] bg-[#0B1220]/95 p-2 shadow-lg backdrop-blur-md sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
+              <div className="review-question-nav z-20 mt-3 flex shrink-0 items-center justify-between gap-2 border-t border-[#1D3150] bg-[#0B1220] pt-3">
                 <button
                   onClick={() => setSelectedQuestion((current) => Math.max(0, current - 1))}
                   disabled={selectedQuestion === 0}

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { WaitingRoomThemeProvider } from "@/context/WaitingRoomThemeContext";
-import { ThemeBackground } from "@/components/quiz/live/ThemeBackground";
 import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
 import type { LiveParticipant } from "@/types/liveAssessment";
@@ -101,7 +100,7 @@ export function QuizSkyBackground({
   return (
     <WaitingRoomThemeProvider>
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
-        <ThemeBackground />
+        <div className="absolute inset-0 bg-[linear-gradient(145deg,#fff9ef_0%,#fff3fb_33%,#eef9ff_67%,#f3fff8_100%)] dark:bg-[linear-gradient(145deg,#070714_0%,#111026_48%,#071424_100%)]" />
         <QuizSpaceAtmosphere />
       
         {crowd && (

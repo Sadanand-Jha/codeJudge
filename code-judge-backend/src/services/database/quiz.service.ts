@@ -190,6 +190,10 @@ export class QuizService {
     return this.repository.getStudentResponses(attemptId, userId);
   }
 
+  async getExpiredQuizAttempts(quizId: number, userId?: number): Promise<any[]> {
+    return this.repository.getExpiredQuizAttempts(quizId, userId);
+  }
+
   async getQuizLeaderboard(quizId: number): Promise<any[]> {
     return this.repository.getQuizLeaderboard(quizId);
   }
@@ -210,6 +214,7 @@ export class QuizService {
     page?: number;
     limit?: number;
     search?: string;
+    status?: string;
     sortBy?: string;
     sortOrder?: string;
   }): Promise<{ quizzes: any[]; total: number }> {
@@ -280,8 +285,12 @@ export class QuizService {
     return this.repository.getQuizResponses(quizId);
   }
 
-  async getStudentAttemptDetails(quizId: number, userId: number): Promise<any | null> {
-    return this.repository.getStudentAttemptDetails(quizId, userId);
+  async touchQuizAttempt(attemptId: number): Promise<any | null> {
+    return this.repository.touchQuizAttempt(attemptId);
+  }
+
+  async getStudentAttemptDetails(quizId: number, userId: number, attemptId?: number): Promise<any | null> {
+    return this.repository.getStudentAttemptDetails(quizId, userId, attemptId);
   }
 
   async getStudentQuestionReview(attemptId: number): Promise<any[]> {

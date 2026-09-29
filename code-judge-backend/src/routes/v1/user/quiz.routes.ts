@@ -25,6 +25,7 @@ import {
   addQuizProblemOption,
   startQuizAttempt,
   saveQuizResponse,
+  heartbeatQuizAttempt,
   reportViolation,
   submitQuizAttempt,
   getSubmitStatus,
@@ -171,6 +172,9 @@ router.post("/:quizId/start", startQuizAttempt);
 
 // POST /api/v1/user/quiz/attempt/:attemptId/save — autosave answers
 router.post("/attempt/:attemptId/save", validate(saveQuizResponseSchema), saveQuizResponse);
+
+// POST /api/v1/user/quiz/attempt/:attemptId/heartbeat — confirms the exam page is active
+router.post("/attempt/:attemptId/heartbeat", heartbeatQuizAttempt);
 
 // POST /api/v1/user/quiz/attempt/:attemptId/violation — report an exam-cell violation
 router.post("/attempt/:attemptId/violation", validate(reportViolationSchema), reportViolation);

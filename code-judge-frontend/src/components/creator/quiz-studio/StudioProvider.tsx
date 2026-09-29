@@ -54,6 +54,15 @@ import { DEFAULT_GAME_MECHANICS, normalizeGameMechanics, zeroAllMechanics } from
 
 const STORAGE_KEY = "studio_quiz_draft";
 const GAME_MECHANICS_STORAGE_PREFIX = "studio_game_mechanics_";
+const PROBLEMS_RETRY_MAX_DELAY_MS = 8_000;
+
+function getProblemsRetryDelay(attempt: number): number {
+  return Math.min(1_000 * 2 ** Math.min(attempt - 1, 3), PROBLEMS_RETRY_MAX_DELAY_MS);
+}
+
+function waitForProblemsRetry(delay: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, delay));
+}
 
 /** Sentinel error used when question validation blocks a save/navigation. */
 export const QUESTION_VALIDATION_FAILED = "QUESTION_VALIDATION_FAILED";
@@ -607,28 +616,40 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         }
       })();
 
-      // — /problems in bg. Merges in when done.
-      try {
-        const problems = await getQuizProblems(initialQuizId).catch(() => []);
-        if (cancelled) return;
-        const questions = (problems as QuizProblemWithOptions[]).map((p, i) => mapBackendProblem(p, i));
-        snapshotRef.current = buildQuestionSnapshot(questions);
-        // Re-baseline autosave so the bg merge itself isn't treated as a change.
-        databaseAutosaveSnapshotRef.current = null;
-        setState((s) => {
-          // Preserve any locally-created (unsaved) questions made before bg finished.
-          const localOnly = s.questions.filter((q) => q.serverId == null && (q.title.trim() || q.options.some((o) => o.content.trim())));
-          const merged = questions.length > 0 || localOnly.length > 0 ? [...questions, ...localOnly] : [createEmptyQuestion("q_1")];
-          return {
-            ...s,
-            questions: merged,
-            activeQuestionId: s.activeQuestionId ?? merged[0]?.id ?? null,
-          };
-        });
-      } catch (err) {
-        console.warn("Failed to load quiz problems in background:", err);
-      } finally {
-        if (!cancelled) setQuestionsLoading(false);
+      // — /problems is required before the editor is shown. A failed response
+      // must never be interpreted as an empty quiz, otherwise a later save can
+      // overwrite real questions. Retry with a bounded backoff until HTTP 200.
+      let problemsAttempt = 0;
+      while (!cancelled) {
+        try {
+          problemsAttempt += 1;
+          const problems = await getQuizProblems(initialQuizId);
+          if (cancelled) return;
+          const questions = (problems as QuizProblemWithOptions[]).map((p, i) => mapBackendProblem(p, i));
+          snapshotRef.current = buildQuestionSnapshot(questions);
+          // Re-baseline autosave so the successful server merge itself isn't
+          // treated as a local edit.
+          databaseAutosaveSnapshotRef.current = null;
+          setState((s) => {
+            const localOnly = s.questions.filter((q) => q.serverId == null && (q.title.trim() || q.options.some((o) => o.content.trim())));
+            const merged = questions.length > 0 || localOnly.length > 0 ? [...questions, ...localOnly] : [createEmptyQuestion("q_1")];
+            return {
+              ...s,
+              questions: merged,
+              activeQuestionId: s.activeQuestionId ?? merged[0]?.id ?? null,
+            };
+          });
+          setQuestionsLoading(false);
+          break;
+        } catch (err) {
+          if (cancelled) return;
+          const delay = getProblemsRetryDelay(problemsAttempt);
+          console.warn(
+            `[StudioProvider] Quiz problems request failed (attempt ${problemsAttempt}). Retrying in ${delay}ms.`,
+            err
+          );
+          await waitForProblemsRetry(delay);
+        }
       }
     })();
     return () => {

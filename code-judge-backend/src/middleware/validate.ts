@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
+import { isValidPredefinedAvatar } from "../constants/avatars.ts";
 
 // ============================================
 // Registration Validation Schema
@@ -43,6 +44,37 @@ export const registerSchema = z.object({
       "Password must contain at least one letter and one number or special character"
     ),
 });
+
+/** Public OTP-registration payload. Kept separate from the legacy v1 schema
+ * because this flow also requires a one-time registration token and avatar. */
+export const authRegisterSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .min(3, "Username must be at least 3 characters")
+    .max(20, "Username must be at most 20 characters")
+    .regex(/^[a-z0-9]+$/, "Username can only contain lowercase letters and numbers"),
+  email: z.string().trim().max(255).email("Invalid email format").transform((value) => value.toLowerCase()),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password must be at most 128 characters"),
+  registration_token: z.string().trim().min(16, "Invalid registration token").max(512),
+  avatar_url: z.string().refine(isValidPredefinedAvatar, "Please select a valid avatar"),
+}).strict();
+
+/** Email-or-username login. The repository still binds this value as a SQL
+ * parameter; format validation is an additional boundary, not SQL escaping. */
+export const loginSchema = z.object({
+  identifier: z.string().trim().min(3).max(255).transform((value) => value.toLowerCase()).superRefine((value, context) => {
+    const isUsername = /^[a-z0-9]{3,20}$/.test(value);
+    const isEmail = z.string().email().safeParse(value).success;
+    if (!isUsername && !isEmail) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Enter a valid email or username" });
+    }
+  }),
+  password: z.string().min(1, "Password is required").max(128, "Password is too long"),
+}).strict();
 
 /**
  * Generic middleware factory that validates request body against a Zod schema.

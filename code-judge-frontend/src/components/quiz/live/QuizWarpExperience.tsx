@@ -43,6 +43,21 @@ interface AsteroidData {
   animDelay: number;
 }
 
+const PARTY_BALLOONS = Array.from({ length: 24 }, (_, index) => ({
+  left: (index * 41 + 3) % 96,
+  size: 34 + (index % 4) * 10,
+  delay: (index % 8) * 0.16 + Math.floor(index / 8) * 0.08,
+  duration: 3.2 + (index % 5) * 0.28,
+  drift: ((index * 29) % 90) - 45,
+  color: [
+    "linear-gradient(145deg,#ff9ac8,#f04491)",
+    "linear-gradient(145deg,#78e5f5,#249ee8)",
+    "linear-gradient(145deg,#ffe071,#ff9e2f)",
+    "linear-gradient(145deg,#a99cff,#715cf0)",
+    "linear-gradient(145deg,#7ce7bc,#25ba86)",
+  ][index % 5],
+}));
+
 export function QuizWarpExperience({
   code,
   onComplete,
@@ -230,15 +245,30 @@ export function QuizWarpExperience({
         </AnimatePresence>
 
         {(effectivePhase === "warp" || effectivePhase === "portal") && (
-          <div className="absolute inset-0">
-            {["🎈", "🍭", "🍦", "💦", "🎉", "🍬"].map((item, i) => (
+          <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden" aria-hidden="true">
+            {PARTY_BALLOONS.map((balloon, index) => (
               <motion.span
-                key={item}
-                className="absolute text-4xl drop-shadow-lg sm:text-5xl"
-                style={{ left: `${8 + i * 17}%`, top: `${18 + (i % 3) * 24}%` }}
-                animate={{ y: ["35vh", "-35vh"], x: [0, i % 2 ? 35 : -35], rotate: [0, i % 2 ? 25 : -25] }}
-                transition={{ duration: 3.4 + i * 0.25, delay: i * 0.18, repeat: Infinity, ease: "linear" }}
-              >{item}</motion.span>
+                key={index}
+                className="absolute bottom-[-8rem] block rounded-[52%_48%_48%_52%] border-2 border-white/85 shadow-[inset_-9px_-8px_14px_rgba(70,35,100,.14),0_16px_30px_-16px_rgba(70,40,145,.45)]"
+                style={{
+                  left: `${balloon.left}%`,
+                  width: balloon.size,
+                  height: balloon.size * 1.15,
+                  background: balloon.color,
+                }}
+                initial={{ y: 0, x: 0, rotate: index % 2 ? 5 : -5, opacity: 0 }}
+                animate={{
+                  y: "-125vh",
+                  x: balloon.drift,
+                  rotate: index % 2 ? -16 : 16,
+                  opacity: [0, 1, 1, 0.95],
+                }}
+                transition={{ duration: balloon.duration, delay: balloon.delay, ease: "easeOut" }}
+              >
+                <span className="absolute left-[24%] top-[14%] h-[26%] w-[15%] -rotate-[24deg] rounded-full bg-white/45 blur-[1px]" />
+                <span className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45" style={{ background: balloon.color }} />
+                <span className="absolute left-1/2 top-full h-16 w-px -translate-x-1/2 bg-slate-500/25" />
+              </motion.span>
             ))}
           </div>
         )}

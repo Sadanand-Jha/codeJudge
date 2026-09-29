@@ -11,11 +11,7 @@ export default function AuthBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
       {theme === "light" ? (
-        <>
-          <QuizPartyAtmosphere />
-          <div className="absolute left-[7%] top-[12%] hidden rounded-[28px] border-2 border-white/80 bg-white/55 px-5 py-3 text-4xl shadow-[0_18px_45px_-26px_rgba(244,114,182,.7)] backdrop-blur-md lg:block">🎈</div>
-          <div className="absolute bottom-[12%] right-[7%] hidden rounded-[28px] border-2 border-white/80 bg-white/55 px-5 py-3 text-4xl shadow-[0_18px_45px_-26px_rgba(34,199,232,.7)] backdrop-blur-md lg:block">🍨</div>
-        </>
+        <QuizPartyAtmosphere showFloaters={false} />
       ) : (
         <>
           {/* Dark theme - cosmic gradient */}

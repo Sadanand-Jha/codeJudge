@@ -46,7 +46,7 @@ export async function setUsername(payload: SetUsernamePayload): Promise<AuthResp
 }
 
 export async function login(payload: {
-  email: string;
+  identifier: string;
   password: string;
 }): Promise<AuthResponse> {
   const response = await apiClient.post<AuthResponse>("/auth/login", payload);
@@ -73,10 +73,11 @@ export async function updatePreferences(payload: { theme?: "dark" | "light" }): 
 }
 
 export async function register(payload: {
-  username?: string;
+  username: string;
   email: string;
   password: string;
   registration_token?: string;
+  avatar_url: string;
 }): Promise<AuthResponse> {
   const response = await apiClient.post<AuthResponse>("/auth/register", payload);
   if (response.data && typeof response.data === "object" && "user" in response.data && !("success" in response.data)) {

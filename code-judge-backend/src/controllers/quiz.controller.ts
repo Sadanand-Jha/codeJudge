@@ -6,7 +6,7 @@ import { pool } from "../config/database.ts";
 import { QuizService } from "../services/database/quiz.service.ts";
 import { ResultGenerationService } from "../services/resultGeneration.service.ts";
 import { sendCollaboratorInviteEmail } from "../services/email.ts";
-import { processQuizSubmission } from "../services/quizSubmission.service.ts";
+import { finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/quizSubmission.service.ts";
 import {
   enqueueQuizSubmission,
   getQuizSubmissionJob,
@@ -1144,6 +1144,10 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
       return;
     }
 
+    // Resolve an earlier attempt that expired while the student's browser was
+    // closed before deciding whether this request should resume or reattempt.
+    await finalizeExpiredQuizAttempts({ quizId: Number(quizId), userId: Number(userId) });
+
     const access = await quizService.checkQuizAccess(Number(userId), Number(quizId));
     if (!access.allowed) {
       res.status(403).json({
@@ -1332,6 +1336,47 @@ export const saveQuizResponse = async (req: Request, res: Response) => {
 };
 
 /**
+ * POST /api/v1/user/quiz/attempt/:attemptId/heartbeat
+ * Keeps a quiz attempt visible to the creator only while the student's exam
+ * page is actively open. The responses dashboard treats old heartbeats as
+ * in-progress, not live.
+ */
+export const heartbeatQuizAttempt = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { attemptId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const attempt = await quizService.getQuizAttemptById(Number(attemptId));
+    if (!attempt || Number(attempt.user_id) !== Number(userId) || attempt.status !== "in_progress") {
+      res.status(404).json({ success: false, message: "Active quiz attempt not found" });
+      return;
+    }
+
+    const quiz = await quizService.getQuizById(String(attempt.quiz_id));
+    const startedAt = attempt.started_at ?? attempt.created_at;
+    const durationDeadline = quiz?.duration && startedAt
+      ? new Date(startedAt).getTime() + Number(quiz.duration) * 60_000
+      : Number.POSITIVE_INFINITY;
+    const quizDeadline = quiz?.endtime ? new Date(quiz.endtime).getTime() : Number.POSITIVE_INFINITY;
+    if (Date.now() > Math.min(durationDeadline, quizDeadline)) {
+      res.status(409).json({ success: false, message: "Quiz time has expired" });
+      return;
+    }
+
+    await quizService.touchQuizAttempt(Number(attemptId));
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Error recording quiz attempt heartbeat:", error);
+    res.status(500).json({ success: false, message: "Unable to update quiz activity" });
+  }
+};
+
+/**
  * Exam-cell: maximum proctoring violations before an attempt is auto-flagged.
  * The frontend counts a violation per episode (tab switch, window blur,
  * fullscreen exit, copy/cut/paste attempt) and reports each one here.
@@ -1439,7 +1484,7 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
       return;
     }
 
-    if (attempt.status === "completed") {
+    if (attempt.status === "completed" || attempt.status === "timed_out") {
       res.status(400).json({
         success: false,
         message: "Quiz already submitted",
@@ -1793,6 +1838,7 @@ export const getPreviousQuizzes = async (req: Request, res: Response) => {
       page = "1",
       limit = "10",
       search = "",
+      status = "",
       sortBy = "completed_at",
       sortOrder = "DESC",
     } = req.query;
@@ -1809,6 +1855,7 @@ export const getPreviousQuizzes = async (req: Request, res: Response) => {
       page: Number(page),
       limit: Number(limit),
       search: search as string,
+      status: status as string,
       sortBy: sortBy as string,
       sortOrder: sortOrder as string,
     });
@@ -2129,6 +2176,7 @@ export const getQuizAnalytics = async (req: Request, res: Response) => {
       return;
     }
 
+    await finalizeExpiredQuizAttempts({ quizId: Number(quizId) });
     const analytics = await quizService.getQuizAnalytics(Number(quizId));
 
     res.status(200).json({
@@ -2631,6 +2679,7 @@ export const getQuizResponses = async (req: Request, res: Response) => {
       return;
     }
 
+    await finalizeExpiredQuizAttempts({ quizId: Number(quizId) });
     const data = await quizService.getQuizResponses(Number(quizId));
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -2651,6 +2700,7 @@ export const getStudentResponseDetail = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
     const { quizId, userId: targetUserId } = req.params;
+    const requestedAttemptId = req.query.attemptId === undefined ? undefined : Number(req.query.attemptId);
 
     if (!userId) {
       res.status(401).json({ success: false, message: "Unauthorized access" });
@@ -2670,7 +2720,12 @@ export const getStudentResponseDetail = async (req: Request, res: Response) => {
       return;
     }
 
-    const attempt = await quizService.getStudentAttemptDetails(Number(quizId), Number(targetUserId));
+    if (requestedAttemptId !== undefined && (!Number.isInteger(requestedAttemptId) || requestedAttemptId <= 0)) {
+      res.status(400).json({ success: false, message: "Invalid attempt id" });
+      return;
+    }
+
+    const attempt = await quizService.getStudentAttemptDetails(Number(quizId), Number(targetUserId), requestedAttemptId);
     if (!attempt) {
       res.status(404).json({ success: false, message: "No attempt found for this student" });
       return;

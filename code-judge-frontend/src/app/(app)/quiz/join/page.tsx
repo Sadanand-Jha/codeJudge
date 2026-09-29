@@ -21,8 +21,7 @@ import {
   ScanLine,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { getQuizByCode, getQuizLeaderboard, joinQuiz, type Quiz } from "@/services/quiz";
-import { toast } from "@/lib/toast";
+import { getQuizByCode, getQuizLeaderboard, type Quiz } from "@/services/quiz";
 import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { getApiErrorMessage } from "@/lib/apiError";
 import StudentQuizShell from "@/components/quiz/live/StudentQuizShell";
@@ -132,31 +131,18 @@ export default function JoinQuizPage() {
     return () => window.clearTimeout(timer);
   }, [lookupQuiz]);
 
-  const handleJoin = async () => {
+  const handleJoin = () => {
     if (!quiz || joining) return;
     setJoining(true);
-    try {
-      await joinQuiz({ code });
-      toast.success({ title: "Joined!", description: `You've joined "${quiz.name}"` });
-      const startsAt = quiz.starttime ? new Date(quiz.starttime).getTime() : null;
-      const isAvailableNow = !startsAt || startsAt <= Date.now();
-      if (isAvailableNow) {
-        setLaunchDestination(`/quiz/${code}/attempt`);
-      } else {
-        setLaunchDestination(`/quiz/${code}/waiting`);
-      }
-    } catch (err: unknown) {
-      toast.error({
-        title: "Could not join",
-        description: getApiErrorMessage(err, "Something went wrong. Please try again."),
-      });
-    } finally {
-      setJoining(false);
-    }
+    // Registration is intentionally deferred until the student explicitly
+    // presses Join Quiz. The registration page performs the authoritative
+    // audience check and collects creator-configured fields.
+    setLaunchDestination(`/quiz/${code}/register`);
   };
 
   const handleLaunchComplete = useCallback(() => {
     setLaunchDestination(null);
+    setJoining(false);
   }, []);
 
   const formatDateTime = (iso: string | null) => {
@@ -333,7 +319,7 @@ export default function JoinQuizPage() {
                 <div className="relative border-b border-[#E4E7EC]/70 bg-gradient-to-br from-violet-500/[0.13] via-transparent to-cyan-400/[0.08] px-5 py-4 dark:border-white/[0.07] sm:px-6 sm:py-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex min-w-0 items-start gap-3.5 sm:gap-4">
-                      <div className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-white/80 bg-gradient-to-br from-[#8B7CFF] to-[#5B4CE2] text-lg font-bold uppercase text-white shadow-[0_12px_32px_-10px_rgba(124,92,255,.95)] dark:border-violet-300/20 sm:h-16 sm:w-16">
+                      <div className="relative grid h-[5.25rem] w-[5.25rem] shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-white/80 bg-gradient-to-br from-[#8B7CFF] to-[#5B4CE2] text-lg font-bold uppercase text-white shadow-[0_12px_32px_-10px_rgba(124,92,255,.95)] dark:border-violet-300/20 sm:h-24 sm:w-24">
                         {quiz.creator_avatar_url ? (
                           // eslint-disable-next-line @next/next/no-img-element -- avatar URLs may be remote/user-configured
                           <img src={quiz.creator_avatar_url} alt={`${quiz.creator_name || "Quiz creator"} avatar`} className="h-full w-full object-cover" />
@@ -477,13 +463,13 @@ export default function JoinQuizPage() {
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4" />
-                      {status?.label === "Upcoming" ? "Join Waiting Room" : "Enter Quiz"}
+                      Join Quiz
                       <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                     </>
                   )}
                 </button>
-                <p className="mt-2 text-center text-[10px] font-medium text-white/60 dark:text-[#8F9AAF]">
-                  {status?.label === "Upcoming" ? "You’ll be taken to the waiting room until the quiz begins." : "Your attempt begins after you enter the quiz."}
+                <p className="mt-2 text-center text-[10px] font-semibold text-[#667085] dark:text-[#8F9AAF]">
+                  Registration and access verification happen in the next step.
                 </p>
               </div>
             </motion.div>
@@ -523,23 +509,19 @@ function JoinPageBackdrop() {
         <div className="absolute left-1/2 top-[48%] h-[52rem] w-[52rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-violet-300/[0.055]" />
         <div className="absolute left-1/2 top-[48%] h-[38rem] w-[68rem] -translate-x-1/2 -translate-y-1/2 rotate-[-12deg] rounded-[50%] border border-cyan-200/[0.045]" />
 
-        <motion.div
+        <div
           className="absolute right-[7%] top-[10%] hidden h-24 w-24 rounded-full bg-gradient-to-br from-violet-300 via-violet-600 to-[#291462] shadow-[inset_-14px_-12px_24px_rgba(13,7,35,.55),0_0_65px_rgba(124,58,237,.24)] lg:block"
-          animate={{ y: [0, -7, 0], rotate: [0, 2, 0] }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
         >
           <span className="absolute left-[18%] top-[24%] h-3 w-3 rounded-full bg-white/10" />
           <span className="absolute bottom-[20%] right-[18%] h-5 w-5 rounded-full border border-white/[0.08] bg-black/10" />
           <span className="absolute left-1/2 top-1/2 h-[145%] w-[190%] -translate-x-1/2 -translate-y-1/2 rotate-[-16deg] rounded-[50%] border-[3px] border-violet-200/15 border-l-violet-200/45" />
-        </motion.div>
+        </div>
 
-        <motion.div
+        <div
           className="absolute left-[8%] top-[24%] hidden h-9 w-9 items-center justify-center rounded-full border border-cyan-200/10 bg-[#0b1530]/60 text-cyan-100/45 shadow-[0_0_28px_rgba(34,211,238,.12)] backdrop-blur-md lg:flex"
-          animate={{ x: [0, 12, 0], y: [0, -10, 0], rotate: [-8, 8, -8] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         >
           <Rocket className="h-4 w-4 rotate-45" />
-        </motion.div>
+        </div>
 
         <div className="absolute left-[9%] top-[13%] h-px w-28 rotate-[24deg] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         <div className="absolute left-[10%] top-[14%] h-1.5 w-1.5 rounded-full bg-cyan-100/60 shadow-[0_0_12px_rgba(165,243,252,.65)]" />
@@ -551,20 +533,16 @@ function JoinPageBackdrop() {
       <div className="absolute right-[9%] top-[17%] hidden h-16 w-16 rounded-full border border-fuchsia-300/15 bg-gradient-to-br from-fuchsia-500/10 to-violet-500/20 shadow-[0_0_50px_rgba(168,85,247,.18)] lg:block" />
       <div className="absolute bottom-[12%] left-[12%] hidden h-14 w-14 rounded-2xl border border-cyan-300/10 bg-cyan-400/[0.04] backdrop-blur-sm lg:block -rotate-12" />
 
-      <motion.div
-        className="absolute left-[14%] top-[32%] hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/35 backdrop-blur-md xl:flex"
-        animate={{ y: [0, -8, 0] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+      <div
+        className="absolute left-[14%] top-[32%] hidden items-center gap-2 rounded-full border border-pink-200/70 bg-white/70 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-pink-600 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/[0.045] dark:text-white/35 dark:shadow-none xl:flex"
       >
-        <ShieldCheck className="h-3.5 w-3.5 text-emerald-300/60" /> Secure session
-      </motion.div>
-      <motion.div
-        className="absolute bottom-[19%] right-[12%] hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/35 backdrop-blur-md xl:flex"
-        animate={{ y: [0, 8, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300/60" /> Secure session
+      </div>
+      <div
+        className="absolute bottom-[19%] right-[12%] hidden items-center gap-2 rounded-full border border-cyan-200/70 bg-white/70 px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-violet-600 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/[0.045] dark:text-white/35 dark:shadow-none xl:flex"
       >
-        <Zap className="h-3.5 w-3.5 text-amber-300/60" /> Ready to launch
-      </motion.div>
+        <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-300/60" /> Ready to launch
+      </div>
 
       <div className="absolute left-[20%] top-[14%] h-1 w-1 rounded-full bg-white/50 shadow-[0_0_12px_3px_rgba(255,255,255,.18)]" />
       <div className="absolute right-[23%] top-[30%] h-1.5 w-1.5 rounded-full bg-violet-300/50 shadow-[0_0_15px_4px_rgba(167,139,250,.2)]" />

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { AtSign, Lock, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { login } from "@/services/auth";
 import { toast } from "@/lib/toast";
@@ -18,7 +18,7 @@ export default function LoginPage() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -42,13 +42,13 @@ export default function LoginPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || !password) {
+    if (!identifier.trim() || !password) {
       toast.error("Please fill in all fields");
       return;
     }
     setLoading(true);
     try {
-      const res = await login({ email, password });
+      const res = await login({ identifier: identifier.trim().toLowerCase(), password });
       if (res.success && res.data) {
         const { token, user } = res.data as { token?: string; user?: UserProfile };
         // The backend authenticates via an httpOnly cookie; the body carries no
@@ -84,15 +84,20 @@ export default function LoginPage() {
 
           <form className="space-y-4" onSubmit={submit}>
             <div>
-              <label className="block text-[11px] font-medium text-text-secondary mb-2">Email</label>
+              <label htmlFor="login-identifier" className="block text-[11px] font-medium text-text-secondary mb-2">Email or username</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="login-identifier"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value.toLowerCase())}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  autoComplete="username"
                   className="w-full rounded-xl bg-input-bg border border-input-border pl-10 pr-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
-                  placeholder="your@email.com"
+                  placeholder="email@example.com or username"
                 />
               </div>
             </div>
@@ -104,6 +109,7 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
                   className="w-full rounded-xl bg-input-bg border border-input-border pl-10 pr-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
                   placeholder="••••••••"
                 />

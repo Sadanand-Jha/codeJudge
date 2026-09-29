@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
+import { Check, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { sendOtp, verifyOtp, register, checkUsername } from "@/services/auth";
 import { useAuthStore } from "@/store/authStore";
@@ -17,6 +18,7 @@ import {
 import AuthBackground from "@/components/auth/AuthBackground";
 import { AuthBrandMark, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { PREDEFINED_AVATARS } from "@/config/dicebear";
 
 const AUTH_PRIMARY_BUTTON = "flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_-16px_rgba(244,114,182,.8)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_12px_28px_-16px_rgba(124,92,255,.8)]";
 
@@ -67,6 +69,7 @@ export default function RegistrationForm() {
   const [countdown, setCountdown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(PREDEFINED_AVATARS[0].url);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -167,8 +170,9 @@ export default function RegistrationForm() {
 
   const handleUsernameChange = useCallback(
     (value: string) => {
-      // Usernames are lowercase-only — convert as the user types.
-      const lower = value.toLowerCase();
+      // Invalid characters never enter the field; the backend repeats this
+      // validation because browser-side checks are never a security boundary.
+      const lower = value.toLowerCase().replace(/[^a-z0-9]/g, "");
       updateField("username", lower);
 
       if (usernameDebounceRef.current) {
@@ -294,6 +298,7 @@ export default function RegistrationForm() {
           email: form.email.value,
           password: form.password.value,
           registration_token: registrationToken,
+          avatar_url: selectedAvatarUrl,
         });
         if (res.success) {
           toast.success("Account created successfully!");
@@ -305,6 +310,7 @@ export default function RegistrationForm() {
           setStep("email");
           setCountdown(0);
           setUsernameStatus({ checking: false, available: null, message: "" });
+          setSelectedAvatarUrl(PREDEFINED_AVATARS[0].url);
           if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
           router.push("/login");
         } else {
@@ -316,7 +322,7 @@ export default function RegistrationForm() {
         setSubmitting(false);
       }
     },
-    [form.username.value, form.email.value, form.password.value, form.confirmPassword.value, registrationToken, usernameStatus.available, validateUsernameField, validatePasswordField, validateConfirmPasswordField, router, setAuth]
+    [form.username.value, form.email.value, form.password.value, form.confirmPassword.value, registrationToken, selectedAvatarUrl, usernameStatus.available, validateUsernameField, validatePasswordField, validateConfirmPasswordField, router, setAuth]
   );
 
   const isRegisterEnabled =
@@ -475,7 +481,37 @@ export default function RegistrationForm() {
                 {!form.username.error && !usernameStatus.checking && usernameStatus.available === true && (
                   <p className="mt-2 text-xs text-green-400">{usernameStatus.message}</p>
                 )}
+                <p className="mt-2 text-[10px] text-text-muted">Only lowercase letters and numbers are allowed.</p>
               </div>
+
+              {/* Avatar */}
+              <fieldset>
+                <legend className="text-[11px] font-semibold text-text-secondary">Choose your avatar</legend>
+                <p className="mt-1 text-[10px] text-text-muted">This is how you’ll appear in quizzes and waiting rooms.</p>
+                <div className="mt-3 grid grid-cols-4 gap-2.5" role="radiogroup" aria-label="Choose your avatar">
+                  {PREDEFINED_AVATARS.map((avatar) => {
+                    const selected = selectedAvatarUrl === avatar.url;
+                    return (
+                      <button
+                        key={avatar.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        aria-label={avatar.label}
+                        onClick={() => setSelectedAvatarUrl(avatar.url)}
+                        className={`group relative aspect-square overflow-hidden rounded-2xl border-2 bg-gradient-to-br from-pink-50 to-violet-50 p-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 dark:from-white/[0.06] dark:to-violet-500/[0.08] ${selected ? "border-violet-500 shadow-[0_10px_26px_-12px_rgba(124,92,255,.9)] ring-2 ring-violet-500/15" : "border-pink-100 hover:-translate-y-0.5 hover:border-pink-300 dark:border-white/10 dark:hover:border-violet-400/40"}`}
+                      >
+                        <Image src={avatar.url} alt="" width={64} height={64} className="h-full w-full rounded-xl object-cover" />
+                        {selected && (
+                          <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-violet-600 text-white shadow-sm dark:border-[#111526]">
+                            <Check className="h-3 w-3" strokeWidth={3} />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
 
               {/* Password */}
               <div>

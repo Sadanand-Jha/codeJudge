@@ -3,6 +3,7 @@
 // /api/auth/logout, /api/auth/forgot-password, /api/auth/verify-reset-otp,
 // /api/auth/reset-password.
 import { Router } from 'express';
+import { authRegisterSchema, loginSchema, validate } from '../middleware/validate.ts';
 import {
   sendOtpController,
   verifyOtpController,
@@ -46,14 +47,14 @@ router.post('/verify-otp', verifyOtpController);
  * Body: { "email": "user@example.com", "password": "SecurePassword123", "registration_token": "..." }
  * Response: 201 Created with user data and JWT session token set as cookie
  */
-router.post('/register', registerController);
+router.post('/register', validate(authRegisterSchema), registerController);
 
 /**
  * POST /api/auth/login
  * Body: { "email": "user@example.com", "password": "SecurePassword123" }
  * Response: 200 OK with session_token cookie set on success
  */
-router.post('/login', loginController);
+router.post('/login', validate(loginSchema), loginController);
 
 /**
  * POST /api/auth/owner/send-otp

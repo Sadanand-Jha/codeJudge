@@ -1,48 +1,33 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import {
-  BarChart3,
   Clock,
   Crown,
-  Medal,
   Trophy,
   Users,
   Target,
-  Timer,
-  Award,
-  TrendingUp,
-  TrendingDown,
   Download,
   ArrowLeft,
   CheckCircle2,
-  X,
-  UserX,
   Search,
-  ChevronDown,
   Lightbulb,
-  Zap,
-  Heart,
-  Skull,
-  Activity,
-  Layers,
   Flame,
+  Gauge,
+  ListChecks,
+  type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { cn } from "@/lib/helpers";
 import {
   PageHeader,
-  StatCard,
   StatCardSkeleton,
   Panel,
   PanelSkeleton,
   EmptyState,
   ErrorState,
   BillButton,
-  SegmentedControl,
 } from "@/components/creator/billing/ui";
-import { getQuizAnalytics, getAdminQuizById, type QuizAnalytics, type Quiz } from "@/services/quiz";
+import { getQuizAnalytics, getAdminQuizById, type Quiz } from "@/services/quiz";
 import { MiniBarChart } from "./charts";
 
 function formatTime(sec: number | null | undefined): string {
@@ -70,14 +55,143 @@ function prettyType(t: string | null | undefined): string {
   return t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function Tooltip({ children, tip }: { children: React.ReactNode; tip: string }) {
+function toNumber(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function clampPercent(value: unknown): number {
+  return Math.min(100, Math.max(0, toNumber(value)));
+}
+
+type InsightTone = "rose" | "emerald" | "amber";
+
+const insightToneStyles: Record<InsightTone, {
+  icon: string;
+  rank: string;
+  badge: string;
+  bar: string;
+}> = {
+  rose: {
+    icon: "border-rose-500/20 bg-rose-500/10 text-rose-500",
+    rank: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
+    badge: "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-300",
+    bar: "bg-rose-500",
+  },
+  emerald: {
+    icon: "border-emerald-500/20 bg-emerald-500/10 text-emerald-500",
+    rank: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+    badge: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+    bar: "bg-emerald-500",
+  },
+  amber: {
+    icon: "border-amber-500/20 bg-amber-500/10 text-amber-500",
+    rank: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
+    badge: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300",
+    bar: "bg-amber-500",
+  },
+};
+
+function OverviewMetric({
+  label,
+  value,
+  hint,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  icon: LucideIcon;
+}) {
   return (
-    <span className="group relative inline-flex">
-      {children}
-      <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-[11px] text-text-primary shadow-xl group-hover:block">
-        {tip}
-      </span>
-    </span>
+    <div className="rounded-2xl border border-border/80 bg-background/55 p-4 transition-colors hover:border-pink-500/25 dark:bg-white/[0.025]">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">{label}</p>
+        <span className="grid h-8 w-8 place-items-center rounded-xl bg-pink-500/10 text-pink-500 dark:bg-violet-500/15 dark:text-violet-300">
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      <p className="mt-3 text-2xl font-black tracking-tight text-text-primary tabular-nums">{value}</p>
+      <p className="mt-1 text-xs text-text-secondary">{hint}</p>
+    </div>
+  );
+}
+
+function QuestionInsightPanel({
+  title,
+  subtitle,
+  icon: Icon,
+  tone,
+  questions,
+  metric,
+}: {
+  title: string;
+  subtitle: string;
+  icon: LucideIcon;
+  tone: InsightTone;
+  questions: any[];
+  metric: (question: any) => string;
+}) {
+  const styles = insightToneStyles[tone];
+
+  return (
+    <section className="flex h-full min-w-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(17,24,39,0.04),0_12px_30px_rgba(17,24,39,0.035)] sm:p-5 dark:shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+      <div className="mb-4 flex items-start gap-3">
+        <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl border", styles.icon)}>
+          <Icon className="h-[18px] w-[18px]" />
+        </span>
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold text-text-primary">{title}</h3>
+          <p className="mt-0.5 text-xs leading-5 text-text-secondary">{subtitle}</p>
+        </div>
+      </div>
+
+      {questions.length === 0 ? (
+        <div className="grid min-h-56 flex-1 place-items-center rounded-xl border border-dashed border-border bg-background/40 px-5 text-center">
+          <div>
+            <ListChecks className="mx-auto h-5 w-5 text-text-muted" />
+            <p className="mt-2 text-sm font-semibold text-text-primary">No ranked questions yet</p>
+            <p className="mt-1 text-xs text-text-muted">Rankings appear after students submit responses.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {questions.map((question, index) => {
+            const accuracy = clampPercent(question.accuracy);
+            return (
+              <div key={question.id ?? question.question_number} className="group rounded-xl border border-border/70 bg-background/45 p-3 transition-colors hover:border-border-hover dark:bg-white/[0.02]">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[11px] font-black", styles.rank)}>
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Question {question.question_number}</p>
+                        <p className="mt-0.5 line-clamp-2 min-h-9 text-xs font-semibold leading-[18px] text-text-primary" title={cleanStatement(question.problem_statement)}>
+                          {cleanStatement(question.problem_statement)}
+                        </p>
+                      </div>
+                      <span className={cn("shrink-0 rounded-full border px-2 py-1 text-[11px] font-black tabular-nums", styles.badge)}>
+                        {metric(question)}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]">
+                        <div className={cn("h-full rounded-full", styles.bar)} style={{ width: `${accuracy}%` }} />
+                      </div>
+                      <span className="shrink-0 text-[10px] font-medium text-text-muted tabular-nums">
+                        {toNumber(question.total_responses)} responses
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -158,15 +272,32 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
     );
   }
 
-  const completionPct = parseFloat(String(stats.completion_rate)) || 0;
-  const passRate = parseFloat(String(stats.pass_rate)) || 0;
+  const completionPct = clampPercent(stats.completion_rate);
+  const passRate = clampPercent(stats.pass_rate);
 
   // Derived stats
   const totalQuestions = questions.length;
-  const avgCorrectPct = questions.length ? (questions.reduce((a: number, q: any) => a + (q.accuracy || 0), 0) / questions.length).toFixed(1) : "0";
-  const hardest = [...questions].sort((a: any, b: any) => a.accuracy - b.accuracy).slice(0, 5);
-  const easiest = [...questions].sort((a: any, b: any) => b.accuracy - a.accuracy).slice(0, 5);
-  const timeConsuming = [...questions].sort((a: any, b: any) => (b.avg_time_ms || 0) - (a.avg_time_ms || 0)).slice(0, 5);
+  const attemptedQuestions = questions.filter((question: any) => toNumber(question.total_responses) > 0);
+  const avgCorrectPct = attemptedQuestions.length
+    ? attemptedQuestions.reduce((sum: number, question: any) => sum + clampPercent(question.accuracy), 0) / attemptedQuestions.length
+    : 0;
+  const hardest = [...attemptedQuestions]
+    .sort((a: any, b: any) => clampPercent(a.accuracy) - clampPercent(b.accuracy) || toNumber(b.total_responses) - toNumber(a.total_responses) || toNumber(a.question_number) - toNumber(b.question_number))
+    .slice(0, 5);
+  const easiest = [...attemptedQuestions]
+    .sort((a: any, b: any) => clampPercent(b.accuracy) - clampPercent(a.accuracy) || toNumber(b.total_responses) - toNumber(a.total_responses) || toNumber(a.question_number) - toNumber(b.question_number))
+    .slice(0, 5);
+  const timeConsuming = attemptedQuestions
+    .filter((question: any) => toNumber(question.avg_time_ms) > 0)
+    .sort((a: any, b: any) => toNumber(b.avg_time_ms) - toNumber(a.avg_time_ms) || toNumber(a.question_number) - toNumber(b.question_number))
+    .slice(0, 5);
+  const averageScore = toNumber(stats.average_score);
+  const medianScore = toNumber(stats.median_score);
+  const averageAccuracy = toNumber(stats.average_accuracy) || avgCorrectPct;
+  const totalAttempts = toNumber(stats.total_attempts);
+  const completedAttempts = toNumber(stats.completed_attempts);
+  const totalRegistrations = toNumber(stats.total_registrations);
+  const inProgressAttempts = toNumber(stats.in_progress_attempts);
 
   // Score distribution chart labels
   const scoreDistChart = scoreDistribution.map((b: any) => {
@@ -183,7 +314,7 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
     <div className="min-w-0 w-full p-4 sm:p-6 lg:p-8 space-y-5">
       <PageHeader
         title={quiz?.name || "Quiz Analytics"}
-        subtitle={`${quiz?.code || ""} · Subject: ${quiz?.subject_id || "—"} · Difficulty: ${quiz?.difficulty_name || "—"} · Status: ${quiz?.status || "draft"} · ${stats.total_attempts} attempts · ${stats.total_registrations} registered`}
+        subtitle={`${quiz?.code || "No code"} · ${totalQuestions} questions · ${totalAttempts} attempts`}
         actions={
           <div className="flex items-center gap-2">
             <BillButton variant="ghost" icon={<ArrowLeft className="h-4 w-4" />} href="/creator/quizzes">
@@ -211,58 +342,85 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
         }
       />
 
-      {/* KPI: Participation */}
-      <div className="min-w-0">
-        <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-muted">Participation</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          <Tooltip tip="Total registered for this quiz">
-            <StatCard label="Registered" value={stats.total_registrations} display={String(stats.total_registrations)} accent="info" icon={<Users className="h-3.5 w-3.5" />} hint="registered" />
-          </Tooltip>
-          <Tooltip tip="Attempts started (any status)">
-            <StatCard label="Started" value={stats.total_attempts} display={String(stats.total_attempts)} accent="primary" icon={<Activity className="h-3.5 w-3.5" />} hint={`${stats.completed_attempts} completed`} />
-          </Tooltip>
-          <Tooltip tip="Completed attempts">
-            <StatCard label="Completed" value={stats.completed_attempts} display={String(stats.completed_attempts)} accent="success" icon={<CheckCircle2 className="h-3.5 w-3.5" />} hint={`${stats.in_progress_attempts} in progress`} />
-          </Tooltip>
-          <Tooltip tip="Abandoned = started - completed">
-            <StatCard label="Abandoned" value={Math.max(0, stats.total_attempts - stats.completed_attempts)} display={String(Math.max(0, stats.total_attempts - stats.completed_attempts))} accent="warning" icon={<X className="h-3.5 w-3.5" />} hint="not submitted" />
-          </Tooltip>
-          <StatCard label="Completion Rate" value={completionPct} display={`${completionPct.toFixed(1)}%`} accent="success" icon={<Target className="h-3.5 w-3.5" />} hint="completed / registered" />
-        </div>
-      </div>
-
-      {/* KPI: Performance */}
-      <div className="min-w-0">
-        <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-muted">Performance</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <StatCard label="Average Score" value={Math.round(stats.average_score)} display={stats.average_score.toFixed(1)} accent="primary" icon={<Trophy className="h-3.5 w-3.5" />} hint={`median ${Number(stats.median_score).toFixed(1)}`} />
-          <StatCard label="Median Score" value={Math.round(stats.median_score)} display={Number(stats.median_score).toFixed(1)} accent="info" icon={<BarChart3 className="h-3.5 w-3.5" />} hint={`std ${Number(stats.stddev_score).toFixed(1)}`} />
-          <StatCard label="Highest" value={stats.highest_score} display={String(stats.highest_score)} accent="gold" icon={<Crown className="h-3.5 w-3.5" />} hint="max" />
-          <StatCard label="Lowest" value={stats.lowest_score} display={String(stats.lowest_score)} accent="warning" icon={<TrendingDown className="h-3.5 w-3.5" />} hint="min" />
-          <StatCard label="Pass Rate" value={parseFloat(passRate as any)} display={`${passRate}%`} accent="success" icon={<Award className="h-3.5 w-3.5" />} hint={`${stats.passed_count}/${stats.total_attempts} passed`} />
-          <StatCard label="Avg Accuracy" value={Math.round(parseFloat(String(stats.average_accuracy)) || Number(avgCorrectPct))} display={`${Number(stats.average_accuracy || avgCorrectPct).toFixed(1)}%`} accent="primary" icon={<Target className="h-3.5 w-3.5" />} hint="avg correct" />
-        </div>
-      </div>
-
-      {/* KPI: Timing & Engagement */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div>
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-muted">Timing</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <StatCard label="Avg Time" value={Math.round(stats.average_completion_time || 0)} display={formatTime(stats.average_completion_time)} accent="warning" icon={<Timer className="h-3.5 w-3.5" />} hint={`median ${formatTime(stats.median_time)}`} />
-            <StatCard label="Fastest" value={stats.fastest_time || 0} display={formatTime(stats.fastest_time)} accent="success" icon={<TrendingUp className="h-3.5 w-3.5" />} hint="min" />
-            <StatCard label="Slowest" value={stats.slowest_time || 0} display={formatTime(stats.slowest_time)} accent="warning" icon={<TrendingDown className="h-3.5 w-3.5" />} hint="max" />
-            <StatCard label="Avg per Q" value={questions.length ? Math.round((stats.average_completion_time || 0) / Math.max(1, totalQuestions)) : 0} display={questions.length ? formatTime((stats.average_completion_time || 0) / totalQuestions) : "—"} accent="info" icon={<Clock className="h-3.5 w-3.5" />} hint={`${totalQuestions} Qs`} />
+      {/* Clear, compact overview */}
+      <section className="overflow-hidden rounded-[24px] border border-border bg-card shadow-[0_14px_40px_rgba(17,24,39,0.06)] dark:shadow-[0_16px_44px_rgba(0,0,0,0.24)]">
+        <div className="flex flex-col gap-4 border-b border-border bg-gradient-to-r from-pink-500/[0.07] via-transparent to-violet-500/[0.08] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-pink-500/20 bg-pink-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-pink-600 dark:text-pink-300">
+                Analytics overview
+              </span>
+              <span className="rounded-full border border-border bg-card/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-text-secondary">
+                {quiz?.status || "Draft"}
+              </span>
+            </div>
+            <h2 className="mt-3 text-lg font-black tracking-tight text-text-primary sm:text-xl">How this quiz is performing</h2>
+            <p className="mt-1 text-sm text-text-secondary">A focused view of participation, outcomes, and question quality.</p>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/75 px-4 py-3 backdrop-blur-sm">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-violet-500/10 text-violet-500"><Gauge className="h-5 w-5" /></span>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Quiz difficulty</p>
+              <p className="mt-0.5 text-sm font-bold text-text-primary">{quiz?.difficulty_name || "Not set"}</p>
+            </div>
           </div>
         </div>
-        <div>
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-text-muted">Engagement</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <StatCard label="Avg Attempted" value={questions.length ? Math.round(questions.reduce((a: number, q: any) => a + (q.total_responses || 0), 0) / Math.max(1, stats.total_attempts)) : 0} display={`${questions.length ? (questions.reduce((a: number, q: any) => a + (q.total_responses || 0), 0) / Math.max(1, stats.total_attempts)).toFixed(1) : "0"} / ${totalQuestions}`} accent="info" icon={<Layers className="h-3.5 w-3.5" />} hint="per student" />
-            <StatCard label="Avg Skipped" value={questions.length ? Math.round(questions.reduce((a: number, q: any) => a + (q.skipped_count || 0), 0) / Math.max(1, stats.total_attempts)) : 0} display={`${questions.length ? (questions.reduce((a: number, q: any) => a + (q.skipped_count || 0), 0) / Math.max(1, stats.total_attempts)).toFixed(1) : "0"}`} accent="warning" icon={<UserX className="h-3.5 w-3.5" />} hint="per student" />
-            <StatCard label="Game Uses" value={totalGameUses} display={String(totalGameUses)} accent="primary" icon={<Zap className="h-3.5 w-3.5" />} hint={`${game.by_type?.length || 0} types`} />
-            <StatCard label="Lives (cfg)" value={data?.quiz?.total_marks || 0} display={String(data?.quiz?.total_marks ?? "—")} accent="gold" icon={<Heart className="h-3.5 w-3.5" />} hint="see lives dist below" />
+
+        <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-4">
+          <OverviewMetric label="Attempts" value={String(totalAttempts)} hint={`${totalRegistrations} students registered`} icon={Users} />
+          <OverviewMetric label="Completion" value={`${completionPct.toFixed(1)}%`} hint={`${completedAttempts} completed · ${inProgressAttempts} in progress`} icon={CheckCircle2} />
+          <OverviewMetric label="Average score" value={averageScore.toFixed(1)} hint={`Median ${medianScore.toFixed(1)} · High ${toNumber(stats.highest_score).toFixed(0)}`} icon={Trophy} />
+          <OverviewMetric label="Pass rate" value={`${passRate.toFixed(1)}%`} hint={`${toNumber(stats.passed_count)} of ${totalAttempts} attempts passed`} icon={Target} />
+        </div>
+
+        <div className="grid grid-cols-2 border-t border-border bg-background/30 sm:grid-cols-4 dark:bg-white/[0.015]">
+          {[
+            ["Average accuracy", `${averageAccuracy.toFixed(1)}%`],
+            ["Average time", formatTime(toNumber(stats.average_completion_time))],
+            ["Fastest finish", formatTime(toNumber(stats.fastest_time))],
+            ["Power-up uses", String(totalGameUses)],
+          ].map(([label, value], index) => (
+            <div key={label} className={cn("px-4 py-3.5 sm:px-5", index % 2 !== 0 && "border-l border-border", index >= 2 && "border-t border-border sm:border-t-0", index === 2 && "sm:border-l")}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">{label}</p>
+              <p className="mt-1 text-sm font-black text-text-primary tabular-nums">{value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div>
+        <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-base font-black tracking-tight text-text-primary">Question intelligence</h2>
+            <p className="mt-0.5 text-xs text-text-secondary">Only questions with at least one submitted response are ranked.</p>
           </div>
+          <span className="text-[11px] font-semibold text-text-muted">Top 5 in each category</span>
+        </div>
+        <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+          <QuestionInsightPanel
+            title="Hardest questions"
+            subtitle="Lowest accuracy — review wording or concepts"
+            icon={Flame}
+            tone="rose"
+            questions={hardest}
+            metric={(question) => `${clampPercent(question.accuracy).toFixed(1)}%`}
+          />
+          <QuestionInsightPanel
+            title="Easiest questions"
+            subtitle="Highest accuracy — strongest student outcomes"
+            icon={Crown}
+            tone="emerald"
+            questions={easiest}
+            metric={(question) => `${clampPercent(question.accuracy).toFixed(1)}%`}
+          />
+          <QuestionInsightPanel
+            title="Slowest questions"
+            subtitle="Highest average response time"
+            icon={Clock}
+            tone="amber"
+            questions={timeConsuming}
+            metric={(question) => `${(toNumber(question.avg_time_ms) / 1000).toFixed(1)}s`}
+          />
         </div>
       </div>
 
@@ -274,7 +432,7 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
           ) : (
             <>
               <MiniBarChart data={scoreDistChart} height={220} formatter={(v) => `${v}`} />
-              <p className="mt-2 text-[11px] text-text-muted">Mean {stats.average_score.toFixed(1)} · Median {Number(stats.median_score).toFixed(1)} · σ {Number(stats.stddev_score).toFixed(1)}</p>
+              <p className="mt-2 text-[11px] text-text-muted">Mean {averageScore.toFixed(1)} · Median {medianScore.toFixed(1)} · σ {toNumber(stats.stddev_score).toFixed(1)}</p>
             </>
           )}
         </Panel>
@@ -358,8 +516,8 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
                   <td className="px-3 py-2.5 text-right tabular-nums">{q.skipped_count}</td>
                   <td className="px-3 py-2.5 text-right">
                     <span className="inline-flex items-center gap-1.5">
-                      <span className="font-semibold">{q.accuracy}%</span>
-                      <span className="h-1.5 w-14 overflow-hidden rounded-full bg-white/[0.06]"><span className="block h-full rounded-full bg-emerald-500" style={{ width: `${Math.min(100, q.accuracy)}%` }} /></span>
+                      <span className="font-semibold">{clampPercent(q.accuracy).toFixed(1)}%</span>
+                      <span className="h-1.5 w-14 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.08]"><span className="block h-full rounded-full bg-emerald-500" style={{ width: `${clampPercent(q.accuracy)}%` }} /></span>
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-right tabular-nums">{q.avg_time_ms ? `${(q.avg_time_ms / 1000).toFixed(1)}s` : "—"}</td>
@@ -373,22 +531,10 @@ export default function QuizAnalyticsContent({ quizId }: { quizId: string }) {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title="Accuracy by Question (easiest → hardest)" subtitle="Higher is easier">
-          {questions.length === 0 ? <div className="py-8 text-center text-sm text-text-muted">No data</div> : <MiniBarChart data={[...questions].sort((a:any,b:any)=>b.accuracy-a.accuracy).map((q:any)=>({label:`Q${q.question_number}`, value: q.accuracy}))} height={220} formatter={(v)=>`${v}%`} barClassName="bg-emerald-500" />}
+          {attemptedQuestions.length === 0 ? <div className="py-8 text-center text-sm text-text-muted">No attempted questions yet.</div> : <MiniBarChart data={[...attemptedQuestions].sort((a:any,b:any)=>clampPercent(b.accuracy)-clampPercent(a.accuracy)).map((q:any)=>({label:`Q${q.question_number}`, value: clampPercent(q.accuracy)}))} height={220} formatter={(v)=>`${v}%`} barClassName="bg-emerald-500" />}
         </Panel>
         <Panel title="Time Spent by Question" subtitle="Avg time — most time-consuming">
-          {questions.every((q:any)=>!q.avg_time_ms) ? <div className="py-8 text-center text-sm text-text-muted">No per-question timing recorded yet. Time is tracked via events once enabled.</div> : <MiniBarChart data={[...questions].sort((a:any,b:any)=>(b.avg_time_ms||0)-(a.avg_time_ms||0)).slice(0,10).map((q:any)=>({label:`Q${q.question_number}`, value: Math.round((q.avg_time_ms||0)/1000)}))} height={220} formatter={(v)=>`${v}s`} barClassName="bg-amber-500" />}
-        </Panel>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Panel title="Hardest Questions" subtitle="Lowest accuracy">
-          {hardest.length === 0 ? <div className="py-6 text-center text-sm text-text-muted">No data</div> : hardest.map((q:any)=>(<div key={q.id} className="flex items-center justify-between rounded-xl border border-border/60 bg-white/[0.02] p-3"><div className="min-w-0"><p className="truncate text-xs font-semibold">Q{q.question_number}. {cleanStatement(q.problem_statement)}</p><p className="text-[11px] text-text-muted">{q.accuracy}% · {q.total_responses} attempts</p></div><span className="ml-2 rounded-full bg-red-500/10 px-2 py-1 text-xs font-bold text-red-500">{q.accuracy}%</span></div>))}
-        </Panel>
-        <Panel title="Easiest Questions" subtitle="Highest accuracy">
-          {easiest.length === 0 ? <div className="py-6 text-center text-sm text-text-muted">No data</div> : easiest.map((q:any)=>(<div key={q.id} className="flex items-center justify-between rounded-xl border border-border/60 bg-white/[0.02] p-3"><div className="min-w-0"><p className="truncate text-xs font-semibold">Q{q.question_number}. {cleanStatement(q.problem_statement)}</p><p className="text-[11px] text-text-muted">{q.accuracy}% · {q.total_responses} attempts</p></div><span className="ml-2 rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-bold text-emerald-500">{q.accuracy}%</span></div>))}
-        </Panel>
-        <Panel title="Most Time-Consuming" subtitle="Avg time spent">
-          {timeConsuming.length === 0 || timeConsuming.every((q:any)=>!q.avg_time_ms) ? <div className="py-6 text-center text-sm text-text-muted">No timing data</div> : timeConsuming.map((q:any)=>(<div key={q.id} className="flex items-center justify-between rounded-xl border border-border/60 bg-white/[0.02] p-3"><div className="min-w-0"><p className="truncate text-xs font-semibold">Q{q.question_number}. {cleanStatement(q.problem_statement)}</p><p className="text-[11px] text-text-muted">{q.accuracy}% correct</p></div><span className="ml-2 rounded-full bg-amber-500/10 px-2 py-1 text-xs font-bold text-amber-500">{q.avg_time_ms ? (q.avg_time_ms/1000).toFixed(1)+"s" : "—"}</span></div>))}
+          {timeConsuming.length === 0 ? <div className="py-8 text-center text-sm text-text-muted">No per-question timing recorded yet. Time is tracked via events once enabled.</div> : <MiniBarChart data={[...attemptedQuestions].filter((q:any)=>toNumber(q.avg_time_ms)>0).sort((a:any,b:any)=>toNumber(b.avg_time_ms)-toNumber(a.avg_time_ms)).slice(0,10).map((q:any)=>({label:`Q${q.question_number}`, value: Math.round(toNumber(q.avg_time_ms)/1000)}))} height={220} formatter={(v)=>`${v}s`} barClassName="bg-amber-500" />}
         </Panel>
       </div>
 

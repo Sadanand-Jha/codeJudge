@@ -956,6 +956,25 @@ export class QuizRepository {
     return result.rows.length > 0 ? result.rows[0] : null;
   }
 
+  async getExpiredQuizAttempts(quizId: number, userId?: number): Promise<any[]> {
+    const result = await pool.query(
+      `SELECT qa.*
+       FROM quiz_attempt qa
+       JOIN quiz q ON q.id = qa.quiz_id
+       WHERE qa.quiz_id = $1
+         AND qa.status = 'in_progress'
+         AND ($2::int IS NULL OR qa.user_id = $2)
+         AND (
+           (q.duration IS NOT NULL
+             AND COALESCE(qa.started_at, qa.created_at) + (q.duration * INTERVAL '1 minute') <= CURRENT_TIMESTAMP)
+           OR (q.endtime IS NOT NULL AND q.endtime <= CURRENT_TIMESTAMP)
+         )
+       ORDER BY qa.id ASC`,
+      [quizId, userId ?? null]
+    );
+    return result.rows;
+  }
+
   async createQuizAttempt(data: {
     userId: number;
     quizId: number;
@@ -1038,6 +1057,18 @@ export class QuizRepository {
 
     const result = await pool.query(query, values);
     return result.rows[0];
+  }
+
+  /** Records that a student still has an active quiz screen open. */
+  async touchQuizAttempt(attemptId: number): Promise<any | null> {
+    const result = await pool.query(
+      `UPDATE quiz_attempt
+       SET updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND status = 'in_progress'
+       RETURNING *`,
+      [attemptId]
+    );
+    return result.rows[0] ?? null;
   }
 
   async saveStudentResponse(data: {
@@ -1480,6 +1511,7 @@ export class QuizRepository {
     page?: number;
     limit?: number;
     search?: string;
+    status?: string;
     sortBy?: string;
     sortOrder?: string;
   }): Promise<{ quizzes: any[]; total: number }> {
@@ -1487,6 +1519,7 @@ export class QuizRepository {
       page = 1,
       limit = 10,
       search = "",
+      status = "",
       sortBy = "completed_at",
       sortOrder = "DESC",
     } = filters;
@@ -1500,6 +1533,14 @@ export class QuizRepository {
       paramCount++;
       conditions.push(`q.name ILIKE $${paramCount}`);
       queryParams.push(`%${search}%`);
+    }
+
+    const normalizedStatus = status.trim().toLowerCase().replace(/\s+/g, "_");
+    const allowedStatuses = new Set(["completed", "submitted", "timed_out", "left_early"]);
+    if (allowedStatuses.has(normalizedStatus)) {
+      paramCount++;
+      conditions.push(`LOWER(REPLACE(qa.status, ' ', '_')) = $${paramCount}`);
+      queryParams.push(normalizedStatus);
     }
 
     const whereClause = conditions.join(" AND ");
@@ -1935,11 +1976,16 @@ export class QuizRepository {
         u.username,
         u.first_name,
         u.last_name,
+        a.url AS avatar_url,
         qa.id AS attempt_id,
+        CASE WHEN qa.id IS NULL THEN NULL ELSE
+          ROW_NUMBER() OVER (PARTITION BY qr.user_id ORDER BY qa.created_at ASC, qa.id ASC)
+        END AS attempt_number,
         qa.score,
         qa.percentage,
         qa.rank,
         qa.status AS attempt_status,
+        qa.updated_at AS last_activity,
         qa.completed_at,
         qa.time_taken,
         qa.total_questions,
@@ -1948,6 +1994,7 @@ export class QuizRepository {
         qa.skipped_questions
       FROM quiz_registration qr
       JOIN users u ON u.id = qr.user_id
+      LEFT JOIN avatar a ON a.id = u.avatar_id
       LEFT JOIN quiz_attempt qa ON qa.quiz_id = qr.quiz_id AND qa.user_id = qr.user_id
       WHERE qr.quiz_id = $1 AND qr.is_registered = true
       ORDER BY qa.score DESC NULLS LAST, qa.time_taken ASC NULLS LAST, u.first_name ASC
@@ -1988,7 +2035,7 @@ export class QuizRepository {
   /**
    * Question-wise detail for a single student's attempt (admin/collaborator view).
    */
-  async getStudentAttemptDetails(quizId: number, userId: number): Promise<any | null> {
+  async getStudentAttemptDetails(quizId: number, userId: number, attemptId?: number): Promise<any | null> {
     const query = `
       SELECT
         qa.id AS attempt_id,
@@ -2010,10 +2057,11 @@ export class QuizRepository {
       FROM quiz_attempt qa
       JOIN users u ON u.id = qa.user_id
       WHERE qa.quiz_id = $1 AND qa.user_id = $2
+        AND ($3::int IS NULL OR qa.id = $3)
       ORDER BY qa.created_at DESC
       LIMIT 1
     `;
-    const result = await pool.query(query, [quizId, userId]);
+    const result = await pool.query(query, [quizId, userId, attemptId ?? null]);
     return result.rows.length ? result.rows[0] : null;
   }
 

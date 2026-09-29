@@ -19,7 +19,7 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   }
 
   // Idempotency: a retried/deduped job for an already-graded attempt is a no-op.
-  if (attempt.status === "completed") {
+  if (attempt.status === "completed" || attempt.status === "timed_out") {
     return attempt;
   }
 
@@ -133,13 +133,22 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   }
 
   const startedAt = attempt.started_at ?? attempt.created_at;
+  const durationDeadline = quizRow?.duration && startedAt
+    ? new Date(startedAt).getTime() + Number(quizRow.duration) * 60_000
+    : Number.POSITIVE_INFINITY;
+  const quizDeadline = quizRow?.endtime
+    ? new Date(quizRow.endtime).getTime()
+    : Number.POSITIVE_INFINITY;
+  const effectiveCompletionMs = isLate
+    ? Math.min(Date.now(), durationDeadline, quizDeadline)
+    : Date.now();
   const timeTaken = startedAt
-    ? Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000))
+    ? Math.max(0, Math.floor((effectiveCompletionMs - new Date(startedAt).getTime()) / 1000))
     : undefined;
 
   const updatedAttempt = await quizService.updateQuizAttempt(Number(attemptId), {
     status: isLate ? "timed_out" : "completed",
-    completed_at: new Date(),
+    completed_at: new Date(effectiveCompletionMs),
     score,
     percentage,
     correct_answers: correctAnswers,
@@ -154,4 +163,54 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   });
 
   return updatedAttempt;
+}
+
+function savedResponseToSubmission(row: any): QuizSubmissionJobData["responses"][number] | null {
+  const problemId = Number(row.problem_id);
+  if (!Number.isInteger(problemId) || problemId <= 0 || row.answer == null) return null;
+  const answer = row.answer;
+  if (typeof answer === "object") {
+    if (answer.selectedOptionId != null) return { problemId, option: String(answer.selectedOptionId) };
+    if (Array.isArray(answer.selectedOptionIds)) {
+      return { problemId, options: answer.selectedOptionIds.map(String) };
+    }
+    if (answer.text != null) return { problemId, textAnswer: String(answer.text) };
+  }
+  if (typeof answer === "string" && answer.trim()) return { problemId, option: answer };
+  return null;
+}
+
+/**
+ * Grades attempts whose personal duration or quiz end-time has elapsed. This
+ * runs on server requests, so it also covers students who closed the browser
+ * before the client-side timer could submit.
+ */
+export async function finalizeExpiredQuizAttempts(options: {
+  quizId: number;
+  userId?: number;
+}): Promise<number> {
+  const expired = await quizService.getExpiredQuizAttempts(options.quizId, options.userId);
+  let finalized = 0;
+  for (const attempt of expired) {
+    try {
+      const saved = await quizService.getStudentResponses(Number(attempt.id), Number(attempt.user_id));
+      const responses = saved
+        .map(savedResponseToSubmission)
+        .filter((response): response is QuizSubmissionJobData["responses"][number] => response !== null);
+      await processQuizSubmission({
+        attemptId: Number(attempt.id),
+        userId: Number(attempt.user_id),
+        responses,
+        violations: Number(attempt.violations) || 0,
+        flagged: attempt.flagged === true,
+        ...(attempt.flag_reason ? { flagReason: String(attempt.flag_reason) } : {}),
+        isLate: true,
+        submittedAt: new Date().toISOString(),
+      });
+      finalized += 1;
+    } catch (error) {
+      console.error(`Failed to auto-submit expired quiz attempt ${attempt.id}:`, error);
+    }
+  }
+  return finalized;
 }

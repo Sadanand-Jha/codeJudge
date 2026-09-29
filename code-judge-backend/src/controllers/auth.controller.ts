@@ -54,11 +54,11 @@ export const checkUsernameController = async (req: Request, res: Response) => {
       return;
     }
 
-    if (!/^[a-z0-9_]+$/.test(trimmed)) {
+    if (!/^[a-z0-9]+$/.test(trimmed)) {
       res.status(400).json({
         success: false,
         available: false,
-        message: "Username can only contain lowercase letters, numbers, and underscores",
+        message: "Username can only contain lowercase letters and numbers",
       });
       return;
     }
@@ -165,12 +165,12 @@ export const verifyOtpController = async (req: Request, res: Response) => {
  */
 export const registerController = async (req: Request, res: Response) => {
   try {
-    const { email, password, registration_token, username } = req.body;
+    const { email, password, registration_token, username, avatar_url } = req.body;
 
-    if (!email || !password || !registration_token || !username) {
+    if (!email || !password || !registration_token || !username || !avatar_url) {
       res.status(400).json({
         success: false,
-        message: "Email, password, username, and registration_token are required",
+        message: "Email, password, username, avatar, and registration_token are required",
         statusCode: 400,
       });
       return;
@@ -187,10 +187,10 @@ export const registerController = async (req: Request, res: Response) => {
       return;
     }
 
-    if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
+    if (!/^[a-z0-9]+$/.test(trimmedUsername)) {
       res.status(400).json({
         success: false,
-        message: "Username can only contain lowercase letters, numbers, and underscores",
+        message: "Username can only contain lowercase letters and numbers",
         statusCode: 400,
       });
       return;
@@ -206,7 +206,7 @@ export const registerController = async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await register(email, password, registration_token, trimmedUsername);
+    const result = await register(email, password, registration_token, trimmedUsername, avatar_url);
 
     if (!result.success) {
       res.status(result.statusCode || 400).json(result);
@@ -343,31 +343,29 @@ export const resetPasswordController = async (req: Request, res: Response) => {
 
 /**
  * POST /api/auth/login
- * Body: { "email": "user@example.com", "password": "SecurePassword123" }
+ * Body: { "identifier": "user@example.com or username", "password": "SecurePassword123" }
  * Sets session_token cookie on success
  */
 export const loginController = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       res.status(400).json({
         success: false,
-        message: "Email and password are required",
+        message: "Email or username and password are required",
         statusCode: 400,
       });
       return;
     }
 
-    const normalizedEmail = email.toLowerCase();
-
-    // Get user by email
-    const user = await userService.getUserByEmail(normalizedEmail);
+    const normalizedIdentifier = identifier.trim().toLowerCase();
+    const user = await userService.getUserByIdentifier(normalizedIdentifier);
 
     if (!user) {
       res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message: "Invalid email/username or password",
         statusCode: 401,
       });
       return;
@@ -379,7 +377,7 @@ export const loginController = async (req: Request, res: Response) => {
     if (!isPasswordValid) {
       res.status(401).json({
         success: false,
-        message: "Invalid email or password",
+        message: "Invalid email/username or password",
         statusCode: 401,
       });
       return;
@@ -392,7 +390,7 @@ export const loginController = async (req: Request, res: Response) => {
     const sessionToken = jwt.sign(
       {
         userId: String(user.id),
-        email: normalizedEmail
+        email: user.email
       },
       jwtSecret,
       signOptions

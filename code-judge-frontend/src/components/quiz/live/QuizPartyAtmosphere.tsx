@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
 import { IceCreamCone, Lollipop, PartyPopper, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -20,23 +19,19 @@ const FLOATERS = [
   { Icon: Sparkles, left: "88%", top: "76%", color: "#17BFA3", bg: "#E8FFF9", rotate: -10, delay: 2.2 },
 ] as const;
 
-function WaterBalloon({ className, color, delay }: { className: string; color: string; delay: number }) {
-  const reduceMotion = useReducedMotion();
+function WaterBalloon({ className, color }: { className: string; color: string }) {
   return (
-    <motion.div
+    <div
       className={cn("absolute h-16 w-14 rounded-[52%_48%_48%_52%] border-2 border-white/80 shadow-[inset_-10px_-8px_14px_rgba(56,34,100,.13),0_12px_30px_-16px_rgba(61,39,145,.4)]", className)}
       style={{ background: color }}
-      animate={reduceMotion ? undefined : { y: [0, -12, 0], rotate: [-5, 6, -5] }}
-      transition={{ duration: 5.5, delay, repeat: Infinity, ease: "easeInOut" }}
     >
       <span className="absolute left-3 top-2 h-4 w-2 rotate-[-25deg] rounded-full bg-white/45 blur-[1px]" />
       <span className="absolute -bottom-2 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 rounded-sm" style={{ background: color }} />
-    </motion.div>
+    </div>
   );
 }
 
-export default function QuizPartyAtmosphere({ className }: { className?: string }) {
-  const reduceMotion = useReducedMotion();
+export default function QuizPartyAtmosphere({ className, showFloaters = true }: { className?: string; showFloaters?: boolean }) {
   const isMobile = useIsMobile();
 
   // Mobile / touch: static candy wash only. The 30 confetti loops, floating
@@ -74,31 +69,27 @@ export default function QuizPartyAtmosphere({ className }: { className?: string 
       </div>
 
       {/* Balloons */}
-      <WaterBalloon className="left-[3%] top-[48%] hidden sm:block" color="linear-gradient(145deg,#61DCF4,#2999E8)" delay={0.2} />
-      <WaterBalloon className="right-[3%] top-[47%] hidden md:block" color="linear-gradient(145deg,#FF8BC0,#F04D91)" delay={1.2} />
-      <WaterBalloon className="right-[15%] top-[8%] hidden lg:block scale-75" color="linear-gradient(145deg,#FFD95C,#FF9D30)" delay={2} />
+      <WaterBalloon className="left-[3%] top-[48%] hidden sm:block -rotate-6" color="linear-gradient(145deg,#61DCF4,#2999E8)" />
+      <WaterBalloon className="right-[3%] top-[47%] hidden md:block rotate-6" color="linear-gradient(145deg,#FF8BC0,#F04D91)" />
+      <WaterBalloon className="right-[15%] top-[8%] hidden lg:block scale-75 -rotate-3" color="linear-gradient(145deg,#FFD95C,#FF9D30)" />
 
       {/* Party objects around the safe content edges */}
-      {FLOATERS.map(({ Icon, left, top, color, bg, rotate, delay }, index) => (
-        <motion.div
+      {showFloaters && FLOATERS.map(({ Icon, left, top, color, bg, rotate }, index) => (
+        <div
           key={index}
           className="quiz-party-floater absolute hidden h-14 w-14 items-center justify-center rounded-[20px] border-2 border-white/80 shadow-[0_14px_34px_-18px_rgba(87,53,143,.5)] sm:flex"
-          style={{ left, top, color, background: bg, rotate }}
-          animate={reduceMotion ? undefined : { y: [0, -9, 0, 5, 0], rotate: [rotate, rotate + 7, rotate - 4, rotate] }}
-          transition={{ duration: 6 + index, delay, repeat: Infinity, ease: "easeInOut" }}
+          style={{ left, top, color, background: bg, rotate: `${rotate}deg` }}
         >
           <Icon className="h-7 w-7" strokeWidth={2.3} />
-        </motion.div>
+        </div>
       ))}
 
       {/* Confetti sprinkles */}
       {CONFETTI.map((piece, index) => (
-        <motion.span
+        <span
           key={index}
           className="quiz-party-confetti absolute h-1.5 w-3 rounded-full opacity-65"
-          style={{ left: piece.left, top: piece.top, backgroundColor: piece.color, rotate: piece.rotate }}
-          animate={reduceMotion ? undefined : { y: [0, 8, 0], rotate: [piece.rotate, piece.rotate + 45, piece.rotate] }}
-          transition={{ duration: 4 + (index % 4), delay: piece.delay, repeat: Infinity, ease: "easeInOut" }}
+          style={{ left: piece.left, top: piece.top, backgroundColor: piece.color, rotate: `${piece.rotate}deg` }}
         />
       ))}
 

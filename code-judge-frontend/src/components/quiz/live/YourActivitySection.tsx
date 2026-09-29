@@ -8,7 +8,7 @@ import {
   Send, Check, HelpCircle, Code2, Brain, Beaker, Calculator,
   Globe2, Palette, Database, Network, Hash, Target, Layers3,
   Calendar, Timer, ArrowRight, ArrowUpRight, X, Milestone, Filter,
-  BarChart2, ChevronDown, Award, Globe,
+  BarChart2, ChevronDown, ChevronLeft, ChevronRight, Award, Globe,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { getOldQuizzes } from "@/services/quiz";
@@ -502,24 +502,40 @@ export default function YourActivitySection({ missionMode = false }: { missionMo
   const [recentSearch, setRecentSearch] = useState("");
   const [recentStatus, setRecentStatus] = useState<string>("All");
   const [recentSort, setRecentSort] = useState<string>("Newest");
-  const pageSize = 10;
+  const [recentPage, setRecentPage] = useState(1);
+  const [recentTotal, setRecentTotal] = useState(0);
+  const [recentTotalPages, setRecentTotalPages] = useState(1);
+  const pageSize = 5;
 
   useEffect(() => {
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- set loading before async request kick-off
     setRecentLoading(true);
     getOldQuizzes({
-      page: 1,
+      page: recentPage,
       limit: pageSize,
       search: recentSearch || undefined,
+      status: recentStatus === "All" ? undefined : recentStatus,
       sortBy: recentSort === "Newest" ? "completed_at" : recentSort === "Oldest" ? "completed_at" : "percentage",
       sortOrder: recentSort === "Oldest" || recentSort === "Lowest Score" ? "ASC" : "DESC",
     })
-      .then((res) => { if (!cancelled) { setRecentQuizzes(res.quizzes); } })
+      .then((res) => {
+        if (!cancelled) {
+          setRecentQuizzes(res.quizzes);
+          setRecentTotal(res.total);
+          setRecentTotalPages(res.totalPages);
+        }
+      })
       .catch(() => {})
       .finally(() => { if (!cancelled) setRecentLoading(false); });
     return () => { cancelled = true; };
-  }, [recentSearch, recentStatus, recentSort]);
+  }, [recentPage, recentSearch, recentStatus, recentSort]);
+
+  const paginationPages = useMemo(() => {
+    const visibleCount = Math.min(5, recentTotalPages);
+    const start = Math.max(1, Math.min(recentPage - 2, recentTotalPages - visibleCount + 1));
+    return Array.from({ length: visibleCount }, (_, index) => start + index);
+  }, [recentPage, recentTotalPages]);
 
   const overview = useMemo(() => {
     const list = recentQuizzes || [];
@@ -527,13 +543,12 @@ export default function YourActivitySection({ missionMode = false }: { missionMo
     const scores = list.map((q) => Number(q.percentage)).filter((v) => Number.isFinite(v));
     const avgScore = scores.length ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length) : null;
     const bestScore = scores.length ? Math.round(Math.max(...scores)) : null;
-    return { totalAttempts: list.length, completed, avgScore, bestScore };
-  }, [recentQuizzes]);
+    return { totalAttempts: recentTotal, completed, avgScore, bestScore };
+  }, [recentQuizzes, recentTotal]);
 
-  const filtered = useMemo(() => {
-    if (recentStatus === "All") return recentQuizzes;
-    return recentQuizzes.filter((q) => q.status.trim().toLowerCase() === recentStatus.trim().toLowerCase());
-  }, [recentQuizzes, recentStatus]);
+  // Status filtering happens in the parameterized backend query so pagination
+  // counts and page contents always describe the same result set.
+  const filtered = recentQuizzes;
 
   const performance = useMemo(() => {
     const list = [...recentQuizzes]
@@ -568,8 +583,8 @@ export default function YourActivitySection({ missionMode = false }: { missionMo
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <FilterSelect icon={Filter} value={recentStatus} options={STATUS_OPTIONS} onChange={setRecentStatus} label="Filter by status" />
-          <FilterSelect icon={TrendingUp} value={recentSort} options={SORT_OPTIONS} onChange={setRecentSort} label="Sort attempts" />
+          <FilterSelect icon={Filter} value={recentStatus} options={STATUS_OPTIONS} onChange={(value) => { setRecentStatus(value); setRecentPage(1); }} label="Filter by status" />
+          <FilterSelect icon={TrendingUp} value={recentSort} options={SORT_OPTIONS} onChange={(value) => { setRecentSort(value); setRecentPage(1); }} label="Sort attempts" />
         </div>
       </div>
 
@@ -590,7 +605,7 @@ export default function YourActivitySection({ missionMode = false }: { missionMo
             <div>
             <h3 className="text-[15px] font-bold text-[#101828] dark:text-[#F4F6FA]">{missionMode ? "Recent Missions" : "Recent Attempts"}</h3>
             <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.1em] text-[#98A2B3] tabular-nums dark:text-[#687386]">
-              {filtered.length} {missionMode ? `mission${filtered.length === 1 ? "" : "s"}` : `attempt${filtered.length === 1 ? "" : "s"}`}
+              {recentTotal} {missionMode ? `mission${recentTotal === 1 ? "" : "s"}` : `attempt${recentTotal === 1 ? "" : "s"}`}
             </span>
             </div>
           </div>
@@ -599,7 +614,7 @@ export default function YourActivitySection({ missionMode = false }: { missionMo
               <BarChart2 className="h-3.5 w-3.5" /> Latest first
             </span>
             <div className="lg:w-72">
-              <SearchField value={recentSearch} onChange={setRecentSearch} placeholder={missionMode ? "Search missions..." : "Search quizzes..."} />
+              <SearchField value={recentSearch} onChange={(value) => { setRecentSearch(value); setRecentPage(1); }} placeholder={missionMode ? "Search missions..." : "Search quizzes..."} />
             </div>
           </div>
         </div>
@@ -621,8 +636,29 @@ export default function YourActivitySection({ missionMode = false }: { missionMo
               ? Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)
               : filtered.length === 0
                 ? <EmptyState missionMode={missionMode} />
-                : filtered.map((quiz, i) => <AttemptRow key={quiz.attempt_id} quiz={quiz} index={i} />)}
+                : filtered.map((quiz, i) => <AttemptRow key={quiz.attempt_id} quiz={quiz} index={(recentPage - 1) * pageSize + i} />)}
           </div>
+
+          {!recentLoading && recentTotalPages > 1 && (
+            <nav className="relative flex flex-col gap-3 border-t border-pink-100/80 bg-white/35 px-4 py-3 dark:border-white/[0.06] dark:bg-black/[0.08] sm:flex-row sm:items-center sm:justify-between sm:px-5" aria-label="Recent attempts pagination">
+              <p className="text-center text-[11px] font-medium text-[#667085] dark:text-[#8F9AAF] sm:text-left">
+                Showing {(recentPage - 1) * pageSize + 1}–{Math.min(recentPage * pageSize, recentTotal)} of {recentTotal}
+              </p>
+              <div className="flex items-center justify-center gap-1.5">
+                <button type="button" onClick={() => setRecentPage((page) => Math.max(1, page - 1))} disabled={recentPage === 1} aria-label="Previous page" className="grid h-9 w-9 place-items-center rounded-xl border border-pink-200 bg-white text-[#667085] transition-colors hover:border-violet-300 hover:text-violet-600 disabled:cursor-not-allowed disabled:opacity-35 dark:border-white/10 dark:bg-white/[0.04] dark:text-[#9AA4B5] dark:hover:border-violet-400/30 dark:hover:text-violet-300">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                {paginationPages.map((page) => (
+                  <button key={page} type="button" onClick={() => setRecentPage(page)} aria-current={page === recentPage ? "page" : undefined} className={cn("grid h-9 min-w-9 place-items-center rounded-xl border px-2 text-xs font-bold transition-colors", page === recentPage ? "border-violet-500 bg-violet-500 text-white shadow-sm" : "border-pink-200 bg-white text-[#667085] hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-[#9AA4B5] dark:hover:border-violet-400/30 dark:hover:text-violet-300")}>
+                    {page}
+                  </button>
+                ))}
+                <button type="button" onClick={() => setRecentPage((page) => Math.min(recentTotalPages, page + 1))} disabled={recentPage === recentTotalPages} aria-label="Next page" className="grid h-9 w-9 place-items-center rounded-xl border border-pink-200 bg-white text-[#667085] transition-colors hover:border-violet-300 hover:text-violet-600 disabled:cursor-not-allowed disabled:opacity-35 dark:border-white/10 dark:bg-white/[0.04] dark:text-[#9AA4B5] dark:hover:border-violet-400/30 dark:hover:text-violet-300">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </nav>
+          )}
         </div>
 
         {/* ── Performance strip: full-width panels below the table ── */}
