@@ -468,12 +468,12 @@ export default function AttemptReviewExperience({
               </div>
             </motion.section>
 
-            {/* Question Palette */}
+            {/* Question Palette — sizes to its content, no fixed height. */}
             <motion.section
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="box-border flex h-[min(720px,calc(100dvh-6rem))] min-h-[480px] w-full max-w-full flex-col rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:h-[680px] sm:p-5"
+              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <h2 className="flex items-center gap-2 text-[15px] font-semibold text-[#F5F7FB]">
@@ -497,7 +497,7 @@ export default function AttemptReviewExperience({
               <p className="mt-1.5 text-xs text-[#6F819D]">
                 Green = correct, red = wrong, gray = skipped, blue = current
               </p>
-              <div className="mt-3 grid grid-cols-5 gap-2 min-[420px]:grid-cols-6 sm:gap-2.5" role="group" aria-label="Question palette">
+              <div className="mt-3 grid grid-cols-6 gap-1.5 min-[420px]:grid-cols-8 sm:gap-2" role="group" aria-label="Question palette">
                 {data.questions.map((question, index) => {
                   const state = paletteStatus[index] ?? questionStatus(question);
                   const isActive = selectedQuestion === index;
@@ -507,7 +507,7 @@ export default function AttemptReviewExperience({
                       onClick={() => { playQuizSound("select"); setSelectedQuestion(index); }}
                       aria-current={isActive ? "true" : undefined}
                       aria-label={`Question ${question.number}: ${state}${isActive ? ", current" : ""}`}
-                      className={`flex h-[42px] items-center justify-center rounded-[10px] border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF] sm:h-[50px] sm:text-[15px] ${
+                      className={`flex h-9 items-center justify-center rounded-[10px] border text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF] sm:h-10 sm:text-sm ${
                         isActive
                           ? "border-[#5C7CFF] bg-[#5C7CFF]/15 text-[#8FA7FF]"
                           : state === "correct"
@@ -551,7 +551,8 @@ export default function AttemptReviewExperience({
               </div>
 
               {!collapsed && (
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1.5 [scrollbar-gutter:stable]">
+                // No inner scroll here — the page itself scrolls.
+                <div>
                   <h3 className="mt-3 text-[18px] font-semibold leading-snug text-[#F5F7FB] sm:text-[22px]">
                     {currentQuestion.statement}
                   </h3>
