@@ -3,7 +3,6 @@
 import { useTheme } from "@/context/ThemeContext";
 import QuizPartyAtmosphere from "@/components/quiz/live/QuizPartyAtmosphere";
 import QuizSpaceAtmosphere from "@/components/quiz/live/QuizSpaceAtmosphere";
-import AstronautAvatarFleet from "@/components/quiz/live/AstronautAvatarFleet";
 
 export default function AuthBackground() {
   const { theme } = useTheme();
@@ -46,7 +45,6 @@ export default function AuthBackground() {
             }}
           />
           <QuizSpaceAtmosphere />
-          <AstronautAvatarFleet />
         </>
       )}
     </div>
