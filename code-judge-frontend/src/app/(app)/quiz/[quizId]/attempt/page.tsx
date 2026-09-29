@@ -350,7 +350,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           <StatusScreen text={error || "This quiz has no available questions."} />
         </div>
       ) : (
-      <div className="relative min-h-full overflow-hidden bg-[#F7F7FB] px-4 py-4 dark:bg-[#090A10] sm:px-6 sm:py-6">
+      <div className="relative h-full min-h-0 overflow-hidden bg-[#F7F7FB] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 dark:bg-[#090A10] sm:px-6 sm:py-6">
       {!isMobile && <QuizSpaceAtmosphere />}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div className="absolute -left-24 top-12 h-72 w-72 rounded-full bg-violet-500/[0.06] blur-3xl dark:bg-violet-500/[0.09]" />
@@ -361,9 +361,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         <span className="absolute right-[12%] top-[9%] hidden h-1.5 w-1.5 rounded-full bg-violet-200/50 shadow-[0_0_10px_rgba(196,181,253,.55)] dark:block" />
         <span className="absolute bottom-[18%] left-[14%] hidden h-1 w-1 rounded-full bg-cyan-100/50 shadow-[0_0_9px_rgba(165,243,252,.5)] dark:block" />
       </div>
-      <QuizPageReady className="relative mx-auto max-w-4xl" label="Loading question">
-      <main className="relative space-y-4">
-        <div className="overflow-hidden rounded-[22px] border border-pink-200/75 bg-white/90 shadow-[0_18px_55px_-38px_rgba(244,114,182,.75)] dark:border-violet-400/15 dark:bg-[#111624]/92 dark:shadow-[0_20px_60px_-36px_rgba(124,92,255,.65)]">
+      <div className="relative mx-auto h-full min-h-0 max-w-4xl overflow-hidden">
+      <QuizPageReady className="h-full min-h-0 overflow-hidden" label="Loading question">
+      <main className="relative flex h-full min-h-0 flex-col gap-3 sm:gap-4">
+        <div className="shrink-0 overflow-hidden rounded-[22px] border border-pink-200/75 bg-white/90 shadow-[0_18px_55px_-38px_rgba(244,114,182,.75)] dark:border-violet-400/15 dark:bg-[#111624]/92 dark:shadow-[0_20px_60px_-36px_rgba(124,92,255,.65)]">
           <div className="flex items-center justify-between gap-3 px-3.5 py-3.5 sm:px-4">
             <div className="flex min-w-0 items-center gap-2.5">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-white shadow-[0_10px_22px_-14px_rgba(16,185,129,.9)]">
@@ -386,6 +387,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           </div>
         </div>
 
+        <div className="quiz-question-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-gutter:stable] sm:pr-1">
         <AnimatePresence mode="wait" initial={false}>
         <motion.section
           key={current.id}
@@ -461,27 +463,30 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         </AnimatePresence>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-xl border border-rose-500/20 bg-rose-500/[0.06] p-3 text-xs text-rose-600 dark:text-rose-300">
+          <div className="mt-3 flex items-start gap-2 rounded-xl border border-rose-500/20 bg-rose-500/[0.06] p-3 text-xs text-rose-600 dark:text-rose-300">
             <AlertCircle className="h-4 w-4 shrink-0" /> {error}
           </div>
         )}
+        <div className="h-1" aria-hidden="true" />
+        </div>
 
-        <footer className="sticky bottom-3 grid grid-cols-2 gap-3 rounded-2xl border border-border/80 bg-card/85 p-2.5 shadow-[0_14px_38px_-18px_rgba(17,12,40,.55)] backdrop-blur-xl sm:grid-cols-[auto_1fr_auto]">
-          <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-border bg-background/70 px-4 text-sm font-semibold text-text-primary transition hover:border-violet-500/30 disabled:opacity-40">
+        <footer className="grid shrink-0 grid-cols-2 gap-2 rounded-2xl border border-pink-200/80 bg-white/95 p-2.5 shadow-[0_14px_38px_-18px_rgba(17,12,40,.55)] dark:border-violet-400/15 dark:bg-[#111624]/95 sm:grid-cols-[auto_1fr_auto] sm:gap-3">
+          <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="inline-flex min-h-12 items-center justify-center gap-1 rounded-xl border border-pink-200 bg-pink-50/70 px-3 text-sm font-semibold text-text-primary transition hover:border-violet-500/30 disabled:opacity-40 dark:border-white/[0.08] dark:bg-white/[0.04] sm:px-4">
             <ChevronLeft className="h-4 w-4" /> Previous
           </button>
           {index < questions.length - 1 ? (
-            <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.min(questions.length - 1, value + 1)); }} className="col-start-2 inline-flex min-h-11 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-violet-600 to-pink-600 px-5 text-sm font-semibold text-white shadow-[0_10px_24px_-12px_rgba(219,39,119,.8)] transition hover:-translate-y-0.5 sm:col-start-3">
+            <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.min(questions.length - 1, value + 1)); }} className="col-start-2 inline-flex min-h-12 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-violet-600 to-pink-600 px-3 text-sm font-semibold text-white shadow-[0_10px_24px_-12px_rgba(219,39,119,.8)] transition hover:-translate-y-0.5 sm:col-start-3 sm:px-5">
               Next <ChevronRight className="h-4 w-4" />
             </button>
           ) : (
-            <button type="button" onClick={handleManualSubmit} disabled={submitting} className="col-start-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-50 sm:col-start-3">
+            <button type="button" onClick={handleManualSubmit} disabled={submitting} className="col-start-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white disabled:opacity-50 sm:col-start-3 sm:px-4">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> : <Send className="h-4 w-4" />} {submitting ? "Submitting…" : "Submit"}
             </button>
           )}
         </footer>
       </main>
       </QuizPageReady>
+      </div>
       </div>
       )}
     </ExamModeShell>

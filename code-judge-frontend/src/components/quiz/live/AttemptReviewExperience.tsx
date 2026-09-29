@@ -183,7 +183,11 @@ function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): A
     const isCorrect = !!selectedOptionId && !!correctOptionId && selectedOptionId === correctOptionId;
     return {
       id: String(row.problem_id),
-      number: Number(row.question_number) || index + 1,
+      // Review numbering is positional. Database question numbers can be
+      // sparse, reused after soft deletion, or reflect the quiz's original
+      // order rather than the student's attempt order. The UI must always
+      // present a simple 1, 2, 3… sequence.
+      number: index + 1,
       statement: row.problem_statement,
       difficulty: normalizeDifficulty(row.difficulty),
       options: options.map((option, optionIndex) => ({

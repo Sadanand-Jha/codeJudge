@@ -68,7 +68,7 @@ export default function QuizPageReady({
   return (
     <div className={cn("relative", className)} aria-busy={!ready}>
       {/* Real content stays in layout so it renders/decodes, hidden until ready. */}
-      <div className={cn("transition-opacity duration-300", ready ? "opacity-100" : "invisible")}>
+      <div className={cn("h-full min-h-0 transition-opacity duration-300", ready ? "opacity-100" : "invisible")}>
         {children}
       </div>
       {!ready && (
