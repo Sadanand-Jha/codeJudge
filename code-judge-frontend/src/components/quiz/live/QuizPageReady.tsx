@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/lib/helpers";
+import { QuizLoader } from "./StudentQuizShell";
 
 /**
  * QuizPageReady — "render completely, then reveal" gate for mobile.
@@ -77,8 +78,8 @@ export default function QuizPageReady({
           aria-hidden="true"
           aria-label={label}
         >
-          {/* Pure-CSS spinner — no JS animation loop, no framer-motion. */}
-          <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-violet-500/20 border-t-violet-500" />
+          {/* Themed loader — ice-cream (light) / rocket (dark). */}
+          <QuizLoader className="h-9 w-9" />
           <span className="text-xs font-semibold text-[#667085] dark:text-[#8F9AAF]">
             Preparing your quiz…
           </span>

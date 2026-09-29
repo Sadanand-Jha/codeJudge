@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Clock, Loader2 } from "lucide-react";
+import { Clock } from "lucide-react";
+import { QuizLoader } from "./StudentQuizShell";
 import { formatDuration } from "@/lib/liveAssessmentHelpers";
 
 interface CountdownCardProps {
@@ -54,7 +55,7 @@ export function CountdownCard({ targetAt, onStarted, className = "" }: Countdown
       )}
       {started && (
         <motion.div className="flex items-center gap-1.5 text-[#22C55E] text-sm font-medium" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <QuizLoader className="h-4 w-4" />
           Redirecting to quiz...
         </motion.div>
       )}

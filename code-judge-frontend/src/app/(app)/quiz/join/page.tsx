@@ -8,7 +8,6 @@ import {
   Target,
   Award,
   Sparkles,
-  Loader2,
   BookOpen,
   ChevronRight,
   ShieldCheck,
@@ -24,7 +23,7 @@ import type { LucideIcon } from "lucide-react";
 import { getQuizByCode, getQuizLeaderboard, type Quiz } from "@/services/quiz";
 import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { getApiErrorMessage } from "@/lib/apiError";
-import StudentQuizShell from "@/components/quiz/live/StudentQuizShell";
+import StudentQuizShell, { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { QuizWarpExperience } from "@/components/quiz/live/QuizWarpExperience";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { LiveParticipant } from "@/types/liveAssessment";
@@ -134,10 +133,12 @@ export default function JoinQuizPage() {
   const handleJoin = () => {
     if (!quiz || joining) return;
     setJoining(true);
+    // REGISTRATION STEP COMMENTED OUT — students go straight to the waiting room.
     // Registration is intentionally deferred until the student explicitly
     // presses Join Quiz. The registration page performs the authoritative
     // audience check and collects creator-configured fields.
-    setLaunchDestination(`/quiz/${code}/register`);
+    // setLaunchDestination(`/quiz/${code}/register`);
+    setLaunchDestination(`/quiz/${code}/waiting`);
   };
 
   const handleLaunchComplete = useCallback(() => {
@@ -286,7 +287,7 @@ export default function JoinQuizPage() {
                   >
                     <span className="absolute inset-y-0 -left-1/3 w-1/3 skew-x-[-20deg] bg-white/20 blur-sm transition-transform duration-700 group-hover:translate-x-[450%]" />
                     {loading ? (
-                      <><Loader2 className="h-4 w-4 animate-spin" /> Verifying access…</>
+                      <><QuizLoader className="h-4 w-4 text-white" /> Verifying access…</>
                     ) : (
                       <>Verify &amp; continue <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></>
                     )}
@@ -317,44 +318,27 @@ export default function JoinQuizPage() {
                 </div>
 
                 <div className="relative border-b border-[#E4E7EC]/70 bg-gradient-to-br from-violet-500/[0.13] via-transparent to-cyan-400/[0.08] px-5 py-4 dark:border-white/[0.07] sm:px-6 sm:py-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex min-w-0 items-start gap-3.5 sm:gap-4">
-                      <div className="relative grid h-[5.25rem] w-[5.25rem] shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-white/80 bg-gradient-to-br from-[#8B7CFF] to-[#5B4CE2] text-lg font-bold uppercase text-white shadow-[0_12px_32px_-10px_rgba(124,92,255,.95)] dark:border-violet-300/20 sm:h-24 sm:w-24">
+                  {/* Header is just avatar (30%) + quiz name / creator (rest). */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-[30%] max-w-28 shrink-0">
+                      <div className="relative grid aspect-square w-full place-items-center overflow-hidden rounded-2xl border-2 border-white/80 bg-gradient-to-br from-[#8B7CFF] to-[#5B4CE2] text-2xl font-bold uppercase text-white shadow-[0_12px_32px_-10px_rgba(124,92,255,.95)] dark:border-violet-300/20 sm:text-4xl">
                         {quiz.creator_avatar_url ? (
                           // eslint-disable-next-line @next/next/no-img-element -- avatar URLs may be remote/user-configured
                           <img src={quiz.creator_avatar_url} alt={`${quiz.creator_name || "Quiz creator"} avatar`} className="h-full w-full object-cover" />
                         ) : quiz.creator_name ? (
                           quiz.creator_name.slice(0, 1)
                         ) : (
-                          <Layers3 className="h-6 w-6" />
+                          <Layers3 className="h-8 w-8" />
                         )}
                         <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white bg-emerald-400 dark:border-[#171a2c]" />
                       </div>
-                      <div className="min-w-0">
-                        <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">Verified assessment</span>
-                          <span className="h-1 w-1 rounded-full bg-[#98A2B3]" />
-                          <span className="font-mono text-[10px] font-semibold tracking-wider text-[#667085] dark:text-[#8F9AAF]">{formatQuizCode(quiz.code || code)}</span>
-                        </div>
-                        <h2 className="break-words text-xl font-bold leading-tight tracking-[-0.02em] text-[#101828] dark:text-white sm:text-2xl">{quiz.name}</h2>
-                        {quiz.creator_name && (
-                          <div className="mt-2 flex items-baseline gap-2">
-                            <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#98A2B3] dark:text-[#718096]">Creator</span>
-                            <span className="text-sm font-extrabold tracking-tight text-violet-600 dark:text-violet-300 sm:text-base">@{quiz.creator_name}</span>
-                          </div>
-                        )}
-                        <p className="mt-1 text-[10px] leading-4 text-[#667085] dark:text-[#8490A5]">Everything is ready. Review the details before entering.</p>
-                      </div>
                     </div>
-                    {status && (
-                      <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold shadow-sm backdrop-blur-md ${status.color}`}>
-                        <span className="relative flex h-1.5 w-1.5">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-50" />
-                          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" />
-                        </span>
-                        {status.label}
-                      </span>
-                    )}
+                    <div className="min-w-0 flex-1">
+                      <h2 className="break-words text-lg font-bold leading-snug tracking-[-0.02em] text-[#101828] dark:text-white sm:text-2xl sm:leading-tight">{quiz.name}</h2>
+                      {quiz.creator_name && (
+                        <p className="mt-1.5 truncate text-sm font-extrabold tracking-tight text-violet-600 dark:text-violet-300 sm:text-base">{quiz.creator_name}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -457,7 +441,7 @@ export default function JoinQuizPage() {
                 >
                   <span className="absolute inset-y-0 -left-1/3 w-1/3 skew-x-[-20deg] bg-white/20 blur-sm transition-transform duration-700 group-hover:translate-x-[450%]" />
                   {joining ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <QuizLoader className="h-4 w-4 text-white" />
                   ) : status?.label === "Ended" ? (
                     "Quiz Has Ended"
                   ) : (
@@ -469,7 +453,8 @@ export default function JoinQuizPage() {
                   )}
                 </button>
                 <p className="mt-2 text-center text-[10px] font-semibold text-[#667085] dark:text-[#8F9AAF]">
-                  Registration and access verification happen in the next step.
+                  {/* REGISTRATION STEP COMMENTED OUT — Registration and access verification happen in the next step. */}
+                  Access verification happens in the next step.
                 </p>
               </div>
             </motion.div>

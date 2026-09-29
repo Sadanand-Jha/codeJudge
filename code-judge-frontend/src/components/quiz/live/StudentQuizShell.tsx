@@ -2,8 +2,9 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, IceCream, Rocket } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { useTheme } from "@/context/ThemeContext";
 import { WaitingRoomThemeProvider } from "@/context/WaitingRoomThemeContext";
 import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
@@ -226,6 +227,16 @@ export default function StudentQuizShell({
   );
 }
 
+/* ── Theme-aware student-quiz loader (replaces the old pink spinner) ──
+   Light theme → ice-cream (warm amber). Dark theme → rocket (violet). */
+export function QuizLoader({ className }: { className?: string }) {
+  const { theme } = useTheme();
+  if (theme === "dark") {
+    return <Rocket className={cn("h-7 w-7 animate-spin text-violet-400", className)} />;
+  }
+  return <IceCream className={cn("h-7 w-7 animate-spin text-amber-500", className)} />;
+}
+
 /* ── Centered loading / error / empty card (replaces per-page duplicates) ── */
 export function QuizStateScreen({
   icon,
@@ -246,7 +257,7 @@ export function QuizStateScreen({
       <div className="relative z-10 flex min-h-[70vh] items-center justify-center">
         <div className="w-full max-w-md rounded-[24px] border border-pink-200/80 bg-white/85 p-6 text-center shadow-[0_24px_65px_-38px_rgba(244,114,182,.65)] backdrop-blur-xl dark:border-[#252D3A] dark:bg-[#151A24] sm:p-8">
           {loading ? (
-            <Loader2 className="mx-auto h-7 w-7 animate-spin text-[#8B7CFF]" />
+            <QuizLoader className="mx-auto" />
           ) : (
             icon
           )}

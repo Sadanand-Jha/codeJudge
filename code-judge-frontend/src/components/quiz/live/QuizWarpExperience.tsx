@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Rocket, ShieldCheck, IceCreamCone, PartyPopper } from "lucide-react";
+import { QuizLoader } from "./StudentQuizShell";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
@@ -186,7 +187,7 @@ export function QuizWarpExperience({
         aria-label="Entering quiz"
       >
         <div>
-          <span className="mx-auto block h-9 w-9 animate-spin rounded-full border-[3px] border-violet-500/20 border-t-violet-500" />
+          <QuizLoader className="mx-auto block h-9 w-9" />
           <p className={`mt-5 text-[10px] font-bold uppercase tracking-[0.3em] ${light ? "text-pink-600" : "text-cyan-200/70"}`}>
             Entering quiz
           </p>

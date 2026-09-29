@@ -30,6 +30,7 @@ import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/Waiting
 import { useTheme } from "@/context/ThemeContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
+import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useToast } from "@/hooks/useToast";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
 import { getMyQuizzes, getQuizByCode, getQuizCode, quizCodePath, type Quiz } from "@/services/quiz";
@@ -47,7 +48,9 @@ export default function WaitingRoomPage() {
   const toast = useToast();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const { isRegistered, getRegistration } = useQuizRegistrationStore();
+  // REGISTRATION STEP COMMENTED OUT — `isRegistered` no longer gates entry.
+  // const { isRegistered, getRegistration } = useQuizRegistrationStore();
+  const { getRegistration } = useQuizRegistrationStore();
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +80,10 @@ export default function WaitingRoomPage() {
   }, [quizCode]);
 
   const registration = getRegistration(quizCode);
-  const registered = isRegistered(quizCode) || serverRegistered;
+  // REGISTRATION STEP COMMENTED OUT — treat every student as registered
+  // so the waiting room flows straight to the attempt without check-in.
+  // const registered = isRegistered(quizCode) || serverRegistered;
+  const registered = true;
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
@@ -114,7 +120,7 @@ export default function WaitingRoomPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-ai-accent border-t-transparent" />
+        <QuizLoader />
       </div>
     );
   }
@@ -199,7 +205,8 @@ function WaitingRoomPageInner({
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (started && registered) router.replace(`/quiz/${quizCode}/attempt`);
+    // REGISTRATION STEP COMMENTED OUT — was `if (started && registered)`.
+    if (started) router.replace(`/quiz/${quizCode}/attempt`);
   }, [quizCode, registered, router, started]);
 
   useEffect(() => {
@@ -226,7 +233,8 @@ function WaitingRoomPageInner({
   }, [clockMs, quiz.starttime]);
 
   const handleStarted = () => {
-    if (String(quiz.status).toLowerCase() === "live" && registered) {
+    // REGISTRATION STEP COMMENTED OUT — was `... && registered`.
+    if (String(quiz.status).toLowerCase() === "live") {
       router.replace(`/quiz/${quizCode}/attempt`);
     }
   };
@@ -415,7 +423,9 @@ function WaitingRoomPageInner({
             isDark ? 'text-[#FBBF24]' : 'text-[#F59E0B]'
           }`}
         >
-          {registered ? `Registered as ${registration?.studentName} (${registration?.rollNumber})` : "Waiting for the teacher to start the quiz..."}
+          {/* REGISTRATION STEP COMMENTED OUT — no per-student check-in display. */}
+          {/* {registered ? `Registered as ${registration?.studentName} (${registration?.rollNumber})` : "Waiting for the teacher to start the quiz..."} */}
+          {"Waiting for the teacher to start the quiz..."}
         </motion.p>
       </div>
 
@@ -580,6 +590,7 @@ function WaitingRoomPageInner({
           </div>
         </motion.div>
 
+        {/* REGISTRATION STEP COMMENTED OUT — waiting room no longer asks students to register.
         {registered ? (
           <button
             className="inline-flex items-center gap-2 px-6 h-10 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/30 text-sm font-bold text-[#22C55E] hover:bg-[#22C55E]/20 transition-all"
@@ -597,6 +608,7 @@ function WaitingRoomPageInner({
             Register for Quiz
           </Link>
         )}
+        */}
 
         {/* Countdown */}
         <CountdownCard targetAt={quiz.starttime ?? undefined} onStarted={handleStarted} />

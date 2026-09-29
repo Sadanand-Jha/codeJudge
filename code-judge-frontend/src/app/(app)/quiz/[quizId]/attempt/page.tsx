@@ -28,6 +28,7 @@ import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizSpaceAtmosphere from "@/components/quiz/live/QuizSpaceAtmosphere";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
+import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 
 type AnswerValue = StoredAttemptAnswer;
 
@@ -666,7 +667,7 @@ function StatusScreen({ loading = false, text }: { loading?: boolean; text: stri
   return (
     <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 text-center">
-        {loading ? <Loader2 className="mx-auto h-7 w-7 animate-spin text-pink-500" /> : <AlertCircle className="mx-auto h-8 w-8 text-rose-500" />}
+        {loading ? <QuizLoader className="mx-auto" /> : <AlertCircle className="mx-auto h-8 w-8 text-rose-500" />}
         <p className="mt-3 text-sm leading-6 text-text-secondary">{text}</p>
       </div>
     </div>

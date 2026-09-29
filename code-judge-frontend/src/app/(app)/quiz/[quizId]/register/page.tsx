@@ -83,25 +83,28 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
 
   const canRegister = Boolean(studentName.trim() && rollNo.trim());
 
-  useEffect(() => {
-    async function fetchQuiz() {
-      try {
-        const [data, registrations] = await Promise.all([getQuizByCode(quizCode), getMyQuizzes()]);
-        setQuiz(data);
-        const own = registrations.find((item) => item.code === quizCode && item.is_registered);
-        setServerRegistration(own ? { rollNumber: own.rollno ?? undefined } : null);
-      } catch (err) {
-        console.error("Failed to fetch quiz:", err);
-        toast.error({
-          title: "Failed to Load Quiz",
-          description: "Please try again later.",
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-    if (quizCode) fetchQuiz();
-  }, [quizCode]);
+  // REGISTRATION PAGE COMMENTED OUT — the quiz fetch below is disabled with
+  // the rest of this page. The page now forwards straight to the waiting
+  // room (see the redirect below) so students are never stuck here.
+  // useEffect(() => {
+  //   async function fetchQuiz() {
+  //     try {
+  //       const [data, registrations] = await Promise.all([getQuizByCode(quizCode), getMyQuizzes()]);
+  //       setQuiz(data);
+  //       const own = registrations.find((item) => item.code === quizCode && item.is_registered);
+  //       setServerRegistration(own ? { rollNumber: own.rollno ?? undefined } : null);
+  //     } catch (err) {
+  //       console.error("Failed to fetch quiz:", err);
+  //       toast.error({
+  //         title: "Failed to Load Quiz",
+  //         description: "Please try again later.",
+  //       });
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   }
+  //   if (quizCode) fetchQuiz();
+  // }, [quizCode]);
 
   const handleRegisterClick = async () => {
     if (!studentName.trim()) {
@@ -153,36 +156,39 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
     }
   };
 
+  // REGISTRATION PAGE COMMENTED OUT — forward straight to the waiting room
+  // so students are never stuck here with no way forward.
+  // (The original `if (loading)` / `if (!quiz)` / `if (!eligible)` gates and
+  // the whole registration UI below are left in place but unreachable until
+  // this redirect is removed.)
+  useEffect(() => {
+    if (quizCode) router.replace(quizCodePath(quizCode, "waiting"));
+  }, [quizCode, router]);
+
   if (loading) {
-    return <QuizStateScreen loading text="Loading quiz…" />;
+    // REGISTRATION PAGE COMMENTED OUT — was "Loading quiz…".
+    return <QuizStateScreen loading text="Taking you to the waiting room…" />;
   }
 
   if (!quiz) {
-    return (
-      <QuizStateScreen
-        text="Quiz not found."
-        action={
-          <QuizPrimaryButton href="/quiz">Back to Quizzes</QuizPrimaryButton>
-        }
-      />
-    );
+    // REGISTRATION PAGE COMMENTED OUT — was the "Quiz not found." screen.
+    // Keep forwarding to the waiting room instead of stranding the student.
+    return <QuizStateScreen loading text="Taking you to the waiting room…" />;
   }
 
   if (!eligible) {
-    return (
-      <QuizStateScreen
-        icon={
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-danger/10 ring-1 ring-inset ring-danger/25">
-            <Lock className="h-8 w-8 text-danger" />
-          </div>
-        }
-        title="Registration Restricted"
-        text={`This quiz is available only to students belonging to the selected rooms. You are not part of an eligible room for "${quiz.name}".`}
-        action={
-          <QuizPrimaryButton href={quizCodePath(quizCode)}>Back to Quiz</QuizPrimaryButton>
-        }
-      />
-    );
+    // REGISTRATION PAGE COMMENTED OUT — was the "Registration Restricted"
+    // screen. Keep forwarding to the waiting room instead.
+    return <QuizStateScreen loading text="Taking you to the waiting room…" />;
+  }
+
+  // REGISTRATION PAGE COMMENTED OUT — never render the registration UI below.
+  // The redirect at the top of this component forwards to the waiting room;
+  // this gate covers the window before the redirect lands. Flip back to
+  // `false` to restore the page.
+  const SKIP_REGISTRATION_UI = true;
+  if (SKIP_REGISTRATION_UI) {
+    return <QuizStateScreen loading text="Taking you to the waiting room…" />;
   }
 
   const questionTypes = [

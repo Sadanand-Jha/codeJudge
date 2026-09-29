@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, AlertTriangle, Clock, Loader2, Maximize2, Radio, Rocket, ShieldAlert, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock, Maximize2, Radio, Rocket, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { reportViolation } from "@/services/quiz";
 
 export const MAX_EXAM_VIOLATIONS = 3;
@@ -336,7 +337,7 @@ export default function ExamModeShell({
                 disabled={entering}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500 sm:px-6 sm:py-3"
               >
-                {entering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Maximize2 className="h-4 w-4" />}
+                {entering ? <QuizLoader className="h-4 w-4 text-white" /> : <Maximize2 className="h-4 w-4" />}
                 {entering ? "Checking eligibility…" : "Enter Exam Mode"}
               </button>
               <button onClick={onExitPreview} className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold hover:bg-card-hover sm:px-6 sm:py-3">

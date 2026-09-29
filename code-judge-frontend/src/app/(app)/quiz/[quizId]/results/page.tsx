@@ -3,11 +3,11 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 import { getPreviousQuizzes } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
-import { QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
+import { QuizLoader, QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
 
 const LOOKUP_TIMEOUT_MS = 15000;
 
@@ -97,7 +97,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
   if (redirectTarget) {
     return (
       <ResultState
-        icon={<Loader2 className="h-7 w-7 animate-spin text-pink-500" />}
+        icon={<QuizLoader />}
         text="Loading your verified result…"
         action={
           <Link href={redirectTarget} className="mt-5 inline-flex min-h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold text-text-primary">
@@ -143,7 +143,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
     );
   }
 
-  return <ResultState icon={<Loader2 className="h-7 w-7 animate-spin text-pink-500" />} text="Loading your verified result…" />;
+  return <ResultState icon={<QuizLoader />} text="Loading your verified result…" />;
 }
 
 function ResultState({ icon, text, action }: { icon: React.ReactNode; text: string; action?: React.ReactNode }) {
