@@ -1417,14 +1417,6 @@ export class QuizRepository {
       return { allowed: false, reason: "Quiz has ended" };
     }
 
-    const registration = await pool.query(
-      "SELECT * FROM quiz_registration WHERE user_id = $1 AND quiz_id = $2 AND is_registered = true",
-      [userId, quizId]
-    );
-    if (!registration.rows.length) {
-      return { allowed: false, reason: "You are not registered for this quiz" };
-    }
-
     // Audience constraint: once the creator configures a participant list
     // (quiz edit → rooms / invites), only students present in it (status = 1
     // = allowed) may attempt the quiz. An empty list means open access.
