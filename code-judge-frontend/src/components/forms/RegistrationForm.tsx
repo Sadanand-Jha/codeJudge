@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, Camera, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Check, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { toast } from "@/lib/toast";
@@ -72,9 +73,10 @@ export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(PREDEFINED_AVATARS[0].url);
-  // WhatsApp-style picker: big preselected preview on top, tap it to
-  // open/close the full avatar grid below.
-  const [avatarPickerOpen, setAvatarPickerOpen] = useState(true);
+  // Progressive profile onboarding inside the "register" step:
+  // 1 = username, 2 = avatar, 3 = password.
+  const [profileStep, setProfileStep] = useState<1 | 2 | 3>(1);
+  const [detailDir, setDetailDir] = useState<1 | -1>(1);
   const { playQuizSound } = useQuizSounds();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -297,6 +299,7 @@ export default function RegistrationForm() {
         return;
       }
 
+      playQuizSound("submit");
       setSubmitting(true);
       try {
         const res = await register({
@@ -331,13 +334,23 @@ export default function RegistrationForm() {
     [form.username.value, form.email.value, form.password.value, form.confirmPassword.value, registrationToken, selectedAvatarUrl, usernameStatus.available, validateUsernameField, validatePasswordField, validateConfirmPasswordField, router, setAuth]
   );
 
-  const isRegisterEnabled =
+  const isUsernameReady =
     form.username.value.length >= 3 &&
+    !form.username.error &&
+    usernameStatus.available === true &&
+    !usernameStatus.checking;
+
+  const isPasswordReady =
     form.password.value.length >= 8 &&
     form.confirmPassword.value.length >= 1 &&
     form.password.value === form.confirmPassword.value &&
-    usernameStatus.available === true &&
     !submitting;
+
+  const goProfileStep = (next: 1 | 2 | 3) => {
+    setDetailDir(next >= profileStep ? 1 : -1);
+    setProfileStep(next);
+    playQuizSound("navigate");
+  };
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FFF9F1] px-6 py-20 dark:bg-[#050510]">
@@ -347,19 +360,23 @@ export default function RegistrationForm() {
         {/* Brand */}
         <div className="mb-8 text-center">
           <AuthBrandMark className="mb-4" />
-          <h1 className="text-xl font-bold text-text-primary">
-            {step === "email" && "Create your account"}
-            {step === "verify" && "Check your email"}
-            {step === "register" && "Set your details"}
-          </h1>
-          <p className="mt-2 text-sm text-text-secondary">
-            {step === "email" && "Enter your email to get started"}
-            {step === "verify" && `We sent a code to ${form.email.value}`}
-            {step === "register" && "Almost done, secure your account"}
-          </p>
+          {/* The profile sub-flow (register step) renders its own per-screen titles. */}
+          {step !== "register" && (
+            <>
+              <h1 className="text-xl font-bold text-text-primary">
+                {step === "email" && "Create your account"}
+                {step === "verify" && "Check your email"}
+              </h1>
+              <p className="mt-2 text-sm text-text-secondary">
+                {step === "email" && "Enter your email to get started"}
+                {step === "verify" && `We sent a code to ${form.email.value}`}
+              </p>
+            </>
+          )}
         </div>
 
-        {/* Card */}
+        {/* Card for email + OTP. The profile sub-flow renders open (no card). */}
+        {step !== "register" && (
         <div className="rounded-[28px] border border-pink-200/80 bg-white/82 p-6 shadow-[0_30px_80px_-42px_rgba(244,114,182,.75)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/88 dark:shadow-[0_30px_90px_-40px_rgba(91,69,196,.8)]">
           {/* Step 1: Email */}
           {step === "email" && (
@@ -443,18 +460,52 @@ export default function RegistrationForm() {
               </div>
             </form>
           )}
+        </div>
+          )}
 
-          {/* Step 3: Username + Password */}
+          {/* Step 3: Profile onboarding — one task per screen, open layout (no card). */}
           {step === "register" && (
-            <form className="space-y-4" onSubmit={handleRegister}>
-              {/* Username */}
-              <div>
+            <div className="mx-auto w-full max-w-[340px]">
+              <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-text-muted">
+                {profileStep} of 3
+              </p>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/10">
+                <motion.div
+                  className="h-full rounded-full bg-violet-500"
+                  animate={{ width: `${(profileStep / 3) * 100}%` }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                />
+              </div>
+
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={profileStep}
+                  initial={{ opacity: 0, x: 32 * detailDir }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -24 * detailDir }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                >
+                  {profileStep === 1 && (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (isUsernameReady) goProfileStep(2);
+                      }}
+                    >
+                      <h1 className="mt-6 text-center text-[26px] font-bold tracking-tight text-text-primary">
+                        Choose your username
+                      </h1>
+                      <p className="mt-2 text-center text-sm text-text-secondary">
+                        This is how other students will see you.
+                      </p>
+                      <div className="mt-6">
                 <input
                   type="text"
                   value={form.username.value}
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
+                  autoFocus
                   onChange={(e) => handleUsernameChange(e.target.value)}
                   onBlur={() => {
                     const err = validateUsernameField(form.username.value);
@@ -469,7 +520,7 @@ export default function RegistrationForm() {
                       });
                     }
                   }}
-                  className={`w-full rounded-xl bg-input-bg border px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                  className={`w-full rounded-2xl bg-input-bg border px-5 py-4 text-lg text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
                     form.username.touched && form.username.error
                       ? "border-red-500"
                       : form.username.touched && !form.username.error && usernameStatus.available === false
@@ -480,160 +531,199 @@ export default function RegistrationForm() {
                   }`}
                   placeholder="Choose a username"
                 />
-                {form.username.touched && form.username.error && (
-                  <p className="mt-2 text-xs text-red-400">{form.username.error}</p>
-                )}
-                {!form.username.error && usernameStatus.checking && (
-                  <p className="mt-2 text-xs text-text-muted flex items-center gap-1.5">
-                    <QuizLoader className="h-3 w-3" /> Checking...
-                  </p>
-                )}
-                {!form.username.error && !usernameStatus.checking && usernameStatus.available === false && (
-                  <p className="mt-2 text-xs text-red-400">{usernameStatus.message}</p>
-                )}
-                {!form.username.error && !usernameStatus.checking && usernameStatus.available === true && (
-                  <p className="mt-2 text-xs text-green-400">{usernameStatus.message}</p>
-                )}
-                <p className="mt-2 text-[10px] text-text-muted">Only lowercase letters and numbers are allowed.</p>
-              </div>
-
-              {/* Avatar — WhatsApp style: big preselected preview, tap to change. */}
-              <fieldset>
-                <legend className="text-[11px] font-semibold text-text-secondary">Choose your avatar</legend>
-                <p className="mt-1 text-[10px] text-text-muted">This is how you’ll appear in quizzes and waiting rooms.</p>
-                <div className="mt-3 flex items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setAvatarPickerOpen((open) => !open)}
-                    aria-label={avatarPickerOpen ? "Hide avatar options" : "Change avatar"}
-                    aria-expanded={avatarPickerOpen}
-                    className="group relative shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 rounded-full"
-                  >
-                    <span className="block h-20 w-20 overflow-hidden rounded-full border-[3px] border-violet-500/70 shadow-[0_10px_26px_-12px_rgba(124,92,255,.9)]">
-                      <Image
-                        src={selectedAvatarUrl}
-                        alt={PREDEFINED_AVATARS.find((a) => a.url === selectedAvatarUrl)?.label ?? "Selected avatar"}
-                        width={80}
-                        height={80}
-                        className="h-full w-full object-cover"
-                      />
-                    </span>
-                    <span className="absolute -bottom-0.5 -right-0.5 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-violet-600 text-white shadow-sm transition-transform group-hover:scale-105 dark:border-[#111526]">
-                      <Camera className="h-3.5 w-3.5" />
-                    </span>
-                  </button>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-text-primary">
-                      {PREDEFINED_AVATARS.find((a) => a.url === selectedAvatarUrl)?.label ?? "Avatar 1"}
+                <div className="mt-2 min-h-5" aria-live="polite">
+                  {form.username.touched && form.username.error ? (
+                    <p className="text-xs text-red-400">{form.username.error}</p>
+                  ) : !form.username.error && usernameStatus.checking ? (
+                    <p className="text-xs text-text-muted flex items-center gap-1.5">
+                      <QuizLoader className="h-3 w-3" /> Checking...
                     </p>
-                    <p className="mt-0.5 text-[11px] text-text-muted">
-                      {avatarPickerOpen ? "Tap below to switch" : "Tap the photo to change it"}
+                  ) : !form.username.error && !usernameStatus.checking && usernameStatus.available === false ? (
+                    <p className="text-xs text-red-400">{usernameStatus.message}</p>
+                  ) : !form.username.error && !usernameStatus.checking && usernameStatus.available === true ? (
+                    <p className="text-xs font-medium text-green-500 flex items-center gap-1.5">
+                      <Check className="h-3.5 w-3.5" strokeWidth={3} /> Username available
                     </p>
-                  </div>
+                  ) : (
+                    <p className="text-xs text-text-muted">Only lowercase letters and numbers</p>
+                  )}
                 </div>
-                {avatarPickerOpen && (
-                <div className="mt-3 grid grid-cols-4 gap-2.5" role="radiogroup" aria-label="Choose your avatar">
-                  {PREDEFINED_AVATARS.map((avatar) => {
-                    const selected = selectedAvatarUrl === avatar.url;
-                    return (
-                      <button
-                        key={avatar.id}
-                        type="button"
-                        role="radio"
-                        aria-checked={selected}
-                        aria-label={avatar.label}
-                        onClick={() => { playQuizSound("select"); setSelectedAvatarUrl(avatar.url); }}
-                        className={`group relative aspect-square overflow-hidden rounded-full border-2 bg-gradient-to-br from-pink-50 to-violet-50 p-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 dark:from-white/[0.06] dark:to-violet-500/[0.08] ${selected ? "border-violet-500 shadow-[0_10px_26px_-12px_rgba(124,92,255,.9)] ring-2 ring-violet-500/15" : "border-pink-100 hover:-translate-y-0.5 hover:border-pink-300 dark:border-white/10 dark:hover:border-violet-400/40"}`}
-                      >
-                        <Image src={avatar.url} alt="" width={64} height={64} className="h-full w-full rounded-full object-cover" />
-                        {selected && (
-                          <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-violet-600 text-white shadow-sm dark:border-[#111526]">
-                            <Check className="h-3 w-3" strokeWidth={3} />
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-                )}
-              </fieldset>
+                <button
+                  type="submit"
+                  disabled={!isUsernameReady}
+                  className={`${AUTH_PRIMARY_BUTTON} mt-6 min-h-13`}
+                >
+                  Continue
+                </button>
+                      </div>
+                    </form>
+                  )}
 
-              {/* Password */}
-              <div>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={form.password.value}
-                    onChange={(e) => updateField("password", e.target.value)}
-                    onBlur={() => validatePasswordField(form.password.value)}
-                    className={`w-full rounded-xl bg-input-bg border px-4 py-3 pr-11 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
-                      form.password.touched && form.password.error
-                        ? "border-red-500"
-                        : "border-input-border"
-                    }`}
-                    placeholder="Password"
-                  />
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-text-muted hover:bg-black/5 hover:text-text-primary transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {form.password.touched && form.password.error && (
-                  <p className="mt-2 text-xs text-red-400">{form.password.error}</p>
-                )}
-              </div>
+                  {profileStep === 2 && (
+                    <div>
+                      <h1 className="mt-6 text-center text-[26px] font-bold tracking-tight text-text-primary">
+                        Pick your avatar
+                      </h1>
+                      <p className="mt-2 text-center text-sm text-text-secondary">
+                        Choose how you&rsquo;ll appear in quizzes and waiting rooms.
+                      </p>
+                      <div className="mt-6 flex justify-center">
+                        <span className="block h-28 w-28 overflow-hidden rounded-full border-2 border-violet-500 ring-2 ring-violet-500/20">
+                          <Image
+                            src={selectedAvatarUrl}
+                            alt={PREDEFINED_AVATARS.find((a) => a.url === selectedAvatarUrl)?.label ?? "Selected avatar"}
+                            width={112}
+                            height={112}
+                            className="h-full w-full object-cover"
+                            priority
+                          />
+                        </span>
+                      </div>
+                      <div className="mt-6 grid grid-cols-3 gap-3" role="radiogroup" aria-label="Choose your avatar">
+                        {PREDEFINED_AVATARS.map((avatar) => {
+                          const selected = selectedAvatarUrl === avatar.url;
+                          return (
+                            <button
+                              key={avatar.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={selected}
+                              aria-label={avatar.label}
+                              onClick={() => { playQuizSound("select"); setSelectedAvatarUrl(avatar.url); }}
+                              className={`relative aspect-square overflow-hidden rounded-full border-2 p-1 transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+                                selected
+                                  ? "border-violet-500 ring-2 ring-violet-500/20 shadow-[0_0_18px_-6px_rgba(124,92,255,.55)]"
+                                  : "border-input-border hover:border-violet-400/60"
+                              }`}
+                            >
+                              <Image src={avatar.url} alt="" width={96} height={96} className="h-full w-full rounded-full object-cover" />
+                              {selected && (
+                                <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-violet-600 text-white dark:border-[#111526]">
+                                  <Check className="h-3 w-3" strokeWidth={3} />
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-6 flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => goProfileStep(1)}
+                          className="min-h-13 flex-1 rounded-xl border border-input-border text-sm font-semibold text-text-secondary transition-colors hover:border-accent hover:text-text-primary"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => goProfileStep(3)}
+                          className={`${AUTH_PRIMARY_BUTTON} min-h-13 flex-[2]`}
+                        >
+                          Continue
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Confirm Password */}
-              <div>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={form.confirmPassword.value}
-                    onChange={(e) => updateField("confirmPassword", e.target.value)}
-                    onBlur={() => validateConfirmPasswordField(form.confirmPassword.value)}
-                    className={`w-full rounded-xl bg-input-bg border px-4 py-3 pr-11 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
-                      form.confirmPassword.touched && form.confirmPassword.error
-                        ? "border-red-500"
-                        : form.confirmPassword.touched && !form.confirmPassword.error && form.confirmPassword.value
-                        ? "border-green-500"
-                        : "border-input-border"
-                    }`}
-                    placeholder="Confirm password"
-                  />
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setShowConfirmPassword((v) => !v)}
-                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-text-muted hover:bg-black/5 hover:text-text-primary transition-colors"
-                  >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {form.confirmPassword.touched && form.confirmPassword.error && (
-                  <p className="mt-2 text-xs text-red-400">{form.confirmPassword.error}</p>
-                )}
-                {form.confirmPassword.touched && !form.confirmPassword.error && form.confirmPassword.value && (
-                  <p className="mt-2 text-xs text-green-400">Passwords match</p>
-                )}
-              </div>
+                  {profileStep === 3 && (
+                    <form onSubmit={handleRegister}>
+                      <h1 className="mt-6 text-center text-[26px] font-bold tracking-tight text-text-primary">
+                        Create your password
+                      </h1>
+                      <p className="mt-2 text-center text-sm text-text-secondary">
+                        Keep your account secure.
+                      </p>
+                      <div className="mt-6 space-y-3">
+                        <div>
+                          <div className="relative">
+                            <input
+                              type={showPassword ? "text" : "password"}
+                              value={form.password.value}
+                              onChange={(e) => updateField("password", e.target.value)}
+                              onBlur={() => validatePasswordField(form.password.value)}
+                              className={`w-full rounded-2xl bg-input-bg border px-5 py-4 pr-12 text-base text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                                form.password.touched && form.password.error
+                                  ? "border-red-500"
+                                  : "border-input-border"
+                              }`}
+                              placeholder="Password"
+                            />
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              onClick={() => setShowPassword((v) => !v)}
+                              aria-label={showPassword ? "Hide password" : "Show password"}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-2 text-text-muted hover:bg-black/5 hover:text-text-primary transition-colors"
+                            >
+                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          {form.password.touched && form.password.error ? (
+                            <p className="mt-2 text-xs text-red-400">{form.password.error}</p>
+                          ) : (
+                            <p className="mt-2 text-xs text-text-muted">At least 8 characters</p>
+                          )}
+                        </div>
 
-              <button
-                type="submit"
-                disabled={!isRegisterEnabled}
-                className={`${AUTH_PRIMARY_BUTTON} mt-1`}
-              >
-                {submitting && <QuizLoader className="h-4 w-4 text-white" />}
-                {submitting ? "Creating..." : "Create account"}
-              </button>
-            </form>
+                        <div>
+                          <div className="relative">
+                            <input
+                              type={showConfirmPassword ? "text" : "password"}
+                              value={form.confirmPassword.value}
+                              onChange={(e) => updateField("confirmPassword", e.target.value)}
+                              onBlur={() => validateConfirmPasswordField(form.confirmPassword.value)}
+                              className={`w-full rounded-2xl bg-input-bg border px-5 py-4 pr-12 text-base text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                                form.confirmPassword.touched && form.confirmPassword.error
+                                  ? "border-red-500"
+                                  : form.confirmPassword.touched && !form.confirmPassword.error && form.confirmPassword.value
+                                  ? "border-green-500"
+                                  : "border-input-border"
+                              }`}
+                              placeholder="Confirm password"
+                            />
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              onClick={() => setShowConfirmPassword((v) => !v)}
+                              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-2 text-text-muted hover:bg-black/5 hover:text-text-primary transition-colors"
+                            >
+                              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          {form.confirmPassword.touched && form.confirmPassword.error ? (
+                            <p className="mt-2 text-xs text-red-400">{form.confirmPassword.error}</p>
+                          ) : form.confirmPassword.touched && !form.confirmPassword.error && form.confirmPassword.value ? (
+                            <p className="mt-2 text-xs font-medium text-green-500 flex items-center gap-1.5">
+                              <Check className="h-3.5 w-3.5" strokeWidth={3} /> Passwords match
+                            </p>
+                          ) : null}
+                        </div>
+
+                      </div>
+                      <div className="mt-6 flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => goProfileStep(2)}
+                          className="min-h-13 flex-1 rounded-xl border border-input-border text-sm font-semibold text-text-secondary transition-colors hover:border-accent hover:text-text-primary"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={!isPasswordReady}
+                          className={`${AUTH_PRIMARY_BUTTON} min-h-13 flex-[2]`}
+                        >
+                          {submitting && <QuizLoader className="h-4 w-4 text-white" />}
+                          {submitting ? "Creating..." : "Create account"}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           )}
-        </div>
 
         {/* Footer */}
         <p className="mt-6 text-center text-xs text-text-muted">
