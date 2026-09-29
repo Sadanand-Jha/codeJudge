@@ -3,7 +3,9 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, Loader2, Eye, EyeOff } from "lucide-react";
+import { Check, Camera, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
+import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { toast } from "@/lib/toast";
 import { sendOtp, verifyOtp, register, checkUsername } from "@/services/auth";
 import { useAuthStore } from "@/store/authStore";
@@ -70,6 +72,10 @@ export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState(PREDEFINED_AVATARS[0].url);
+  // WhatsApp-style picker: big preselected preview on top, tap it to
+  // open/close the full avatar grid below.
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(true);
+  const { playQuizSound } = useQuizSounds();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -382,7 +388,7 @@ export default function RegistrationForm() {
                 disabled={sendingOtp}
                 className={AUTH_PRIMARY_BUTTON}
               >
-                {sendingOtp && <Loader2 className="w-4 h-4 animate-spin" />}
+                {sendingOtp && <QuizLoader className="h-4 w-4 text-white" />}
                 {sendingOtp ? "Sending..." : "Continue"}
               </button>
             </form>
@@ -415,7 +421,7 @@ export default function RegistrationForm() {
                 disabled={verifyingOtp || form.otp.value.length !== 6}
                 className={AUTH_PRIMARY_BUTTON}
               >
-                {verifyingOtp && <Loader2 className="w-4 h-4 animate-spin" />}
+                {verifyingOtp && <QuizLoader className="h-4 w-4 text-white" />}
                 {verifyingOtp ? "Verifying..." : "Verify"}
               </button>
               <div className="text-center">
@@ -423,9 +429,16 @@ export default function RegistrationForm() {
                   type="button"
                   disabled={countdown > 0 || sendingOtp}
                   onClick={handleResendOtp}
-                  className="text-xs text-text-muted hover:text-text-secondary transition-colors disabled:text-text-muted/50 disabled:cursor-not-allowed"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-input-border bg-transparent px-4 text-sm font-semibold text-text-secondary transition-all hover:border-accent hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
+                  {sendingOtp
+                    ? <QuizLoader className="h-4 w-4" />
+                    : <RefreshCw className="h-4 w-4" />}
+                  {sendingOtp
+                    ? "Resending..."
+                    : countdown > 0
+                      ? `Resend code in ${countdown}s`
+                      : "Resend code"}
                 </button>
               </div>
             </form>
@@ -472,7 +485,7 @@ export default function RegistrationForm() {
                 )}
                 {!form.username.error && usernameStatus.checking && (
                   <p className="mt-2 text-xs text-text-muted flex items-center gap-1.5">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Checking...
+                    <QuizLoader className="h-3 w-3" /> Checking...
                   </p>
                 )}
                 {!form.username.error && !usernameStatus.checking && usernameStatus.available === false && (
@@ -484,10 +497,41 @@ export default function RegistrationForm() {
                 <p className="mt-2 text-[10px] text-text-muted">Only lowercase letters and numbers are allowed.</p>
               </div>
 
-              {/* Avatar */}
+              {/* Avatar — WhatsApp style: big preselected preview, tap to change. */}
               <fieldset>
                 <legend className="text-[11px] font-semibold text-text-secondary">Choose your avatar</legend>
                 <p className="mt-1 text-[10px] text-text-muted">This is how you’ll appear in quizzes and waiting rooms.</p>
+                <div className="mt-3 flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setAvatarPickerOpen((open) => !open)}
+                    aria-label={avatarPickerOpen ? "Hide avatar options" : "Change avatar"}
+                    aria-expanded={avatarPickerOpen}
+                    className="group relative shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 rounded-full"
+                  >
+                    <span className="block h-20 w-20 overflow-hidden rounded-full border-[3px] border-violet-500/70 shadow-[0_10px_26px_-12px_rgba(124,92,255,.9)]">
+                      <Image
+                        src={selectedAvatarUrl}
+                        alt={PREDEFINED_AVATARS.find((a) => a.url === selectedAvatarUrl)?.label ?? "Selected avatar"}
+                        width={80}
+                        height={80}
+                        className="h-full w-full object-cover"
+                      />
+                    </span>
+                    <span className="absolute -bottom-0.5 -right-0.5 grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-violet-600 text-white shadow-sm transition-transform group-hover:scale-105 dark:border-[#111526]">
+                      <Camera className="h-3.5 w-3.5" />
+                    </span>
+                  </button>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-text-primary">
+                      {PREDEFINED_AVATARS.find((a) => a.url === selectedAvatarUrl)?.label ?? "Avatar 1"}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-text-muted">
+                      {avatarPickerOpen ? "Tap below to switch" : "Tap the photo to change it"}
+                    </p>
+                  </div>
+                </div>
+                {avatarPickerOpen && (
                 <div className="mt-3 grid grid-cols-4 gap-2.5" role="radiogroup" aria-label="Choose your avatar">
                   {PREDEFINED_AVATARS.map((avatar) => {
                     const selected = selectedAvatarUrl === avatar.url;
@@ -498,10 +542,10 @@ export default function RegistrationForm() {
                         role="radio"
                         aria-checked={selected}
                         aria-label={avatar.label}
-                        onClick={() => setSelectedAvatarUrl(avatar.url)}
-                        className={`group relative aspect-square overflow-hidden rounded-2xl border-2 bg-gradient-to-br from-pink-50 to-violet-50 p-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 dark:from-white/[0.06] dark:to-violet-500/[0.08] ${selected ? "border-violet-500 shadow-[0_10px_26px_-12px_rgba(124,92,255,.9)] ring-2 ring-violet-500/15" : "border-pink-100 hover:-translate-y-0.5 hover:border-pink-300 dark:border-white/10 dark:hover:border-violet-400/40"}`}
+                        onClick={() => { playQuizSound("select"); setSelectedAvatarUrl(avatar.url); }}
+                        className={`group relative aspect-square overflow-hidden rounded-full border-2 bg-gradient-to-br from-pink-50 to-violet-50 p-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 dark:from-white/[0.06] dark:to-violet-500/[0.08] ${selected ? "border-violet-500 shadow-[0_10px_26px_-12px_rgba(124,92,255,.9)] ring-2 ring-violet-500/15" : "border-pink-100 hover:-translate-y-0.5 hover:border-pink-300 dark:border-white/10 dark:hover:border-violet-400/40"}`}
                       >
-                        <Image src={avatar.url} alt="" width={64} height={64} className="h-full w-full rounded-xl object-cover" />
+                        <Image src={avatar.url} alt="" width={64} height={64} className="h-full w-full rounded-full object-cover" />
                         {selected && (
                           <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-violet-600 text-white shadow-sm dark:border-[#111526]">
                             <Check className="h-3 w-3" strokeWidth={3} />
@@ -511,6 +555,7 @@ export default function RegistrationForm() {
                     );
                   })}
                 </div>
+                )}
               </fieldset>
 
               {/* Password */}
@@ -583,7 +628,7 @@ export default function RegistrationForm() {
                 disabled={!isRegisterEnabled}
                 className={`${AUTH_PRIMARY_BUTTON} mt-1`}
               >
-                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {submitting && <QuizLoader className="h-4 w-4 text-white" />}
                 {submitting ? "Creating..." : "Create account"}
               </button>
             </form>

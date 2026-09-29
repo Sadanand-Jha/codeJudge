@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useAuthStore } from "@/store/authStore";
 import RegistrationForm from "@/components/forms/RegistrationForm";
 
@@ -25,7 +25,7 @@ export default function RegisterPage() {
   if (!hasHydrated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-accent animate-spin" />
+        <QuizLoader />
       </div>
     );
   }

@@ -10,7 +10,7 @@ export interface RoomStudent {
   /** Public @username shown in creator-facing lists. */
   username?: string;
   active: boolean;
-  /** Avatar id (1-7) for the predefined local avatars. */
+  /** Avatar id (1-6) for the predefined local avatars. */
   avatarId: number;
   /** Avatar URL from DB — if present, use this instead of dicebear fallback. */
   avatarUrl?: string | null;

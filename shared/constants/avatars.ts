@@ -1,8 +1,8 @@
 /**
  * Shared avatar constants for local avatar images
  *
- * This file contains the predefined collection of 7 local avatars
- * served from the frontend at /images/avatar-1.png ... /images/avatar-7.png.
+ * This file contains the predefined collection of 6 local avatars
+ * served from the frontend at /images/avatar-1.png ... /images/avatar-6.png.
  *
  * Both frontend and backend use this same list to ensure validation stays in sync.
  */
@@ -17,17 +17,17 @@ export const AVATAR_BASE_URL = "/images/avatar-";
 /**
  * Total number of predefined avatars.
  */
-export const AVATAR_COUNT = 7;
+export const AVATAR_COUNT = 6;
 
 /**
- * Build a local avatar URL by ID (1-7)
+ * Build a local avatar URL by ID (1-6)
  */
 function buildAvatarUrl(id: number): string {
   return `${AVATAR_BASE_URL}${id}.png`;
 }
 
 /**
- * Collection of 7 predefined local avatars
+ * Collection of 6 predefined local avatars
  */
 export const PREDEFINED_AVATARS: string[] = Array.from(
   { length: AVATAR_COUNT },

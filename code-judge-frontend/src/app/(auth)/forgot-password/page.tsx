@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
+import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { toast } from "@/lib/toast";
 import { requestPasswordReset, verifyResetOtp, resetPassword } from "@/services/auth";
 import {
@@ -253,7 +254,7 @@ export default function ForgotPasswordPage() {
                 disabled={sendingOtp}
                 className={AUTH_PRIMARY_BUTTON}
               >
-                {sendingOtp && <Loader2 className="w-4 h-4 animate-spin" />}
+                {sendingOtp && <QuizLoader className="h-4 w-4 text-white" />}
                 {sendingOtp ? "Sending..." : "Continue"}
               </button>
             </form>
@@ -288,7 +289,7 @@ export default function ForgotPasswordPage() {
                 disabled={verifyingOtp || otp.value.length !== 6}
                 className={AUTH_PRIMARY_BUTTON}
               >
-                {verifyingOtp && <Loader2 className="w-4 h-4 animate-spin" />}
+                {verifyingOtp && <QuizLoader className="h-4 w-4 text-white" />}
                 {verifyingOtp ? "Verifying..." : "Verify"}
               </button>
               <div className="text-center">
@@ -396,7 +397,7 @@ export default function ForgotPasswordPage() {
                 disabled={!isResetEnabled}
                 className={`${AUTH_PRIMARY_BUTTON} mt-1`}
               >
-                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {submitting && <QuizLoader className="h-4 w-4 text-white" />}
                 {submitting ? "Resetting..." : "Reset password"}
               </button>
             </form>

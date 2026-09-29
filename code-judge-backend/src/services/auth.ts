@@ -13,16 +13,16 @@ import generateOtp from './otpGenerator.js';
 const OTP_TTL_SECONDS = 5 * 60; // 5 minutes — OTP validity
 const OTP_RESEND_COOLDOWN_SECONDS = 60; // 60 seconds — resend cooldown (must match frontend countdown)
 const REGISTRATION_TOKEN_TTL_SECONDS = 15 * 60; // 15 minutes
-const OTP_MAX_REQUESTS = 2; // Max OTP requests per email per 5-min window
+const OTP_MAX_REQUESTS = 4; // Max OTP requests per email per 5-min window
 const OTP_REQUEST_WINDOW_SECONDS = 2 * 60; // 2-minute window for rate limiting
-const OTP_MAX_REQUESTS_2HR = 3; // Max OTP requests per email per 2 hours
+const OTP_MAX_REQUESTS_2HR = 7; // Max OTP requests per email per 2 hours
 const OTP_REQUEST_WINDOW_2HR_SECONDS = 2 * 60 * 60; // 2-hour window for rate limiting
 const OTP_MAX_VERIFY_ATTEMPTS = 3; // Max OTP verification attempts before lockout
 const BCRYPT_SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
 
 // --- IP-based rate limiting (email flood protection) ---
 const IP_COOLDOWN_SECONDS = 60; // 60 seconds cooldown per IP
-const IP_MAX_REQUESTS = 3; // Max OTP requests per IP per 5-min window (prevents email enumeration flood)
+const IP_MAX_REQUESTS = 4; // Max OTP requests per IP per 5-min window (prevents email enumeration flood)
 const IP_REQUEST_WINDOW_SECONDS = 5 * 60; // 5-minute window for IP rate limiting
 const IP_MAX_REQUESTS_2HR = 10; // Max OTP requests per IP per 2 hours (prevents prolonged flood)
 const IP_REQUEST_WINDOW_2HR_SECONDS = 2 * 60 * 60; // 2-hour window for IP rate limiting
@@ -157,8 +157,8 @@ function errorResponse(message: string, statusCode: number = 400): ServiceRespon
 /**
  * POST /api/auth/send-otp
  * Validates email, generates OTP, caches it, sends email asynchronously
- * Rate-limited: max 2 requests per 5 minutes per email, 3 per 2 hours
- * IP rate-limited: max 3 requests per 5 minutes per IP, 10 per 2 hours (prevents email flood via enumeration)
+ * Rate-limited: max 4 requests per 5 minutes per email, 7 per 2 hours
+ * IP rate-limited: max 4 requests per 5 minutes per IP, 10 per 2 hours (prevents email flood via enumeration)
  * Resend cooldown: 60s per email (otp_cooldown:<email>) + 60s per IP (otp_cooldown_ip:<ip>) — synced with frontend
  * OTP validity: 5 minutes (OTP_TTL_SECONDS) — allows resending after cooldown by overwriting
  */

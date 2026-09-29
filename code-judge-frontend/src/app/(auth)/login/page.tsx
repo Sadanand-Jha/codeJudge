@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AtSign, Lock, Loader2 } from "lucide-react";
+import { AtSign, Lock } from "lucide-react";
+import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useAuthStore } from "@/store/authStore";
 import { login } from "@/services/auth";
 import { toast } from "@/lib/toast";
@@ -35,7 +36,7 @@ export default function LoginPage() {
   if (!hasHydrated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-accent animate-spin" />
+        <QuizLoader />
       </div>
     );
   }
@@ -120,7 +121,7 @@ export default function LoginPage() {
               disabled={loading}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_-16px_rgba(244,114,182,.8)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_12px_28px_-16px_rgba(124,92,255,.8)]"
             >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {loading && <QuizLoader className="h-4 w-4 text-white" />}
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -38,6 +38,7 @@ import QuizSpaceAtmosphere from "./QuizSpaceAtmosphere";
 import { QuizStateScreen } from "./StudentQuizShell";
 import { useTheme } from "@/context/ThemeContext";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 type QuestionStatus = "correct" | "wrong" | "skipped";
 
@@ -310,6 +311,10 @@ export default function AttemptReviewExperience({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  // Slide direction for question transitions: +1 forward, -1 backward.
+  const [navDir, setNavDir] = useState<1 | -1>(1);
+  // Mobile: opacity-only transitions, no layout-property animation.
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     let cancelled = false;
@@ -504,7 +509,7 @@ export default function AttemptReviewExperience({
                   return (
                     <button
                       key={question.id}
-                      onClick={() => { playQuizSound("select"); setSelectedQuestion(index); }}
+                      onClick={() => { playQuizSound("select"); setNavDir(index >= selectedQuestion ? 1 : -1); setSelectedQuestion(index); }}
                       aria-current={isActive ? "true" : undefined}
                       aria-label={`Question ${question.number}: ${state}${isActive ? ", current" : ""}`}
                       className={`flex h-9 items-center justify-center rounded-[10px] border text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF] sm:h-10 sm:text-sm ${
@@ -524,12 +529,14 @@ export default function AttemptReviewExperience({
               </div>
             </motion.section>
 
-            {/* Question Review Card */}
+            {/* Question Review Card — directional slide on question change. */}
+            <AnimatePresence mode="wait" initial={false}>
             <motion.section
               key={currentQuestion.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 }}
+              initial={{ opacity: 0, x: isMobile ? 0 : 28 * navDir }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: isMobile ? 0 : -24 * navDir }}
+              transition={isMobile ? { duration: 0.12 } : { duration: 0.22, ease: "easeOut" }}
               className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
             >
               <div className="flex shrink-0 items-start justify-between gap-3">
@@ -674,7 +681,7 @@ export default function AttemptReviewExperience({
               {/* Prev / Next */}
               <div className="review-question-nav z-20 mt-3 flex shrink-0 items-center justify-between gap-2 border-t border-[#1D3150] bg-[#0B1220] pt-3">
                 <button
-                  onClick={() => { playQuizSound("navigate"); setSelectedQuestion((current) => Math.max(0, current - 1)); }}
+                  onClick={() => { playQuizSound("navigate"); setNavDir(-1); setSelectedQuestion((current) => Math.max(0, current - 1)); }}
                   disabled={selectedQuestion === 0}
                   className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3 py-2 text-xs font-medium text-[#F5F7FB] transition-colors hover:border-[#2A4160] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF]"
                 >
@@ -687,6 +694,7 @@ export default function AttemptReviewExperience({
                 <button
                   onClick={() => {
                     playQuizSound("navigate");
+                    setNavDir(1);
                     setSelectedQuestion((current) => Math.min(data.questions.length - 1, current + 1));
                   }}
                   disabled={selectedQuestion === data.questions.length - 1}
@@ -697,6 +705,7 @@ export default function AttemptReviewExperience({
                 </button>
               </div>
             </motion.section>
+            </AnimatePresence>
           </div>
 
           {/* Sidebar */}

@@ -101,7 +101,7 @@ export interface AudienceStudent {
   username?: string;
   /** @deprecated legacy email — kept for backwards compatibility */
   email?: string;
-  /** Avatar id (1-7) for the predefined local avatars. */
+  /** Avatar id (1-6) for the predefined local avatars. */
   avatarId: number;
   /** Avatar URL from DB — if present, use this instead of avatarId fallback. */
   avatarUrl?: string | null;
