@@ -23,6 +23,7 @@ import type { LucideIcon } from "lucide-react";
 import { getQuizByCode, getQuizLeaderboard, type Quiz } from "@/services/quiz";
 import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { getApiErrorMessage } from "@/lib/apiError";
+import { useQuizSounds } from "@/hooks/useQuizSounds";
 import StudentQuizShell, { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { QuizWarpExperience } from "@/components/quiz/live/QuizWarpExperience";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -45,6 +46,7 @@ export default function JoinQuizPage() {
   const lookupInFlightRef = useRef(false);
   const initialCodeHandledRef = useRef(false);
   const isMobile = useIsMobile();
+  const { playQuizSound } = useQuizSounds();
 
   useEffect(() => {
     const timer = window.setInterval(() => setClockMs(Date.now()), 1000);
@@ -65,6 +67,7 @@ export default function JoinQuizPage() {
       const data = await getQuizByCode(requestedCode);
       setQuiz(data as unknown as Quiz);
       setStep("details");
+      playQuizSound("success");
       // Pull the exact users (with their exact avatars) who already
       // attempted this quiz. Falls back to ambient avatars on any failure.
       try {
@@ -102,13 +105,15 @@ export default function JoinQuizPage() {
       }
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, "Quiz not found. Please check the code and try again."));
+      playQuizSound("error");
     } finally {
       lookupInFlightRef.current = false;
       setLoading(false);
     }
-  }, []);
+  }, [playQuizSound]);
 
   const handleLookup = () => {
+    playQuizSound("navigate");
     void lookupQuiz(code);
   };
 
@@ -133,6 +138,7 @@ export default function JoinQuizPage() {
   const handleJoin = () => {
     if (!quiz || joining) return;
     setJoining(true);
+    playQuizSound("submit");
     // REGISTRATION STEP COMMENTED OUT — students go straight to the waiting room.
     // Registration is intentionally deferred until the student explicitly
     // presses Join Quiz. The registration page performs the authoritative

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Rocket, ShieldCheck, IceCreamCone, PartyPopper } from "lucide-react";
+import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { QuizLoader } from "./StudentQuizShell";
 import { useTheme } from "@/context/ThemeContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -78,6 +79,11 @@ export function QuizWarpExperience({
   const flashRef = useRef<NodeJS.Timeout | null>(null);
   const completedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
+  const { playQuizSound } = useQuizSounds();
+  // Ref mirror so the timer effect below never restarts when the sound
+  // preference toggles (playQuizSound identity changes, timers must not).
+  const playSoundRef = useRef(playQuizSound);
+  playSoundRef.current = playQuizSound;
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -149,11 +155,13 @@ export function QuizWarpExperience({
 
     // Phase 1: Pure warp speed
     warpRef.current = setTimeout(() => {
+      playSoundRef.current("stage");
       setPhase("portal");
     }, warpDuration);
 
     // Phase 2: Portal approach
     portalRef.current = setTimeout(() => {
+      playSoundRef.current("success");
       setPhase("arrival");
     }, warpDuration + portalDuration);
 

@@ -32,6 +32,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useToast } from "@/hooks/useToast";
+import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
 import { getMyQuizzes, getQuizByCode, getQuizCode, quizCodePath, type Quiz } from "@/services/quiz";
 import { isValidQuizCode } from "@/utils/quizCode";
@@ -195,6 +196,7 @@ function WaitingRoomPageInner({
   registration: { studentName?: string; rollNumber?: string } | null;
 }) {
   const { activeConfig, setTheme: setWaitingTheme, setStudentOverride } = useWaitingRoomTheme();
+  const { playQuizSound } = useQuizSounds();
   const textPrimary = activeConfig.textPrimary;
   const textSecondary = activeConfig.textSecondary;
   const { setTheme } = useTheme();
@@ -206,8 +208,11 @@ function WaitingRoomPageInner({
 
   useEffect(() => {
     // REGISTRATION STEP COMMENTED OUT — was `if (started && registered)`.
-    if (started) router.replace(`/quiz/${quizCode}/attempt`);
-  }, [quizCode, registered, router, started]);
+    if (started) {
+      playQuizSound("success");
+      router.replace(`/quiz/${quizCode}/attempt`);
+    }
+  }, [quizCode, playQuizSound, registered, router, started]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClockMs(Date.now()), 1000);
@@ -215,6 +220,7 @@ function WaitingRoomPageInner({
   }, []);
 
   const handleViewMode = (m:"light"|"dark"|"real")=>{
+    playQuizSound("select");
     setViewMode(m);
     try{ localStorage.setItem(`byteclash_waiting_view_mode_${quizCode}`, m);}catch{}
     if(m==="light"){ setTheme("light"); setWaitingTheme("ai-cloud"); setStudentOverride(undefined); }
@@ -344,7 +350,7 @@ function WaitingRoomPageInner({
           </div>
           {/* Participants Button */}
           <button
-            onClick={() => setDrawerOpen(true)}
+            onClick={() => { playQuizSound("navigate"); setDrawerOpen(true); }}
             className={`nav-btn flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-250 ${
               isDark
                 ? 'bg-white/[0.05] border-border-hover text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'

@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import { ArrowRight, CheckCircle2, Clock, Monitor, Rocket, ShieldCheck, Sparkles, Wifi } from "lucide-react";
 import { getQuizByCode, type QuizBasic } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
+import { useQuizSounds } from "@/hooks/useQuizSounds";
 import StudentQuizShell, { QuizPrimaryButton, QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
 
 export default function QuizLobbyPage({ params }: { params: Promise<{ quizId: string }> }) {
@@ -12,6 +13,7 @@ export default function QuizLobbyPage({ params }: { params: Promise<{ quizId: st
   const [quiz, setQuiz] = useState<QuizBasic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { playQuizSound } = useQuizSounds();
 
   useEffect(() => {
     let cancelled = false;
@@ -73,9 +75,12 @@ export default function QuizLobbyPage({ params }: { params: Promise<{ quizId: st
           ))}
         </div>
 
-        <QuizPrimaryButton href={`/quiz/${code}/attempt`} className="relative mt-7 w-full min-h-14 rounded-2xl text-base">
-          Enter assessment <ArrowRight className="h-4 w-4" />
-        </QuizPrimaryButton>
+        {/* QuizPrimaryButton with href ignores onClick, so the wrapper plays the launch sound. */}
+        <span className="relative mt-7 block" onClick={() => playQuizSound("submit")}>
+          <QuizPrimaryButton href={`/quiz/${code}/attempt`} className="relative w-full min-h-14 rounded-2xl text-base">
+            Enter assessment <ArrowRight className="h-4 w-4" />
+          </QuizPrimaryButton>
+        </span>
         <p className="relative mt-3 text-center text-[11px] text-[#98A2B3] dark:text-[#687386]">Secure attempt • answers save automatically</p>
       </section>
     </StudentQuizShell>

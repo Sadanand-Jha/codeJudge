@@ -1,10 +1,11 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { Clock3, Crown, Medal, Search, Sparkles, Trophy } from "lucide-react";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { getQuizByCode, getQuizLeaderboard, type QuizBasic, type QuizLeaderboardEntry } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
+import { useQuizSounds } from "@/hooks/useQuizSounds";
 import StudentQuizShell, { QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
 
 function formatDuration(seconds: number | null | undefined) {
@@ -24,6 +25,8 @@ export default function QuizLeaderboardPage({ params }: { params: Promise<{ quiz
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { playQuizSound } = useQuizSounds();
+  const fanfarePlayedRef = useRef(false);
 
   useEffect(() => {
     if (!isValidQuizCode(code)) return;
@@ -51,6 +54,14 @@ export default function QuizLeaderboardPage({ params }: { params: Promise<{ quiz
     );
   }, [entries, query]);
   const podium = entries.slice(0, 3);
+
+  // Celebrate once when the podium lands.
+  useEffect(() => {
+    if (!loading && !error && podium.length > 0 && !fanfarePlayedRef.current) {
+      fanfarePlayedRef.current = true;
+      playQuizSound("success");
+    }
+  }, [loading, error, podium.length, playQuizSound]);
 
   if (!isValidQuizCode(code)) return <QuizStateScreen text="Invalid quiz code." />;
   if (loading) return <QuizStateScreen loading text="Loading verified leaderboard…" />;

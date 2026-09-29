@@ -37,6 +37,7 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import QuizSpaceAtmosphere from "./QuizSpaceAtmosphere";
 import { QuizStateScreen } from "./StudentQuizShell";
 import { useTheme } from "@/context/ThemeContext";
+import { useQuizSounds } from "@/hooks/useQuizSounds";
 
 type QuestionStatus = "correct" | "wrong" | "skipped";
 
@@ -303,6 +304,7 @@ export default function AttemptReviewExperience({
   attemptId: string;
 }) {
   const { theme } = useTheme();
+  const { playQuizSound } = useQuizSounds();
   const [selectedQuestion, setSelectedQuestion] = useState(0);
   const [data, setData] = useState<AttemptReviewData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -322,10 +324,12 @@ export default function AttemptReviewExperience({
         if (!cancelled) {
           setData(buildAttemptReviewData(result, review));
           setSelectedQuestion(0);
+          playQuizSound("success");
         }
       } catch (err: unknown) {
         if (!cancelled) {
           setError(getApiErrorMessage(err, "Could not load attempt review."));
+          playQuizSound("error");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -335,7 +339,7 @@ export default function AttemptReviewExperience({
     return () => {
       cancelled = true;
     };
-  }, [attemptId]);
+  }, [attemptId, playQuizSound]);
 
   const paletteStatus = useMemo(() => {
     if (!data) return [];
@@ -500,7 +504,7 @@ export default function AttemptReviewExperience({
                   return (
                     <button
                       key={question.id}
-                      onClick={() => setSelectedQuestion(index)}
+                      onClick={() => { playQuizSound("select"); setSelectedQuestion(index); }}
                       aria-current={isActive ? "true" : undefined}
                       aria-label={`Question ${question.number}: ${state}${isActive ? ", current" : ""}`}
                       className={`flex h-[42px] items-center justify-center rounded-[10px] border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF] sm:h-[50px] sm:text-[15px] ${
@@ -669,7 +673,7 @@ export default function AttemptReviewExperience({
               {/* Prev / Next */}
               <div className="review-question-nav z-20 mt-3 flex shrink-0 items-center justify-between gap-2 border-t border-[#1D3150] bg-[#0B1220] pt-3">
                 <button
-                  onClick={() => setSelectedQuestion((current) => Math.max(0, current - 1))}
+                  onClick={() => { playQuizSound("navigate"); setSelectedQuestion((current) => Math.max(0, current - 1)); }}
                   disabled={selectedQuestion === 0}
                   className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3 py-2 text-xs font-medium text-[#F5F7FB] transition-colors hover:border-[#2A4160] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF]"
                 >
@@ -680,9 +684,10 @@ export default function AttemptReviewExperience({
                   {selectedQuestion + 1} / {data.questions.length}
                 </span>
                 <button
-                  onClick={() =>
-                    setSelectedQuestion((current) => Math.min(data.questions.length - 1, current + 1))
-                  }
+                  onClick={() => {
+                    playQuizSound("navigate");
+                    setSelectedQuestion((current) => Math.min(data.questions.length - 1, current + 1));
+                  }}
                   disabled={selectedQuestion === data.questions.length - 1}
                   className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3 py-2 text-xs font-medium text-[#F5F7FB] transition-colors hover:border-[#2A4160] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF]"
                 >
