@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -286,11 +286,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   }
 
   return (
-    <div
-      className="min-h-dvh w-full min-w-0 bg-ai-bg flex"
-      data-ai-scope
-      style={{ "--rail-w": isStudioRoute ? "0rem" : mobileMenuOpen || sidebarExpanded ? "16rem" : "3.75rem" } as CSSProperties}
-    >
+    <div className="min-h-dvh w-full min-w-0 bg-ai-bg flex" data-ai-scope>
       {/* Mobile overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
@@ -314,12 +310,11 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         className={cn(
           // `100vh` can extend behind mobile browser chrome. `100dvh` tracks
           // the actually visible viewport, keeping the account action onscreen.
-          "fixed left-0 top-0 h-dvh bg-ai-sidebar/75 backdrop-blur-xl backdrop-saturate-150 border-r border-ai-border flex flex-col z-50 overflow-hidden",
-          isStudentMissionRoute && "border-violet-400/15 bg-white/80 shadow-[12px_0_55px_-34px_rgba(91,69,196,.7)] dark:bg-[#080B18]/90 dark:shadow-[12px_0_60px_-32px_rgba(69,48,155,.65)]",
-          isStudentPartyRoute && "border-pink-300/50 bg-[#FFF9F2]/88 shadow-[12px_0_55px_-34px_rgba(244,114,182,.65)]",
-          "transition-[width,transform] duration-200 ease-out",
-          "w-[var(--rail-w)]",
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          "app-sidebar-rail fixed left-0 top-0 h-dvh w-64 will-change-transform border-r border-ai-border bg-ai-sidebar flex flex-col z-50 overflow-hidden transition-transform duration-200 ease-out",
+          isStudentMissionRoute && "border-violet-400/15 bg-white dark:bg-[#080B18] shadow-[12px_0_55px_-34px_rgba(91,69,196,.7)] dark:shadow-[12px_0_60px_-32px_rgba(69,48,155,.65)]",
+          isStudentPartyRoute && "border-pink-300/50 bg-[#FFF9F2] shadow-[12px_0_55px_-34px_rgba(244,114,182,.65)]",
+          sidebarExpanded && "app-sidebar-rail-expanded",
+          mobileMenuOpen && "app-sidebar-mobile-open"
         )}
       >
         {isStudentQuizRoute && (
@@ -349,7 +344,10 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             setSidebarExpanded(false);
             setAccountMenuOpen(false);
           }}
-          className="relative z-10 flex h-full flex-col"
+          className={cn(
+            "relative z-10 flex h-full flex-col",
+            showLabels ? "w-full" : "ml-auto w-[3.75rem]"
+          )}
         >
         {/* Logo */}
         <div className={cn("shrink-0 py-4 flex items-center", showLabels ? "px-6 justify-start" : "px-0 justify-center")}>
@@ -443,9 +441,9 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       {/* ===== MAIN CONTENT ===== */}
       <div
         className={cn(
-          "flex-1 w-0 min-w-0 flex flex-col transition-[margin] duration-200 ease-out",
+          "flex-1 w-0 min-w-0 flex flex-col",
           isStudioRoute ? "h-dvh overflow-hidden" : "min-h-dvh",
-          !isStudioRoute && "lg:ml-[var(--rail-w)]"
+          !isStudioRoute && "lg:ml-[3.75rem]"
         )}
       >
         {/* ===== TOP HEADER ===== */}
@@ -458,7 +456,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
           onCopy={(e) => e.preventDefault()}
           onCut={(e) => e.preventDefault()}
           className={cn(
-            "sticky top-0 z-30 flex h-14 min-w-0 w-full select-none items-center gap-2 border-b border-ai-border bg-ai-bg/60 px-3 backdrop-blur-2xl backdrop-saturate-150 sm:gap-4 sm:px-4",
+            "app-topbar sticky top-0 z-30 flex h-14 min-w-0 w-full select-none items-center gap-2 border-b border-ai-border bg-ai-bg/60 px-3 backdrop-blur-2xl backdrop-saturate-150 sm:gap-4 sm:px-4",
             isStudentMissionRoute && "border-violet-400/15 bg-white/72 shadow-[0_14px_44px_-34px_rgba(91,69,196,.8)] dark:bg-[#080C18]/78",
             isStudentPartyRoute && "border-pink-300/45 bg-[#FFF9F2]/80 shadow-[0_14px_44px_-34px_rgba(244,114,182,.7)]"
           )}
@@ -508,7 +506,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         ) : null}
 
         {/* ===== PAGE CONTENT ===== */}
-        <main className={cn("flex-1", isStudioRoute && "min-h-0 flex flex-col")}>{children}</main>
+        <main className={cn("min-w-0 w-full flex-1", isStudioRoute && "min-h-0 flex flex-col")}>{children}</main>
       </div>
 
       <LogoutConfirmModal
@@ -613,7 +611,7 @@ function ProfileMenu({ showLabels, sidebarExpanded, setSidebarExpanded, open, on
       >
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-accent-foreground shrink-0">
           {avatar ? (
-            <img src={avatar.url} alt={avatar.label} className="h-full w-full object-cover rounded-full" />
+            <Image src={avatar.url} alt={avatar.label} width={32} height={32} unoptimized className="h-full w-full object-cover rounded-full" />
           ) : (
             (username || "U").charAt(0).toUpperCase()
           )}
@@ -643,7 +641,7 @@ function ProfileMenu({ showLabels, sidebarExpanded, setSidebarExpanded, open, on
               <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] text-xs font-bold text-accent-foreground shrink-0">
                   {avatar ? (
-                    <img src={avatar.url} alt={avatar.label} className="h-full w-full object-cover rounded-full" />
+                    <Image src={avatar.url} alt={avatar.label} width={32} height={32} unoptimized className="h-full w-full object-cover rounded-full" />
                   ) : (
                     (username || "U").charAt(0).toUpperCase()
                   )}

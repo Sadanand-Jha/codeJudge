@@ -16,6 +16,8 @@ import {
   LayoutGrid,
   Medal,
   PieChart,
+  PartyPopper,
+  Rocket,
   Target,
   Timer,
   Trophy,
@@ -33,6 +35,8 @@ import {
 } from "@/services/quiz";
 import { getApiErrorMessage } from "@/lib/apiError";
 import QuizSpaceAtmosphere from "./QuizSpaceAtmosphere";
+import { QuizStateScreen } from "./StudentQuizShell";
+import { useTheme } from "@/context/ThemeContext";
 
 type QuestionStatus = "correct" | "wrong" | "skipped";
 
@@ -294,6 +298,7 @@ export default function AttemptReviewExperience({
   quizId: string;
   attemptId: string;
 }) {
+  const { theme } = useTheme();
   const [selectedQuestion, setSelectedQuestion] = useState(0);
   const [data, setData] = useState<AttemptReviewData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -335,33 +340,25 @@ export default function AttemptReviewExperience({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050A14] text-[#F5F7FB]">
-        <div className="mx-auto box-border w-full max-w-[1240px] px-4 py-6 sm:px-6">
-          <div className="rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-8 text-center text-sm text-[#9AAAC3]">
-            Loading attempt review…
-          </div>
-        </div>
-      </div>
+      <QuizStateScreen
+        loading
+        title={theme === "light" ? "Preparing your victory recap" : "Preparing mission debrief"}
+        text="Checking your answers and building the full review…"
+      />
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#050A14] text-[#F5F7FB]">
-        <div className="mx-auto box-border w-full max-w-[1240px] px-4 py-6 sm:px-6">
-          <div className="rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-8 text-center">
-            <p className="text-sm font-semibold text-[#F5F7FB]">Could not load attempt review</p>
-            <p className="mt-1 text-xs text-[#9AAAC3]">{error ?? "Attempt review not found."}</p>
-            <Link
-              href="/quiz"
-              className="mt-4 inline-flex items-center gap-2 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3.5 py-1.5 text-sm font-medium text-[#F5F7FB]"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </div>
+      <QuizStateScreen
+        title="Review unavailable"
+        text={error ?? "Attempt review not found."}
+        action={
+          <Link href="/quiz" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 px-4 text-sm font-semibold text-white dark:from-violet-500 dark:to-indigo-500">
+            <ArrowLeft className="h-4 w-4" /> Back to quiz home
+          </Link>
+        }
+      />
     );
   }
 
@@ -369,28 +366,18 @@ export default function AttemptReviewExperience({
 
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen bg-[#050A14] text-[#F5F7FB]">
-        <div className="mx-auto box-border w-full max-w-[1240px] px-4 py-6 sm:px-6">
-          <div className="rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-8 text-center">
-            <p className="text-sm font-semibold text-[#F5F7FB]">No questions in this attempt</p>
-            <p className="mt-1 text-xs text-[#9AAAC3]">The quiz has no questions to review.</p>
-            <Link
-              href="/quiz"
-              className="mt-4 inline-flex items-center gap-2 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3.5 py-1.5 text-sm font-medium text-[#F5F7FB]"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </div>
+      <QuizStateScreen
+        title="Nothing to review yet"
+        text="This attempt does not contain any reviewable questions."
+        action={<Link href="/quiz" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 px-4 text-sm font-semibold text-white dark:from-violet-500 dark:to-indigo-500"><ArrowLeft className="h-4 w-4" /> Back to quiz home</Link>}
+      />
     );
   }
 
   const currentStatus = questionStatus(currentQuestion);
 
   return (
-    <div className="relative min-h-screen bg-[#050A14] text-[#F5F7FB]">
+    <div className="student-quiz-theme attempt-review-theme relative min-h-[calc(100dvh-3.5rem)] overflow-x-hidden bg-[#050A14] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-[#F5F7FB]">
       <QuizSpaceAtmosphere className="fixed" />
       {/* Subtle top glows — background stays mostly solid */}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[320px] overflow-hidden">
@@ -414,8 +401,9 @@ export default function AttemptReviewExperience({
             <ArrowLeft className="h-4 w-4" />
             Back
           </Link>
-          <span className="inline-flex items-center rounded-[10px] border border-[#8B7CFF]/40 bg-[#8B7CFF]/10 px-3 py-2 text-[13px] font-medium text-[#B9AEFF]">
-            Attempt Review
+          <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#8B7CFF]/40 bg-[#8B7CFF]/10 px-3 py-2 text-[13px] font-semibold text-[#B9AEFF]">
+            {theme === "light" ? <PartyPopper className="h-4 w-4" /> : <Rocket className="h-4 w-4" />}
+            {theme === "light" ? "Victory recap" : "Mission debrief"}
           </span>
         </div>
 
@@ -428,7 +416,7 @@ export default function AttemptReviewExperience({
               className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
             >
               <span className="inline-flex items-center rounded-[8px] bg-[#8B7CFF]/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#8B7CFF]">
-                Quiz
+                {theme === "light" ? "Party scorecard" : "Mission scorecard"}
               </span>
               <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#F5F7FB] sm:text-[32px] sm:leading-[1.15]">
                 {data.quizName}
@@ -447,11 +435,11 @@ export default function AttemptReviewExperience({
                 </p>
               )}
 
-              <div className="mt-4 flex items-stretch gap-4 sm:gap-5">
+              <div className="mt-4 flex flex-col items-stretch gap-4 min-[540px]:flex-row sm:gap-5">
                 <div className="flex items-center">
                   <ScoreRing percentage={data.percentage} />
                 </div>
-                <div aria-hidden className="w-px shrink-0 bg-[#1D3150]" />
+                <div aria-hidden className="h-px shrink-0 bg-[#1D3150] min-[540px]:h-auto min-[540px]:w-px" />
                 <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:gap-2.5">
                   <MetricCard label="Score" value={data.score} icon={Target} iconColor="#8B7CFF" />
                   <MetricCard label="Duration" value={data.duration} icon={Clock3} iconColor="#4EA1FF" />
@@ -675,7 +663,7 @@ export default function AttemptReviewExperience({
               )}
 
               {/* Prev / Next */}
-              <div className="mt-4 flex items-center justify-between gap-2">
+              <div className="review-question-nav sticky bottom-2 z-20 mt-4 flex items-center justify-between gap-2 rounded-xl border border-[#1D3150] bg-[#0B1220]/95 p-2 shadow-lg backdrop-blur-md sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
                 <button
                   onClick={() => setSelectedQuestion((current) => Math.max(0, current - 1))}
                   disabled={selectedQuestion === 0}

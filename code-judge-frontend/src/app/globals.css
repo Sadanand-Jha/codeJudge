@@ -453,6 +453,30 @@ html {
   overflow-x: hidden;
   overflow-y: auto;
 }
+
+/* The sidebar is a fixed-width compositor layer. Keep all three positions in
+   one transform system: mixing Tailwind's individual `translate` property
+   with `transform` composes both offsets and can move the rail fully offscreen. */
+.app-sidebar-rail {
+  transform: translate3d(-100%, 0, 0);
+}
+
+.app-sidebar-rail.app-sidebar-mobile-open {
+  transform: translate3d(0, 0, 0);
+}
+
+/* The desktop sidebar is a fixed-width compositor layer. Expanding it no
+   longer animates width or pushes the page, so opening the rail does not
+   trigger layout and paint work on every animation frame. */
+@media (min-width: 1024px) {
+  .app-sidebar-rail {
+    transform: translate3d(calc(-100% + 3.75rem), 0, 0);
+  }
+
+  .app-sidebar-rail.app-sidebar-rail-expanded {
+    transform: translate3d(0, 0, 0);
+  }
+}
 body {
   min-height: 100dvh;
   height: auto;
@@ -4794,6 +4818,97 @@ svg {
 [data-theme="light"] .bg-\[\#FF4D5D\].text-white,
 [data-theme="light"] .bg-\[\#FF4D5D\] .text-white { color: #FFFFFF !important; }
 
+/* Attempt review is a complete destination, not a legacy report embedded in
+   the quiz shell. Light mode is a celebratory score party; dark mode is a
+   glassy mission debrief. The selectors stay scoped so creator analytics and
+   unrelated cards keep their own visual system. */
+.attempt-review-theme {
+  isolation: isolate;
+  transition: background-color 420ms cubic-bezier(.22, 1, .36, 1), color 420ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.attempt-review-theme::before,
+.attempt-review-theme::after {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  width: 22rem;
+  height: 22rem;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(80px);
+  opacity: .2;
+}
+
+.attempt-review-theme::before { left: -8rem; top: 18%; }
+.attempt-review-theme::after { right: -10rem; bottom: 4%; }
+
+[data-theme="light"] .attempt-review-theme {
+  background-color: #fffaf4 !important;
+  background-image:
+    radial-gradient(circle at 10% 8%, rgba(251, 113, 133, .16), transparent 28%),
+    radial-gradient(circle at 88% 16%, rgba(56, 189, 248, .15), transparent 30%),
+    linear-gradient(145deg, #fff8f1 0%, #fffafd 48%, #f2fbff 100%);
+}
+
+[data-theme="light"] .attempt-review-theme::before { background: #fb7185; }
+[data-theme="light"] .attempt-review-theme::after { background: #38bdf8; }
+
+[data-theme="dark"] .attempt-review-theme {
+  background-color: #060913 !important;
+  background-image:
+    radial-gradient(circle at 12% 0%, rgba(124, 92, 255, .18), transparent 30%),
+    radial-gradient(circle at 90% 22%, rgba(34, 211, 238, .08), transparent 28%),
+    linear-gradient(180deg, #080b18 0%, #060913 55%, #090714 100%);
+}
+
+[data-theme="dark"] .attempt-review-theme::before { background: #7c3aed; opacity: .14; }
+[data-theme="dark"] .attempt-review-theme::after { background: #0ea5e9; opacity: .09; }
+
+[data-theme="light"] .attempt-review-theme .bg-\[\#0B1220\] {
+  border-color: rgba(244, 114, 182, .25) !important;
+  background: rgba(255, 255, 255, .82) !important;
+  box-shadow: 0 24px 70px -45px rgba(219, 39, 119, .42), 0 1px 0 rgba(255, 255, 255, .9) inset !important;
+}
+
+[data-theme="light"] .attempt-review-theme .bg-\[\#0F192B\],
+[data-theme="light"] .attempt-review-theme .bg-\[\#111D31\] {
+  border-color: rgba(148, 163, 184, .24) !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .92), rgba(255, 247, 252, .76)) !important;
+}
+
+[data-theme="dark"] .attempt-review-theme .bg-\[\#0B1220\] {
+  border-color: rgba(139, 124, 255, .2) !important;
+  background: linear-gradient(145deg, rgba(17, 22, 36, .94), rgba(11, 15, 29, .9)) !important;
+  box-shadow: 0 28px 80px -52px rgba(124, 92, 255, .75), 0 1px 0 rgba(255, 255, 255, .035) inset !important;
+}
+
+[data-theme="dark"] .attempt-review-theme .bg-\[\#0F192B\],
+[data-theme="dark"] .attempt-review-theme .bg-\[\#111D31\] {
+  border-color: rgba(139, 124, 255, .14) !important;
+  background: rgba(15, 20, 35, .88) !important;
+}
+
+.attempt-review-theme section {
+  scroll-margin-top: 5rem;
+}
+
+.attempt-review-theme button,
+.attempt-review-theme a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 539px) {
+  .attempt-review-theme::before,
+  .attempt-review-theme::after {
+    display: none;
+  }
+
+  .attempt-review-theme .review-question-nav {
+    bottom: max(.5rem, env(safe-area-inset-bottom));
+  }
+}
+
 /* ============================================
    Profile workspace — party / mission surfaces
    Shared rules make every profile sub-page inherit the same visual language
@@ -4883,5 +4998,78 @@ svg {
   .pricing-faq-card {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+
+  .quiz-party-floater,
+  .quiz-party-confetti {
+    animation: none !important;
+  }
+}
+
+/* ============================================
+   Shared mobile foundation
+   These rules target browser behavior and compositor cost, so every route
+   benefits without changing its desktop layout or application logic.
+   ============================================ */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+button,
+a,
+[role="button"],
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+.overflow-x-auto,
+.overflow-y-auto,
+.overflow-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+  html {
+    scroll-padding-top: calc(3.5rem + env(safe-area-inset-top));
+  }
+
+  body {
+    min-height: 100svh;
+    min-height: 100dvh;
+  }
+
+  /* iOS zooms the entire page when a focused input is below 16px. */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  .app-topbar {
+    padding-left: max(.75rem, env(safe-area-inset-left)) !important;
+    padding-right: max(.75rem, env(safe-area-inset-right)) !important;
+  }
+
+  /* Keep a small amount of celebration without running thirty independent
+     Framer Motion loops on a phone. */
+  .quiz-party-confetti:nth-of-type(n + 13) {
+    display: none !important;
+  }
+
+  /* Full-page backdrop filters are expensive on mobile GPUs. Cards retain
+     their translucent colors and borders without continuous framebuffer reads. */
+  .profile-theme [class*="backdrop-blur"],
+  .student-quiz-theme [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Modal content remains reachable above browser chrome and home indicators. */
+  [role="dialog"] {
+    max-height: calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overscroll-behavior: contain;
   }
 }

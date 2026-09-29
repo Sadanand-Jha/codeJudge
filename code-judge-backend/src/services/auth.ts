@@ -274,12 +274,18 @@ export async function sendOtp(email: string, clientIp?: string): Promise<Service
       await redisClient.setEx(ipCooldownKey, IP_COOLDOWN_SECONDS, '1');
     }
 
-    // 9. Send email asynchronously (non-blocking) - serverless-friendly
-    // Do not await; fire-and-forget prevents Vercel function timeout
-    // Gracefully handled inside email.ts if RESEND_API_KEY missing/invalid
-    sendOtpEmail({ to: normalizedEmail, otp }).catch((err: any) => {
-      console.error('Failed to send OTP email (non-blocking):', err.message || err);
-    });
+    // 9. Await provider acceptance. Fire-and-forget work is unsafe on Vercel:
+    // the invocation may be frozen as soon as the response is returned.
+    try {
+      await sendOtpEmail({ to: normalizedEmail, otp });
+    } catch (emailError) {
+      // Do not leave a valid-but-undelivered code or cooldown behind. The user
+      // can retry immediately once the provider recovers.
+      await deleteCachedOtp(normalizedEmail);
+      await redisClient.del(cooldownKey);
+      if (ipCooldownKey) await redisClient.del(ipCooldownKey);
+      throw emailError;
+    }
 
     return successResponse({ email: normalizedEmail }, 'OTP sent successfully');
   } catch (error) {
@@ -546,9 +552,14 @@ export async function requestOwnerLoginOtp(email: string, clientIp?: string): Pr
       const otp = generateSixDigitOtp();
       await cacheOwnerLoginOtp(normalizedEmail, otp);
       console.log(`[owner-otp] code issued for admin ${normalizedEmail}`);
-      sendOtpEmail({ to: normalizedEmail, otp }).catch((err: any) => {
-        console.error('Failed to send owner-login OTP email (non-blocking):', err.message || err);
-      });
+      // Still return the same generic response on delivery failure so this
+      // endpoint cannot reveal whether an owner account exists.
+      try {
+        await sendOtpEmail({ to: normalizedEmail, otp });
+      } catch (err: any) {
+        await deleteCachedOwnerLoginOtp(normalizedEmail);
+        console.error('Failed to send owner-login OTP email:', err.message || err);
+      }
     } else {
       console.log(`[owner-otp] code suppressed for non-admin ${normalizedEmail}`);
     }
@@ -770,10 +781,16 @@ export async function requestPasswordReset(email: string, clientIp?: string): Pr
       await redisClient.setEx(ipCooldownKey, IP_COOLDOWN_SECONDS, '1');
     }
 
-    // Send email asynchronously (non-blocking) - serverless-friendly
-    sendOtpEmail({ to: normalizedEmail, otp }).catch((err: any) => {
-      console.error('Failed to send password-reset OTP email (non-blocking):', err.message || err);
-    });
+    // Wait for provider acceptance before reporting success. This keeps
+    // serverless runtimes from freezing the delivery promise mid-flight.
+    try {
+      await sendOtpEmail({ to: normalizedEmail, otp });
+    } catch (emailError) {
+      await deleteCachedResetOtp(normalizedEmail);
+      await redisClient.del(cooldownKey);
+      if (ipCooldownKey) await redisClient.del(ipCooldownKey);
+      throw emailError;
+    }
 
     return successResponse({ email: normalizedEmail }, 'Password reset OTP sent successfully');
   } catch (error) {

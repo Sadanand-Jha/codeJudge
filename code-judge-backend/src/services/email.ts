@@ -19,24 +19,33 @@ function requireTransport() {
   return { transporter, from };
 }
 
-export async function sendEmail(options: EmailOptions): Promise<void> {
+/**
+ * Send through the shared Nodemailer transport. The transport is cached and
+ * pooled in smtp.ts, allowing warm Vercel functions to reuse an authenticated
+ * SMTP connection. Callers await acceptance because background promises can
+ * be frozen as soon as a serverless response is returned.
+ */
+async function deliverEmail(options: EmailOptions): Promise<string> {
   const ctx = requireTransport();
   if (!ctx) {
     logger.warn(`[MOCK EMAIL] to=${options.to} subject="${options.subject}" - SMTP missing, skipping send`);
-    return;
+    return 'mock';
   }
 
-  try {
-    const htmlContent = options.html || (options.text ? `<p>${options.text}</p>` : '<p></p>');
-    const info = await ctx.transporter.sendMail({
-      from: ctx.from,
-      to: options.to,
-      subject: options.subject,
-      html: htmlContent,
-      ...(options.text ? { text: options.text } : {}),
-    });
+  const info = await ctx.transporter.sendMail({
+    from: ctx.from,
+    to: options.to,
+    subject: options.subject,
+    html: options.html || (options.text ? `<p>${options.text}</p>` : '<p></p>'),
+    ...(options.text ? { text: options.text } : {}),
+  });
+  logger.info(`Email dispatched via SMTP to ${options.to}: ${info.messageId}`);
+  return info.messageId;
+}
 
-    logger.info(`Email sent successfully to ${options.to}: ${info.messageId}`);
+export async function sendEmail(options: EmailOptions): Promise<void> {
+  try {
+    await deliverEmail(options);
   } catch (error) {
     logger.error(`Failed to send email to ${options.to}:`, error);
     throw error;
@@ -57,12 +66,6 @@ export async function sendOtpEmail(
 
   if (!to || !otp) {
     throw new Error('sendOtpEmail requires { to, otp }');
-  }
-
-  const ctx = requireTransport();
-  if (!ctx) {
-    logger.warn(`[MOCK OTP] to=${to} otp=${otp} - SMTP missing, skipping send`);
-    return;
   }
 
   const subject = 'Your OTP Verification Code';
@@ -133,15 +136,7 @@ export async function sendOtpEmail(
   const text = `Your OTP for verification is: ${otp}\n\nThis OTP is valid for 5 minutes.\n\nIf you did not request this, please ignore this email.`;
 
   try {
-    const info = await ctx.transporter.sendMail({
-      from: ctx.from,
-      to,
-      subject,
-      html,
-      text,
-    });
-
-    logger.info(`OTP email sent to ${to}: ${info.messageId}`);
+    await deliverEmail({ to, subject, html, text });
   } catch (error) {
     logger.error(`Failed to send OTP email to ${to}:`, error);
     throw error;
@@ -159,12 +154,6 @@ export async function sendCollaboratorInviteEmail(payload: {
   inviteUrl: string;
 }): Promise<void> {
   const { to, quizName, inviterUsername, inviteUrl } = payload;
-  const ctx = requireTransport();
-  if (!ctx) {
-    logger.warn(`[MOCK INVITE] to=${to} quiz="${quizName}" - SMTP missing`);
-    return;
-  }
-
   const subject = `Collaboration Invitation: ${quizName}`;
   const text = `Hi ${to},\n\n${inviterUsername} has invited you to collaborate on the quiz "${quizName}".\n\nOpen the link below to view the invitation and accept or decline it:\n${inviteUrl}\n\nIf you did not expect this, you can ignore this email.\n\nbyteclash Team`;
   const html = `
@@ -182,14 +171,7 @@ export async function sendCollaboratorInviteEmail(payload: {
   `;
 
   try {
-    const info = await ctx.transporter.sendMail({
-      from: ctx.from,
-      to,
-      subject,
-      html,
-      text,
-    });
-    logger.info(`Collaborator invite sent to ${to}: ${info.messageId}`);
+    await deliverEmail({ to, subject, html, text });
   } catch (error) {
     logger.error(`Failed to send collaborator invite to ${to}:`, error);
     throw error;

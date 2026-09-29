@@ -71,10 +71,19 @@ export function getTransporter(): Transporter | null {
   const key = `${cfg.host}:${cfg.port}:${cfg.user}`;
   if (!cached || cachedKey !== key) {
     cached = nodemailer.createTransport({
+      // Pooling is especially useful on Vercel: a warm function can reuse the
+      // authenticated socket instead of repeating DNS + TLS + SMTP handshakes.
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 50,
       host: cfg.host,
       port: cfg.port,
       secure: cfg.secure,
       auth: { user: cfg.user, pass: cfg.pass },
+      connectionTimeout: 10_000,
+      greetingTimeout: 7_000,
+      socketTimeout: 20_000,
+      tls: { servername: cfg.host },
     });
     cachedKey = key;
   }

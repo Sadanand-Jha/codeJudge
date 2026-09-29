@@ -7,7 +7,7 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 import { getPreviousQuizzes } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
-import QuizSpaceAtmosphere from "@/components/quiz/live/QuizSpaceAtmosphere";
+import { QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
 
 const LOOKUP_TIMEOUT_MS = 15000;
 
@@ -148,13 +148,11 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
 
 function ResultState({ icon, text, action }: { icon: React.ReactNode; text: string; action?: React.ReactNode }) {
   return (
-    <div className="relative flex min-h-[70vh] items-center justify-center overflow-hidden bg-background px-4">
-      <QuizSpaceAtmosphere />
-      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card/90 p-6 text-center backdrop-blur-xl">
-        {icon}
-        <p className="mt-3 text-sm leading-6 text-text-secondary">{text}</p>
-        {action}
-      </div>
-    </div>
+    <QuizStateScreen
+      icon={<div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-100 to-orange-100 text-pink-600 shadow-sm dark:from-violet-500/15 dark:to-cyan-500/10 dark:text-violet-300">{icon}</div>}
+      title="Opening your scorecard"
+      text={text}
+      action={action}
+    />
   );
 }

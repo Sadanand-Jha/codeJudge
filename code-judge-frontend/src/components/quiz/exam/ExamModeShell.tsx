@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, AlertTriangle, Clock, Loader2, Maximize2, ShieldAlert, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock, Loader2, Maximize2, Radio, Rocket, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { reportViolation } from "@/services/quiz";
 
@@ -77,6 +77,7 @@ export default function ExamModeShell({
     if (s === null) return "No limit";
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
+  const timeCritical = timeLeft !== null && timeLeft <= 300;
 
   const recordViolation = useCallback(
     (type: ViolationType, title: string, desc: string) => {
@@ -302,16 +303,21 @@ export default function ExamModeShell({
   // If examActive, render as fullscreen overlay; otherwise show entry screen
   if (!examActive) {
     return (
-      <div className="mx-auto max-w-3xl p-3 sm:p-6">
-        <div className="rounded-2xl border border-border bg-card p-4 sm:p-8 shadow-sm">
+      <div className="relative mx-auto max-w-3xl overflow-hidden p-3 sm:p-6">
+        <div className="relative overflow-hidden rounded-[28px] border border-pink-200/80 bg-white/90 p-4 shadow-[0_30px_90px_-50px_rgba(244,114,182,.7)] dark:border-violet-400/20 dark:bg-[#111624]/95 dark:shadow-[0_32px_95px_-48px_rgba(124,92,255,.6)] sm:p-8">
+          <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-400/10" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-pink-300/25 blur-3xl dark:bg-violet-500/15" />
           <div className="mx-auto max-w-xl text-center">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 sm:h-12 sm:w-12">
-              <ShieldAlert className="h-5 w-5 sm:h-6 sm:w-6" />
+            <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 via-orange-400 to-amber-300 text-white shadow-[0_16px_34px_-16px_rgba(244,114,182,.9)] dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500 sm:h-16 sm:w-16">
+              <Rocket className="h-6 w-6 sm:h-7 sm:w-7" />
+              <ShieldCheck className="absolute -bottom-1.5 -right-1.5 h-6 w-6 rounded-full border-2 border-white bg-emerald-500 p-1 text-white dark:border-[#111624]" />
             </div>
-            <h1 className="mt-3 text-lg font-bold tracking-tight sm:mt-4 sm:text-xl">You&apos;re entering Exam Mode</h1>
+            <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-pink-500 dark:text-violet-300">Secure launch sequence</p>
+            <h1 className="mt-1 text-xl font-black tracking-tight sm:text-2xl">You&apos;re entering Exam Mode</h1>
+            <p className="mt-1 truncate text-xs font-semibold text-text-muted">{quizName}</p>
             <p className="mt-1.5 text-xs text-text-secondary sm:mt-2 sm:text-sm">{isLive ? "Your attempt will be monitored to keep the exam fair. Stay in fullscreen until you submit." : "This preview simulates the student exam experience. Your current quiz will open in a distraction-free exam environment."}</p>
 
-            <div className="mt-4 space-y-1.5 rounded-xl border border-border bg-background p-3 text-left sm:mt-6 sm:space-y-2 sm:p-4">
+            <div className="mt-4 space-y-1.5 rounded-2xl border border-pink-100 bg-gradient-to-br from-white to-pink-50/70 p-3 text-left dark:border-white/[0.07] dark:from-white/[0.04] dark:to-violet-500/[0.04] sm:mt-6 sm:space-y-2 sm:p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-text-muted sm:text-xs">Before you continue</p>
               <ul className="space-y-1.5 text-xs text-text-secondary sm:space-y-2 sm:text-sm">
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500 sm:mt-1" /> Fullscreen is required and will be requested automatically.</li>
@@ -328,7 +334,7 @@ export default function ExamModeShell({
               <button
                 onClick={enterExamMode}
                 disabled={entering}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-pink-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_24px_rgba(236,72,153,0.35)] hover:bg-pink-600 disabled:cursor-wait disabled:opacity-70 sm:px-6 sm:py-3"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500 sm:px-6 sm:py-3"
               >
                 {entering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Maximize2 className="h-4 w-4" />}
                 {entering ? "Checking eligibility…" : "Enter Exam Mode"}
@@ -352,29 +358,33 @@ export default function ExamModeShell({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[100] flex flex-col bg-gray-50 dark:bg-[#0A0A0F] text-gray-900 dark:text-white overflow-hidden"
+      className="student-quiz-theme fixed inset-0 z-[100] flex flex-col overflow-hidden bg-[#fff9f5] text-gray-900 dark:bg-[#060913] dark:text-white"
       // subtle exam background — light: light gray, dark: near-black (unchanged dark)
     >
-      {/* Exam header - minimal */}
-      <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-black/40 px-2.5 backdrop-blur sm:h-14 sm:px-4">
-        <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
-          <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold tracking-wider text-gray-700 dark:text-white">
-            <span className="h-1.5 w-1.5 rounded-full bg-pink-500 animate-pulse" /> EXAM MODE
+      {/* Exam command bar */}
+      <header className="exam-command-bar relative flex h-16 shrink-0 items-center justify-between gap-2 overflow-hidden border-b border-pink-200/70 bg-white/95 px-3 shadow-[0_12px_35px_-30px_rgba(219,39,119,.7)] dark:border-violet-400/15 dark:bg-[#080C18]/96 dark:shadow-[0_14px_40px_-28px_rgba(124,92,255,.65)] sm:h-[4.5rem] sm:px-5">
+        <div aria-hidden className="pointer-events-none absolute -left-10 -top-16 h-36 w-52 rounded-full bg-pink-300/20 blur-3xl dark:bg-violet-500/15" />
+        <div className="relative flex min-w-0 items-center gap-2 sm:gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-pink-500 via-orange-400 to-amber-300 text-white shadow-[0_10px_22px_-12px_rgba(244,114,182,.9)] dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500"><Rocket className="h-4 w-4" /></span>
+          <span className="min-w-0">
+            <span className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.17em] text-pink-500 dark:text-violet-300"><Radio className="h-3 w-3" /> Live mission</span>
+            <span className="mt-0.5 block truncate text-xs font-bold text-gray-900 dark:text-white sm:text-sm">Question navigator</span>
           </span>
-          <span className="rounded-full border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/[0.06] px-1.5 py-0.5 text-[9px] font-bold text-gray-700 dark:text-white sm:px-2 sm:text-[10px]">EXAM</span>
-          <span className="truncate text-xs font-semibold text-gray-900 dark:text-white sm:text-sm">{quizName}</span>
-          <span className="hidden text-xs text-gray-500 dark:text-white/50 sm:inline">{progressLabel}</span>
+          <span className="ml-1 inline-flex shrink-0 items-center rounded-full border border-pink-200 bg-pink-50 px-2 py-1 text-[10px] font-bold text-pink-600 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-200 sm:px-2.5 sm:text-xs">{progressLabel}</span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-white/[0.06] px-2.5 py-1 text-xs font-mono font-semibold text-gray-900 dark:text-white">
-            <Clock className="h-3.5 w-3.5 text-amber-400" /> {formatTime(timeLeft)}
+        <div className="relative flex shrink-0 items-center gap-1.5 sm:gap-3">
+          <span className={cn("inline-flex h-11 items-center gap-2 rounded-2xl border px-2.5 shadow-sm sm:px-3", timeCritical ? "border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-400/25 dark:bg-rose-500/10 dark:text-rose-200" : "border-amber-200 bg-amber-50 text-amber-800 dark:border-cyan-400/20 dark:bg-cyan-400/[0.07] dark:text-cyan-100")}>
+            <span className={cn("grid h-7 w-7 place-items-center rounded-xl", timeCritical ? "bg-rose-500 text-white" : "bg-amber-400 text-white dark:bg-cyan-400/15 dark:text-cyan-300")}><Clock className="h-3.5 w-3.5" /></span>
+            <span className="text-left"><span className="hidden text-[8px] font-bold uppercase tracking-[0.13em] opacity-65 sm:block">Time remaining</span><span className="block font-mono text-sm font-black leading-none tabular-nums sm:text-base">{formatTime(timeLeft)}</span></span>
           </span>
-          <span className="hidden md:inline-flex items-center gap-1 rounded-full border border-red-500/20 bg-red-500/10 px-2 py-1 text-[11px] font-semibold text-red-400">
-            Violation {violations} / {maxViolations}
+          <span className="hidden items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2 text-[10px] font-semibold text-gray-600 dark:border-white/[0.08] dark:bg-white/[0.035] dark:text-white/65 md:inline-flex">
+            <ShieldAlert className="h-3.5 w-3.5 text-rose-400" />
+            <span>Warnings</span>
+            <span className="font-black text-gray-900 dark:text-white">{violations}/{maxViolations}</span>
           </span>
-          <button onClick={exitExamMode} className="rounded-lg border border-gray-300 dark:border-white/15 bg-white dark:bg-white/[0.06] px-2 py-1 text-[11px] font-semibold text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-white/[0.10] sm:px-3 sm:py-1.5 sm:text-xs">
-            Exit
+          <button onClick={exitExamMode} className="grid h-10 w-10 place-items-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:border-white/[0.09] dark:bg-white/[0.04] dark:text-white/65 dark:hover:border-rose-400/25 dark:hover:bg-rose-500/10" aria-label="Exit exam mode" title="Exit exam mode">
+            <X className="h-4 w-4" />
           </button>
         </div>
       </header>
@@ -399,13 +409,12 @@ export default function ExamModeShell({
       </AnimatePresence>
 
       {/* Always-on monitoring notice */}
-      <div className="flex shrink-0 items-center justify-center gap-1 bg-amber-500/10 px-2 py-0.5 text-[9px] font-medium text-amber-600/80 dark:text-amber-400/70">
-        <span className="h-1 w-1 rounded-full bg-amber-500/60 animate-pulse" />
-        Tab switching &amp; window changes are monitored
+      <div className="flex shrink-0 items-center justify-center gap-1.5 border-b border-amber-200/60 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 px-2 py-1 text-[9px] font-semibold text-amber-700 dark:border-amber-400/10 dark:from-amber-400/[0.055] dark:via-orange-400/[0.035] dark:to-amber-400/[0.055] dark:text-amber-300/80">
+        <ShieldCheck className="h-3 w-3" /> Tab switching &amp; window changes are monitored
       </div>
 
       {/* Content - viewport-based on mobile, scrollable on desktop */}
-      <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden bg-gray-50 dark:bg-[#0A0A0F] p-0 sm:block sm:overflow-y-auto sm:overflow-x-hidden sm:p-0", activeViolation && "blur-[6px] pointer-events-none select-none")}>
+      <div className={cn("flex-1 min-h-0 flex flex-col overflow-hidden bg-[#fff9f5] dark:bg-[#060913] p-0 sm:block sm:overflow-y-auto sm:overflow-x-hidden sm:p-0", activeViolation && "blur-[6px] pointer-events-none select-none")}>
         <div className={cn("mx-auto h-full min-h-0 w-full sm:h-full sm:block", fullWidth ? "" : "max-w-[1600px]")}>{children}</div>
       </div>
 

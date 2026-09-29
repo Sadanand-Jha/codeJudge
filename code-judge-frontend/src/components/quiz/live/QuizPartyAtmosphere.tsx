@@ -82,7 +82,7 @@ export default function QuizPartyAtmosphere({ className }: { className?: string 
       {FLOATERS.map(({ Icon, left, top, color, bg, rotate, delay }, index) => (
         <motion.div
           key={index}
-          className="absolute hidden h-14 w-14 items-center justify-center rounded-[20px] border-2 border-white/80 shadow-[0_14px_34px_-18px_rgba(87,53,143,.5)] sm:flex"
+          className="quiz-party-floater absolute hidden h-14 w-14 items-center justify-center rounded-[20px] border-2 border-white/80 shadow-[0_14px_34px_-18px_rgba(87,53,143,.5)] sm:flex"
           style={{ left, top, color, background: bg, rotate }}
           animate={reduceMotion ? undefined : { y: [0, -9, 0, 5, 0], rotate: [rotate, rotate + 7, rotate - 4, rotate] }}
           transition={{ duration: 6 + index, delay, repeat: Infinity, ease: "easeInOut" }}
@@ -95,7 +95,7 @@ export default function QuizPartyAtmosphere({ className }: { className?: string 
       {CONFETTI.map((piece, index) => (
         <motion.span
           key={index}
-          className="absolute h-1.5 w-3 rounded-full opacity-65"
+          className="quiz-party-confetti absolute h-1.5 w-3 rounded-full opacity-65"
           style={{ left: piece.left, top: piece.top, backgroundColor: piece.color, rotate: piece.rotate }}
           animate={reduceMotion ? undefined : { y: [0, 8, 0], rotate: [piece.rotate, piece.rotate + 45, piece.rotate] }}
           transition={{ duration: 4 + (index % 4), delay: piece.delay, repeat: Infinity, ease: "easeInOut" }}

@@ -24,7 +24,7 @@ export default function ProfileWorkspace({ children }: { children: React.ReactNo
   const activeItem = PROFILE_NAV_ITEMS.find((i) => isProfilePathActive(pathname, i.href));
 
   return (
-    <div className="profile-theme relative flex min-h-screen overflow-hidden bg-[#fff9f5] transition-colors duration-500 dark:bg-[#070912]">
+    <div className="profile-theme relative flex min-h-dvh overflow-x-hidden bg-[#fff9f5] transition-colors duration-500 dark:bg-[#070912]">
       <div className="pointer-events-none fixed inset-x-0 bottom-0 top-14 z-0" aria-hidden="true">
         <QuizSpaceAtmosphere />
         <div className="absolute inset-0 bg-white/20 dark:bg-[#070912]/35" />
@@ -33,7 +33,7 @@ export default function ProfileWorkspace({ children }: { children: React.ReactNo
       <ProfileSidebar />
 
       {/* Main content */}
-      <div className="relative z-10 min-w-0 flex-1">
+      <div className="relative z-10 min-w-0 flex-1 overflow-x-hidden">
         {/* Mobile profile action bar */}
         <div className="sticky top-14 z-30 flex items-center justify-between gap-3 border-b border-pink-200/70 bg-white/75 px-4 py-3 shadow-sm backdrop-blur-2xl dark:border-violet-400/10 dark:bg-[#0e1220]/80 lg:hidden">
           <button

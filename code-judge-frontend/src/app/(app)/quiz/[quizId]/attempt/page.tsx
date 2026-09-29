@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, Clock, FileCheck2, Loader2, Send, ShieldCheck, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Loader2, Send, ShieldCheck, Sparkles, Target, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
 import {
@@ -324,13 +324,6 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     void submit();
   }, [playQuizSound, submit]);
 
-  const formattedTime = useMemo(() => {
-    if (timeLeft === null) return "No limit";
-    const minutes = Math.floor(timeLeft / 60).toString().padStart(2, "0");
-    const seconds = (timeLeft % 60).toString().padStart(2, "0");
-    return `${minutes}:${seconds}`;
-  }, [timeLeft]);
-
   if (loading) return <StatusScreen loading text="Preparing your secure attempt…" />;
   if (error && !quiz) return <StatusScreen text={error} />;
   if (!quiz) return <StatusScreen text="This quiz could not be loaded." />;
@@ -370,25 +363,25 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       </div>
       <QuizPageReady className="relative mx-auto max-w-4xl" label="Loading question">
       <main className="relative space-y-4">
-        <div className="overflow-hidden rounded-2xl border border-border/80 bg-card/85 shadow-[0_12px_34px_-28px_rgba(38,22,80,.65)] backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-3 px-3.5 py-3 sm:px-4">
+        <div className="overflow-hidden rounded-[22px] border border-pink-200/75 bg-white/90 shadow-[0_18px_55px_-38px_rgba(244,114,182,.75)] dark:border-violet-400/15 dark:bg-[#111624]/92 dark:shadow-[0_20px_60px_-36px_rgba(124,92,255,.65)]">
+          <div className="flex items-center justify-between gap-3 px-3.5 py-3.5 sm:px-4">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/15 bg-emerald-500/[0.08] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
-                <ShieldCheck className="h-3 w-3" /> Secure{autoSubmitted ? " · submitted" : ""}
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-white shadow-[0_10px_22px_-14px_rgba(16,185,129,.9)]">
+                <ShieldCheck className="h-4 w-4" />
               </span>
-              <span className="truncate text-[11px] font-semibold text-text-secondary">Question {index + 1} of {questions.length}</span>
-              <span className="hidden text-[11px] text-text-muted sm:inline">• {answered} answered</span>
+              <span className="min-w-0">
+                <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-emerald-600 dark:text-emerald-300">Secure channel {autoSubmitted ? "· submitted" : "· connected"}</span>
+                <span className="mt-0.5 block truncate text-xs font-bold text-text-primary">Question {index + 1} of {questions.length}</span>
+              </span>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <button type="button" onClick={toggleQuizSounds} className="grid h-8 w-8 place-items-center rounded-xl border border-border bg-background/70 text-text-secondary transition hover:border-pink-500/30 hover:text-text-primary" aria-label={soundEnabled ? "Mute quiz sounds" : "Enable quiz sounds"} title={soundEnabled ? "Quiz sounds on" : "Quiz sounds off"}>
+              <span className="hidden items-center gap-1.5 rounded-xl border border-pink-100 bg-pink-50 px-2.5 py-1.5 text-[10px] font-bold text-pink-600 dark:border-violet-400/15 dark:bg-violet-500/[0.07] dark:text-violet-200 min-[420px]:inline-flex"><Target className="h-3.5 w-3.5" /> {answered} answered</span>
+              <button type="button" onClick={toggleQuizSounds} className="grid h-9 w-9 place-items-center rounded-xl border border-pink-100 bg-pink-50 text-pink-600 transition hover:border-pink-300 hover:bg-pink-100 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-violet-200 dark:hover:border-violet-400/25" aria-label={soundEnabled ? "Mute quiz sounds" : "Enable quiz sounds"} title={soundEnabled ? "Quiz sounds on" : "Quiz sounds off"}>
                 {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
               </button>
-              <div className="flex h-8 items-center gap-1.5 rounded-xl border border-border bg-background/70 px-2.5 font-mono text-xs font-bold text-text-primary">
-                <Clock className="h-3.5 w-3.5 text-pink-500" /> {formattedTime}
-              </div>
             </div>
           </div>
-          <div className="h-1 overflow-hidden bg-card-hover">
+          <div className="h-1.5 overflow-hidden bg-pink-100 dark:bg-white/[0.055]">
             <motion.div className="h-full rounded-r-full bg-gradient-to-r from-violet-500 via-pink-500 to-rose-400" animate={{ width: `${progress}%` }} transition={isMobile ? { duration: 0 } : { duration: 0.45, ease: "easeOut" }} />
           </div>
         </div>

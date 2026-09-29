@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -19,6 +20,8 @@ import {
 import { cn } from "@/lib/helpers";
 import { useInboxStore, loadInboxUnread } from "@/store/inboxStore";
 import { usePurchasesStore } from "@/store/purchasesStore";
+import { useAuthStore } from "@/store/authStore";
+import { useSavedAvatar } from "@/store/avatarStore";
 
 export interface ProfileNavItem {
   label: string;
@@ -110,16 +113,31 @@ function ProfileNavLinks({ onNavigate }: { onNavigate?: () => void }) {
 export function ProfileSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const settingsActive = pathname.startsWith("/settings");
+  const user = useAuthStore((state) => state.user);
+  const avatar = useSavedAvatar();
 
   return (
-    <nav className="settings-scroll h-full overflow-y-auto p-4">
-      <p className="px-3 pb-3 pt-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted">
-        Profile
+    <nav className="settings-scroll h-full overflow-y-auto px-3 py-4">
+      <div className="relative mb-4 overflow-hidden rounded-2xl border border-pink-200/70 bg-gradient-to-br from-white via-pink-50/90 to-orange-50/70 p-3 shadow-sm dark:border-violet-400/15 dark:from-violet-500/[0.11] dark:via-[#111827] dark:to-cyan-500/[0.05]">
+        <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-cyan-300/25 blur-2xl dark:bg-cyan-400/10" />
+        <div className="relative flex items-center gap-3">
+          <div className="relative h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-br from-pink-400 via-orange-300 to-amber-300 p-[2px] shadow-[0_8px_20px_-10px_rgba(244,114,182,.9)] dark:from-violet-400 dark:via-indigo-500 dark:to-cyan-400">
+            {avatar ? <Image src={avatar.url} alt={avatar.label} fill sizes="44px" unoptimized className="rounded-[14px] bg-white object-cover dark:bg-[#101624]" /> : <span className="grid h-full w-full place-items-center rounded-[14px] bg-white dark:bg-[#101624]"><User className="h-5 w-5" /></span>}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-text-primary">{user?.username || "Your profile"}</p>
+            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.16em] text-pink-500 dark:text-violet-300">Player command centre</p>
+          </div>
+        </div>
+      </div>
+
+      <p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+        Your space
       </p>
 
       <ProfileNavLinks onNavigate={onNavigate} />
 
-      <div className="my-4 border-t border-pink-200/60 dark:border-white/[0.07]" />
+      <div className="my-3 border-t border-pink-200/60 dark:border-white/[0.07]" />
 
       <p className="px-3 pb-3 pt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-text-muted">
         Account
@@ -149,7 +167,7 @@ export function ProfileSidebarContent({ onNavigate }: { onNavigate?: () => void 
         )}
       </Link>
 
-      <div className="relative mt-6 overflow-hidden rounded-2xl border border-pink-200/70 bg-gradient-to-br from-pink-50/90 to-cyan-50/70 p-4 shadow-sm dark:border-white/[0.07] dark:from-violet-500/[0.09] dark:to-cyan-400/[0.035]">
+      <div className="relative mt-4 overflow-hidden rounded-2xl border border-pink-200/70 bg-gradient-to-br from-pink-50/90 to-cyan-50/70 p-4 shadow-sm dark:border-white/[0.07] dark:from-violet-500/[0.09] dark:to-cyan-400/[0.035]">
         <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-pink-300/25 blur-2xl dark:bg-violet-500/20" />
         <p className="text-[10px] font-medium leading-relaxed text-text-muted">
           Your profile is your identity across ByteClash. Customize it from{" "}
@@ -173,7 +191,7 @@ export default function ProfileSidebar({ onNavigate }: { onNavigate?: () => void
   }, []);
 
   return (
-    <aside className="sticky top-14 z-20 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r border-pink-200/65 bg-white/72 shadow-[12px_0_45px_-38px_rgba(244,114,182,.8)] backdrop-blur-2xl dark:border-white/[0.07] dark:bg-[#0d111d]/82 dark:shadow-[12px_0_55px_-38px_rgba(91,70,190,.7)] lg:block">
+    <aside className="sticky top-14 z-20 hidden h-[calc(100dvh-3.5rem)] w-64 shrink-0 self-start overflow-hidden border-r border-pink-200/65 bg-white/94 shadow-[12px_0_45px_-38px_rgba(244,114,182,.8)] dark:border-white/[0.07] dark:bg-[#0d111d]/96 dark:shadow-[12px_0_55px_-38px_rgba(91,70,190,.7)] lg:block">
       <ProfileSidebarContent onNavigate={onNavigate} />
     </aside>
   );

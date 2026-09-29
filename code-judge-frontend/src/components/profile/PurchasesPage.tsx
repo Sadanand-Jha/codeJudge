@@ -691,7 +691,7 @@ export default function PurchasesPage() {
   const activeItem = useMemo(() => (detailId ? purchases.find((p) => p.id === detailId) ?? null : null), [detailId, purchases]);
 
   return (
-    <div className="mx-auto w-full max-w-[80%] px-6 py-8 lg:px-8 xl:px-10 bg-background">
+    <div className="mx-auto w-full max-w-7xl bg-transparent px-4 py-6 sm:px-6 lg:px-8 lg:py-8 xl:px-10">
       <ProfileSectionHeader
         title="My Purchases"
         description="Everything you've purchased, all in one place."
