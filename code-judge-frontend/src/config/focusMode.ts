@@ -17,16 +17,9 @@ export const FOCUS_MODE_ENABLED = true;
 export const FOCUS_ALLOWED_PREFIXES: string[] = [
   // Student quiz workspace
   "/quiz",
-  // Creator quiz / test / problems workspace
-  "/creator/quizzes",
-  "/creator/tests",
-  "/creator/series",
-  "/creator/question-bank",
-  "/creator/questions",
-  "/creator/problems",
-  "/creator/resources",
-  "/creator/create",
-  "/creator/rooms",
+  // Separate non-student workspaces
+  "/creator",
+  "/platform",
   // Auth — required for login flows
   "/login",
   "/register",
@@ -39,7 +32,6 @@ export const FOCUS_ALLOWED_PREFIXES: string[] = [
  */
 export const FOCUS_ALLOWED_EXACT: string[] = [
   "/",
-  "/creator",
   "/api",
 ];
 

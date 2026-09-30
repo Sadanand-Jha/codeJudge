@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { UserPlus } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationBell from "./NotificationBell";
@@ -38,10 +37,10 @@ export default function NavbarRightActions() {
       <NotificationBell />
       {isAuthenticated ? (
 <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href="/profile"
+          <div
             className="w-8 h-8 rounded-full overflow-hidden border border-border bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-accent-foreground"
-            title={user?.username || "Profile"}
+            title={user?.username || "Student"}
+            aria-label={user?.username || "Student account"}
           >
             {savedAvatar ? (
               <img
@@ -52,7 +51,7 @@ export default function NavbarRightActions() {
             ) : (
               (user?.username || "U").charAt(0).toUpperCase()
             )}
-          </Link>
+          </div>
           {isPremium && (
             <span
               className="relative inline-flex items-center overflow-hidden rounded-md bg-gradient-to-r from-[#EC4899]/20 to-[#8B5CF6]/20 px-1.5 py-0.25 text-[10px] font-semibold tracking-wider text-[#EC4899] ring-1 ring-[#8B5CF6]/40 premium-surface"

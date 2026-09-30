@@ -117,7 +117,7 @@ export function ProfileSidebarContent({ onNavigate }: { onNavigate?: () => void 
   const avatar = useSavedAvatar();
 
   return (
-    <nav className="settings-scroll h-full overflow-y-auto px-3 py-4">
+    <nav className="settings-scroll h-full overflow-y-auto px-3 py-4 lg:overflow-y-hidden">
       <div className="relative mb-4 overflow-hidden rounded-2xl border border-pink-200/70 bg-gradient-to-br from-white via-pink-50/90 to-orange-50/70 p-3 shadow-sm dark:border-violet-400/15 dark:from-violet-500/[0.11] dark:via-[#111827] dark:to-cyan-500/[0.05]">
         <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-cyan-300/25 blur-2xl dark:bg-cyan-400/10" />
         <div className="relative flex items-center gap-3">
@@ -191,7 +191,7 @@ export default function ProfileSidebar({ onNavigate }: { onNavigate?: () => void
   }, []);
 
   return (
-    <aside className="sticky top-0 z-20 hidden h-[calc(100dvh-3.5rem)] w-64 shrink-0 self-start overflow-hidden border-r border-pink-200/80 bg-gradient-to-b from-[#fff9fc] via-[#fffdfb] to-[#fff8f1] shadow-[14px_0_48px_-38px_rgba(236,72,153,.72)] dark:border-white/[0.07] dark:from-[#111522] dark:via-[#0d111d] dark:to-[#0b101b] dark:shadow-[12px_0_55px_-38px_rgba(91,70,190,.7)] lg:block">
+    <aside className="sticky top-14 z-20 hidden h-[calc(100dvh-3.5rem)] w-64 shrink-0 self-start overflow-hidden border-r border-pink-200/80 bg-gradient-to-b from-[#fff9fc] via-[#fffdfb] to-[#fff8f1] shadow-[14px_0_48px_-38px_rgba(236,72,153,.72)] dark:border-white/[0.07] dark:from-[#111522] dark:via-[#0d111d] dark:to-[#0b101b] dark:shadow-[12px_0_55px_-38px_rgba(91,70,190,.7)] lg:block">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-pink-100/55 to-transparent dark:from-violet-500/[0.08]" aria-hidden="true" />
       <ProfileSidebarContent onNavigate={onNavigate} />
     </aside>

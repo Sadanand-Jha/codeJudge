@@ -6,21 +6,13 @@ const FOCUS_MODE_ENABLED = true;
 const FOCUS_ALLOWED_PREFIXES = [
   "/quiz",
   "/platform",
-  "/creator/quizzes",
-  "/creator/tests",
-  "/creator/series",
-  "/creator/question-bank",
-  "/creator/questions",
-  "/creator/problems",
-  "/creator/resources",
-  "/creator/create",
-  "/creator/rooms",
+  "/creator",
   "/login",
   "/register",
   "/forgot-password",
 ];
 
-const FOCUS_ALLOWED_EXACT = ["/", "/creator"];
+const FOCUS_ALLOWED_EXACT = ["/"];
 
 function isPathAllowed(pathname: string): boolean {
   if (!FOCUS_MODE_ENABLED) return true;

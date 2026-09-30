@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,7 +29,7 @@ import {
   getActivePreparationModule,
   PREPARATION_BASE,
 } from "@/config/preparation";
-import { FOCUS_MODE_ENABLED } from "@/config/focusMode";
+import { FOCUS_MODE_ENABLED, isPathAllowed } from "@/config/focusMode";
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
@@ -169,6 +169,7 @@ function isFullscreenRoute(pathname: string): boolean {
 
 function AppLayoutContent({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   // Creator Studio has its own dedicated layout + navigation. It is a separate
   // workspace, so on /creator routes we hide the student sidebar entirely and
   // only Studio's navigation is visible.
@@ -178,12 +179,13 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   const isStudentQuizRoute = pathname.startsWith("/quiz") && !isQuizWorkspace && pathname !== "/quiz/create";
   const isStudentMissionRoute = isStudentQuizRoute && theme === "dark";
   const isStudentPartyRoute = isStudentQuizRoute && theme === "light";
-  const visibleNavGroups = isStudentQuizRoute
-    ? FOCUS_MODE_ENABLED && theme === "light"
+  const visibleNavGroups = FOCUS_MODE_ENABLED
+    ? theme === "light"
       ? [{ label: "SWEET SPOT", items: [{ label: "Quiz Party", icon: IceCreamCone, href: "/quiz" }] }]
-      : navGroups
-    : _fullNavGroups;
-  const homeHref = isStudioRoute || isQuizWorkspace ? "/creator/quizzes" : "/";
+      : _focusNavGroups
+    : navGroups;
+  const homeHref = isStudioRoute || isQuizWorkspace ? "/creator/quizzes" : FOCUS_MODE_ENABLED ? "/quiz" : "/";
+  const isBlockedRoute = FOCUS_MODE_ENABLED && !isPathAllowed(pathname);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   // Account dropdown state lives here (not inside ProfileMenu) so the
@@ -228,6 +230,14 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
     void hydrate();
   }, [hydrate]);
 
+  // Proxy enforcement handles direct requests. This client-side guard also
+  // covers already-prefetched pages and stale deployments so a restricted
+  // student route can never render its content or full navigation.
+  useEffect(() => {
+    if (!isBlockedRoute) return;
+    router.replace(`/quiz?blocked=${encodeURIComponent(pathname)}`);
+  }, [isBlockedRoute, pathname, router]);
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -268,7 +278,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
   // Wait for persisted auth to rehydrate so user details render on first paint
   // without a flash of the guest UI.
-  if (!hasHydrated) {
+  if (!hasHydrated || isBlockedRoute) {
     return (
       <div className="min-h-dvh bg-background flex items-center justify-center">
         <Loader2 className="w-6 h-6 text-accent animate-spin" />
