@@ -1,3 +1,5 @@
+import { getAuthHeaders } from "@/lib/authHeaders";
+
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
@@ -213,6 +215,7 @@ export const generateQuestionsFromFiles = async (
 
   const response = await fetch(`${API_BASE}/v1/user/ai/generate-questions`, {
     method: "POST",
+    headers: getAuthHeaders(),
     body: formData,
     credentials: "include",
   });
@@ -246,7 +249,7 @@ export const generateFromQuestionBank = async (
 ): Promise<RawAIGeneratedQuestion[]> => {
   const response = await fetch(`${API_BASE}/v1/user/ai/generate-from-bank`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({
       numberOfQuestions: options.numberOfQuestions,
       easyCount: options.easyCount,
@@ -310,7 +313,7 @@ export const streamChat = async (
 ): Promise<void> => {
   const response = await fetch(`${API_BASE}/v1/user/ai/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(input),
     credentials: "include",
     signal,
@@ -337,6 +340,7 @@ export const streamChatWithFiles = async (
 
   const response = await fetch(`${API_BASE}/v1/user/ai/chat-files`, {
     method: "POST",
+    headers: getAuthHeaders(),
     body: formData,
     credentials: "include",
     signal,

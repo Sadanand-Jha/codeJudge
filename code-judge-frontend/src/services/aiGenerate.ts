@@ -1,4 +1,5 @@
 import type { AIGenerateResponse } from "@/components/creator/tests/sections/aiTypes";
+import { getAuthHeaders } from "@/lib/authHeaders";
 import type {
   GeneratePaperPayload,
   GeneratePaperResponse,
@@ -30,6 +31,7 @@ export async function generateTestSectionsFromPDF(
 
   const response = await fetch(`${API_BASE}/v1/admin/tests/generate-sections`, {
     method: "POST",
+    headers: getAuthHeaders(),
     body: formData,
     credentials: "include",
     signal,
@@ -57,7 +59,7 @@ export async function generateQuestionPaper(
 ): Promise<GeneratePaperResponse> {
   const response = await fetch(`${API_BASE}/v1/admin/tests/generate-paper`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(payload),
     credentials: "include",
     signal,
@@ -83,7 +85,7 @@ export async function downloadQuestionPaper(
 ): Promise<void> {
   const response = await fetch(`${API_BASE}/v1/admin/tests/paper-download`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ paper }),
     credentials: "include",
     signal,
@@ -123,7 +125,7 @@ export async function generateSubjectiveQuestions(
 ): Promise<GenerateQuestionsResponse> {
   const response = await fetch(`${API_BASE}/v1/admin/tests/generate-questions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(payload),
     credentials: "include",
     signal,
