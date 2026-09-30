@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { ArrowRight, Check, Eye, EyeOff, LogIn, Mail, RefreshCw } from "lucide-react";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { toast } from "@/lib/toast";
@@ -23,7 +23,7 @@ import { AuthBrandMark, AuthThemeControls } from "@/components/auth/AuthThemeChr
 import { getApiErrorMessage } from "@/lib/apiError";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
 
-const AUTH_PRIMARY_BUTTON = "flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_-16px_rgba(244,114,182,.8)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_12px_28px_-16px_rgba(124,92,255,.8)]";
+const AUTH_PRIMARY_BUTTON = "group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-4 text-sm font-bold text-white shadow-[0_16px_32px_-18px_rgba(236,72,153,.9),inset_0_1px_0_rgba(255,255,255,.28)] transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-40 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_16px_34px_-18px_rgba(124,92,255,.95),inset_0_1px_0_rgba(255,255,255,.2)]";
 
 type Step = "email" | "verify" | "register";
 
@@ -340,11 +340,12 @@ export default function RegistrationForm() {
     usernameStatus.available === true &&
     !usernameStatus.checking;
 
-  const isPasswordReady =
-    form.password.value.length >= 8 &&
-    form.confirmPassword.value.length >= 1 &&
-    form.password.value === form.confirmPassword.value &&
-    !submitting;
+  const passwordsMatch =
+    validatePassword(form.password.value) === null &&
+    form.confirmPassword.value.length >= 8 &&
+    form.password.value === form.confirmPassword.value;
+
+  const isPasswordReady = passwordsMatch && !submitting;
 
   const goProfileStep = (next: 1 | 2 | 3) => {
     setDetailDir(next >= profileStep ? 1 : -1);
@@ -363,6 +364,11 @@ export default function RegistrationForm() {
           {/* The profile sub-flow (register step) renders its own per-screen titles. */}
           {step !== "register" && (
             <>
+              <div className="mx-auto mb-4 flex w-36 items-center gap-2" aria-label={`Registration step ${step === "email" ? 1 : 2} of 3`}>
+                {[1, 2, 3].map((item) => (
+                  <span key={item} className={`h-1 flex-1 rounded-full transition-colors ${item <= (step === "email" ? 1 : 2) ? "bg-accent" : "bg-input-border"}`} />
+                ))}
+              </div>
               <h1 className="text-xl font-bold text-text-primary">
                 {step === "email" && "Create your account"}
                 {step === "verify" && "Check your email"}
@@ -382,12 +388,16 @@ export default function RegistrationForm() {
           {step === "email" && (
             <form className="space-y-5" onSubmit={handleSendOtp}>
               <div>
+                <label htmlFor="registration-email" className="mb-2 block text-[11px] font-semibold text-text-secondary">Email address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                 <input
+                  id="registration-email"
                   type="email"
                   value={form.email.value}
                   onChange={(e) => updateField("email", e.target.value)}
                   onBlur={() => validateEmailField(form.email.value)}
-                  className={`w-full rounded-xl bg-input-bg border px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                  className={`w-full rounded-xl bg-input-bg border py-3 pl-10 pr-4 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
                     form.email.touched && form.email.error
                       ? "border-red-500"
                       : form.email.touched && !form.email.error
@@ -396,6 +406,7 @@ export default function RegistrationForm() {
                   }`}
                   placeholder="you@example.com"
                 />
+                </div>
                 {form.email.touched && form.email.error && (
                   <p className="mt-2 text-xs text-red-400">{form.email.error}</p>
                 )}
@@ -407,6 +418,7 @@ export default function RegistrationForm() {
               >
                 {sendingOtp && <QuizLoader className="h-4 w-4 text-white" />}
                 {sendingOtp ? "Sending..." : "Continue"}
+                {!sendingOtp && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
               </button>
             </form>
           )}
@@ -675,7 +687,7 @@ export default function RegistrationForm() {
                               className={`w-full rounded-2xl bg-input-bg border px-5 py-4 pr-12 text-base text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
                                 form.confirmPassword.touched && form.confirmPassword.error
                                   ? "border-red-500"
-                                  : form.confirmPassword.touched && !form.confirmPassword.error && form.confirmPassword.value
+                                  : form.confirmPassword.touched && passwordsMatch
                                   ? "border-green-500"
                                   : "border-input-border"
                               }`}
@@ -693,7 +705,7 @@ export default function RegistrationForm() {
                           </div>
                           {form.confirmPassword.touched && form.confirmPassword.error ? (
                             <p className="mt-2 text-xs text-red-400">{form.confirmPassword.error}</p>
-                          ) : form.confirmPassword.touched && !form.confirmPassword.error && form.confirmPassword.value ? (
+                          ) : form.confirmPassword.touched && passwordsMatch ? (
                             <p className="mt-2 text-xs font-medium text-green-500 flex items-center gap-1.5">
                               <Check className="h-3.5 w-3.5" strokeWidth={3} /> Passwords match
                             </p>
@@ -728,8 +740,8 @@ export default function RegistrationForm() {
         {/* Footer */}
         <p className="mt-6 text-center text-xs text-text-muted">
           Already have an account?{" "}
-          <Link href="/login" className="text-accent hover:text-accent/80 transition-colors">
-            Sign in
+          <Link href="/login" className="inline-flex items-center gap-1 font-semibold text-accent transition-colors hover:text-accent/80">
+            <LogIn className="h-3.5 w-3.5" /> Sign in
           </Link>
         </p>
       </div>

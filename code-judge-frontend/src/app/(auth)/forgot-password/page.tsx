@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Check, Eye, EyeOff, KeyRound, LogIn, Mail, RefreshCw } from "lucide-react";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { toast } from "@/lib/toast";
 import { requestPasswordReset, verifyResetOtp, resetPassword } from "@/services/auth";
@@ -16,7 +16,7 @@ import {
 import AuthBackground from "@/components/auth/AuthBackground";
 import { AuthBrandMark, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
 
-const AUTH_PRIMARY_BUTTON = "flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_-16px_rgba(244,114,182,.8)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_12px_28px_-16px_rgba(124,92,255,.8)]";
+const AUTH_PRIMARY_BUTTON = "group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-4 text-sm font-bold text-white shadow-[0_16px_32px_-18px_rgba(236,72,153,.9),inset_0_1px_0_rgba(255,255,255,.28)] transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-40 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_16px_34px_-18px_rgba(124,92,255,.95),inset_0_1px_0_rgba(255,255,255,.2)]";
 
 type Step = "email" | "verify" | "reset";
 
@@ -195,11 +195,12 @@ export default function ForgotPasswordPage() {
     [email.value, password.value, confirmPassword.value, resetToken, router]
   );
 
-  const isResetEnabled =
-    password.value.length >= 8 &&
-    confirmPassword.value.length >= 1 &&
-    password.value === confirmPassword.value &&
-    !submitting;
+  const passwordsMatch =
+    validatePassword(password.value) === null &&
+    confirmPassword.value.length >= 8 &&
+    password.value === confirmPassword.value;
+
+  const isResetEnabled = passwordsMatch && !submitting;
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FFF9F1] px-6 py-20 dark:bg-[#050510]">
@@ -209,6 +210,12 @@ export default function ForgotPasswordPage() {
         {/* Brand */}
         <div className="mb-8 text-center">
           <AuthBrandMark className="mb-4" />
+          <div className="mx-auto mb-4 flex w-36 items-center gap-2" aria-label={`Password reset step ${step === "email" ? 1 : step === "verify" ? 2 : 3} of 3`}>
+            {[1, 2, 3].map((item) => {
+              const current = step === "email" ? 1 : step === "verify" ? 2 : 3;
+              return <span key={item} className={`h-1 flex-1 rounded-full transition-colors ${item <= current ? "bg-accent" : "bg-input-border"}`} />;
+            })}
+          </div>
           <h1 className="text-xl font-bold text-text-primary">
             {step === "email" && "Reset your password"}
             {step === "verify" && "Check your email"}
@@ -227,7 +234,11 @@ export default function ForgotPasswordPage() {
           {step === "email" && (
             <form className="space-y-5" onSubmit={handleSendOtp}>
               <div>
+                <label htmlFor="reset-email" className="mb-2 block text-[11px] font-semibold text-text-secondary">Account email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                 <input
+                  id="reset-email"
                   type="email"
                   value={email.value}
                   onChange={(e) =>
@@ -236,7 +247,7 @@ export default function ForgotPasswordPage() {
                   onBlur={() =>
                     setEmail((prev) => ({ ...prev, error: validateEmail(prev.value) }))
                   }
-                  className={`w-full rounded-xl bg-input-bg border px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                  className={`w-full rounded-xl bg-input-bg border py-3 pl-10 pr-4 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
                     email.touched && email.error
                       ? "border-red-500"
                       : email.touched && !email.error
@@ -245,6 +256,7 @@ export default function ForgotPasswordPage() {
                   }`}
                   placeholder="you@example.com"
                 />
+                </div>
                 {email.touched && email.error && (
                   <p className="mt-2 text-xs text-red-400">{email.error}</p>
                 )}
@@ -256,6 +268,7 @@ export default function ForgotPasswordPage() {
               >
                 {sendingOtp && <QuizLoader className="h-4 w-4 text-white" />}
                 {sendingOtp ? "Sending..." : "Continue"}
+                {!sendingOtp && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
               </button>
             </form>
           )}
@@ -297,8 +310,9 @@ export default function ForgotPasswordPage() {
                   type="button"
                   disabled={countdown > 0 || sendingOtp}
                   onClick={handleResendOtp}
-                  className="text-xs text-text-muted hover:text-text-secondary transition-colors disabled:text-text-muted/50 disabled:cursor-not-allowed"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-input-border bg-input-bg/50 px-4 text-xs font-semibold text-text-secondary transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                  <RefreshCw className="h-3.5 w-3.5" />
                   {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
                 </button>
               </div>
@@ -360,9 +374,7 @@ export default function ForgotPasswordPage() {
                     className={`w-full rounded-xl bg-input-bg border px-4 py-3 pr-11 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
                       confirmPassword.touched && confirmPassword.error
                         ? "border-red-500"
-                        : confirmPassword.touched &&
-                          !confirmPassword.error &&
-                          confirmPassword.value
+                        : confirmPassword.touched && passwordsMatch
                         ? "border-green-500"
                         : "border-input-border"
                     }`}
@@ -387,8 +399,8 @@ export default function ForgotPasswordPage() {
                 )}
                 {confirmPassword.touched &&
                   !confirmPassword.error &&
-                  confirmPassword.value && (
-                    <p className="mt-2 text-xs text-green-400">Passwords match</p>
+                  passwordsMatch && (
+                    <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-green-500"><Check className="h-3.5 w-3.5" /> Passwords match</p>
                   )}
               </div>
 
@@ -398,6 +410,7 @@ export default function ForgotPasswordPage() {
                 className={`${AUTH_PRIMARY_BUTTON} mt-1`}
               >
                 {submitting && <QuizLoader className="h-4 w-4 text-white" />}
+                {!submitting && <KeyRound className="h-4 w-4" />}
                 {submitting ? "Resetting..." : "Reset password"}
               </button>
             </form>
@@ -407,8 +420,8 @@ export default function ForgotPasswordPage() {
         {/* Footer */}
         <p className="mt-6 text-center text-xs text-text-muted">
           Remember your password?{" "}
-          <Link href="/login" className="text-accent hover:text-accent/80 transition-colors">
-            Sign in
+          <Link href="/login" className="inline-flex items-center gap-1 font-semibold text-accent transition-colors hover:text-accent/80">
+            <LogIn className="h-3.5 w-3.5" /> Sign in
           </Link>
         </p>
       </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AtSign, Lock } from "lucide-react";
+import { ArrowRight, AtSign, KeyRound, Lock, UserPlus } from "lucide-react";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useAuthStore } from "@/store/authStore";
 import { login } from "@/services/auth";
@@ -119,17 +119,21 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_28px_-16px_rgba(244,114,182,.8)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_12px_28px_-16px_rgba(124,92,255,.8)]"
+              className="group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-4 text-sm font-bold text-white shadow-[0_16px_32px_-18px_rgba(236,72,153,.9),inset_0_1px_0_rgba(255,255,255,.28)] transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_16px_34px_-18px_rgba(124,92,255,.95),inset_0_1px_0_rgba(255,255,255,.2)]"
             >
               {loading && <QuizLoader className="h-4 w-4 text-white" />}
               {loading ? "Signing in..." : "Sign in"}
+              {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
             </button>
           </form>
 
-          <div className="mt-5 text-center text-xs text-text-muted">
-            <Link href="/forgot-password" className="text-accent hover:underline">Forgot password?</Link>
-            <span className="mx-1.5">·</span>
-            <Link href="/register" className="text-accent hover:underline">Register</Link>
+          <div className="mt-5 grid grid-cols-2 gap-2.5 border-t border-input-border/70 pt-5">
+            <Link href="/forgot-password" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border border-input-border bg-input-bg/60 px-3 text-xs font-semibold text-text-secondary transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent active:translate-y-0">
+              <KeyRound className="h-3.5 w-3.5 transition-transform group-hover:-rotate-6" /> Reset password
+            </Link>
+            <Link href="/register" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border border-input-border bg-input-bg/60 px-3 text-xs font-semibold text-text-secondary transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent active:translate-y-0">
+              <UserPlus className="h-3.5 w-3.5 transition-transform group-hover:scale-110" /> Create account
+            </Link>
           </div>
         </div>
       </div>

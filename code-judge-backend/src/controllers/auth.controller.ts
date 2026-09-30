@@ -363,10 +363,11 @@ export const loginController = async (req: Request, res: Response) => {
     const user = await userService.getUserByIdentifier(normalizedIdentifier);
 
     if (!user) {
-      res.status(401).json({
+      res.status(404).json({
         success: false,
-        message: "Invalid email/username or password",
-        statusCode: 401,
+        message: "You aren't registered yet. Please create an account first.",
+        code: "ACCOUNT_NOT_FOUND",
+        statusCode: 404,
       });
       return;
     }
@@ -377,7 +378,8 @@ export const loginController = async (req: Request, res: Response) => {
     if (!isPasswordValid) {
       res.status(401).json({
         success: false,
-        message: "Invalid email/username or password",
+        message: "Incorrect password. Please try again.",
+        code: "INVALID_PASSWORD",
         statusCode: 401,
       });
       return;
