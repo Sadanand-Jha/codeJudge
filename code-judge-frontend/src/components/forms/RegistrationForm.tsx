@@ -80,6 +80,7 @@ export default function RegistrationForm() {
   const { playQuizSound } = useQuizSounds();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const usernameCheckIdRef = useRef(0);
 
   // Must stay in sync with backend OTP_RESEND_COOLDOWN_SECONDS (60s) in code-judge-backend/src/services/auth.ts
   const RESEND_COOLDOWN_SECONDS = 60;
@@ -182,6 +183,7 @@ export default function RegistrationForm() {
       // validation because browser-side checks are never a security boundary.
       const lower = value.toLowerCase().replace(/[^a-z0-9]/g, "");
       updateField("username", lower);
+      const checkId = ++usernameCheckIdRef.current;
 
       if (usernameDebounceRef.current) {
         clearTimeout(usernameDebounceRef.current);
@@ -198,12 +200,14 @@ export default function RegistrationForm() {
       usernameDebounceRef.current = setTimeout(async () => {
         try {
           const res = await checkUsername(lower);
+          if (checkId !== usernameCheckIdRef.current) return;
           setUsernameStatus({
             checking: false,
             available: res.available,
             message: res.message,
           });
         } catch {
+          if (checkId !== usernameCheckIdRef.current) return;
           setUsernameStatus({
             checking: false,
             available: null,
@@ -511,44 +515,57 @@ export default function RegistrationForm() {
                         This is how other students will see you.
                       </p>
                       <div className="mt-6">
-                <input
-                  type="text"
-                  value={form.username.value}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  autoFocus
-                  onChange={(e) => handleUsernameChange(e.target.value)}
-                  onBlur={() => {
-                    const err = validateUsernameField(form.username.value);
-                    if (!err && form.username.value) {
-                      setUsernameStatus((prev) => ({ ...prev, checking: true }));
-                      checkUsername(form.username.value).then((res) => {
-                        setUsernameStatus({
-                          checking: false,
-                          available: res.available,
-                          message: res.message,
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={form.username.value}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    autoFocus
+                    onChange={(e) => handleUsernameChange(e.target.value)}
+                    onBlur={() => {
+                      const err = validateUsernameField(form.username.value);
+                      if (!err && form.username.value) {
+                        const checkId = ++usernameCheckIdRef.current;
+                        setUsernameStatus((prev) => ({ ...prev, checking: true }));
+                        checkUsername(form.username.value).then((res) => {
+                          if (checkId !== usernameCheckIdRef.current) return;
+                          setUsernameStatus({
+                            checking: false,
+                            available: res.available,
+                            message: res.message,
+                          });
+                        }).catch(() => {
+                          if (checkId !== usernameCheckIdRef.current) return;
+                          setUsernameStatus({ checking: false, available: null, message: "" });
                         });
-                      });
-                    }
-                  }}
-                  className={`w-full rounded-2xl bg-input-bg border px-5 py-4 text-lg text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
-                    form.username.touched && form.username.error
-                      ? "border-red-500"
-                      : form.username.touched && !form.username.error && usernameStatus.available === false
-                      ? "border-red-500"
-                      : form.username.touched && !form.username.error && usernameStatus.available === true
-                      ? "border-green-500"
-                      : "border-input-border"
-                  }`}
-                  placeholder="Choose a username"
-                />
-                <div className="mt-2 min-h-5" aria-live="polite">
+                      }
+                    }}
+                    aria-describedby="username-availability"
+                    className={`w-full rounded-2xl bg-input-bg border px-5 py-4 pr-28 text-lg text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                      form.username.touched && form.username.error
+                        ? "border-red-500"
+                        : form.username.touched && !form.username.error && usernameStatus.available === false
+                        ? "border-red-500"
+                        : form.username.touched && !form.username.error && usernameStatus.available === true
+                        ? "border-green-500"
+                        : "border-input-border"
+                    }`}
+                    placeholder="Choose a username"
+                  />
+                  {usernameStatus.checking && (
+                    <span className="pointer-events-none absolute right-4 top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent">
+                      <QuizLoader className="h-3 w-3" /> Checking
+                    </span>
+                  )}
+                </div>
+                <div id="username-availability" className="mt-2 min-h-5" aria-live="polite">
                   {form.username.touched && form.username.error ? (
                     <p className="text-xs text-red-400">{form.username.error}</p>
                   ) : !form.username.error && usernameStatus.checking ? (
                     <p className="text-xs text-text-muted flex items-center gap-1.5">
-                      <QuizLoader className="h-3 w-3" /> Checking...
+                      <QuizLoader className="h-3 w-3" /> Checking username availability…
                     </p>
                   ) : !form.username.error && !usernameStatus.checking && usernameStatus.available === false ? (
                     <p className="text-xs text-red-400">{usernameStatus.message}</p>
