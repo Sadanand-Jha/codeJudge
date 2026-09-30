@@ -3,6 +3,30 @@ import { NextResponse, type NextRequest } from "next/server";
 // Inline focus-mode check to avoid importing client config in edge runtime
 const FOCUS_MODE_ENABLED = true;
 
+// Keep the page source in the build, but deny these student modules before
+// evaluating any allow rules. This is enforced at Vercel's request boundary.
+const FOCUS_BLOCKED_STUDENT_PREFIXES = [
+  "/contest",
+  "/contests",
+  "/problems",
+  "/preparation",
+  "/editor",
+  "/profile",
+  "/settings",
+  "/tests",
+  "/dashboard",
+  "/analytics",
+  "/bookmarks",
+  "/history",
+  "/submissions",
+  "/inbox",
+  "/achievements",
+  "/ai",
+  "/collections",
+  "/feed",
+  "/leaderboard",
+];
+
 const FOCUS_ALLOWED_PREFIXES = [
   "/quiz",
   "/platform",
@@ -17,6 +41,13 @@ const FOCUS_ALLOWED_EXACT = ["/"];
 function isPathAllowed(pathname: string): boolean {
   if (!FOCUS_MODE_ENABLED) return true;
   const normalized = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  if (
+    FOCUS_BLOCKED_STUDENT_PREFIXES.some(
+      (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`)
+    )
+  ) {
+    return false;
+  }
   if (FOCUS_ALLOWED_EXACT.includes(normalized)) return true;
   for (const prefix of FOCUS_ALLOWED_PREFIXES) {
     if (normalized === prefix || normalized.startsWith(prefix + "/")) return true;

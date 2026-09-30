@@ -10,6 +10,34 @@
 export const FOCUS_MODE_ENABLED = true;
 
 /**
+ * Student modules kept in the repository for future use, but intentionally
+ * inaccessible while quiz-only mode is enabled. This explicit denylist runs
+ * before the allowlist so neither direct URLs nor client-side navigation can
+ * expose these pages. Both singular and plural contest URLs are covered.
+ */
+export const FOCUS_BLOCKED_STUDENT_PREFIXES: string[] = [
+  "/contest",
+  "/contests",
+  "/problems",
+  "/preparation",
+  "/editor",
+  "/profile",
+  "/settings",
+  "/tests",
+  "/dashboard",
+  "/analytics",
+  "/bookmarks",
+  "/history",
+  "/submissions",
+  "/inbox",
+  "/achievements",
+  "/ai",
+  "/collections",
+  "/feed",
+  "/leaderboard",
+];
+
+/**
  * Allowed URL prefixes when focus mode is active.
  * Exact "/" is allowed (repurposed to quiz hub). Everything else must
  * match one of the prefixes below to remain accessible.
@@ -44,6 +72,14 @@ export function isPathAllowed(pathname: string): boolean {
 
   // Normalize: ensure leading slash, no trailing slash (except root)
   const normalized = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+
+  if (
+    FOCUS_BLOCKED_STUDENT_PREFIXES.some(
+      (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`)
+    )
+  ) {
+    return false;
+  }
 
   // Exact matches
   if (FOCUS_ALLOWED_EXACT.includes(normalized)) return true;
