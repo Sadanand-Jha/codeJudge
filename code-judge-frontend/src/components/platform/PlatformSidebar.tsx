@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   LayoutDashboard, Radio, Activity, FlaskConical, ListOrdered, Users,
   Sparkles, Server, AlertTriangle, Cpu, ShieldCheck, ScrollText,
-  ArrowLeft, LogOut, type LucideIcon,
+  ArrowLeft, LogOut, Gauge, type LucideIcon,
 } from "lucide-react";
 import { ownerLogout } from "@/services/auth";
 import { clearPlatformSession, getPlatformEmail, notifyPlatformSessionInvalid } from "@/lib/platformToken";
@@ -13,7 +13,7 @@ import { StatusDot } from "@/components/platform/ui";
 
 export const PLATFORM_SECTION_IDS = [
   "top", "live", "engagement", "activity", "quizzes", "top-quizzes", "users", "progress",
-  "ai", "health", "errors", "jobs", "security", "audit",
+  "observability", "ai", "health", "errors", "jobs", "security", "audit",
 ];
 
 interface NavItem { label: string; id: string; icon: LucideIcon }
@@ -40,6 +40,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: "Infrastructure",
     items: [
+      { label: "API observability", id: "observability", icon: Gauge },
       { label: "AI usage", id: "ai", icon: Sparkles },
       { label: "Platform health", id: "health", icon: Server },
       { label: "Errors", id: "errors", icon: AlertTriangle },

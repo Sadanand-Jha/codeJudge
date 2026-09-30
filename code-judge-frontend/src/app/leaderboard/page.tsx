@@ -70,7 +70,7 @@ const generateUsers = (count: number): User[] => {
   ];
 
   const names = [
-    "Sadanand Jha", "Maria Garcia", "Raj Patel", "Yuki Tanaka", "Ivan Petrov",
+    "Arjun Mehta", "Maria Garcia", "Raj Patel", "Yuki Tanaka", "Ivan Petrov",
     "Emma Wilson", "Mohammed Ali", "Sophie Martin", "Lucas Silva", "Kim Min-jun",
     "Oliver Brown", "Anna Kowalski", "Swayam Swaraj", "Sarah Johnson", "Michael Lee",
     "Elena Popov", "James Smith", "Li Wei", "Aisha Mohammed", "Carlos Rodriguez",

@@ -5,7 +5,7 @@ import { HOUSES, ROADS } from "../world/worldData";
 import { getInterior } from "../world/interiorsData";
 
 const ENABLE_NPCS = false; // NPCs disabled per request — set true to re-enable mock bots
-const NAMES = ["Aanya","Rohan","Meera","Arjun","Sadanand","Kavya","Vikram","Sara","Aman","Neha","Ishaan","Priya","Dev","Ananya","Riya","Kabir"];
+const NAMES = ["Aanya","Rohan","Meera","Arjun","Aditya","Kavya","Vikram","Sara","Aman","Neha","Ishaan","Priya","Dev","Ananya","Riya","Kabir"];
 function randName(i:number){ return NAMES[i%NAMES.length] + " " + (Math.floor(Math.random()*900)+100); }
 
 type Bot = Player & { location: Location; targetX?:number, targetY?:number, buildingTimer?:number };

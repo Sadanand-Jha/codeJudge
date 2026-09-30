@@ -143,7 +143,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
     : false;
 
   // Suggested username if not already followed
-  const suggestedUsername = "sadanandjha3341";
+  const suggestedUsername = "quizplayer101";
   const isSuggestedFollowed = users.some(
     (u) => u.username.toLowerCase() === suggestedUsername.toLowerCase() && u.isFollowing
   );
@@ -180,7 +180,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } }}
-                  placeholder="Enter exact username e.g. sadanandjha3341"
+                  placeholder="Enter exact username e.g. quizplayer101"
                   className="h-10 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
                 />
               </div>

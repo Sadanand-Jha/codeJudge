@@ -6,6 +6,7 @@ import {
   getOverview, getSeries, getLive, getActivity, getUsers, getQuizzes,
   getAi, getHealth, getJobs, getErrors, getSecurity, getAudit,
   getStorage, getGrowth, search, getAlerts,
+  getObservability, getRequestDetail,
 } from "../../controllers/platform.controller.ts";
 
 const router = Router();
@@ -35,5 +36,7 @@ router.get("/storage", getStorage);
 router.get("/growth", getGrowth);
 router.get("/search", search);
 router.get("/alerts", getAlerts);
+router.get("/observability", getObservability);
+router.get("/requests/:requestId", getRequestDetail);
 
 export default router;

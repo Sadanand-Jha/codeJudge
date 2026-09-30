@@ -396,28 +396,197 @@ export const getQuizzes = async (_req: Request, res: Response) => {
   res.json({ success: true, data });
 };
 
+// ── API observability ─────────────────────────────────────
+export const getObservability = async (req: Request, res: Response) => {
+  const { days } = parseRange(req.query);
+  const activeMinutes = Math.min(120, Math.max(1, Number(process.env.ACTIVE_USER_WINDOW_MINUTES) || 15));
+  const limit = Math.min(100, Math.max(10, Number(req.query.limit) || 30));
+  const method = String(req.query.method || "").toUpperCase();
+  const status = Number(req.query.status);
+  const search = String(req.query.search || "").trim();
+
+  const data = await safe(async () => {
+    const summary = await one(
+      `SELECT COUNT(*)::int AS requests,
+              COUNT(*) FILTER (WHERE success)::int AS succeeded,
+              COUNT(*) FILTER (WHERE NOT success)::int AS failed,
+              ROUND(AVG(duration_ms))::int AS avg_latency_ms,
+              ROUND(percentile_cont(0.50) WITHIN GROUP (ORDER BY duration_ms))::int AS p50_ms,
+              ROUND(percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms))::int AS p95_ms,
+              ROUND(percentile_cont(0.99) WITHIN GROUP (ORDER BY duration_ms))::int AS p99_ms
+       FROM api_request_logs WHERE created_at >= NOW() - ($1 * INTERVAL '1 day')`,
+      [days]
+    );
+    const today = await one(
+      `SELECT COUNT(*)::int AS requests,
+              COUNT(*) FILTER (WHERE success)::int AS succeeded,
+              COUNT(*) FILTER (WHERE NOT success)::int AS failed
+       FROM api_request_logs WHERE created_at >= date_trunc('day', NOW())`
+    );
+    const online = await one(
+      `SELECT COUNT(DISTINCT user_id)::int AS users
+       FROM user_sessions WHERE is_active AND last_seen_at >= NOW() - ($1 * INTERVAL '1 minute')`,
+      [activeMinutes]
+    );
+    const slowEndpoints = await pool.query(
+      `SELECT COALESCE(route_template, endpoint) AS endpoint, method,
+              COUNT(*)::int AS requests, ROUND(AVG(duration_ms))::int AS avg_ms,
+              ROUND(percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms))::int AS p95_ms,
+              MAX(duration_ms)::int AS max_ms
+       FROM api_request_logs WHERE created_at >= NOW() - ($1 * INTERVAL '1 day')
+       GROUP BY 1,2 HAVING COUNT(*) >= 1 ORDER BY p95_ms DESC NULLS LAST LIMIT 10`,
+      [days]
+    ).then((r) => r.rows);
+    const failingEndpoints = await pool.query(
+      `SELECT COALESCE(route_template, endpoint) AS endpoint, method,
+              COUNT(*)::int AS requests,
+              COUNT(*) FILTER (WHERE NOT success)::int AS failures,
+              ROUND(100.0 * COUNT(*) FILTER (WHERE NOT success) / NULLIF(COUNT(*),0), 2)::float AS error_rate
+       FROM api_request_logs WHERE created_at >= NOW() - ($1 * INTERVAL '1 day')
+       GROUP BY 1,2 HAVING COUNT(*) FILTER (WHERE NOT success) > 0
+       ORDER BY failures DESC, error_rate DESC LIMIT 10`,
+      [days]
+    ).then((r) => r.rows);
+    const topUsers = await pool.query(
+      `SELECT l.user_id, COALESCE(u.username, u.email, 'Anonymous') AS username,
+              COUNT(*)::int AS requests,
+              COUNT(*) FILTER (WHERE NOT l.success)::int AS failures,
+              ROUND(AVG(l.duration_ms))::int AS avg_ms
+       FROM api_request_logs l LEFT JOIN users u ON u.id = l.user_id
+       WHERE l.created_at >= NOW() - ($1 * INTERVAL '1 day')
+       GROUP BY l.user_id, u.username, u.email ORDER BY requests DESC LIMIT 10`,
+      [days]
+    ).then((r) => r.rows);
+    const activeUsers = await pool.query(
+      `SELECT s.user_id, u.username, u.email, MAX(s.last_seen_at) AS last_seen_at,
+              MAX(s.device_type) AS device_type, MAX(s.browser) AS browser, MAX(s.os) AS os,
+              MAX(host(s.ip_address)) AS ip_address
+       FROM user_sessions s JOIN users u ON u.id = s.user_id
+       WHERE s.is_active AND s.last_seen_at >= NOW() - ($1 * INTERVAL '1 minute')
+       GROUP BY s.user_id, u.username, u.email ORDER BY last_seen_at DESC LIMIT 50`,
+      [activeMinutes]
+    ).then((r) => r.rows);
+
+    const filters: string[] = [];
+    const args: unknown[] = [];
+    if (method) { args.push(method); filters.push(`l.method = $${args.length}`); }
+    if (Number.isFinite(status) && status > 0) { args.push(status); filters.push(`l.status_code = $${args.length}`); }
+    if (search) { args.push(`%${search}%`); filters.push(`(l.endpoint ILIKE $${args.length} OR l.request_id ILIKE $${args.length} OR l.trace_id ILIKE $${args.length} OR u.username ILIKE $${args.length})`); }
+    args.push(limit);
+    const recent = await pool.query(
+      `SELECT l.request_id, l.trace_id, l.user_id, u.username, u.email, l.method, l.endpoint,
+              l.route_template, l.status_code, l.success, l.started_at, l.completed_at,
+              l.duration_ms, host(l.ip_address) AS ip_address, l.user_agent,
+              l.error_code, l.error_message
+       FROM api_request_logs l LEFT JOIN users u ON u.id = l.user_id
+       ${filters.length ? `WHERE ${filters.join(" AND ")}` : ""}
+       ORDER BY l.created_at DESC LIMIT $${args.length}`,
+      args as never[]
+    ).then((r) => r.rows);
+
+    const requests = num(summary?.requests);
+    const failed = num(summary?.failed);
+    return {
+      available: true, days, activeWindowMinutes: activeMinutes,
+      summary: {
+        requests, succeeded: num(summary?.succeeded), failed,
+        errorRate: requests ? +((failed / requests) * 100).toFixed(2) : 0,
+        avgLatencyMs: num(summary?.avg_latency_ms), p50Ms: num(summary?.p50_ms),
+        p95Ms: num(summary?.p95_ms), p99Ms: num(summary?.p99_ms),
+        onlineUsers: num(online?.users),
+      },
+      today: { requests: num(today?.requests), succeeded: num(today?.succeeded), failed: num(today?.failed) },
+      slowEndpoints, failingEndpoints, topUsers, activeUsers, recent,
+    };
+  });
+  if (!data) {
+    res.json({ success: true, data: { available: false, reason: "Observability tables are unavailable. Apply database migrations." } });
+    return;
+  }
+  res.json({ success: true, data });
+};
+
+export const getRequestDetail = async (req: Request, res: Response) => {
+  const data = await safe(async () => {
+    const log = await one(
+      `SELECT l.*, host(l.ip_address) AS ip_address, u.username, u.email
+       FROM api_request_logs l LEFT JOIN users u ON u.id = l.user_id
+       WHERE l.request_id = $1 LIMIT 1`,
+      [req.params.requestId]
+    );
+    if (!log) return null;
+    const metadata = await one(`SELECT query_params, path_params, request_body, response_metadata FROM api_request_metadata WHERE request_log_id = $1`, [log.id]);
+    const trace = await pool.query(
+      `SELECT request_id, method, endpoint, status_code, success, duration_ms, started_at
+       FROM api_request_logs WHERE trace_id = $1 ORDER BY started_at ASC LIMIT 100`,
+      [log.trace_id]
+    ).then((r) => r.rows);
+    const ai = await pool.query(
+      `SELECT request_id, provider, model, operation, success, duration_ms, input_tokens, output_tokens, total_tokens, error_message, started_at
+       FROM ai_request_logs WHERE trace_id = $1 ORDER BY started_at ASC LIMIT 100`,
+      [log.trace_id]
+    ).then((r) => r.rows);
+    const context = log.user_id ? await pool.query(
+      `SELECT request_id, trace_id, method, endpoint, status_code, success, duration_ms, started_at
+       FROM api_request_logs
+       WHERE user_id = $1 AND started_at <= $2
+       ORDER BY started_at DESC LIMIT 10`,
+      [log.user_id, log.started_at]
+    ).then((r) => r.rows.reverse()) : [];
+    return { log, metadata, trace, ai, context };
+  });
+  if (data === null) {
+    res.status(404).json({ success: false, message: "Request log not found" });
+    return;
+  }
+  res.json({ success: true, data });
+};
+
 // ── AI usage ──────────────────────────────────────────────
 export const getAi = async (_req: Request, res: Response) => {
-  // No AI usage/cost ledger exists in the database (AI calls go straight to
-  // the provider). Report honestly instead of inventing token counts.
-  const probe = await safe(async () => {
-    const tables = await pool.query(
-      `SELECT table_name FROM information_schema.tables
-       WHERE table_name IN ('ai_usage','ai_requests','ai_generations','ai_logs')`
+  const data = await safe(async () => {
+    const summary = await one(
+      `SELECT COUNT(*) FILTER (WHERE created_at >= date_trunc('day', NOW()))::int AS requests_today,
+              COUNT(*) FILTER (WHERE created_at >= date_trunc('month', NOW()))::int AS requests_month,
+              COUNT(*) FILTER (WHERE NOT success AND created_at >= date_trunc('day', NOW()))::int AS failed_today,
+              COALESCE(SUM(total_tokens) FILTER (WHERE created_at >= date_trunc('day', NOW())),0)::bigint AS tokens_today,
+              SUM(estimated_cost) FILTER (WHERE created_at >= date_trunc('day', NOW()))::numeric AS cost_today,
+              ROUND(AVG(duration_ms) FILTER (WHERE created_at >= date_trunc('day', NOW())))::int AS avg_latency_ms
+       FROM ai_request_logs`
     );
-    return tables.rows.map((r) => r.table_name) as string[];
+    const byModel = await pool.query(
+      `SELECT provider, model, COUNT(*)::int AS requests, COALESCE(SUM(total_tokens),0)::bigint AS tokens,
+              COUNT(*) FILTER (WHERE NOT success)::int AS failures, ROUND(AVG(duration_ms))::int AS avg_ms
+       FROM ai_request_logs WHERE created_at >= NOW() - INTERVAL '30 days'
+       GROUP BY provider, model ORDER BY requests DESC`
+    ).then((r) => r.rows);
+    const byUser = await pool.query(
+      `SELECT a.user_id, COALESCE(u.username,u.email,'Anonymous') AS username,
+              COUNT(*)::int AS requests, COALESCE(SUM(a.total_tokens),0)::bigint AS tokens
+       FROM ai_request_logs a LEFT JOIN users u ON u.id=a.user_id
+       WHERE a.created_at >= NOW() - INTERVAL '30 days'
+       GROUP BY a.user_id,u.username,u.email ORDER BY tokens DESC LIMIT 10`
+    ).then((r) => r.rows);
+    const byEndpoint = await pool.query(
+      `SELECT COALESCE(h.route_template,h.endpoint,'unlinked') AS endpoint,
+              COUNT(*)::int AS requests, COALESCE(SUM(a.total_tokens),0)::bigint AS tokens,
+              COUNT(*) FILTER (WHERE NOT a.success)::int AS failures
+       FROM ai_request_logs a
+       LEFT JOIN LATERAL (
+         SELECT route_template, endpoint FROM api_request_logs h
+         WHERE h.trace_id = a.trace_id ORDER BY h.started_at ASC LIMIT 1
+       ) h ON TRUE
+       WHERE a.created_at >= NOW() - INTERVAL '30 days'
+       GROUP BY 1 ORDER BY tokens DESC LIMIT 10`
+    ).then((r) => r.rows);
+    return {
+      available: true, requestsToday: num(summary?.requests_today), requestsMonth: num(summary?.requests_month),
+      failed: num(summary?.failed_today), tokens: num(summary?.tokens_today),
+      estimatedCost: summary?.cost_today == null ? null : Number(summary.cost_today), avgLatencyMs: num(summary?.avg_latency_ms),
+      byModel, byUser, byEndpoint,
+    };
   });
-  res.json({
-    success: true,
-    data: {
-      available: false,
-      reason: "Cost tracking unavailable — no AI usage ledger in the database yet.",
-      ledgerTables: probe ?? [],
-      requestsToday: null, requestsMonth: null, questionsGenerated: null,
-      documentsProcessed: null, failed: null, avgGenerationTimeS: null,
-      tokens: null, estimatedCost: null,
-    },
-  });
+  res.json({ success: true, data: data ?? { available: false, reason: "AI observability table unavailable. Apply database migrations." } });
 };
 
 // ── Health ────────────────────────────────────────────────
@@ -444,6 +613,11 @@ export const getHealth = async (_req: Request, res: Response) => {
     return { status: "operational" as const, latencyMs: Date.now() - s, counts };
   });
   const unavailable = (name: string) => ({ status: "unknown" as const, note: `${name} has no health probe wired yet` });
+  const errorCounts = await safe(async () => one(
+    `SELECT COUNT(*) FILTER (WHERE status_code >= 500)::int AS today5xx,
+            COUNT(*) FILTER (WHERE status_code BETWEEN 400 AND 499)::int AS today4xx
+     FROM api_request_logs WHERE created_at >= date_trunc('day', NOW())`
+  ));
   res.json({
     success: true,
     data: {
@@ -454,7 +628,11 @@ export const getHealth = async (_req: Request, res: Response) => {
         websocket: unavailable("WebSocket"),
         ai: unavailable("AI service"), storage: unavailable("Storage"),
       },
-      errors: { today5xx: null as number | null, today4xx: null as number | null, note: "No error ledger yet — see server logs" },
+      errors: {
+        today5xx: errorCounts ? num(errorCounts.today5xx) : null,
+        today4xx: errorCounts ? num(errorCounts.today4xx) : null,
+        note: errorCounts ? "Captured from the request ledger" : "Request ledger unavailable",
+      },
     },
   });
 };
@@ -499,13 +677,20 @@ export const getJobs = async (_req: Request, res: Response) => {
 
 // ── Errors ────────────────────────────────────────────────
 export const getErrors = async (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    data: {
-      available: false, reason: "No error-tracking store wired yet — see server logs.",
-      errorsToday: null, today5xx: null, failedJobs: null, failedAi: null, items: [],
-    },
+  const data = await safe(async () => {
+    const summary = await one(
+      `SELECT COALESCE(SUM(occurrence_count) FILTER (WHERE last_seen_at >= date_trunc('day', NOW())),0)::bigint AS errors_today,
+              COUNT(*) FILTER (WHERE resolved_at IS NULL)::int AS unresolved
+       FROM application_errors`
+    );
+    const items = await pool.query(
+      `SELECT error_id, fingerprint, error_type, error_code, message, endpoint, method, status_code,
+              occurrence_count, first_seen_at, last_seen_at, resolved_at, request_id, trace_id
+       FROM application_errors ORDER BY last_seen_at DESC LIMIT 50`
+    ).then((r) => r.rows);
+    return { available: true, errorsToday: num(summary?.errors_today), unresolved: num(summary?.unresolved), items };
   });
+  res.json({ success: true, data: data ?? { available: false, reason: "Error ledger unavailable. Apply database migrations.", items: [] } });
 };
 
 // ── Security ──────────────────────────────────────────────
@@ -515,11 +700,18 @@ export const getSecurity = async (_req: Request, res: Response) => {
       `SELECT u.id, u.username, u.email, u.lastlogin AS at FROM users u
        WHERE u.lastlogin IS NOT NULL ORDER BY u.lastlogin DESC LIMIT 20`
     ).then((r) => r.rows);
+    const activeSessions = await pool.query(
+      `SELECT s.user_id, u.username, u.email, s.last_seen_at, host(s.ip_address) AS ip_address,
+              s.device_type, s.browser, s.os
+       FROM user_sessions s JOIN users u ON u.id = s.user_id
+       WHERE s.is_active AND s.last_seen_at >= NOW() - INTERVAL '15 minutes'
+       ORDER BY s.last_seen_at DESC LIMIT 50`
+    ).then((r) => r.rows).catch(() => []);
     return {
       recentLogins,
       failedLogins: null as null, // no failed-login ledger
-      activeSessions: null as null, // session store is JWT+blacklist; no enumerable session table
-      note: "IP/device/location are not stored — columns omitted for privacy.",
+      activeSessions,
+      note: "Sensitive payload fields are redacted. Session IP and user-agent-derived device data are owner-only.",
     };
   });
   if (!data) {

@@ -10,6 +10,7 @@ import cookieParser from "cookie-parser";
 import apiRoutes from "./routes/index.routes.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
 import { globalRateLimit } from "./middleware/globalRateLimit.ts";
+import { observabilityMiddleware } from "./middleware/observability.ts";
 import dns from "dns";
 import { pool } from "./config/database.ts"; // Serverless-cached pool
 
@@ -72,8 +73,8 @@ app.use(
     },
     credentials: true, // Allow cookies/auth headers
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Cookie"],
-    exposedHeaders: ["Set-Cookie"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Cookie", "X-Trace-Id"],
+    exposedHeaders: ["Set-Cookie", "X-Request-Id", "X-Trace-Id"],
   })
 );
 
@@ -86,6 +87,10 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
+
+// Request/trace IDs and redacted request telemetry. Registered after parsers
+// and before routes/auth so it observes successes, auth failures and errors.
+app.use(observabilityMiddleware);
 
 // Global rate limiting: 400 req/min per IP → 1-day block if exceeded
 // Applied after cookieParser but before routes; health check is bypassed inside middleware

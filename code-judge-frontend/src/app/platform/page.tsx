@@ -3,11 +3,11 @@
 import "./platform.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Users, Activity, Zap, CheckCircle2, RefreshCw, Search, Menu, ArrowUpRight, Clock3, ListChecks, TrendingUp, ChevronDown } from "lucide-react";
+import { Users, Activity, Zap, CheckCircle2, RefreshCw, Search, Menu, ArrowUpRight, Clock3, ListChecks, TrendingUp, ChevronDown, Gauge, AlertTriangle, X, Network } from "lucide-react";
 import { usePlatformGate, OwnerGate } from "@/components/platform/OwnerGate";
 import { PlatformSidebar, PlatformSidebarDrawer } from "@/components/platform/PlatformSidebar";
 import { platformApi } from "@/services/platform";
-import type { OverviewData, LiveData, ActivityItem, PlatformRange } from "@/services/platform";
+import type { OverviewData, LiveData, ActivityItem, PlatformRange, ObservabilityData, AiUsageData, PlatformErrorsData } from "@/services/platform";
 import { ChartSkeleton, FeedSkeleton, HealthSkeleton, HeartbeatSkeleton, HeatmapSkeleton, KpiGridSkeleton, MiniStatsSkeleton, ProgressSkeleton, SectionCard, SectionSkeleton, TableSkeleton, EmptyState, ErrorState, StatusDot, fmtInt, fmtPct, fmtDuration, timeAgo } from "@/components/platform/ui";
 import { SeriesChart } from "@/components/platform/charts";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -90,6 +90,7 @@ function PlatformDashboard() {
   const growth = useAsync(() => platformApi.growth(apiRange, days), `growth:${rangeKey}`);
   const usersQ = useAsync(() => platformApi.users(), "users");
   const quizzesQ = useAsync(() => platformApi.quizzes(), "quizzes");
+  const observabilityQ = useAsync(() => platformApi.observability(apiRange, days), `observability:${rangeKey}`);
   const aiQ = useAsync(() => platformApi.ai(), "ai");
   const healthQ = useAsync(() => platformApi.health(), "health");
   const jobsQ = useAsync(() => platformApi.jobs(), "jobs");
@@ -130,7 +131,7 @@ function PlatformDashboard() {
 
   const refreshAll = () => {
     overview.retry(); series.retry(); growth.retry(); usersQ.retry(); quizzesQ.retry();
-    aiQ.retry(); healthQ.retry(); jobsQ.retry(); errorsQ.retry(); securityQ.retry();
+    observabilityQ.retry(); aiQ.retry(); healthQ.retry(); jobsQ.retry(); errorsQ.retry(); securityQ.retry();
     auditQ.retry(); storageQ.retry(); alertsQ.retry(); loadLive();
   };
 
@@ -393,11 +394,13 @@ function PlatformDashboard() {
           <StudentProgress overview={o} users={usersQ.data?.topUsers ?? []} loading={usersQ.loading || overview.loading} />
         </SectionCard>
 
+        <ObservabilityPanel query={observabilityQ} />
+
         {/* AI usage and health */}
         <div className="grid items-start gap-4 lg:grid-cols-2">
           <SectionCard id="ai" title="AI usage" subtitle="Generation, documents, assistance">
             {aiQ.loading ? <SectionSkeleton rows={2} /> : aiQ.error ? <ErrorState message={aiQ.error.message} onRetry={aiQ.retry} /> : (
-              <EmptyState message="AI activity tracking is not connected yet" detail={String(aiQ.data?.reason ?? "When the usage ledger is available, requests, generated questions, token volume, and cost will appear here.")} />
+              <AiUsagePanel data={aiQ.data} />
             )}
           </SectionCard>
           <SectionCard id="health" title="Platform health" subtitle="Service status and latency">
@@ -411,7 +414,7 @@ function PlatformDashboard() {
         <div className="grid gap-4 lg:grid-cols-2">
           <SectionCard title="Issues" subtitle="Failures and warnings requiring investigation" id="errors">
             {errorsQ.loading ? <SectionSkeleton rows={3} /> : errorsQ.error ? <ErrorState message={errorsQ.error.message} onRetry={errorsQ.retry} /> : (
-              <EmptyState message="Issue monitoring is ready for a data source" detail={String((errorsQ.data as { reason?: string } | null)?.reason ?? "Connect an error ledger to review critical, warning, and resolved incidents here.")} />
+              <ErrorsPanel data={errorsQ.data} />
             )}
           </SectionCard>
           <SectionCard title="Background jobs" subtitle="Queues and workers" id="jobs">
@@ -426,9 +429,9 @@ function PlatformDashboard() {
           <h2 className="text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">Security</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-[10px] border border-[var(--border)] bg-[var(--card)] px-4 py-3.5"><div className="flex items-center gap-2 text-[12px] font-medium text-[var(--text-primary)]"><ShieldIndicator /> Session protection</div><p className="mt-1.5 text-[11px] leading-relaxed text-[var(--text-muted)]">Owner routes require a valid, non-revoked session and server-side role verification.</p></div>
-            <div className="rounded-[10px] border border-[var(--border)] bg-[var(--card)] px-4 py-3.5"><div className="flex items-center gap-2 text-[12px] font-medium text-[var(--text-primary)]"><ShieldIndicator /> Privacy-aware telemetry</div><p className="mt-1.5 text-[11px] leading-relaxed text-[var(--text-muted)]">IP address, device fingerprint, and location are intentionally not collected.</p></div>
+            <div className="rounded-[10px] border border-[var(--border)] bg-[var(--card)] px-4 py-3.5"><div className="flex items-center gap-2 text-[12px] font-medium text-[var(--text-primary)]"><ShieldIndicator /> Privacy-aware telemetry</div><p className="mt-1.5 text-[11px] leading-relaxed text-[var(--text-muted)]">Sensitive fields are redacted. IP and user-agent data stay inside this owner-only console.</p></div>
           </div>
-          <SectionCard title="Authentication activity" subtitle="Recent logins. IP, device and location are not stored.">
+          <SectionCard title="Authentication activity" subtitle="Recent successful logins from the user ledger.">
             {securityQ.loading ? <TableSkeleton rows={5} columns={5} /> : securityQ.error ? <ErrorState message={securityQ.error.message} onRetry={securityQ.retry} /> : securityQ.data && (
               <Table
                 head={["User", "Event", "Device", "Time", "Result"]}
@@ -456,6 +459,174 @@ function PlatformDashboard() {
 }
 
 /* Building blocks */
+
+function ObservabilityPanel({ query }: {
+  query: { data: ObservabilityData | null; error: { message: string } | null; loading: boolean; retry: () => void };
+}) {
+  const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+  const data = query.data;
+  const summary = data?.summary;
+  return (
+    <section id="observability" className="scroll-mt-24 space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <Gauge size={17} className="text-[#EC4899]" />
+            <h2 className="text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">API observability</h2>
+          </div>
+          <p className="mt-1 text-[13px] text-[var(--text-secondary)]">Requests, latency, failures, active sessions, and trace-level debugging from production traffic.</p>
+        </div>
+        {data?.activeWindowMinutes && <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[10px] text-[var(--text-muted)]">Online = active in {data.activeWindowMinutes}m</span>}
+      </div>
+      {query.loading ? <SectionSkeleton rows={6} /> : query.error ? <ErrorState message={query.error.message} onRetry={query.retry} /> : !data?.available ? (
+        <EmptyState message="Observability migration is not applied" detail={data?.reason ?? "Apply the platform observability migration to start collecting real request telemetry."} />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            <MiniStat label="Requests" value={fmtInt(summary?.requests)} />
+            <MiniStat label="Online now" value={fmtInt(summary?.onlineUsers)} />
+            <MiniStat label="Error rate" value={fmtPct(summary?.errorRate)} />
+            <MiniStat label="Average" value={`${fmtInt(summary?.avgLatencyMs)} ms`} />
+            <MiniStat label="P95 latency" value={`${fmtInt(summary?.p95Ms)} ms`} />
+            <MiniStat label="P99 latency" value={`${fmtInt(summary?.p99Ms)} ms`} />
+          </div>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <SectionCard title="Slow endpoints" subtitle="Ranked by p95 latency">
+              <Table
+                head={["Endpoint", "Method", "Requests", "Average", "P95"]}
+                rows={(data.slowEndpoints ?? []).map((row) => [row.endpoint, row.method, fmtInt(row.requests), `${fmtInt(row.avg_ms)} ms`, `${fmtInt(row.p95_ms)} ms`])}
+                empty="No request samples yet"
+              />
+            </SectionCard>
+            <SectionCard title="Failing endpoints" subtitle="Routes with unsuccessful responses">
+              <Table
+                head={["Endpoint", "Method", "Requests", "Failures", "Rate"]}
+                rows={(data.failingEndpoints ?? []).map((row) => [row.endpoint, row.method, fmtInt(row.requests), fmtInt(row.failures), fmtPct(row.error_rate)])}
+                empty="No failures in this range"
+              />
+            </SectionCard>
+          </div>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)]">
+            <SectionCard title="Recent requests" subtitle="Select any request to inspect its trace and redacted metadata">
+              {!data.recent?.length ? <EmptyState message="No requests recorded yet" /> : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[760px] text-left text-[11px]">
+                    <thead className="text-[10px] uppercase tracking-[.08em] text-[var(--text-muted)]"><tr>{["Status", "Method", "Endpoint", "User", "Duration", "Time", ""].map((h) => <th key={h} className="border-b border-[var(--border)] px-2 py-2 font-medium">{h}</th>)}</tr></thead>
+                    <tbody className="divide-y divide-[var(--border)]">
+                      {data.recent.map((row) => <tr key={row.request_id} className="hover:bg-[var(--card-hover)]">
+                        <td className={`px-2 py-2 font-semibold tabular-nums ${row.success ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{row.status_code}</td>
+                        <td className="px-2 py-2 font-medium text-[var(--text-primary)]">{row.method}</td>
+                        <td className="max-w-[260px] truncate px-2 py-2 text-[var(--text-secondary)]" title={row.endpoint}>{row.route_template || row.endpoint}</td>
+                        <td className="max-w-[130px] truncate px-2 py-2 text-[var(--text-secondary)]">{row.username || "Anonymous"}</td>
+                        <td className="px-2 py-2 tabular-nums text-[var(--text-secondary)]">{row.duration_ms} ms</td>
+                        <td className="px-2 py-2 whitespace-nowrap text-[var(--text-muted)]">{timeAgo(row.started_at)}</td>
+                        <td className="px-2 py-2"><button onClick={() => setSelectedRequest(row.request_id)} className="rounded-[7px] border border-[var(--border)] px-2 py-1 text-[var(--text-primary)] hover:bg-[var(--card-hover)]">Inspect</button></td>
+                      </tr>)}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </SectionCard>
+            <div className="space-y-4">
+              <SectionCard title="Active users" subtitle="Current authenticated sessions">
+                {!data.activeUsers?.length ? <EmptyState message="No active users" /> : <div className="space-y-2">
+                  {data.activeUsers.slice(0, 8).map((user) => <div key={user.user_id} className="flex items-center justify-between gap-3 rounded-[9px] border border-[var(--border)] px-3 py-2">
+                    <div className="min-w-0"><p className="truncate text-[12px] font-medium text-[var(--text-primary)]">{user.username}</p><p className="truncate text-[10px] text-[var(--text-muted)]">{user.browser} · {user.os} · {user.device_type}</p></div>
+                    <span className="shrink-0 text-[10px] text-[var(--success)]">{timeAgo(user.last_seen_at)}</span>
+                  </div>)}
+                </div>}
+              </SectionCard>
+              <SectionCard title="Top traffic users" subtitle="Requests in selected range">
+                <Table head={["User", "Requests", "Failures"]} rows={(data.topUsers ?? []).slice(0, 8).map((user) => [user.username, fmtInt(user.requests), fmtInt(user.failures)])} empty="No user traffic yet" />
+              </SectionCard>
+            </div>
+          </div>
+        </>
+      )}
+      {selectedRequest && <RequestInspector requestId={selectedRequest} onClose={() => setSelectedRequest(null)} />}
+    </section>
+  );
+}
+
+function RequestInspector({ requestId, onClose }: { requestId: string; onClose: () => void }) {
+  const detail = useAsync(() => platformApi.requestDetail(requestId), requestId);
+  const log = detail.data?.log;
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Request inspector">
+      <button className="absolute inset-0 bg-black/55" onClick={onClose} aria-label="Close request inspector" />
+      <aside className="relative h-full w-full max-w-[680px] overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] p-5 shadow-2xl sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <div><p className="text-[10px] font-semibold uppercase tracking-[.15em] text-[#EC4899]">Request inspector</p><h3 className="mt-1 break-all text-[15px] font-semibold text-[var(--text-primary)]">{requestId}</h3></div>
+          <button onClick={onClose} className="rounded-[8px] border border-[var(--border)] p-2 text-[var(--text-secondary)] hover:bg-[var(--card-hover)]" aria-label="Close"><X size={15} /></button>
+        </div>
+        {detail.loading ? <div className="mt-5"><SectionSkeleton rows={8} /></div> : detail.error ? <div className="mt-5"><ErrorState message={detail.error.message} onRetry={detail.retry} /></div> : log && (
+          <div className="mt-5 space-y-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <MiniStat label="Status" value={String(log.status_code)} />
+              <MiniStat label="Method" value={log.method} />
+              <MiniStat label="Duration" value={`${log.duration_ms} ms`} />
+              <MiniStat label="User" value={log.username || "Anonymous"} />
+            </div>
+            <InspectorBlock title="Request">
+              <KeyValue label="Endpoint" value={log.endpoint} />
+              <KeyValue label="Route" value={log.route_template || "—"} />
+              <KeyValue label="Trace ID" value={log.trace_id} />
+              <KeyValue label="IP" value={log.ip_address || "—"} />
+              <KeyValue label="User agent" value={log.user_agent || "—"} />
+              {log.error_message && <KeyValue label="Error" value={log.error_message} danger />}
+              {typeof log.error_stack === "string" && log.error_stack && <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap rounded-[8px] bg-black/90 p-3 text-[10px] text-red-200">{log.error_stack}</pre>}
+            </InspectorBlock>
+            <InspectorBlock title="Redacted request metadata"><JsonView value={detail.data?.metadata} /></InspectorBlock>
+            <InspectorBlock title="What happened immediately before">
+              <Timeline rows={detail.data?.context ?? []} />
+            </InspectorBlock>
+            <InspectorBlock title="Trace events">
+              <Timeline rows={detail.data?.trace ?? []} />
+              {!!detail.data?.ai?.length && <><p className="mb-2 mt-4 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">AI calls</p><Timeline rows={detail.data.ai} /></>}
+            </InspectorBlock>
+          </div>
+        )}
+      </aside>
+    </div>
+  );
+}
+
+function InspectorBlock({ title, children }: { title: string; children: React.ReactNode }) {
+  return <div className="rounded-[12px] border border-[var(--border)] bg-[var(--card)] p-4"><h4 className="mb-3 flex items-center gap-2 text-[12px] font-semibold text-[var(--text-primary)]"><Network size={13} />{title}</h4>{children}</div>;
+}
+
+function KeyValue({ label, value, danger = false }: { label: string; value: unknown; danger?: boolean }) {
+  return <div className="grid gap-1 border-b border-[var(--border)] py-2 last:border-0 sm:grid-cols-[110px_1fr]"><span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">{label}</span><span className={`break-all text-[11px] ${danger ? "text-[var(--danger)]" : "text-[var(--text-secondary)]"}`}>{String(value)}</span></div>;
+}
+
+function JsonView({ value }: { value: unknown }) {
+  return <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-[8px] bg-[var(--platform-input)] p-3 text-[10px] leading-relaxed text-[var(--text-secondary)]">{JSON.stringify(value ?? {}, null, 2)}</pre>;
+}
+
+function Timeline({ rows }: { rows: Array<Record<string, unknown>> }) {
+  if (!rows.length) return <p className="text-[11px] text-[var(--text-muted)]">No related events recorded.</p>;
+  return <div className="space-y-2">{rows.map((row, index) => <div key={`${String(row.request_id ?? row.started_at)}-${index}`} className="flex gap-3 text-[11px]"><span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${row.success === false ? "bg-[var(--danger)]" : "bg-[var(--success)]"}`} /><div className="min-w-0"><p className="break-all text-[var(--text-primary)]">{String(row.method ?? row.operation ?? "event")} {String(row.endpoint ?? row.model ?? "")}</p><p className="text-[10px] text-[var(--text-muted)]">{row.status_code ? `${String(row.status_code)} · ` : ""}{String(row.duration_ms ?? 0)} ms · {timeAgo(String(row.started_at ?? ""))}</p></div></div>)}</div>;
+}
+
+function AiUsagePanel({ data }: { data: AiUsageData | null }) {
+  if (!data?.available) return <EmptyState message="AI telemetry is not available" detail={data?.reason ?? "Apply the observability migration to begin collecting AI request usage."} />;
+  return <div className="space-y-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5"><MiniStat label="Today" value={fmtInt(data.requestsToday)} /><MiniStat label="30-day requests" value={fmtInt(data.requestsMonth)} /><MiniStat label="Tokens today" value={fmtInt(data.tokens)} /><MiniStat label="Avg latency" value={`${fmtInt(data.avgLatencyMs)} ms`} /><MiniStat label="Cost today" value={data.estimatedCost == null ? "—" : `$${data.estimatedCost.toFixed(4)}`} /></div>
+    <Table head={["Provider / model", "Requests", "Tokens", "Failures"]} rows={(data.byModel ?? []).map((row) => [`${row.provider} / ${row.model}`, fmtInt(row.requests), fmtInt(row.tokens), fmtInt(row.failures)])} empty="No AI requests recorded yet" />
+    {!!data.byEndpoint?.length && <Table head={["Endpoint", "Requests", "Tokens", "Failures"]} rows={data.byEndpoint.map((row) => [row.endpoint, fmtInt(row.requests), fmtInt(row.tokens), fmtInt(row.failures)])} empty="No endpoint usage yet" />}
+    {!!data.byUser?.length && <Table head={["User", "Requests", "Tokens"]} rows={data.byUser.map((row) => [row.username, fmtInt(row.requests), fmtInt(row.tokens)])} empty="No user usage yet" />}
+    <p className="text-[10px] text-[var(--text-muted)]">Cost requires AI_INPUT_COST_PER_1M_TOKENS and AI_OUTPUT_COST_PER_1M_TOKENS; it is never guessed.</p>
+  </div>;
+}
+
+function ErrorsPanel({ data }: { data: PlatformErrorsData | null }) {
+  if (!data?.available) return <EmptyState message="Error telemetry is not available" detail={data?.reason ?? "Apply the observability migration to begin grouping server errors."} />;
+  if (!data.items.length) return <EmptyState message="No server errors recorded" detail="New 5xx failures will be grouped here by fingerprint." />;
+  return <div className="space-y-3">
+    <div className="grid grid-cols-2 gap-3"><MiniStat label="Errors today" value={fmtInt(data.errorsToday)} /><MiniStat label="Unresolved groups" value={fmtInt(data.unresolved)} /></div>
+    <div className="space-y-2">{data.items.slice(0, 8).map((item) => <div key={item.error_id} className="rounded-[9px] border border-[var(--border)] px-3 py-2.5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate text-[12px] font-medium text-[var(--text-primary)]">{item.error_type}: {item.message}</p><p className="mt-1 truncate text-[10px] text-[var(--text-muted)]">{item.method} {item.endpoint || "unknown endpoint"} · last seen {timeAgo(item.last_seen_at)}</p></div><span className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--danger)]/10 px-2 py-1 text-[10px] font-semibold text-[var(--danger)]"><AlertTriangle size={10} />{fmtInt(item.occurrence_count)}</span></div></div>)}</div>
+  </div>;
+}
 
 function KpiCard({ icon, label, value, trend, trendUp, visual }: {
   icon: React.ReactNode; label: string; value: string; trend: string; trendUp?: boolean; visual?: React.ReactNode;

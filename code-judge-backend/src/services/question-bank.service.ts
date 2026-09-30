@@ -119,8 +119,6 @@ async function resolveBankPath(): Promise<string | null> {
   }
   // frontend public mirror
   candidates.push(path.resolve(process.cwd(), "../code-judge-frontend/public", BANK_FILENAMES[0]));
-  candidates.push("/home/sadanandjha/Desktop/Projects/codeJudge/code-judge-backend/public/Operating_Systems_200_MCQs_Single_Correct.docx");
-
   for (const p of candidates) {
     try {
       await fs.access(p);

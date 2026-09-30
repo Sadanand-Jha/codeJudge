@@ -8,11 +8,18 @@ import { NotFoundError } from "../types/index.ts";
  */
 export function errorHandler(
   err: Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void {
   console.error("Unhandled error:", err);
+  const errorWithCode = err as Error & { code?: string | number };
+  req.observabilityError = {
+    name: err.name || "Error",
+    code: errorWithCode.code == null ? undefined : String(errorWithCode.code),
+    message: err.message || "Internal server error",
+    stack: err.stack,
+  };
 
   // Handle known application errors
   if (err instanceof NotFoundError) {

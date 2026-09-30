@@ -22,6 +22,7 @@
  * the `reasoning_content` field some providers (e.g. DeepSeek reasoner) expose.
  */
 import OpenAI from "openai";
+import { recordAiObservation } from "./aiObservability.ts";
 
 const resolveBaseURL = (): string =>
   process.env.AI_BASE_URL ||
@@ -54,6 +55,11 @@ const resolveTestorModel = (): string =>
   resolveCoderModel();
 
 const baseURL = resolveBaseURL();
+const providerName = baseURL.includes("openrouter") ? "OpenRouter"
+  : baseURL.includes("openai") ? "OpenAI"
+  : baseURL.includes("google") || baseURL.includes("gemini") ? "Gemini"
+  : baseURL.includes("localhost") || baseURL.includes("127.0.0.1") ? "local"
+  : "OpenAI-compatible";
 
 // OpenRouter recommends identifying headers; harmless for other providers.
 const defaultHeaders: Record<string, string> =
@@ -169,37 +175,37 @@ export const streamChatWithAI = async function* (
   signal?: AbortSignal
 ): AsyncGenerator<AIStreamChunk> {
   const model = resolveCoderModel();
+  const startedAt = new Date();
   if (!model) {
     throw new Error(
       "AI model is not configured. Set AI_MODEL (or LM_STUDIO_MODEL_CODER) in the backend .env."
     );
   }
-  const stream = await client.chat.completions.create(
-    {
-      model,
-      messages: toModelMessages(messages),
-      temperature: 0.7,
-      stream: true,
-      stream_options: { include_usage: true },
-    },
-    { signal }
-  );
-
   let usage: LiveUsage | undefined;
-  for await (const chunk of stream) {
-    // The provider sends usage on a dedicated final chunk before the stream ends.
-    const normalized = normalizeUsage(chunk.usage);
-    if (normalized) usage = normalized;
+  try {
+    const stream = await client.chat.completions.create(
+      {
+        model,
+        messages: toModelMessages(messages),
+        temperature: 0.7,
+        stream: true,
+        stream_options: { include_usage: true },
+      },
+      { signal }
+    );
 
-    const delta = chunk.choices?.[0]?.delta as StreamDelta | undefined;
-    if (!delta) continue;
-
-    if (delta.reasoning_content) {
-      yield { reasoning: delta.reasoning_content };
+    for await (const chunk of stream) {
+      const normalized = normalizeUsage(chunk.usage);
+      if (normalized) usage = normalized;
+      const delta = chunk.choices?.[0]?.delta as StreamDelta | undefined;
+      if (!delta) continue;
+      if (delta.reasoning_content) yield { reasoning: delta.reasoning_content };
+      if (delta.content) yield { content: delta.content };
     }
-    if (delta.content) {
-      yield { content: delta.content };
-    }
+    await recordAiObservation({ provider: providerName, model, operation: "chatbot", startedAt, success: true, statusCode: 200, usage });
+  } catch (error) {
+    await recordAiObservation({ provider: providerName, model, operation: "chatbot", startedAt, success: false, errorMessage: (error as Error).message });
+    throw error;
   }
 
   if (usage) yield { usage };
@@ -214,27 +220,25 @@ export const chatWithAI = async (
   signal?: AbortSignal
 ): Promise<AIResponse> => {
   const model = resolveCoderModel();
+  const startedAt = new Date();
   if (!model) {
     throw new Error(
       "AI model is not configured. Set AI_MODEL (or LM_STUDIO_MODEL_CODER) in the backend .env."
     );
   }
-  const response = await client.chat.completions.create(
-    {
-      model,
-      messages: toModelMessages(messages),
-      temperature: 0.7,
-    },
-    { signal }
-  );
-
-  const msg = response.choices?.[0]?.message as Message | undefined;
-
-  return {
-    content: msg?.content ?? "",
-    reasoning: msg?.reasoning_content,
-    usage: normalizeUsage(response.usage),
-  };
+  try {
+    const response = await client.chat.completions.create(
+      { model, messages: toModelMessages(messages), temperature: 0.7 },
+      { signal }
+    );
+    const msg = response.choices?.[0]?.message as Message | undefined;
+    const usage = normalizeUsage(response.usage);
+    await recordAiObservation({ provider: providerName, model, operation: "question_generation", startedAt, success: true, statusCode: 200, usage });
+    return { content: msg?.content ?? "", reasoning: msg?.reasoning_content, usage };
+  } catch (error) {
+    await recordAiObservation({ provider: providerName, model, operation: "question_generation", startedAt, success: false, errorMessage: (error as Error).message });
+    throw error;
+  }
 };
 
 export const chatWithAI_testor = async (
@@ -242,26 +246,23 @@ export const chatWithAI_testor = async (
   signal?: AbortSignal
 ): Promise<AIResponse> => {
   const model = resolveTestorModel();
+  const startedAt = new Date();
   if (!model) {
     throw new Error(
       "AI testor model is not configured. Set AI_TESTOR_MODEL (or LM_STUDIO_MODEL_TESTOR) in the backend .env."
     );
   }
-  const response = await client.chat.completions.create(
-    {
-      model,
-      messages: toModelMessages(messages),
-      temperature: 0.7,
-    },
-    { signal }
-  );
-
-  const msg = response.choices?.[0]?.message as Message | undefined;
-
-  return {
-    content: msg?.content ?? "",
-    reasoning: msg?.reasoning_content,
-    usage: normalizeUsage(response.usage),
-  };
+  try {
+    const response = await client.chat.completions.create(
+      { model, messages: toModelMessages(messages), temperature: 0.7 },
+      { signal }
+    );
+    const msg = response.choices?.[0]?.message as Message | undefined;
+    const usage = normalizeUsage(response.usage);
+    await recordAiObservation({ provider: providerName, model, operation: "evaluation", startedAt, success: true, statusCode: 200, usage });
+    return { content: msg?.content ?? "", reasoning: msg?.reasoning_content, usage };
+  } catch (error) {
+    await recordAiObservation({ provider: providerName, model, operation: "evaluation", startedAt, success: false, errorMessage: (error as Error).message });
+    throw error;
+  }
 };
-
