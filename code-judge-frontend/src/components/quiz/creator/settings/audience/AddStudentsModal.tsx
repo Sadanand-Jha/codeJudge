@@ -54,8 +54,11 @@ export default function AddStudentsModal({
   const [roomSelectedUsernames, setRoomSelectedUsernames] = useState<Set<string>>(new Set());
   const [directUsername, setDirectUsername] = useState("");
 
-  const excluded = new Set(existing.map((s) => (s.username ?? s.rollNumber).toLowerCase()));
-  pending.forEach((s) => excluded.add((s.username ?? s.rollNumber).toLowerCase()));
+  const excluded = useMemo(() => {
+    const usernames = new Set(existing.map((s) => (s.username ?? s.rollNumber).toLowerCase()));
+    pending.forEach((s) => usernames.add((s.username ?? s.rollNumber).toLowerCase()));
+    return usernames;
+  }, [existing, pending]);
 
   const ownedRooms = getOwnedRooms(rooms, user?.id).filter((r) => !roomId || r.id !== roomId);
   const selectedRoom = selectedRoomId ? ownedRooms.find((r) => r.id === selectedRoomId) : null;
@@ -229,7 +232,6 @@ export default function AddStudentsModal({
     if (!selectedRoom) return [];
     const q = roomStudentQuery.trim().toLowerCase();
     return selectedRoom.students.filter((s) => {
-      if (excluded.has((s.username ?? s.rollNumber).toLowerCase())) return false;
       if (q) {
         const hay = `${s.username ?? ""} ${s.name} ${s.rollNumber}`.toLowerCase();
         if (!hay.includes(q)) return false;
@@ -238,7 +240,10 @@ export default function AddStudentsModal({
     });
   }, [selectedRoom, roomStudentQuery, excluded]);
 
-  const allFilteredSelected = filteredRoomStudents.length > 0 && filteredRoomStudents.every((s) => roomSelectedUsernames.has((s.username ?? s.rollNumber).toLowerCase()));
+  const selectableFilteredRoomStudents = filteredRoomStudents.filter(
+    (s) => !excluded.has((s.username ?? s.rollNumber).toLowerCase())
+  );
+  const allFilteredSelected = selectableFilteredRoomStudents.length > 0 && selectableFilteredRoomStudents.every((s) => roomSelectedUsernames.has((s.username ?? s.rollNumber).toLowerCase()));
 
   return (
     <AudienceModal
@@ -381,7 +386,7 @@ export default function AddStudentsModal({
                     <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
                     <input value={roomStudentQuery} onChange={(e) => setRoomStudentQuery(e.target.value)} placeholder="Search by username..." className="h-9 w-full rounded-lg border border-input-border bg-input-bg pl-8 pr-3 text-xs text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10" />
                   </div>
-                  <button onClick={() => { if (allFilteredSelected) setRoomSelectedUsernames(new Set()); else setRoomSelectedUsernames(new Set(filteredRoomStudents.map((s) => (s.username ?? s.rollNumber).toLowerCase()))); }} className="flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary hover:bg-card-hover">
+                  <button disabled={selectableFilteredRoomStudents.length === 0} onClick={() => { if (allFilteredSelected) setRoomSelectedUsernames(new Set()); else setRoomSelectedUsernames(new Set(selectableFilteredRoomStudents.map((s) => (s.username ?? s.rollNumber).toLowerCase()))); }} className="flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary hover:bg-card-hover disabled:cursor-not-allowed disabled:opacity-50">
                     {allFilteredSelected ? <X className="h-3 w-3" /> : <CheckSquare className="h-3 w-3" />} {allFilteredSelected ? "Unselect all" : "Select all"}
                   </button>
                 </div>
@@ -413,15 +418,17 @@ export default function AddStudentsModal({
                   ) : (
                     filteredRoomStudents.map((s) => {
                       const key = (s.username ?? s.rollNumber).toLowerCase();
+                      const isAlreadyAdded = excluded.has(key);
                       const isSelected = roomSelectedUsernames.has(key);
                       return (
-                        <label key={s.id} className="flex cursor-pointer items-center gap-3 border-b border-border/50 px-3 py-2 hover:bg-white/[0.04] last:border-0">
-                          <input type="checkbox" checked={isSelected} onChange={(e) => setRoomSelectedUsernames((prev) => { const n = new Set(prev); if (e.target.checked) n.add(key); else n.delete(key); return n; })} className="h-3.5 w-3.5 rounded accent-pink-500" />
+                        <label key={s.id} className={cn("flex items-center gap-3 border-b border-border/50 px-3 py-2 last:border-0", isAlreadyAdded ? "cursor-default bg-success/[0.03]" : "cursor-pointer hover:bg-white/[0.04]")}>
+                          <input type="checkbox" checked={isSelected} disabled={isAlreadyAdded} onChange={(e) => setRoomSelectedUsernames((prev) => { const n = new Set(prev); if (e.target.checked) n.add(key); else n.delete(key); return n; })} className="h-3.5 w-3.5 rounded accent-pink-500 disabled:cursor-not-allowed disabled:opacity-40" />
                           {s.avatarUrl ? <img src={s.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover ring-1 ring-border" /> : <img src={getAvatarUrlById(s.avatarId)} alt="" className="h-7 w-7 rounded-full object-cover ring-1 ring-border" />}
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-xs font-semibold text-text-primary">@{s.username ?? s.rollNumber}</span>
                             <span className="block truncate text-[11px] text-text-muted">{s.name}</span>
                           </span>
+                          {isAlreadyAdded && <span className="shrink-0 rounded-full bg-success/10 px-2 py-1 text-[10px] font-bold text-success">Already added</span>}
                         </label>
                       );
                     })
