@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { pool } from "../config/database.js";
 import {
   PLATFORM_COOKIE,
+  isPlatformOwner,
   isPlatformTokenRevoked,
   verifyPlatformToken,
 } from "../services/platformSession.js";
@@ -18,13 +19,6 @@ import {
  * users.role_id = 2 (admin), or email in PLATFORM_OWNER_EMAILS.
  * Never rely on client-side checks alone.
  */
-
-function ownerEmails(): string[] {
-  return (process.env.PLATFORM_OWNER_EMAILS || "")
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 export const requireOwner = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -71,10 +65,7 @@ export const requireOwner = async (req: Request, res: Response, next: NextFuncti
     }
 
     const email = (dbEmail || claims.email || "").toLowerCase();
-    const isAdmin = Number(roleId) === 2;
-    const isAllowlisted = email !== "" && ownerEmails().includes(email);
-
-    if (!isAdmin && !isAllowlisted) {
+    if (!isPlatformOwner(roleId, email)) {
       res.status(403).json({ success: false, message: "Forbidden: owner access required", statusCode: 403 });
       return;
     }

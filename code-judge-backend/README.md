@@ -163,7 +163,7 @@ code-judge-backend/
 | `JUDGE0_API_KEY` | Judge0 API key |
 | `JWT_SECRET` | JWT secret key |
 | `JWT_EXPIRY` | JWT expiry time |
-| `PLATFORM_JWT_SECRET` | Separate 256-bit secret for owner-only platform sessions; must not equal `JWT_SECRET` |
+| `PLATFORM_JWT_SECRET` | Optional separate 256-bit secret for owner-only platform sessions. When omitted, a domain-separated key is derived from `JWT_SECRET` |
 | `PLATFORM_JWT_EXPIRY` | Platform session lifetime (defaults to `12h`) |
 | `PLATFORM_OWNER_EMAILS` | Optional comma-separated owner email allowlist |
 | `AI_API_KEY` | AI service API key |

@@ -10,7 +10,7 @@ import { UserService } from "../services/database/user.database.js";
 import { userRepository } from "../repositories/user.repository.js";
 import { authenticate } from "../middleware/auth.js";
 import { getClientIp } from "../utils/getClientIp.js";
-import { PLATFORM_COOKIE, isPlatformAuthConfigured, mintPlatformToken, revokePlatformToken } from "../services/platformSession.js";
+import { PLATFORM_COOKIE, isPlatformAuthConfigured, mintPlatformToken, platformCookieMaxAgeMs, revokePlatformToken } from "../services/platformSession.js";
 import { isDatabaseUnavailableError } from "../utils/databaseError.ts";
 
 const userService = new UserService();
@@ -492,9 +492,9 @@ export const ownerSendOtpController = async (req: Request, res: Response) => {
  * Body: { "email": "owner@example.com", "otp": "123456" }
  * Redeems the owner login OTP and mints a DEDICATED platform token
  * (platform_session cookie + JWT scoped to "platform", signed with
- * PLATFORM_JWT_SECRET). No regular user session is created — password-login
- * sessions can never access /platform. Rejects non-owner accounts even with
- * a valid OTP.
+ * the isolated platform signing key). No regular user session is created —
+ * password-login sessions can never access /platform. Rejects non-owner
+ * accounts even with a valid OTP.
  */
 export const ownerVerifyOtpController = async (req: Request, res: Response) => {
   try {
@@ -543,7 +543,7 @@ export const ownerVerifyOtpController = async (req: Request, res: Response) => {
 
     res.cookie(PLATFORM_COOKIE, platformToken, {
       ...cookieOptions,
-      maxAge: 12 * 60 * 60 * 1000,
+      maxAge: platformCookieMaxAgeMs(),
     });
 
     try {

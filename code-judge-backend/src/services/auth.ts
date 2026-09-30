@@ -9,6 +9,7 @@ import redisClient from '../config/redis.js';
 import { UserService } from './database/user.database.js';
 import { sendOtpEmail } from './email.js';
 import generateOtp from './otpGenerator.js';
+import { isPlatformOwner } from './platformSession.js';
 
 const OTP_TTL_SECONDS = 5 * 60; // 5 minutes — OTP validity
 const OTP_RESEND_COOLDOWN_SECONDS = 60; // 60 seconds — resend cooldown (must match frontend countdown)
@@ -472,7 +473,7 @@ async function deleteCachedOwnerLoginOtp(email: string): Promise<void> {
 }
 
 function isOwnerRole(user: any): boolean {
-  return user != null && Number(user.role_id) === 2;
+  return user != null && isPlatformOwner(user.role_id, user.email);
 }
 
 /**
