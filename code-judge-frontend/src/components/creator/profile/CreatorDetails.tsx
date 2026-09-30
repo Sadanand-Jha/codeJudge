@@ -3,6 +3,10 @@
 import type { CreatorProfile } from "@/components/creator/workspace/types";
 
 export function CreatorDetails({ profile }: { profile: CreatorProfile }) {
+  const joinedAt = profile.createdAt ? new Date(profile.createdAt) : null;
+  const joinedLabel = joinedAt && !Number.isNaN(joinedAt.getTime())
+    ? joinedAt.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" })
+    : "";
   const rows = [
     profile.location && { label: "Location", value: profile.location },
     profile.website && { label: "Website", value: profile.website },
@@ -14,14 +18,14 @@ export function CreatorDetails({ profile }: { profile: CreatorProfile }) {
       label: "Languages",
       value: profile.languages.join(", "),
     },
-    { label: "Joined", value: new Date(profile.createdAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" }) },
-    { label: "Creator ID", value: profile.creatorId },
+    joinedLabel && { label: "Joined", value: joinedLabel },
+    profile.creatorId && { label: "Creator ID", value: profile.creatorId },
   ].filter(Boolean) as Array<{ label: string; value: string }>;
 
   return (
     <div className="space-y-4">
       <h2 className="text-[15px] font-semibold text-profile-text-primary">Details</h2>
-      <div className="grid grid-cols-1 gap-0 sm:grid-cols-2">
+      {rows.length > 0 ? <div className="grid grid-cols-1 gap-0 sm:grid-cols-2">
         {rows.map((r) => (
           <div
             key={r.label}
@@ -33,7 +37,7 @@ export function CreatorDetails({ profile }: { profile: CreatorProfile }) {
             </span>
           </div>
         ))}
-      </div>
+      </div> : <p className="text-[13px] text-profile-text-secondary">No additional details added yet.</p>}
     </div>
   );
 }

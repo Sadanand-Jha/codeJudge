@@ -191,7 +191,8 @@ export default function ProfileSidebar({ onNavigate }: { onNavigate?: () => void
   }, []);
 
   return (
-    <aside className="sticky top-14 z-20 hidden h-[calc(100dvh-3.5rem)] w-64 shrink-0 self-start overflow-hidden border-r border-pink-200/65 bg-white/94 shadow-[12px_0_45px_-38px_rgba(244,114,182,.8)] dark:border-white/[0.07] dark:bg-[#0d111d]/96 dark:shadow-[12px_0_55px_-38px_rgba(91,70,190,.7)] lg:block">
+    <aside className="sticky top-0 z-20 hidden h-[calc(100dvh-3.5rem)] w-64 shrink-0 self-start overflow-hidden border-r border-pink-200/80 bg-gradient-to-b from-[#fff9fc] via-[#fffdfb] to-[#fff8f1] shadow-[14px_0_48px_-38px_rgba(236,72,153,.72)] dark:border-white/[0.07] dark:from-[#111522] dark:via-[#0d111d] dark:to-[#0b101b] dark:shadow-[12px_0_55px_-38px_rgba(91,70,190,.7)] lg:block">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-pink-100/55 to-transparent dark:from-violet-500/[0.08]" aria-hidden="true" />
       <ProfileSidebarContent onNavigate={onNavigate} />
     </aside>
   );

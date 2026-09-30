@@ -4,6 +4,8 @@ import { STORAGE_KEYS } from "@/utils/storageKeys";
 import { me } from "@/services/auth";
 
 /** Global user profile as returned by the backend /auth/me + /api/v1/user/info. */
+type NamedProfileValue = string | { name?: string | null };
+
 export interface UserProfile {
   id: string | number;
   email?: string | null;
@@ -15,13 +17,32 @@ export interface UserProfile {
   avatarIsMale?: boolean | null;
   bio?: string | null;
   mobile?: string | null;
+  country?: NamedProfileValue | null;
+  state?: NamedProfileValue | null;
+  college?: NamedProfileValue | null;
+  company?: NamedProfileValue | null;
   role?: string | null;
   rating?: number;
   maxRating?: number;
   isVerified?: boolean;
   isActive?: boolean;
   lastLogin?: string | null;
-  preferences?: Record<string, unknown>;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  preferences?: Record<string, unknown> & {
+    theme?: string;
+    accentColor?: string;
+    compactMode?: boolean;
+    animationSpeed?: string;
+    preferredLanguage?: string;
+    editorTheme?: string;
+    editorFontSize?: number;
+    tabWidth?: number;
+    wordWrap?: boolean;
+    autoSave?: boolean;
+    vimMode?: boolean;
+    emacsMode?: boolean;
+  };
 }
 
 interface AuthState {
@@ -93,11 +114,11 @@ export const useAuthStore = create<AuthState>()(
             set({ user: fetched, isAuthenticated: true });
           }
           return fetched;
-        } catch (error: any) {
+        } catch (error: unknown) {
           // A 401 means the backend rejected the session (expired/revoked
           // token) — clear the persisted session. Transient network/5xx
           // errors are left alone so the user isn't logged out spuriously.
-          if (error?.response?.status === 401) {
+          if ((error as { response?: { status?: number } })?.response?.status === 401) {
             get().logout();
           }
           return null;
@@ -106,14 +127,38 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         if (typeof window !== "undefined") {
-          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
+          // Remove every user-scoped persisted value, including Zustand
+          // stores, quiz progress, cached avatar selection, and legacy keys.
+          // Theme/layout preferences are intentionally included: a new user
+          // must never inherit state from the previous account.
+          for (const storage of [localStorage, sessionStorage]) {
+            const keys = Array.from({ length: storage.length }, (_, index) => storage.key(index)).filter(
+              (key): key is string => Boolean(key)
+            );
+            keys.forEach((key) => {
+              if (
+                key.startsWith("byteclash_") ||
+                key.startsWith("codejudge-") ||
+                key === "token" ||
+                key === "user"
+              ) {
+                storage.removeItem(key);
+              }
+            });
+          }
         }
-        set({ token: null, user: null, isAuthenticated: false });
+        set({ token: null, user: null, isAuthenticated: false, hasHydrated: true });
+        // persist() writes the cleared state above; remove the container too so
+        // no previous-user object remains in storage at all.
+        if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEYS.AUTH);
       },
 
       hydrate: () => {
         if (sessionCheck) return sessionCheck;
+        // The root AuthHydrator already restored and validated this browser
+        // session. Route-level callers can safely reuse the persisted Zustand
+        // user instead of issuing another /auth/me request on every mount.
+        if (get().hasHydrated) return Promise.resolve();
         sessionCheck = (async () => {
           // persist is configured with skipHydration, so rehydration is
           // triggered manually (kept out of module init to avoid SSR/

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   User, IdCard, Trophy, Code2, Shield, Lock, Bell, Palette,
@@ -21,7 +22,7 @@ import {
   SettingsSlider, ConfirmDialog, SettingsRow,
 } from "@/components/ui/settings";
 import { SearchableDropdown } from "@/components/ui";
-import { getUserInfo, fetchCountries, fetchStatesByCountry, fetchCollegesByState, updateProfileLocation } from "@/services/user";
+import { fetchCountries, fetchStatesByCountry, fetchCollegesByState, updateProfileLocation } from "@/services/user";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
 
@@ -240,12 +241,23 @@ const ROLE_LABELS: Record<string, string> = {
   admin: "Admin",
 };
 
+function profileValueLabel(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && "name" in value) {
+    const name = (value as { name?: unknown }).name;
+    return typeof name === "string" ? name : "";
+  }
+  return "";
+}
+
 /* =============================================
    Main Settings Page
    ============================================= */
 export default function SettingsPage() {
+  const router = useRouter();
   const toast = useToast();
   const currentAvatar = useCurrentAvatar();
+  const user = useAuthStore((state) => state.user);
   const [activeSection, setActiveSection] = useState<string>("profile");
   const [navOpen, setNavOpen] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -275,6 +287,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const initializedFromAuthStore = useRef(false);
 
   // Track unsaved changes
   const hasChanges = JSON.stringify(settings) !== JSON.stringify(originalSettings);
@@ -370,15 +383,13 @@ export default function SettingsPage() {
     });
   };
 
-  // Fetch user info from /auth/me
+  // Initialize once from the persisted global auth profile. The root
+  // AuthHydrator owns /auth/me validation, so visiting Settings does not make
+  // another request or flash a different avatar while navigating.
   useEffect(() => {
-    async function fetchUserInfo() {
-      try {
-        const data = await getUserInfo();
-        if (!data) {
-          console.warn("No user data returned from /auth/me");
-          return;
-        }
+    if (!user || initializedFromAuthStore.current) return;
+    initializedFromAuthStore.current = true;
+    const data = user;
         
         // Map accent color from API format to hex
         const accentColorMap: Record<string, string> = {
@@ -403,18 +414,18 @@ export default function SettingsPage() {
         
         // Map API response to settings
         const mappedSettings: Partial<Settings> = {
-          username: data.username,
-          email: data.email,
+          username: data.username || "",
+          email: data.email || "",
           firstName: data.firstName || "",
           lastName: data.lastName || "",
           displayName: data.displayName || `${data.firstName || ""} ${data.lastName || ""}`.trim(),
           bio: data.bio || "",
           mobileNumber: data.mobile || "",
           avatar: data.avatarUrl || null,
-          country: data.country || "",
-          state: data.state || "",
-          college: data.college || "",
-          company: data.company || "",
+          country: profileValueLabel(data.country),
+          state: profileValueLabel(data.state),
+          college: profileValueLabel(data.college),
+          company: profileValueLabel(data.company),
           role: data.role || "user",
           rating: data.rating || 1875,
           memberSince,
@@ -431,21 +442,9 @@ export default function SettingsPage() {
           animationSpeed: data.preferences?.animationSpeed === 'fast' ? 150 : data.preferences?.animationSpeed === 'slow' ? 75 : 100,
           compactMode: data.preferences?.compactMode ?? false,
         };
-        setSettings((prev) => ({ ...prev, ...mappedSettings }));
-        setOriginalSettings((prev) => ({ ...prev, ...mappedSettings }));
-      } catch (err: any) {
-        // 401 = not authenticated — redirect is handled by middleware/AppLayout, don't spam error log
-        // The GET /register?redirect=%2Fsettings you see in dev logs is the expected redirect for guests
-        const status = err?.response?.status;
-        if (status === 401 || status === 403) {
-          console.warn("User not authenticated for /settings — redirecting to login");
-          return;
-        }
-        console.error("Failed to fetch user info:", err?.message ?? err);
-      }
-    }
-    fetchUserInfo();
-  }, []);
+    setSettings((prev) => ({ ...prev, ...mappedSettings }));
+    setOriginalSettings((prev) => ({ ...prev, ...mappedSettings }));
+  }, [user]);
 
   // Scroll spy for active section
   useEffect(() => {
@@ -634,7 +633,19 @@ export default function SettingsPage() {
               <SettingsCard title="Personal Information" description="Your personal details and contact information" icon={<IdCard className="h-5 w-5" />}>
                 <div className="grid gap-6 sm:grid-cols-2">
                   <SettingsInput label="Email Address" value={settings.email} onChange={(v) => update("email", v)} type="email" icon={<Mail className="h-4 w-4" />} required />
-                  <SettingsInput label="Mobile Number" value={settings.mobileNumber} onChange={(v) => update("mobileNumber", v)} icon={<Phone className="h-4 w-4" />} optional />
+                  <SettingsInput
+                    label="Mobile Number"
+                    value={settings.mobileNumber}
+                    onChange={(v) => update("mobileNumber", v)}
+                    icon={<Phone className="h-4 w-4" />}
+                    action={
+                      <VerifyButton
+                        disabled={!settings.mobileNumber.trim()}
+                        onClick={() => router.push("/settings/mobile-verification")}
+                      />
+                    }
+                    optional
+                  />
                   <SearchableDropdown
                     label="Country"
                     placeholder="Search country..."
@@ -1163,11 +1174,16 @@ function StatItem({ icon, value, label }: { icon: ReactNode; value: string; labe
 /* =============================================
    Helper Components
    ============================================= */
-function VerifyButton() {
+function VerifyButton({ onClick, disabled = false }: { onClick?: () => void; disabled?: boolean }) {
   return (
     <button
-      onClick={(e) => e.stopPropagation()}
-      className="rounded-lg bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent transition-colors duration-200 hover:bg-accent/20"
+      type="button"
+      disabled={disabled}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick?.();
+      }}
+      className="rounded-lg bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent transition-colors duration-200 hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40"
     >
       Verify
     </button>

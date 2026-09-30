@@ -5,11 +5,6 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
-  Trophy,
-  UserPlus,
-  CheckCircle2,
-  Timer,
-  BellRing,
   ChevronRight,
   CheckCheck,
 } from "lucide-react";
@@ -26,6 +21,8 @@ interface Notification {
   href?: string;
 }
 
+/* Mock notifications are intentionally disabled until this component is wired
+ * to the real notifications API.
 const SAMPLE_NOTIFICATIONS: Notification[] = [
   {
     id: "1",
@@ -78,10 +75,11 @@ const SAMPLE_NOTIFICATIONS: Notification[] = [
     href: "/quiz/react-hooks",
   },
 ];
+*/
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(SAMPLE_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => n.unread).length;

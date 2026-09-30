@@ -73,8 +73,7 @@ export default function Navbar() {
                 onClick={async () => {
                   await logout();
                   useAuthStore.getState().logout();
-                  toast.success("Logged out successfully");
-                  window.location.reload();
+                  window.location.replace("/login");
                 }}
                 className="flex items-center gap-1 hover:text-danger transition-colors"
               >

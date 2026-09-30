@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, AtSign, KeyRound, Lock, UserPlus } from "lucide-react";
+import { AlertCircle, ArrowRight, AtSign, KeyRound, Lock, UserPlus } from "lucide-react";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useAuthStore } from "@/store/authStore";
 import { login } from "@/services/auth";
@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     hydrate();
@@ -44,9 +45,12 @@ export default function LoginPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!identifier.trim() || !password) {
-      toast.error("Please fill in all fields");
+      const message = "Please enter your email or username and password.";
+      setErrorMessage(message);
+      toast.error(message);
       return;
     }
+    setErrorMessage(null);
     setLoading(true);
     try {
       const res = await login({ identifier: identifier.trim().toLowerCase(), password });
@@ -59,10 +63,14 @@ export default function LoginPage() {
         toast.success("Logged in successfully");
         router.push("/quiz");
       } else {
-        toast.error(res.data?.message || "Login failed");
+        const message = res.message || "We couldn't sign you in. Please check your details.";
+        setErrorMessage(message);
+        toast.error(message);
       }
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, "Login failed"));
+      const message = getApiErrorMessage(err, "Unable to sign in right now. Please try again.");
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -92,7 +100,10 @@ export default function LoginPage() {
                   id="login-identifier"
                   type="text"
                   value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value.toLowerCase())}
+                  onChange={(e) => {
+                    setIdentifier(e.target.value.toLowerCase());
+                    if (errorMessage) setErrorMessage(null);
+                  }}
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
@@ -109,13 +120,26 @@ export default function LoginPage() {
                 <input
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorMessage) setErrorMessage(null);
+                  }}
                   autoComplete="current-password"
                   className="w-full rounded-xl bg-input-bg border border-input-border pl-10 pr-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
                   placeholder="••••••••"
                 />
               </div>
             </div>
+            {errorMessage && (
+              <div
+                role="alert"
+                aria-live="polite"
+                className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs font-medium leading-relaxed text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300"
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
             <button
               type="submit"
               disabled={loading}

@@ -150,6 +150,7 @@ const _focusNavGroups: { label: string; items: NavItemData[] }[] = [
 ];
 
 const navGroups: { label: string; items: NavItemData[] }[] = FOCUS_MODE_ENABLED ? _focusNavGroups : _fullNavGroups;
+const fullNavItems = _fullNavGroups.flatMap((group) => group.items);
 
 // Flat list (longest href first) used for page-title resolution and for
 // guest-protection checks.
@@ -177,9 +178,11 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   const isStudentQuizRoute = pathname.startsWith("/quiz") && !isQuizWorkspace && pathname !== "/quiz/create";
   const isStudentMissionRoute = isStudentQuizRoute && theme === "dark";
   const isStudentPartyRoute = isStudentQuizRoute && theme === "light";
-  const visibleNavGroups = FOCUS_MODE_ENABLED && theme === "light"
-    ? [{ label: "SWEET SPOT", items: [{ label: "Quiz Party", icon: IceCreamCone, href: "/quiz" }] }]
-    : navGroups;
+  const visibleNavGroups = isStudentQuizRoute
+    ? FOCUS_MODE_ENABLED && theme === "light"
+      ? [{ label: "SWEET SPOT", items: [{ label: "Quiz Party", icon: IceCreamCone, href: "/quiz" }] }]
+      : navGroups
+    : _fullNavGroups;
   const homeHref = isStudioRoute || isQuizWorkspace ? "/creator/quizzes" : "/";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -229,7 +232,9 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
     try {
       await logout();
       useAuthStore.getState().logout();
-      toast.success("Logged out successfully");
+      // A hard navigation destroys every in-memory Zustand store. The auth
+      // store also clears all persisted ByteClash data before this redirect.
+      window.location.replace("/login");
     } catch {
       toast.error("Failed to log out");
     }
@@ -246,7 +251,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       if (pathname.includes("/results")) return isStudentPartyRoute ? "Sweet Results" : "Mission Debrief";
       if (pathname.includes("/register")) return isStudentPartyRoute ? "Party Check-in" : "Crew Check-in";
       if (pathname.startsWith("/quiz")) return isStudentPartyRoute ? "Celebration Zone" : "Flight Deck";
-      return navItems.find((n) => pathname.startsWith(n.href))?.label || "Quiz";
+      return fullNavItems.find((n) => (n.href === "/" ? pathname === "/" : pathname.startsWith(n.href)))?.label || "ByteClash";
     }
     if (pathname === PREPARATION_BASE) return "Preparation";
     const prepModule = getActivePreparationModule(pathname);
@@ -371,7 +376,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
               {groupIndex > 0 && (
                 <div className={cn("my-2 h-px shrink-0 bg-ai-border", showLabels ? "mx-1" : "mx-2.5")} />
               )}
-              {showLabels && isStudentQuizRoute && (
+              {showLabels && (
                 <p className="px-3 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-ai-text-mut">{group.label}</p>
               )}
               {group.items.map((item) => (
@@ -563,7 +568,6 @@ function ProfileMenu({ showLabels, sidebarExpanded, setSidebarExpanded, open, on
   onAuthRequired: () => void;
 }) {
   const requestLogout = useUIStore((s) => s.requestLogout);
-  const openAuthModal = useUIStore((s) => s.openAuthModal);
   const setOpen = onOpenChange;
 
   // Sign the current session out and immediately surface the auth modal so
@@ -577,8 +581,7 @@ function ProfileMenu({ showLabels, sidebarExpanded, setSidebarExpanded, open, on
       // switch never leaves the user stuck on the old account.
     }
     useAuthStore.getState().logout();
-    toast.success("Signed out — sign in with another account");
-    openAuthModal("/");
+    window.location.replace("/login");
   };
 
   const handleTrigger = () => {

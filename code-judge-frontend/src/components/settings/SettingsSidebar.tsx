@@ -147,7 +147,7 @@ export default function SettingsSidebar({
   onSelect: (id: string) => void;
 }) {
   return (
-    <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 border-r border-border bg-card lg:block">
+    <aside className="sticky top-0 z-20 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 self-start border-r border-border bg-card lg:block">
       <nav className="settings-scroll h-full overflow-y-auto p-4">
         <div className="mb-3 flex items-center gap-2 px-3 pt-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#F59E0B] to-[#F97316]">

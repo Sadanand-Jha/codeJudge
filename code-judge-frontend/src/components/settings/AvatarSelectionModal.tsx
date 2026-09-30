@@ -9,6 +9,7 @@ import {
 } from "@/config/dicebear";
 import { useToast } from "@/hooks/useToast";
 import { updateAvatar } from "@/services/avatar";
+import { useAuthStore } from "@/store/authStore";
 
 interface AvatarSelectionModalProps {
   isOpen: boolean;
@@ -59,8 +60,12 @@ export default function AvatarSelectionModal({
   // Reset selection when modal opens
   useEffect(() => {
     if (isOpen) {
-      setSelectedAvatar(currentAvatarUrl);
       document.body.style.overflow = "hidden";
+      const frame = requestAnimationFrame(() => setSelectedAvatar(currentAvatarUrl));
+      return () => {
+        cancelAnimationFrame(frame);
+        document.body.style.overflow = "";
+      };
     } else {
       const timer = setTimeout(() => {
         document.body.style.overflow = "";
@@ -97,6 +102,11 @@ export default function AvatarSelectionModal({
     setSaving(true);
     try {
       const newAvatarUrl = await updateAvatar(selectedAvatar);
+
+      // Update the single global profile source immediately. Navbar, profile
+      // sidebar, settings preview, and every other current-user avatar update
+      // without re-fetching /auth/me.
+      useAuthStore.getState().setUser({ avatarUrl: newAvatarUrl });
 
       if (onAvatarUpdated) {
         onAvatarUpdated(newAvatarUrl);

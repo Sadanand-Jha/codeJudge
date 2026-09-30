@@ -4,9 +4,9 @@ import { useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 
 /**
- * Hydrates the persisted auth state (token + user saved by zustand persist at
- * login time) exactly once on the client. Mounted in the root layout so every
- * page renders user details from the store without calling /auth/me.
+ * Hydrates the persisted auth state (token + user saved by zustand persist)
+ * and validates it once on initial client load. Every page then renders user
+ * details from Zustand without making another /auth/me request.
  */
 export default function AuthHydrator() {
   useEffect(() => {

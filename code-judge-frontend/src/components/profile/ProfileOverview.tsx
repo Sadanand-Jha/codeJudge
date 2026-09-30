@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -25,10 +25,9 @@ import {
   Target,
   Trophy,
 } from "lucide-react";
-import { getUserInfo } from "@/services/user";
-import type { UserInfo } from "@/types/user";
 import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
 import { cn } from "@/lib/helpers";
+import { useAuthStore } from "@/store/authStore";
 
 /* =============================================
    Rating → specialist title badge
@@ -100,24 +99,9 @@ const fade = {
 };
 
 export default function ProfileOverview() {
-  const [profile, setProfile] = useState<UserInfo | null>(null);
-  const [loading, setLoading] = useState(true);
+  const profile = useAuthStore((state) => state.user);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    getUserInfo()
-      .then((data) => {
-        if (active) setProfile(data);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const fullName = useMemo(() => {
     const parts = [profile?.firstName, profile?.lastName].filter(Boolean);
@@ -176,7 +160,7 @@ export default function ProfileOverview() {
     }
   };
 
-  if (loading) {
+  if (!hasHydrated) {
     return (
       <div className="px-4 py-6 sm:px-6">
         <div className="mx-auto max-w-7xl space-y-6">

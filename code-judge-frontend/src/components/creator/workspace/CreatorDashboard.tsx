@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -38,8 +38,10 @@ import {
   StatusBadge,
   SegmentedControl,
 } from "@/components/creator/billing/ui";
-import { CREATOR_PROFILE, DASHBOARD_METRICS, CREATOR_ACTIVITY, WELCOME_CHECKLIST } from "./mockData";
+import { DASHBOARD_METRICS, CREATOR_ACTIVITY, WELCOME_CHECKLIST } from "./mockData";
 import type { CreatorActivityEvent, CreatorDashboardMetric, WelcomeChecklistItem } from "./types";
+import { creatorProfileFromUser } from "@/components/creator/profile/creatorProfile";
+import { useAuthStore } from "@/store/authStore";
 
 const METRIC_ICONS = [
   ClipboardList,
@@ -247,7 +249,8 @@ export function CreatorDashboard({
   const [range, setRange] = useState<"7d" | "30d" | "90d">("30d");
   const isMobile = useMediaQuery("(max-width: 768px)");
   const effectiveRange = isMobile ? "7d" : range;
-  const profile = CREATOR_PROFILE;
+  const user = useAuthStore((store) => store.user);
+  const profile = useMemo(() => creatorProfileFromUser(user), [user]);
 
   const { state, data, retry } = useBillingData(
     () => ({
