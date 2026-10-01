@@ -99,8 +99,8 @@ export function AiAssistantPanel({
   };
 
   return (
-    <div data-sidebar="true" className="flex shrink-0 flex-col border-l border-border bg-card/50">
-      <div className="flex items-center justify-between border-b border-border p-3">
+    <div data-sidebar="true" className="ai-color-card flex shrink-0 flex-col border-l border-border bg-card/50">
+      <div className="ai-color-header flex items-center justify-between border-b border-border p-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-pink-500" />
           <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">
@@ -127,7 +127,7 @@ export function AiAssistantPanel({
               type="button"
               onClick={() => run(a.id)}
               disabled={!!working}
-              className="w-full text-left rounded-xl border border-border p-2.5 text-left transition-colors hover:border-pink-500/30 hover:bg-card-hover"
+              className="ai-color-note w-full rounded-xl p-2.5 text-left transition-all hover:-translate-y-px hover:border-pink-500/35"
             >
               <div className="flex items-start gap-2">
                 <a.icon className="mt-0.5 h-4 w-4 text-pink-500" />
@@ -140,7 +140,7 @@ export function AiAssistantPanel({
           ))}
 
           {working && (
-            <div className="flex items-center gap-2 rounded-xl border border-border p-3 text-xs text-text-secondary">
+            <div className="ai-color-note flex items-center gap-2 rounded-xl p-3 text-xs text-text-secondary">
               <Loader2 className="h-3.5 w-3.5 animate-spin text-pink-500" />
               Generating…
             </div>

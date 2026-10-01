@@ -110,8 +110,7 @@ export async function generateTestSectionsFromPDF(
 
 /**
  * Generate a full question paper from created sections + syllabus.
- * The backend pairs the sections with the curated subjective bank and
- * asks the AI to select questions per section/group.
+ * The backend generates questions for each configured section/group.
  *
  * POST /api/v1/admin/tests/generate-paper
  */
@@ -178,8 +177,7 @@ export async function downloadQuestionPaper(
 }
 
 /**
- * Pick N subjective questions with a hardness split + topic.
- * The backend asks the AI to select the perfect questions from the bank.
+ * Generate N subjective questions with a hardness split + topic.
  *
  * POST /api/v1/admin/tests/generate-questions
  */

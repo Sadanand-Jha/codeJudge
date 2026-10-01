@@ -4115,6 +4115,118 @@ svg {
   }
 }
 
+/* Section editor AI CTA: airy in light mode, richer on dark surfaces. */
+@keyframes section-ai-cta-glow-light {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.08);
+  }
+  50% {
+    box-shadow: 0 4px 14px rgba(236, 72, 153, 0.14), 0 0 10px rgba(216, 180, 254, 0.14);
+  }
+}
+
+@keyframes section-ai-cta-glow-dark {
+  0%, 100% {
+    box-shadow: 0 5px 18px rgba(236, 72, 153, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.16);
+  }
+  50% {
+    box-shadow: 0 8px 28px rgba(124, 58, 237, 0.42), 0 0 20px rgba(236, 72, 153, 0.3);
+  }
+}
+
+.section-ai-cta {
+  animation: section-ai-cta-glow-light 3.6s ease-in-out infinite;
+}
+
+.dark .section-ai-cta {
+  animation-name: section-ai-cta-glow-dark;
+}
+
+/* Colorful, lightweight surfaces shared by creator-facing AI tools. */
+.ai-color-card {
+  border: 1px solid transparent !important;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(125deg, rgba(244, 114, 182, 0.55), rgba(96, 165, 250, 0.34), rgba(167, 139, 250, 0.58)) border-box;
+  box-shadow: 0 8px 28px rgba(124, 58, 237, 0.08), 0 2px 10px rgba(236, 72, 153, 0.06);
+}
+
+.ai-color-header {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(244, 114, 182, 0.15), transparent 34%),
+    radial-gradient(circle at 92% 20%, rgba(96, 165, 250, 0.12), transparent 31%),
+    linear-gradient(110deg, rgba(253, 242, 248, 0.78), rgba(245, 243, 255, 0.7), rgba(239, 246, 255, 0.72));
+  border-color: rgba(167, 139, 250, 0.18) !important;
+}
+
+.ai-color-note {
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  background: linear-gradient(110deg, rgba(253, 242, 248, 0.74), rgba(245, 243, 255, 0.7), rgba(239, 246, 255, 0.66));
+}
+
+.ai-upload-zone {
+  border-color: rgba(167, 139, 250, 0.48) !important;
+  background:
+    radial-gradient(circle at 14% 20%, rgba(244, 114, 182, 0.1), transparent 28%),
+    radial-gradient(circle at 86% 78%, rgba(96, 165, 250, 0.1), transparent 30%),
+    linear-gradient(135deg, rgba(253, 242, 248, 0.56), rgba(245, 243, 255, 0.64), rgba(239, 246, 255, 0.54));
+}
+
+[data-theme="dark"] .ai-color-card {
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(125deg, rgba(236, 72, 153, 0.5), rgba(96, 165, 250, 0.3), rgba(139, 92, 246, 0.52)) border-box;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 24px rgba(124, 58, 237, 0.08);
+}
+
+[data-theme="dark"] .ai-color-header,
+[data-theme="dark"] .ai-color-note,
+[data-theme="dark"] .ai-upload-zone {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(236, 72, 153, 0.12), transparent 36%),
+    radial-gradient(circle at 90% 30%, rgba(124, 58, 237, 0.12), transparent 34%),
+    rgba(255, 255, 255, 0.018);
+}
+
+/* Creator workspace: subtle depth on large screens, intentionally calm on mobile. */
+.creator-workspace {
+  background:
+    radial-gradient(circle at 82% 4%, rgba(139, 92, 246, 0.055), transparent 24rem),
+    radial-gradient(circle at 28% 96%, rgba(236, 72, 153, 0.04), transparent 27rem),
+    var(--background);
+}
+
+[data-theme="dark"] .creator-workspace {
+  background:
+    radial-gradient(circle at 82% 4%, rgba(139, 92, 246, 0.07), transparent 26rem),
+    radial-gradient(circle at 28% 96%, rgba(236, 72, 153, 0.045), transparent 28rem),
+    var(--background);
+}
+
+@media (max-width: 639px) {
+  .creator-workspace {
+    background: var(--background);
+  }
+
+  .creator-mobile-calm .creator-desktop-flourish {
+    display: none !important;
+  }
+
+  .creator-mobile-calm [data-creator-step-panel] {
+    transform: none !important;
+    transition-duration: 80ms !important;
+  }
+
+  .creator-mobile-calm .section-ai-cta {
+    animation: none !important;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.16);
+  }
+
+  .creator-mobile-calm .ai-color-card {
+    box-shadow: 0 3px 14px rgba(124, 58, 237, 0.06), 0 1px 4px rgba(15, 23, 42, 0.04);
+  }
+}
+
 /* ═══ AI Assistant — page-wide "AI mode" transition ═══
      Toggled on [data-ai-scope] by the AI strip when the panel opens.
      Shifts the whole palette toward an energetic pink → purple → blue AI

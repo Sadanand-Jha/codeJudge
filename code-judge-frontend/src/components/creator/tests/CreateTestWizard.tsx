@@ -31,6 +31,7 @@ import { deleteSectionBlueprint, getQuestionGeneratorCatalog, getSectionBlueprin
 import type { SectionBlueprint } from "@/services/aiGenerate";
 import { EXAMS, LANGUAGES } from "@/components/tests/mockData";
 import { PrimaryButton, GhostButton } from "@/components/tests/ui";
+import { AiStreamText } from "@/components/ui";
 import { SectionCard } from "./sections/SectionCard";
 import { AIGenerateModal } from "./sections/AIGenerateModal";
 import { QuestionsStep } from "./sections/QuestionsStep";
@@ -160,6 +161,15 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
     if (step === 2) return true;
     if (step === 3) return mode === "free" || price > 0;
     return true;
+  };
+
+  const sectionChoicePending = step === 1 && (!sectionEditorOpen || blueprintLibraryOpen);
+  const hasNextStep = step < STEPS.length - 1;
+
+  const goBack = () => setStep((current) => Math.max(0, current - 1));
+  const goForward = () => {
+    if (!canContinue() || sectionChoicePending) return;
+    setStep((current) => Math.min(STEPS.length - 1, current + 1));
   };
 
   const updateSection = useCallback((id: string, patch: Partial<Section>) => {
@@ -307,8 +317,11 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   };
 
   return (
-    <div className="w-full space-y-4 pb-28 pt-1 sm:pb-10 sm:pt-2">
-      <header className="flex flex-col gap-3 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <div className="creator-mobile-calm w-full space-y-4 pb-10 pt-1 sm:pt-2">
+      <header className="relative overflow-hidden rounded-2xl border border-border bg-card px-4 py-3 shadow-[0_8px_28px_rgba(15,23,42,0.05)] sm:px-5 sm:py-4">
+        <div aria-hidden="true" className="creator-desktop-flourish absolute -right-12 -top-20 h-40 w-40 rounded-full bg-violet-400/10 blur-3xl" />
+        <div aria-hidden="true" className="creator-desktop-flourish absolute -bottom-20 left-1/4 h-32 w-32 rounded-full bg-pink-400/10 blur-3xl" />
+        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-2.5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-violet-600 text-white">
             <FileText className="h-4.5 w-4.5" />
@@ -325,6 +338,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           <span><strong className="text-text-primary">{totalQuestions}</strong> questions</span>
           <span className="h-3 w-px bg-border" />
           <span><strong className="text-text-primary">{duration || 0}</strong> min</span>
+        </div>
         </div>
       </header>
 
@@ -368,9 +382,53 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
         })}
       </div>
 
+      {/* Primary navigation stays above the working area, so teachers never need to hunt for it. */}
+      <div className="sticky top-2 z-30 flex items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card/95 px-3 py-2.5 shadow-[0_10px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-4">
+        <button
+          type="button"
+          onClick={goBack}
+          disabled={step === 0}
+          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-bold text-text-primary transition-colors hover:border-violet-400/40 hover:bg-card-hover disabled:pointer-events-none disabled:opacity-35 sm:px-4"
+        >
+          <ChevronLeft className="h-4 w-4" /> Back
+        </button>
+
+        <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 text-center sm:flex">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-violet-600 text-[11px] font-extrabold text-white shadow-sm">
+            {step + 1}
+          </span>
+          <div className="min-w-0 text-left">
+            <p className="truncate text-xs font-extrabold text-text-primary">{STEPS[step].label}</p>
+            <p className="text-[10px] text-text-muted">Step {step + 1} of {STEPS.length}</p>
+          </div>
+        </div>
+
+        {sectionChoicePending ? (
+          <span className="ml-auto max-w-[12rem] text-right text-[10px] font-semibold leading-4 text-text-muted sm:max-w-none sm:text-xs">
+            Choose a section option to continue
+          </span>
+        ) : hasNextStep ? (
+          <button
+            type="button"
+            onClick={goForward}
+            disabled={!canContinue()}
+            className="ml-auto inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-xs font-extrabold text-white shadow-[0_6px_18px_rgba(139,92,246,0.22)] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none sm:px-5"
+          >
+            <span className="hidden sm:inline">Continue</span>
+            <span className="max-w-[9rem] truncate sm:hidden">{STEPS[step + 1].label}</span>
+            <ChevronRight className="h-4 w-4 shrink-0" />
+          </button>
+        ) : (
+          <span className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 text-[11px] font-bold text-emerald-600 dark:text-emerald-300">
+            <Check className="h-3.5 w-3.5" /> Ready to publish
+          </span>
+        )}
+      </div>
+
       {/* Panel */}
       <AnimatePresence mode="wait">
         <motion.div
+          data-creator-step-panel
           key={step}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -480,9 +538,9 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                   ))}
                 </div>
                 {catalogSubjects === null ? (
-                  <p className="mt-2 text-[11px] text-text-muted">Loading subjects from your question bank…</p>
+                  <p className="mt-2 text-[11px] text-text-muted">Loading available subjects…</p>
                 ) : catalogSubjects.length === 0 ? (
-                  <p className="mt-2 text-[11px] text-text-muted">More subjects will appear here when their question banks are ready.</p>
+                  <p className="mt-2 text-[11px] text-text-muted">More subjects will appear here when their curriculum data is ready.</p>
                 ) : null}
               </div>
 
@@ -607,17 +665,17 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                 </button>
               </div>
 
-              <div className="mb-4 flex flex-col gap-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.05] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="ai-color-note mb-4 flex flex-col gap-3 rounded-xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-text-primary">Need a single question instead?</p>
-                  <p className="mt-1 text-xs leading-5 text-text-secondary">Open the AI question generator directly. You do not need to create sections or a full paper first.</p>
+                  <p className="mt-1 min-h-5 text-xs leading-5 text-text-secondary"><AiStreamText text="Open the AI question generator directly. You do not need to create sections or a full paper first." /></p>
                 </div>
                 <button
                   type="button"
                   onClick={() => router.push("/creator/problems/create")}
                   className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-violet-500/25 bg-card px-4 text-xs font-bold text-violet-600 transition-colors hover:bg-violet-500/10 dark:text-violet-300"
                 >
-                  <ListChecks className="h-4 w-4" /> Generate questions
+                  <ListChecks className="h-4 w-4" /> <AiStreamText text="Open AI Question Generator" />
                 </button>
               </div>
 
@@ -812,29 +870,6 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           )}
         </motion.div>
       </AnimatePresence>
-
-      {/* Footer nav */}
-      {!(step === 1 && (!sectionEditorOpen || blueprintLibraryOpen)) && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:mt-6 sm:flex sm:items-center sm:justify-between sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
-        <GhostButton onClick={() => setStep((s) => Math.max(0, s - 1))} className={cn("hidden sm:inline-flex", step === 0 && "invisible")}>
-          <ChevronLeft className="h-4 w-4" /> Back
-        </GhostButton>
-        <div className="flex w-full items-center gap-2 sm:w-auto">
-          {step > 0 && <GhostButton onClick={() => setStep((s) => Math.max(0, s - 1))} className="shrink-0 sm:hidden"><ChevronLeft className="h-4 w-4" /> Back</GhostButton>}
-          <div className="hidden text-xs text-text-muted sm:block">Step {Math.min(step + 1, STEPS.length)} of {STEPS.length}</div>
-          {step < STEPS.length - 1 && (
-            <PrimaryButton
-              onClick={() => {
-                if (!canContinue()) return;
-                setStep((s) => s + 1);
-              }}
-              disabled={!canContinue()}
-              className="min-h-11 flex-1 justify-center px-5 py-3 sm:flex-none sm:px-6"
-            >
-              <span className="sm:hidden">Continue: {STEPS[step + 1].label}</span><span className="hidden sm:inline">Continue</span> <ChevronRight className="h-4 w-4" />
-            </PrimaryButton>
-          )}
-        </div>
-      </div>}
 
       <AnimatePresence>
         {saveBlueprintOpen && (

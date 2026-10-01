@@ -251,7 +251,7 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
           <SegmentedControl value={tab} onChange={setTab} options={AI_TABS} size="md" />
 
           {tab === "files" && (
-            <Panel title="Generate from Files" subtitle="Upload your materials and extract questions in minutes.">
+            <Panel title="Generate from Files" subtitle="Upload your materials and extract questions in minutes." className="ai-color-card">
               <label
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -264,7 +264,7 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
                   handleFiles(e.dataTransfer.files);
                 }}
                 className={cn(
-                  "flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-colors",
+                  "ai-upload-zone flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-colors",
                   dragging
                     ? "border-pink-500/50 bg-pink-500/[0.06] dark:border-ai-accent/50"
                     : "border-border bg-card hover:border-pink-500/30 dark:hover:border-ai-accent/30"
@@ -322,7 +322,7 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
           )}
 
           {tab === "topic" && (
-            <Panel title="Generate by Topic" subtitle="Describe the topic and we'll build a question set around it.">
+            <Panel title="Generate by Topic" subtitle="Describe the topic and we'll build a question set around it." className="ai-color-card">
               <div className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-xs font-medium text-text-secondary">Topic</label>
@@ -378,7 +378,7 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
           )}
 
           {tab === "chat" && (
-            <Panel title="Ask AI" subtitle="Chat with the assistant to draft or refine questions." noPadding>
+            <Panel title="Ask AI" subtitle="Chat with the assistant to draft or refine questions." className="ai-color-card" noPadding>
               <div className="flex min-h-[280px] flex-col">
                 <div className="flex-1 space-y-3 p-5">
                   {messages.map((m) => (
@@ -388,7 +388,7 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
                           "max-w-[85%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed",
                           m.role === "user"
                             ? "rounded-br-md bg-gradient-to-r from-pink-500 to-violet-600 text-white"
-                            : "rounded-bl-md border border-border bg-white/[0.03] text-text-primary"
+                            : "ai-color-note rounded-bl-md text-text-primary"
                         )}
                       >
                         {m.role === "ai" && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -9,11 +9,16 @@ import {
   Sparkles,
   Check,
   AlertCircle,
-  Loader2,
   Trash2,
+  BrainCircuit,
+  ScanLine,
+  Layers3,
+  Clock3,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
+import { AiStreamText } from "@/components/ui";
 import { generateTestSectionsFromPDF } from "@/services/aiGenerate";
 import { convertAIResponseToSections } from "./convertAIResponse";
 import type {
@@ -35,6 +40,20 @@ const PROGRESS_STEPS = [
   { key: "extracting", label: "Extracting document" },
   { key: "analyzing", label: "Identifying question-paper structure" },
   { key: "building", label: "Building sections" },
+] as const;
+
+const LIVE_ACTIVITY = [
+  "Reading headings and question patterns",
+  "Mapping groups, marks and attempt rules",
+  "Checking the paper for repeated structures",
+  "Organizing sections in a teacher-friendly order",
+  "Validating totals before building your blueprint",
+] as const;
+
+const WAITING_TIPS = [
+  "AI keeps your source structure intact wherever possible.",
+  "Marks and attempt rules are validated before sections appear.",
+  "You can edit every generated section before moving ahead.",
 ] as const;
 
 const SUPPORTED_EXTENSIONS = new Set([
@@ -61,6 +80,7 @@ export function AIGenerateModal({
   const [error, setError] = useState<AIGenerateError | null>(null);
   const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const reset = useCallback(() => {
     setFiles([]);
@@ -224,6 +244,26 @@ export function AIGenerateModal({
     status === "analyzing" ||
     status === "building";
 
+  useEffect(() => {
+    if (!isProcessing) {
+      setElapsedSeconds(0);
+      return;
+    }
+    const timer = window.setInterval(() => setElapsedSeconds((seconds) => seconds + 1), 1_000);
+    return () => window.clearInterval(timer);
+  }, [isProcessing]);
+
+  const processingStepIndex = Math.max(0, PROGRESS_STEPS.findIndex((step) => step.key === status));
+  const activityIndex = Math.floor(elapsedSeconds / 3) % LIVE_ACTIVITY.length;
+  const tipIndex = Math.floor(elapsedSeconds / 6) % WAITING_TIPS.length;
+  const progressPercent = status === "uploading"
+    ? 14
+    : status === "extracting"
+      ? 36
+      : status === "analyzing"
+        ? 62
+        : Math.min(94, 74 + elapsedSeconds * 0.65);
+
   return (
     <AnimatePresence>
       {open && (
@@ -247,21 +287,21 @@ export function AIGenerateModal({
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
             <div
-              className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl"
+              className="ai-color-card max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-border px-6 py-4">
+              <div className="ai-color-header flex items-center justify-between border-b border-border px-5 py-3.5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white">
                     <Sparkles className="h-4.5 w-4.5" />
                   </div>
                   <div>
                     <h2 className="text-sm font-bold text-text-primary">
-                      Generate Test Structure with AI
+                      <AiStreamText text="Generate Test Structure with AI" />
                     </h2>
                     <p className="text-[11px] text-text-muted">
-                      Powered by AI
+                      <AiStreamText text="Powered by AI" />
                     </p>
                   </div>
                 </div>
@@ -276,7 +316,7 @@ export function AIGenerateModal({
               </div>
 
               {/* Body */}
-              <div className="px-6 py-5">
+              <div className="px-5 py-4">
                 {/* Description */}
                 {status === "idle" && !showReplaceConfirm && (
                   <motion.div
@@ -284,10 +324,8 @@ export function AIGenerateModal({
                     animate={{ opacity: 1 }}
                     className="space-y-5"
                   >
-                    <p className="text-[13px] text-text-secondary">
-                      Upload a question paper, syllabus, textbook, or study
-                      material. AI will analyze the document and suggest a
-                      structured question-paper layout.
+                    <p className="ai-color-note min-h-10 rounded-xl px-3.5 py-3 text-[13px] leading-5 text-text-secondary">
+                      <AiStreamText text="Upload a question paper, syllabus, textbook, or study material. AI will analyze the document and suggest a structured question-paper layout." />
                     </p>
 
                     {/* Upload Area */}
@@ -300,7 +338,8 @@ export function AIGenerateModal({
                       onDrop={handleDrop}
                       onClick={() => fileInputRef.current?.click()}
                       className={cn(
-                        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-all cursor-pointer",
+                        "flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-7 text-center transition-all cursor-pointer",
+                        files.length > 0 && "ai-upload-zone",
                         dragOver
                           ? "border-pink-500 bg-pink-500/5"
                           : files.length > 0
@@ -310,7 +349,7 @@ export function AIGenerateModal({
                     >
                       {files.length > 0 ? (
                         <>
-                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-lg shadow-violet-500/15">
                             <FileText className="h-6 w-6" />
                           </div>
                           <p className="mt-3 text-sm font-semibold text-text-primary">
@@ -321,7 +360,7 @@ export function AIGenerateModal({
                           </p>
                           <div className="mt-3 max-h-24 w-full space-y-1 overflow-y-auto text-left">
                             {files.map((file, index) => (
-                              <div key={`${file.name}-${file.size}-${index}`} className="flex items-center justify-between gap-2 rounded-lg bg-card px-2 py-1.5 text-[11px]">
+                              <div key={`${file.name}-${file.size}-${index}`} className="flex items-center justify-between gap-2 rounded-lg border border-violet-500/10 bg-white/75 px-2.5 py-1.5 text-[11px] shadow-sm dark:bg-white/[0.035]">
                                 <span className="min-w-0 truncate text-text-secondary">{file.name}</span>
                                 <button type="button" onClick={(event) => { event.stopPropagation(); removeFile(index); }} className="shrink-0 text-rose-500 hover:text-rose-600" aria-label={`Remove ${file.name}`}>
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -330,7 +369,7 @@ export function AIGenerateModal({
                             ))}
                           </div>
                           {files.length < MAX_FILES && (
-                            <button type="button" onClick={(event) => { event.stopPropagation(); fileInputRef.current?.click(); }} className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-pink-500 hover:text-pink-600">
+                            <button type="button" onClick={(event) => { event.stopPropagation(); fileInputRef.current?.click(); }} className="mt-3 inline-flex items-center gap-1 rounded-lg bg-violet-500/[0.08] px-2.5 py-1.5 text-[11px] font-semibold text-violet-600 hover:bg-violet-500/[0.13] dark:text-violet-300">
                               <Upload className="h-3 w-3" /> Add more files
                             </button>
                           )}
@@ -441,63 +480,115 @@ export function AIGenerateModal({
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="space-y-4"
+                    className="space-y-3"
                   >
-                    <p className="text-[13px] font-semibold text-text-primary">
-                      Analyzing your document...
-                    </p>
+                    <div className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-br from-pink-500/[0.07] via-card to-violet-500/[0.09] px-4 pb-4 pt-5 text-center dark:border-violet-400/15">
+                      <motion.div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute -left-12 -top-14 h-32 w-32 rounded-full bg-pink-400/15 blur-3xl"
+                        animate={{ scale: [0.85, 1.15, 0.9], opacity: [0.35, 0.7, 0.4] }}
+                        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+                      />
+                      <motion.div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute -bottom-16 -right-10 h-36 w-36 rounded-full bg-violet-500/15 blur-3xl"
+                        animate={{ scale: [1.1, 0.88, 1.12], opacity: [0.4, 0.7, 0.35] }}
+                        transition={{ duration: 5.2, repeat: Infinity, ease: "easeInOut" }}
+                      />
 
-                    <div className="space-y-2.5">
-                      {PROGRESS_STEPS.map((step, idx) => {
-                        const stepIdx = PROGRESS_STEPS.findIndex(
-                          (s) => s.key === status
-                        );
-                        const isDone = idx < stepIdx;
-                        const isCurrent = idx === stepIdx;
+                      <div className="relative mx-auto h-24 w-28">
+                        <motion.div
+                          aria-hidden="true"
+                          className="absolute inset-1 rounded-full border border-dashed border-violet-400/35"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+                        />
+                        <motion.div
+                          className="absolute left-1/2 top-1/2 flex h-16 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-xl border border-white/70 bg-white text-violet-600 shadow-[0_10px_30px_rgba(124,58,237,0.18)] dark:border-white/10 dark:bg-zinc-900 dark:text-violet-300"
+                          animate={{ y: [-2, 2, -2], rotate: [-1, 1, -1] }}
+                          transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          <FileText className="h-7 w-7" />
+                          <motion.span
+                            aria-hidden="true"
+                            className="absolute inset-x-1 h-0.5 bg-gradient-to-r from-transparent via-pink-500 to-transparent shadow-[0_0_8px_rgba(236,72,153,0.8)]"
+                            animate={{ top: [8, 54, 8] }}
+                            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                          />
+                        </motion.div>
+                        <motion.span className="absolute left-1 top-4 text-pink-500" animate={{ y: [0, -5, 0], opacity: [0.3, 1, 0.3], rotate: [0, 18, 0] }} transition={{ duration: 2.1, repeat: Infinity }}><Sparkles className="h-3.5 w-3.5" /></motion.span>
+                        <motion.span className="absolute bottom-3 right-0 text-violet-500" animate={{ y: [0, 5, 0], opacity: [0.35, 1, 0.35], rotate: [0, -18, 0] }} transition={{ duration: 2.6, repeat: Infinity }}><Sparkles className="h-3 w-3" /></motion.span>
+                      </div>
 
-                        return (
-                          <div
-                            key={step.key}
-                            className="flex items-center gap-3"
+                      <div className="relative -mt-1">
+                        <div className="flex items-center justify-center gap-2 text-sm font-extrabold text-text-primary">
+                          <BrainCircuit className="h-4 w-4 text-violet-500" />
+                          AI is designing your sections
+                        </div>
+                        <div className="mt-1.5 min-h-5 overflow-hidden text-[11px] text-text-secondary">
+                          <AnimatePresence mode="wait">
+                            <motion.p
+                              key={activityIndex}
+                              initial={{ opacity: 0, y: 5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -5 }}
+                              transition={{ duration: 0.25 }}
+                            >
+                              {LIVE_ACTIVITY[activityIndex]}…
+                            </motion.p>
+                          </AnimatePresence>
+                        </div>
+                      </div>
+
+                      <div className="relative mt-4">
+                        <div className="h-2 overflow-hidden rounded-full bg-violet-950/[0.06] dark:bg-white/[0.07]">
+                          <motion.div
+                            className="relative h-full rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-500"
+                            animate={{ width: `${progressPercent}%` }}
+                            transition={{ duration: 0.7, ease: "easeOut" }}
                           >
-                            <div
-                              className={cn(
-                                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-                                isDone &&
-                                  "bg-emerald-500 text-white",
-                                isCurrent &&
-                                  "bg-pink-500 text-white",
-                                !isDone &&
-                                  !isCurrent &&
-                                  "bg-card-hover text-text-muted"
-                              )}
-                            >
-                              {isDone ? (
-                                <Check className="h-3 w-3" />
-                              ) : isCurrent ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                idx + 1
-                              )}
+                            <motion.span
+                              aria-hidden="true"
+                              className="absolute inset-y-0 w-16 bg-gradient-to-r from-transparent via-white/55 to-transparent"
+                              animate={{ x: ["-100%", "500%"] }}
+                              transition={{ duration: 1.8, repeat: Infinity, ease: "linear" }}
+                            />
+                          </motion.div>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-[10px] font-semibold text-text-muted">
+                          <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" /> {elapsedSeconds}s elapsed</span>
+                          <span>Usually 30–60 seconds</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {PROGRESS_STEPS.map((step, idx) => {
+                        const isDone = idx < processingStepIndex;
+                        const isCurrent = idx === processingStepIndex;
+                        const StepIcon = idx === 0 ? ShieldCheck : idx === 1 ? ScanLine : idx === 2 ? BrainCircuit : Layers3;
+                        return (
+                          <div key={step.key} className={cn("rounded-xl border px-1.5 py-2 text-center transition-colors", isDone ? "border-emerald-500/20 bg-emerald-500/[0.06]" : isCurrent ? "border-violet-500/30 bg-violet-500/[0.08]" : "border-border bg-card-hover/20")}>
+                            <div className={cn("mx-auto flex h-6 w-6 items-center justify-center rounded-lg", isDone ? "bg-emerald-500 text-white" : isCurrent ? "bg-gradient-to-br from-pink-500 to-violet-600 text-white" : "bg-card-hover text-text-muted")}>
+                              {isDone ? <Check className="h-3 w-3" /> : isCurrent ? <StepIcon className="h-3 w-3 animate-pulse" /> : <StepIcon className="h-3 w-3" />}
                             </div>
-                            <span
-                              className={cn(
-                                "text-[13px]",
-                                isDone &&
-                                  "font-medium text-emerald-600 dark:text-emerald-400",
-                                isCurrent &&
-                                  "font-semibold text-text-primary",
-                                !isDone &&
-                                  !isCurrent &&
-                                  "text-text-muted"
-                              )}
-                            >
-                              {step.label}
-                            </span>
+                            <p className={cn("mt-1.5 truncate text-[8px] font-bold", isDone ? "text-emerald-600 dark:text-emerald-300" : isCurrent ? "text-violet-600 dark:text-violet-300" : "text-text-muted")}>{step.label.replace(" safely", "").replace(" question-paper", "")}</p>
                           </div>
                         );
                       })}
                     </div>
+
+                    <div className="flex items-start gap-2 rounded-xl border border-border bg-card-hover/25 px-3 py-2.5">
+                      <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pink-500" />
+                      <div className="min-w-0 text-left">
+                        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-text-muted">While AI works</p>
+                        <AnimatePresence mode="wait">
+                          <motion.p key={tipIndex} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-0.5 text-[10px] leading-4 text-text-secondary">{WAITING_TIPS[tipIndex]}</motion.p>
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
+                    <p className="text-center text-[10px] font-semibold text-text-muted">Please keep this window open — your document is being processed securely.</p>
                   </motion.div>
                 )}
 
@@ -561,23 +652,28 @@ export function AIGenerateModal({
 
               {/* Footer */}
               {status === "idle" && !showReplaceConfirm && (
-                <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-[13px] font-semibold text-text-primary transition-all hover:border-border-hover"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleGenerate}
-                    disabled={files.length === 0}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Generate Test Structure
-                  </button>
+                <div className="ai-color-header flex flex-col gap-2 border-t border-border px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="flex max-w-[230px] items-start gap-1 text-[9px] leading-3.5 text-text-muted">
+                    <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" /> AI can make mistakes. Review the generated structure before saving it.
+                  </p>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-4 py-2 text-[13px] font-semibold text-text-primary transition-all hover:border-border-hover"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGenerate}
+                      disabled={files.length === 0}
+                      className="section-ai-cta inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Generate Test Structure
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

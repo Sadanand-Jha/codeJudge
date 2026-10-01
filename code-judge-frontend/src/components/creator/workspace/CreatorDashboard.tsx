@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { AiStreamText } from "@/components/ui";
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   formatINRCompact,
@@ -367,10 +368,10 @@ export function CreatorDashboard({
               <QuickCreateGrid />
               <Link
                 href="/creator/ai-studio"
-                className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-violet-500/30 bg-violet-500/[0.04] px-3 py-2 text-[11px] font-semibold text-violet-500 transition-colors hover:bg-violet-500/[0.08]"
+                className="section-ai-cta mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-violet-500/30 bg-violet-500/[0.04] px-3 py-2 text-[11px] font-semibold text-violet-500 transition-colors hover:bg-violet-500/[0.08]"
               >
                 <Sparkles className="h-3.5 w-3.5" />
-                Generate with AI Studio
+                <AiStreamText text="Generate with AI Studio" />
               </Link>
             </Panel>
 

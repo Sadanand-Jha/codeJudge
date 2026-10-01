@@ -13,6 +13,7 @@ import Link from "next/link";
 import { cn } from "@/lib/helpers";
 import { FileCard } from "./FileCard";
 import type { UploadedFile } from "./types";
+import { AiStreamText } from "@/components/ui";
 
 const ACCEPTED_TYPES = {
   "application/pdf": "pdf",
@@ -137,10 +138,10 @@ export function UploadStep({
           <Sparkles className="h-5 w-5 text-white sm:h-6 sm:w-6" />
         </div>
         <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">
-          Generate Quiz with AI
+          <AiStreamText text="Generate Quiz with AI" />
         </h1>
-        <p className="mx-auto mt-1.5 max-w-md text-sm leading-5 text-text-secondary sm:mt-2">
-          Upload your problem list — we&apos;ll build the quiz configuration for you.
+        <p className="mx-auto mt-1.5 min-h-5 max-w-md text-sm leading-5 text-text-secondary sm:mt-2">
+          <AiStreamText text="Upload your problem list — we'll build the quiz configuration for you." />
         </p>
       </div>
 
@@ -155,6 +156,7 @@ export function UploadStep({
         onClick={() => inputRef.current?.click()}
         className={cn(
           "relative min-h-[190px] cursor-pointer rounded-2xl border-2 border-dashed bg-card p-6 text-center transition-all duration-200 sm:min-h-[220px] sm:p-10",
+          (!file || file.valid) && "ai-upload-zone",
           dragging
             ? "border-violet-500 bg-violet-500/[0.06]"
             : file?.valid
@@ -202,7 +204,7 @@ export function UploadStep({
         )}
       </div>
 
-      <details className="group rounded-xl border border-border bg-card">
+      <details className="ai-color-card group overflow-hidden rounded-xl border border-border bg-card">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-text-primary marker:content-none sm:px-5">
           <span>What will be generated?</span>
           <ChevronDown className="h-4 w-4 shrink-0 text-text-muted transition-transform group-open:rotate-180" />

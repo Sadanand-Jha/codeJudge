@@ -287,11 +287,11 @@ export const generateFromQuestionBank = async (
     chapter: row.chapter_name ? String(row.chapter_name) : "", topic: row.topic_name ? String(row.topic_name) : "",
   }));
   if (candidates.length < numberOfQuestions) {
-    throw new Error(`Only ${candidates.length} matching database questions are available, but ${numberOfQuestions} were requested.`);
+    throw new Error("We couldn't generate the requested number of questions for this scope. Broaden the filters or reduce the total.");
   }
   for (const [difficulty, needed] of [["easy", easy!], ["medium", medium!], ["hard", hard!]] as const) {
     const available = candidates.filter((question) => question.difficulty === difficulty).length;
-    if (available < needed) throw new Error(`Only ${available} ${difficulty} matching questions are available, but ${needed} were requested.`);
+    if (available < needed) throw new Error("We couldn't generate the requested difficulty mix for this scope. Adjust the mix or reduce the total.");
   }
 
   const promptCandidates = [
@@ -333,7 +333,7 @@ CANDIDATES:\n${candidatePrompt}`);
     questions: selected.map((question) => ({
       question: question.question,
       options: [], answer: "", type: "long", difficulty: question.difficulty,
-      explanation: "Selected from the database question bank", hint: "",
+      explanation: "", hint: "",
       tags: [question.subject, question.chapter, question.topic, question.category].filter(Boolean),
     })),
     extractedText: "",
@@ -342,19 +342,19 @@ CANDIDATES:\n${candidatePrompt}`);
 
   const bankPath = await resolveBankPath();
   if (!bankPath) {
-    throw new Error("Curated question bank is temporarily unavailable. Please try again later.");
+    throw new Error("Question generation is temporarily unavailable. Please try again later.");
   }
 
   const buffer = await fs.readFile(bankPath as string);
   let bankText = await extractDocxText(buffer);
   if (!bankText.trim()) {
-    throw new Error("Curated question bank is temporarily unavailable. Please try again later.");
+    throw new Error("Question generation is temporarily unavailable. Please try again later.");
   }
   // truncate to keep prompt small but keep all 100 Qs (approx 30k chars)
   const truncated = bankText.length > 180_000 ? bankText.slice(0, 180_000) : bankText;
   const parsedBank = parseMarkedBankQuestions(truncated);
   if (parsedBank.length === 0) {
-    throw new Error("The question bank does not contain a readable marked answer key.");
+    throw new Error("The available curriculum data could not be processed safely.");
   }
   const syllabus = request.syllabus?.trim() ?? "";
   const ignoredSyllabusWords = new Set([
@@ -373,7 +373,7 @@ CANDIDATES:\n${candidatePrompt}`);
       });
   if (eligibleBank.length < numberOfQuestions) {
     throw new Error(
-      `Only ${eligibleBank.length} marked questions matched this syllabus. Add broader syllabus topics or request fewer questions.`
+      "We couldn't generate the requested number of questions for this syllabus. Add broader topics or request fewer questions."
     );
   }
   const bankByQuestion = new Map(
@@ -442,7 +442,7 @@ ${bankForPrompt}`;
     const canonicalQuestions = questions.map((question) => {
       const source = bankByQuestion.get(normalizeQuestionText(question.question));
       if (!source) {
-        throw new Error(`AI selected a question that is not in the Word question bank: ${question.question}`);
+        throw new Error("A generated question failed validation. Please try again.");
       }
       const correctOptionIndex = source.options.indexOf(source.answer);
       return {
@@ -481,7 +481,7 @@ ${bankForPrompt}`;
     // Never manufacture a correct answer. If the bank could not be parsed with
     // its answer key intact, fail instead of silently marking option A.
     if (parsed.length === 0) {
-      throw new Error("Question bank answer key could not be parsed safely", { cause: aiError });
+      throw new Error("The generated questions could not be validated safely", { cause: aiError });
     }
 
     const bucket = (diff: string) => parsed.filter((p) => p.difficulty === diff);

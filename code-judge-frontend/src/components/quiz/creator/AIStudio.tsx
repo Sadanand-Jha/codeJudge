@@ -347,10 +347,10 @@ export default function AIStudio({
       setIsGenerating(false);
       setActiveTab("review");
       setShowReviewOverlay(true);
-      toast.success(`Selected ${questions.length} questions from bank (Easy ${bankEasy} · Medium ${bankMedium} · Hard ${bankHard})`);
+      toast.success(`Generated ${questions.length} questions (Easy ${bankEasy} · Medium ${bankMedium} · Hard ${bankHard})`);
     } catch (error) {
       console.error("Bank generation failed:", error);
-      toast.error("Bank selection failed", { description: (error as Error).message });
+      toast.error("Question generation failed", { description: (error as Error).message });
       setIsGenerating(false);
       setGenerationProgress(0);
     }
@@ -443,7 +443,7 @@ export default function AIStudio({
       <div className="grid grid-cols-2 gap-2 p-3 border-b border-border bg-card-hover/30">
         {[
           { id: "own" as const, label: "From Your Material", sub: "Upload your own files", icon: Upload },
-          { id: "bank" as const, label: "From Question Bank", sub: "Curated · balanced", icon: BookOpen },
+          { id: "bank" as const, label: "Generate by Topic", sub: "Syllabus-aware · balanced", icon: BookOpen },
         ].map((mode) => (
           <button
             key={mode.id}
@@ -470,7 +470,7 @@ export default function AIStudio({
         <div className="mx-3 mt-3 rounded-xl border border-[#8B5CF6]/20 bg-gradient-to-br from-[#8B5CF6]/5 to-[#EC4899]/5 p-3 flex items-start gap-2">
           <BookOpen className="h-4 w-4 text-accent mt-0.5" />
           <div className="flex-1">
-            <p className="text-[11px] font-bold text-text-primary">Database Question Bank</p>
+            <p className="text-[11px] font-bold text-text-primary">Generation Scope</p>
             <p className="text-[10px] text-text-secondary">Choose a subject, chapter, topic, category, and difficulty mix.</p>
           </div>
         </div>
@@ -591,7 +591,7 @@ export default function AIStudio({
               </div>
 
               <button onClick={handleGenerateFromBank} disabled={isGenerating || bankEasy + bankMedium + bankHard !== bankNumber || !bankSubjectId} className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-3 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:cursor-not-allowed">
-                {isGenerating ? <><Loader2 className="h-4 w-4 animate-spin" /> Selecting... {Math.round(generationProgress)}%</> : <><Wand2 className="h-4 w-4" /> Generate {bankNumber} from Bank</>}
+                {isGenerating ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating... {Math.round(generationProgress)}%</> : <><Wand2 className="h-4 w-4" /> Generate {bankNumber} Questions</>}
               </button>
             </motion.div>
           )}

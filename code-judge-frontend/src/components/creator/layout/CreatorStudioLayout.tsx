@@ -63,7 +63,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
 
   return (
     <AppLayout header={<CreatorNavbar onMobileMenuToggle={() => setDrawerOpen(true)} />}>
-      <div className="flex flex-1 min-h-0 bg-background">
+      <div className="creator-workspace creator-mobile-calm flex flex-1 min-h-0 bg-background">
         {/* Mobile drawer overlay */}
         <AnimatePresence>
           {drawerOpen && (

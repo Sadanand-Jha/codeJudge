@@ -25,6 +25,7 @@ import { toast } from "@/lib/toast";
 import type { RawAIGeneratedQuestion } from "@/services/ai";
 import type { CreatorQuestion } from "../types";
 import { QuestionBankFilters } from "@/components/creator/tests/sections/QuestionBankFilters";
+import { AiStreamText } from "@/components/ui";
 
 const ACCEPT = [
   ".txt", ".md", ".csv", ".tsv", ".json", ".xml", ".html", ".yml", ".yaml",
@@ -297,9 +298,9 @@ export function AiGenerateModal({
       await onQuestionsAdded(questions);
       setAddedCount(questions.length);
       setDone(true);
-      toast.success(`AI selected ${questions.length} questions (E${bankEasy}·M${bankMedium}·H${bankHard})`);
+      toast.success(`Generated ${questions.length} questions (E${bankEasy}·M${bankMedium}·H${bankHard})`);
     } catch (err) {
-      setError((err as Error).message || "Bank selection failed. Please try again.");
+      setError((err as Error).message || "Question generation failed. Please try again.");
       setGenerating(false);
     }
   };
@@ -318,17 +319,17 @@ export function AiGenerateModal({
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl sm:max-h-[90dvh]"
+            className="ai-color-card flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl sm:max-h-[90dvh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3 sm:px-5 sm:py-4">
+            <div className="ai-color-header flex shrink-0 items-center justify-between border-b border-border px-4 py-3 sm:px-5 sm:py-4">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/10">
                   <Sparkles className="h-4 w-4 text-pink-500" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-text-primary">Generate with AI</h3>
-                  <p className="text-[11px] text-text-secondary">Choose a source</p>
+                  <h3 className="min-h-5 text-sm font-bold text-text-primary"><AiStreamText text="Generate with AI" /></h3>
+                  <p className="min-h-4 text-[11px] text-text-secondary"><AiStreamText text="Choose a source" /></p>
                 </div>
               </div>
               <button
@@ -365,7 +366,7 @@ export function AiGenerateModal({
               >
                 <div className="flex items-center gap-2">
                   <BookOpen className={cn("h-4 w-4", mode === "bank" ? "text-pink-500" : "text-text-muted")} />
-                  <span className={cn("text-xs font-bold", mode === "bank" ? "text-pink-600" : "text-text-primary")}>Let AI Choose</span>
+                  <span className={cn("text-xs font-bold", mode === "bank" ? "text-pink-600" : "text-text-primary")}>Generate by Topic</span>
                 </div>
               </button>
             </div>
@@ -395,10 +396,10 @@ export function AiGenerateModal({
                   <div className="text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-pink-500" />
                     <p className="mt-3 text-sm font-semibold text-text-primary">
-                      {mode === "bank" ? "AI is choosing your problems…" : "Creating your questions…"}
+                      Creating your questions…
                     </p>
                     <p className="mt-1 text-xs text-text-secondary">
-                      {mode === "bank" ? "Finding the best mix for your quiz." : "Please wait a moment."}
+                      Building a balanced set from your preferences. Please keep this window open.
                     </p>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-border">
@@ -427,8 +428,9 @@ export function AiGenerateModal({
                   </div>
                   {/* Syllabus scope */}
                   <div className="space-y-2 rounded-xl border border-border bg-card p-3">
-                    <label htmlFor="ai-bank-syllabus" className="flex items-center gap-1.5 text-xs font-bold text-text-primary">
+                    <label htmlFor="ai-bank-syllabus" className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-text-primary">
                       <BookOpen className="h-3.5 w-3.5 text-pink-500" /> Syllabus / topics
+                      <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-violet-600 dark:text-violet-300">Recommended</span>
                     </label>
                     <textarea
                       id="ai-bank-syllabus"
@@ -436,11 +438,18 @@ export function AiGenerateModal({
                       onChange={(event) => setBankSyllabus(event.target.value)}
                       maxLength={4000}
                       rows={4}
-                      placeholder={"Example:\nProcesses and threads\nCPU scheduling\nDeadlocks\nMemory management"}
-                      className="w-full resize-y rounded-lg border border-border bg-card-hover px-3 py-2 text-xs leading-5 text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-pink-500 focus:ring-2 focus:ring-pink-500/10"
+                      placeholder={"Paste your actual syllabus here:\nProcesses and threads\nCPU scheduling\nExclude virtual memory"}
+                      className={cn(
+                        "w-full resize-y rounded-lg border bg-card-hover px-3 py-2 text-xs leading-5 text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-pink-500 focus:ring-2 focus:ring-pink-500/10",
+                        bankSyllabus.trim() ? "border-emerald-500/30" : "border-amber-400/45"
+                      )}
                     />
                     <div className="flex items-center justify-between gap-3 text-[10px] text-text-muted">
-                      <span>AI will balance questions across the topics you provide.</span>
+                      <span className={bankSyllabus.trim() ? "text-emerald-600 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}>
+                        <AiStreamText text={bankSyllabus.trim()
+                          ? "Great — AI will keep the quiz close to your taught material."
+                          : "Add your syllabus for precise results; otherwise the quiz may cover a broader subject scope."} />
+                      </span>
                       <span className="shrink-0 tabular-nums">{bankSyllabus.length}/4000</span>
                     </div>
                   </div>
@@ -495,15 +504,18 @@ export function AiGenerateModal({
                     onClick={handleGenerateFromBank}
                     disabled={bankEasy + bankMedium + bankHard !== bankNumber || !bankSubjectId}
                     className={cn(
-                      "sticky bottom-0 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all",
+                      "section-ai-cta sticky bottom-0 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all",
                       bankEasy + bankMedium + bankHard === bankNumber && bankSubjectId
                         ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-500/20 hover:brightness-110"
                         : "cursor-not-allowed bg-card-hover text-text-muted"
                     )}
                   >
                     <Sparkles className="h-4 w-4" />
-                    Let AI Pick {bankNumber} Questions
+                    <AiStreamText text={`Generate ${bankNumber} Questions`} />
                   </button>
+                  <p className="flex items-start gap-1 text-[9px] leading-3.5 text-text-muted">
+                    <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" /> AI can make mistakes. Review every question before adding it to your quiz.
+                  </p>
                 </div>
               ) : (
                 <>
@@ -601,6 +613,9 @@ export function AiGenerateModal({
                     <Sparkles className="h-4 w-4" />
                     Generate Questions
                   </button>
+                  <p className="mt-1.5 flex items-start gap-1 text-[9px] leading-3.5 text-text-muted">
+                    <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" /> AI can make mistakes. Review every question before adding it to your quiz.
+                  </p>
                 </>
               )}
             </div>

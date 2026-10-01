@@ -295,7 +295,7 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
     console.error("Question bank selection error:", error);
     return res.status(400).json({
       success: false,
-      message: error instanceof Error ? error.message : "Failed to generate from question bank",
+      message: error instanceof Error ? error.message : "Failed to generate questions",
     });
   }
 };

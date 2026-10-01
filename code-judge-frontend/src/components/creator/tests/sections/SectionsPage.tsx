@@ -145,9 +145,11 @@ export function SectionsPage() {
   const canContinue = sections.length > 0 && totalQuestions > 0;
 
   return (
-    <div className="mx-auto w-full max-w-[960px] px-4 pb-28 pt-4 sm:px-6 sm:py-6">
+    <div className="creator-mobile-calm mx-auto w-full max-w-[960px] px-4 pb-10 pt-4 sm:px-6 sm:py-6">
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:flex-row sm:items-start sm:justify-between sm:p-5">
+      <div className="relative mb-4 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-[0_8px_28px_rgba(15,23,42,0.05)] sm:p-5">
+        <div aria-hidden="true" className="creator-desktop-flourish absolute -right-12 -top-16 h-36 w-36 rounded-full bg-violet-400/10 blur-3xl" />
+        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-[22px] font-extrabold tracking-tight text-text-primary sm:text-2xl">
             Create Test
@@ -159,9 +161,17 @@ export function SectionsPage() {
         <div className="grid grid-cols-2 gap-2 sm:flex">
           <button
             type="button"
+            onClick={() => (activeStep === 2 ? setActiveStep(1) : router.push("/creator/tests/create"))}
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2.5 text-[13px] font-semibold text-text-primary transition-colors hover:border-violet-400/40 hover:bg-card-hover"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </button>
+          <button
+            type="button"
             onClick={handleSaveDraft}
             disabled={saving}
-            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2.5 text-[13px] font-semibold text-text-primary transition-all hover:border-border-hover disabled:opacity-50"
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2.5 text-[13px] font-semibold text-text-primary transition-colors hover:border-border-hover disabled:opacity-50"
           >
             <Save className="h-3.5 w-3.5" />
             {saving ? "Saving…" : "Save Draft"}
@@ -170,11 +180,12 @@ export function SectionsPage() {
             type="button"
             onClick={handleContinue}
             disabled={!canContinue}
-            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 py-2.5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
+            className="col-span-2 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.24)] transition-all hover:brightness-105 disabled:opacity-50 disabled:shadow-none sm:col-span-1"
           >
-            Continue to Questions
-            <ChevronRight className="h-4 w-4" />
+            {activeStep === 2 ? "Done" : "Continue to Questions"}
+            {activeStep !== 2 && <ChevronRight className="h-4 w-4" />}
           </button>
+        </div>
         </div>
       </div>
 
@@ -217,7 +228,7 @@ export function SectionsPage() {
         </h2>
         <p className="mt-1 text-sm text-text-secondary">
           {activeStep === 2
-            ? "Generate the full question paper from your sections — add a syllabus and let AI pick bank questions, then download."
+            ? "Generate the full question paper from your sections — add a syllabus, review the result, then download."
             : "Organize your question paper into sections and define the question types, marks, and structure for each section."}
         </p>
       </div>
@@ -296,30 +307,6 @@ export function SectionsPage() {
           </motion.div>
         </>
       )}
-
-      {/* Footer Nav */}
-      <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between border-t border-border bg-card/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:mt-8 sm:border-t sm:bg-transparent sm:px-0 sm:pt-6 sm:shadow-none">
-        <button
-          type="button"
-          onClick={() => (activeStep === 2 ? setActiveStep(1) : router.push("/creator/tests/create"))}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2.5 text-[13px] font-semibold text-text-primary transition-all hover:border-border-hover sm:px-4"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          {activeStep === 2 ? "Back to Sections" : "Back to Basic Details"}
-        </button>
-        <div className="flex items-center gap-2">
-          <span className="hidden text-xs text-text-muted sm:inline">Step {activeStep + 1} of {STEPS.length}</span>
-          <button
-            type="button"
-            onClick={handleContinue}
-            disabled={!canContinue}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2.5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none sm:px-6"
-          >
-            {activeStep === 2 ? "Done" : "Continue"}
-            {activeStep !== 2 && <ChevronRight className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
 
       {/* AI Generate Modal */}
       <AIGenerateModal

@@ -9,7 +9,7 @@
  * The AI SELECTS bank question numbers — every selected question's wording,
  * difficulty and kind comes from the parsed Word file, never the model.
  * If the bank holds fewer matching questions than needed, the AI additionally
- * COMPOSES the shortfall itself (flagged aiGenerated).
+ * COMPOSES the shortfall itself.
  * Totals/marks are computed server-side, mirroring testSectionGeneration.
  */
 import fs from "node:fs/promises";
@@ -84,8 +84,6 @@ export interface PaperQuestion {
   difficulty: string;
   kind: string;
   marks: number;
-  /** True when the AI composed this question itself (bank had too few). */
-  aiGenerated?: boolean;
 }
 
 export interface PaperGroup {
@@ -150,8 +148,6 @@ export interface SubjectiveQuestion {
   question: string;
   difficulty: string;
   kind: string;
-  /** True when the AI composed this question itself (bank had too few). */
-  aiGenerated?: boolean;
 }
 
 export interface GenerateSubjectiveQuestionsResult {
@@ -395,7 +391,7 @@ ${bankForPrompt}`;
   } catch (err) {
     if (shortfallTotal > 0) {
       throw new Error(
-        `Only ${candidates.length} matching questions are available and AI composition failed (${err instanceof Error ? err.message : String(err)}). Broaden the filters or try again.`
+        "We couldn't generate the requested question mix for this scope. Broaden the filters or reduce the total, then try again."
       );
     }
     console.warn("[question-picker] AI selection failed, using deterministic fallback:", err);
@@ -447,15 +443,14 @@ ${bankForPrompt}`;
     if (!composedByCell.has(key)) composedByCell.set(key, []);
     composedByCell.get(key)!.push(g);
   }
-  const composedPicked: Array<BankQuestion & { aiGenerated: true }> = [];
+  const composedPicked: BankQuestion[] = [];
   for (const cell of CELLS) {
     const need = aiNeed[cell];
     if (need === 0) continue;
-    const [difficulty, category] = cell.split(":");
     const pool = composedByCell.get(cell) ?? [];
     if (pool.length < need) {
       throw new Error(
-        `Only ${candidates.length} matching questions are available and the AI composed ${pool.length}/${need} of the needed ${difficulty}/${category} questions. Broaden the filters or reduce the total.`
+        "We couldn't generate the requested question mix for this scope. Broaden the filters or reduce the total, then try again."
       );
     }
     for (let i = 0; i < need; i++) {
@@ -465,12 +460,11 @@ ${bankForPrompt}`;
         question: g.question,
         difficulty: g.difficulty,
         kind: g.kind,
-        aiGenerated: true,
       });
     }
   }
 
-  const questions: SubjectiveQuestion[] = [
+  const questions: SubjectiveQuestion[] = shuffle([
     ...picked.map((q) => ({
       num: q.num,
       question: q.question,
@@ -482,9 +476,8 @@ ${bankForPrompt}`;
       question: q.question,
       difficulty: q.difficulty,
       kind: q.kind,
-      aiGenerated: true as const,
     })),
-  ];
+  ]).map((question, index) => ({ ...question, num: index + 1 }));
 
   return { questions, usage };
 };
@@ -584,7 +577,7 @@ function parseSubjectiveBank(bankText: string): BankQuestion[] {
 async function loadSubjectiveBank(): Promise<{ bank: BankQuestion[]; bankText: string }> {
   const bankPath = await resolveSubjectiveBankPath();
   if (!bankPath) {
-    throw new Error("Subjective question bank is temporarily unavailable. Please try again later.");
+    throw new Error("Question generation is temporarily unavailable. Please try again later.");
   }
   const buffer = await fs.readFile(bankPath);
   let text = "";
@@ -594,11 +587,11 @@ async function loadSubjectiveBank(): Promise<{ bank: BankQuestion[]; bankText: s
     console.warn("mammoth extraction failed for subjective bank:", e);
   }
   if (!text.trim()) {
-    throw new Error("Subjective question bank is temporarily unavailable. Please try again later.");
+    throw new Error("Question generation is temporarily unavailable. Please try again later.");
   }
   const bank = parseSubjectiveBank(text);
   if (bank.length === 0) {
-    throw new Error("Subjective question bank could not be parsed safely.");
+    throw new Error("The available curriculum data could not be processed safely.");
   }
   return { bank, bankText: text };
 }
@@ -940,7 +933,7 @@ ${bankForPrompt}`;
   } catch (err) {
     if (shortfallTotal > 0) {
       throw new Error(
-        `Only ${bank.length} matching bank questions are available and AI composition failed (${err instanceof Error ? err.message : String(err)}). Broaden the filters or try again.`
+        "We couldn't complete the question paper for this scope. Broaden the filters or reduce the question count, then try again."
       );
     }
     console.warn("[question-paper] AI selection failed, using deterministic fallback:", err);
@@ -1034,13 +1027,11 @@ ${bankForPrompt}`;
             difficulty: c.difficulty,
             kind: c.kind,
             marks: mpq,
-            aiGenerated: true,
           });
         }
         if (composed.length < stillNeed) {
-          const sLabel = s.label || `order ${s.order ?? si + 1}`;
           throw new Error(
-            `Only ${bank.length} matching bank questions are available and the AI composed ${composed.length}/${stillNeed} needed for Section ${sLabel} group "${(g.name || String(g.type)).trim()}". Broaden the filters or reduce questions.`
+            "We couldn't complete every section for this scope. Broaden the filters or reduce the question count, then try again."
           );
         }
       }
@@ -1051,7 +1042,7 @@ ${bankForPrompt}`;
           return { num: b.num, question: b.question, difficulty: b.difficulty, kind: b.kind, marks: mpq };
         }),
         ...composed,
-      ];
+      ].map((question, index) => ({ ...question, num: index + 1 }));
 
       return {
         name: (g.name || String(g.type)).trim(),
@@ -1130,7 +1121,7 @@ export const renderPaperHtml = (paper: QuestionPaper): string => {
           const items = g.questions
             .map((q) => {
               qNo++;
-              return `<div class="q"><div class="q-row"><span class="q-no">Q${qNo}.</span><span class="q-text">${escapeHtml(q.question)}</span><span class="q-marks">[${q.marks} mark${q.marks !== 1 ? "s" : ""}]</span></div><div class="q-meta">${escapeHtml(q.difficulty)} · ${escapeHtml(q.kind)}</div></div>`;
+              return `<div class="q"><div class="q-row"><span class="q-no">Q${qNo}.</span><span class="q-text">${escapeHtml(q.question)}</span><span class="q-marks">[${q.marks} mark${q.marks !== 1 ? "s" : ""}]</span></div></div>`;
             })
             .join("\n");
           return `<div class="group"><div class="group-head"><span>${escapeHtml(g.name)} (${g.questions.length} × ${g.marksPerQuestion} marks)</span></div><div class="attempt">${escapeHtml(attemptNote(g))}</div>${items}</div>`;
@@ -1147,25 +1138,25 @@ export const renderPaperHtml = (paper: QuestionPaper): string => {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(paper.title)}</title>
 <style>
-  body { font-family: Georgia, "Times New Roman", serif; color: #111; max-width: 800px; margin: 0 auto; padding: 32px 24px; }
-  .paper-head { text-align: center; border-bottom: 2px solid #111; padding-bottom: 16px; margin-bottom: 24px; }
-  .paper-head h1 { font-size: 24px; margin: 0 0 8px; }
-  .paper-meta { font-size: 13px; color: #444; }
+  body { font-family: Georgia, "Times New Roman", "Noto Serif", serif; color: #111; max-width: 760px; margin: 0 auto; padding: 40px 32px; line-height: 1.6; }
+  .paper-head { text-align: center; border-bottom: 2px solid #111; padding-bottom: 16px; margin-bottom: 28px; }
+  .paper-head h1 { font-size: 26px; margin: 0 0 8px; letter-spacing: 0.01em; }
+  .paper-meta { font-size: 13.5px; color: #333; }
   .gen-instructions { font-size: 14px; margin: 12px 0 0; font-style: italic; }
-  .section { margin-bottom: 28px; page-break-inside: avoid; }
-  .section-head { display: flex; justify-content: space-between; font-size: 17px; font-weight: bold; background: #f3f4f6; padding: 8px 12px; border-radius: 6px; }
-  .section-title { font-size: 14px; font-weight: bold; margin: 8px 0 0 2px; }
-  .instructions { font-size: 13px; font-style: italic; margin: 6px 0 0 2px; color: #333; }
-  .group { margin: 14px 0 0 4px; }
-  .group-head { font-size: 14px; font-weight: bold; }
-  .attempt { font-size: 12px; font-style: italic; color: #555; margin: 2px 0 8px; }
-  .q { margin: 10px 0; }
-  .q-row { display: flex; gap: 8px; font-size: 14px; }
+  .section { margin-bottom: 30px; page-break-inside: avoid; }
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #111; padding: 0 2px 6px; }
+  .sec-marks { font-size: 14px; white-space: nowrap; }
+  .section-title { font-size: 14.5px; font-weight: bold; margin: 8px 0 0 2px; }
+  .instructions { font-size: 13.5px; font-style: italic; margin: 6px 0 0 2px; color: #333; }
+  .group { margin: 16px 0 0 2px; }
+  .group-head { font-size: 14.5px; font-weight: bold; }
+  .attempt { font-size: 12.5px; font-style: italic; color: #444; margin: 2px 0 10px; }
+  .q { margin: 12px 0; text-align: justify; }
+  .q-row { display: flex; gap: 10px; font-size: 15px; line-height: 1.7; }
   .q-no { font-weight: bold; white-space: nowrap; }
   .q-text { flex: 1; }
   .q-marks { white-space: nowrap; font-weight: bold; }
-  .q-meta { font-size: 11px; color: #888; margin-left: 34px; text-transform: capitalize; }
-  .paper-foot { margin-top: 32px; border-top: 2px solid #111; padding-top: 12px; display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; }
+  .paper-foot { margin-top: 36px; border-top: 2px solid #111; padding-top: 12px; display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; }
   @media print { body { padding: 0; } }
 </style>
 </head>
@@ -1279,15 +1270,11 @@ export const renderPaperDocx = async (paper: QuestionPaper): Promise<Buffer> => 
         qNo++;
         children.push(
           new Paragraph({
+            spacing: { after: 120 },
             children: [
-              new TextRun({ text: `Q${qNo}.  `, bold: true }),
-              new TextRun({ text: docxText(q.question) }),
-              new TextRun({ text: `  [${docxMeta(q.marks)} mark${Number(q.marks) !== 1 ? "s" : ""}]`, bold: true }),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: `      ${docxText(q.difficulty)} · ${docxText(q.kind)}`, size: 18, color: "888888" }),
+              new TextRun({ text: `Q${qNo}.  `, bold: true, size: 24 }),
+              new TextRun({ text: docxText(q.question), size: 24 }),
+              new TextRun({ text: `  [${docxMeta(q.marks)} mark${Number(q.marks) !== 1 ? "s" : ""}]`, bold: true, size: 24 }),
             ],
           })
         );

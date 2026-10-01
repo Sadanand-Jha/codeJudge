@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
   AlertCircle,
@@ -10,6 +10,8 @@ import {
   Download,
   FileText,
   RotateCcw,
+  Clock3,
+  WandSparkles,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
@@ -18,6 +20,7 @@ import { sectionsToPaperPayload } from "./paperTypes";
 import type { Section } from "./types";
 import type { QuestionPaper } from "./paperTypes";
 import { PaperScopeFilters } from "./PaperScopeFilters";
+import { AiStreamText } from "@/components/ui";
 
 interface QuestionsStepProps {
   sections: Section[];
@@ -26,6 +29,21 @@ interface QuestionsStepProps {
 }
 
 type QuestionsStatus = "idle" | "generating" | "done" | "error";
+
+const PAPER_LOADING_MESSAGES = [
+  "Bringing your question paper to life…",
+  "Your paper is beginning to take shape…",
+  "Making everything feel clear and well balanced…",
+  "Polishing the flow from start to finish…",
+  "Giving every section a careful look…",
+  "Running a thoughtful quality pass…",
+  "Adding the finishing touches…",
+  "Fine-tuning the last few details…",
+  "Just one last tweak…",
+  "Almost there — it’s about to be ready.",
+  "Your question paper is nearly done…",
+  "Just a little more — good things are worth the wait.",
+] as const;
 
 const OVERALL_OPTIONS = [
   {
@@ -58,6 +76,15 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
   const [error, setError] = useState<string | null>(null);
   const [paper, setPaper] = useState<QuestionPaper | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+
+  useEffect(() => {
+    if (status !== "generating") return;
+    const interval = window.setInterval(() => {
+      setLoadingMessageIndex((current) => Math.min(current + 1, PAPER_LOADING_MESSAGES.length - 1));
+    }, 10000);
+    return () => window.clearInterval(interval);
+  }, [status]);
 
   const totalNeeded = useMemo(
     () =>
@@ -77,6 +104,7 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
     if (totalNeeded === 0 || !subjectId) return;
     setError(null);
     setPaper(null);
+    setLoadingMessageIndex(0);
     abortRef.current = new AbortController();
     setStatus("generating");
 
@@ -140,16 +168,16 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
   return (
     <div className="space-y-4 pb-36 lg:pb-0">
       {/* Paper-level config */}
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+      <div className="ai-color-card overflow-hidden rounded-xl border border-border bg-card">
+        <div className="ai-color-header flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-violet-600 text-white">
               <FileText className="h-4 w-4" />
             </div>
             <div className="min-w-0">
               <h3 className="text-[13px] font-extrabold text-text-primary">Question Paper</h3>
-              <p className="truncate text-[11px] text-text-muted">
-                AI will follow your section structure, marks and syllabus.
+              <p className="min-h-4 truncate text-[11px] text-text-muted">
+                <AiStreamText text="AI will follow your section structure, marks and syllabus." />
               </p>
             </div>
           </div>
@@ -214,24 +242,44 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
 
           <div className="grid gap-3 md:grid-cols-[1fr_220px]">
             <div>
-              <label className="mb-1.5 block text-xs font-bold text-text-primary">
-                Additional instructions <span className="font-medium text-text-muted">(optional)</span>
+              <label className="mb-1.5 flex items-center justify-between gap-2 text-xs font-bold text-text-primary">
+                <span className="flex flex-wrap items-center gap-1.5">
+                  Your syllabus / instructions
+                  <span className="rounded-full bg-gradient-to-r from-pink-500/10 to-violet-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-violet-600 dark:text-violet-300">
+                    Recommended
+                  </span>
+                </span>
+                <span className="shrink-0 text-[10px] font-medium text-text-muted tabular-nums">{syllabus.length}/4000</span>
               </label>
               <textarea
                 value={syllabus}
                 onChange={(e) => setSyllabus(e.target.value)}
                 disabled={status === "generating"}
+                maxLength={4000}
                 rows={2}
-                placeholder="e.g. Focus more on CPU scheduling and process synchronization. Include practical scenarios and avoid repetitive questions."
-                className="min-h-[76px] w-full resize-y rounded-xl border border-border bg-card px-3.5 py-2.5 text-[13px] text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-pink-500/50 disabled:opacity-50"
+                placeholder="Paste the syllabus you actually taught — units, topics, exclusions and any special instructions…"
+                className={cn(
+                  "min-h-[76px] w-full resize-y rounded-xl border bg-card px-3.5 py-2.5 text-[13px] text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-pink-500/50 disabled:opacity-50",
+                  syllabus.trim() ? "border-emerald-500/30" : "border-amber-400/45"
+                )}
               />
-              <p className="mt-1 text-[11px] text-text-muted">
-                Use this only for additional guidance. Selected chapters and topics already define the syllabus.
-              </p>
+              <div className={cn(
+                "mt-1.5 flex items-start gap-1.5 rounded-lg px-2.5 py-2 text-[10px] leading-4",
+                syllabus.trim()
+                  ? "bg-emerald-500/[0.07] text-emerald-700 dark:text-emerald-300"
+                  : "bg-amber-500/[0.08] text-amber-700 dark:text-amber-300"
+              )}>
+                {syllabus.trim() ? <Check className="mt-0.5 h-3 w-3 shrink-0" /> : <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />}
+                <span>
+                  {syllabus.trim()
+                    ? "Great — this helps keep every question closely aligned with what you taught."
+                    : "For the most relevant paper, add your exact syllabus. Without it, AI has broader freedom and may include topics you did not teach."}
+                </span>
+              </div>
             </div>
 
             {status !== "done" && (
-              <div className="flex flex-col justify-end">
+              <div className="flex flex-col justify-end gap-1.5">
                 <button
                   type="button"
                   onClick={handleGenerate}
@@ -245,16 +293,91 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
                   )}
                   {status === "generating" ? "Generating paper…" : "Generate Question Paper"}
                 </button>
+                <p className="flex items-start gap-1 text-[9px] leading-3.5 text-text-muted">
+                  <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" />
+                  AI can make mistakes. Review the paper before publishing.
+                </p>
               </div>
             )}
           </div>
 
           {status === "generating" && (
-            <div className="flex items-center gap-2.5 rounded-xl border border-pink-500/20 bg-pink-500/5 px-4 py-3">
-              <Loader2 className="h-4 w-4 animate-spin text-pink-500" />
-              <p className="text-xs font-semibold text-text-primary">
-                Selecting questions from the bank for each section…
-              </p>
+            <div className="relative overflow-hidden rounded-2xl border border-violet-400/25 bg-gradient-to-br from-pink-500/[0.08] via-violet-500/[0.06] to-cyan-400/[0.08] px-4 py-4 shadow-[0_12px_34px_rgba(139,92,246,0.10)]">
+              <motion.div
+                aria-hidden="true"
+                className="creator-desktop-flourish absolute -right-10 -top-12 h-32 w-32 rounded-full bg-pink-400/20 blur-3xl"
+                animate={{ scale: [0.9, 1.15, 0.9], opacity: [0.35, 0.7, 0.35] }}
+                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div
+                aria-hidden="true"
+                className="creator-desktop-flourish absolute -bottom-14 left-1/3 h-28 w-28 rounded-full bg-cyan-400/20 blur-3xl"
+                animate={{ x: [-12, 18, -12], opacity: [0.25, 0.6, 0.25] }}
+                transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
+              />
+
+              <div className="relative flex items-center gap-3">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-[0_8px_22px_rgba(139,92,246,0.28)]">
+                  <motion.div
+                    animate={{ rotate: [0, 8, -8, 0], scale: [1, 1.08, 1] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <WandSparkles className="h-5 w-5" />
+                  </motion.div>
+                  <motion.span
+                    aria-hidden="true"
+                    className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-amber-300"
+                    animate={{ scale: [0.5, 1.25, 0.5], opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 1.4, repeat: Infinity }}
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-extrabold text-text-primary">Generating your question paper</p>
+                      <div aria-live="polite" className="mt-0.5 min-h-4 overflow-hidden text-[11px] text-text-secondary">
+                        <AnimatePresence mode="wait" initial={false}>
+                          <motion.p
+                            key={loadingMessageIndex}
+                            initial={{ opacity: 0, y: 3 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -3 }}
+                            transition={{ duration: 0.16 }}
+                          >
+                            {PAPER_LOADING_MESSAGES[loadingMessageIndex]}
+                          </motion.p>
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card/70 px-2.5 py-1 text-[10px] font-semibold text-text-secondary backdrop-blur-sm">
+                      <Clock3 className="h-3 w-3 text-violet-500" /> Usually 1–2 min
+                    </span>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-card/80 shadow-inner">
+                    <motion.div
+                      className="h-full w-2/5 rounded-full bg-gradient-to-r from-pink-500 via-violet-500 to-cyan-400 shadow-[0_0_14px_rgba(139,92,246,0.45)]"
+                      animate={{ x: ["-110%", "260%"] }}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                    <span className="font-semibold text-violet-600 dark:text-violet-300">
+                      <span className="mr-1 inline-flex gap-0.5" aria-hidden="true">
+                        {[0, 1, 2].map((dot) => (
+                          <motion.span
+                            key={dot}
+                            className="h-1 w-1 rounded-full bg-current"
+                            animate={{ y: [0, -3, 0] }}
+                            transition={{ duration: 0.8, repeat: Infinity, delay: dot * 0.14 }}
+                          />
+                        ))}
+                      </span>
+                      Creating {totalNeeded} questions across {sections.length} sections
+                    </span>
+                    <span className="text-text-muted">Please keep this window open</span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -310,7 +433,7 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
             <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
               <Check className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
               <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                All questions selected from the bank — section structure respected.
+                Your question paper is ready — review every question before publishing or downloading.
               </p>
             </div>
           </div>
@@ -356,11 +479,6 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
                               <p className="text-text-primary">{q.question}</p>
                               <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] capitalize text-text-muted">
                                 <span>{q.difficulty} · {q.kind}</span>
-                                {q.aiGenerated && (
-                                  <span className="rounded-full bg-violet-500/10 px-2 py-0.5 font-bold normal-case text-violet-600 dark:text-violet-400">
-                                    AI-written
-                                  </span>
-                                )}
                               </p>
                             </div>
                             <span className="shrink-0 text-xs font-bold text-text-secondary tabular-nums">

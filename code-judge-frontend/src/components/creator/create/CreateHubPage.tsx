@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { PageHeader, MockDataTag, Panel } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
+import { AiStreamText } from "@/components/ui";
 
 type CreateType = "quiz" | "test" | "series" | "problem" | "assessment";
 
@@ -104,7 +105,7 @@ export function CreateHubPage({ demoState }: { demoState?: "empty" | "error" }) 
             className="hidden items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary transition-colors hover:border-pink-500/30 hover:text-text-primary sm:flex"
           >
             <Sparkles className="h-3.5 w-3.5 text-violet-500" />
-            AI Studio
+            <AiStreamText text="AI Studio" />
           </Link>
         }
       />

@@ -18,6 +18,7 @@ import { Badge, StudioStepHeader, StudioStepLayout } from "../primitives";
 import { SearchableDropdown } from "@/components/ui";
 import { getAllSubjects, getAllExamCategories, generateQuizCode as fetchQuizCode } from "@/services/quiz";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
+import { AiStreamText } from "@/components/ui";
 
 const CREATE_CHOICES = [
   {
@@ -324,7 +325,7 @@ function ChoiceCard({
       >
         <Icon className="h-5 w-5" />
       </div>
-      <span className="font-semibold text-text-primary break-words">{label}</span>
+      <span className="font-semibold text-text-primary break-words">{label.toLowerCase().includes("ai") ? <AiStreamText text={label} /> : label}</span>
       <span className="mt-0.5 inline-flex items-center rounded-md bg-gray-100 dark:bg-pink-500/10 border border-gray-200 dark:border-pink-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:text-pink-600">
         {meta}
       </span>

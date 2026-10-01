@@ -33,6 +33,7 @@ import { generateQuizCode } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 import { MobileQuestionBankSheet } from "../components/mobile/MobileQuestionBankSheet";
 import { MobileQuestionSettingsSheet } from "../components/mobile/MobileQuestionSettingsSheet";
+import { AiStreamText } from "@/components/ui";
 import { MobileQuestionEditor } from "../components/mobile/MobileQuestionEditor";
 
 function hashState(questions: CreatorQuestion[], info: { title: string; shortDescription: string; fullDescription: string; subject: string; difficulty: string; duration: number; passingMarks: number; tags: string[] }) {
@@ -170,10 +171,10 @@ export function QuestionsStep() {
             <button
               type="button"
               onClick={() => setAiOpen(true)}
-              className="flex shrink-0 items-center gap-1 rounded-xl border border-violet-200 bg-violet-50 px-2.5 sm:px-3 py-2 text-xs font-semibold text-violet-700"
+              className="section-ai-cta flex shrink-0 items-center gap-1 rounded-xl border border-violet-200 bg-violet-50 px-2.5 sm:px-3 py-2 text-xs font-semibold text-violet-700"
             >
               <Sparkles className="h-3.5 w-3.5 shrink-0" />
-              <span>AI Generate</span>
+              <span className="min-w-[62px] text-left"><AiStreamText text="AI Generate" /></span>
             </button>
             <button
               onClick={() => setMobileSettingsOpen(true)}
@@ -228,8 +229,8 @@ export function QuestionsStep() {
                 <ListChecks className="h-7 w-7 text-zinc-500" />
               </div>
               <h3 className="text-base font-bold text-zinc-900 break-words">Build your first question</h3>
-              <p className="max-w-[260px] text-sm leading-relaxed text-zinc-500 break-words">
-                Create a question manually or let AI generate one.
+              <p className="min-h-5 max-w-[260px] text-sm leading-relaxed text-zinc-500 break-words">
+                <AiStreamText text="Create a question manually or let AI generate one." />
               </p>
               <div className="flex w-full max-w-full min-w-0 flex-col gap-2 mt-2">
                 <button
@@ -242,9 +243,9 @@ export function QuestionsStep() {
                 <button
                   type="button"
                   onClick={() => setAiOpen(true)}
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700"
+                  className="section-ai-cta inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700"
                 >
-                  <Sparkles className="h-4 w-4 text-pink-600" /> Generate with AI
+                  <Sparkles className="h-4 w-4 text-pink-600" /> <AiStreamText text="Generate with AI" />
                 </button>
               </div>
             </div>
@@ -349,7 +350,7 @@ export function QuestionsStep() {
                 <ListChecks className="h-6 w-6 text-text-secondary" />
               </div>
               <h3 className="text-[18px] font-semibold text-text-primary">Build your first question</h3>
-              <p className="max-w-sm text-sm leading-relaxed text-text-muted">Create a question manually or let AI generate one from your content.</p>
+              <p className="min-h-5 max-w-sm text-sm leading-relaxed text-text-muted"><AiStreamText text="Create a question manually or let AI generate one from your content." /></p>
               <div className="flex flex-wrap justify-center gap-2 mt-2">
                 <button
                   type="button"
@@ -361,9 +362,9 @@ export function QuestionsStep() {
                 <button
                   type="button"
                   onClick={() => setAiOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-text-primary hover:bg-card-hover"
+                  className="section-ai-cta inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-text-primary hover:bg-card-hover"
                 >
-                  <Sparkles className="h-4 w-4 text-pink-600" /> Generate with AI
+                  <Sparkles className="h-4 w-4 text-pink-600" /> <AiStreamText text="Generate with AI" />
                 </button>
               </div>
             </div>

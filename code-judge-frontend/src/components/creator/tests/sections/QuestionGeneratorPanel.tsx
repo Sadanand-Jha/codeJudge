@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/useToast";
 import { generateSubjectiveQuestions } from "@/services/aiGenerate";
 import type { SubjectiveQuestion } from "./paperTypes";
 import { QuestionBankFilters } from "./QuestionBankFilters";
+import { AiStreamText } from "@/components/ui";
 
 type GeneratorStatus = "idle" | "generating" | "done" | "error";
 
@@ -247,13 +248,9 @@ export function QuestionGeneratorPanel() {
       );
       setQuestions(response.questions);
       setStatus("done");
-      const composed = response.questions.filter((q) => q.aiGenerated).length;
       toast.success({
         title: "Questions ready",
-        description:
-          composed > 0
-            ? `${response.questions.length - composed} from bank + ${composed} AI-written on your topic.`
-            : `${response.questions.length} handpicked questions on your topic.`,
+        description: `${response.questions.length} questions generated for your selected scope.`,
       });
     } catch (err: any) {
       if (err?.name === "CanceledError" || err?.name === "AbortError") {
@@ -282,16 +279,16 @@ export function QuestionGeneratorPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
+      <div className="ai-color-card overflow-hidden rounded-xl border border-border bg-card">
+        <div className="ai-color-header flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-violet-600 text-white">
               <ListChecks className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-[13px] font-extrabold text-text-primary">AI Question Generator</h2>
-              <p className="truncate text-[11px] text-text-muted">
-                Pick any number of subjective questions — hardness you decide, topic you give, perfect picks by AI.
+              <h2 className="min-h-4 text-[13px] font-extrabold text-text-primary"><AiStreamText text="AI Question Generator" /></h2>
+              <p className="min-h-4 truncate text-[11px] text-text-muted">
+                <AiStreamText text="Pick any number of subjective questions — hardness you decide, topic you give, perfect picks by AI." />
               </p>
             </div>
           </div>
@@ -345,7 +342,7 @@ export function QuestionGeneratorPanel() {
         </div>
 
         <div className="border-b border-border/60 px-4 py-3">
-          <SectionHeading icon={<Target className="h-3.5 w-3.5" />} title="Question Scope" hint="Filter the bank AI picks from" />
+          <SectionHeading icon={<Target className="h-3.5 w-3.5" />} title="Question Scope" hint="Choose the syllabus coverage for your questions" />
           <QuestionBankFilters
             subjectId={subjectId}
             onSubjectChange={setSubjectId}
@@ -414,9 +411,10 @@ export function QuestionGeneratorPanel() {
             <div className="grid gap-3 md:grid-cols-[1fr_220px]">
               <div>
                 <label className="mb-1.5 flex items-center justify-between gap-2 text-xs font-bold text-text-primary">
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex flex-wrap items-center gap-1.5">
                     <Layers3 className="h-3.5 w-3.5 text-text-muted" />
-                    Syllabus / instructions <span className="font-medium text-text-muted">(optional)</span>
+                    Syllabus / instructions
+                    <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-violet-600 dark:text-violet-300">Recommended</span>
                   </span>
                   <span className="text-[10px] font-medium text-text-muted tabular-nums">{syllabus.length}/4000</span>
                 </label>
@@ -426,9 +424,21 @@ export function QuestionGeneratorPanel() {
                   disabled={status === "generating"}
                   maxLength={4000}
                   rows={2}
-                  placeholder="e.g. Focus on conceptual questions, avoid repeated patterns, include process synchronization…"
-                  className="w-full resize-y rounded-xl border border-border bg-card px-3.5 py-2.5 text-[13px] text-text-primary outline-none transition-all placeholder:text-[11px] placeholder:text-text-muted placeholder:opacity-60 focus:border-pink-500/50 disabled:opacity-50"
+                  placeholder="Paste what you actually taught — topics, units, exclusions and the kind of questions you want…"
+                  className={cn(
+                    "w-full resize-y rounded-xl border bg-card px-3.5 py-2.5 text-[13px] text-text-primary outline-none transition-all placeholder:text-[11px] placeholder:text-text-muted placeholder:opacity-60 focus:border-pink-500/50 disabled:opacity-50",
+                    syllabus.trim() ? "border-emerald-500/30" : "border-amber-400/45"
+                  )}
                 />
+                <p className={cn(
+                  "mt-1.5 flex items-start gap-1.5 text-[10px] leading-4",
+                  syllabus.trim() ? "text-emerald-600 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"
+                )}>
+                  {syllabus.trim() ? <Check className="mt-0.5 h-3 w-3 shrink-0" /> : <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />}
+                  {syllabus.trim()
+                    ? "Good choice — your questions will stay closer to the material you covered."
+                    : "Add your syllabus for precise results. Without it, AI may generate from a much broader subject scope."}
+                </p>
               </div>
               <div className="flex flex-col justify-end gap-1.5">
                 <button
@@ -440,6 +450,10 @@ export function QuestionGeneratorPanel() {
                   {status === "generating" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                   {status === "generating" ? "Generating questions…" : "Generate Questions"}
                 </button>
+                <p className="flex items-start gap-1 text-[9px] leading-3.5 text-text-muted">
+                  <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" />
+                  AI can make mistakes. Review questions before using them.
+                </p>
                 {status === "generating" && (
                   <p className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
                     <AlertCircle className="h-3 w-3" /> Don&apos;t close this window · 30 sec–1 min
@@ -467,7 +481,7 @@ export function QuestionGeneratorPanel() {
         >
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3.5">
             <p className="text-sm font-extrabold text-text-primary">
-              {questions.length} questions picked
+              {questions.length} questions generated
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -501,11 +515,6 @@ export function QuestionGeneratorPanel() {
                     <span className="rounded-full bg-card-hover px-2 py-0.5 text-[10px] font-bold text-text-secondary">
                       {q.kind}
                     </span>
-                    {q.aiGenerated && (
-                      <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-bold text-violet-600 dark:text-violet-400">
-                        AI-written
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>

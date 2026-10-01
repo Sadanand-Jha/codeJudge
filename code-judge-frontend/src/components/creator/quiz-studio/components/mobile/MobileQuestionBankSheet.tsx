@@ -6,6 +6,7 @@ import { Search, X, Plus, Copy, Trash2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../../StudioProvider";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
+import { AiStreamText } from "@/components/ui";
 
 function decodeHtml(html: string): string {
   return html
@@ -94,9 +95,9 @@ export function MobileQuestionBankSheet({ open, onClose, onAiGenerate }: Props) 
                     onClose();
                     onAiGenerate?.();
                   }}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-violet-500/30 bg-violet-500/[0.08] py-3 text-sm font-semibold text-violet-600 dark:text-violet-300"
+                  className="section-ai-cta flex w-full items-center justify-center gap-1.5 rounded-xl border border-violet-500/30 bg-violet-500/[0.08] py-3 text-sm font-semibold text-violet-600 dark:text-violet-300"
                 >
-                  <Sparkles className="h-4 w-4" /> AI Generate
+                  <Sparkles className="h-4 w-4" /> <AiStreamText text="AI Generate" />
                 </button>
               </div>
             </div>

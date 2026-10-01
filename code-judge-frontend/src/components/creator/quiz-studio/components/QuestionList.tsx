@@ -5,6 +5,7 @@ import { Copy, Trash2, Search, GripVertical, X, Sparkles, Download } from "lucid
 import { cn } from "@/lib/helpers";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { useStudio } from "../StudioProvider";
+import { AiStreamText } from "@/components/ui";
 
 /**
  * Strips HTML tags and decodes common HTML entities (&nbsp;, &amp;, etc.)
@@ -190,9 +191,9 @@ export function QuestionList({
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={onAiGenerate}
-            className="flex items-center justify-center gap-1 rounded-lg border border-pink-200 dark:border-pink-400/30 bg-card py-2 text-xs font-medium text-[#E91E63] hover:bg-pink-50 dark:hover:bg-pink-500/10"
+            className="section-ai-cta flex items-center justify-center gap-1 rounded-lg border border-pink-200 dark:border-pink-400/30 bg-card py-2 text-xs font-medium text-[#E91E63] hover:bg-pink-50 dark:hover:bg-pink-500/10"
           >
-            <Sparkles className="h-3.5 w-3.5" /> AI Generate
+            <Sparkles className="h-3.5 w-3.5" /> <AiStreamText text="AI Generate" />
           </button>
           <button
             onClick={onDownloadPdf}

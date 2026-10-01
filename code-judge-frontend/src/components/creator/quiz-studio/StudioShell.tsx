@@ -186,7 +186,7 @@ function StudioHelpButton() {
 
 export function StudioHeader() {
   const router = useRouter();
-  const { state, updateInfo, nextStep, nextMobileStep, saveToServer, mobileSteps, mobileStepIndex, editMode } = useStudio();
+  const { state, updateInfo, prevStep, nextStep, prevMobileStep, nextMobileStep, stepIndex, saveToServer, mobileSteps, mobileStepIndex, editMode } = useStudio();
   const { status, lastSaved } = useSaveStatus();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(state.info.title);
@@ -224,7 +224,7 @@ export function StudioHeader() {
 
   return (
     <header className="sticky top-0 z-20 flex min-h-[56px] h-auto w-full max-w-full flex-wrap items-center gap-2 border-b border-border bg-background px-2 py-2 sm:h-14 sm:flex-nowrap sm:gap-3 sm:px-4 sm:py-0 min-w-0 max-w-[100vw]">
-      <button onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors sm:h-9 sm:w-9 sm:rounded-xl">
+      <button aria-label="Exit quiz studio" title="Exit quiz studio" onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors sm:h-9 sm:w-9 sm:rounded-xl">
         <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </button>
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -262,6 +262,23 @@ export function StudioHeader() {
       </div>
 
       <div className="ml-auto flex w-full min-w-0 items-center gap-2 border-t border-border/70 pt-2 sm:w-auto sm:shrink-0 sm:justify-end sm:border-0 sm:pt-0">
+        <button
+          type="button"
+          onClick={() => void prevMobileStep()}
+          disabled={mobileStepIndex <= 0}
+          title="Previous step"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-text-primary transition-colors hover:bg-card-hover disabled:pointer-events-none disabled:opacity-35 lg:hidden"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => void prevStep()}
+          disabled={stepIndex === 0}
+          className="hidden h-8 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover disabled:pointer-events-none disabled:opacity-35 lg:inline-flex"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" /> Back
+        </button>
         <StudioHelpButton />
         {state.step === "questions" && (
           <div className="hidden items-center gap-2 lg:flex shrink-0">
@@ -625,12 +642,13 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       data-studio="true"
-      className="flex flex-1 min-h-0 flex-col bg-background text-foreground font-['Inter'] min-w-0 overflow-hidden dark:[&_.bg-white]:bg-card dark:[&_.bg-zinc-50]:bg-background dark:[&_.bg-zinc-100]:bg-card-hover dark:[&_.border-zinc-200]:border-border dark:[&_.border-zinc-300]:border-border-hover dark:[&_.text-zinc-900]:text-text-primary dark:[&_.text-zinc-700]:text-text-secondary dark:[&_.text-zinc-600]:text-text-secondary dark:[&_.text-zinc-500]:text-text-muted"
+      className="creator-mobile-calm flex flex-1 min-h-0 flex-col bg-background text-foreground font-['Inter'] min-w-0 overflow-hidden dark:[&_.bg-white]:bg-card dark:[&_.bg-zinc-50]:bg-background dark:[&_.bg-zinc-100]:bg-card-hover dark:[&_.border-zinc-200]:border-border dark:[&_.border-zinc-300]:border-border-hover dark:[&_.text-zinc-900]:text-text-primary dark:[&_.text-zinc-700]:text-text-secondary dark:[&_.text-zinc-600]:text-text-secondary dark:[&_.text-zinc-500]:text-text-muted"
     >
       <StudioHeader />
       <StudioStepper />
       <AnimatePresence mode="wait">
         <motion.main
+          data-creator-step-panel
           key={state.step}
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
