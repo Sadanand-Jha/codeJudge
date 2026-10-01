@@ -14,6 +14,27 @@ const rawBase =
   "https://quizbackend-dun.vercel.app/api";
 const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
 
+export interface QuestionGeneratorCatalog {
+  subjects: Array<{ id: number; name: string }>;
+  chapters: Array<{ id: number; subjectId: number; name: string }>;
+  topics: Array<{ id: number; chapterId: number; name: string }>;
+  difficulties: Array<{ id: number; name: string }>;
+  categories: Array<{ id: number; name: string }>;
+}
+
+export async function getQuestionGeneratorCatalog(signal?: AbortSignal): Promise<QuestionGeneratorCatalog> {
+  const response = await fetch(`${API_BASE}/v1/admin/tests/question-generator/catalog`, {
+    headers: getAuthHeaders(),
+    credentials: "include",
+    signal,
+  });
+  const json = await response.json();
+  if (!response.ok || json.success === false) {
+    throw new Error(json.message || `Request failed with status ${response.status}`);
+  }
+  return json.data;
+}
+
 /**
  * Upload one or more verified study files and generate a test structure using AI.
  *

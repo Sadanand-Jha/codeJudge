@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import {
   commitSubjectiveImport,
   createSubjectiveImportPreview,
+  createSubjectiveJsonImportPreview,
   getSubjectiveImportCatalog,
 } from "../services/subjectiveQuestionImport.service.ts";
 
@@ -126,17 +127,62 @@ export async function previewQuestionImportStream(req: Request, res: Response) {
   }
 }
 
-export async function commitQuestionImport(req: Request, res: Response) {
+export async function previewQuestionImportJson(req: Request, res: Response) {
   try {
-    const batchId = String(req.body.batchId || "");
-    if (!batchId) return res.status(400).json({ success: false, message: "Import batch is required." });
+    const questions = req.body?.questions;
+    if (!Array.isArray(questions)) {
+      return res.status(400).json({ success: false, message: "Body must contain a questions array." });
+    }
+    const result = await createSubjectiveJsonImportPreview({
+      userId: Number(req.user?.userId),
+      questions,
+    });
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    console.error("Question JSON preview failed:", error);
+    return res.status(400).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Unable to validate pasted question JSON",
+    });
+  }
+}
+
+export async function commitQuestionImport(req: Request, res: Response) {
+  const startedAt = Date.now();
+  const batchId = String(req.body?.batchId || "");
+  const rawSelected = req.body?.selectedIndexes;
+  console.log("[question-import] commit: request received", {
+    batchId: batchId || "(missing)",
+    selectedCount: Array.isArray(rawSelected) ? rawSelected.length : rawSelected === undefined ? 0 : -1,
+    userId: req.user?.userId,
+  });
+  try {
+    if (!batchId) {
+      console.error("[question-import] commit: rejected — no batchId", { userId: req.user?.userId });
+      return res.status(400).json({ success: false, message: "Import batch is required." });
+    }
     const selectedIndexes = Array.isArray(req.body.selectedIndexes)
       ? req.body.selectedIndexes.map(Number)
       : undefined;
     const result = await commitSubjectiveImport({ userId: Number(req.user?.userId), batchId, selectedIndexes });
+    console.log("[question-import] commit: success", {
+      batchId,
+      inserted: result.inserted,
+      skippedDuplicates: result.skippedDuplicates,
+      selected: result.selected,
+      elapsedMs: Date.now() - startedAt,
+    });
     return res.json({ success: true, data: result });
   } catch (error) {
-    console.error("Question import commit failed:", error);
+    console.error("[question-import] commit: FAILED", {
+      batchId: batchId || "(missing)",
+      userId: req.user?.userId,
+      elapsedMs: Date.now() - startedAt,
+      name: error instanceof Error ? error.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as { code?: unknown })?.code,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return res.status(400).json({ success: false, message: error instanceof Error ? error.message : "Unable to import questions" });
   }
 }

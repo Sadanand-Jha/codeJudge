@@ -1,6 +1,6 @@
 "use client";
 
-import { UserPlus } from "lucide-react";
+import { Sparkles, UserPlus } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationBell from "./NotificationBell";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
@@ -33,6 +33,18 @@ export default function NavbarRightActions() {
   return (
     <div className="flex items-center gap-2">
       <WorkspaceSwitcher />
+      {isAuthenticated && (
+        <div
+          className="group relative flex h-8 items-center gap-1.5 overflow-hidden rounded-xl border border-violet-400/25 bg-gradient-to-r from-violet-500/[0.10] via-fuchsia-500/[0.08] to-pink-500/[0.10] px-2.5 shadow-[inset_0_0_14px_rgba(139,92,246,0.08)]"
+          title="Demo AI credits"
+          aria-label="240 demo AI credits"
+        >
+          <span className="pointer-events-none absolute inset-y-0 -left-8 w-6 -skew-x-12 bg-gradient-to-r from-transparent via-white/35 to-transparent transition-all duration-700 group-hover:left-[110%]" />
+          <Sparkles className="relative h-3.5 w-3.5 text-violet-500" />
+          <span className="relative text-[11px] font-black tabular-nums text-violet-700 dark:text-violet-300">240</span>
+          <span className="relative hidden text-[9px] font-bold uppercase tracking-wide text-text-muted xl:inline">credits</span>
+        </div>
+      )}
       <ThemeToggle />
       <NotificationBell />
       {isAuthenticated ? (

@@ -13,6 +13,7 @@ import {
   commitQuestionImport,
   getQuestionImportCatalog,
   previewQuestionImport,
+  previewQuestionImportJson,
   previewQuestionImportStream,
 } from "../../controllers/platformQuestionImport.controller.ts";
 
@@ -78,6 +79,7 @@ router.get("/requests/:requestId", getRequestDetail);
 router.get("/question-import/catalog", getQuestionImportCatalog);
 router.post("/question-import/preview", uploadQuestionDocument, previewQuestionImport);
 router.post("/question-import/preview/stream", uploadQuestionDocument, previewQuestionImportStream);
+router.post("/question-import/json-preview", previewQuestionImportJson);
 router.post("/question-import/commit", commitQuestionImport);
 
 export default router;

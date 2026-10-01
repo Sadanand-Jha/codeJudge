@@ -9,10 +9,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mammoth from "mammoth";
+import { z } from "zod";
 import { chatWithAI } from "./ai.service.js";
 import type { LiveUsage } from "./ai.service.js";
 import { parseQuestionsJSON } from "./question-generation.service.js";
 import type { GeneratedQuestionPayload } from "./question-generation.service.js";
+import { pool } from "../config/database.js";
 
 export interface QuestionBankSelectionRequest {
   numberOfQuestions: number;
@@ -23,6 +25,10 @@ export interface QuestionBankSelectionRequest {
   hardnessHint?: string;
   /** Creator-provided syllabus/topics used to constrain and balance selection. */
   syllabus?: string;
+  subjectId: number;
+  chapterId?: number | null;
+  topicId?: number | null;
+  kind?: "any" | "theory" | "numerical";
 }
 
 export interface QuestionBankSelectionResult {
@@ -250,12 +256,96 @@ export const generateFromQuestionBank = async (
     }
   }
 
+  const subjectId = Number(request.subjectId);
+  const chapterId = request.chapterId == null ? null : Number(request.chapterId);
+  const topicId = request.topicId == null ? null : Number(request.topicId);
+  const kind = String(request.kind ?? "any").toLowerCase();
+  if (!Number.isInteger(subjectId) || subjectId <= 0) throw new Error("Select a subject.");
+  if (topicId !== null && chapterId === null) throw new Error("Select a chapter before selecting a topic.");
+  if (!["any", "theory", "numerical"].includes(kind)) throw new Error("Select a valid category.");
+
+  const result = await pool.query(
+    `SELECT qb.id, qb.question_text, lower(qd.name) AS difficulty, qc.name AS category,
+            s.subject_name, sc.chapter_name, ct.topic_name
+     FROM subjective_question_bank qb
+     JOIN subjects s ON s.id = qb.subject_id
+     LEFT JOIN subject_chapters sc ON sc.id = qb.chapter_id
+     LEFT JOIN chapter_topics ct ON ct.id = qb.topic_id
+     JOIN question_difficulty qd ON qd.id = qb.difficulty_id
+     JOIN question_category qc ON qc.id = qb.category_id
+     WHERE qb.subject_id = $1
+       AND ($2::int IS NULL OR qb.chapter_id = $2)
+       AND ($3::int IS NULL OR qb.topic_id = $3)
+       AND ($4::text = 'any' OR lower(qc.name) = $4)
+       AND lower(qd.name) = ANY($5::text[])
+     ORDER BY qb.id`,
+    [subjectId, chapterId, topicId, kind, [easy! > 0 ? "easy" : null, medium! > 0 ? "medium" : null, hard! > 0 ? "hard" : null].filter(Boolean)]
+  );
+  const candidates = result.rows.map((row) => ({
+    id: Number(row.id), question: String(row.question_text), difficulty: String(row.difficulty),
+    category: String(row.category), subject: String(row.subject_name),
+    chapter: row.chapter_name ? String(row.chapter_name) : "", topic: row.topic_name ? String(row.topic_name) : "",
+  }));
+  if (candidates.length < numberOfQuestions) {
+    throw new Error(`Only ${candidates.length} matching database questions are available, but ${numberOfQuestions} were requested.`);
+  }
+  for (const [difficulty, needed] of [["easy", easy!], ["medium", medium!], ["hard", hard!]] as const) {
+    const available = candidates.filter((question) => question.difficulty === difficulty).length;
+    if (available < needed) throw new Error(`Only ${available} ${difficulty} matching questions are available, but ${needed} were requested.`);
+  }
+
+  const promptCandidates = [
+    ...candidates.filter((q) => q.difficulty === "easy").slice(0, Math.max(easy! * 4, easy!)),
+    ...candidates.filter((q) => q.difficulty === "medium").slice(0, Math.max(medium! * 4, medium!)),
+    ...candidates.filter((q) => q.difficulty === "hard").slice(0, Math.max(hard! * 4, hard!)),
+  ];
+  const candidatePrompt = promptCandidates
+    .map((question) => `ID ${question.id} [${question.difficulty}|${question.category}] ${question.chapter} > ${question.topic}: ${question.question}`)
+    .join("\n");
+  let selectedIds: number[] = [];
+  let usage: LiveUsage | undefined;
+  try {
+    const response = await chatWithAI(`Select exactly ${numberOfQuestions} unique question IDs from the filtered candidates.
+Required difficulty counts: easy=${easy}, medium=${medium}, hard=${hard}. Category filter=${kind}.
+Return only JSON: {"ids":[1,2]}.
+Do not invent or rewrite questions. Prefer broad topic coverage and avoid near-duplicates.
+
+CANDIDATES:\n${candidatePrompt}`);
+    usage = response.usage;
+    const cleaned = response.content.replace(/```(?:json)?/gi, "").trim();
+    const parsed = JSON.parse(cleaned.slice(cleaned.indexOf("{"), cleaned.lastIndexOf("}") + 1));
+    selectedIds = z.object({ ids: z.array(z.number().int().positive()) }).parse(parsed).ids;
+  } catch (error) {
+    console.warn("[question-bank] AI selection failed, using filtered deterministic fallback:", error);
+  }
+  const byId = new Map(candidates.map((question) => [question.id, question]));
+  const used = new Set<number>();
+  const selected: typeof candidates = [];
+  for (const [difficulty, needed] of [["easy", easy!], ["medium", medium!], ["hard", hard!]] as const) {
+    const preferred = selectedIds.map((id) => byId.get(id)).filter((q): q is (typeof candidates)[number] => Boolean(q) && q!.difficulty === difficulty);
+    const fallback = candidates.filter((q) => q.difficulty === difficulty);
+    for (const question of [...preferred, ...fallback]) {
+      if (selected.filter((q) => q.difficulty === difficulty).length >= needed) break;
+      if (!used.has(question.id)) { used.add(question.id); selected.push(question); }
+    }
+  }
+  return {
+    questions: selected.map((question) => ({
+      question: question.question,
+      options: [], answer: "", type: "long", difficulty: question.difficulty,
+      explanation: "Selected from the database question bank", hint: "",
+      tags: [question.subject, question.chapter, question.topic, question.category].filter(Boolean),
+    })),
+    extractedText: "",
+    usage,
+  };
+
   const bankPath = await resolveBankPath();
   if (!bankPath) {
     throw new Error("Curated question bank is temporarily unavailable. Please try again later.");
   }
 
-  const buffer = await fs.readFile(bankPath);
+  const buffer = await fs.readFile(bankPath as string);
   let bankText = await extractDocxText(buffer);
   if (!bankText.trim()) {
     throw new Error("Curated question bank is temporarily unavailable. Please try again later.");

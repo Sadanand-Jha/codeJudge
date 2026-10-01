@@ -24,6 +24,7 @@ import { generateQuestionsFromFiles, generateFromQuestionBank } from "@/services
 import { toast } from "@/lib/toast";
 import type { RawAIGeneratedQuestion } from "@/services/ai";
 import type { CreatorQuestion } from "../types";
+import { QuestionBankFilters } from "@/components/creator/tests/sections/QuestionBankFilters";
 
 const ACCEPT = [
   ".txt", ".md", ".csv", ".tsv", ".json", ".xml", ".html", ".yml", ".yaml",
@@ -167,6 +168,10 @@ export function AiGenerateModal({
   const [bankMedium, setBankMedium] = useState(3);
   const [bankHard, setBankHard] = useState(3);
   const [bankSyllabus, setBankSyllabus] = useState("");
+  const [bankSubjectId, setBankSubjectId] = useState<number | null>(null);
+  const [bankChapterId, setBankChapterId] = useState<number | null>(null);
+  const [bankTopicId, setBankTopicId] = useState<number | null>(null);
+  const [bankKind, setBankKind] = useState<"any" | "theory" | "numerical">("any");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const syncBankDistribution = (total: number) => {
@@ -266,6 +271,10 @@ export function AiGenerateModal({
       setError(`Distribution must sum to ${bankNumber}: Easy ${bankEasy}+ Medium ${bankMedium}+ Hard ${bankHard}= ${sum}`);
       return;
     }
+    if (!bankSubjectId) {
+      setError("Please select a subject.");
+      return;
+    }
     setGenerating(true);
     setProgress(10);
     setError("");
@@ -277,6 +286,10 @@ export function AiGenerateModal({
         mediumCount: bankMedium,
         hardCount: bankHard,
         syllabus: bankSyllabus.trim() || undefined,
+        subjectId: bankSubjectId,
+        chapterId: bankChapterId,
+        topicId: bankTopicId,
+        kind: bankKind,
       });
       setProgress(70);
       const questions = rawQuestions.map((q, i) => mapToCreatorQuestion(q, i));
@@ -399,6 +412,19 @@ export function AiGenerateModal({
                 </div>
               ) : mode === "bank" ? (
                 <div className="space-y-3">
+                  <div className="rounded-xl border border-border bg-card p-3">
+                    <QuestionBankFilters
+                      subjectId={bankSubjectId}
+                      chapterId={bankChapterId}
+                      topicId={bankTopicId}
+                      onSubjectChange={setBankSubjectId}
+                      onChapterChange={setBankChapterId}
+                      onTopicChange={setBankTopicId}
+                      kind={bankKind}
+                      onKindChange={setBankKind}
+                      disabled={generating}
+                    />
+                  </div>
                   {/* Syllabus scope */}
                   <div className="space-y-2 rounded-xl border border-border bg-card p-3">
                     <label htmlFor="ai-bank-syllabus" className="flex items-center gap-1.5 text-xs font-bold text-text-primary">
@@ -467,10 +493,10 @@ export function AiGenerateModal({
                   <button
                     type="button"
                     onClick={handleGenerateFromBank}
-                    disabled={bankEasy + bankMedium + bankHard !== bankNumber}
+                    disabled={bankEasy + bankMedium + bankHard !== bankNumber || !bankSubjectId}
                     className={cn(
                       "sticky bottom-0 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all",
-                      bankEasy + bankMedium + bankHard === bankNumber
+                      bankEasy + bankMedium + bankHard === bankNumber && bankSubjectId
                         ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-500/20 hover:brightness-110"
                         : "cursor-not-allowed bg-card-hover text-text-muted"
                     )}

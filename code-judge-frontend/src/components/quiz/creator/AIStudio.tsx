@@ -20,6 +20,7 @@ import type { RawAIGeneratedQuestion, AIQuestionPreview } from "@/services/ai";
 import AIQuestionReviewOverlay, {
   type PreviewQuestion,
 } from "@/components/quiz/creator/AIQuestionReviewOverlay";
+import { QuestionBankFilters } from "@/components/creator/tests/sections/QuestionBankFilters";
 
 /* ============================================
    Types
@@ -168,12 +169,16 @@ export default function AIStudio({
   const [estimatedCredits, setEstimatedCredits] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showSmartSuggestions, setShowSmartSuggestions] = useState(true);
-  // Question Bank (OS 100) controls — balanced 10 paper by default 4/3/3
+  // Database question-bank controls — balanced 10 paper by default 4/3/3
   const [bankNumber, setBankNumber] = useState(10);
   const [bankEasy, setBankEasy] = useState(4);
   const [bankMedium, setBankMedium] = useState(3);
   const [bankHard, setBankHard] = useState(3);
   const [bankHardnessHint, setBankHardnessHint] = useState("");
+  const [bankSubjectId, setBankSubjectId] = useState<number | null>(null);
+  const [bankChapterId, setBankChapterId] = useState<number | null>(null);
+  const [bankTopicId, setBankTopicId] = useState<number | null>(null);
+  const [bankKind, setBankKind] = useState<"any" | "theory" | "numerical">("any");
 
   const { consume, refund, completeRequest, balance, isLowCredit, recommendedPack } = useAICreditConsumption();
 
@@ -314,6 +319,10 @@ export default function AIStudio({
       toast.error("Distribution must sum to total", { description: `Easy (${bankEasy}) + Medium (${bankMedium}) + Hard (${bankHard}) = ${sum} ≠ ${bankNumber}` });
       return;
     }
+    if (!bankSubjectId) {
+      toast.error("Select a subject first");
+      return;
+    }
     setIsGenerating(true);
     setGenerationProgress(5);
     try {
@@ -323,6 +332,10 @@ export default function AIStudio({
         mediumCount: bankMedium,
         hardCount: bankHard,
         hardnessHint: bankHardnessHint || undefined,
+        subjectId: bankSubjectId,
+        chapterId: bankChapterId,
+        topicId: bankTopicId,
+        kind: bankKind,
       });
       setGenerationProgress(70);
       const questions: GeneratedQuestion[] = mapRawQuestionsToPreview(rawQuestions).map((q: AIQuestionPreview, i) => ({
@@ -457,8 +470,8 @@ export default function AIStudio({
         <div className="mx-3 mt-3 rounded-xl border border-[#8B5CF6]/20 bg-gradient-to-br from-[#8B5CF6]/5 to-[#EC4899]/5 p-3 flex items-start gap-2">
           <BookOpen className="h-4 w-4 text-accent mt-0.5" />
           <div className="flex-1">
-            <p className="text-[11px] font-bold text-text-primary">Curated Operating Systems Bank</p>
-            <p className="text-[10px] text-text-secondary">200 single-correct MCQs · Balanced difficulty · Theory + Numerical</p>
+            <p className="text-[11px] font-bold text-text-primary">Database Question Bank</p>
+            <p className="text-[10px] text-text-secondary">Choose a subject, chapter, topic, category, and difficulty mix.</p>
           </div>
         </div>
       )}
@@ -511,6 +524,19 @@ export default function AIStudio({
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4"
             >
+              <div className="rounded-xl border border-border bg-card p-3">
+                <QuestionBankFilters
+                  subjectId={bankSubjectId}
+                  chapterId={bankChapterId}
+                  topicId={bankTopicId}
+                  onSubjectChange={setBankSubjectId}
+                  onChapterChange={setBankChapterId}
+                  onTopicChange={setBankTopicId}
+                  kind={bankKind}
+                  onKindChange={setBankKind}
+                  disabled={isGenerating}
+                />
+              </div>
               <div className="rounded-xl border border-border bg-card p-3 space-y-3">
                 <label className="text-[11px] font-bold text-text-primary flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-accent" /> Assessment size</label>
                 <div className="flex items-center gap-3">
@@ -522,7 +548,7 @@ export default function AIStudio({
                   <button onClick={() => { const v = Math.min(50, bankNumber + 1); setBankNumber(v); syncBankDistribution(v); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border"><Plus className="h-3.5 w-3.5" /></button>
                 </div>
                 <input type="range" min={5} max={20} value={bankNumber} onChange={(e) => { const v = parseInt(e.target.value); setBankNumber(v); syncBankDistribution(v); }} className="w-full h-2 bg-card-hover rounded-lg appearance-none cursor-pointer accent-accent" />
-                <p className="text-[10px] text-text-muted">Balanced OS paper typically 10 questions. Range 5–20.</p>
+                <p className="text-[10px] text-text-muted">A balanced quiz typically uses 10 questions. Range 5–20.</p>
               </div>
 
               <div className="rounded-xl border border-border bg-card p-3 space-y-3">
@@ -564,7 +590,7 @@ export default function AIStudio({
                 <p className="text-[10px] text-text-secondary leading-relaxed">AI curates <b>{bankNumber}</b> balanced questions for you — spread across chapters, difficulty ({bankEasy}·{bankMedium}·{bankHard}) and theory / numerical mix for a fair assessment.</p>
               </div>
 
-              <button onClick={handleGenerateFromBank} disabled={isGenerating || bankEasy + bankMedium + bankHard !== bankNumber} className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-3 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:cursor-not-allowed">
+              <button onClick={handleGenerateFromBank} disabled={isGenerating || bankEasy + bankMedium + bankHard !== bankNumber || !bankSubjectId} className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-3 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:cursor-not-allowed">
                 {isGenerating ? <><Loader2 className="h-4 w-4 animate-spin" /> Selecting... {Math.round(generationProgress)}%</> : <><Wand2 className="h-4 w-4" /> Generate {bankNumber} from Bank</>}
               </button>
             </motion.div>

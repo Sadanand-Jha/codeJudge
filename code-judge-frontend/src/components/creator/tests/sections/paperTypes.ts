@@ -61,6 +61,11 @@ export interface GeneratePaperPayload {
   instructions?: string;
   syllabus?: string;
   durationMinutes?: number;
+  subjectId: number;
+  chapterId?: number | null;
+  topicId?: number | null;
+  difficulty?: "any" | "easy" | "medium" | "hard";
+  kind?: "any" | "theory" | "numerical";
 }
 
 /** Convert editor sections into the shape the paper API expects. */
@@ -96,8 +101,16 @@ export interface GenerateQuestionsPayload {
   easyCount?: number;
   mediumCount?: number;
   hardCount?: number;
+  theoryCount?: number;
+  numericalCount?: number;
+  reasoningEffort?: "plus" | "pro" | "max";
   syllabus?: string;
   kind?: "any" | "theory" | "numerical";
+  subjectId: number;
+  chapterId?: number | null;
+  topicId?: number | null;
+  chapterIds?: number[];
+  topicIds?: number[];
 }
 
 export interface GenerateQuestionsResponse {

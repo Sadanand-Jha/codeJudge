@@ -9,7 +9,7 @@ import type { Request, Response } from "express";
 import path from "node:path";
 import sharp from "sharp";
 import { generateSectionsFromPDF } from "../services/testSectionGeneration.service.js";
-import { generateQuestionPaper, renderPaperHtml, generateSubjectiveQuestions } from "../services/question-paper.service.js";
+import { generateQuestionPaper, renderPaperHtml, generateSubjectiveQuestions, getQuestionGeneratorCatalog } from "../services/question-paper.service.js";
 import type { PaperSectionInput } from "../services/question-paper.service.js";
 
 const MAX_TOTAL_UPLOAD_BYTES = 2 * 1024 * 1024;
@@ -172,12 +172,13 @@ export const generatePaper = async (req: Request, res: Response) => {
       return;
     }
 
-    const { sections, title, instructions, syllabus, durationMinutes } = (req.body ?? {}) as {
+    const { sections, title, instructions, syllabus, durationMinutes, subjectId, chapterId, topicId, difficulty, kind } = (req.body ?? {}) as {
       sections?: PaperSectionInput[];
       title?: unknown;
       instructions?: unknown;
       syllabus?: unknown;
       durationMinutes?: unknown;
+      subjectId?: unknown; chapterId?: unknown; topicId?: unknown; difficulty?: unknown; kind?: unknown;
     };
 
     if (!Array.isArray(sections) || sections.length === 0) {
@@ -191,6 +192,11 @@ export const generatePaper = async (req: Request, res: Response) => {
       instructions: typeof instructions === "string" ? instructions : undefined,
       syllabus: typeof syllabus === "string" ? syllabus : undefined,
       durationMinutes: durationMinutes != null ? Number(durationMinutes) : undefined,
+      subjectId: Number(subjectId),
+      chapterId: chapterId != null && chapterId !== "" ? Number(chapterId) : null,
+      topicId: topicId != null && topicId !== "" ? Number(topicId) : null,
+      difficulty: typeof difficulty === "string" ? difficulty as "any" | "easy" | "medium" | "hard" : "any",
+      kind: typeof kind === "string" ? kind as "any" | "theory" | "numerical" : "any",
     });
 
     res.status(200).json({ success: true, data: { paper: result.paper } });
@@ -252,14 +258,18 @@ export const generateQuestions = async (req: Request, res: Response) => {
       return;
     }
 
-    const { numberOfQuestions, easyCount, mediumCount, hardCount, syllabus, kind } =
+    const { numberOfQuestions, easyCount, mediumCount, hardCount, theoryCount, numericalCount, reasoningEffort, syllabus, kind, subjectId, chapterId, topicId, chapterIds, topicIds } =
       (req.body ?? {}) as {
         numberOfQuestions?: unknown;
         easyCount?: unknown;
         mediumCount?: unknown;
         hardCount?: unknown;
+        theoryCount?: unknown;
+        numericalCount?: unknown;
+        reasoningEffort?: unknown;
         syllabus?: unknown;
         kind?: unknown;
+        subjectId?: unknown; chapterId?: unknown; topicId?: unknown; chapterIds?: unknown; topicIds?: unknown;
       };
 
     const result = await generateSubjectiveQuestions({
@@ -267,20 +277,37 @@ export const generateQuestions = async (req: Request, res: Response) => {
       easyCount: easyCount != null ? Number(easyCount) : undefined,
       mediumCount: mediumCount != null ? Number(mediumCount) : undefined,
       hardCount: hardCount != null ? Number(hardCount) : undefined,
+      theoryCount: theoryCount != null ? Number(theoryCount) : undefined,
+      numericalCount: numericalCount != null ? Number(numericalCount) : undefined,
+      reasoningEffort: typeof reasoningEffort === "string" ? reasoningEffort as "plus" | "pro" | "max" : undefined,
       syllabus: typeof syllabus === "string" ? syllabus : undefined,
       kind: typeof kind === "string" ? (kind as "any" | "theory" | "numerical") : undefined,
+      subjectId: Number(subjectId),
+      chapterId: chapterId != null && chapterId !== "" ? Number(chapterId) : null,
+      topicId: topicId != null && topicId !== "" ? Number(topicId) : null,
+      chapterIds: Array.isArray(chapterIds) ? chapterIds.map(Number) : undefined,
+      topicIds: Array.isArray(topicIds) ? topicIds.map(Number) : undefined,
     });
 
     res.status(200).json({ success: true, data: { questions: result.questions } });
   } catch (error: any) {
     console.error("Question picker error:", error);
     const message = error?.message || "Failed to generate questions. Please try again.";
-    if (/(must equal|must be one of|available|At least|at most)/i.test(message)) {
+    if (/(must equal|must be one of|available|at least|at most|select|valid)/i.test(message)) {
       res.status(400).json({ success: false, message });
     } else if (/unavailable|parsed safely/i.test(message)) {
       res.status(500).json({ success: false, message });
     } else {
       res.status(500).json({ success: false, message });
     }
+  }
+};
+
+export const questionGeneratorCatalog = async (_req: Request, res: Response) => {
+  try {
+    res.status(200).json({ success: true, data: await getQuestionGeneratorCatalog() });
+  } catch (error) {
+    console.error("Question generator catalog error:", error);
+    res.status(500).json({ success: false, message: "Unable to load question curriculum." });
   }
 };

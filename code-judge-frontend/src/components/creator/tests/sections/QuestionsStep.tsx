@@ -17,6 +17,7 @@ import { generateQuestionPaper, downloadQuestionPaper } from "@/services/aiGener
 import { sectionsToPaperPayload } from "./paperTypes";
 import type { Section } from "./types";
 import type { QuestionPaper } from "./paperTypes";
+import { QuestionBankFilters } from "./QuestionBankFilters";
 
 interface QuestionsStepProps {
   sections: Section[];
@@ -31,6 +32,11 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
   const abortRef = useRef<AbortController | null>(null);
 
   const [syllabus, setSyllabus] = useState("");
+  const [subjectId, setSubjectId] = useState<number | null>(null);
+  const [chapterId, setChapterId] = useState<number | null>(null);
+  const [topicId, setTopicId] = useState<number | null>(null);
+  const [difficulty, setDifficulty] = useState<"any" | "easy" | "medium" | "hard">("any");
+  const [kind, setKind] = useState<"any" | "theory" | "numerical">("any");
   const [status, setStatus] = useState<QuestionsStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [paper, setPaper] = useState<QuestionPaper | null>(null);
@@ -51,7 +57,7 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
   );
 
   const handleGenerate = useCallback(async () => {
-    if (totalNeeded === 0) return;
+    if (totalNeeded === 0 || !subjectId) return;
     setError(null);
     setPaper(null);
     abortRef.current = new AbortController();
@@ -63,6 +69,11 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
           sections: sectionsToPaperPayload(sections),
           title: paperTitle.trim() || undefined,
           syllabus: syllabus.trim() || undefined,
+          subjectId,
+          chapterId,
+          topicId,
+          difficulty,
+          kind,
         },
         abortRef.current.signal
       );
@@ -80,7 +91,7 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
       setError(err?.message || "Failed to generate the question paper. Please try again.");
       setStatus("error");
     }
-  }, [sections, paperTitle, syllabus, totalNeeded, toast]);
+  }, [sections, paperTitle, syllabus, subjectId, chapterId, topicId, difficulty, kind, totalNeeded, toast]);
 
   const handleDownload = useCallback(async () => {
     if (!paper) return;
@@ -132,10 +143,24 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
               value={paperTitle}
               onChange={(e) => onPaperTitleChange(e.target.value)}
               disabled={status === "generating"}
-              placeholder="e.g. Operating Systems — Mid Semester Exam"
+              placeholder="e.g. Mid Semester Examination"
               className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-[13px] text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-pink-500/50 disabled:opacity-50"
             />
           </div>
+
+          <QuestionBankFilters
+            subjectId={subjectId}
+            chapterId={chapterId}
+            topicId={topicId}
+            onSubjectChange={setSubjectId}
+            onChapterChange={setChapterId}
+            onTopicChange={setTopicId}
+            difficulty={difficulty}
+            onDifficultyChange={setDifficulty}
+            kind={kind}
+            onKindChange={setKind}
+            disabled={status === "generating"}
+          />
 
           <div>
             <label className="mb-1.5 block text-xs font-bold text-text-primary">
@@ -158,7 +183,7 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
             <button
               type="button"
               onClick={handleGenerate}
-              disabled={status === "generating" || totalNeeded === 0}
+              disabled={status === "generating" || totalNeeded === 0 || !subjectId}
               className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-2.5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
             >
               {status === "generating" ? (

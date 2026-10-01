@@ -236,6 +236,10 @@ export interface GenerateFromBankOptions {
   hardCount?: number;
   hardnessHint?: string;
   syllabus?: string;
+  subjectId: number;
+  chapterId?: number | null;
+  topicId?: number | null;
+  kind?: "any" | "theory" | "numerical";
 }
 
 export interface GenerateFromBankResponse {
@@ -257,6 +261,10 @@ export const generateFromQuestionBank = async (
       hardCount: options.hardCount,
       hardnessHint: options.hardnessHint,
       syllabus: options.syllabus,
+      subjectId: options.subjectId,
+      chapterId: options.chapterId,
+      topicId: options.topicId,
+      kind: options.kind,
     }),
     credentials: "include",
   });

@@ -17,6 +17,7 @@ import { z } from "zod";
 import mammoth from "mammoth";
 import { chatWithAI } from "./ai.service.js";
 import type { LiveUsage } from "./ai.service.js";
+import { pool as db } from "../config/database.js";
 
 /* ================================================================== */
 /*  Input / output types                                                */
@@ -46,6 +47,11 @@ export interface GeneratePaperRequest {
   /** Free-form syllabus/topics — the AI prefers bank questions matching it. */
   syllabus?: string;
   durationMinutes?: number;
+  subjectId: number;
+  chapterId?: number | null;
+  topicId?: number | null;
+  difficulty?: "any" | "easy" | "medium" | "hard";
+  kind?: "any" | "theory" | "numerical";
 }
 
 export interface PaperQuestion {
@@ -100,9 +106,17 @@ export interface GenerateSubjectiveQuestionsRequest {
   easyCount?: number;
   mediumCount?: number;
   hardCount?: number;
+  theoryCount?: number;
+  numericalCount?: number;
+  reasoningEffort?: "plus" | "pro" | "max";
   /** Topic / syllabus — the AI prefers bank questions matching it. */
   syllabus?: string;
   kind?: "any" | "theory" | "numerical";
+  subjectId: number;
+  chapterId?: number | null;
+  topicId?: number | null;
+  chapterIds?: number[];
+  topicIds?: number[];
 }
 
 export interface SubjectiveQuestion {
@@ -117,7 +131,7 @@ export interface GenerateSubjectiveQuestionsResult {
   usage?: LiveUsage;
 }
 
-const PICKER_SYSTEM = `You are an expert teacher picking the perfect questions from an Operating Systems subjective question bank.
+const PICKER_SYSTEM = `You are an expert teacher selecting questions from a filtered subjective question bank.
 
 ABSOLUTE RULES:
 - Return ONLY raw JSON. Nothing else. First character MUST be { and last MUST be }.
@@ -125,6 +139,7 @@ ABSOLUTE RULES:
 - You MUST pick ONLY question numbers that exist in the QUESTION BANK below. Never invent, rephrase, or renumber.
 - Every question number may be used AT MOST ONCE.
 - Pick EXACTLY the requested counts per difficulty.
+- Pick EXACTLY the requested counts per category.
 - Prefer questions whose wording matches the given topic/syllabus. If the bank has too few matching questions, fill the rest with the closest related ones.
 
 OUTPUT SHAPE:
@@ -157,22 +172,133 @@ export const generateSubjectiveQuestions = async (
   if (!["any", "theory", "numerical"].includes(kind)) {
     throw new Error(`kind must be one of: any, theory, numerical.`);
   }
-
-  const { bank } = await loadSubjectiveBank();
-  const pool = kind === "any" ? bank : bank.filter((q) => q.kind.toLocaleLowerCase() === kind);
-  if (pool.length < total) {
-    throw new Error(`Only ${pool.length} "${kind}" questions are available, but ${total} were requested.`);
+  const reasoningEffort = request.reasoningEffort ?? "plus";
+  if (!["plus", "pro", "max"].includes(reasoningEffort)) {
+    throw new Error("Select a valid reasoning effort.");
   }
-  const byNum = new Map(pool.map((q) => [q.num, q]));
+  let theory = request.theoryCount;
+  let numerical = request.numericalCount;
+  if (theory == null && numerical == null) {
+    theory = kind === "numerical" ? 0 : kind === "theory" ? total : Math.round(total * 0.6);
+    numerical = total - theory;
+  } else {
+    theory = Math.max(0, Math.floor(Number(theory) || 0));
+    numerical = Math.max(0, Math.floor(Number(numerical) || 0));
+    if (theory + numerical !== total) {
+      throw new Error(`theoryCount+numericalCount (${theory + numerical}) must equal numberOfQuestions (${total}).`);
+    }
+  }
+
+  const subjectId = Number(request.subjectId);
+  const chapterIds = [...new Set((request.chapterIds?.length
+    ? request.chapterIds
+    : request.chapterId == null ? [] : [request.chapterId]).map(Number))];
+  const topicIds = [...new Set((request.topicIds?.length
+    ? request.topicIds
+    : request.topicId == null ? [] : [request.topicId]).map(Number))];
+  if (!Number.isInteger(subjectId) || subjectId <= 0) throw new Error("Select a subject.");
+  if (chapterIds.some((id) => !Number.isInteger(id) || id <= 0)) throw new Error("Select valid chapters.");
+  if (topicIds.some((id) => !Number.isInteger(id) || id <= 0)) throw new Error("Select valid topics.");
+  if (topicIds.length > 0 && chapterIds.length === 0) throw new Error("Select at least one chapter before selecting topics.");
+
+  const difficultyNames: string[] = [];
+  if (easy > 0) difficultyNames.push("easy");
+  if (medium > 0) difficultyNames.push("medium");
+  if (hard > 0) difficultyNames.push("hard");
+  const result = await db.query(
+    `SELECT qb.id AS num, qb.question_text AS question,
+            lower(qd.name) AS difficulty, qc.name AS kind
+     FROM subjective_question_bank qb
+     JOIN question_difficulty qd ON qd.id = qb.difficulty_id
+     JOIN question_category qc ON qc.id = qb.category_id
+     WHERE qb.subject_id = $1
+       AND (cardinality($2::int[]) = 0 OR qb.chapter_id = ANY($2::int[]))
+       AND (cardinality($3::int[]) = 0 OR qb.topic_id = ANY($3::int[]))
+       AND lower(qd.name) = ANY($4::text[])
+       AND lower(qc.name) = ANY($5::text[])
+     ORDER BY qb.id`,
+    [subjectId, chapterIds, topicIds, difficultyNames, [theory > 0 ? "theory" : null, numerical > 0 ? "numerical" : null].filter(Boolean)]
+  );
+  const candidates = result.rows.map((row) => ({
+    num: Number(row.num),
+    question: String(row.question),
+    difficulty: String(row.difficulty),
+    kind: String(row.kind),
+  })) as BankQuestion[];
+  if (candidates.length < total) {
+    throw new Error(`Only ${candidates.length} matching questions are available, but ${total} were requested.`);
+  }
+  for (const [difficulty, needed] of [["easy", easy], ["medium", medium], ["hard", hard]] as const) {
+    const available = candidates.filter((question) => question.difficulty === difficulty).length;
+    if (available < needed) {
+      throw new Error(`Only ${available} ${difficulty} matching questions are available, but ${needed} were requested.`);
+    }
+  }
+  for (const [category, needed] of [["theory", theory], ["numerical", numerical]] as const) {
+    const available = candidates.filter((question) => question.kind.toLowerCase() === category).length;
+    if (available < needed) {
+      throw new Error(`Only ${available} ${category} matching questions are available, but ${needed} were requested.`);
+    }
+  }
+
+  const availableInCell = (difficulty: string, category: string) =>
+    candidates.filter((q) => q.difficulty === difficulty && q.kind.toLowerCase() === category).length;
+  let cellPlan: Record<string, number> | null = null;
+  for (let easyTheory = 0; easyTheory <= easy && !cellPlan; easyTheory++) {
+    const easyNumerical = easy - easyTheory;
+    if (easyTheory > availableInCell("easy", "theory") || easyNumerical > availableInCell("easy", "numerical")) continue;
+    for (let mediumTheory = 0; mediumTheory <= medium; mediumTheory++) {
+      const mediumNumerical = medium - mediumTheory;
+      const hardTheory = theory - easyTheory - mediumTheory;
+      const hardNumerical = hard - hardTheory;
+      if (hardTheory < 0 || hardNumerical < 0) continue;
+      if (mediumTheory > availableInCell("medium", "theory") || mediumNumerical > availableInCell("medium", "numerical")) continue;
+      if (hardTheory > availableInCell("hard", "theory") || hardNumerical > availableInCell("hard", "numerical")) continue;
+      cellPlan = {
+        "easy:theory": easyTheory, "easy:numerical": easyNumerical,
+        "medium:theory": mediumTheory, "medium:numerical": mediumNumerical,
+        "hard:theory": hardTheory, "hard:numerical": hardNumerical,
+      };
+      break;
+    }
+  }
+  if (!cellPlan) {
+    throw new Error("The requested difficulty and category counts cannot be combined with the available questions. Adjust the counts or broaden the selected topics.");
+  }
+  const byNum = new Map(candidates.map((q) => [q.num, q]));
 
   const syllabus = (request.syllabus ?? "").trim().slice(0, 4000);
-  const bankForPrompt = pool
+  const promptTerms = syllabusTerms(syllabus);
+  const shuffle = <T>(items: T[]): T[] => {
+    const copy = [...items];
+    for (let index = copy.length - 1; index > 0; index--) {
+      const swapWith = Math.floor(Math.random() * (index + 1));
+      [copy[index], copy[swapWith]] = [copy[swapWith], copy[index]];
+    }
+    return copy;
+  };
+  const promptCandidateMap = new Map<number, BankQuestion>();
+  for (const [cell, needed] of Object.entries(cellPlan)) {
+    const [difficulty, category] = cell.split(":");
+    const requiredCellCandidates = shuffle(candidates.filter(
+      (q) => q.difficulty === difficulty && q.kind.toLowerCase() === category
+    )).slice(0, needed);
+    requiredCellCandidates.forEach((question) => promptCandidateMap.set(question.num, question));
+  }
+  const promptCandidateLimit = Math.min(candidates.length, Math.max(40, total));
+  for (const question of shuffle(candidates)) {
+    if (promptCandidateMap.size >= promptCandidateLimit) break;
+    promptCandidateMap.set(question.num, question);
+  }
+  const promptCandidates = shuffle([...promptCandidateMap.values()]);
+  const bankForPrompt = promptCandidates
     .map((q) => `Q${q.num}. [${q.difficulty}|${q.kind}] ${q.question}`)
     .join("\n");
 
   const prompt = `${PICKER_SYSTEM}
 
-Pick EXACTLY ${total} questions — Easy=${easy}, Medium=${medium}, Hard=${hard}. Kind filter: ${kind}.
+Pick EXACTLY ${total} questions — Easy=${easy}, Medium=${medium}, Hard=${hard}; Theory=${theory}, Numerical=${numerical}.
+Reasoning effort: ${reasoningEffort}.
 ${syllabus ? `TOPIC / SYLLABUS (prefer matching questions):\n${syllabus}\n` : "No topic supplied — pick the strongest questions across the bank."}
 
 QUESTION BANK:
@@ -197,26 +323,20 @@ ${bankForPrompt}`;
     aiNums = [];
   }
 
-  // Rehydrate: keep valid AI picks per difficulty bucket, repair shortfalls.
-  const terms = syllabusTerms(syllabus);
-  const ranked = [...pool].sort((a, b) => {
+  // Rehydrate: keep valid AI picks per difficulty/category cell, repair shortfalls.
+  const terms = promptTerms;
+  const randomOrder = new Map(shuffle(candidates).map((question, index) => [question.num, index]));
+  const ranked = [...candidates].sort((a, b) => {
     const diff = scoreBySyllabus(b, terms) - scoreBySyllabus(a, terms);
     if (diff !== 0) return diff;
-    return a.num - b.num;
+    return (randomOrder.get(a.num) ?? 0) - (randomOrder.get(b.num) ?? 0);
   });
   const used = new Set<number>();
-  const takeUnused = (difficulty: string, count: number): BankQuestion[] => {
+  const takeUnused = (difficulty: string, category: string, count: number): BankQuestion[] => {
     const out: BankQuestion[] = [];
     for (const q of ranked) {
       if (out.length >= count) break;
-      if (!used.has(q.num) && q.difficulty === difficulty) {
-        used.add(q.num);
-        out.push(q);
-      }
-    }
-    for (const q of ranked) {
-      if (out.length >= count) break;
-      if (!used.has(q.num)) {
+      if (!used.has(q.num) && q.difficulty === difficulty && q.kind.toLowerCase() === category) {
         used.add(q.num);
         out.push(q);
       }
@@ -224,23 +344,19 @@ ${bankForPrompt}`;
     return out;
   };
 
-  const buckets: Array<{ difficulty: string; need: number }> = [
-    { difficulty: "easy", need: easy },
-    { difficulty: "medium", need: medium },
-    { difficulty: "hard", need: hard },
-  ];
   const picked: BankQuestion[] = [];
-  for (const b of buckets) {
+  for (const [cell, need] of Object.entries(cellPlan)) {
+    const [difficulty, category] = cell.split(":");
     const kept: BankQuestion[] = [];
     for (const n of aiNums) {
-      if (kept.length >= b.need) break;
+      if (kept.length >= need) break;
       const q = byNum.get(n);
-      if (q && !used.has(n) && q.difficulty === b.difficulty) {
+      if (q && !used.has(n) && q.difficulty === difficulty && q.kind.toLowerCase() === category) {
         used.add(n);
         kept.push(q);
       }
     }
-    if (kept.length < b.need) kept.push(...takeUnused(b.difficulty, b.need - kept.length));
+    if (kept.length < need) kept.push(...takeUnused(difficulty, category, need - kept.length));
     picked.push(...kept);
   }
 
@@ -253,6 +369,39 @@ ${bankForPrompt}`;
 
   return { questions, usage };
 };
+
+export async function getQuestionGeneratorCatalog() {
+  const [subjects, chapters, topics, difficulties, categories] = await Promise.all([
+    db.query(
+      `SELECT DISTINCT s.id, s.subject_name AS name
+       FROM subjects s
+       WHERE EXISTS (SELECT 1 FROM subject_chapters sc WHERE sc.subject_id = s.id)
+         AND EXISTS (
+           SELECT 1 FROM chapter_topics ct
+           JOIN subject_chapters sc ON sc.id = ct.chapter_id
+           WHERE sc.subject_id = s.id
+         )
+         AND EXISTS (SELECT 1 FROM subjective_question_bank qb WHERE qb.subject_id = s.id)
+       ORDER BY name`
+    ).then((r) => r.rows),
+    db.query(
+      `SELECT DISTINCT sc.id, sc.subject_id AS "subjectId", sc.chapter_name AS name
+       FROM subject_chapters sc
+       WHERE EXISTS (SELECT 1 FROM chapter_topics ct WHERE ct.chapter_id = sc.id)
+         AND EXISTS (SELECT 1 FROM subjective_question_bank qb WHERE qb.chapter_id = sc.id)
+       ORDER BY name`
+    ).then((r) => r.rows),
+    db.query(
+      `SELECT DISTINCT ct.id, ct.chapter_id AS "chapterId", ct.topic_name AS name
+       FROM chapter_topics ct
+       WHERE EXISTS (SELECT 1 FROM subjective_question_bank qb WHERE qb.topic_id = ct.id)
+       ORDER BY name`
+    ).then((r) => r.rows),
+    db.query(`SELECT id, name FROM question_difficulty ORDER BY id`).then((r) => r.rows),
+    db.query(`SELECT id, name FROM question_category ORDER BY id`).then((r) => r.rows),
+  ]);
+  return { subjects, chapters, topics, difficulties, categories };
+}
 
 /* ================================================================== */
 /*  Subjective bank loading                                             */
@@ -414,7 +563,7 @@ const AISelectionSchema = z.object({
 /*  Prompt                                                              */
 /* ================================================================== */
 
-const PAPER_SETTER_SYSTEM = `You are an expert university paper setter. Your task is to SELECT questions from the provided Operating Systems subjective question bank to build a complete question paper that exactly follows the given section structure.
+const PAPER_SETTER_SYSTEM = `You are an expert university paper setter. Your task is to SELECT questions from the provided filtered subjective question bank to build a complete question paper that exactly follows the given section structure.
 
 ABSOLUTE RULES:
 - Return ONLY raw JSON. Nothing else. First character MUST be { and last MUST be }.
@@ -473,9 +622,34 @@ export const generateQuestionPaper = async (
   if (totalNeeded <= 0) throw new Error("Sections must require at least one question.");
   if (totalNeeded > 100) throw new Error("A paper can have at most 100 questions.");
 
-  const { bank } = await loadSubjectiveBank();
+  const subjectId = Number(request.subjectId);
+  const chapterId = request.chapterId == null ? null : Number(request.chapterId);
+  const topicId = request.topicId == null ? null : Number(request.topicId);
+  const difficulty = String(request.difficulty ?? "any").toLowerCase();
+  const kind = String(request.kind ?? "any").toLowerCase();
+  if (!Number.isInteger(subjectId) || subjectId <= 0) throw new Error("Select a subject.");
+  if (topicId !== null && chapterId === null) throw new Error("Select a chapter before selecting a topic.");
+  if (!["any", "easy", "medium", "hard"].includes(difficulty)) throw new Error("Select a valid difficulty.");
+  if (!["any", "theory", "numerical"].includes(kind)) throw new Error("Select a valid category.");
+  const bankResult = await db.query(
+    `SELECT qb.id AS num, qb.question_text AS question,
+            lower(qd.name) AS difficulty, qc.name AS kind
+     FROM subjective_question_bank qb
+     JOIN question_difficulty qd ON qd.id = qb.difficulty_id
+     JOIN question_category qc ON qc.id = qb.category_id
+     WHERE qb.subject_id = $1
+       AND ($2::int IS NULL OR qb.chapter_id = $2)
+       AND ($3::int IS NULL OR qb.topic_id = $3)
+       AND ($4::text = 'any' OR lower(qd.name) = $4)
+       AND ($5::text = 'any' OR lower(qc.name) = $5)
+     ORDER BY qb.id`,
+    [subjectId, chapterId, topicId, difficulty, kind]
+  );
+  const bank = bankResult.rows.map((row) => ({
+    num: Number(row.num), question: String(row.question), difficulty: String(row.difficulty), kind: String(row.kind),
+  })) as BankQuestion[];
   if (totalNeeded > bank.length) {
-    throw new Error(`Only ${bank.length} bank questions are available, but ${totalNeeded} were requested.`);
+    throw new Error(`Only ${bank.length} matching database questions are available, but ${totalNeeded} were requested.`);
   }
   const byNum = new Map(bank.map((q) => [q.num, q]));
 
@@ -483,7 +657,11 @@ export const generateQuestionPaper = async (
   const title = (request.title ?? "").trim().slice(0, 200) || "Question Paper";
   const instructions = (request.instructions ?? "").trim().slice(0, 2000);
 
-  const bankForPrompt = bank
+  const perDifficultyPromptLimit = Math.max(totalNeeded, 10);
+  const promptBank = ["easy", "medium", "hard"]
+    .flatMap((level) => bank.filter((q) => q.difficulty === level).slice(0, perDifficultyPromptLimit))
+    .slice(0, Math.max(totalNeeded * 4, 40));
+  const bankForPrompt = promptBank
     .map((q) => `Q${q.num}. [${q.difficulty}|${q.kind}] ${q.question}`)
     .join("\n");
 

@@ -28,6 +28,8 @@ function QuestionImportPanel({ query }: {
   const [chapterId, setChapterId] = useState("");
   const [topicId, setTopicId] = useState("");
   const [previewing, setPreviewing] = useState(false);
+  const [jsonInput, setJsonInput] = useState("");
+  const [jsonPreviewing, setJsonPreviewing] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [preview, setPreview] = useState<SubjectiveImportPreview | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -70,6 +72,35 @@ function QuestionImportPanel({ query }: {
       setError(getApiErrorMessage(cause, "AI could not create a valid preview from this document."));
     } finally {
       setPreviewing(false);
+    }
+  };
+
+  const createJsonPreview = async () => {
+    setError(null);
+    setResult(null);
+    let questions: unknown[];
+    try {
+      const parsed: unknown = JSON.parse(jsonInput);
+      questions = Array.isArray(parsed)
+        ? parsed
+        : (parsed as { questions?: unknown[] } | null)?.questions ?? [];
+      if (!Array.isArray(questions) || questions.length === 0) {
+        throw new Error("Paste a JSON object containing a non-empty questions array.");
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Pasted JSON is invalid.");
+      return;
+    }
+
+    setJsonPreviewing(true);
+    try {
+      const generated = await platformApi.previewQuestionImportJson(questions);
+      setPreview(generated);
+      setSelected(new Set(generated.questions.map((_, index) => index)));
+    } catch (cause) {
+      setError(getApiErrorMessage(cause, "Pasted questions could not be validated."));
+    } finally {
+      setJsonPreviewing(false);
     }
   };
 
@@ -141,6 +172,28 @@ function QuestionImportPanel({ query }: {
                 </span>
                 <input type="file" className="sr-only" accept=".pdf,.docx,.txt,.md,.rtf,.pptx" onChange={(event) => { setFile(event.target.files?.[0] ?? null); resetPreview(); }} />
               </label>
+
+              <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">
+                <span className="h-px flex-1 bg-[var(--border)]" /> or paste ready JSON <span className="h-px flex-1 bg-[var(--border)]" />
+              </div>
+              <div className="space-y-2.5">
+                <textarea
+                  value={jsonInput}
+                  onChange={(event) => { setJsonInput(event.target.value); resetPreview(); }}
+                  placeholder={'{"questions":[{"question_text":"...","question_html":"<p>...</p>","subject_id":25,"chapter_id":65,"topic_id":257,"difficulty_id":1,"category_id":1}]}' }
+                  spellCheck={false}
+                  className="pf-focus min-h-[150px] w-full resize-y rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] p-3 font-mono text-[10px] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+                />
+                <button
+                  type="button"
+                  onClick={createJsonPreview}
+                  disabled={jsonPreviewing || !jsonInput.trim()}
+                  className="pf-focus flex min-h-10 w-full items-center justify-center gap-2 rounded-[9px] border border-[#8B5CF6]/30 bg-[#8B5CF6]/10 px-4 text-[10px] font-semibold text-[#8B5CF6] hover:bg-[#8B5CF6]/15 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ClipboardCheck size={13} />{jsonPreviewing ? "Validating JSON…" : "Validate JSON & create preview"}
+                </button>
+                <p className="text-[9px] leading-relaxed text-[var(--text-muted)]">No AI call is made. IDs and HTML are validated before the review batch is created.</p>
+              </div>
 
               <div className="space-y-3">
                 <ImportSelect label="Subject" required value={subjectId} onChange={(value) => { setSubjectId(value); setChapterId(""); setTopicId(""); resetPreview(); }} options={catalog.subjects} placeholder="Select subject" />

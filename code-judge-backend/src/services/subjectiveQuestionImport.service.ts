@@ -333,12 +333,107 @@ question_html may use only: p, br, strong, em, u, sup, sub, ul, ol, li, blockquo
   return { batchId, sourceFilename: input.file.filename, scope, questions: previewQuestions, usage: generated.usage, expiresInSeconds: 86_400 };
 }
 
+/** Validate pasted JSON and stage it for the same owner review/commit flow. */
+export async function createSubjectiveJsonImportPreview(input: {
+  userId: number;
+  questions: unknown;
+}) {
+  const parsed = GeneratedPayloadSchema.parse({ questions: input.questions });
+  const subjectIds = [...new Set(parsed.questions.map((question) => question.subject_id))];
+  if (subjectIds.length !== 1) throw new Error("All pasted questions must use the same subject_id.");
+
+  const subjectId = subjectIds[0];
+  const subjectResult = await pool.query(
+    `SELECT id AS subject_id, subject_name FROM subjects WHERE id = $1`,
+    [subjectId]
+  );
+  const subject = subjectResult.rows[0] as { subject_id: number; subject_name: string } | undefined;
+  if (!subject) throw new Error(`Subject ${subjectId} was not found.`);
+
+  const classificationCatalog = await getAiClassificationCatalog(subjectId);
+  const chapterIds = new Set(classificationCatalog.chapters.map((row) => Number(row.id)));
+  const topicToChapter = new Map(classificationCatalog.topics.map((row) => [Number(row.id), Number(row.chapter_id)]));
+  const difficultyNames = new Map(classificationCatalog.difficulties.map((row) => [Number(row.id), String(row.name)]));
+  const categoryNames = new Map(classificationCatalog.categories.map((row) => [Number(row.id), String(row.name)]));
+  const chapterNames = new Map(classificationCatalog.chapters.map((row) => [Number(row.id), String(row.name)]));
+  const topicNames = new Map(classificationCatalog.topics.map((row) => [Number(row.id), String(row.name)]));
+
+  const seen = new Set<string>();
+  const questions = parsed.questions.map((question) => {
+    if (question.chapter_id !== null && !chapterIds.has(question.chapter_id)) {
+      throw new Error(`chapter_id ${question.chapter_id} does not belong to subject_id ${subjectId}.`);
+    }
+    if (question.topic_id !== null && (question.chapter_id === null || topicToChapter.get(question.topic_id) !== question.chapter_id)) {
+      throw new Error(`topic_id ${question.topic_id} does not belong to chapter_id ${question.chapter_id}.`);
+    }
+    if (!difficultyNames.has(question.difficulty_id)) throw new Error(`difficulty_id ${question.difficulty_id} was not found.`);
+    if (!categoryNames.has(question.category_id)) throw new Error(`category_id ${question.category_id} was not found.`);
+    const sanitized = sanitizeQuestionHtml(question.question_html);
+    return { ...question, question_text: sanitized.text, question_html: sanitized.html };
+  }).filter((question) => {
+    const key = question.question_text.toLocaleLowerCase().replace(/\s+/g, " ").trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  if (!questions.length) throw new Error("Paste at least one valid question.");
+
+  const commonChapterId = questions.every((question) => question.chapter_id === questions[0].chapter_id)
+    ? questions[0].chapter_id
+    : null;
+  const commonTopicId = questions.every((question) => question.topic_id === questions[0].topic_id)
+    ? questions[0].topic_id
+    : null;
+  const batchId = randomUUID();
+  const sourceFilename = "pasted-questions.json";
+
+  await pool.query(
+    `INSERT INTO subjective_question_import_batches
+      (id, created_by, subject_id, chapter_id, topic_id, source_filename, questions, question_count)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    [batchId, input.userId, subjectId, commonChapterId, commonTopicId,
+      sourceFilename, JSON.stringify(questions), questions.length]
+  );
+
+  return {
+    batchId,
+    sourceFilename,
+    scope: {
+      subject_id: subjectId,
+      subject_name: subject.subject_name,
+      chapter_id: commonChapterId,
+      chapter_name: commonChapterId ? chapterNames.get(commonChapterId) ?? null : null,
+      topic_id: commonTopicId,
+      topic_name: commonTopicId ? topicNames.get(commonTopicId) ?? null : null,
+    },
+    questions: questions.map((question) => ({
+      ...question,
+      chapter_name: question.chapter_id ? chapterNames.get(question.chapter_id) ?? null : null,
+      topic_name: question.topic_id ? topicNames.get(question.topic_id) ?? null : null,
+      difficulty_name: difficultyNames.get(question.difficulty_id)!,
+      category_name: categoryNames.get(question.category_id)!,
+    })),
+    expiresInSeconds: 86_400,
+  };
+}
+
 export async function commitSubjectiveImport(input: {
   userId: number;
   batchId: string;
   selectedIndexes?: number[];
 }) {
+  const startedAt = Date.now();
+  const poolWaitStartedAt = Date.now();
+  console.log("[question-import] commit service: start", {
+    userId: input.userId,
+    batchId: input.batchId,
+    selectedCount: input.selectedIndexes?.length ?? "all",
+  });
   const client = await pool.connect();
+  console.log("[question-import] commit service: pool client acquired", {
+    batchId: input.batchId,
+    poolWaitMs: Date.now() - poolWaitStartedAt,
+  });
   try {
     await client.query("BEGIN");
     const batchResult = await client.query(
@@ -347,19 +442,41 @@ export async function commitSubjectiveImport(input: {
       [input.batchId, input.userId]
     );
     const batch = batchResult.rows[0];
-    if (!batch) throw new Error("Import preview was not found.");
+    if (!batch) {
+      console.error("[question-import] commit service: batch NOT FOUND", {
+        batchId: input.batchId,
+        userId: input.userId,
+        elapsedMs: Date.now() - startedAt,
+      });
+      throw new Error("Import preview was not found.");
+    }
     if (batch.status !== "pending") throw new Error(`This import batch is already ${batch.status}.`);
     if (new Date(batch.expires_at).getTime() <= Date.now()) {
       await client.query(`UPDATE subjective_question_import_batches SET status = 'expired' WHERE id = $1`, [input.batchId]);
       await client.query("COMMIT");
+      console.error("[question-import] commit service: batch EXPIRED", {
+        batchId: input.batchId,
+        expiresAt: batch.expires_at,
+        elapsedMs: Date.now() - startedAt,
+      });
       throw new Error("This import preview has expired. Generate a new preview.");
     }
+    console.log("[question-import] commit service: batch locked", {
+      batchId: input.batchId,
+      status: batch.status,
+      elapsedMs: Date.now() - startedAt,
+    });
 
     const questions = GeneratedPayloadSchema.shape.questions.parse(batch.questions) as GeneratedSubjectiveQuestion[];
     const requested = input.selectedIndexes
       ? [...new Set(input.selectedIndexes)].filter((index) => Number.isInteger(index) && index >= 0 && index < questions.length)
       : questions.map((_, index) => index);
     if (!requested.length) throw new Error("Select at least one question to import.");
+    console.log("[question-import] commit service: inserting", {
+      batchId: input.batchId,
+      requested: requested.length,
+      totalInBatch: questions.length,
+    });
 
     let inserted = 0;
     let skippedDuplicates = 0;
@@ -406,8 +523,24 @@ export async function commitSubjectiveImport(input: {
       [input.batchId, inserted]
     );
     await client.query("COMMIT");
+    console.log("[question-import] commit service: success", {
+      batchId: input.batchId,
+      inserted,
+      skippedDuplicates,
+      selected: requested.length,
+      elapsedMs: Date.now() - startedAt,
+    });
     return { inserted, skippedDuplicates, selected: requested.length };
   } catch (error) {
+    console.error("[question-import] commit service: FAILED", {
+      batchId: input.batchId,
+      userId: input.userId,
+      elapsedMs: Date.now() - startedAt,
+      name: error instanceof Error ? error.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as { code?: unknown })?.code,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     await client.query("ROLLBACK").catch(() => undefined);
     throw error;
   } finally {

@@ -234,6 +234,13 @@ export const platformApi = {
     });
     return response.data;
   }),
+  previewQuestionImportJson: (questions: unknown[]) => schedulePlatformRequest(async () => {
+    const response = await platformClient.post<SubjectiveImportPreview>(
+      "/v1/platform/question-import/json-preview",
+      { questions }
+    );
+    return response.data;
+  }),
   commitQuestionImport: (batchId: string, selectedIndexes: number[]) => schedulePlatformRequest(async () => {
     const response = await platformClient.post<{ inserted: number; skippedDuplicates: number; selected: number }>(
       "/v1/platform/question-import/commit",
