@@ -40,16 +40,14 @@
 import Link from "next/link";
 import { fetchProblem } from "@/services/problems";
 import ProblemClient from "./ProblemClient";
-import ProblemSkeleton from "@/components/problem/ProblemSkeleton";
 import type { ProblemPageProps } from "@/types/problem";
+import { cookies } from "next/headers";
 
 export default async function ProblemPage({ params }: ProblemPageProps) {
   const { problemId } = await params;
+  const problem = await fetchProblem(problemId, (await cookies()).toString()).catch(() => null);
 
-  try {
-    const problem = await fetchProblem(problemId);
-    return <ProblemClient problem={problem} />;
-  } catch {
+  if (!problem) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 md:px-6 lg:px-8">
         <div className="flex flex-col items-center justify-center text-center">
@@ -84,13 +82,15 @@ export default async function ProblemPage({ params }: ProblemPageProps) {
       </div>
     );
   }
+
+  return <ProblemClient problem={problem} />;
 }
 
 export async function generateMetadata({ params }: ProblemPageProps) {
   const { problemId } = await params;
 
   try {
-    const problem = await fetchProblem(problemId);
+    const problem = await fetchProblem(problemId, (await cookies()).toString());
     return {
       title: `${problem.title} — ByteClash`,
       description: problem.statement

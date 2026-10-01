@@ -15,7 +15,7 @@ const GeneratedQuestionSchema = z.object({
 });
 
 const GeneratedPayloadSchema = z.object({
-  questions: z.array(GeneratedQuestionSchema).min(1).max(100),
+  questions: z.array(GeneratedQuestionSchema).min(1),
 });
 
 export type GeneratedSubjectiveQuestion = z.infer<typeof GeneratedQuestionSchema>;
@@ -34,7 +34,6 @@ const OUTPUT_SCHEMA = {
     questions: {
       type: "array",
       minItems: 1,
-      maxItems: 100,
       items: {
         type: "object",
         additionalProperties: false,
@@ -133,18 +132,18 @@ export async function createSubjectiveImportPreview(input: {
   userId: number;
   file: { filename: string; mimeType: string; buffer: Buffer };
   scope: ImportScope;
-  maxQuestions: number;
 }) {
   const scope = await resolveScope(input.scope);
   const classificationCatalog = await getAiClassificationCatalog(input.scope.subjectId);
-  const maxQuestions = Math.min(100, Math.max(1, input.maxQuestions));
   const scopeLabel = [scope.subject_name, scope.chapter_name, scope.topic_name].filter(Boolean).join(" → ");
   const prompt = `Extract the subjective problems/questions that are actually present in the attached document.
 
 Import scope: ${scopeLabel}.
 The selected subject_id is ${input.scope.subjectId}.${input.scope.chapterId ? ` Lock every question to chapter_id ${input.scope.chapterId}.` : " Choose the best matching chapter_id from the catalog, or null when no confident match exists."}${input.scope.topicId ? ` Lock every question to topic_id ${input.scope.topicId}.` : " Choose the best matching topic_id under the chosen chapter, or null when no confident match exists."}
 
-Return at most ${maxQuestions} questions, preserving their wording and order. Do not create unrelated questions and do not include answers or solutions.
+Process the entire document from beginning to end and return EVERY subjective problem/question that is present, preserving its wording and source order. Do not sample, summarize, stop after an arbitrary count, or omit repeated-looking questions unless they are exact duplicates. Do not create unrelated questions and do not include answers or solutions.
+
+The JSON response must contain one object in the questions array for every detected question in the complete file. There is no application-level question-count limit.
 
 Return both:
 - question_text: clean plain text used for search and duplicate detection
@@ -194,7 +193,7 @@ A Numerical category requires calculation, derivation, or quantitative reasoning
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).slice(0, maxQuestions);
+  });
   if (!questions.length) throw new Error("AI did not find any subjective questions in this document.");
 
   const batchId = randomUUID();

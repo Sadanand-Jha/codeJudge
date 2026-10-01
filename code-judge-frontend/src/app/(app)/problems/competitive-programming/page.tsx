@@ -1,6 +1,7 @@
 import { fetchProblems } from "@/services/problems";
 import { CompetitiveProgrammingPage } from "./CompetitiveProgrammingPage";
 import type { ProblemListItem } from "@/types/problem";
+import { cookies } from "next/headers";
 
 export const metadata = {
   title: "Competitive Programming — ByteClash",
@@ -16,7 +17,7 @@ export default async function CompetitiveProgrammingRoute({
 
   let problems: ProblemListItem[] | null = null;
   try {
-    problems = await fetchProblems();
+    problems = await fetchProblems((await cookies()).toString());
   } catch {
     problems = null;
   }

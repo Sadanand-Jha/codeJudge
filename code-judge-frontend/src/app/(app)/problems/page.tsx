@@ -1,6 +1,7 @@
 import { fetchProblems } from "@/services/problems";
 import { ProblemsLanding } from "./ProblemsLanding";
 import type { ProblemListItem } from "@/types/problem";
+import { cookies } from "next/headers";
 
 export const metadata = {
   title: "Problems — ByteClash",
@@ -28,7 +29,7 @@ function FailedToLoad() {
 export default async function ProblemsPage() {
   let problems: ProblemListItem[] | null = null;
   try {
-    problems = await fetchProblems();
+    problems = await fetchProblems((await cookies()).toString());
   } catch {
     problems = null;
   }

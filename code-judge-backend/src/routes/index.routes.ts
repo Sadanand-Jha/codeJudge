@@ -8,7 +8,7 @@
  * Route Map:
  *   
  *   /api
- *   ├── /problems          → problem.routes.ts  (public)
+ *   ├── /problems          → problem.routes.ts  (authenticated)
  *   │   ├── GET /          → getAllProblems     → ProblemListItem[]
  *   │   └── GET /:problemId → getProblemByProblemId → ProblemDetail
  *   │
@@ -31,8 +31,12 @@ import { getQuizGameConfig, upsertQuizGameConfig } from "../controllers/quiz.con
 
 const router = Router();
 
-router.use("/v1", v1Routes);
+// Authentication is the only public API namespace. Registration, login,
+// password recovery and session bootstrap must remain reachable without an
+// existing session.
 router.use("/auth", authRoutes)
+
+router.use("/v1", v1Routes);
 
 // Alias for spec-required path: GET/PUT /api/quizzes/:quizId/game-config
 // Mirrors /api/v1/user/quiz/:quizId/game-config so task's Curl examples work.
@@ -40,7 +44,7 @@ router.use("/auth", authRoutes)
 router.get("/quizzes/:quizId/game-config", authenticate, getQuizGameConfig);
 router.put("/quizzes/:quizId/game-config", authenticate, validate(quizGameConfigSchema), upsertQuizGameConfig);
 
-// Public problem routes — GET /api/problems and GET /api/problems/:problemId
-router.use("/problems", problemRoutes);
+// Problem bank data is internal and must never be served anonymously.
+router.use("/problems", authenticate, problemRoutes);
 
 export default router;

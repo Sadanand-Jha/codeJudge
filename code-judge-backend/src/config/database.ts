@@ -90,6 +90,37 @@ function getPool(): pg.Pool {
 
 export const pool: pg.Pool = getPool();
 
+const TRANSIENT_DATABASE_CODES = new Set([
+  '53300', // too_many_connections
+  '57P03', // cannot_connect_now
+  '08000', '08001', '08003', '08004', '08006', '08007', '08P01',
+  'ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT',
+]);
+
+export function isTransientDatabaseError(error: unknown): boolean {
+  const candidate = error as { code?: unknown; message?: unknown } | null;
+  const code = String(candidate?.code || '');
+  const message = String(candidate?.message || '').toLowerCase();
+  return TRANSIENT_DATABASE_CODES.has(code)
+    || message.includes('remaining connection slots')
+    || message.includes('connection terminated unexpectedly');
+}
+
+/**
+ * Retry only short-lived connection/capacity failures. Business/query errors
+ * are returned immediately, and the retry count stays deliberately small so
+ * a saturated serverless database is not amplified by the API.
+ */
+export async function withTransientDatabaseRetry<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isTransientDatabaseError(error)) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return operation();
+  }
+}
+
 export async function testConnection(): Promise<boolean> {
   try {
     const res = await pool.query('SELECT NOW() AS current_time');

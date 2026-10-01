@@ -228,9 +228,13 @@ export const generateJsonFromDocument = async (
           strict: true,
         },
       },
-      max_output_tokens: 20_000,
       store: false,
     });
+
+    if (response.status === "incomplete") {
+      const reason = response.incomplete_details?.reason || "provider output limit";
+      throw new Error(`document JSON was incomplete (${reason}); no partial import was created`);
+    }
 
     const responseUsage = response.usage;
     const usage: LiveUsage | undefined = responseUsage ? {

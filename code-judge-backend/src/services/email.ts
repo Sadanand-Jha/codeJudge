@@ -12,10 +12,7 @@ interface EmailOptions {
 function requireTransport() {
   const transporter = getTransporter();
   const from = getFromAddress();
-  if (!transporter || !from) {
-    logger.warn('SMTP is not configured - email will be mocked (not sent). Set SMTP_HOST/SMTP_USER/SMTP_PASS (or EMAIL1/GMAIL_APP_PASSWORD1) in .env / Vercel Dashboard.');
-    return null;
-  }
+  if (!transporter || !from) return null;
   return { transporter, from };
 }
 
@@ -28,8 +25,9 @@ function requireTransport() {
 async function deliverEmail(options: EmailOptions): Promise<string> {
   const ctx = requireTransport();
   if (!ctx) {
-    logger.warn(`[MOCK EMAIL] to=${options.to} subject="${options.subject}" - SMTP missing, skipping send`);
-    return 'mock';
+    throw new Error(
+      'Email delivery is not configured. Set SMTP_HOST/SMTP_USER/SMTP_PASS or EMAIL1/GMAIL_APP_PASSWORD1.'
+    );
   }
 
   const info = await ctx.transporter.sendMail({

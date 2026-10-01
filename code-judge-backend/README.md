@@ -166,6 +166,7 @@ code-judge-backend/
 | `PLATFORM_JWT_SECRET` | Optional separate 256-bit secret for owner-only platform sessions. When omitted, a domain-separated key is derived from `JWT_SECRET` |
 | `PLATFORM_JWT_EXPIRY` | Platform session lifetime (defaults to `12h`) |
 | `PLATFORM_OWNER_EMAILS` | Optional comma-separated owner email allowlist |
+| `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` | Nodemailer SMTP delivery configuration |
 | `AI_API_KEY` | AI service API key |
 
 ## Supported Languages

@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { pool } from "../config/database.js";
+import { pool, withTransientDatabaseRetry } from "../config/database.js";
 import {
   PLATFORM_COOKIE,
   isPlatformOwner,
@@ -51,11 +51,11 @@ export const requireOwner = async (req: Request, res: Response, next: NextFuncti
     let roleId: number | null = null;
     let dbEmail: string | null = null;
     try {
-      const r = await pool.query(
+      const r = await withTransientDatabaseRetry(() => pool.query(
         `SELECT u.email AS email, u.role_id AS role_id
          FROM users u WHERE u.id = $1 LIMIT 1`,
         [claims.userId]
-      );
+      ));
       roleId = r.rows[0]?.role_id ?? null;
       dbEmail = r.rows[0]?.email ?? null;
     } catch {

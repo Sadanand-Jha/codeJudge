@@ -35,7 +35,6 @@ export async function previewQuestionImport(req: Request, res: Response) {
       userId,
       file: { filename: file.originalname, mimeType: file.mimetype || "application/octet-stream", buffer: file.buffer },
       scope: { subjectId, chapterId, topicId },
-      maxQuestions: Math.min(100, Math.max(1, Number(req.body.maxQuestions) || 50)),
     });
     return res.json({ success: true, data: result });
   } catch (error) {

@@ -36,9 +36,17 @@ const rawBase =
   "https://quizbackend-dun.vercel.app/api";
 const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
 
-export async function fetchProblem(problemId: string): Promise<Problem> {
+function authenticatedFetchOptions(cookieHeader?: string): RequestInit {
+  return {
+    cache: "no-store",
+    credentials: "include",
+    headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
+  };
+}
+
+export async function fetchProblem(problemId: string, cookieHeader?: string): Promise<Problem> {
   const response = await fetch(`${API_BASE}/problems/${problemId}`, {
-    next: { revalidate: 60 },
+    ...authenticatedFetchOptions(cookieHeader),
   });
 
   if (!response.ok) {
@@ -54,9 +62,9 @@ export async function fetchProblem(problemId: string): Promise<Problem> {
   return json.data;
 }
 
-export async function fetchProblems(): Promise<ProblemListItem[]> {
+export async function fetchProblems(cookieHeader?: string): Promise<ProblemListItem[]> {
   const response = await fetch(`${API_BASE}/problems`, {
-    next: { revalidate: 60 },
+    ...authenticatedFetchOptions(cookieHeader),
   });
 
   if (!response.ok) {
@@ -78,7 +86,7 @@ export async function fetchProblems(): Promise<ProblemListItem[]> {
  * problems straight from the database when the user presses the CP spotlight.
  */
 export async function fetchProblemsLive(): Promise<ProblemListItem[]> {
-  const response = await fetch(`${API_BASE}/problems`);
+  const response = await fetch(`${API_BASE}/problems`, authenticatedFetchOptions());
 
   if (!response.ok) {
     throw new Error(`Failed to fetch problems: ${response.statusText}`);

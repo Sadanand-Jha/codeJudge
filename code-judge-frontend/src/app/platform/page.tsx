@@ -3,7 +3,7 @@
 import "./platform.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Users, Activity, Zap, CheckCircle2, RefreshCw, Search, Menu, ArrowUpRight, Clock3, ListChecks, TrendingUp, ChevronDown, Gauge, AlertTriangle, X, Network, FileUp, FileText, Database, Check, Sparkles, UploadCloud, SlidersHorizontal, ClipboardCheck, ChevronRight, Layers3, Hash, RotateCcw } from "lucide-react";
+import { Users, Activity, Zap, CheckCircle2, RefreshCw, Search, Menu, ArrowUpRight, Clock3, ListChecks, TrendingUp, ChevronDown, Gauge, AlertTriangle, X, Network, FileUp, FileText, Database, Check, Sparkles, UploadCloud, SlidersHorizontal, ClipboardCheck, ChevronRight, Layers3, RotateCcw } from "lucide-react";
 import { usePlatformGate, OwnerGate } from "@/components/platform/OwnerGate";
 import { PlatformSidebar, PlatformSidebarDrawer } from "@/components/platform/PlatformSidebar";
 import { platformApi } from "@/services/platform";
@@ -471,7 +471,6 @@ function QuestionImportPanel({ query }: {
   const [subjectId, setSubjectId] = useState("");
   const [chapterId, setChapterId] = useState("");
   const [topicId, setTopicId] = useState("");
-  const [maxQuestions, setMaxQuestions] = useState(50);
   const [previewing, setPreviewing] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [preview, setPreview] = useState<SubjectiveImportPreview | null>(null);
@@ -508,7 +507,6 @@ function QuestionImportPanel({ query }: {
       form.append("subjectId", subjectId);
       if (chapterId) form.append("chapterId", chapterId);
       if (topicId) form.append("topicId", topicId);
-      form.append("maxQuestions", String(maxQuestions));
       const generated = await platformApi.previewQuestionImport(form);
       setPreview(generated);
       setSelected(new Set(generated.questions.map((_, index) => index)));
@@ -594,7 +592,7 @@ function QuestionImportPanel({ query }: {
                   <ImportSelect label="Chapter" value={chapterId} onChange={(value) => { setChapterId(value); setTopicId(""); resetPreview(); }} options={chapters} placeholder="Let AI decide" disabled={!subjectId} />
                   <ImportSelect label="Topic" value={topicId} onChange={(value) => { setTopicId(value); resetPreview(); }} options={topics} placeholder="Let AI decide" disabled={!chapterId} />
                 </div>
-                <label className="block"><span className="mb-1.5 flex items-center justify-between text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]"><span>Question limit</span><span className="font-medium normal-case tracking-normal">1–100</span></span><div className="relative"><Hash size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" /><input type="number" min={1} max={100} value={maxQuestions} onChange={(event) => setMaxQuestions(Math.min(100, Math.max(1, Number(event.target.value) || 1)))} className="h-11 w-full rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] pl-8 pr-3 text-[12px] font-medium text-[var(--text-primary)] outline-none transition-colors focus:border-[#EC4899]/60" /></div></label>
+                <div className="flex items-center justify-between rounded-[10px] border border-emerald-500/20 bg-emerald-500/[.055] px-3 py-2.5"><span><span className="block text-[9px] font-bold uppercase tracking-[.12em] text-emerald-500">Entire document</span><span className="mt-0.5 block text-[9px] text-[var(--text-muted)]">Every detected question will be included.</span></span><span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[8px] font-bold uppercase tracking-[.1em] text-emerald-500">No count limit</span></div>
               </div>
 
               {(selectedSubject || selectedChapter || selectedTopic) && <div className="rounded-[11px] border border-[var(--border)] bg-[var(--platform-soft)] p-3"><div className="mb-2 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]"><Layers3 size={12} /> Selected scope</div><div className="flex flex-wrap items-center gap-1 text-[10px] font-medium text-[var(--text-secondary)]">{selectedSubject && <span>{selectedSubject.name}</span>}{selectedChapter && <><ChevronRight size={11} /><span>{selectedChapter.name}</span></>}{selectedTopic && <><ChevronRight size={11} /><span>{selectedTopic.name}</span></>}</div></div>}

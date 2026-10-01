@@ -10,6 +10,7 @@ import { UserService } from './database/user.database.js';
 import { sendOtpEmail } from './email.js';
 import generateOtp from './otpGenerator.js';
 import { isPlatformOwner } from './platformSession.js';
+import { isTransientDatabaseError, withTransientDatabaseRetry } from '../config/database.js';
 
 const OTP_TTL_SECONDS = 5 * 60; // 5 minutes — OTP validity
 const OTP_RESEND_COOLDOWN_SECONDS = 60; // 60 seconds — resend cooldown (must match frontend countdown)
@@ -548,7 +549,7 @@ export async function requestOwnerLoginOtp(email: string, clientIp?: string): Pr
     // Only role_id = 2 accounts receive an OTP — but respond generically.
     // Both branches are logged (without the OTP value) so email delivery
     // to non-admins can be audited from server logs.
-    const user = await userService.getUserByEmail(normalizedEmail);
+    const user = await withTransientDatabaseRetry(() => userService.getUserByEmail(normalizedEmail));
     if (isOwnerRole(user)) {
       const otp = generateSixDigitOtp();
       await cacheOwnerLoginOtp(normalizedEmail, otp);
@@ -573,6 +574,9 @@ export async function requestOwnerLoginOtp(email: string, clientIp?: string): Pr
     return successResponse({ email: normalizedEmail }, 'If an owner account exists for this email, an OTP has been sent.');
   } catch (error) {
     console.error('Error in requestOwnerLoginOtp:', error);
+    if (isTransientDatabaseError(error)) {
+      return errorResponse('Authentication database is temporarily busy. Please retry in a few seconds.', 503);
+    }
     return errorResponse('Internal server error while sending OTP', 500);
   }
 }
@@ -617,7 +621,7 @@ export async function verifyOwnerLoginOtp(email: string, otp: string): Promise<S
 
     await deleteCachedOwnerLoginOtp(normalizedEmail);
 
-    const user = await userService.getUserByEmail(normalizedEmail);
+    const user = await withTransientDatabaseRetry(() => userService.getUserByEmail(normalizedEmail));
     if (!isOwnerRole(user)) {
       // Do not reveal whether the account exists or its role.
       return errorResponse('Invalid email or OTP', 401);
@@ -629,6 +633,9 @@ export async function verifyOwnerLoginOtp(email: string, otp: string): Promise<S
     );
   } catch (error) {
     console.error('Error in verifyOwnerLoginOtp:', error);
+    if (isTransientDatabaseError(error)) {
+      return errorResponse('Authentication database is temporarily busy. Please retry in a few seconds.', 503);
+    }
     return errorResponse('Internal server error while verifying OTP', 500);
   }
 }
