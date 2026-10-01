@@ -190,25 +190,19 @@ const normalizeUsage = (usage?: OpenAI.CompletionUsage | null): LiveUsage | unde
   };
 };
 
-/** Generate question-import JSON through the configured local model. */
+/** Generate question-import JSON through the configured OpenRouter model. */
 export const generateJsonFromDocument = async (
   request: DirectDocumentJsonRequest,
   onProgress?: (chars: number, tail: string, delta?: string) => void
 ): Promise<{ content: string; usage?: LiveUsage }> => {
   const startedAt = new Date();
-  const model = process.env.LOCAL_AI_MODEL
-    || process.env.LM_STUDIO_MODEL_CODER
-    || process.env.LM_STUDIO_MODEL
-    || "";
-  const docBaseURL = process.env.LOCAL_AI_BASE_URL
-    || process.env.DOCUMENT_AI_BASE_URL
-    || process.env.LM_STUDIO_URL
-    || "http://localhost:1234/v1";
-  const docProvider = "local";
+  const model = process.env.DOCUMENT_AI_MODEL || resolveCoderModel();
+  const docBaseURL = resolveBaseURL();
+  const docProvider = providerNameFor(docBaseURL);
 
   if (!model) {
-    console.error("[ai-document] local model is not configured (set LOCAL_AI_MODEL or LM_STUDIO_MODEL_CODER)");
-    throw new Error("Local document AI model is not configured.");
+    console.error("[ai-document] OpenRouter model is not configured (set DOCUMENT_AI_MODEL or AI_MODEL)");
+    throw new Error("Document AI model is not configured.");
   }
 
   console.log("[ai-document] start", {
