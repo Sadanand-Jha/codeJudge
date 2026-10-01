@@ -124,6 +124,35 @@ export interface PlatformErrorsData {
   items: { error_id: string; fingerprint: string; error_type: string; error_code: string | null; message: string; endpoint: string | null; method: string | null; status_code: number | null; occurrence_count: number; first_seen_at: string; last_seen_at: string; resolved_at: string | null; request_id: string | null; trace_id: string | null }[];
 }
 
+export interface QuestionImportCatalog {
+  subjects: { id: number; name: string }[];
+  chapters: { id: number; subject_id: number; name: string }[];
+  topics: { id: number; chapter_id: number; name: string }[];
+  difficulties: { id: number; name: string }[];
+  categories: { id: number; name: string }[];
+}
+
+export interface SubjectiveImportPreview {
+  batchId: string;
+  sourceFilename: string;
+  scope: { subject_name: string; chapter_name: string | null; topic_name: string | null };
+  questions: {
+    question_text: string;
+    question_html: string;
+    subject_id: number;
+    chapter_id: number | null;
+    topic_id: number | null;
+    difficulty_id: number;
+    category_id: number;
+    chapter_name: string | null;
+    topic_name: string | null;
+    difficulty_name: string;
+    category_name: string;
+  }[];
+  usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
+  expiresInSeconds: number;
+}
+
 async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
   const res = await platformClient.get<T>(`/v1/platform${path}`, { params });
   return res.data;
@@ -153,6 +182,21 @@ export const platformApi = {
   }>("/quizzes"),
   observability: (range: PlatformRange, days?: number) => get<ObservabilityData>("/observability", days ? { range, days } : { range }),
   requestDetail: (requestId: string) => get<RequestDetailData>(`/requests/${encodeURIComponent(requestId)}`),
+  questionImportCatalog: () => get<QuestionImportCatalog>("/question-import/catalog"),
+  previewQuestionImport: async (form: FormData) => {
+    const response = await platformClient.post<SubjectiveImportPreview>("/v1/platform/question-import/preview", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 180_000,
+    });
+    return response.data;
+  },
+  commitQuestionImport: async (batchId: string, selectedIndexes: number[]) => {
+    const response = await platformClient.post<{ inserted: number; skippedDuplicates: number; selected: number }>(
+      "/v1/platform/question-import/commit",
+      { batchId, selectedIndexes }
+    );
+    return response.data;
+  },
   ai: () => get<AiUsageData>("/ai"),
   health: () => get<{
     services: Record<string, { status: string; latencyMs?: number | null; note?: string }>;

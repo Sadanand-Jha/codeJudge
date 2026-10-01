@@ -54,6 +54,9 @@ const resolveTestorModel = (): string =>
   process.env.LM_STUDIO_MODEL_TESTOR ||
   resolveCoderModel();
 
+const resolveDocumentModel = (): string =>
+  process.env.DOCUMENT_AI_MODEL || resolveCoderModel();
+
 const baseURL = resolveBaseURL();
 const providerName = baseURL.includes("openrouter") ? "OpenRouter"
   : baseURL.includes("openai") ? "OpenAI"
@@ -87,6 +90,15 @@ export interface AIResponse {
   content: string;
   reasoning?: string;
   usage?: LiveUsage;
+}
+
+export interface DirectDocumentJsonRequest {
+  filename: string;
+  mimeType: string;
+  buffer: Buffer;
+  prompt: string;
+  schemaName: string;
+  schema: Record<string, unknown>;
 }
 
 /**
@@ -159,6 +171,86 @@ const normalizeUsage = (usage?: OpenAI.CompletionUsage | null): LiveUsage | unde
       completion_tokens_details?: { reasoning_tokens?: number };
     }).completion_tokens_details?.reasoning_tokens,
   };
+};
+
+/**
+ * Send an uploaded document directly to a Responses-compatible AI provider.
+ * No local text extraction or OCR is performed. The provider receives the raw
+ * file as a base64 input_file and must return JSON matching the supplied schema.
+ */
+export const generateJsonFromDocument = async (
+  request: DirectDocumentJsonRequest
+): Promise<{ content: string; usage?: LiveUsage }> => {
+  const model = resolveDocumentModel();
+  const startedAt = new Date();
+  if (!model) throw new Error("AI model is not configured.");
+  let uploadedFileId: string | null = null;
+
+  try {
+    // OpenRouter's Files API is the reliable direct-document path. Upload the
+    // raw bytes, reference the returned id in Responses, then delete it in the
+    // finally block. Other Responses-compatible providers receive inline bytes.
+    if (baseURL.includes("openrouter.ai")) {
+      const body = new FormData();
+      body.append("file", new Blob([new Uint8Array(request.buffer)], { type: request.mimeType }), request.filename);
+      const uploaded = await fetch(`${baseURL.replace(/\/$/, "")}/files`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${resolveApiKey()}`, ...defaultHeaders },
+        body,
+      });
+      if (!uploaded.ok) throw new Error(`file upload failed (${uploaded.status})`);
+      const metadata = await uploaded.json() as { id?: string };
+      if (!metadata.id) throw new Error("file upload returned no file id");
+      uploadedFileId = metadata.id;
+    }
+
+    const response = await client.responses.create({
+      model,
+      instructions: "Read the attached document directly. Return only the requested structured data. Never include markdown or commentary.",
+      input: [{
+        role: "user",
+        content: [
+          {
+            type: "input_file",
+            filename: request.filename,
+            ...(uploadedFileId
+              ? { file_id: uploadedFileId }
+              : { file_data: `data:${request.mimeType};base64,${request.buffer.toString("base64")}` }),
+          },
+          { type: "input_text", text: request.prompt },
+        ],
+      }],
+      text: {
+        format: {
+          type: "json_schema",
+          name: request.schemaName,
+          schema: request.schema,
+          strict: true,
+        },
+      },
+      max_output_tokens: 20_000,
+      store: false,
+    });
+
+    const responseUsage = response.usage;
+    const usage: LiveUsage | undefined = responseUsage ? {
+      inputTokens: responseUsage.input_tokens,
+      outputTokens: responseUsage.output_tokens,
+      totalTokens: responseUsage.total_tokens,
+    } : undefined;
+    await recordAiObservation({ provider: providerName, model, operation: "subjective_bank_import", startedAt, success: true, statusCode: 200, usage });
+    return { content: response.output_text, usage };
+  } catch (error) {
+    await recordAiObservation({ provider: providerName, model, operation: "subjective_bank_import", startedAt, success: false, errorMessage: (error as Error).message });
+    throw new Error(`The configured AI provider could not read this document directly: ${(error as Error).message}`);
+  } finally {
+    if (uploadedFileId && baseURL.includes("openrouter.ai")) {
+      await fetch(`${baseURL.replace(/\/$/, "")}/files/${encodeURIComponent(uploadedFileId)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${resolveApiKey()}`, ...defaultHeaders },
+      }).catch(() => undefined);
+    }
+  }
 };
 
 /**
