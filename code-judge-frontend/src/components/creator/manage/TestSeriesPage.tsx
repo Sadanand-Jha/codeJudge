@@ -21,7 +21,7 @@ import {
   ErrorState,
   formatINR,
   formatINRCompact,
-  MockDataTag,
+  // MockDataTag, // hidden while mock data is commented out
   PageHeader,
   StatCard,
   StatCardSkeleton,
@@ -51,6 +51,7 @@ const SERIES_STATUS_TONE: Record<SeriesStatus, "emerald" | "amber" | "violet"> =
 };
 
 const TEST_SERIES: SeriesItem[] = [
+  /* Mock data commented out — real backend data will feed this list.
   {
     id: "s1",
     name: "JEE Advanced 2026 Crash Course",
@@ -135,6 +136,7 @@ const TEST_SERIES: SeriesItem[] = [
     revenue: 210000,
     status: "Published",
   },
+  */
 ];
 
 const CARD_ACTIONS: Array<{ id: string; label: string; icon: typeof PenLine }> = [
@@ -175,7 +177,7 @@ export function TestSeriesPage({ demoState }: { demoState?: "empty" | "error" })
       <PageHeader
         title="Test Series"
         subtitle="Bundle tests into series and sell them together."
-        badge={<MockDataTag />}
+        // badge={<MockDataTag />} // hidden while mock data is commented out
         actions={
           <BillButton href="/creator/series/create" icon={<Plus className="h-4 w-4" />}>
             New Series
@@ -200,15 +202,15 @@ export function TestSeriesPage({ demoState }: { demoState?: "empty" | "error" })
       {state === "error" && (
         <ErrorState onRetry={retry} message="We couldn't load your test series. Please try again in a moment." />
       )}
-      {state === "empty" && (
+      {state === "empty" || (state === "ready" && series.length === 0) ? (
         <EmptyState
           title="No test series yet"
           description="Bundle your tests into a series with flexible pricing and sell them together to students."
           action={<BillButton href="/creator/series/create">Create your first series</BillButton>}
         />
-      )}
+      ) : null}
 
-      {state === "ready" && (
+      {state === "ready" && series.length > 0 && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard

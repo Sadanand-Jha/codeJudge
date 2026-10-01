@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getQuestionGeneratorCatalog } from "@/services/aiGenerate";
 import type { QuestionGeneratorCatalog } from "@/services/aiGenerate";
+import { cn } from "@/lib/helpers";
 
 type Kind = "any" | "theory" | "numerical";
 type Difficulty = "any" | "easy" | "medium" | "hard";
@@ -24,6 +25,8 @@ interface Props {
   onKindChange?: (value: Kind) => void;
   difficulty?: Difficulty;
   onDifficultyChange?: (value: Difficulty) => void;
+  /** Tailwind grid-cols classes for the subject/chapter/topic row. */
+  columns?: string;
 }
 
 const selectClass = "h-10 w-full rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary outline-none transition-all focus:border-pink-500/50 disabled:opacity-50";
@@ -121,7 +124,7 @@ export function QuestionBankFilters(props: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className={cn("grid gap-3", props.columns ?? "sm:grid-cols-3")}>
         <label className="text-xs font-bold text-text-primary">
           Subject
           <select

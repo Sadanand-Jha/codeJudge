@@ -5,7 +5,7 @@ import type { NextFunction, Request, Response } from "express";
 import multer from "multer";
 import { authenticate } from "../../../middleware/auth.ts";
 import { requireActiveAiUser } from "../../../middleware/requireActiveAiUser.ts";
-import { generateSections, generatePaper, downloadPaper, generateQuestions, questionGeneratorCatalog } from "../../../controllers/testSection.controller.ts";
+import { generateSections, generatePaper, downloadPaper, generateQuestions, questionGeneratorCatalog, getSectionBlueprints, saveSectionBlueprint, useSectionBlueprint, removeSectionBlueprint } from "../../../controllers/testSection.controller.ts";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -20,6 +20,11 @@ const upload = multer({
 const router = Router();
 
 router.use(authenticate, requireActiveAiUser);
+
+router.get("/section-blueprints", getSectionBlueprints);
+router.post("/section-blueprints", saveSectionBlueprint);
+router.post("/section-blueprints/:blueprintId/use", useSectionBlueprint);
+router.delete("/section-blueprints/:blueprintId", removeSectionBlueprint);
 
 const safeSingleUpload = (req: Request, res: Response, next: NextFunction) => {
   upload.array("files", 5)(req, res, (error) => {

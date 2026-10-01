@@ -9,8 +9,9 @@ import type { Request, Response } from "express";
 import path from "node:path";
 import sharp from "sharp";
 import { generateSectionsFromPDF } from "../services/testSectionGeneration.service.js";
-import { generateQuestionPaper, renderPaperHtml, generateSubjectiveQuestions, getQuestionGeneratorCatalog } from "../services/question-paper.service.js";
+import { generateQuestionPaper, renderPaperDocx, generateSubjectiveQuestions, getQuestionGeneratorCatalog } from "../services/question-paper.service.js";
 import type { PaperSectionInput } from "../services/question-paper.service.js";
+import { createSectionBlueprint, deleteSectionBlueprint, listSectionBlueprints, markSectionBlueprintUsed } from "../services/testSectionBlueprint.service.js";
 
 const MAX_TOTAL_UPLOAD_BYTES = 2 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = new Set([
@@ -19,6 +20,55 @@ const ALLOWED_EXTENSIONS = new Set([
 ]);
 const OFFICE_EXTENSIONS = new Set([".docx", ".pptx", ".xlsx"]);
 const TEXT_EXTENSIONS = new Set([".txt", ".md", ".csv", ".tsv", ".json"]);
+
+const authenticatedUserId = (req: Request): number => {
+  const userId = Number(req.user?.userId);
+  if (!Number.isInteger(userId) || userId <= 0) throw new Error("Unauthorized");
+  return userId;
+};
+
+export const getSectionBlueprints = async (req: Request, res: Response) => {
+  try {
+    res.status(200).json({ success: true, data: { blueprints: await listSectionBlueprints(authenticatedUserId(req)) } });
+  } catch (error) {
+    res.status(error instanceof Error && error.message === "Unauthorized" ? 401 : 500).json({ success: false, message: error instanceof Error ? error.message : "Unable to load blueprints." });
+  }
+};
+
+export const saveSectionBlueprint = async (req: Request, res: Response) => {
+  try {
+    const blueprint = await createSectionBlueprint({
+      userId: authenticatedUserId(req),
+      name: typeof req.body?.name === "string" ? req.body.name : "",
+      description: typeof req.body?.description === "string" ? req.body.description : "",
+      sections: req.body?.sections,
+    });
+    res.status(201).json({ success: true, data: { blueprint } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to save blueprint.";
+    res.status(/required|between|invalid|large/i.test(message) ? 400 : 500).json({ success: false, message });
+  }
+};
+
+export const useSectionBlueprint = async (req: Request, res: Response) => {
+  try {
+    const blueprint = await markSectionBlueprintUsed(authenticatedUserId(req), Number(req.params.blueprintId));
+    res.status(200).json({ success: true, data: { blueprint } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to use blueprint.";
+    res.status(/not found/i.test(message) ? 404 : 500).json({ success: false, message });
+  }
+};
+
+export const removeSectionBlueprint = async (req: Request, res: Response) => {
+  try {
+    await deleteSectionBlueprint(authenticatedUserId(req), Number(req.params.blueprintId));
+    res.status(200).json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to delete blueprint.";
+    res.status(/not found/i.test(message) ? 404 : 500).json({ success: false, message });
+  }
+};
 
 const startsWith = (buffer: Buffer, signature: number[]) =>
   buffer.length >= signature.length && signature.every((byte, index) => buffer[index] === byte);
@@ -172,13 +222,14 @@ export const generatePaper = async (req: Request, res: Response) => {
       return;
     }
 
-    const { sections, title, instructions, syllabus, durationMinutes, subjectId, chapterId, topicId, difficulty, kind } = (req.body ?? {}) as {
+    const { sections, title, instructions, syllabus, durationMinutes, subjectId, chapterId, topicId, chapterIds, topicIds, overallDifficulty, difficulty, kind } = (req.body ?? {}) as {
       sections?: PaperSectionInput[];
       title?: unknown;
       instructions?: unknown;
       syllabus?: unknown;
       durationMinutes?: unknown;
-      subjectId?: unknown; chapterId?: unknown; topicId?: unknown; difficulty?: unknown; kind?: unknown;
+      subjectId?: unknown; chapterId?: unknown; topicId?: unknown; chapterIds?: unknown; topicIds?: unknown;
+      overallDifficulty?: unknown; difficulty?: unknown; kind?: unknown;
     };
 
     if (!Array.isArray(sections) || sections.length === 0) {
@@ -195,6 +246,11 @@ export const generatePaper = async (req: Request, res: Response) => {
       subjectId: Number(subjectId),
       chapterId: chapterId != null && chapterId !== "" ? Number(chapterId) : null,
       topicId: topicId != null && topicId !== "" ? Number(topicId) : null,
+      chapterIds: Array.isArray(chapterIds) ? chapterIds.map(Number) : undefined,
+      topicIds: Array.isArray(topicIds) ? topicIds.map(Number) : undefined,
+      overallDifficulty: typeof overallDifficulty === "string"
+        ? overallDifficulty as "easy" | "balanced" | "challenging"
+        : undefined,
       difficulty: typeof difficulty === "string" ? difficulty as "any" | "easy" | "medium" | "hard" : "any",
       kind: typeof kind === "string" ? kind as "any" | "theory" | "numerical" : "any",
     });
@@ -203,7 +259,7 @@ export const generatePaper = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error("Paper generation error:", error);
     const message = error?.message || "Failed to generate the question paper. Please try again.";
-    if (/(At least one section|at least one question|at most 100|available)/i.test(message)) {
+    if (/(At least one section|at least one question|at most 100|available|select|valid)/i.test(message)) {
       res.status(400).json({ success: false, message });
     } else if (/(unavailable|parsed safely)/i.test(message)) {
       res.status(500).json({ success: false, message });
@@ -217,7 +273,7 @@ export const generatePaper = async (req: Request, res: Response) => {
  * POST /api/v1/admin/tests/paper-download
  *
  * JSON body: { paper: {...} } — the paper returned by generate-paper.
- * Returns a printable HTML question paper as a file download.
+ * Returns the question paper as a Word (.docx) file download.
  */
 export const downloadPaper = async (req: Request, res: Response) => {
   try {
@@ -233,10 +289,18 @@ export const downloadPaper = async (req: Request, res: Response) => {
       return;
     }
 
-    const html = renderPaperHtml(paper as any);
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.setHeader("Content-Disposition", 'attachment; filename="question-paper.html"');
-    res.status(200).send(html);
+    const buffer = await renderPaperDocx(paper as any);
+    const slug = String((paper as any).title ?? "question-paper")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "question-paper";
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="${slug}.docx"`);
+    res.status(200).send(buffer);
   } catch (error: any) {
     console.error("Paper download error:", error);
     res.status(500).json({ success: false, message: "Failed to prepare the download. Please try again." });

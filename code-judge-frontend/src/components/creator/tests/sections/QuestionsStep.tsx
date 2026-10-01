@@ -17,7 +17,7 @@ import { generateQuestionPaper, downloadQuestionPaper } from "@/services/aiGener
 import { sectionsToPaperPayload } from "./paperTypes";
 import type { Section } from "./types";
 import type { QuestionPaper } from "./paperTypes";
-import { QuestionBankFilters } from "./QuestionBankFilters";
+import { PaperScopeFilters } from "./PaperScopeFilters";
 
 interface QuestionsStepProps {
   sections: Section[];
@@ -27,16 +27,33 @@ interface QuestionsStepProps {
 
 type QuestionsStatus = "idle" | "generating" | "done" | "error";
 
+const OVERALL_OPTIONS = [
+  {
+    id: "easy",
+    label: "Easy",
+    hint: "Creates an accessible paper with mostly foundational and moderate questions.",
+  },
+  {
+    id: "balanced",
+    label: "Balanced",
+    hint: "Balanced creates a natural mix of foundational, moderate and challenging questions.",
+  },
+  {
+    id: "challenging",
+    label: "Challenging",
+    hint: "Creates a more demanding paper with greater emphasis on application and deeper reasoning.",
+  },
+] as const;
+
 export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: QuestionsStepProps) {
   const toast = useToast();
   const abortRef = useRef<AbortController | null>(null);
 
   const [syllabus, setSyllabus] = useState("");
   const [subjectId, setSubjectId] = useState<number | null>(null);
-  const [chapterId, setChapterId] = useState<number | null>(null);
-  const [topicId, setTopicId] = useState<number | null>(null);
-  const [difficulty, setDifficulty] = useState<"any" | "easy" | "medium" | "hard">("any");
-  const [kind, setKind] = useState<"any" | "theory" | "numerical">("any");
+  const [chapterIds, setChapterIds] = useState<number[]>([]);
+  const [topicIds, setTopicIds] = useState<number[]>([]);
+  const [overall, setOverall] = useState<"easy" | "balanced" | "challenging">("balanced");
   const [status, setStatus] = useState<QuestionsStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [paper, setPaper] = useState<QuestionPaper | null>(null);
@@ -70,10 +87,9 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
           title: paperTitle.trim() || undefined,
           syllabus: syllabus.trim() || undefined,
           subjectId,
-          chapterId,
-          topicId,
-          difficulty,
-          kind,
+          chapterIds,
+          topicIds,
+          overallDifficulty: overall,
         },
         abortRef.current.signal
       );
@@ -91,7 +107,7 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
       setError(err?.message || "Failed to generate the question paper. Please try again.");
       setStatus("error");
     }
-  }, [sections, paperTitle, syllabus, subjectId, chapterId, topicId, difficulty, kind, totalNeeded, toast]);
+  }, [sections, paperTitle, syllabus, subjectId, chapterIds, topicIds, overall, totalNeeded, toast]);
 
   const handleDownload = useCallback(async () => {
     if (!paper) return;
@@ -101,7 +117,7 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
       await downloadQuestionPaper(paper);
       toast.success({
         title: "Downloaded",
-        description: "Open the file and print to PDF to share it.",
+        description: "Word file saved — open it to review, edit or share.",
       });
     } catch (err: any) {
       setError(err?.message || "Failed to download the paper. Please try again.");
@@ -119,23 +135,30 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
 
   let qNo = 0;
 
+  const scopeSummary = `${sections.length} section${sections.length === 1 ? "" : "s"} · ${totalNeeded} question${totalNeeded === 1 ? "" : "s"}`;
+
   return (
-    <div className="space-y-6 pb-36 lg:pb-0">
-      {/* Title + syllabus card */}
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white">
-            <FileText className="h-4.5 w-4.5" />
+    <div className="space-y-4 pb-36 lg:pb-0">
+      {/* Paper-level config */}
+      <div className="rounded-xl border border-border bg-card">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-violet-600 text-white">
+              <FileText className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-[13px] font-extrabold text-text-primary">Question Paper</h3>
+              <p className="truncate text-[11px] text-text-muted">
+                AI will follow your section structure, marks and syllabus.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-text-primary">Question Paper</h3>
-            <p className="text-[11px] text-text-muted">
-              {sections.length} sections · {totalNeeded} questions · AI picks from the question bank
-            </p>
-          </div>
+          <span className="shrink-0 rounded-full border border-border bg-card-hover px-2.5 py-1 text-[11px] font-bold text-text-secondary tabular-nums">
+            {scopeSummary}
+          </span>
         </div>
 
-        <div className="mt-4 space-y-4">
+        <div className="space-y-4 px-4 py-3">
           <div>
             <label className="mb-1.5 block text-xs font-bold text-text-primary">Paper title</label>
             <input
@@ -144,56 +167,87 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
               onChange={(e) => onPaperTitleChange(e.target.value)}
               disabled={status === "generating"}
               placeholder="e.g. Mid Semester Examination"
-              className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-[13px] text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-pink-500/50 disabled:opacity-50"
+              className="h-11 w-full rounded-xl border border-border bg-card px-3.5 text-[13px] text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-pink-500/50 disabled:opacity-50"
             />
           </div>
 
-          <QuestionBankFilters
+          <PaperScopeFilters
             subjectId={subjectId}
-            chapterId={chapterId}
-            topicId={topicId}
+            chapterIds={chapterIds}
+            topicIds={topicIds}
             onSubjectChange={setSubjectId}
-            onChapterChange={setChapterId}
-            onTopicChange={setTopicId}
-            difficulty={difficulty}
-            onDifficultyChange={setDifficulty}
-            kind={kind}
-            onKindChange={setKind}
+            onChapterIdsChange={setChapterIds}
+            onTopicIdsChange={setTopicIds}
             disabled={status === "generating"}
           />
 
           <div>
-            <label className="mb-1.5 block text-xs font-bold text-text-primary">
-              Syllabus / topics <span className="font-medium text-text-muted">(optional)</span>
-            </label>
-            <textarea
-              value={syllabus}
-              onChange={(e) => setSyllabus(e.target.value)}
-              disabled={status === "generating"}
-              rows={4}
-              placeholder="e.g. Unit 1: Processes & threads, CPU scheduling (FCFS, SJF, Round Robin). Unit 2: Deadlocks, memory management, paging…"
-              className="w-full resize-y rounded-xl border border-border bg-card px-3.5 py-2.5 text-[13px] text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-pink-500/50 disabled:opacity-50"
-            />
-            <p className="mt-1 text-[11px] text-text-muted">
-              The AI prefers bank questions matching these topics while respecting your sections.
+            <p className="mb-1.5 text-xs font-bold text-text-primary">Overall Difficulty</p>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Overall difficulty">
+              {OVERALL_OPTIONS.map((o) => {
+                const active = overall === o.id;
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setOverall(o.id)}
+                    disabled={status === "generating"}
+                    className={cn(
+                      "inline-flex h-10 items-center gap-1.5 rounded-xl border px-4 text-[13px] font-bold transition-all disabled:opacity-50",
+                      active
+                        ? "border-transparent bg-gradient-to-r from-pink-500 to-violet-600 text-white shadow-[0_4px_14px_rgba(236,72,153,0.3)]"
+                        : "border-border bg-card text-text-secondary hover:border-border-hover hover:text-text-primary"
+                    )}
+                  >
+                    {active && <Check className="h-3.5 w-3.5" />}
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-[11px] text-text-muted">
+              {OVERALL_OPTIONS.find((o) => o.id === overall)?.hint}
             </p>
           </div>
 
-          {status !== "done" && (
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={status === "generating" || totalNeeded === 0 || !subjectId}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 py-2.5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
-            >
-              {status === "generating" ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
-              )}
-              {status === "generating" ? "Selecting questions…" : "Generate Question Paper"}
-            </button>
-          )}
+          <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-text-primary">
+                Additional instructions <span className="font-medium text-text-muted">(optional)</span>
+              </label>
+              <textarea
+                value={syllabus}
+                onChange={(e) => setSyllabus(e.target.value)}
+                disabled={status === "generating"}
+                rows={2}
+                placeholder="e.g. Focus more on CPU scheduling and process synchronization. Include practical scenarios and avoid repetitive questions."
+                className="min-h-[76px] w-full resize-y rounded-xl border border-border bg-card px-3.5 py-2.5 text-[13px] text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-pink-500/50 disabled:opacity-50"
+              />
+              <p className="mt-1 text-[11px] text-text-muted">
+                Use this only for additional guidance. Selected chapters and topics already define the syllabus.
+              </p>
+            </div>
+
+            {status !== "done" && (
+              <div className="flex flex-col justify-end">
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={status === "generating" || totalNeeded === 0 || !subjectId}
+                  className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
+                >
+                  {status === "generating" ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  {status === "generating" ? "Generating paper…" : "Generate Question Paper"}
+                </button>
+              </div>
+            )}
+          </div>
 
           {status === "generating" && (
             <div className="flex items-center gap-2.5 rounded-xl border border-pink-500/20 bg-pink-500/5 px-4 py-3">
@@ -300,8 +354,13 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
                             </span>
                             <div className="min-w-0 flex-1">
                               <p className="text-text-primary">{q.question}</p>
-                              <p className="mt-0.5 text-[10px] capitalize text-text-muted">
-                                {q.difficulty} · {q.kind}
+                              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] capitalize text-text-muted">
+                                <span>{q.difficulty} · {q.kind}</span>
+                                {q.aiGenerated && (
+                                  <span className="rounded-full bg-violet-500/10 px-2 py-0.5 font-bold normal-case text-violet-600 dark:text-violet-400">
+                                    AI-written
+                                  </span>
+                                )}
                               </p>
                             </div>
                             <span className="shrink-0 text-xs font-bold text-text-secondary tabular-nums">

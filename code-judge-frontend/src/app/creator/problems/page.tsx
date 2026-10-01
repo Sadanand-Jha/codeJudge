@@ -8,6 +8,7 @@ export default function CreatorProblemsRoute() {
       description="Build and manage a reusable bank of practice problems that can be attached to any test."
       icon={NotebookPen}
       accent="#8B5CF6"
+      action={{ label: "Create Problem", href: "/creator/problems/create" }}
       features={[
         "Question bank of reusable problems",
         "Subject & difficulty tagging",

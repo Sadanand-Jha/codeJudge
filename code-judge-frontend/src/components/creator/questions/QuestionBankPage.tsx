@@ -14,7 +14,7 @@ import {
   Plus,
   Search,
   Trash2,
-  TrendingUp,
+  // TrendingUp, // hidden with the mocked Avg. Correct Rate stat
   Upload,
   type LucideIcon,
 } from "lucide-react";
@@ -24,7 +24,7 @@ import {
   BillButton,
   EmptyState,
   ErrorState,
-  MockDataTag,
+  // MockDataTag, // hidden while mock data is commented out
   PageHeader,
   Panel,
   SegmentedControl,
@@ -78,6 +78,7 @@ const DIFFICULTY_TONE: Record<QuestionDifficulty, "emerald" | "amber" | "rose"> 
 };
 
 const QUESTION_BANK: BankQuestion[] = [
+  /* Mock data commented out — real backend data will feed this list.
   {
     id: "q1",
     text: "A particle moves in a circle of radius 2 m with a uniform speed of 4 m/s. What is its centripetal acceleration?",
@@ -218,6 +219,7 @@ const QUESTION_BANK: BankQuestion[] = [
     usedIn: 12,
     updated: "01 Aug 2026",
   },
+  */
 ];
 
 const ROW_ACTIONS: Array<{ id: RowAction; label: string; icon: LucideIcon; danger?: boolean }> = [
@@ -400,7 +402,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
       <PageHeader
         title="Question Bank"
         subtitle="Your reusable question library — organized by subject, topic and difficulty."
-        badge={<MockDataTag />}
+        // badge={<MockDataTag />} // hidden while mock data is commented out
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <BillButton href="/creator/questions/new" icon={<Plus className="h-4 w-4" />}>
@@ -426,22 +428,22 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
       {state === "error" && (
         <ErrorState onRetry={retry} message="We couldn't load your question bank. Please try again in a moment." />
       )}
-      {state === "empty" && (
+      {state === "empty" || (state === "ready" && questions.length === 0) ? (
         <EmptyState
           title="No questions yet"
           description="Build your reusable question library — questions you add here can be reused across tests, quizzes and assignments."
           action={<BillButton href="/creator/questions/new">Add your first question</BillButton>}
         />
-      )}
+      ) : null}
 
-      {state === "ready" && (
+      {state === "ready" && questions.length > 0 && (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatCard
               label="Total Questions"
               value={questions.length}
               display={String(questions.length)}
-              hint="across 5 subjects"
+              hint={`across ${new Set(questions.map((q) => q.subject)).size} subjects`}
               accent="primary"
               icon={<Database className="h-4 w-4" />}
             />
@@ -461,6 +463,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
               accent="warning"
               icon={<Gauge className="h-4 w-4" />}
             />
+            {/* Mock stat commented out — no attempt data from backend yet.
             <StatCard
               label="Avg. Correct Rate"
               value={0}
@@ -470,6 +473,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
               accent="success"
               icon={<TrendingUp className="h-4 w-4" />}
             />
+            */}
           </div>
 
           <Panel noPadding>

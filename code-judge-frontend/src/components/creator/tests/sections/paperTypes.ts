@@ -6,6 +6,8 @@ export interface PaperQuestion {
   difficulty: string;
   kind: string;
   marks: number;
+  /** True when the AI composed this question itself (bank had too few). */
+  aiGenerated?: boolean;
 }
 
 export interface PaperGroup {
@@ -64,6 +66,10 @@ export interface GeneratePaperPayload {
   subjectId: number;
   chapterId?: number | null;
   topicId?: number | null;
+  chapterIds?: number[];
+  topicIds?: number[];
+  /** Paper-level tone (Easy/Balanced/Challenging). AI decides kinds itself. */
+  overallDifficulty?: "easy" | "balanced" | "challenging";
   difficulty?: "any" | "easy" | "medium" | "hard";
   kind?: "any" | "theory" | "numerical";
 }
@@ -94,6 +100,8 @@ export interface SubjectiveQuestion {
   question: string;
   difficulty: string;
   kind: string;
+  /** True when the AI composed this question itself (bank had too few). */
+  aiGenerated?: boolean;
 }
 
 export interface GenerateQuestionsPayload {

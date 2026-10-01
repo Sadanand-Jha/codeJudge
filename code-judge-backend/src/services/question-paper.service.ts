@@ -6,8 +6,10 @@
  * → AI selects bank questions per section/group → server rehydrates +
  * validates → printable paper.
  *
- * The AI only SELECTS bank question numbers — every question's wording,
+ * The AI SELECTS bank question numbers — every selected question's wording,
  * difficulty and kind comes from the parsed Word file, never the model.
+ * If the bank holds fewer matching questions than needed, the AI additionally
+ * COMPOSES the shortfall itself (flagged aiGenerated).
  * Totals/marks are computed server-side, mirroring testSectionGeneration.
  */
 import fs from "node:fs/promises";
@@ -15,6 +17,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import mammoth from "mammoth";
+import { AlignmentType, Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
 import { chatWithAI } from "./ai.service.js";
 import type { LiveUsage } from "./ai.service.js";
 import { pool as db } from "../config/database.js";
@@ -40,6 +43,22 @@ export interface PaperSectionInput {
   questionGroups: PaperGroupInput[];
 }
 
+export type OverallDifficulty = "easy" | "balanced" | "challenging";
+
+/** Bank difficulties the AI may draw from for each overall paper difficulty. */
+const OVERALL_DIFFICULTY_POOL: Record<OverallDifficulty, string[]> = {
+  easy: ["easy", "medium"],
+  balanced: ["easy", "medium", "hard"],
+  challenging: ["medium", "hard"],
+};
+
+/** Prompt guidance describing the overall paper tone (never percentages). */
+const OVERALL_DIFFICULTY_GUIDANCE: Record<OverallDifficulty, string> = {
+  easy: "Create an accessible paper: mostly foundational questions with some moderate ones.",
+  balanced: "Create a balanced mix of foundational, moderate and challenging questions.",
+  challenging: "Create a demanding paper with greater emphasis on application and deeper reasoning.",
+};
+
 export interface GeneratePaperRequest {
   sections: PaperSectionInput[];
   title?: string;
@@ -50,6 +69,11 @@ export interface GeneratePaperRequest {
   subjectId: number;
   chapterId?: number | null;
   topicId?: number | null;
+  chapterIds?: number[];
+  topicIds?: number[];
+  /** Paper-level tone. When present, the AI decides kinds itself (kind is ignored). */
+  overallDifficulty?: OverallDifficulty;
+  /** Legacy per-question filters (used only when overallDifficulty is absent). */
   difficulty?: "any" | "easy" | "medium" | "hard";
   kind?: "any" | "theory" | "numerical";
 }
@@ -60,6 +84,8 @@ export interface PaperQuestion {
   difficulty: string;
   kind: string;
   marks: number;
+  /** True when the AI composed this question itself (bank had too few). */
+  aiGenerated?: boolean;
 }
 
 export interface PaperGroup {
@@ -124,6 +150,8 @@ export interface SubjectiveQuestion {
   question: string;
   difficulty: string;
   kind: string;
+  /** True when the AI composed this question itself (bank had too few). */
+  aiGenerated?: boolean;
 }
 
 export interface GenerateSubjectiveQuestionsResult {
@@ -136,14 +164,16 @@ const PICKER_SYSTEM = `You are an expert teacher selecting questions from a filt
 ABSOLUTE RULES:
 - Return ONLY raw JSON. Nothing else. First character MUST be { and last MUST be }.
 - No markdown fences, no commentary, no explanation.
-- You MUST pick ONLY question numbers that exist in the QUESTION BANK below. Never invent, rephrase, or renumber.
+- Read each question's wording carefully and choose based on content quality and syllabus fit.
+- PART 1 (bank picks) uses ONLY question numbers that exist in the QUESTION BANK below. Never invent, rephrase, or renumber bank questions.
 - Every question number may be used AT MOST ONCE.
 - Pick EXACTLY the requested counts per difficulty.
 - Pick EXACTLY the requested counts per category.
 - Prefer questions whose wording matches the given topic/syllabus. If the bank has too few matching questions, fill the rest with the closest related ones.
 
 OUTPUT SHAPE:
-{ "nums": [12, 45, 3] }`;
+{ "nums": [12, 45, 3] }
+If asked to compose new questions, also include "generated": [{ "question": "...", "difficulty": "easy", "kind": "Theory" }].`;
 
 export const generateSubjectiveQuestions = async (
   request: GenerateSubjectiveQuestionsRequest
@@ -225,46 +255,58 @@ export const generateSubjectiveQuestions = async (
     difficulty: String(row.difficulty),
     kind: String(row.kind),
   })) as BankQuestion[];
-  if (candidates.length < total) {
-    throw new Error(`Only ${candidates.length} matching questions are available, but ${total} were requested.`);
-  }
-  for (const [difficulty, needed] of [["easy", easy], ["medium", medium], ["hard", hard]] as const) {
-    const available = candidates.filter((question) => question.difficulty === difficulty).length;
-    if (available < needed) {
-      throw new Error(`Only ${available} ${difficulty} matching questions are available, but ${needed} were requested.`);
-    }
-  }
-  for (const [category, needed] of [["theory", theory], ["numerical", numerical]] as const) {
-    const available = candidates.filter((question) => question.kind.toLowerCase() === category).length;
-    if (available < needed) {
-      throw new Error(`Only ${available} ${category} matching questions are available, but ${needed} were requested.`);
-    }
-  }
-
+  // Split the requested difficulty×category totals into 6 cells, covering as
+  // much as possible from the bank. Any remainder (shortfall) is composed
+  // fresh by the AI — so a small bank never blocks generation.
   const availableInCell = (difficulty: string, category: string) =>
     candidates.filter((q) => q.difficulty === difficulty && q.kind.toLowerCase() === category).length;
+  const CELLS = ["easy:theory", "easy:numerical", "medium:theory", "medium:numerical", "hard:theory", "hard:numerical"] as const;
   let cellPlan: Record<string, number> | null = null;
-  for (let easyTheory = 0; easyTheory <= easy && !cellPlan; easyTheory++) {
+  let bestCoverage = -1;
+  let fullyCovered = false;
+  for (let easyTheory = 0; easyTheory <= easy && !fullyCovered; easyTheory++) {
     const easyNumerical = easy - easyTheory;
-    if (easyTheory > availableInCell("easy", "theory") || easyNumerical > availableInCell("easy", "numerical")) continue;
     for (let mediumTheory = 0; mediumTheory <= medium; mediumTheory++) {
       const mediumNumerical = medium - mediumTheory;
       const hardTheory = theory - easyTheory - mediumTheory;
       const hardNumerical = hard - hardTheory;
       if (hardTheory < 0 || hardNumerical < 0) continue;
-      if (mediumTheory > availableInCell("medium", "theory") || mediumNumerical > availableInCell("medium", "numerical")) continue;
-      if (hardTheory > availableInCell("hard", "theory") || hardNumerical > availableInCell("hard", "numerical")) continue;
-      cellPlan = {
+      const plan: Record<string, number> = {
         "easy:theory": easyTheory, "easy:numerical": easyNumerical,
         "medium:theory": mediumTheory, "medium:numerical": mediumNumerical,
         "hard:theory": hardTheory, "hard:numerical": hardNumerical,
       };
-      break;
+      const coverage = CELLS.reduce(
+        (sum, cell) => {
+          const [d, c] = cell.split(":");
+          return sum + Math.min(plan[cell], availableInCell(d, c));
+        },
+        0
+      );
+      if (coverage === total) {
+        cellPlan = plan; // fully covered by the bank — same as the old first-fit
+        fullyCovered = true;
+        break;
+      }
+      if (coverage > bestCoverage) {
+        bestCoverage = coverage;
+        cellPlan = plan;
+      }
     }
   }
   if (!cellPlan) {
-    throw new Error("The requested difficulty and category counts cannot be combined with the available questions. Adjust the counts or broaden the selected topics.");
+    throw new Error("The requested difficulty and category counts cannot be combined with the available questions. Adjust the counts.");
   }
+  // Per cell: take from the bank what exists, ask the AI to compose the rest.
+  const bankTake: Record<string, number> = {};
+  const aiNeed: Record<string, number> = {};
+  for (const cell of CELLS) {
+    const [d, c] = cell.split(":");
+    bankTake[cell] = Math.min(cellPlan[cell], availableInCell(d, c));
+    aiNeed[cell] = cellPlan[cell] - bankTake[cell];
+  }
+  const shortfallTotal = CELLS.reduce((sum, cell) => sum + aiNeed[cell], 0);
+  const bankTotal = total - shortfallTotal;
   const byNum = new Map(candidates.map((q) => [q.num, q]));
 
   const syllabus = (request.syllabus ?? "").trim().slice(0, 4000);
@@ -278,14 +320,17 @@ export const generateSubjectiveQuestions = async (
     return copy;
   };
   const promptCandidateMap = new Map<number, BankQuestion>();
-  for (const [cell, needed] of Object.entries(cellPlan)) {
+  for (const cell of CELLS) {
     const [difficulty, category] = cell.split(":");
     const requiredCellCandidates = shuffle(candidates.filter(
       (q) => q.difficulty === difficulty && q.kind.toLowerCase() === category
-    )).slice(0, needed);
+    )).slice(0, bankTake[cell]);
     requiredCellCandidates.forEach((question) => promptCandidateMap.set(question.num, question));
   }
-  const promptCandidateLimit = Math.min(candidates.length, Math.max(40, total));
+  // Random shortlist: teacher asked for x (total), filters matched y
+  // (candidates.length) — send min(y, 3x) random problems to AI so every
+  // run sees a fresh pool and papers don't repeat.
+  const promptCandidateLimit = Math.min(candidates.length, total * 3);
   for (const question of shuffle(candidates)) {
     if (promptCandidateMap.size >= promptCandidateLimit) break;
     promptCandidateMap.set(question.num, question);
@@ -295,16 +340,41 @@ export const generateSubjectiveQuestions = async (
     .map((q) => `Q${q.num}. [${q.difficulty}|${q.kind}] ${q.question}`)
     .join("\n");
 
+  // When the bank is short, the AI also COMPOSES the missing questions itself.
+  // Compose table: exact per-cell counts the model must write.
+  const composeLines = CELLS.filter((cell) => aiNeed[cell] > 0).map((cell) => {
+    const [d, c] = cell.split(":");
+    const kindLabel = c === "theory" ? "Theory" : "Numerical";
+    return `- ${d} / ${kindLabel}: ${aiNeed[cell]}`;
+  });
+  const bankPickTotals = (() => {
+    const t = { easy: 0, medium: 0, hard: 0, theory: 0, numerical: 0 };
+    for (const cell of CELLS) {
+      const [d, c] = cell.split(":");
+      t[d as "easy" | "medium" | "hard"] += bankTake[cell];
+      t[c as "theory" | "numerical"] += bankTake[cell];
+    }
+    return t;
+  })();
+  const taskBlock = shortfallTotal === 0
+    ? `Pick EXACTLY ${total} questions — Easy=${easy}, Medium=${medium}, Hard=${hard}; Theory=${theory}, Numerical=${numerical}.`
+    : `The bank does NOT have enough matching questions, so do TWO tasks and return both:
+PART 1 — pick from the bank: EXACTLY ${bankTotal} questions — Easy=${bankPickTotals.easy}, Medium=${bankPickTotals.medium}, Hard=${bankPickTotals.hard}; Theory=${bankPickTotals.theory}, Numerical=${bankPickTotals.numerical}.
+PART 2 — compose ${shortfallTotal} NEW questions yourself (original wording, on the syllabus/topic below, NOT copies of bank questions), with EXACTLY this mix:
+${composeLines.join("\n")}
+Write "difficulty" as one of easy|medium|hard (lowercase) and "kind" as Theory|Numerical.`;
+
   const prompt = `${PICKER_SYSTEM}
 
-Pick EXACTLY ${total} questions — Easy=${easy}, Medium=${medium}, Hard=${hard}; Theory=${theory}, Numerical=${numerical}.
+${taskBlock}
 Reasoning effort: ${reasoningEffort}.
-${syllabus ? `TOPIC / SYLLABUS (prefer matching questions):\n${syllabus}\n` : "No topic supplied — pick the strongest questions across the bank."}
+${syllabus ? `TOPIC / SYLLABUS (prefer matching questions, compose new ones on these topics):\n${syllabus}\n` : "No topic supplied — pick the strongest questions across the bank."}
 
 QUESTION BANK:
 ${bankForPrompt}`;
 
   let aiNums: number[] = [];
+  let aiComposed: ComposedQuestion[] = [];
   let usage: LiveUsage | undefined;
   try {
     const { content, usage: u } = await chatWithAI(prompt);
@@ -313,12 +383,21 @@ ${bankForPrompt}`;
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
     if (start === -1 || end <= start) throw new Error("No JSON in AI reply");
-    const parsed = z.object({ nums: z.array(z.number().int().positive()).max(50) }).safeParse(
+    const parsed = z.object({
+      nums: z.array(z.number().int().positive()).max(50),
+      generated: z.array(GeneratedItemSchema).max(50).optional(),
+    }).safeParse(
       JSON.parse(cleaned.slice(start, end + 1))
     );
     if (!parsed.success) throw new Error("AI selection failed validation");
     aiNums = parsed.data.nums.filter((n) => byNum.has(n));
+    aiComposed = normalizeComposed(parsed.data.generated ?? []);
   } catch (err) {
+    if (shortfallTotal > 0) {
+      throw new Error(
+        `Only ${candidates.length} matching questions are available and AI composition failed (${err instanceof Error ? err.message : String(err)}). Broaden the filters or try again.`
+      );
+    }
     console.warn("[question-picker] AI selection failed, using deterministic fallback:", err);
     aiNums = [];
   }
@@ -345,8 +424,9 @@ ${bankForPrompt}`;
   };
 
   const picked: BankQuestion[] = [];
-  for (const [cell, need] of Object.entries(cellPlan)) {
+  for (const cell of CELLS) {
     const [difficulty, category] = cell.split(":");
+    const need = bankTake[cell];
     const kept: BankQuestion[] = [];
     for (const n of aiNums) {
       if (kept.length >= need) break;
@@ -360,12 +440,51 @@ ${bankForPrompt}`;
     picked.push(...kept);
   }
 
-  const questions: SubjectiveQuestion[] = picked.map((q) => ({
-    num: q.num,
-    question: q.question,
-    difficulty: q.difficulty,
-    kind: q.kind,
-  }));
+  // Fill the shortfall with AI-composed questions, exact per-cell counts.
+  const composedByCell = new Map<string, typeof aiComposed>();
+  for (const g of aiComposed) {
+    const key = `${g.difficulty}:${g.kind.toLowerCase()}`;
+    if (!composedByCell.has(key)) composedByCell.set(key, []);
+    composedByCell.get(key)!.push(g);
+  }
+  const composedPicked: Array<BankQuestion & { aiGenerated: true }> = [];
+  for (const cell of CELLS) {
+    const need = aiNeed[cell];
+    if (need === 0) continue;
+    const [difficulty, category] = cell.split(":");
+    const pool = composedByCell.get(cell) ?? [];
+    if (pool.length < need) {
+      throw new Error(
+        `Only ${candidates.length} matching questions are available and the AI composed ${pool.length}/${need} of the needed ${difficulty}/${category} questions. Broaden the filters or reduce the total.`
+      );
+    }
+    for (let i = 0; i < need; i++) {
+      const g = pool[i];
+      composedPicked.push({
+        num: 0,
+        question: g.question,
+        difficulty: g.difficulty,
+        kind: g.kind,
+        aiGenerated: true,
+      });
+    }
+  }
+
+  const questions: SubjectiveQuestion[] = [
+    ...picked.map((q) => ({
+      num: q.num,
+      question: q.question,
+      difficulty: q.difficulty,
+      kind: q.kind,
+    })),
+    ...composedPicked.map((q) => ({
+      num: q.num,
+      question: q.question,
+      difficulty: q.difficulty,
+      kind: q.kind,
+      aiGenerated: true as const,
+    })),
+  ];
 
   return { questions, usage };
 };
@@ -545,6 +664,38 @@ const AttemptRuleInput = z.preprocess(
   })
 );
 
+const GeneratedItemSchema = z.object({
+  question: z.string().trim().min(10).max(2000),
+  difficulty: z.string(),
+  kind: z.string(),
+});
+
+export interface ComposedQuestion {
+  question: string;
+  difficulty: "easy" | "medium" | "hard";
+  kind: "Theory" | "Numerical";
+}
+
+const normDifficulty = (v: string): "easy" | "medium" | "hard" | null => {
+  const t = v.trim().toLowerCase();
+  return t === "easy" || t === "medium" || t === "hard" ? t : null;
+};
+
+const normKind = (v: string): "Theory" | "Numerical" | null => {
+  const t = v.trim().toLowerCase();
+  return t === "theory" ? "Theory" : t === "numerical" ? "Numerical" : null;
+};
+
+const normalizeComposed = (items: Array<{ question: string; difficulty: string; kind: string }>): ComposedQuestion[] =>
+  items
+    .map((g) => {
+      const difficulty = normDifficulty(g.difficulty);
+      const kind = normKind(g.kind);
+      if (!difficulty || !kind) return null;
+      return { question: g.question, difficulty, kind };
+    })
+    .filter((g): g is ComposedQuestion => g !== null);
+
 const AISelectionSchema = z.object({
   sections: z
     .array(
@@ -552,6 +703,7 @@ const AISelectionSchema = z.object({
         groups: z.array(
           z.object({
             nums: z.array(z.number().int().positive()).max(50),
+            generated: z.array(GeneratedItemSchema).max(50).optional(),
           })
         ),
       })
@@ -568,17 +720,26 @@ const PAPER_SETTER_SYSTEM = `You are an expert university paper setter. Your tas
 ABSOLUTE RULES:
 - Return ONLY raw JSON. Nothing else. First character MUST be { and last MUST be }.
 - No markdown fences, no commentary, no explanation.
-- You MUST select ONLY question numbers that exist in the QUESTION BANK below. Never invent, rephrase, or renumber questions.
+- Design one coherent assessment, not isolated questions. Consider coverage, progression, cognitive variety and the relationship between questions across the whole paper.
+- The supplied test blueprint is authoritative. Preserve every section/group, exact question count, marks-per-question and attempt rule.
+- Read each bank question carefully and choose by academic quality, syllabus fit, marks, section purpose and the paper as a whole; never select by keyword alone.
+- Bank picks use ONLY question numbers that exist in the QUESTION BANK below. Never invent, rephrase, or renumber bank questions.
 - Every question number may be used AT MOST ONCE in the whole paper.
+- Avoid duplicates, near-duplicates, repeated concepts and questions that unnecessarily test the same skill.
 - For each group, select EXACTLY the required count of question numbers.
-- Match difficulty to marks: groups with low marks-per-question (1-2) should get Easy questions, mid marks (3-5) Medium, high marks (6+) Hard.
+- Treat OVERALL DIFFICULTY as a profile for the complete paper, never as a demand that every question have the same difficulty. Adapt the mix intelligently when the paper is small.
+- Match depth to marks: low-mark questions should be concise and focused; medium-mark questions should require explanation or moderate reasoning; high-mark questions should support deeper analysis or multi-step work.
 - Groups of type NUMERICAL must use Numerical-kind bank questions. Other groups prefer Theory questions unless the group type suggests calculations.
-- If a syllabus is supplied, PREFER bank questions whose wording matches the syllabus topics. If the bank has too few matching questions, fill the rest with the closest related ones — never invent new questions.
+- Respect the selected curriculum represented by the filtered bank. If a teacher syllabus is supplied, prioritize it; if matching choices are limited, use the closest academically related questions.
+- Follow teacher instructions unless they conflict with the blueprint, selected syllabus, academic correctness or these system rules.
+- Where the blueprint permits, create a natural but not mechanically predictable progression from foundation to understanding, application and analysis.
+- If a COMPOSE block is present, write original, precise, unambiguous questions that fit the syllabus, assigned marks and requested difficulty/kind. Do not copy or lightly rewrite bank questions.
+- Before responding, silently validate exact counts, structure, marks, uniqueness, syllabus coverage, difficulty profile, question depth and terminology.
 
 OUTPUT SHAPE (arrays aligned by index with the SECTIONS SPEC):
 {
   "sections": [
-    { "groups": [ { "nums": [3, 17] }, { "nums": [42] } ] }
+    { "groups": [ { "nums": [3, 17], "generated": [{ "question": "...", "difficulty": "medium", "kind": "Theory" }] }, { "nums": [42] } ] }
   ]
 }`;
 
@@ -608,6 +769,22 @@ const normalizeAttempt = (raw: unknown): { type: string; count: number | null } 
 const clampInt = (n: number, min: number, max: number) =>
   Math.min(max, Math.max(min, Math.floor(n)));
 
+/**
+ * Return `n` random elements from `arr` (Fisher-Yates shuffle + tight slice).
+ * Used to pick the subset of the filtered bank sent to the AI, so the AI does
+ * not keep seeing the same lowest-ID questions and re-produce the same paper.
+ */
+const sampleRandom = <T>(arr: readonly T[], n: number): T[] => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = a[i];
+    a[i] = a[j];
+    a[j] = tmp;
+  }
+  return a.slice(0, Math.max(0, n));
+};
+
 export const generateQuestionPaper = async (
   request: GeneratePaperRequest
 ): Promise<GeneratePaperResult> => {
@@ -623,14 +800,30 @@ export const generateQuestionPaper = async (
   if (totalNeeded > 100) throw new Error("A paper can have at most 100 questions.");
 
   const subjectId = Number(request.subjectId);
-  const chapterId = request.chapterId == null ? null : Number(request.chapterId);
-  const topicId = request.topicId == null ? null : Number(request.topicId);
+  const chapterIds = [...new Set((request.chapterIds?.length
+    ? request.chapterIds
+    : request.chapterId == null ? [] : [request.chapterId]).map(Number))];
+  const topicIds = [...new Set((request.topicIds?.length
+    ? request.topicIds
+    : request.topicId == null ? [] : [request.topicId]).map(Number))];
+  const overall = request.overallDifficulty ?? null;
   const difficulty = String(request.difficulty ?? "any").toLowerCase();
   const kind = String(request.kind ?? "any").toLowerCase();
   if (!Number.isInteger(subjectId) || subjectId <= 0) throw new Error("Select a subject.");
-  if (topicId !== null && chapterId === null) throw new Error("Select a chapter before selecting a topic.");
+  if (chapterIds.some((id) => !Number.isInteger(id) || id <= 0)) throw new Error("Select valid chapters.");
+  if (topicIds.some((id) => !Number.isInteger(id) || id <= 0)) throw new Error("Select valid topics.");
+  if (overall !== null && !["easy", "balanced", "challenging"].includes(overall)) {
+    throw new Error("Select a valid overall difficulty.");
+  }
   if (!["any", "easy", "medium", "hard"].includes(difficulty)) throw new Error("Select a valid difficulty.");
   if (!["any", "theory", "numerical"].includes(kind)) throw new Error("Select a valid category.");
+  // Paper-level tone: the AI decides kinds itself; the bank pool is limited
+  // to the matching difficulties. Legacy callers without overallDifficulty
+  // keep the old per-question difficulty/kind filters.
+  const allowedDiffs = overall !== null
+    ? OVERALL_DIFFICULTY_POOL[overall]
+    : difficulty === "any" ? ["easy", "medium", "hard"] : [difficulty];
+  const kindFilter = overall !== null ? "any" : kind;
   const bankResult = await db.query(
     `SELECT qb.id AS num, qb.question_text AS question,
             lower(qd.name) AS difficulty, qc.name AS kind
@@ -638,45 +831,98 @@ export const generateQuestionPaper = async (
      JOIN question_difficulty qd ON qd.id = qb.difficulty_id
      JOIN question_category qc ON qc.id = qb.category_id
      WHERE qb.subject_id = $1
-       AND ($2::int IS NULL OR qb.chapter_id = $2)
-       AND ($3::int IS NULL OR qb.topic_id = $3)
-       AND ($4::text = 'any' OR lower(qd.name) = $4)
+       AND (cardinality($2::int[]) = 0 OR qb.chapter_id = ANY($2::int[]))
+       AND (cardinality($3::int[]) = 0 OR qb.topic_id = ANY($3::int[]))
+       AND lower(qd.name) = ANY($4::text[])
        AND ($5::text = 'any' OR lower(qc.name) = $5)
      ORDER BY qb.id`,
-    [subjectId, chapterId, topicId, difficulty, kind]
+    [subjectId, chapterIds, topicIds, allowedDiffs, kindFilter]
   );
   const bank = bankResult.rows.map((row) => ({
     num: Number(row.num), question: String(row.question), difficulty: String(row.difficulty), kind: String(row.kind),
   })) as BankQuestion[];
-  if (totalNeeded > bank.length) {
-    throw new Error(`Only ${bank.length} matching database questions are available, but ${totalNeeded} were requested.`);
+  // Bank shortfall plan: the bank may hold fewer questions than the paper
+  // needs. Pre-allocate bank coverage per group in order (bank questions are
+  // fungible — repair below relaxes filters the same way); whatever each
+  // group still needs, the AI composes fresh — same flow as the picker.
+  interface GroupComposeSpec {
+    si: number;
+    gi: number;
+    need: number;
+    wantDiff: string;
+    wantNumerical: boolean;
+    compose: number;
   }
+  let remainingBank = bank.length;
+  const composeSpecs: GroupComposeSpec[] = [];
+  sections.forEach((s, si) => {
+    (s.questionGroups ?? []).forEach((g, gi) => {
+      const need = clampInt(Number(g.questionCount) || 0, 1, 50);
+      const mpq = Math.max(0.5, Number(g.marksPerQuestion) || 1);
+      const wantDiff = mpq <= 2 ? "easy" : mpq <= 5 ? "medium" : "hard";
+      const wantNumerical = String(g.type).toUpperCase() === "NUMERICAL";
+      const bankShare = Math.min(need, remainingBank);
+      remainingBank -= bankShare;
+      composeSpecs.push({ si, gi, need, wantDiff, wantNumerical, compose: need - bankShare });
+    });
+  });
+  const shortfallTotal = composeSpecs.reduce((sum, x) => sum + x.compose, 0);
   const byNum = new Map(bank.map((q) => [q.num, q]));
 
   const syllabus = (request.syllabus ?? "").trim().slice(0, 4000);
   const title = (request.title ?? "").trim().slice(0, 200) || "Question Paper";
   const instructions = (request.instructions ?? "").trim().slice(0, 2000);
 
-  const perDifficultyPromptLimit = Math.max(totalNeeded, 10);
-  const promptBank = ["easy", "medium", "hard"]
-    .flatMap((level) => bank.filter((q) => q.difficulty === level).slice(0, perDifficultyPromptLimit))
-    .slice(0, Math.max(totalNeeded * 4, 40));
+  // ---- Pick a random, representative subset of the filtered bank for the AI ----
+  // Randomness matters: the DB query returns questions in id order, so without a
+  // shuffle the AI always saw the same lowest-id questions and kept producing the
+  // same paper. We now send min(y, 10x) random questions where x = totalNeeded
+  // (requested) and y = bank.length (matched the filters) — a full paper has
+  // many sections/groups, so the AI gets a wider pool to choose from.
+  const totalMatched = bank.length;                              // y
+  const sendLimit = Math.min(totalMatched, totalNeeded * 10);    // min(y, 10x)
+  // Keep a fair share of every difficulty in the prompt, then cap to sendLimit.
+  const perDifficultyTarget = Math.max(Math.ceil(sendLimit / 3), 1);
+  const promptBank = sampleRandom(
+    ["easy", "medium", "hard"].flatMap((level) =>
+      sampleRandom(bank.filter((q) => q.difficulty === level), perDifficultyTarget)
+    ),
+    sendLimit
+  );
   const bankForPrompt = promptBank
     .map((q) => `Q${q.num}. [${q.difficulty}|${q.kind}] ${q.question}`)
     .join("\n");
 
+  const composeBlock = shortfallTotal === 0
+    ? ""
+    : `\n\nCOMPOSE NEW QUESTIONS (the bank holds only ${bank.length} matching questions for ${totalNeeded} needed — write ${shortfallTotal} yourself, original wording on the syllabus, NOT copies of bank questions):
+${composeSpecs
+  .filter((x) => x.compose > 0)
+  .map((x) => {
+    const s = sections[x.si];
+    const label = `Section ${s.label || `order ${s.order ?? x.si + 1}`} Group ${x.gi + 1}`;
+    const kindLabel = x.wantNumerical ? "Numerical" : "Theory";
+    return `- ${label}: ${x.compose} new — difficulty ${x.wantDiff}, kind ${kindLabel}`;
+  })
+  .join("\n")}
+Put each group's new questions in its "generated" array: [{ "question": "...", "difficulty": "easy|medium|hard", "kind": "Theory|Numerical" }].`;
+
   const prompt = `${PAPER_SETTER_SYSTEM}
 
-${syllabus ? `CREATOR SYLLABUS (prefer matching questions):\n${syllabus}\n` : "No syllabus supplied — balance difficulty across the bank."}
+PAPER TITLE: ${title}
+${instructions ? `TEACHER INSTRUCTIONS:\n${instructions}\n` : "No additional teacher instructions supplied."}
+${overall !== null ? `OVERALL DIFFICULTY (${overall}): ${OVERALL_DIFFICULTY_GUIDANCE[overall]}\n` : ""}${syllabus ? `CREATOR SYLLABUS / CONTEXT:\n${syllabus}\n` : "No syllabus supplied — create sensible coverage from the filtered bank."}
 
 SECTIONS SPEC (select EXACTLY the required count per group, arrays aligned by index):
 ${describeSectionsSpec(sections)}
+${composeBlock}
 
 QUESTION BANK:
 ${bankForPrompt}`;
 
-  // ---- 1. AI selection (question numbers only) ----
+  // ---- 1. AI selection (question numbers only) + composed shortfall ----
   let selectedNums: number[][][] = [];
+  let selectedGen: ComposedQuestion[][][] = [];
   let usage: LiveUsage | undefined;
   try {
     const { content, usage: u } = await chatWithAI(prompt);
@@ -688,9 +934,18 @@ ${bankForPrompt}`;
     const parsed = AISelectionSchema.safeParse(JSON.parse(cleaned.slice(start, end + 1)));
     if (!parsed.success) throw new Error("AI selection failed validation");
     selectedNums = parsed.data.sections.map((s) => s.groups.map((g) => g.nums));
+    selectedGen = parsed.data.sections.map((s) =>
+      s.groups.map((g) => normalizeComposed(g.generated ?? []))
+    );
   } catch (err) {
+    if (shortfallTotal > 0) {
+      throw new Error(
+        `Only ${bank.length} matching bank questions are available and AI composition failed (${err instanceof Error ? err.message : String(err)}). Broaden the filters or try again.`
+      );
+    }
     console.warn("[question-paper] AI selection failed, using deterministic fallback:", err);
     selectedNums = [];
+    selectedGen = [];
   }
 
   // ---- 2. Rehydrate + repair counts deterministically ----
@@ -742,7 +997,10 @@ ${bankForPrompt}`;
         kept.push(n);
       }
       const wantNumerical = String(g.type).toUpperCase() === "NUMERICAL";
-      const wantDiff = preferredDifficulty(mpq);
+      // Marks suggest a difficulty, but the overall paper tone wins: clamp
+      // the preference into the allowed bank pool (medium is always allowed).
+      const suggestedDiff = preferredDifficulty(mpq);
+      const wantDiff = allowedDiffs.includes(suggestedDiff) ? suggestedDiff : "medium";
       if (kept.length < need) {
         const shortfall = need - kept.length;
         const filtered = (q: BankQuestion) =>
@@ -757,10 +1015,43 @@ ${bankForPrompt}`;
         kept.push(next.num);
       }
 
-      const questions: PaperQuestion[] = kept.map((n) => {
-        const b = byNum.get(n)!;
-        return { num: b.num, question: b.question, difficulty: b.difficulty, kind: b.kind, marks: mpq };
-      });
+      // Fill any remaining need with AI-composed questions for this group,
+      // preferring the wanted difficulty/kind (same relax pattern as above).
+      const stillNeed = need - kept.length;
+      const composed: PaperQuestion[] = [];
+      if (stillNeed > 0) {
+        const pool = [...(selectedGen[si]?.[gi] ?? [])].sort((a, b) => {
+          const score = (q: ComposedQuestion) =>
+            (q.difficulty === wantDiff ? 2 : 0) +
+            (wantNumerical ? (q.kind === "Numerical" ? 1 : 0) : 0);
+          return score(b) - score(a);
+        });
+        for (const c of pool) {
+          if (composed.length >= stillNeed) break;
+          composed.push({
+            num: 0,
+            question: c.question,
+            difficulty: c.difficulty,
+            kind: c.kind,
+            marks: mpq,
+            aiGenerated: true,
+          });
+        }
+        if (composed.length < stillNeed) {
+          const sLabel = s.label || `order ${s.order ?? si + 1}`;
+          throw new Error(
+            `Only ${bank.length} matching bank questions are available and the AI composed ${composed.length}/${stillNeed} needed for Section ${sLabel} group "${(g.name || String(g.type)).trim()}". Broaden the filters or reduce questions.`
+          );
+        }
+      }
+
+      const questions: PaperQuestion[] = [
+        ...kept.map((n) => {
+          const b = byNum.get(n)!;
+          return { num: b.num, question: b.question, difficulty: b.difficulty, kind: b.kind, marks: mpq };
+        }),
+        ...composed,
+      ];
 
       return {
         name: (g.name || String(g.type)).trim(),
@@ -888,4 +1179,133 @@ export const renderPaperHtml = (paper: QuestionPaper): string => {
   <div class="paper-foot"><span>Total Questions: ${paper.totalQuestions}</span><span>Total Marks: ${paper.totalMarks}</span></div>
 </body>
 </html>`;
+};
+
+/* ================================================================== */
+/*  Word (.docx) rendering                                              */
+/* ================================================================== */
+
+const docxText = (v: unknown): string => (typeof v === "string" ? v : v == null ? "" : String(v));
+
+const docxMeta = (v: unknown): string => {
+  const n = Number(v);
+  return Number.isFinite(n) ? String(n) : "0";
+};
+
+/**
+ * Build the same question paper as a Word (.docx) file.
+ * Mirrors renderPaperHtml section-for-section; returns the file bytes.
+ */
+export const renderPaperDocx = async (paper: QuestionPaper): Promise<Buffer> => {
+  const title = docxText(paper.title) || "Question Paper";
+  const children: Paragraph[] = [
+    new Paragraph({
+      heading: HeadingLevel.TITLE,
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: title, bold: true })],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({
+          text: `Total Questions: ${docxMeta(paper.totalQuestions)}   ·   Total Marks: ${docxMeta(paper.totalMarks)}${
+            paper.durationMinutes ? `   ·   Duration: ${docxMeta(paper.durationMinutes)} minutes` : ""
+          }`,
+          size: 20,
+          color: "555555",
+        }),
+      ],
+    }),
+  ];
+  if (docxText(paper.instructions)) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text: docxText(paper.instructions), italics: true, size: 22 })],
+      })
+    );
+  }
+
+  let qNo = 0;
+  for (const s of paper.sections ?? []) {
+    children.push(
+      new Paragraph({
+        heading: HeadingLevel.HEADING_2,
+        children: [
+          new TextRun({
+            text: `Section ${docxText(s.label)} — ${docxText(s.name)} (${docxMeta(s.sectionMarks)} marks)`,
+            bold: true,
+          }),
+        ],
+      })
+    );
+    if (docxText(s.title)) {
+      children.push(new Paragraph({ children: [new TextRun({ text: docxText(s.title), bold: true })] }));
+    }
+    if (docxText(s.instructions)) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: `Instructions: ${docxText(s.instructions)}`, italics: true })],
+        })
+      );
+    }
+    for (const g of s.questionGroups ?? []) {
+      children.push(
+        new Paragraph({
+          heading: HeadingLevel.HEADING_3,
+          children: [
+            new TextRun({
+              text: `${docxText(g.name)} (${(g.questions ?? []).length} × ${docxMeta(g.marksPerQuestion)} marks)`,
+              bold: true,
+            }),
+          ],
+        })
+      );
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text:
+                g.attemptRule?.type === "ANY_N" && g.attemptRule?.count
+                  ? `Attempt any ${docxMeta(g.attemptRule.count)} out of ${(g.questions ?? []).length} questions.`
+                  : "Answer all questions.",
+              italics: true,
+              color: "555555",
+            }),
+          ],
+        })
+      );
+      for (const q of g.questions ?? []) {
+        qNo++;
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: `Q${qNo}.  `, bold: true }),
+              new TextRun({ text: docxText(q.question) }),
+              new TextRun({ text: `  [${docxMeta(q.marks)} mark${Number(q.marks) !== 1 ? "s" : ""}]`, bold: true }),
+            ],
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `      ${docxText(q.difficulty)} · ${docxText(q.kind)}`, size: 18, color: "888888" }),
+            ],
+          })
+        );
+      }
+    }
+  }
+
+  children.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `Total Questions: ${docxMeta(paper.totalQuestions)}        Total Marks: ${docxMeta(paper.totalMarks)}`,
+          bold: true,
+        }),
+      ],
+    })
+  );
+
+  const doc = new Document({ sections: [{ children }] });
+  return Packer.toBuffer(doc);
 };

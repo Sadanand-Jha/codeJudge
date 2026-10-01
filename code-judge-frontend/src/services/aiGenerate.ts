@@ -7,6 +7,7 @@ import type {
   GenerateQuestionsResponse,
   QuestionPaper,
 } from "@/components/creator/tests/sections/paperTypes";
+import type { Section } from "@/components/creator/tests/sections/types";
 
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
@@ -20,6 +21,46 @@ export interface QuestionGeneratorCatalog {
   topics: Array<{ id: number; chapterId: number; name: string }>;
   difficulties: Array<{ id: number; name: string }>;
   categories: Array<{ id: number; name: string }>;
+}
+
+export interface SectionBlueprint {
+  id: number;
+  name: string;
+  description: string;
+  sections: Section[];
+  createdAt: string;
+  updatedAt: string;
+  lastUsedAt: string | null;
+}
+
+async function blueprintRequest(path = "", init?: RequestInit) {
+  const response = await fetch(`${API_BASE}/v1/admin/tests/section-blueprints${path}`, {
+    ...init,
+    headers: { ...(init?.body ? { "Content-Type": "application/json" } : {}), ...getAuthHeaders(), ...init?.headers },
+    credentials: "include",
+  });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok || json.success === false) throw new Error(json.message || `Request failed with status ${response.status}`);
+  return json.data;
+}
+
+export async function getSectionBlueprints(): Promise<SectionBlueprint[]> {
+  const data = await blueprintRequest();
+  return data.blueprints ?? [];
+}
+
+export async function saveSectionBlueprint(payload: { name: string; description?: string; sections: Section[] }): Promise<SectionBlueprint> {
+  const data = await blueprintRequest("", { method: "POST", body: JSON.stringify(payload) });
+  return data.blueprint;
+}
+
+export async function useSectionBlueprint(id: number): Promise<SectionBlueprint> {
+  const data = await blueprintRequest(`/${id}/use`, { method: "POST" });
+  return data.blueprint;
+}
+
+export async function deleteSectionBlueprint(id: number): Promise<void> {
+  await blueprintRequest(`/${id}`, { method: "DELETE" });
 }
 
 export async function getQuestionGeneratorCatalog(signal?: AbortSignal): Promise<QuestionGeneratorCatalog> {
@@ -96,7 +137,7 @@ export async function generateQuestionPaper(
 }
 
 /**
- * Download a generated paper as a printable HTML file.
+ * Download a generated paper as a Word (.docx) file.
  *
  * POST /api/v1/admin/tests/paper-download
  */
@@ -127,7 +168,9 @@ export async function downloadQuestionPaper(
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "question-paper.html";
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "question-paper.docx";
+  anchor.download = filename;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();

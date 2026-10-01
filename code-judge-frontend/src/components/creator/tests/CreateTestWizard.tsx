@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -20,14 +20,21 @@ import {
   IndianRupee,
   Timer,
   Clock3,
+  BookmarkPlus,
+  FolderOpen,
+  Save,
+  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/helpers";
+import { deleteSectionBlueprint, getQuestionGeneratorCatalog, getSectionBlueprints, saveSectionBlueprint, useSectionBlueprint } from "@/services/aiGenerate";
+import type { SectionBlueprint } from "@/services/aiGenerate";
 import { EXAMS, LANGUAGES } from "@/components/tests/mockData";
 import { PrimaryButton, GhostButton } from "@/components/tests/ui";
 import { SectionCard } from "./sections/SectionCard";
 import { AIGenerateModal } from "./sections/AIGenerateModal";
 import { QuestionsStep } from "./sections/QuestionsStep";
+import { SectionBlueprintLibrary } from "./sections/SectionBlueprintLibrary";
 import {
   type Section,
   createDefaultSection,
@@ -37,7 +44,8 @@ import {
 
 const STEPS = [
   { id: "basic", label: "Basic Information", icon: FileText },
-  { id: "exam", label: "Exam & Subjects", icon: GraduationCap },
+  // Exam & Subjects step commented out — remove this line to restore it (and the step UI + canContinue branch below).
+  // { id: "exam", label: "Exam & Subjects", icon: GraduationCap },
   { id: "sections", label: "Sections", icon: Layers },
   { id: "questions", label: "Questions", icon: HelpCircle },
   { id: "pricing", label: "Pricing", icon: Wallet },
@@ -48,6 +56,17 @@ const STEPS = [
 // The current curated question bank is Operating Systems only. Keep the UI
 // aligned with the backend rather than presenting unavailable mock subjects.
 const SUBJECT_POOL = ["Operating System"];
+
+const cloneBlueprintSections = (sections: Section[]): Section[] => sections.map((section, sectionIndex) => ({
+  ...section,
+  id: `sec_${Date.now()}_${sectionIndex}_${Math.random().toString(36).slice(2, 6)}`,
+  questionGroups: section.questionGroups.map((group, groupIndex) => ({
+    ...group,
+    id: `qg_${Date.now()}_${sectionIndex}_${groupIndex}_${Math.random().toString(36).slice(2, 6)}`,
+    children: group.children?.map((child, childIndex) => ({ ...child, id: `sq_${Date.now()}_${sectionIndex}_${groupIndex}_${childIndex}` })),
+    nestedConfig: group.nestedConfig?.map((item, itemIndex) => ({ ...item, id: `nc_${Date.now()}_${sectionIndex}_${groupIndex}_${itemIndex}` })),
+  })),
+}));
 
 export type CreationType = "test" | "quiz" | "assessment";
 
@@ -86,6 +105,23 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const [duration, setDuration] = useState(180);
   const [examId, setExamId] = useState("");
   const [subjects, setSubjects] = useState<string[]>(["Operating System"]);
+  // Same subject source as Create Problem (question-generator catalog), so
+  // both pages always show identical subjects. Null = still loading.
+  const [catalogSubjects, setCatalogSubjects] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getQuestionGeneratorCatalog(controller.signal)
+      .then((catalog) => {
+        const names = catalog.subjects.map((s) => s.name);
+        setCatalogSubjects(names);
+        if (names.length > 0) setSubjects(names);
+      })
+      .catch((err) => {
+        if (err?.name !== "AbortError") setCatalogSubjects([]);
+      });
+    return () => controller.abort();
+  }, []);
   const [language, setLanguage] = useState<string>("english");
   const [difficulty, setDifficulty] = useState("medium");
   const [sections, setSections] = useState<Section[]>([createDefaultSection(0)]);
@@ -94,6 +130,16 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const [originalPrice, setOriginalPrice] = useState(0);
   const [publishing, setPublishing] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [blueprintLibraryOpen, setBlueprintLibraryOpen] = useState(false);
+  const [sectionEditorOpen, setSectionEditorOpen] = useState(false);
+  const [blueprints, setBlueprints] = useState<SectionBlueprint[]>([]);
+  const [blueprintsLoading, setBlueprintsLoading] = useState(false);
+  const [blueprintsLoaded, setBlueprintsLoaded] = useState(false);
+  const [blueprintBusyId, setBlueprintBusyId] = useState<number | null>(null);
+  const [saveBlueprintOpen, setSaveBlueprintOpen] = useState(false);
+  const [blueprintName, setBlueprintName] = useState("");
+  const [blueprintDescription, setBlueprintDescription] = useState("");
+  const [savingBlueprint, setSavingBlueprint] = useState(false);
 
   const totalQuestions = useMemo(
     () => sections.reduce((sum, s) => sum + getSectionQuestionCount(s), 0),
@@ -109,10 +155,10 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
 
   const canContinue = () => {
     if (step === 0) return title.trim().length > 3 && description.trim().length > 10;
-    if (step === 1) return examId !== "" && subjects.length > 0;
-    if (step === 2) return sections.length > 0 && totalQuestions > 0;
-    if (step === 3) return true;
-    if (step === 4) return mode === "free" || price > 0;
+    // Exam & Subjects gate commented out with its step: `if (step === 1) return examId !== "" && subjects.length > 0;`
+    if (step === 1) return sections.length > 0 && totalQuestions > 0;
+    if (step === 2) return true;
+    if (step === 3) return mode === "free" || price > 0;
     return true;
   };
 
@@ -160,6 +206,94 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
     setSections((prev) => [...prev, createDefaultSection(prev.length)]);
   }, []);
 
+  useEffect(() => {
+    if (step !== 1 || blueprintsLoaded || blueprintsLoading) return;
+    let active = true;
+    setBlueprintsLoading(true);
+    getSectionBlueprints()
+      .then((saved) => {
+        if (active) setBlueprints(saved);
+      })
+      .catch((error) => {
+        if (active) toast.error({ title: "Could not load saved sections", description: error instanceof Error ? error.message : "Please try again." });
+      })
+      .finally(() => {
+        if (active) {
+          setBlueprintsLoading(false);
+          setBlueprintsLoaded(true);
+        }
+      });
+    return () => { active = false; };
+  }, [step, blueprintsLoaded, toast]);
+
+  const startNewSection = useCallback(() => {
+    setSections([createDefaultSection(0)]);
+    setBlueprintLibraryOpen(false);
+    setSectionEditorOpen(true);
+  }, []);
+
+  const openBlueprintLibrary = useCallback(async () => {
+    setBlueprintLibraryOpen(true);
+    setSectionEditorOpen(false);
+    if (blueprintsLoaded || blueprintsLoading) return;
+    setBlueprintsLoading(true);
+    try {
+      setBlueprints(await getSectionBlueprints());
+    } catch (error) {
+      toast.error({ title: "Could not load blueprints", description: error instanceof Error ? error.message : "Please try again." });
+    } finally {
+      setBlueprintsLoading(false);
+      setBlueprintsLoaded(true);
+    }
+  }, [blueprintsLoaded, blueprintsLoading, toast]);
+
+  const handleUseBlueprint = useCallback(async (blueprint: SectionBlueprint) => {
+    setBlueprintBusyId(blueprint.id);
+    try {
+      const selected = await useSectionBlueprint(blueprint.id);
+      setSections(cloneBlueprintSections(selected.sections));
+      setBlueprintLibraryOpen(false);
+      setSectionEditorOpen(true);
+      setStep(2);
+      toast.success({ title: "Blueprint applied", description: `${selected.name} loaded. Continue with question generation.` });
+    } catch (error) {
+      toast.error({ title: "Could not use blueprint", description: error instanceof Error ? error.message : "Please try again." });
+    } finally {
+      setBlueprintBusyId(null);
+    }
+  }, [toast]);
+
+  const handleDeleteBlueprint = useCallback(async (blueprint: SectionBlueprint) => {
+    if (!window.confirm(`Delete blueprint “${blueprint.name}”?`)) return;
+    setBlueprintBusyId(blueprint.id);
+    try {
+      await deleteSectionBlueprint(blueprint.id);
+      setBlueprints((current) => current.filter((item) => item.id !== blueprint.id));
+      toast.success({ title: "Blueprint deleted" });
+    } catch (error) {
+      toast.error({ title: "Could not delete blueprint", description: error instanceof Error ? error.message : "Please try again." });
+    } finally {
+      setBlueprintBusyId(null);
+    }
+  }, [toast]);
+
+  const handleSaveBlueprint = useCallback(async () => {
+    if (!blueprintName.trim()) return;
+    setSavingBlueprint(true);
+    try {
+      const saved = await saveSectionBlueprint({ name: blueprintName, description: blueprintDescription, sections });
+      setBlueprints((current) => [saved, ...current]);
+      setSaveBlueprintOpen(false);
+      setBlueprintName("");
+      setBlueprintDescription("");
+      toast.success({ title: "Blueprint saved", description: "You can reuse this complete section structure in future tests." });
+    } catch (error) {
+      toast.error({ title: "Could not save blueprint", description: error instanceof Error ? error.message : "Please try again." });
+    } finally {
+      setSavingBlueprint(false);
+    }
+  }, [blueprintName, blueprintDescription, sections, toast]);
+
   const handlePublish = () => {
     setPublishing(true);
     setTimeout(() => {
@@ -173,21 +307,21 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   };
 
   return (
-    <div className="mx-auto w-full max-w-[980px] px-4 pb-28 pt-4 sm:px-6 sm:py-8 lg:px-0">
-      <header className="mb-5 rounded-2xl border border-border bg-card px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:mb-7 sm:flex sm:items-center sm:justify-between sm:px-6 sm:py-5">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-[0_8px_20px_rgba(168,85,247,0.22)]">
-            <FileText className="h-5 w-5" />
+    <div className="w-full space-y-4 pb-28 pt-1 sm:pb-10 sm:pt-2">
+      <header className="flex flex-col gap-3 rounded-xl border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-violet-600 text-white">
+            <FileText className="h-4.5 w-4.5" />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <h1 className="text-lg font-extrabold tracking-tight text-text-primary sm:text-xl">{meta.title}</h1>
+              <h1 className="text-base font-extrabold tracking-tight text-text-primary sm:text-lg">{meta.title}</h1>
               <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Draft</span>
             </div>
-            <p className="mt-1 max-w-2xl text-xs leading-5 text-text-secondary sm:text-sm">{meta.subtitle}</p>
+            <p className="mt-0.5 max-w-2xl truncate text-xs text-text-secondary">{meta.subtitle}</p>
           </div>
         </div>
-        <div className="mt-3 flex items-center gap-3 border-t border-border pt-3 text-xs text-text-secondary sm:mt-0 sm:border-0 sm:pt-0">
+        <div className="flex shrink-0 items-center gap-3 border-t border-border pt-2 text-xs text-text-secondary sm:border-0 sm:pt-0">
           <span><strong className="text-text-primary">{totalQuestions}</strong> questions</span>
           <span className="h-3 w-px bg-border" />
           <span><strong className="text-text-primary">{duration || 0}</strong> min</span>
@@ -195,7 +329,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
       </header>
 
       {/* Mobile progress keeps the active task clear without a tiny, overflowing stepper. */}
-      <div className="mb-5 rounded-xl border border-border bg-card p-3 sm:hidden">
+      <div className="rounded-xl border border-border bg-card p-3 sm:hidden">
         <div className="flex items-center justify-between gap-3 text-xs">
           <span className="font-bold text-text-primary">{STEPS[step].label}</span>
           <span className="shrink-0 font-semibold text-text-secondary">{step + 1} / {STEPS.length}</span>
@@ -206,7 +340,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
       </div>
 
       {/* Desktop stepper */}
-      <div className="mb-6 hidden items-center gap-1 overflow-x-auto pb-1 sm:flex">
+      <div className="hidden items-center gap-1 overflow-x-auto pb-1 sm:flex">
         {STEPS.map((s, i) => {
           const done = i < step || (i === step && publishing);
           const active = i === step && !publishing;
@@ -216,7 +350,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                 type="button"
                 onClick={() => i < step && setStep(i)}
                 className={cn(
-                  "flex items-center gap-2 rounded-full border px-3.5 py-2 text-[11px] font-bold transition-all",
+                  "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold transition-all",
                   active &&
                     "border-transparent bg-gradient-to-r from-pink-500 to-violet-600 text-white shadow-[0_4px_14px_rgba(236,72,153,0.3)]",
                   done && "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
@@ -243,63 +377,66 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.25 }}
           className={cn(
-            "rounded-2xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:rounded-3xl sm:p-8",
-            step === 2 && "overflow-hidden"
+            "rounded-xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:p-5",
+            step === 1 && sectionEditorOpen && "overflow-hidden"
           )}
         >
           {step === 0 && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-xs font-bold text-text-primary">Test Title</label>
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. JEE Main 2026 Mock Test 01"
-                  className="h-12 w-full rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
+                  className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
                 />
               </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-bold text-text-primary">Description</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  placeholder="What does this test cover — pattern, difficulty, target audience..."
-                  className="w-full rounded-xl border border-input-border bg-input-bg px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
-                />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-text-primary">Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    placeholder="What does this test cover — pattern, difficulty, target audience..."
+                    className="w-full resize-y rounded-xl border border-input-border bg-input-bg px-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-text-primary">Instructions</label>
+                  <textarea
+                    value={instructions}
+                    onChange={(e) => setInstructions(e.target.value)}
+                    rows={3}
+                    placeholder="e.g. Each question carries 4 marks. No negative marking."
+                    className="w-full resize-y rounded-xl border border-input-border bg-input-bg px-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="mb-1.5 block text-xs font-bold text-text-primary">Instructions</label>
-                <textarea
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
-                  rows={2}
-                  placeholder="e.g. Each question carries 4 marks. No negative marking."
-                  className="w-full rounded-xl border border-input-border bg-input-bg px-4 py-3 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
-                />
-              </div>
-              <div>
+              <div className="md:max-w-xs">
                 <label className="mb-1.5 block text-xs font-bold text-text-primary">Duration (minutes)</label>
                 <div className="flex items-center gap-2">
-                  <Timer className="h-4 w-4 text-text-muted" />
+                  <Timer className="h-4 w-4 shrink-0 text-text-muted" />
                   <input
                     type="number"
                     min={5}
                     max={600}
                     value={duration || ""}
                     onChange={(e) => setDuration(Number(e.target.value))}
-                    className="h-12 w-full rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
+                    className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
                   />
                 </div>
               </div>
             </div>
           )}
 
+          {/* Exam & Subjects step commented out — restore the STEPS entry above to bring it back.
           {step === 1 && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-xs font-bold text-text-primary">Exam</label>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
                   {EXAMS.map((exam) => (
                     <button
                       key={exam.id}
@@ -322,13 +459,17 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               <div>
                 <label className="mb-1.5 block text-xs font-bold text-text-primary">Subjects</label>
                 <div className="flex flex-wrap gap-2">
-                  {SUBJECT_POOL.map((s) => (
+                  {(catalogSubjects ?? SUBJECT_POOL).map((s) => (
                     <button
                       key={s}
                       type="button"
-                      disabled
+                      onClick={() =>
+                        setSubjects((prev) =>
+                          prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+                        )
+                      }
                       className={cn(
-                        "cursor-default rounded-full border px-3.5 py-1.5 text-xs font-bold",
+                        "rounded-full border px-3.5 py-1.5 text-xs font-bold transition-colors",
                         subjects.includes(s)
                           ? "border-transparent bg-gradient-to-r from-pink-500 to-violet-600 text-white"
                           : "border-border bg-card-hover/40 text-text-secondary hover:border-pink-500/30"
@@ -338,16 +479,20 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-[11px] text-text-muted">More subjects will appear here when their question banks are ready.</p>
+                {catalogSubjects === null ? (
+                  <p className="mt-2 text-[11px] text-text-muted">Loading subjects from your question bank…</p>
+                ) : catalogSubjects.length === 0 ? (
+                  <p className="mt-2 text-[11px] text-text-muted">More subjects will appear here when their question banks are ready.</p>
+                ) : null}
               </div>
 
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-[1fr_2fr]">
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-text-primary">Language</label>
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary focus:border-pink-500/50 focus:outline-none"
+                    className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary focus:border-pink-500/50 focus:outline-none"
                   >
                     {LANGUAGES.map((l) => (
                       <option key={l.id} value={l.id}>
@@ -358,7 +503,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs font-bold text-text-primary">Difficulty</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {(["easy", "medium", "hard", "mixed"] as const).map((d) => (
                       <button
                         key={d}
@@ -379,19 +524,90 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               </div>
             </div>
           )}
+          */}
 
-          {step === 2 && (
-            <div>
-              {/* Summary */}
-              <div className="mb-5 flex flex-wrap items-center gap-3 text-[11px] text-text-muted">
-                <span className="font-semibold text-text-primary">{sections.length} Section{sections.length !== 1 && "s"}</span>
-                <span>·</span>
-                <span>{totalQuestions} Question{totalQuestions !== 1 && "s"}</span>
-                <span>·</span>
-                <span className="font-semibold text-text-secondary">{totalMarks} Total Marks</span>
+          {step === 1 && !sectionEditorOpen && !blueprintLibraryOpen && (
+            <div className="mx-auto max-w-3xl py-3 sm:py-6">
+              <div className="text-center">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-lg shadow-pink-500/15">
+                  <Layers className="h-5 w-5" />
+                </span>
+                <h2 className="mt-3 text-lg font-extrabold text-text-primary">Set up your paper sections</h2>
+                <p className="mx-auto mt-1 max-w-lg text-xs leading-5 text-text-secondary">Create a fresh section structure or reuse one you have already saved.</p>
               </div>
 
-              <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-violet-500/20 bg-violet-500/[0.05] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={startNewSection}
+                  className="group min-h-44 rounded-2xl border border-pink-500/20 bg-gradient-to-br from-pink-500/[0.08] via-card to-violet-500/[0.05] p-5 text-left transition-all hover:-translate-y-0.5 hover:border-pink-500/45 hover:shadow-[0_12px_32px_rgba(236,72,153,0.12)]"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-md shadow-pink-500/20">
+                    <Plus className="h-5 w-5" />
+                  </span>
+                  <span className="mt-5 block text-sm font-extrabold text-text-primary">Create new section</span>
+                  <span className="mt-1 block text-xs leading-5 text-text-secondary">Build sections, question groups, marks and attempt rules from scratch.</span>
+                  <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-pink-500">Start creating <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={openBlueprintLibrary}
+                  className="group min-h-44 rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.08] via-card to-blue-500/[0.04] p-5 text-left transition-all hover:-translate-y-0.5 hover:border-violet-500/45 hover:shadow-[0_12px_32px_rgba(124,58,237,0.12)]"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-300">
+                    <FolderOpen className="h-5 w-5" />
+                  </span>
+                  <span className="mt-5 flex items-center gap-2 text-sm font-extrabold text-text-primary">
+                    Use existing section
+                    {!blueprintsLoading && blueprintsLoaded && blueprints.length > 0 && <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[9px] text-violet-600 dark:text-violet-300">{blueprints.length} saved</span>}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-text-secondary">
+                    {blueprintsLoading ? "Checking saved sections…" : blueprintsLoaded && blueprints.length === 0 ? "No saved sections yet — create your first section." : "Choose a complete saved blueprint and continue immediately."}
+                  </span>
+                  <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-violet-600 dark:text-violet-300">{blueprintsLoaded && blueprints.length === 0 ? "Create your first section" : "View saved sections"} <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 1 && blueprintLibraryOpen && (
+            <SectionBlueprintLibrary
+              blueprints={blueprints}
+              loading={blueprintsLoading}
+              busyId={blueprintBusyId}
+              onBack={() => setBlueprintLibraryOpen(false)}
+              onCreateNew={startNewSection}
+              onUse={handleUseBlueprint}
+              onDelete={handleDeleteBlueprint}
+            />
+          )}
+
+          {step === 1 && sectionEditorOpen && !blueprintLibraryOpen && (
+            <div>
+              <div className="mb-4 flex flex-col gap-3 rounded-xl border border-border bg-card-hover/25 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-text-muted">
+                  <button type="button" onClick={() => setSectionEditorOpen(false)} className="mr-1 inline-flex items-center gap-1 font-bold text-text-secondary hover:text-violet-500"><ChevronLeft className="h-3.5 w-3.5" /> Change option</button>
+                  <span className="h-3 w-px bg-border" />
+                  <span className="font-semibold text-text-primary">{sections.length} Section{sections.length !== 1 && "s"}</span>
+                  <span>·</span>
+                  <span>{totalQuestions} Question{totalQuestions !== 1 && "s"}</span>
+                  <span>·</span>
+                  <span className="font-semibold text-text-secondary">{totalMarks} Total Marks</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBlueprintName(title.trim() ? `${title.trim()} blueprint` : "");
+                    setSaveBlueprintOpen(true);
+                  }}
+                  className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 text-[10px] font-bold text-text-secondary transition-all hover:border-pink-500/30 hover:text-pink-500"
+                >
+                  <BookmarkPlus className="h-3.5 w-3.5" /> Save for reuse
+                </button>
+              </div>
+
+              <div className="mb-4 flex flex-col gap-3 rounded-xl border border-violet-500/20 bg-violet-500/[0.05] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-text-primary">Need a single question instead?</p>
                   <p className="mt-1 text-xs leading-5 text-text-secondary">Open the AI question generator directly. You do not need to create sections or a full paper first.</p>
@@ -429,7 +645,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               <button
                 type="button"
                 onClick={addSection}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-card/50 py-4 text-sm font-semibold text-text-secondary transition-all hover:border-pink-500/30 hover:text-pink-500 dark:hover:text-pink-400"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card/50 py-3 text-sm font-semibold text-text-secondary transition-all hover:border-pink-500/30 hover:text-pink-500 dark:hover:text-pink-400"
               >
                 <Plus className="h-5 w-5" />
                 Add Section
@@ -437,7 +653,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
             </div>
           )}
 
-          {step === 3 && (
+          {step === 2 && (
             <QuestionsStep
               sections={sections}
               paperTitle={title}
@@ -445,8 +661,8 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
             />
           )}
 
-          {step === 4 && (
-            <div className="space-y-6">
+          {step === 3 && (
+            <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-xs font-bold text-text-primary">Pricing Model</label>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -454,7 +670,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                     type="button"
                     onClick={() => setMode("free")}
                     className={cn(
-                      "rounded-2xl border p-5 text-left transition-all",
+                      "rounded-xl border p-4 text-left transition-all",
                       mode === "free" ? "border-emerald-500/50 bg-emerald-500/6" : "border-border bg-card-hover/30 hover:border-border-hover"
                     )}
                   >
@@ -465,7 +681,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                     type="button"
                     onClick={() => setMode("paid")}
                     className={cn(
-                      "rounded-2xl border p-5 text-left transition-all",
+                      "rounded-xl border p-4 text-left transition-all",
                       mode === "paid"
                         ? "border-pink-500/50 bg-pink-500/6 dark:border-ai-accent/50 dark:bg-ai-accent/6"
                         : "border-border bg-card-hover/30 hover:border-border-hover"
@@ -478,7 +694,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               </div>
 
               {mode === "paid" && (
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-text-primary">Your Price (₹)</label>
                     <div className="relative">
@@ -518,7 +734,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
             </div>
           )}
 
-          {step === 5 && (
+          {step === 4 && (
             <div>
               <div className="mx-auto max-w-md overflow-hidden rounded-2xl border border-border bg-card">
                 <div
@@ -574,7 +790,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
             </div>
           )}
 
-          {step === 6 && (
+          {step === 5 && (
             <div className="text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-[0_12px_36px_rgba(236,72,153,0.4)]">
                 <Rocket className="h-8 w-8" />
@@ -586,7 +802,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                 {mode === "free" ? "free" : `₹${price}`}. Once published it will be visible to all students.
               </p>
               <div className="mt-6 flex items-center justify-center gap-3">
-                <GhostButton onClick={() => setStep(5)}>Back to Preview</GhostButton>
+                <GhostButton onClick={() => setStep(4)}>Back to Preview</GhostButton>
                 <PrimaryButton onClick={handlePublish} disabled={publishing} className="px-6 py-3">
                   <Rocket className="h-4 w-4" />
                   {publishing ? "Publishing…" : "Publish Test"}
@@ -598,7 +814,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
       </AnimatePresence>
 
       {/* Footer nav */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:mt-6 sm:flex sm:items-center sm:justify-between sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+      {!(step === 1 && (!sectionEditorOpen || blueprintLibraryOpen)) && <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:mt-6 sm:flex sm:items-center sm:justify-between sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
         <GhostButton onClick={() => setStep((s) => Math.max(0, s - 1))} className={cn("hidden sm:inline-flex", step === 0 && "invisible")}>
           <ChevronLeft className="h-4 w-4" /> Back
         </GhostButton>
@@ -618,7 +834,68 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
             </PrimaryButton>
           )}
         </div>
-      </div>
+      </div>}
+
+      <AnimatePresence>
+        {saveBlueprintOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !savingBlueprint) setSaveBlueprintOpen(false);
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-base font-extrabold text-text-primary">Save section blueprint</h2>
+                  <p className="mt-1 text-xs text-text-secondary">This saves all {sections.length} sections, groups, marks and attempt rules.</p>
+                </div>
+                <button type="button" onClick={() => setSaveBlueprintOpen(false)} disabled={savingBlueprint} className="rounded-lg p-1.5 text-text-muted hover:bg-card-hover hover:text-text-primary" aria-label="Close"><X className="h-4 w-4" /></button>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-text-primary">Blueprint name</label>
+                  <input
+                    autoFocus
+                    value={blueprintName}
+                    maxLength={120}
+                    onChange={(event) => setBlueprintName(event.target.value)}
+                    placeholder="e.g. Semester exam — 5 sections"
+                    className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-text-primary">Description <span className="font-medium text-text-muted">(optional)</span></label>
+                  <textarea
+                    value={blueprintDescription}
+                    maxLength={500}
+                    rows={3}
+                    onChange={(event) => setBlueprintDescription(event.target.value)}
+                    placeholder="When should this blueprint be used?"
+                    className="w-full resize-none rounded-xl border border-input-border bg-input-bg px-3.5 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2">
+                <GhostButton onClick={() => { if (!savingBlueprint) setSaveBlueprintOpen(false); }}>Cancel</GhostButton>
+                <PrimaryButton onClick={handleSaveBlueprint} disabled={savingBlueprint || !blueprintName.trim()}>
+                  <Save className="h-4 w-4" /> {savingBlueprint ? "Saving…" : "Save blueprint"}
+                </PrimaryButton>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* AI Generate Modal */}
       <AIGenerateModal
