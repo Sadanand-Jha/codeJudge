@@ -16,8 +16,8 @@ const BACKEND_URL =
     ? "http://localhost:8000"
     : "https://quizbackend-dun.vercel.app");
 
-// Local models can take longer than five minutes for large question papers.
-export const maxDuration = 900;
+// Vercel Hobby serverless functions allow at most 300 seconds.
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   let form: FormData;
