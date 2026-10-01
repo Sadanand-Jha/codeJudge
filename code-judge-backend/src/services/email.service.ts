@@ -1,8 +1,10 @@
 // Marksheet email service. Sends a formatted email to the quiz creator with the
 // generated marksheet Excel file as an attachment and quiz statistics.
-// Sends via Nodemailer/SMTP (see ./smtp.ts for env configuration).
+// Sends via Nodemailer/SMTP first, Resend API fallback (see ./smtp.ts and
+// ./resend.ts for env configuration).
 import logger from "../utils/logger.ts";
 import { getTransporter, getFromAddress } from "./smtp.ts";
+import { isResendConfigured, sendViaResend } from "./resend.ts";
 
 export interface MarksheetEmailPayload {
   to: string;
@@ -26,7 +28,7 @@ function requireTransport() {
   const transporter = getTransporter();
   const from = getFromAddress();
   if (!transporter || !from) {
-    throw new Error("Email configuration is incomplete. Please set SMTP_HOST/SMTP_USER/SMTP_PASS (or EMAIL1/GMAIL_APP_PASSWORD1) environment variables.");
+    throw new Error("Email configuration is incomplete. Please set RESEND_API_KEY (Resend fallback) or SMTP_HOST/SMTP_USER/SMTP_PASS (or EMAIL1/GMAIL_APP_PASSWORD1) environment variables.");
   }
   return { transporter, from };
 }
@@ -37,10 +39,9 @@ function requireTransport() {
 export async function sendMarksheetEmail(payload: MarksheetEmailPayload): Promise<void> {
   const { to, quizName, quizCode, endTime, marksheetBuffer, stats } = payload;
 
-  const { transporter, from } = requireTransport();
-
   // Email subject
   const subject = `Quiz Report - ${quizName}`;
+
 
   // Email body
   const htmlBody = `
@@ -120,8 +121,13 @@ export async function sendMarksheetEmail(payload: MarksheetEmailPayload): Promis
     </div>
   `;
 
-  // Send email via SMTP with attachment
+  const filename = `marksheet_${quizCode}_${new Date().toISOString().split("T")[0]}.xlsx`;
+  const attachmentContentType =
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+  // Primary: SMTP with attachment. On failure, fall back to Resend.
   try {
+    const { transporter, from } = requireTransport();
     const info = await transporter.sendMail({
       from: `Quiz System <${from}>`,
       to,
@@ -129,16 +135,40 @@ export async function sendMarksheetEmail(payload: MarksheetEmailPayload): Promis
       html: htmlBody,
       attachments: [
         {
-          filename: `marksheet_${quizCode}_${new Date().toISOString().split("T")[0]}.xlsx`,
+          filename,
           content: marksheetBuffer,
-          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          contentType: attachmentContentType,
         },
       ],
     });
 
     logger.info(`Marksheet email sent to ${to} for quiz ${quizCode}: ${info.messageId}`);
-  } catch (error) {
-    logger.error(`Failed to send marksheet email to ${to} for quiz ${quizCode}:`, error);
-    throw new Error(`Failed to send email: ${error instanceof Error ? error.message : String(error)}`);
+    return;
+  } catch (smtpError) {
+    logger.error(
+      `SMTP marksheet email to ${to} for quiz ${quizCode} failed, trying Resend fallback:`,
+      smtpError
+    );
+    if (!isResendConfigured()) {
+      throw new Error(
+        `Failed to send email: ${smtpError instanceof Error ? smtpError.message : String(smtpError)}`
+      );
+    }
+    try {
+      await sendViaResend({
+        to,
+        subject,
+        html: htmlBody,
+        attachments: [
+          { filename, content: marksheetBuffer, contentType: attachmentContentType },
+        ],
+      });
+      logger.info(`Marksheet email sent via Resend to ${to} for quiz ${quizCode}`);
+    } catch (resendError) {
+      logger.error(`Resend marksheet fallback to ${to} also failed:`, resendError);
+      throw new Error(
+        `Failed to send email: ${resendError instanceof Error ? resendError.message : String(resendError)}`
+      );
+    }
   }
 }

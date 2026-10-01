@@ -3,7 +3,7 @@
 // config/redis.ts cannot be used here. Configure via REDIS_URL
 // (e.g. local redis://127.0.0.1:6379 or a hosted RESP endpoint).
 // On serverless (Vercel) there is no long-lived worker; the submit endpoint
-// falls back to inline processing when the queue is unreachable.
+// falls back to the durable Upstash REST recovery queue.
 import { Redis } from "ioredis";
 
 declare global {
@@ -19,7 +19,7 @@ function createConnection(): Redis {
     // Required by BullMQ workers (blocking commands must not time out).
     maxRetriesPerRequest: null,
     enableReadyCheck: true,
-    // Fail fast for the web process so submit can fall back to inline grading.
+    // Fail fast for the web process so submit can use durable recovery.
     connectTimeout: 5000,
     retryStrategy: (times: number) => {
       if (times > 5) return null;

@@ -3,15 +3,15 @@
 // POST /attempt/:attemptId/submit (quiz.controller.ts): load problems +
 // options, grade in memory, persist answers, finalize the attempt.
 // The submit endpoint now only validates + enqueues; a BullMQ worker runs
-// this function. It is also used as the synchronous fallback when Redis is
-// unreachable, so behavior is identical in both paths.
+// this function. It is also used by concurrency-limited recovery when a
+// long-lived BullMQ worker is unavailable.
 import { QuizService } from "./database/quiz.service.ts";
 import type { QuizSubmissionJobData } from "../queues/quizSubmission.queue.ts";
 
 const quizService = new QuizService();
 
 export async function processQuizSubmission(data: QuizSubmissionJobData): Promise<any> {
-  const { attemptId, userId, responses, violations, flagged, flagReason, isLate } = data;
+  const { attemptId, userId, responses } = data;
 
   const attempt = await quizService.getQuizAttemptById(Number(attemptId));
   if (!attempt || Number(attempt.user_id) !== Number(userId)) {
@@ -139,6 +139,15 @@ export async function processQuizSubmission(data: QuizSubmissionJobData): Promis
   const quizDeadline = quizRow?.endtime
     ? new Date(quizRow.endtime).getTime()
     : Number.POSITIVE_INFINITY;
+  const submittedAtMs = new Date(data.submittedAt).getTime();
+  const isLate = data.isLate || (
+    Number.isFinite(submittedAtMs)
+    && submittedAtMs > Math.min(durationDeadline, quizDeadline)
+  );
+  const storedViolations = Number(attempt.violations) || 0;
+  const violations = Math.max(storedViolations, Number(data.violations) || 0);
+  const flagged = attempt.flagged === true || data.flagged === true;
+  const flagReason = [attempt.flag_reason, data.flagReason].filter(Boolean).join("; ").slice(0, 500) || undefined;
   const effectiveCompletionMs = isLate
     ? Math.min(Date.now(), durationDeadline, quizDeadline)
     : Date.now();

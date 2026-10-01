@@ -13,6 +13,7 @@ import {
   commitQuestionImport,
   getQuestionImportCatalog,
   previewQuestionImport,
+  previewQuestionImportStream,
 } from "../../controllers/platformQuestionImport.controller.ts";
 
 const router = Router();
@@ -21,8 +22,25 @@ const questionDocumentUpload = multer({
   limits: { files: 1, fileSize: 4 * 1024 * 1024 },
 });
 const uploadQuestionDocument = (req: Request, res: Response, next: NextFunction) => {
+  console.log("[question-import] upload middleware: incoming", {
+    contentType: req.headers["content-type"],
+    contentLength: req.headers["content-length"],
+  });
   questionDocumentUpload.single("file")(req, res, (error) => {
-    if (!error) return next();
+    if (!error) {
+      console.log("[question-import] upload middleware: file received", {
+        originalname: req.file?.originalname,
+        mimetype: req.file?.mimetype,
+        size: req.file?.size,
+        fieldname: (req.file as { fieldname?: string } | undefined)?.fieldname,
+        bodyKeys: Object.keys(req.body ?? {}),
+      });
+      return next();
+    }
+    console.error("[question-import] upload middleware: multer rejected the upload", {
+      code: (error as { code?: string })?.code,
+      message: error instanceof Error ? error.message : String(error),
+    });
     const message = error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE"
       ? "Document must be 4 MB or smaller."
       : "Unable to accept this document upload.";
@@ -59,6 +77,7 @@ router.get("/observability", getObservability);
 router.get("/requests/:requestId", getRequestDetail);
 router.get("/question-import/catalog", getQuestionImportCatalog);
 router.post("/question-import/preview", uploadQuestionDocument, previewQuestionImport);
+router.post("/question-import/preview/stream", uploadQuestionDocument, previewQuestionImportStream);
 router.post("/question-import/commit", commitQuestionImport);
 
 export default router;

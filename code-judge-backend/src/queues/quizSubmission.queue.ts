@@ -5,6 +5,8 @@
 // GET /attempt/:attemptId/submit-status until completed/failed.
 import { Queue, type Job } from "bullmq";
 import { getBullmqConnection } from "./connection.ts";
+import crypto from "node:crypto";
+import redisClient from "../config/redis.ts";
 
 export const QUIZ_SUBMISSION_QUEUE = "quiz-submissions";
 
@@ -28,6 +30,10 @@ export interface QuizSubmissionJobData {
 }
 
 export type QuizSubmissionStatus = "queued" | "processing" | "completed" | "failed" | "none";
+
+export function isQuizSubmissionQueueConfigured(): boolean {
+  return Boolean(process.env.REDIS_URL?.trim());
+}
 
 export function quizSubmitJobId(attemptId: number | string): string {
   // NOTE: BullMQ custom IDs must not contain ":".
@@ -68,4 +74,54 @@ export async function getQuizSubmissionJob(
 ): Promise<Job<QuizSubmissionJobData> | undefined> {
   const queue = getQuizSubmissionQueue();
   return queue.getJob(quizSubmitJobId(attemptId));
+}
+
+const FALLBACK_TTL_SECONDS = 24 * 60 * 60;
+const RECOVERY_LOCK_PREFIX = "quiz-submissions:recovery-lock";
+const RECOVERY_CONCURRENCY = Math.min(10, Math.max(1, Number(process.env.QUIZ_SUBMISSION_CONCURRENCY) || 3));
+
+const fallbackKey = (attemptId: number | string) => `quiz-submissions:fallback:${attemptId}`;
+
+/** Durable HTTP-Redis copy used when BullMQ RESP or its worker is unavailable. */
+export async function storeFallbackQuizSubmission(data: QuizSubmissionJobData): Promise<void> {
+  const stored = await redisClient.setEx(fallbackKey(data.attemptId), FALLBACK_TTL_SECONDS, JSON.stringify(data));
+  if (!stored) throw new Error("Submission fallback storage is unavailable");
+}
+
+export async function getFallbackQuizSubmission(attemptId: number | string): Promise<QuizSubmissionJobData | null> {
+  const stored = await redisClient.get(fallbackKey(attemptId));
+  if (!stored) return null;
+  try {
+    return (typeof stored === "string" ? JSON.parse(stored) : stored) as QuizSubmissionJobData;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteFallbackQuizSubmission(attemptId: number | string): Promise<void> {
+  await redisClient.del(fallbackKey(attemptId));
+}
+
+/**
+ * Cross-instance lock: at most one serverless status poll may perform inline
+ * recovery grading at a time. A TTL prevents a crashed invocation deadlocking
+ * every later submission.
+ */
+export async function acquireQuizSubmissionRecoveryLock(): Promise<string | null> {
+  for (let slot = 0; slot < RECOVERY_CONCURRENCY; slot += 1) {
+    const token = crypto.randomUUID();
+    const acquired = await redisClient.set(`${RECOVERY_LOCK_PREFIX}:${slot}`, token, { nx: true, ex: 120 });
+    if (acquired === "OK") return `${slot}|${token}`;
+  }
+  return null;
+}
+
+export async function releaseQuizSubmissionRecoveryLock(lock: string): Promise<void> {
+  const separator = lock.indexOf("|");
+  if (separator <= 0) return;
+  const slot = lock.slice(0, separator);
+  const token = lock.slice(separator + 1);
+  const key = `${RECOVERY_LOCK_PREFIX}:${slot}`;
+  const current = await redisClient.get(key);
+  if (current === token) await redisClient.del(key);
 }

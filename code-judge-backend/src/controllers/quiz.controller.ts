@@ -8,9 +8,15 @@ import { ResultGenerationService } from "../services/resultGeneration.service.ts
 import { sendCollaboratorInviteEmail } from "../services/email.ts";
 import { finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/quizSubmission.service.ts";
 import {
+  acquireQuizSubmissionRecoveryLock,
+  deleteFallbackQuizSubmission,
   enqueueQuizSubmission,
+  getFallbackQuizSubmission,
   getQuizSubmissionJob,
   getQuizSubmissionQueue,
+  isQuizSubmissionQueueConfigured,
+  releaseQuizSubmissionRecoveryLock,
+  storeFallbackQuizSubmission,
   type QuizSubmissionJobData,
 } from "../queues/quizSubmission.queue.ts";
 
@@ -18,7 +24,8 @@ import {
  * Best-effort check for a live BullMQ worker on the quiz-submissions queue.
  * On serverless (Vercel) there is no long-lived worker, so an enqueue can
  * succeed (Redis reachable) yet never be consumed — the client would poll
- * `queued` forever. When no workers are detected we grade inline instead.
+ * `queued` forever. When no workers are detected, concurrency-limited durable
+ * recovery handles grading.
  * Times out fast so submit never blocks on this probe.
  */
 const hasLiveQuizWorkers = async (): Promise<boolean> => {
@@ -32,7 +39,7 @@ const hasLiveQuizWorkers = async (): Promise<boolean> => {
     return typeof count === "number" && count > 0;
   } catch {
     // Cannot prove a worker exists (Redis slow / probe timeout) — treat as
-    // no live worker so submit degrades to inline grading instead of hanging.
+    // no live worker so submit uses the durable recovery queue.
     return false;
   }
 };
@@ -1450,8 +1457,8 @@ export const reportViolation = async (req: Request, res: Response) => {
  *
  * Async flow: validates + enqueues a BullMQ grading job and returns 202
  * immediately. The client polls GET /attempt/:attemptId/submit-status.
- * If the queue is unreachable (no Redis/worker), grades inline and returns
- * 200 — identical result, same code path (processQuizSubmission).
+ * If BullMQ is unreachable, the Upstash REST fallback remains durable and the
+ * client polls until controlled recovery grading completes.
  */
 export const submitQuizAttempt = async (req: Request, res: Response) => {
   try {
@@ -1475,64 +1482,51 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
       return;
     }
 
-    const attempt = await quizService.getQuizAttemptById(Number(attemptId));
-    if (!attempt || Number(attempt.user_id) !== Number(userId)) {
-      res.status(404).json({
-        success: false,
-        message: "Quiz attempt not found",
-      });
+    const numericAttemptId = Number(attemptId);
+    if (!Number.isInteger(numericAttemptId) || numericAttemptId <= 0) {
+      res.status(400).json({ success: false, message: "Invalid quiz attempt" });
       return;
     }
 
-    if (attempt.status === "completed" || attempt.status === "timed_out") {
-      res.status(400).json({
-        success: false,
-        message: "Quiz already submitted",
-      });
-      return;
-    }
-
-    const quizRow = await quizService.getQuizById(String(attempt.quiz_id));
-    const startedAt = attempt.started_at ?? attempt.created_at;
-    const durationDeadline = quizRow?.duration && startedAt
-      ? new Date(startedAt).getTime() + Number(quizRow.duration) * 60_000
-      : Number.POSITIVE_INFINITY;
-    const quizDeadline = quizRow?.endtime
-      ? new Date(quizRow.endtime).getTime()
-      : Number.POSITIVE_INFINITY;
-    const deadlineMs = Math.min(durationDeadline, quizDeadline);
-    const isLate = Number.isFinite(deadlineMs) && Date.now() > deadlineMs;
-
-    // Exam-cell: merge violations counted on the frontend (sent as a fallback
-    // in case live violation reports failed) with what is already stored.
+    // Ownership, attempt state and deadline are validated again by the grading
+    // worker. Keeping the intake path Redis-only prevents a simultaneous exam
+    // finish from opening one database connection per student.
     const body = req.body as {
       responses?: unknown;
       violations?: unknown;
       flagged?: unknown;
       flagReason?: unknown;
     };
-    const storedViolations = Number(attempt.violations) || 0;
-    const sentViolations = Number(body.violations) || 0;
-    const violations = Math.max(storedViolations, sentViolations);
-    const flagged =
-      attempt.flagged === true ||
-      body.flagged === true ||
-      violations >= MAX_PROCTORING_VIOLATIONS;
+    const violations = Number(body.violations) || 0;
+    const flagged = body.flagged === true || violations >= MAX_PROCTORING_VIOLATIONS;
     const sentReason = typeof body.flagReason === "string" ? body.flagReason.trim().slice(0, 500) : "";
-    const flagReason = flagged
-      ? [attempt.flag_reason, sentReason].filter(Boolean).join("; ") || "auto-flagged"
-      : undefined;
+    const flagReason = flagged ? sentReason || "auto-flagged" : undefined;
 
     const jobData: QuizSubmissionJobData = {
-      attemptId: Number(attemptId),
+      attemptId: numericAttemptId,
       userId: Number(userId),
       responses,
       violations,
       flagged,
       ...(flagReason !== undefined ? { flagReason } : {}),
-      isLate,
+      // Final lateness is calculated against submittedAt by the worker.
+      isLate: false,
       submittedAt: new Date().toISOString(),
     };
+
+    // Store a durable HTTP-Redis copy before touching BullMQ. This survives a
+    // missing RESP endpoint/worker and is consumed by the controlled recovery
+    // path in getSubmitStatus.
+    await storeFallbackQuizSubmission(jobData);
+
+    if (!isQuizSubmissionQueueConfigured()) {
+      res.status(202).json({
+        success: true,
+        message: "Submission safely queued for grading",
+        data: { attemptId: numericAttemptId, jobId: `fallback-${numericAttemptId}`, status: "queued" },
+      });
+      return;
+    }
 
     try {
       const job = await enqueueQuizSubmission(jobData);
@@ -1544,28 +1538,21 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
         res.status(200).json({
           success: true,
           message: "Quiz submitted successfully",
-          data: finished ?? attempt,
+          data: finished,
         });
         return;
       }
-      // Redis accepted the job but nothing may consume it (serverless deploy
-      // with no `npm run worker` running, worker crashed, or web/worker on
-      // different Redis DBs). Polling `queued` forever leaves the submit
-      // button spinning — grade inline when no live worker is detected.
-      // Grading is idempotent (already-completed attempts are a no-op), so a
-      // late-starting worker cannot double-grade.
+      // If no long-lived worker exists (normal on Vercel), remove the BullMQ
+      // copy and leave the durable Upstash job for controlled poll recovery.
       if (state !== "active") {
         const liveWorkers = await hasLiveQuizWorkers();
         if (!liveWorkers) {
-          console.warn(
-            `No live quiz-submission workers detected for attempt ${attemptId}; grading inline instead of leaving job ${job.id} queued`
-          );
+          console.warn(`No live quiz-submission workers detected for attempt ${attemptId}; using durable recovery queue`);
           await job.remove().catch(() => undefined);
-          const updatedAttempt = await processQuizSubmission(jobData);
-          res.status(200).json({
+          res.status(202).json({
             success: true,
-            message: "Quiz submitted successfully",
-            data: updatedAttempt,
+            message: "Submission safely queued for grading",
+            data: { attemptId: numericAttemptId, jobId: `fallback-${numericAttemptId}`, status: "queued" },
           });
           return;
         }
@@ -1576,14 +1563,13 @@ export const submitQuizAttempt = async (req: Request, res: Response) => {
         data: { attemptId: Number(attemptId), jobId: job.id, status: "queued" },
       });
     } catch (queueError) {
-      // Queue/Redis unreachable (e.g. serverless with no worker): grade inline
-      // so submit never fails for infrastructure reasons.
-      console.warn("BullMQ enqueue failed, grading inline:", (queueError as Error).message);
-      const updatedAttempt = await processQuizSubmission(jobData);
-      res.status(200).json({
+      // BullMQ RESP is optional on Vercel. The Upstash copy above is durable,
+      // so acknowledge it without running a database-heavy inline grader.
+      console.warn("BullMQ enqueue failed; using durable recovery queue:", (queueError as Error).message);
+      res.status(202).json({
         success: true,
-        message: "Quiz submitted successfully",
-        data: updatedAttempt,
+        message: "Submission safely queued for grading",
+        data: { attemptId: numericAttemptId, jobId: `fallback-${numericAttemptId}`, status: "queued" },
       });
     }
   } catch (error) {
@@ -1614,15 +1600,92 @@ export const getSubmitStatus = async (req: Request, res: Response) => {
       return;
     }
 
-    const attempt = await quizService.getQuizAttemptById(Number(attemptId));
-    if (!attempt || Number(attempt.user_id) !== Number(userId)) {
-      res.status(404).json({
-        success: false,
-        message: "Quiz attempt not found",
-      });
-      return;
+    let jobState: string | null = null;
+    let queuedJobData: QuizSubmissionJobData | null = null;
+    let bullmqJob: Awaited<ReturnType<typeof getQuizSubmissionJob>>;
+    try {
+      if (!isQuizSubmissionQueueConfigured()) throw new Error("BullMQ is not configured");
+      bullmqJob = await getQuizSubmissionJob(attemptId);
+      if (bullmqJob) {
+        queuedJobData = bullmqJob.data as QuizSubmissionJobData;
+        if (Number(queuedJobData.userId) !== Number(userId)) {
+          res.status(404).json({ success: false, message: "Quiz attempt not found" });
+          return;
+        }
+        jobState = await bullmqJob.getState();
+        if (jobState === "completed") {
+          await deleteFallbackQuizSubmission(attemptId);
+          res.status(200).json({
+            success: true,
+            data: { attemptId: Number(attemptId), status: "completed", attempt: bullmqJob.returnvalue ?? null },
+          });
+          return;
+        }
+        if (jobState === "failed") {
+          res.status(200).json({
+            success: true,
+            data: { attemptId: Number(attemptId), status: "failed", error: bullmqJob.failedReason ?? "Grading failed" },
+          });
+          return;
+        }
+        if (jobState === "active") {
+          res.status(200).json({ success: true, data: { attemptId: Number(attemptId), status: "processing" } });
+          return;
+        }
+        if (await hasLiveQuizWorkers()) {
+          res.status(200).json({ success: true, data: { attemptId: Number(attemptId), status: "queued" } });
+          return;
+        }
+      }
+    } catch {
+      jobState = null;
     }
 
+    if (!queuedJobData) queuedJobData = await getFallbackQuizSubmission(attemptId);
+    if (queuedJobData) {
+      if (Number(queuedJobData.userId) !== Number(userId)) {
+        res.status(404).json({ success: false, message: "Quiz attempt not found" });
+        return;
+      }
+
+      const recoveryToken = await acquireQuizSubmissionRecoveryLock();
+      if (!recoveryToken) {
+        res.status(200).json({ success: true, data: { attemptId: Number(attemptId), status: "queued" } });
+        return;
+      }
+
+      try {
+        const recovered = await processQuizSubmission(queuedJobData);
+        await deleteFallbackQuizSubmission(attemptId);
+        await bullmqJob?.remove().catch(() => undefined);
+        res.status(200).json({
+          success: true,
+          data: { attemptId: Number(attemptId), status: "completed", attempt: recovered },
+        });
+        return;
+      } catch (recoveryError) {
+        const message = recoveryError instanceof Error ? recoveryError.message : "Grading failed";
+        if (message === "Quiz attempt not found") {
+          await deleteFallbackQuizSubmission(attemptId);
+          await bullmqJob?.remove().catch(() => undefined);
+          res.status(404).json({ success: false, message: "Quiz attempt not found" });
+          return;
+        }
+        console.error("Controlled submission recovery failed; job remains queued:", recoveryError);
+        res.status(200).json({ success: true, data: { attemptId: Number(attemptId), status: "queued" } });
+        return;
+      } finally {
+        await releaseQuizSubmissionRecoveryLock(recoveryToken);
+      }
+    }
+
+    // No queue record remains. A single lightweight lookup handles legacy
+    // inline/completed attempts without repeatedly querying during polling.
+    const attempt = await quizService.getQuizAttemptById(Number(attemptId));
+    if (!attempt || Number(attempt.user_id) !== Number(userId)) {
+      res.status(404).json({ success: false, message: "Quiz attempt not found" });
+      return;
+    }
     if (attempt.status === "completed" || attempt.status === "timed_out") {
       res.status(200).json({
         success: true,
@@ -1631,76 +1694,9 @@ export const getSubmitStatus = async (req: Request, res: Response) => {
       return;
     }
 
-    let jobState: string | null = null;
-    let returnvalue: unknown = null;
-    let failedReason: string | null = null;
-    let stuckJobData: QuizSubmissionJobData | null = null;
-    try {
-      const job = await getQuizSubmissionJob(attemptId);
-      if (job) {
-        jobState = await job.getState();
-        if (jobState === "completed") {
-          returnvalue = job.returnvalue ?? null;
-        } else if (jobState === "failed") {
-          failedReason = job.failedReason ?? "Grading failed";
-        } else if (jobState !== "active") {
-          // Waiting/delayed/paused — candidate for inline recovery below.
-          stuckJobData = job.data as QuizSubmissionJobData;
-        }
-      }
-    } catch {
-      jobState = null;
-    }
-
-    if (!jobState) {
-      // No job tracked (e.g. graded inline before queue existed): report by attempt.
-      res.status(200).json({
-        success: true,
-        data: { attemptId: Number(attemptId), status: "none", attempt },
-      });
-      return;
-    }
-
-    const status =
-      jobState === "completed" ? "completed"
-      : jobState === "failed" ? "failed"
-      : jobState === "active" ? "processing"
-      : "queued";
-
-    // Self-healing for jobs queued before this fix (or while the worker was
-    // down): a poll arriving with no live worker grades inline from the
-    // stored job payload instead of leaving the client spinning. The submit
-    // endpoint already does this for new submits; this covers in-flight jobs.
-    if (status === "queued" && stuckJobData) {
-      const liveWorkers = await hasLiveQuizWorkers();
-      if (!liveWorkers) {
-        try {
-          console.warn(
-            `Recovering stuck quiz-submission job for attempt ${attemptId} inline (no live workers)`
-          );
-          const recovered = await processQuizSubmission(stuckJobData);
-          await getQuizSubmissionJob(attemptId)
-            .then((job) => job?.remove().catch(() => undefined))
-            .catch(() => undefined);
-          res.status(200).json({
-            success: true,
-            data: { attemptId: Number(attemptId), status: "completed", attempt: recovered },
-          });
-          return;
-        } catch (recoveryError) {
-          console.error("Stuck quiz-submission recovery failed, still queued:", recoveryError);
-        }
-      }
-    }
-
     res.status(200).json({
       success: true,
-      data: {
-        attemptId: Number(attemptId),
-        status,
-        ...(status === "completed" && returnvalue ? { attempt: returnvalue } : {}),
-        ...(status === "failed" && failedReason ? { error: failedReason } : {}),
-      },
+      data: { attemptId: Number(attemptId), status: jobState ? "queued" : "none", attempt },
     });
   } catch (error) {
     console.error("Error fetching submit status:", error);

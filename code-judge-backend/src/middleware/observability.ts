@@ -104,6 +104,12 @@ export function observabilityMiddleware(req: Request, res: Response, next: NextF
     const routeTemplate = routePath ? `${req.baseUrl || ""}${routePath}` : null;
     const statusCode = res.statusCode;
     const success = statusCode < 400;
+    // A synchronized quiz finish can produce hundreds of submit/status calls
+    // in seconds. Persisting several telemetry rows for every successful poll
+    // competes with the actual submissions for database connections. Errors
+    // are still recorded; healthy hot-path requests rely on normal HTTP logs.
+    const isSubmissionHotPath = /\/quiz\/attempt\/[^/]+\/(submit|submit-status)$/.test(endpoint);
+    if (success && isSubmissionHotPath) return;
     const ipRaw = getClientIp(req);
     const ip = ipRaw === "unknown" ? null : ipRaw;
     const userAgent = req.get("user-agent") || null;

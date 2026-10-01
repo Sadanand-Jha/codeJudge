@@ -1,6 +1,7 @@
-// General-purpose email sender using Nodemailer/SMTP.
+// General-purpose email sender: Nodemailer/SMTP first, Resend API fallback.
 import logger from '../utils/logger.js';
 import { getTransporter, getFromAddress } from './smtp.js';
+import { isResendConfigured, sendViaResend } from './resend.js';
 
 interface EmailOptions {
   to: string;
@@ -17,28 +18,52 @@ function requireTransport() {
 }
 
 /**
- * Send through the shared Nodemailer transport. The transport is cached and
- * pooled in smtp.ts, allowing warm Vercel functions to reuse an authenticated
- * SMTP connection. Callers await acceptance because background promises can
- * be frozen as soon as a serverless response is returned.
+ * Send through the shared Nodemailer transport, falling back to the Resend
+ * API when SMTP fails. The transport is cached and pooled in smtp.ts,
+ * allowing warm Vercel functions to reuse an authenticated SMTP connection.
+ * Callers await acceptance because background promises can be frozen as soon
+ * as a serverless response is returned.
  */
 async function deliverEmail(options: EmailOptions): Promise<string> {
   const ctx = requireTransport();
-  if (!ctx) {
-    throw new Error(
-      'Email delivery is not configured. Set SMTP_HOST/SMTP_USER/SMTP_PASS or EMAIL1/GMAIL_APP_PASSWORD1.'
-    );
+  let smtpError: unknown = null;
+
+  if (ctx) {
+    try {
+      const info = await ctx.transporter.sendMail({
+        from: ctx.from,
+        to: options.to,
+        subject: options.subject,
+        html: options.html || (options.text ? `<p>${options.text}</p>` : '<p></p>'),
+        ...(options.text ? { text: options.text } : {}),
+      });
+      logger.info(`Email dispatched via SMTP to ${options.to}: ${info.messageId}`);
+      return info.messageId;
+    } catch (error) {
+      smtpError = error;
+      logger.error(`SMTP send to ${options.to} failed, trying Resend fallback:`, error);
+    }
   }
 
-  const info = await ctx.transporter.sendMail({
-    from: ctx.from,
-    to: options.to,
-    subject: options.subject,
-    html: options.html || (options.text ? `<p>${options.text}</p>` : '<p></p>'),
-    ...(options.text ? { text: options.text } : {}),
-  });
-  logger.info(`Email dispatched via SMTP to ${options.to}: ${info.messageId}`);
-  return info.messageId;
+  // Fallback: Resend API (also the primary path when SMTP is not configured).
+  if (isResendConfigured()) {
+    try {
+      return await sendViaResend({
+        to: options.to,
+        subject: options.subject,
+        html: options.html || (options.text ? `<p>${options.text}</p>` : undefined),
+        text: options.text,
+      });
+    } catch (resendError) {
+      logger.error(`Resend fallback to ${options.to} also failed:`, resendError);
+      throw resendError;
+    }
+  }
+
+  if (smtpError) throw smtpError;
+  throw new Error(
+    'Email delivery is not configured. Set RESEND_API_KEY (Resend fallback) or SMTP_HOST/SMTP_USER/SMTP_PASS or EMAIL1/GMAIL_APP_PASSWORD1.'
+  );
 }
 
 export async function sendEmail(options: EmailOptions): Promise<void> {

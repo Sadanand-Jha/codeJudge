@@ -1,10 +1,11 @@
 // BullMQ worker for the quiz-submissions queue.
 // Long-lived processes (local dev server, VPS worker) call
 // startQuizSubmissionWorker() once at boot. Serverless (Vercel) cannot host
-// a worker — there the submit endpoint falls back to inline processing.
+// a worker — there the Upstash REST recovery queue provides backpressure.
 import { Worker, type Job } from "bullmq";
 import { getBullmqConnection } from "./connection.ts";
 import {
+  deleteFallbackQuizSubmission,
   QUIZ_SUBMISSION_QUEUE,
   type QuizSubmissionJobData,
 } from "./quizSubmission.queue.ts";
@@ -23,6 +24,7 @@ export function startQuizSubmissionWorker(): Worker<QuizSubmissionJobData> | nul
     async (job: Job<QuizSubmissionJobData>) => {
       console.log(`[bullmq] grading submission job ${job.id} (attempt ${job.data.attemptId}, try ${job.attemptsMade + 1})`);
       const result = await processQuizSubmission(job.data);
+      await deleteFallbackQuizSubmission(job.data.attemptId);
       console.log(`[bullmq] submission job ${job.id} completed`);
       return result;
     },

@@ -34,7 +34,8 @@ class MemoryRedis {
     return e ? e.value : null;
   }
 
-  async set(key: string, value: string, opts?: any): Promise<string> {
+  async set(key: string, value: string, opts?: any): Promise<string | null> {
+    if ((opts?.NX ?? opts?.nx) && this.getEntry(key)) return null;
     let expireAt: number | undefined;
     if (opts?.EX ?? opts?.ex) expireAt = Date.now() + (opts.EX ?? opts.ex) * 1000;
     else if (opts?.PX ?? opts?.px) expireAt = Date.now() + (opts.PX ?? opts.px);
@@ -42,7 +43,7 @@ class MemoryRedis {
     return "OK";
   }
 
-  async setEx(key: string, seconds: number, value: string): Promise<string> {
+  async setEx(key: string, seconds: number, value: string): Promise<string | null> {
     return this.set(key, value, { ex: seconds });
   }
 
@@ -138,7 +139,7 @@ function createUpstashClient(): any {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  // Try explicit env first, then fromEnv()
+  // Use the explicit serverless credentials when both are present.
   if (url && token) {
     try {
       console.log("✅ Upstash Redis initialized via UPSTASH_REDIS_REST_URL (serverless HTTP)");
@@ -148,18 +149,14 @@ function createUpstashClient(): any {
     }
   }
 
-  try {
-    // Will auto-read UPSTASH_REDIS_REST_URL/TOKEN or throw
-    const client = Redis.fromEnv();
-    console.log("✅ Upstash Redis initialized via Redis.fromEnv()");
-    return client;
-  } catch (e: any) {
-    console.warn(
-      "⚠️ UPSTASH_REDIS_REST_URL / TOKEN missing — using in-memory Redis fallback. " +
-        "Set env vars on Vercel for persistence. Error: " + e.message
-    );
-    return new MemoryRedis();
-  }
+  // Redis.fromEnv() no longer throws when variables are missing; it creates a
+  // client that fails only when the first command runs. Detect absence here so
+  // local development gets the intended functional fallback.
+  console.warn(
+    "⚠️ UPSTASH_REDIS_REST_URL / TOKEN missing — using in-memory Redis fallback. " +
+      "Set both variables on Vercel for persistent submission recovery."
+  );
+  return new MemoryRedis();
 }
 
 // Singleton via globalThis (Vercel reuses global across warm invocations)
@@ -200,19 +197,17 @@ class RedisCompatWrapper {
 
   async set(key: string, value: string, opts?: any): Promise<string | null> {
     try {
-      if (opts && (opts.EX !== undefined || opts.ex !== undefined)) {
-        const ex = opts.EX ?? opts.ex;
-        return await this.client.set(key, value, { ex });
+      if (opts && typeof opts === "object") {
+        const normalized = {
+          ...(opts.EX !== undefined || opts.ex !== undefined ? { ex: opts.EX ?? opts.ex } : {}),
+          ...(opts.PX !== undefined || opts.px !== undefined ? { px: opts.PX ?? opts.px } : {}),
+          ...(opts.NX === true || opts.nx === true ? { nx: true } : {}),
+          ...(opts.XX === true || opts.xx === true ? { xx: true } : {}),
+        };
+        return Object.keys(normalized).length
+          ? await this.client.set(key, value, normalized)
+          : await this.client.set(key, value);
       }
-      if (opts && (opts.PX !== undefined || opts.px !== undefined)) {
-        const px = opts.PX ?? opts.px;
-        return await this.client.set(key, value, { px });
-      }
-      // Upstash set supports EX/PX as third arg object, or string value
-      if (opts && typeof opts === "object" && Object.keys(opts).length === 0) {
-        return await this.client.set(key, value);
-      }
-      if (opts) return await this.client.set(key, value, opts);
       return await this.client.set(key, value);
     } catch (e: any) {
       console.warn("Redis SET failed:", e.message);

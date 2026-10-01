@@ -228,7 +228,9 @@ export const platformApi = {
   previewQuestionImport: (form: FormData) => schedulePlatformRequest(async () => {
     const response = await platformClient.post<SubjectiveImportPreview>("/v1/platform/question-import/preview", form, {
       headers: { "Content-Type": "multipart/form-data" },
-      timeout: 180_000,
+      // Local document models can take several minutes for a full paper.
+      // Keep this request alive while the server consumes the model stream.
+      timeout: 15 * 60_000,
     });
     return response.data;
   }),

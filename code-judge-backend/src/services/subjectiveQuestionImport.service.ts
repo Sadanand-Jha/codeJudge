@@ -83,6 +83,40 @@ const stripJsonFences = (value: string) => {
   return start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned;
 };
 
+/**
+ * Salvage complete question objects from a truncated model reply
+ * (finish_reason length, reasoning preamble, etc.). Scans for balanced
+ * {...} blocks and keeps the ones shaped like questions, then rebuilds
+ * {"questions": [...]} so partial output is still importable.
+ */
+const repairTruncatedQuestionsJson = (raw: string): string | null => {
+  const blocks: string[] = [];
+  let depth = 0;
+  let start = -1;
+  let inStr = false;
+  let esc = false;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === "\\") esc = true;
+      else if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === "{") { if (depth === 0) start = i; depth++; }
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0 && start >= 0) { blocks.push(raw.slice(start, i + 1)); start = -1; }
+    }
+  }
+  const questions = blocks.filter(
+    (b) => b.includes('"question_text"') && b.includes('"question_html"')
+  );
+  if (!questions.length) return null;
+  return `{"questions": [${questions.join(",")}]}`;
+};
+
 async function resolveScope(scope: ImportScope) {
   const { rows } = await pool.query(
     `SELECT s.id AS subject_id, s.subject_name,
@@ -132,27 +166,41 @@ export async function createSubjectiveImportPreview(input: {
   userId: number;
   file: { filename: string; mimeType: string; buffer: Buffer };
   scope: ImportScope;
-}) {
+}, onProgress?: (chars: number, tail: string, delta?: string) => void) {
+  const startedAt = Date.now();
+  console.log("[question-import] service: start", {
+    filename: input.file.filename,
+    mimeType: input.file.mimeType,
+    bufferBytes: input.file.buffer?.length,
+    scope: input.scope,
+    userId: input.userId,
+  });
   const scope = await resolveScope(input.scope);
+  console.log("[question-import] service: scope resolved", {
+    ...scope,
+    elapsedMs: Date.now() - startedAt,
+  });
   const classificationCatalog = await getAiClassificationCatalog(input.scope.subjectId);
+  console.log("[question-import] service: catalog loaded", {
+    chapters: classificationCatalog.chapters.length,
+    topics: classificationCatalog.topics.length,
+    difficulties: classificationCatalog.difficulties,
+    categories: classificationCatalog.categories,
+    elapsedMs: Date.now() - startedAt,
+  });
   const scopeLabel = [scope.subject_name, scope.chapter_name, scope.topic_name].filter(Boolean).join(" → ");
-  const prompt = `Extract the subjective problems/questions that are actually present in the attached document.
+  const prompt = `Extract every subjective question from the complete document in source order. Preserve wording; exclude answers and solutions. Do not invent, summarize, sample, or omit questions except exact duplicates.
 
-Import scope: ${scopeLabel}.
-The selected subject_id is ${input.scope.subjectId}.${input.scope.chapterId ? ` Lock every question to chapter_id ${input.scope.chapterId}.` : " Choose the best matching chapter_id from the catalog, or null when no confident match exists."}${input.scope.topicId ? ` Lock every question to topic_id ${input.scope.topicId}.` : " Choose the best matching topic_id under the chosen chapter, or null when no confident match exists."}
+Return only valid JSON:
+{"questions":[{"question_text":"plain text","question_html":"semantic HTML","subject_id":0,"chapter_id":null,"topic_id":null,"difficulty_id":0,"category_id":0}]}
+If extraction fails, return {"questions":[]}.
 
-Process the entire document from beginning to end and return EVERY subjective problem/question that is present, preserving its wording and source order. Do not sample, summarize, stop after an arbitrary count, or omit repeated-looking questions unless they are exact duplicates. Do not create unrelated questions and do not include answers or solutions.
+Scope: ${scopeLabel}; subject_id=${input.scope.subjectId}.${input.scope.chapterId ? ` Use chapter_id=${input.scope.chapterId}.` : " Choose a catalog chapter_id, or null if uncertain."}${input.scope.topicId ? ` Use topic_id=${input.scope.topicId}.` : " Choose a topic_id belonging to the chosen chapter, or null if uncertain."}
 
-The JSON response must contain one object in the questions array for every detected question in the complete file. There is no application-level question-count limit.
-
-Return both:
-- question_text: clean plain text used for search and duplicate detection
-- question_html: polished semantic HTML for website rendering. Use only p, br, strong, em, u, sup, sub, ul, ol, li, blockquote, pre, code, table, thead, tbody, tr, th, and td. Do not use attributes, links, images, scripts, styles, SVG, or MathML.
-
-For every question return exact integer IDs from this database catalog. Never invent an ID:
+Use only IDs from this catalog:
 ${JSON.stringify({ subject: { id: scope.subject_id, name: scope.subject_name }, ...classificationCatalog })}
 
-A Numerical category requires calculation, derivation, or quantitative reasoning. Everything else is Theory. chapter_id and topic_id may be null only as described above.`;
+question_html may use only: p, br, strong, em, u, sup, sub, ul, ol, li, blockquote, pre, code, table, thead, tbody, tr, th, td. No attributes, links, images, scripts, styles, SVG, or MathML. Use Numerical only for calculation, derivation, or quantitative reasoning; otherwise use Theory.`;
 
   const generated = await generateJsonFromDocument({
     filename: input.file.filename,
@@ -161,12 +209,64 @@ A Numerical category requires calculation, derivation, or quantitative reasoning
     prompt,
     schemaName: "subjective_question_import",
     schema: OUTPUT_SCHEMA,
+  }, onProgress);
+  console.log("[question-import] service: AI raw response received", {
+    contentLength: generated.content?.length ?? 0,
+    contentPreview: (generated.content ?? "").slice(0, 300),
+    usage: generated.usage,
+    elapsedMs: Date.now() - startedAt,
   });
 
   let parsed: z.infer<typeof GeneratedPayloadSchema>;
+  let repairedCount: number | null = null;
   try {
-    parsed = GeneratedPayloadSchema.parse(JSON.parse(stripJsonFences(generated.content)));
+    const raw = (generated.content ?? "").trim();
+    if (!raw) {
+      throw new Error("empty response from AI provider");
+    }
+    // Some providers return a moderation / safety notice (e.g. "User Safety: safe")
+    // instead of the requested JSON when strict json_schema output is bypassed.
+    // Detect that early so the user gets an actionable message, not a JSON syntax error.
+    if (!raw.includes('"questions"') && !raw.includes("'questions'") && !raw.includes('"question_text"')) {
+      const snippet = raw.slice(0, 160).replace(/\s+/g, " ");
+      console.error("[question-import] service: AI returned non-JSON payload", {
+        fullLength: raw.length,
+        fullContent: raw.slice(0, 2000),
+      });
+      if (/user\s*safety|safety|content.?filter|blocked|refus|harmful|policy/i.test(raw)) {
+        throw new Error(
+          `AI safety filter returned "${snippet}" instead of question JSON. ` +
+            `Try a different document or the DOCUMENT_AI_MODEL model.`
+        );
+      }
+      throw new Error(`expected question JSON but received: "${snippet}"`);
+    }
+    try {
+      parsed = GeneratedPayloadSchema.parse(JSON.parse(stripJsonFences(raw)));
+    } catch (firstError) {
+      // Small local models often stop mid-array (output token cap) or wrap the
+      // JSON in prose. Salvage every complete question object instead of
+      // discarding the whole reply.
+      const repaired = repairTruncatedQuestionsJson(raw);
+      if (!repaired) throw firstError;
+      parsed = GeneratedPayloadSchema.parse(JSON.parse(repaired));
+      repairedCount = parsed.questions.length;
+      console.warn("[question-import] service: repaired truncated AI reply", {
+        salvagedQuestions: repairedCount,
+      });
+    }
+    console.log("[question-import] service: AI JSON parsed + schema-validated", {
+      questions: parsed.questions.length,
+      repaired: repairedCount,
+      elapsedMs: Date.now() - startedAt,
+    });
   } catch (error) {
+    if (error instanceof Error && /AI safety filter|expected question JSON/.test(error.message)) {
+      throw error;
+    }
+    console.error("[question-import] service: JSON parse/validation FAILED", {
+      message: error instanceof Error ? error.message : String(error),
+    });
     throw new Error(`AI returned invalid question JSON: ${error instanceof Error ? error.message : "validation failed"}`);
   }
 
@@ -195,15 +295,33 @@ A Numerical category requires calculation, derivation, or quantitative reasoning
     return true;
   });
   if (!questions.length) throw new Error("AI did not find any subjective questions in this document.");
+  console.log("[question-import] service: questions validated + sanitized", {
+    kept: questions.length,
+    droppedDuplicates: parsed.questions.length - questions.length,
+    elapsedMs: Date.now() - startedAt,
+  });
 
   const batchId = randomUUID();
-  await pool.query(
-    `INSERT INTO subjective_question_import_batches
-      (id, created_by, subject_id, chapter_id, topic_id, source_filename, questions, question_count)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-    [batchId, input.userId, input.scope.subjectId, input.scope.chapterId, input.scope.topicId,
-      input.file.filename, JSON.stringify(questions), questions.length]
-  );
+  console.log("[question-import] service: inserting batch", { batchId, questionCount: questions.length });
+  try {
+    await pool.query(
+      `INSERT INTO subjective_question_import_batches
+        (id, created_by, subject_id, chapter_id, topic_id, source_filename, questions, question_count)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [batchId, input.userId, input.scope.subjectId, input.scope.chapterId, input.scope.topicId,
+        input.file.filename, JSON.stringify(questions), questions.length]
+    );
+  } catch (error) {
+    console.error("[question-import] service: batch INSERT FAILED", {
+      batchId,
+      userId: input.userId,
+      message: error instanceof Error ? error.message : String(error),
+      code: (error as { code?: unknown })?.code,
+      detail: (error as { detail?: unknown })?.detail,
+    });
+    throw error;
+  }
+  console.log("[question-import] service: batch inserted", { batchId, elapsedMs: Date.now() - startedAt });
 
   const previewQuestions = questions.map((question) => ({
     ...question,

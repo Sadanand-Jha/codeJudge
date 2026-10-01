@@ -17,11 +17,11 @@ if (process.env.NODE_ENV !== 'production') {
   });
   // Long-lived process: grade quiz submissions in-process. Vercel serverless
   // cannot host a worker — use `npm run worker` on a persistent host, or the
-  // submit endpoint falls back to inline grading.
+  // submit endpoint falls back to durable, concurrency-limited recovery.
   try {
     startQuizSubmissionWorker();
   } catch (err: any) {
-    console.warn('⚠️ Quiz submission worker failed to start (submit falls back to inline grading):', err.message);
+    console.warn('⚠️ Quiz submission worker failed to start (durable recovery queue remains available):', err.message);
   }
 }
 

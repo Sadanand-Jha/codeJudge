@@ -179,16 +179,21 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       const result = await submitQuizAttempt(String(id), buildResponses(), proctor);
       if (result && typeof result === "object" && "jobId" in result) {
         // Async path (202): grading runs in a BullMQ worker — poll until done.
-        // The backend now grades inline when no worker is live, so a healthy
-        // submit resolves in one or two polls. Anything longer means the
-        // worker is slow or the job record was lost — recover instead of
-        // spinning forever.
-        const deadline = Date.now() + 45000;
+        // A worker or the concurrency-limited recovery queue grades this job.
+        // Keep polling without resubmitting while the synchronized cohort
+        // drains.
+        // During a synchronized finish, grading is intentionally
+        // backpressured on the server. Keep polling long enough for a large
+        // cohort to drain instead of making students resubmit safe jobs.
+        const deadline = Date.now() + 5 * 60_000;
+        let pollCount = 0;
         let noneCount = 0;
         let pollErrors = 0;
         let retriedSubmit = false;
         for (;;) {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          pollCount += 1;
+          const pollDelay = pollCount <= 10 ? 1500 : pollCount <= 30 ? 3000 : 5000;
+          await new Promise((resolve) => setTimeout(resolve, pollDelay));
           let status;
           try {
             status = await getSubmitStatus(String(id));
@@ -209,7 +214,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           if (status.status === "none") {
             // No job tracked (Redis flush/eviction or split-brain Redis) while
             // the attempt is still ungraded — re-submit once to re-enqueue
-            // (backend grades inline if no worker), instead of polling `none`.
+            // instead of polling `none` after a lost queue record.
             noneCount += 1;
             if (!retriedSubmit && noneCount >= 2) {
               retriedSubmit = true;

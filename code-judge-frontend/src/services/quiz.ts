@@ -735,8 +735,8 @@ export async function heartbeatQuizAttempt(attemptId: string): Promise<void> {
  * live violation reports failed, plus the flagged state for auto-submit.
  *
  * Async flow: grading runs in a BullMQ worker. Returns the graded attempt
- * directly (200, inline fallback) or { attemptId, jobId, status: "queued" }
- * (202) — poll getSubmitStatus() until completed.
+ * directly (200, already completed) or { attemptId, jobId, status: "queued" }
+ * (202) — poll getSubmitStatus() until controlled grading completes.
  */
 export async function submitQuizAttempt(
   attemptId: string,
