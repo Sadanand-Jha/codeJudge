@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { pool, withTransientDatabaseRetry } from "../config/database.js";
+import { pool, isTransientDatabaseError, withTransientDatabaseRetry } from "../config/database.js";
 import {
   PLATFORM_COOKIE,
   isPlatformOwner,
@@ -58,8 +58,17 @@ export const requireOwner = async (req: Request, res: Response, next: NextFuncti
       ));
       roleId = r.rows[0]?.role_id ?? null;
       dbEmail = r.rows[0]?.email ?? null;
-    } catch {
-      // If the role lookup itself fails, deny access rather than fail open.
+    } catch (error) {
+      // The dedicated token can only be minted after OTP verification and a
+      // successful owner-role lookup. If Postgres is briefly saturated, trust
+      // that signed, scoped and non-revoked token for the remainder of this
+      // request instead of locking the owner out at the gate. Non-transient
+      // authorization failures still fail closed.
+      if (isTransientDatabaseError(error)) {
+        console.warn("Owner role re-check temporarily unavailable; using verified platform session.");
+        next();
+        return;
+      }
       res.status(503).json({ success: false, message: "Authorization check unavailable", statusCode: 503 });
       return;
     }
