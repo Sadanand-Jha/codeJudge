@@ -22,6 +22,36 @@ const platformClient = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+// The dashboard mounts many independent panels at once. Without a client-side
+// gate, each panel creates a separate serverless request and those functions
+// all compete for limited PostgreSQL connections. Keep the UI independent,
+// but allow only a small number of platform requests to be in flight.
+const MAX_CONCURRENT_PLATFORM_REQUESTS = 2;
+let activePlatformRequests = 0;
+const platformRequestQueue: Array<() => void> = [];
+const pendingPlatformGets = new Map<string, Promise<unknown>>();
+
+function drainPlatformRequestQueue() {
+  while (activePlatformRequests < MAX_CONCURRENT_PLATFORM_REQUESTS && platformRequestQueue.length) {
+    platformRequestQueue.shift()?.();
+  }
+}
+
+function schedulePlatformRequest<T>(request: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    platformRequestQueue.push(() => {
+      activePlatformRequests += 1;
+      request()
+        .then(resolve, reject)
+        .finally(() => {
+          activePlatformRequests -= 1;
+          drainPlatformRequestQueue();
+        });
+    });
+    drainPlatformRequestQueue();
+  });
+}
+
 platformClient.interceptors.response.use(
   (response) => {
     if (response.data && typeof response.data === "object" && "success" in response.data) {
@@ -154,8 +184,20 @@ export interface SubjectiveImportPreview {
 }
 
 async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
-  const res = await platformClient.get<T>(`/v1/platform${path}`, { params });
-  return res.data;
+  const key = `${path}?${new URLSearchParams(
+    Object.entries(params ?? {}).map(([name, value]) => [name, String(value)])
+  ).toString()}`;
+  const existing = pendingPlatformGets.get(key) as Promise<T> | undefined;
+  if (existing) return existing;
+
+  const pending = schedulePlatformRequest(async () => {
+    const res = await platformClient.get<T>(`/v1/platform${path}`, { params });
+    return res.data;
+  }).finally(() => {
+    pendingPlatformGets.delete(key);
+  });
+  pendingPlatformGets.set(key, pending);
+  return pending;
 }
 
 export const platformApi = {
@@ -183,20 +225,20 @@ export const platformApi = {
   observability: (range: PlatformRange, days?: number) => get<ObservabilityData>("/observability", days ? { range, days } : { range }),
   requestDetail: (requestId: string) => get<RequestDetailData>(`/requests/${encodeURIComponent(requestId)}`),
   questionImportCatalog: () => get<QuestionImportCatalog>("/question-import/catalog"),
-  previewQuestionImport: async (form: FormData) => {
+  previewQuestionImport: (form: FormData) => schedulePlatformRequest(async () => {
     const response = await platformClient.post<SubjectiveImportPreview>("/v1/platform/question-import/preview", form, {
       headers: { "Content-Type": "multipart/form-data" },
       timeout: 180_000,
     });
     return response.data;
-  },
-  commitQuestionImport: async (batchId: string, selectedIndexes: number[]) => {
+  }),
+  commitQuestionImport: (batchId: string, selectedIndexes: number[]) => schedulePlatformRequest(async () => {
     const response = await platformClient.post<{ inserted: number; skippedDuplicates: number; selected: number }>(
       "/v1/platform/question-import/commit",
       { batchId, selectedIndexes }
     );
     return response.data;
-  },
+  }),
   ai: () => get<AiUsageData>("/ai"),
   health: () => get<{
     services: Record<string, { status: string; latencyMs?: number | null; note?: string }>;
