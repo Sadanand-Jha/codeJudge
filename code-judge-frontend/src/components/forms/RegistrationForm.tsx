@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Check, CircleAlert, Eye, EyeOff, GraduationCap, LogIn, Mail, Presentation, RefreshCw, Sparkles } from "lucide-react";
-import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { toast } from "@/lib/toast";
 import { sendOtp, verifyOtp, register, checkUsername } from "@/services/auth";
@@ -19,7 +18,7 @@ import {
   validateUsername,
 } from "@/lib/validators";
 import AuthBackground from "@/components/auth/AuthBackground";
-import { AuthBottomStrip, AuthBrandMark, AuthShowcasePanel, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
+import { AuthBottomStrip, AuthBrandMark, AuthLoader, AuthShowcasePanel, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
 
@@ -479,7 +478,7 @@ export default function RegistrationForm() {
                 disabled={sendingOtp}
                 className={AUTH_PRIMARY_BUTTON}
               >
-                {sendingOtp && <QuizLoader className="h-4 w-4 text-white" />}
+                {sendingOtp && <AuthLoader className="h-4 w-4 text-white" />}
                 {sendingOtp ? "Sending..." : "Continue"}
                 {!sendingOtp && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
               </button>
@@ -513,7 +512,7 @@ export default function RegistrationForm() {
                 disabled={verifyingOtp || form.otp.value.length !== 6}
                 className={AUTH_PRIMARY_BUTTON}
               >
-                {verifyingOtp && <QuizLoader className="h-4 w-4 text-white" />}
+                {verifyingOtp && <AuthLoader className="h-4 w-4 text-white" />}
                 {verifyingOtp ? "Verifying..." : "Verify"}
               </button>
               <div className="text-center">
@@ -524,7 +523,7 @@ export default function RegistrationForm() {
                   className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-input-border bg-transparent px-4 text-sm font-semibold text-text-secondary transition-all hover:border-accent hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {sendingOtp
-                    ? <QuizLoader className="h-4 w-4" />
+                    ? <AuthLoader className="h-4 w-4" />
                     : <RefreshCw className="h-4 w-4" />}
                   {sendingOtp
                     ? "Resending..."
@@ -652,7 +651,7 @@ export default function RegistrationForm() {
                   />
                   {usernameStatus.checking && (
                     <span className="pointer-events-none absolute right-4 top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent">
-                      <QuizLoader className="h-3 w-3" /> Checking
+                      <AuthLoader className="h-3 w-3" /> Checking
                     </span>
                   )}
                 </div>
@@ -661,7 +660,7 @@ export default function RegistrationForm() {
                     <p className="text-xs text-red-400">{form.username.error}</p>
                   ) : !form.username.error && usernameStatus.checking ? (
                     <p className="text-xs text-text-muted flex items-center gap-1.5">
-                      <QuizLoader className="h-3 w-3" /> Checking username availability…
+                      <AuthLoader className="h-3 w-3" /> Checking username availability…
                     </p>
                   ) : !form.username.error && !usernameStatus.checking && usernameStatus.available === false ? (
                     <p className="text-xs text-red-400">{usernameStatus.message}</p>
@@ -839,7 +838,7 @@ export default function RegistrationForm() {
                           disabled={!isPasswordReady}
                           className={`${AUTH_PRIMARY_BUTTON} min-h-13 flex-[2]`}
                         >
-                          {submitting && <QuizLoader className="h-4 w-4 text-white" />}
+                          {submitting && <AuthLoader className="h-4 w-4 text-white" />}
                           {submitting ? "Creating..." : "Create account"}
                         </button>
                       </div>

@@ -412,9 +412,17 @@ interface StudioProviderProps {
   children: ReactNode;
   editMode?: boolean;
   initialQuizId?: string;
+  /**
+   * Deep link into a specific step — used by the create flow's handoff
+   * (/creator/quizzes/[id]/edit?step=questions) so the creator lands on the
+   * Problems step instead of being shown Setup twice. Read during state
+   * initialization (not in an effect) so server and client render the same
+   * step and there is no hydration mismatch.
+   */
+  initialStep?: string;
 }
 
-export function StudioProvider({ children, editMode = false, initialQuizId }: StudioProviderProps) {
+export function StudioProvider({ children, editMode = false, initialQuizId, initialStep }: StudioProviderProps) {
   const steps = useMemo(() => {
     return editMode ? STEPS.filter((s) => s.id !== "publish") : STEPS;
   }, [editMode]);
@@ -425,8 +433,12 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
 
   const [state, setState] = useState<StudioState>(() => {
     if (editMode && initialQuizId) {
+      // Honour a validated ?step= deep link (falls back to Setup for unknown
+      // or mode-incompatible values, e.g. "publish" in edit mode).
+      const deepLinkedStep =
+        initialStep && steps.some((s) => s.id === initialStep) ? (initialStep as StudioStepId) : "setup";
       return {
-        step: "setup",
+        step: deepLinkedStep,
         info: { ...DEFAULT_QUIZ_INFO },
         questions: [],
         activeQuestionId: null,
@@ -1012,7 +1024,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         const { quizId } = await saveToServer({ setupOnly: true });
         setState((s) => ({ ...s, serverQuizId: quizId }));
         if (!editMode) {
-          window.location.href = `/creator/quizzes/${quizId}/edit`;
+          // Hand off to the edit route on the Problems (questions) step —
+          // Setup is already done, so don't make the creator see it twice.
+          window.location.href = `/creator/quizzes/${quizId}/edit?step=questions`;
           return;
         }
       } catch (err) {

@@ -2,9 +2,9 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useAuthStore } from "@/store/authStore";
 import RegistrationForm from "@/components/forms/RegistrationForm";
+import { AuthLoader } from "@/components/auth/AuthThemeChrome";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function RegisterPage() {
   if (!hasHydrated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <QuizLoader />
+        <AuthLoader />
       </div>
     );
   }

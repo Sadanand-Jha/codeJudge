@@ -73,12 +73,12 @@ function mapQuizToCard(q: QuizListRecord): QuizCard {
     id: String(q.id),
     title: q.name,
     subject: q.subject || "General",
-    questions: q.total_questions ?? 0,
-    durationMin: q.duration ?? 0,
-    attempts: q.attempts ?? 0,
-    completionRate: q.completion_rate ?? 0,
-    rating: q.rating ?? 0,
-    ratingCount: q.rating_count ?? 0,
+    questions: Number(q.total_questions) || 0,
+    durationMin: Number(q.duration) || 0,
+    attempts: Number(q.attempts) || 0,
+    completionRate: Number(q.completion_rate) || 0,
+    rating: Number(q.rating) || 0,
+    ratingCount: Number(q.rating_count) || 0,
     status,
   };
 }

@@ -60,7 +60,7 @@ Studio state: `src/components/creator/quiz-studio/types.ts:203` (`StudioState`),
 
 **Snapshot diff (avoid resaving unchanged):** `snapshotRef = buildQuestionSnapshot(questions)` on load (`StudioProvider.tsx:415`), `computeChangedQuestions(state.questions, snapshotRef.current)` on save (`785`). Only changed/new IDs are POSTed; deletes are swept server-side.
 
-**Create vs Edit:** `editMode && initialQuizId` → `loadQuizForEdit` (`services/quiz.ts:212`) fetches `getQuizById` + `getQuizProblems` + `getAllSubjects/getAllExamCategories`, maps via `mapBackendProblem`/`mapQuizToStudioInfo` (`StudioProvider.tsx:82`). New draft → `initialState()` with `q_1` and generated `code`.
+**Create vs Edit:** `editMode && initialQuizId` → `loadQuizForEdit` (`services/quiz.ts:212`) fetches `getQuizById` + `getQuizProblems` + `getAllSubjects/getAllExamCategories`, maps via `mapBackendProblem`/`mapQuizToStudioInfo` (`StudioProvider.tsx:82`). New draft → `initialState()` with zero questions (`activeQuestionId: null`) and generated `code`; the Questions step renders its empty state until a question is added.
 
 ---
 

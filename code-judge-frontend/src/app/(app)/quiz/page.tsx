@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, BrainCircuit, Check, Coins, FileText, History, KeyRound, ShieldCheck, Rocket, Radar, Gauge, Satellite, PartyPopper, Sparkles, WandSparkles } from "lucide-react";
+import { ArrowRight, BrainCircuit, Check, FileText, History, KeyRound, ShieldCheck, Rocket, Radar, Gauge, Satellite, PartyPopper, Sparkles, WandSparkles } from "lucide-react";
 import GuestGuard from "@/components/guards/GuestGuard";
 
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
@@ -11,6 +11,7 @@ import QuizPartyAtmosphere, { QuizPartyColorStrip } from "@/components/quiz/live
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/helpers";
 
 /* ── Same ambient background as the upgrade/pricing page ── */
 function QuizPageBackground() {
@@ -107,61 +108,261 @@ function QuizPageBackground() {
 
 const AI_STUDIO_MOMENTS = [
   {
-    eyebrow: "A topic is enough",
     prompt: "OS deadlocks for BTech 3rd sem",
     result: "10 placement-style questions with hints and explanations",
-    encouragement: "Your next sem-exam set could start with just five words.",
     source: "Topic to quiz",
     thinking: [
-      "Reading BTech syllabus scope for deadlocks…",
-      "Shortlisting 10 placement-style questions…",
-      "Drafting options, hints + explanations…",
-      "Balancing difficulty for 3rd sem…",
+      "Understanding BTech 3rd-semester learning goals…",
+      "Mapping deadlocks to the operating-systems syllabus…",
+      "Extracting mutual exclusion, hold-and-wait + preemption…",
+      "Connecting circular wait with resource-allocation graphs…",
+      "Hmm… the first draft feels too theory-heavy.",
+      "Finding high-value placement interview patterns…",
+      "Drafting scenario-based process and resource questions…",
+      "Creating believable distractors from common mistakes…",
+      "Wait—one distractor makes the answer too obvious.",
+      "Rewriting it around a realistic scheduling mistake…",
+      "Checking every option for ambiguity and overlap…",
+      "Adding short hints without revealing the answer…",
+      "Writing step-by-step explanations for each solution…",
+      "Thinking deeper… will a third-semester student infer this?",
+      "Balancing easy, medium, and challenge questions…",
+      "Estimating attempt time and cognitive load…",
+      "Validating answer keys against core OS rules…",
+      "Running a final duplication and quality scan…",
     ],
   },
   {
-    eyebrow: "Bring your notes",
     prompt: "Turn my DBMS normalization notes into a quiz",
     result: "Key concepts found, balanced and ready for revision",
-    encouragement: "Drop in a unit. AI handles the first draft—you focus on cracking it.",
     source: "Document to quiz",
     thinking: [
-      "Scanning normalization notes 1NF → BCNF…",
-      "Extracting keys, FDs + anomalies…",
-      "Framing 10 revision questions…",
-      "Adding answer keys + quick notes…",
+      "Reading every section of the uploaded DBMS notes…",
+      "Detecting headings, examples, tables + definitions…",
+      "Mapping the progression from 1NF through BCNF…",
+      "Extracting candidate keys and functional dependencies…",
+      "Identifying partial and transitive dependencies…",
+      "Hmm… this BCNF example is too dense for quick revision.",
+      "Separating update, insertion, and deletion anomalies…",
+      "Finding examples suitable for decomposition questions…",
+      "Turning dense paragraphs into focused recall prompts…",
+      "Wait—two questions are testing the same exact idea.",
+      "Replacing one with a dependency-preservation scenario…",
+      "Generating application-based normalization problems…",
+      "Building plausible distractors from common confusions…",
+      "Checking lossless join and dependency preservation…",
+      "Rethinking the mix… adding one visual table-based prompt.",
+      "Adding concise answer keys and revision notes…",
+      "Balancing concept recall with problem solving…",
+      "Running a final coverage and accuracy review…",
     ],
   },
   {
-    eyebrow: "Make revision fun",
     prompt: "A rapid-fire DSA + JavaScript challenge",
     result: "Questions, answer keys, and interview-style explanations",
-    encouragement: "Build something your batchmates will actually want to attempt.",
     source: "Idea to quiz",
     thinking: [
-      "Mixing DSA patterns + JS fundamentals…",
-      "Picking arrays, closures + event loop…",
-      "Writing interview-style explanations…",
-      "Tuning for batch challenge mode…",
+      "Understanding the rapid-fire challenge format…",
+      "Mixing DSA patterns with JavaScript fundamentals…",
+      "Selecting arrays, strings, stacks, and hash maps…",
+      "Adding closures, promises, scope + event-loop traps…",
+      "Hmm… closures and event loop back-to-back may feel repetitive.",
+      "Designing short code snippets that scan quickly…",
+      "Generating output-prediction interview questions…",
+      "Creating distractors from real debugging mistakes…",
+      "Wait—that edge case only works in non-strict mode.",
+      "Rewriting the snippet for consistent browser behavior…",
+      "Checking snippets for valid modern JavaScript…",
+      "Writing crisp interview-style explanations…",
+      "Alternating conceptual and code-based questions…",
+      "Thinking… does the difficulty ramp feel fair yet?",
+      "Tuning difficulty for a mixed-skill batch…",
+      "Setting a fast but achievable response rhythm…",
+      "Verifying answer keys with edge cases…",
+      "Polishing the final challenge flow…",
     ],
   },
 ];
 
+const AI_STUDIO_COPY_BEATS = [
+  {
+    eyebrow: "One prompt. Full quiz.",
+    headline: "Stop formatting. Start teaching.",
+    support: "Drop the topic. AI attacks the first draft instantly.",
+  },
+  {
+    eyebrow: "Your syllabus. AI on full throttle.",
+    headline: "Questions. Distractors. Explanations. Done.",
+    support: "From rough idea to ready-to-play before your coffee cools.",
+  },
+  {
+    eyebrow: "Kill the blank page.",
+    headline: "Turn raw notes into a quiz—fast.",
+    support: "Upload it. Shape it. Launch something your class will finish.",
+  },
+  {
+    eyebrow: "No boring worksheets.",
+    headline: "Make revision impossible to ignore.",
+    support: "AI builds the momentum. You stay in complete control.",
+  },
+  {
+    eyebrow: "Draft less. Challenge more.",
+    headline: "Build smarter questions at ridiculous speed.",
+    support: "Difficulty, hints, answer keys, and polish—all moving together.",
+  },
+  {
+    eyebrow: "Your next quiz is already moving.",
+    headline: "Think it. Type it. Watch AI build it.",
+    support: "Go from five words to a classroom-ready experience.",
+  },
+];
+
+const THINKING_TOKENS_PER_SECOND = 120;
+
+function AIThinkingConsole({ thinking, result }: { thinking: string[]; result: string }) {
+  const [stream, setStream] = useState({ chars: 0, speed: THINKING_TOKENS_PER_SECOND, paused: false });
+  const allLines = useMemo(() => [...thinking, result], [thinking, result]);
+  const total = useMemo(() => allLines.reduce((sum, line) => sum + line.length, 0), [allLines]);
+  const pauseBoundaries = useMemo(() => {
+    let cursor = 0;
+    const boundaries: number[] = [];
+    for (const line of allLines) {
+      cursor += line.length;
+      if (/^(Hmm|Wait|Thinking|Rethinking)/.test(line)) boundaries.push(cursor);
+    }
+    return boundaries;
+  }, [allLines]);
+
+  useEffect(() => {
+    let pauseIndex = 0;
+    let pauseUntil = 0;
+    let burstUntil = 0;
+    let liveSpeed = THINKING_TOKENS_PER_SECOND;
+    let fraction = 0;
+    let previousTick = performance.now();
+
+    const fast = window.setInterval(() => {
+      const now = performance.now();
+      const elapsed = Math.min((now - previousTick) / 1_000, 0.1);
+      previousTick = now;
+
+      setStream((current) => {
+        if (current.chars >= total) {
+          window.clearInterval(fast);
+          return { chars: current.chars, speed: 0, paused: false };
+        }
+
+        const nextPause = pauseBoundaries[pauseIndex];
+        if (nextPause !== undefined && current.chars >= nextPause && pauseUntil === 0) {
+          pauseUntil = now + 650;
+          fraction = 0;
+          return { chars: nextPause, speed: 0, paused: true };
+        }
+
+        if (pauseUntil > now) {
+          return current.paused ? current : { ...current, speed: 0, paused: true };
+        }
+
+        if (pauseUntil !== 0) {
+          pauseUntil = 0;
+          pauseIndex += 1;
+          burstUntil = now + 750;
+          liveSpeed = 250;
+        }
+
+        if (now < burstUntil) liveSpeed = 250;
+        else liveSpeed = Math.max(THINKING_TOKENS_PER_SECOND, liveSpeed - 10);
+
+        fraction += liveSpeed * elapsed;
+        const wholeChars = Math.floor(fraction);
+        fraction -= wholeChars;
+        const boundary = pauseBoundaries[pauseIndex] ?? total;
+        const chars = Math.min(total, boundary, current.chars + wholeChars);
+
+        return { chars, speed: Math.round(liveSpeed), paused: false };
+      });
+    }, 50);
+    return () => window.clearInterval(fast);
+  }, [pauseBoundaries, total]);
+
+  let remaining = stream.chars;
+  const rows: { index: number; text: string; done: boolean; active: boolean }[] = [];
+  for (const [index, line] of allLines.entries()) {
+    if (remaining >= line.length) {
+      rows.push({ index, text: line, done: true, active: false });
+      remaining -= line.length;
+    } else if (remaining > 0) {
+      rows.push({ index, text: line.slice(0, remaining), done: false, active: true });
+      remaining = 0;
+    } else {
+      rows.push({ index, text: "", done: false, active: false });
+    }
+  }
+
+  const visibleRows = rows.filter((row) => row.text).slice(-2);
+  const isStreaming = stream.chars < total;
+  const isFinished = stream.chars >= total;
+
+  return (
+    <div className="w-full min-w-0">
+      <span className="inline-flex h-5 items-center gap-1 text-[8px] font-black uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-300">
+        {isFinished ? "Quiz draft ready" : stream.paused ? "AI is thinking" : "AI is building"}
+        <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+          <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:0ms]" />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:150ms]" />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:300ms]" />
+        </span>
+      </span>
+
+      <div className="mt-1 h-[52px] w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-emerald-500/15 bg-emerald-500/[0.04] p-2 font-mono text-[10px] leading-4 dark:border-emerald-400/15 dark:bg-emerald-400/[0.05]">
+        <span className="sr-only">AI pauses to think, accelerates to 250 tokens per second, then settles back to 120. Only the latest two steps are shown.</span>
+        <AnimatePresence initial={false} mode="popLayout">
+          {visibleRows.map((row) => {
+            const isResult = row.index === rows.length - 1;
+            const isReflection = /^(Hmm|Wait|Thinking|Rethinking)/.test(row.text);
+            return (
+              <motion.p
+                layout
+                key={row.index}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.14, ease: "easeOut" }}
+                className={cn(
+                  "h-4 truncate whitespace-nowrap",
+                  isResult && row.done
+                    ? "font-bold text-[#343A4E] dark:text-[#DCE2ED]"
+                    : isReflection
+                      ? "italic text-violet-600 dark:text-violet-300"
+                      : row.done
+                        ? "text-[#6B7688] dark:text-[#8B95A7]"
+                        : "text-[#343A4E] dark:text-[#DCE2ED]"
+                )}
+              >
+                <span className={cn("mr-1", isResult ? "text-emerald-500" : isReflection ? "text-violet-500" : "text-emerald-500/70")}>
+                  {isResult && row.done ? "✓" : isReflection ? "∿" : "›"}
+                </span>
+                {row.text}
+                {(row.active || (stream.paused && row.index === visibleRows[visibleRows.length - 1]?.index) || (isStreaming && isResult && row.done)) && (
+                  <span className="ml-0.5 inline-block h-3 w-[2px] animate-pulse bg-emerald-500 align-middle" />
+                )}
+              </motion.p>
+            );
+          })}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
 function AIQuizStudioCard() {
   const [activeMoment, setActiveMoment] = useState(0);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [streamChars, setStreamChars] = useState(0);
+  const [activeCopyBeat, setActiveCopyBeat] = useState(0);
+  const [, setElapsedSeconds] = useState(0);
   const moment = AI_STUDIO_MOMENTS[activeMoment];
+  const copyBeat = AI_STUDIO_COPY_BEATS[activeCopyBeat];
 
-  // ── Demo credit system: teacher starts with 30 credits, 1 quiz costs 10 ──
-  const START_CREDITS = 30;
-  const COST_PER_QUIZ = 10;
-  const CYCLE_SECONDS = 6;
-  const creditsUsed = Math.min(
-    COST_PER_QUIZ,
-    Math.round(((elapsedSeconds + 1) / CYCLE_SECONDS) * COST_PER_QUIZ)
-  );
-  const creditsLeft = START_CREDITS - creditsUsed;
+  const CYCLE_SECONDS = 10;
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -177,21 +378,13 @@ function AIQuizStudioCard() {
     return () => window.clearInterval(interval);
   }, []);
 
-  // ── Fast streaming like thinking section (~50 tokens/sec ≈ 200 chars/sec) ──
   useEffect(() => {
-    setStreamChars(0);
-    const total = moment.thinking.join("").length + moment.result.length;
-    const fast = window.setInterval(() => {
-      setStreamChars((c) => {
-        if (c >= total) {
-          window.clearInterval(fast);
-          return c;
-        }
-        return Math.min(total, c + 8);
-      });
-    }, 40);
-    return () => window.clearInterval(fast);
-  }, [activeMoment]);
+    const copyInterval = window.setInterval(() => {
+      setActiveCopyBeat((current) => (current + 1) % AI_STUDIO_COPY_BEATS.length);
+    }, 1_800);
+
+    return () => window.clearInterval(copyInterval);
+  }, []);
 
   return (
     <section className="group relative overflow-hidden rounded-[28px] border border-violet-200/80 bg-white/80 shadow-[0_28px_80px_-44px_rgba(91,33,182,.8)] backdrop-blur-2xl dark:border-violet-400/15 dark:bg-[#0E1321]/88 dark:shadow-[0_32px_90px_-38px_rgba(3,2,18,.98)]">
@@ -202,7 +395,7 @@ function AIQuizStudioCard() {
         <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.055]" style={{ backgroundImage: "linear-gradient(rgba(124,58,237,.7) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,.7) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
       </div>
 
-      <div className="relative grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_.86fr] lg:items-stretch lg:gap-7">
+      <div className="relative grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_.86fr] lg:items-center lg:gap-7">
         <div className="flex min-w-0 flex-col justify-center">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 via-fuchsia-500 to-cyan-400 text-white shadow-[0_14px_28px_-12px_rgba(124,58,237,.9)]">
@@ -221,16 +414,16 @@ function AIQuizStudioCard() {
 
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeMoment}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-              className="mt-4 min-h-[96px]"
+              key={activeCopyBeat}
+              initial={{ opacity: 0, x: 24, skewX: -3 }}
+              animate={{ opacity: 1, x: 0, skewX: 0 }}
+              exit={{ opacity: 0, x: -24, skewX: 3 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="mt-4 h-[116px] overflow-hidden"
             >
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-500 dark:text-fuchsia-300">{moment.eyebrow}</p>
-              <h3 className="mt-1.5 max-w-xl text-xl font-black leading-tight tracking-[-0.025em] text-[#171B2C] dark:text-white sm:text-2xl">Create a quiz people can’t wait to play.</h3>
-              <p className="mt-2 max-w-xl text-xs leading-5 text-[#667085] dark:text-[#A6AFC0]">{moment.encouragement}</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-500 dark:text-fuchsia-300">{copyBeat.eyebrow}</p>
+              <h3 className="mt-1.5 line-clamp-2 max-w-xl text-xl font-black leading-tight tracking-[-0.025em] text-[#171B2C] dark:text-white sm:text-2xl">{copyBeat.headline}</h3>
+              <p className="mt-2 line-clamp-1 max-w-xl text-xs leading-5 text-[#667085] dark:text-[#A6AFC0]">{copyBeat.support}</p>
             </motion.div>
           </AnimatePresence>
 
@@ -241,103 +434,28 @@ function AIQuizStudioCard() {
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-[22px] border border-violet-200/80 bg-[#FAFAFF]/92 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_18px_45px_-30px_rgba(76,29,149,.65)] dark:border-white/[0.08] dark:bg-[#090D18]/88 sm:p-4">
-          <div className="flex items-center justify-between gap-3 border-b border-violet-100 pb-3 dark:border-white/[0.07]">
+        <div className="relative w-full min-w-0 overflow-hidden rounded-[20px] border border-violet-200/80 bg-[#FAFAFF]/92 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_18px_45px_-30px_rgba(76,29,149,.65)] dark:border-white/[0.08] dark:bg-[#090D18]/88">
+          <div className="flex items-center gap-3 border-b border-violet-100 pb-2 dark:border-white/[0.07]">
             <div className="flex items-center gap-2">
               <span className="flex gap-1" aria-hidden="true"><span className="h-1.5 w-1.5 rounded-full bg-rose-400" /><span className="h-1.5 w-1.5 rounded-full bg-amber-400" /><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /></span>
               <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#70778A] dark:text-[#8791A5]">Live AI draft</span>
             </div>
-            <span className="relative inline-flex items-center gap-1.5 overflow-visible rounded-full border border-amber-300/70 bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-50 px-2.5 py-1 font-mono text-[9px] font-black text-amber-800 shadow-[0_2px_10px_-2px_rgba(245,158,11,.5)] dark:border-amber-400/30 dark:from-amber-400/15 dark:via-yellow-400/10 dark:to-amber-400/5 dark:text-amber-300">
-              <Coins className="h-3.5 w-3.5 text-amber-500 drop-shadow-[0_0_4px_rgba(245,158,11,.6)] dark:text-amber-400" />
-              <span className="inline-flex items-baseline gap-1">
-                <AnimatePresence mode="popLayout" initial={false}>
-                  <motion.span
-                    key={creditsLeft}
-                    initial={{ y: 8, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -8, opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="inline-block min-w-[2ch] text-right tabular-nums"
-                  >
-                    {creditsLeft}
-                  </motion.span>
-                </AnimatePresence>
-                <span>credits</span>
-              </span>
-            </span>
           </div>
 
           <AnimatePresence mode="wait">
-            <motion.div key={activeMoment} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.3 }} className="py-3.5">
+            <motion.div key={activeMoment} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.3 }} className="py-2.5">
               <div className="flex items-start gap-2.5">
                 <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300"><FileText className="h-3.5 w-3.5" /></span>
-                <div className="min-w-0">
+                <div className="w-0 min-w-0 flex-1">
                   <span className="text-[8px] font-black uppercase tracking-[0.15em] text-[#98A2B3]">Your prompt</span>
                   <p className="mt-0.5 truncate text-[11px] font-bold text-[#343A4E] dark:text-[#DCE2ED]">“{moment.prompt}”</p>
                 </div>
               </div>
-              <div className="my-2.5 ml-3.5 h-4 border-l border-dashed border-violet-300 dark:border-violet-400/25" />
+              <div className="my-1.5 ml-3.5 h-3 border-l border-dashed border-violet-300 dark:border-violet-400/25" />
               <div className="flex items-start gap-2.5">
                 <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"><Check className="h-3.5 w-3.5" /></span>
-                <div className="min-w-0">
-                  <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-300">
-                    AI is building
-                    <span className="inline-flex items-center gap-0.5" aria-hidden="true">
-                      <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:0ms]" />
-                      <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:150ms]" />
-                      <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:300ms]" />
-                    </span>
-                  </span>
-                  <div className="mt-1.5 space-y-1 rounded-xl border border-emerald-500/15 bg-emerald-500/[0.04] p-2.5 font-mono text-[10px] leading-4 dark:border-emerald-400/15 dark:bg-emerald-400/[0.05]">
-                    {(() => {
-                      let remaining = streamChars;
-                      const rows: { text: string; done: boolean; active: boolean }[] = [];
-                      const allLines = [...moment.thinking, `✓ ${moment.result}`];
-                      for (const line of allLines) {
-                        if (remaining >= line.length) {
-                          rows.push({ text: line, done: true, active: false });
-                          remaining -= line.length;
-                        } else if (remaining > 0) {
-                          rows.push({ text: line.slice(0, remaining), done: false, active: true });
-                          remaining = 0;
-                        } else {
-                          rows.push({ text: "", done: false, active: false });
-                        }
-                      }
-                      const isStreaming = streamChars < moment.thinking.join("").length + moment.result.length;
-                      return rows.map((row, i) => {
-                        const isResult = i === rows.length - 1;
-                        if (!row.text) {
-                          return (
-                            <p key={i} className="truncate text-[10px] text-[#B6BECB] dark:text-[#5A6577]">
-                              <span className="mr-1 text-[#C9D1DD] dark:text-[#4A5568]">›</span>···
-                            </p>
-                          );
-                        }
-                        return (
-                          <p
-                            key={i}
-                            className={
-                              isResult && row.done
-                                ? "font-bold text-[#343A4E] dark:text-[#DCE2ED]"
-                                : row.done
-                                  ? "text-[#6B7688] dark:text-[#8B95A7]"
-                                  : "text-[#343A4E] dark:text-[#DCE2ED]"
-                            }
-                          >
-                            <span className={isResult ? "mr-1 text-emerald-500" : "mr-1 text-emerald-500/70"}>{isResult && row.done ? "✓" : "›"}</span>
-                            {row.text}
-                            {row.active && (
-                              <span className="ml-0.5 inline-block h-3 w-[2px] animate-pulse bg-emerald-500 align-middle" />
-                            )}
-                            {isStreaming && isResult && row.done && (
-                              <span className="ml-0.5 inline-block h-3 w-[2px] animate-pulse bg-emerald-500 align-middle" />
-                            )}
-                          </p>
-                        );
-                      });
-                    })()}
-                  </div>
+                <div className="w-0 min-w-0 flex-1">
+                  <AIThinkingConsole key={activeMoment} thinking={moment.thinking} result={moment.result} />
                 </div>
               </div>
             </motion.div>
@@ -345,11 +463,11 @@ function AIQuizStudioCard() {
 
           <div className="mt-auto">
             <div className="h-1 overflow-hidden rounded-full bg-violet-100 dark:bg-white/[0.06]">
-              <motion.div key={`progress-${activeMoment}`} initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 6, ease: "linear" }} className="h-full rounded-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400" />
+              <motion.div key={`progress-${activeMoment}`} initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: CYCLE_SECONDS, ease: "linear" }} className="h-full rounded-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400" />
             </div>
-            <div className="mt-3 flex items-center gap-1.5">
+            <div className="mt-2 flex items-center gap-1.5">
               {AI_STUDIO_MOMENTS.map((item, index) => (
-                <button key={item.source} type="button" onClick={() => { setActiveMoment(index); setElapsedSeconds(0); setStreamChars(0); }} className={`h-1.5 rounded-full transition-all ${index === activeMoment ? "w-7 bg-violet-500" : "w-1.5 bg-violet-200 hover:bg-violet-300 dark:bg-white/15 dark:hover:bg-white/25"}`} aria-label={`Show ${item.source} example`} />
+                <button key={item.source} type="button" onClick={() => { setActiveMoment(index); setElapsedSeconds(0); }} className={`h-1.5 rounded-full transition-all ${index === activeMoment ? "w-7 bg-violet-500" : "w-1.5 bg-violet-200 hover:bg-violet-300 dark:bg-white/15 dark:hover:bg-white/25"}`} aria-label={`Show ${item.source} example`} />
               ))}
             </div>
           </div>
@@ -421,7 +539,9 @@ function QuizHome() {
           </div>}
         </header>
 
-        <AIQuizStudioCard />
+        <div className="hidden sm:block">
+          <AIQuizStudioCard />
+        </div>
 
         {/* ── Primary actions (compact) ── */}
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">

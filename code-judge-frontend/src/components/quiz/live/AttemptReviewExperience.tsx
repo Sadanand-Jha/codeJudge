@@ -409,8 +409,6 @@ export default function AttemptReviewExperience({
 
   useEffect(() => {
     let cancelled = false;
-    setRatingLoading(true);
-    setRatingError(null);
     getQuizRating(quizId)
       .then((rating) => {
         if (!cancelled) setRatingState(rating);

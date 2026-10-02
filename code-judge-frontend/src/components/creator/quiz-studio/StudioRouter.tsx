@@ -115,10 +115,10 @@ export function QuizCreator() {
   );
 }
 
-export function QuizEditor({ quizId }: { quizId: string }) {
+export function QuizEditor({ quizId, initialStep }: { quizId: string; initialStep?: string }) {
   const router = useRouter();
   return (
-    <StudioProvider editMode initialQuizId={quizId}>
+    <StudioProvider editMode initialQuizId={quizId} initialStep={initialStep}>
       <StudioShellWithRouter onDashboard={() => router.push("/creator/quizzes")} />
     </StudioProvider>
   );

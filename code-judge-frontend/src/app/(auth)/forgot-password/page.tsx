@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Eye, EyeOff, KeyRound, LogIn, Mail, RefreshCw } from "lucide-react";
-import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { toast } from "@/lib/toast";
 import { requestPasswordReset, verifyResetOtp, resetPassword } from "@/services/auth";
 import {
@@ -14,7 +13,7 @@ import {
   validateOtp,
 } from "@/lib/validators";
 import AuthBackground from "@/components/auth/AuthBackground";
-import { AuthBrandMark, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
+import { AuthBrandMark, AuthLoader, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
 
 const AUTH_PRIMARY_BUTTON = "group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-4 text-sm font-bold text-white shadow-[0_16px_32px_-18px_rgba(236,72,153,.9),inset_0_1px_0_rgba(255,255,255,.28)] transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-40 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_16px_34px_-18px_rgba(124,92,255,.95),inset_0_1px_0_rgba(255,255,255,.2)]";
 
@@ -266,7 +265,7 @@ export default function ForgotPasswordPage() {
                 disabled={sendingOtp}
                 className={AUTH_PRIMARY_BUTTON}
               >
-                {sendingOtp && <QuizLoader className="h-4 w-4 text-white" />}
+                {sendingOtp && <AuthLoader className="h-4 w-4 text-white" />}
                 {sendingOtp ? "Sending..." : "Continue"}
                 {!sendingOtp && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
               </button>
@@ -302,7 +301,7 @@ export default function ForgotPasswordPage() {
                 disabled={verifyingOtp || otp.value.length !== 6}
                 className={AUTH_PRIMARY_BUTTON}
               >
-                {verifyingOtp && <QuizLoader className="h-4 w-4 text-white" />}
+                {verifyingOtp && <AuthLoader className="h-4 w-4 text-white" />}
                 {verifyingOtp ? "Verifying..." : "Verify"}
               </button>
               <div className="text-center">
@@ -409,7 +408,7 @@ export default function ForgotPasswordPage() {
                 disabled={!isResetEnabled}
                 className={`${AUTH_PRIMARY_BUTTON} mt-1`}
               >
-                {submitting && <QuizLoader className="h-4 w-4 text-white" />}
+                {submitting && <AuthLoader className="h-4 w-4 text-white" />}
                 {!submitting && <KeyRound className="h-4 w-4" />}
                 {submitting ? "Resetting..." : "Reset password"}
               </button>
