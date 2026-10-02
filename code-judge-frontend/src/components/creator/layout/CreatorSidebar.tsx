@@ -8,7 +8,6 @@ import {
   FilePlus2,
   Layers,
   Users,
-  BarChart3,
   Settings,
   Wallet,
   TrendingUp,
@@ -27,9 +26,7 @@ import {
   GraduationCap,
   ListChecks,
   Boxes,
-  Gauge,
   BadgeCheck,
-  Presentation,
   Sparkles,
   MessageSquare,
        MailPlus,
@@ -55,13 +52,13 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
   {
     label: "Quizzes",
     items: [
+      { label: "Create New", href: "/creator/create", icon: Sparkles, exact: true },
       { label: "All Quizzes", href: "/creator/quizzes", icon: ListChecks, match: (p) => p === "/creator/quizzes" || (p.startsWith("/creator/quizzes/") && !p.startsWith("/creator/quizzes/create") && !p.startsWith("/creator/quizzes/ai-generate")) },
       { label: "Create Quiz", href: "/creator/quizzes/create", icon: FilePlus2, match: (p) => p === "/creator/quizzes/create" || p === "/creator/quizzes/ai-generate" },
       { label: "Tests", href: "/creator/tests", icon: ClipboardList, match: (p) => p === "/creator/tests" || (p.startsWith("/creator/tests/") && !p.startsWith("/creator/tests/create")), color: "purple" },
       { label: "Create Test", href: "/creator/tests/create", icon: NotebookPen, match: (p) => p === "/creator/tests/create", color: "purple" },
       { label: "Test Series", href: "/creator/series", icon: Layers, color: "purple" },
       { label: "Create Test Series", href: "/creator/series/create", icon: FolderKanban, color: "purple" },
-      { label: "Create New", href: "/creator/create", icon: Sparkles, exact: true },
     ],
   },
   {
@@ -84,15 +81,6 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
     ],
   },
   {
-    label: "Reports",
-    items: [
-      { label: "Overview", href: "/creator/analytics", icon: BarChart3, exact: true },
-      { label: "Test Analytics", href: "/creator/analytics/test", icon: Gauge },
-      { label: "Student Analytics", href: "/creator/analytics/students", icon: Users },
-      { label: "Content Analytics", href: "/creator/analytics/content", icon: Presentation },
-    ],
-  },
-    {
     label: "AI Studio",
     items: [
       { label: "AI Studio", href: "/creator/ai-studio", icon: Sparkles },

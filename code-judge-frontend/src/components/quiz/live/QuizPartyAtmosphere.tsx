@@ -31,7 +31,11 @@ function WaterBalloon({ className, color }: { className: string; color: string }
   );
 }
 
-export default function QuizPartyAtmosphere({ className, showFloaters = true }: { className?: string; showFloaters?: boolean }) {
+export function QuizPartyColorStrip({ className }: { className?: string }) {
+  return <div className={cn("h-3 bg-[linear-gradient(90deg,#ff66a8_0_12.5%,#ffb82e_12.5%_25%,#37cce8_25%_37.5%,#7c6cff_37.5%_50%,#4dd59b_50%_62.5%,#ff66a8_62.5%_75%,#ffb82e_75%_87.5%,#37cce8_87.5%)] opacity-70", className)} aria-hidden="true" />;
+}
+
+export default function QuizPartyAtmosphere({ className, showFloaters = true, showBottomStrip = true }: { className?: string; showFloaters?: boolean; showBottomStrip?: boolean }) {
   const isMobile = useIsMobile();
 
   // Mobile / touch: static candy wash only. The 30 confetti loops, floating
@@ -41,7 +45,7 @@ export default function QuizPartyAtmosphere({ className, showFloaters = true }: 
     return (
       <div className={cn("pointer-events-none absolute inset-0 overflow-hidden dark:hidden", className)} aria-hidden="true">
         <div className="absolute inset-0 bg-[linear-gradient(145deg,#fff9ef_0%,#fff3fb_33%,#eef9ff_67%,#f3fff8_100%)] opacity-95" />
-        <div className="absolute inset-x-0 bottom-0 h-3 bg-[linear-gradient(90deg,#ff66a8_0_12.5%,#ffb82e_12.5%_25%,#37cce8_25%_37.5%,#7c6cff_37.5%_50%,#4dd59b_50%_62.5%,#ff66a8_62.5%_75%,#ffb82e_75%_87.5%,#37cce8_87.5%)] opacity-70" />
+        {showBottomStrip && <QuizPartyColorStrip className="absolute inset-x-0 bottom-0" />}
       </div>
     );
   }
@@ -94,7 +98,7 @@ export default function QuizPartyAtmosphere({ className, showFloaters = true }: 
       ))}
 
       {/* Bottom party bunting */}
-      <div className="absolute inset-x-0 bottom-0 h-3 bg-[linear-gradient(90deg,#ff66a8_0_12.5%,#ffb82e_12.5%_25%,#37cce8_25%_37.5%,#7c6cff_37.5%_50%,#4dd59b_50%_62.5%,#ff66a8_62.5%_75%,#ffb82e_75%_87.5%,#37cce8_87.5%)] opacity-70" />
+      {showBottomStrip && <QuizPartyColorStrip className="absolute inset-x-0 bottom-0" />}
     </div>
   );
 }

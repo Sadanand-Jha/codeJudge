@@ -61,6 +61,7 @@ export const authRegisterSchema = z.object({
     .max(128, "Password must be at most 128 characters"),
   registration_token: z.string().trim().min(16, "Invalid registration token").max(512),
   avatar_url: z.string().refine(isValidPredefinedAvatar, "Please select a valid avatar"),
+  account_type: z.enum(["student", "teacher"]),
 }).strict();
 
 /** Email-or-username login. The repository still binds this value as a SQL
@@ -183,6 +184,11 @@ export const quizRegistrationSchema = z.object({
   quizId: z.number().int().positive(),
   rollno: z.string().trim().max(50).optional(),
 });
+
+/** One immutable 1–5 star rating per learner and quiz. */
+export const quizRatingSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+}).strict();
 
 /**
  * Schema for adding/updating quiz problems.

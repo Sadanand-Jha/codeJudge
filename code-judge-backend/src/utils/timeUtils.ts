@@ -2,6 +2,27 @@
  * Utility functions for handling time operations in IST (Indian Standard Time)
  */
 
+export const KOLKATA_TIMEZONE = "Asia/Kolkata";
+export const KOLKATA_UTC_OFFSET = "+05:30";
+const KOLKATA_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+/**
+ * Serialize an instant as an ISO-8601 Kolkata timestamp.
+ *
+ * `Date#toJSON()` always emits UTC (`Z`), even when Node and PostgreSQL are
+ * configured for Asia/Kolkata. Shifting the display components and appending
+ * the explicit +05:30 offset keeps the instant intact for API consumers while
+ * making the intended timezone unambiguous.
+ */
+export const toKolkataISOString = (value: Date | string | number): string | null => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Date(date.getTime() + KOLKATA_OFFSET_MS)
+    .toISOString()
+    .replace("Z", KOLKATA_UTC_OFFSET);
+};
+
 /**
  * Get current time in IST
  * @returns Date object in IST

@@ -6,17 +6,14 @@ import { useRouter } from "next/navigation";
 import {
   FileText,
   Sparkles,
-  Upload,
   X,
-  Clock,
-  ListChecks,
-  Award,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { Badge, StudioStepHeader, StudioStepLayout } from "../primitives";
+import { DifficultySlider } from "./DifficultySlider";
 import { SearchableDropdown } from "@/components/ui";
-import { getAllSubjects, getAllExamCategories, generateQuizCode as fetchQuizCode } from "@/services/quiz";
+import { getAllSubjects, generateQuizCode as fetchQuizCode } from "@/services/quiz";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 import { AiStreamText } from "@/components/ui";
 
@@ -35,31 +32,14 @@ const CREATE_CHOICES = [
     desc: "Generate questions from a topic, PDF, or document.",
     meta: "FULL CONTROL",
   },
-  {
-    id: "import",
-    label: "Import File",
-    icon: Upload,
-    desc: "Bring in a quiz from a file (ZIP, CSV, Excel, PDF).",
-    meta: "BULK IMPORT",
-  },
-  {
-    id: "duplicate",
-    label: "Duplicate",
-    icon: ListChecks,
-    desc: "Copy a previous quiz and keep working on it.",
-    meta: "REUSE CONTENT",
-  },
 ] as const;
 
 export function SetupStep() {
   const router = useRouter();
-  const { state, updateInfo, summary, editMode } = useStudio();
-  const [choice, setChoice] = useState<
-    "scratch" | "ai" | "import" | "duplicate" | null
-  >("scratch");
+  const { state, updateInfo, editMode } = useStudio();
+  const [choice, setChoice] = useState<"scratch" | "ai" | null>("scratch");
 
   const info = state.info;
-  const marks = summary.totalMarks;
   const fetchedRef = useRef(false);
   const { difficultyOptions, fetchAll } = useQuizReferenceStore();
 
@@ -91,7 +71,7 @@ export function SetupStep() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.08 }}
-            className="grid w-full min-w-0 grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4"
+            className="grid w-full min-w-0 grid-cols-2 gap-2.5 sm:gap-3"
           >
             {CREATE_CHOICES.map((c) => (
               <ChoiceCard
@@ -160,102 +140,15 @@ export function SetupStep() {
             />
           </div>
 
-          {/* Exam */}
-          <div className="space-y-2">
-            <SearchableDropdown
-              label="Exam"
-              placeholder="Search exams..."
-              value={info.exam}
-              selectedId={info.examId}
-              onSelect={(option) => updateInfo({ exam: option.label, examId: option.id })}
-              onClear={() => updateInfo({ exam: "", examId: "" })}
-              searchFn={async (query, signal) => {
-                const results = await getAllExamCategories(query, signal);
-                return results.map((e) => ({ id: e.id, label: e.exam_cat }));
-              }}
-              minChars={1}
-              debounceMs={300}
-              maxVisible={8}
-            />
-          </div>
-
-          {/* Difficulty */}
+          {/* Difficulty — sliding selector */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-text-secondary">Difficulty</label>
-            {difficultyOptions.length === 0 ? (
-              <p className="text-[11px] text-text-muted">Loading difficulty options…</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {difficultyOptions.map((opt, i) => (
-                  <DifficultySelect
-                    key={opt.id}
-                    value={opt.heading}
-                    index={i}
-                    selected={
-                      info.difficultyId !== "" && info.difficultyId != null
-                        ? String(info.difficultyId) === String(opt.id)
-                        : info.difficulty.toLowerCase() === opt.heading.toLowerCase()
-                    }
-                    onSelect={() => {
-                      updateInfo({ difficulty: opt.heading, difficultyId: opt.id });
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Duration */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-text-secondary">Duration (minutes)</label>
-            <div className="relative">
-              <Clock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-              <input
-                type="number"
-                min={1}
-                max={600}
-                value={info.duration || ""}
-                onChange={(e) => updateInfo({ duration: Number(e.target.value) })}
-                className="h-10 w-full rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
-              />
-            </div>
-          </div>
-
-          {/* Passing Marks */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-text-secondary">Passing Marks</label>
-            <div className="relative">
-              <Award className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-              <input
-                type="number"
-                min={0}
-                max={marks || undefined}
-                value={info.passingMarks || ""}
-                placeholder={`Default: ${Math.ceil((marks || 0) * 0.4)}`}
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  if (val > (marks || 0)) return;
-                  updateInfo({ passingMarks: val });
-                }}
-                className={cn(
-                  "h-10 w-full rounded-lg border bg-[#F8FAFC] dark:bg-input-bg pl-10 pr-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:ring-2 focus:ring-pink-500/10",
-                  info.passingMarks > (marks || 0)
-                    ? "border-red-400 dark:border-red-500 focus:border-red-500/60"
-                    : "border-gray-200 dark:border-input-border focus:border-pink-500/60"
-                )}
-              />
-            </div>
-            {info.passingMarks > (marks || 0) ? (
-              <p className="text-[11px] text-red-500">
-                Passing marks cannot exceed total marks ({marks || 0})
-              </p>
-            ) : (
-              <p className="text-[11px] text-text-muted">
-                {info.passingMarks
-                  ? `${info.passingMarks} / ${marks || 0} marks`
-                  : `Defaults to 40% (${Math.ceil((marks || 0) * 0.4)} marks) if left empty`}
-              </p>
-            )}
+            <DifficultySlider
+              options={difficultyOptions}
+              selectedId={info.difficultyId}
+              selectedHeading={info.difficulty}
+              onSelect={(opt) => updateInfo({ difficulty: opt.heading, difficultyId: opt.id })}
+            />
           </div>
 
           {/* Short Description */}
@@ -272,19 +165,6 @@ export function SetupStep() {
             <p className="text-[11px] text-text-muted text-right">{info.shortDescription.length}/250</p>
           </div>
 
-          {/* Detailed Description */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-text-secondary">Detailed Description</label>
-            <textarea
-              value={info.fullDescription}
-              onChange={(e) => updateInfo({ fullDescription: e.target.value.slice(0, 5000) })}
-              rows={4}
-              maxLength={5000}
-              placeholder="Explain what the quiz covers, target audience, pattern..."
-              className="w-full rounded-lg border border-gray-200 dark:border-input-border bg-[#F8FAFC] dark:bg-input-bg px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
-            />
-            <p className="text-[11px] text-text-muted text-right">{info.fullDescription.length}/5000</p>
-          </div>
         </div>
       </motion.div>
     </StudioStepLayout>
@@ -333,45 +213,12 @@ function ChoiceCard({
   );
 }
 
-const DIFFICULTY_FALLBACK_COLORS = ["bg-emerald-500", "bg-amber-500", "bg-orange-500", "bg-rose-500"];
-
-const DIFFICULTY_NAMED_COLORS: Record<string, string> = {
-  easy: "bg-emerald-500",
-  medium: "bg-amber-500",
-  hard: "bg-orange-500",
-  expert: "bg-rose-500",
+const DIFFICULTY_TEXT_COLORS: Record<string, string> = {
+  easy: "text-emerald-600 dark:text-emerald-400",
+  medium: "text-amber-600 dark:text-amber-400",
+  hard: "text-orange-600 dark:text-orange-400",
+  expert: "text-rose-600 dark:text-rose-400",
 };
-
-function DifficultySelect({
-  value,
-  index,
-  selected,
-  onSelect,
-}: {
-  value: string;
-  index: number;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  const color =
-    DIFFICULTY_NAMED_COLORS[value.toLowerCase()] ??
-    DIFFICULTY_FALLBACK_COLORS[index % DIFFICULTY_FALLBACK_COLORS.length];
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-bold capitalize transition-all",
-        selected
-          ? cn("border-transparent text-white", color)
-          : "border-border bg-card-hover/40 text-text-secondary hover:border-pink-500/20 hover:text-text-primary"
-      )}
-    >
-      <span className={cn("h-2 w-2 rounded-full", selected ? "bg-white" : color)} />
-      {value}
-    </button>
-  );
-}
 
 function TagInput({
   tags,

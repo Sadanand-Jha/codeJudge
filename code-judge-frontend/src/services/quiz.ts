@@ -852,6 +852,32 @@ export async function getQuizReview(attemptId: string): Promise<QuestionReview[]
   return response.data;
 }
 
+export type QuizRatingReason =
+  | "eligible"
+  | "already_rated"
+  | "quiz_not_ended"
+  | "no_completed_attempt";
+
+export interface QuizRatingState {
+  averageRating: number | null;
+  ratingCount: number;
+  userRating: number | null;
+  canRate: boolean;
+  reason: QuizRatingReason;
+}
+
+/** Get anonymous aggregates and the signed-in learner's own rating state. */
+export async function getQuizRating(quizId: string): Promise<QuizRatingState> {
+  const response = await apiClient.get<QuizRatingState>(`/v1/user/quiz/${quizId}/rating`);
+  return response.data;
+}
+
+/** Submit the learner's one-time 1–5 star rating. */
+export async function submitQuizRating(quizId: string, rating: number): Promise<QuizRatingState> {
+  const response = await apiClient.post<QuizRatingState>(`/v1/user/quiz/${quizId}/rating`, { rating });
+  return response.data;
+}
+
 // ─────────────────────────────────────────
 // Quiz Analytics API
 // ─────────────────────────────────────────

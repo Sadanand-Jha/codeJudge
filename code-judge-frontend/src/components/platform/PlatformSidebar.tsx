@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Radio, Activity, FlaskConical, ListOrdered, Users,
   Sparkles, Server, AlertTriangle, Cpu, ShieldCheck, ScrollText,
-  ArrowLeft, LogOut, Gauge, FileUp, type LucideIcon,
+  ArrowLeft, LogOut, Gauge, FileUp, ListChecks, type LucideIcon,
 } from "lucide-react";
 import { ownerLogout } from "@/services/auth";
 import { clearPlatformSession, getPlatformEmail, notifyPlatformSessionInvalid } from "@/lib/platformToken";
@@ -37,6 +37,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "Infrastructure",
     items: [
       { label: "Question ingestion", href: "/platform/question-import", icon: FileUp },
+      { label: "Question bank", href: "/platform/questions", icon: ListChecks },
       { label: "API observability", href: "/platform/observability", icon: Gauge },
       { label: "AI usage", href: "/platform/ai", icon: Sparkles },
       { label: "Platform health", href: "/platform/health", icon: Server },

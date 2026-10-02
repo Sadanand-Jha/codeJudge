@@ -2,7 +2,7 @@
 // submissions, game config, collaboration, and result generation under /api/v1/user/quiz.
 import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
-import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, submitQuizAttemptSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema, quizGameMechanicsSchema, reportViolationSchema } from "../../../middleware/validate.ts";
+import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizRatingSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, submitQuizAttemptSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema, quizGameMechanicsSchema, reportViolationSchema } from "../../../middleware/validate.ts";
 import {
   getAllQuizzes,
   getQuizById,
@@ -31,6 +31,8 @@ import {
   getSubmitStatus,
   getQuizResult,
   getQuizReview,
+  getQuizRating,
+  submitQuizRating,
   getQuizLeaderboard,
   getQuizAnalytics,
   joinQuiz,
@@ -120,6 +122,10 @@ router.get("/game-mechanics", getAllGameMechanics);
 router.get("/:quizId/game-mechanics", getQuizGameMechanics);
 // PUT /api/v1/user/quiz/:quizId/game-mechanics — upsert mechanics for a quiz
 router.put("/:quizId/game-mechanics", validate(quizGameMechanicsSchema), upsertQuizGameMechanics);
+
+// Anonymous aggregate rating state + one immutable learner rating.
+router.get("/:quizId/rating", getQuizRating);
+router.post("/:quizId/rating", validate(quizRatingSchema), submitQuizRating);
 
 // GET /api/v1/user/quiz/:quizId — get a single quiz
 router.get("/:quizId", getQuizById);

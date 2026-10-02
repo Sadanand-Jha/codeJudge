@@ -1,3 +1,6 @@
+-- Keep all timestamp-without-time-zone defaults and NOW() casts in Kolkata.
+SET TIME ZONE 'Asia/Kolkata';
+
 -- Independent Tables
 CREATE TABLE IF NOT EXISTS tags (
     id BIGSERIAL PRIMARY KEY,
@@ -363,7 +366,9 @@ ALTER TABLE user_preferences ADD CONSTRAINT fk_preferred_language_preferences_us
 -- Insert default roles
 INSERT INTO role (name, created_at, updated_at) VALUES
   ('user', NOW(), NOW()),
-  ('admin', NOW(), NOW())
+  ('admin', NOW(), NOW()),
+  ('student', NOW(), NOW()),
+  ('teacher', NOW(), NOW())
 ON CONFLICT (name) DO NOTHING;
 
 -- Insert programming languages (from frontend constants)

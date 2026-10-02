@@ -16,6 +16,10 @@ import {
   previewQuestionImportJson,
   previewQuestionImportStream,
 } from "../../controllers/platformQuestionImport.controller.ts";
+import {
+  getBankQuestions,
+  removeBankQuestion,
+} from "../../controllers/platformQuestionBank.controller.ts";
 
 const router = Router();
 const questionDocumentUpload = multer({
@@ -81,5 +85,9 @@ router.post("/question-import/preview", uploadQuestionDocument, previewQuestionI
 router.post("/question-import/preview/stream", uploadQuestionDocument, previewQuestionImportStream);
 router.post("/question-import/json-preview", previewQuestionImportJson);
 router.post("/question-import/commit", commitQuestionImport);
+
+// Curated subjective question bank: read subject/chapter/topic-wise + delete.
+router.get("/questions", getBankQuestions);
+router.delete("/questions/:questionId", removeBankQuestion);
 
 export default router;

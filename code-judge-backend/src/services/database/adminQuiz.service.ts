@@ -1,6 +1,8 @@
 // Admin Quiz Service — business logic layer for the creator/admin quiz surface.
 // Wraps AdminQuizRepository for all admin-specific operations.
 import { AdminQuizRepository } from "../../repositories/adminQuiz.repository.ts";
+import { assertQuizCreationAllowed } from "../quizCreationLimits.ts";
+import { assertQuestionsCanBeAdded } from "../quizQuestionLimits.ts";
 
 export class AdminQuizService {
   private repository: AdminQuizRepository;
@@ -36,6 +38,7 @@ export class AdminQuizService {
     showResultsImmediately?: boolean; negativeMarking?: boolean;
     leaderboard?: boolean; status?: string;
   }): Promise<any> {
+    await assertQuizCreationAllowed(data.createdby);
     return this.repository.createQuiz(data);
   }
 
@@ -48,6 +51,7 @@ export class AdminQuizService {
   }
 
   async cloneQuiz(quizId: number, newName: string, newCode: string, createdBy: number): Promise<any> {
+    await assertQuizCreationAllowed(createdBy);
     return this.repository.cloneQuiz(quizId, newName, newCode, createdBy);
   }
 
@@ -74,6 +78,7 @@ export class AdminQuizService {
     quizProblemType?: number; questionNumber?: number; explanation?: string;
     hint?: string; difficulty?: number; referenceNotes?: string; internalComments?: string;
   }): Promise<any> {
+    await assertQuestionsCanBeAdded(data.quizId);
     return this.repository.createQuizProblem(data);
   }
 
@@ -93,10 +98,18 @@ export class AdminQuizService {
   }
 
   async duplicateQuizProblem(problemId: number): Promise<any> {
+    const original = await this.repository.getQuizProblemById(problemId);
+    if (original?.quiz_id !== undefined && original?.quiz_id !== null) {
+      await assertQuestionsCanBeAdded(original.quiz_id);
+    }
     return this.repository.duplicateQuizProblem(problemId);
   }
 
   async saveQuizProblemFull(data: any): Promise<any> {
+    // Updates don't change the question count — only inserts need the cap.
+    if (!data?.problemId && data?.quizId !== undefined) {
+      await assertQuestionsCanBeAdded(data.quizId);
+    }
     return this.repository.saveQuizProblemFull(data);
   }
 

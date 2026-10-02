@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useStudio } from "../StudioProvider";
 import { toast } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
 import { StudioStepLayout } from "../primitives";
 
@@ -45,7 +46,7 @@ export function PublishStep({
     } catch (err) {
       toast.error({
         title: "Could not start quiz",
-        description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+        description: getApiErrorMessage(err, "Something went wrong. Please try again."),
       });
     } finally {
       setSaving(false);

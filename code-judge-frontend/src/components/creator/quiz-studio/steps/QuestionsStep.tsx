@@ -31,6 +31,7 @@ import { QuizSettingsProvider } from "@/components/quiz/creator/settings/QuizSet
 import PdfConfigModal from "@/components/quiz/creator/settings/PdfConfigModal";
 import { generateQuizCode } from "@/services/quiz";
 import { toast } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/apiError";
 import { MobileQuestionBankSheet } from "../components/mobile/MobileQuestionBankSheet";
 import { MobileQuestionSettingsSheet } from "../components/mobile/MobileQuestionSettingsSheet";
 import { AiStreamText } from "@/components/ui";
@@ -92,7 +93,7 @@ export function QuestionsStep() {
       toast.success({ title: "Saved", description: "Your changes have been saved." });
     } catch (err) {
       if (isQuestionValidationError(err)) return;
-      toast.error({ title: "Save failed", description: err instanceof Error ? err.message : "Something went wrong." });
+      toast.error({ title: "Save failed", description: getApiErrorMessage(err, "Something went wrong.") });
     } finally {
       setSaving(false);
     }

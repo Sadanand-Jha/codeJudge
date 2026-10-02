@@ -1,6 +1,12 @@
 // Quiz business logic layer. Delegates to QuizRepository for all quiz CRUD, problem
 // management, attempt tracking, game config, collaboration, and more.
-import { QuizRepository } from "../../repositories/quiz.repository.ts";
+import {
+  QuizRepository,
+  type CreateQuizRatingResult,
+  type QuizRatingState,
+} from "../../repositories/quiz.repository.ts";
+import { assertQuizCreationAllowed } from "../quizCreationLimits.ts";
+import { assertQuestionsCanBeAdded } from "../quizQuestionLimits.ts";
 
 export class QuizService {
   private repository: QuizRepository;
@@ -91,6 +97,7 @@ export class QuizService {
     leaderboard?: boolean;
     status?: string;
   }): Promise<any> {
+    await assertQuizCreationAllowed(data.createdby);
     return this.repository.createQuiz(data);
   }
 
@@ -106,6 +113,7 @@ export class QuizService {
     referenceNotes?: string;
     internalComments?: string;
   }): Promise<any> {
+    await assertQuestionsCanBeAdded(data.quizId);
     return this.repository.createQuizProblem(data);
   }
 
@@ -127,6 +135,7 @@ export class QuizService {
   }
 
   async cloneQuiz(quizId: number, newName: string, newCode: string, createdBy: number): Promise<any> {
+    await assertQuizCreationAllowed(createdBy);
     return this.repository.cloneQuiz(quizId, newName, newCode, createdBy);
   }
 
@@ -135,6 +144,10 @@ export class QuizService {
   }
 
   async saveQuizProblemFull(data: any): Promise<any> {
+    // Updates don't change the question count — only inserts need the cap.
+    if (!data?.problemId && data?.quizId !== undefined) {
+      await assertQuestionsCanBeAdded(data.quizId);
+    }
     return this.repository.saveQuizProblemFull(data);
   }
 
@@ -143,6 +156,10 @@ export class QuizService {
   }
 
   async duplicateQuizProblem(problemId: number): Promise<any> {
+    const original = await this.repository.getQuizProblemById(problemId);
+    if (original?.quiz_id !== undefined && original?.quiz_id !== null) {
+      await assertQuestionsCanBeAdded(original.quiz_id);
+    }
     return this.repository.duplicateQuizProblem(problemId);
   }
 
@@ -219,6 +236,14 @@ export class QuizService {
     sortOrder?: string;
   }): Promise<{ quizzes: any[]; total: number }> {
     return this.repository.getPreviousQuizzes(userId, filters);
+  }
+
+  async getQuizRatingState(quizId: number, userId: number): Promise<QuizRatingState | null> {
+    return this.repository.getQuizRatingState(quizId, userId);
+  }
+
+  async createQuizRating(quizId: number, userId: number, rating: number): Promise<CreateQuizRatingResult> {
+    return this.repository.createQuizRating(quizId, userId, rating);
   }
 
   async getQuizResult(attemptId: number, userId: number): Promise<any | null> {

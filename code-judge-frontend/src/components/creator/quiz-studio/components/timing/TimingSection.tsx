@@ -115,6 +115,7 @@ export function TimingSection() {
         endDate: next.endDate
           ? combineDateTime(next.endDate, next.endTime, "23:59")
           : "",
+        quizLifecycle: mode === "schedule" && next.startDate ? "scheduled" : "draft",
       });
       if (mode === "schedule" && patch.startDate) {
         setManual((prev) => ({ ...prev, status: "scheduled" }));
@@ -166,11 +167,12 @@ export function TimingSection() {
         endDate: schedule.endDate
           ? combineDateTime(schedule.endDate, schedule.endTime, "23:59")
           : "",
+        quizLifecycle: schedule.startDate ? "scheduled" : "draft",
       });
     } else {
       setManual((prev) => ({ ...prev, status: "draft" }));
       // Manual mode has no fixed window — drop any stale scheduled values.
-      updateInfo({ startDate: "", endDate: "" });
+      updateInfo({ startDate: "", endDate: "", quizLifecycle: "draft" });
     }
   };
 

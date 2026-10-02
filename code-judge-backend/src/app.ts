@@ -11,6 +11,7 @@ import apiRoutes from "./routes/index.routes.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
 import { globalRateLimit } from "./middleware/globalRateLimit.ts";
 import { observabilityMiddleware } from "./middleware/observability.ts";
+import { kolkataTimestampMiddleware } from "./middleware/kolkataTimestamps.ts";
 import dns from "dns";
 import { pool } from "./config/database.ts"; // Serverless-cached pool
 
@@ -87,6 +88,10 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
+
+// JSON dates named created_at/updated_at (and camelCase equivalents) are
+// returned with an explicit Kolkata offset instead of Date's default UTC `Z`.
+app.use(kolkataTimestampMiddleware);
 
 // Request/trace IDs and redacted request telemetry. Registered after parsers
 // and before routes/auth so it observes successes, auth failures and errors.

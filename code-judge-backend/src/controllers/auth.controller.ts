@@ -165,12 +165,12 @@ export const verifyOtpController = async (req: Request, res: Response) => {
  */
 export const registerController = async (req: Request, res: Response) => {
   try {
-    const { email, password, registration_token, username, avatar_url } = req.body;
+    const { email, password, registration_token, username, avatar_url, account_type } = req.body;
 
-    if (!email || !password || !registration_token || !username || !avatar_url) {
+    if (!email || !password || !registration_token || !username || !avatar_url || !account_type) {
       res.status(400).json({
         success: false,
-        message: "Email, password, username, avatar, and registration_token are required",
+        message: "Email, password, username, avatar, account type, and registration_token are required",
         statusCode: 400,
       });
       return;
@@ -206,7 +206,7 @@ export const registerController = async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await register(email, password, registration_token, trimmedUsername, avatar_url);
+    const result = await register(email, password, registration_token, trimmedUsername, avatar_url, account_type);
 
     if (!result.success) {
       res.status(result.statusCode || 400).json(result);

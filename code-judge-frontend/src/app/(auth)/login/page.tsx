@@ -3,19 +3,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowRight, AtSign, Eye, EyeOff, KeyRound, Lock, UserPlus } from "lucide-react";
+import { AlertCircle, ArrowRight, AtSign, Eye, EyeOff, KeyRound, Lock, Sparkles, UserPlus } from "lucide-react";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { useAuthStore } from "@/store/authStore";
 import { login } from "@/services/auth";
 import { toast } from "@/lib/toast";
 import AuthBackground from "@/components/auth/AuthBackground";
-import { AuthBrandMark, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
+import { AuthBottomStrip, AuthBrandMark, AuthShowcasePanel, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
 import { getApiErrorMessage } from "@/lib/apiError";
 import type { UserProfile } from "@/store/authStore";
 
 export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const currentUser = useAuthStore((s) => s.user);
   const hydrate = useAuthStore((s) => s.hydrate);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
@@ -31,9 +32,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated) {
-      router.replace("/quiz");
+      router.replace(currentUser?.role?.toLowerCase() === "teacher" ? "/creator/quizzes" : "/quiz");
     }
-  }, [hasHydrated, isAuthenticated, router]);
+  }, [currentUser?.role, hasHydrated, isAuthenticated, router]);
 
   if (!hasHydrated) {
     return (
@@ -62,7 +63,7 @@ export default function LoginPage() {
         if (!user) throw new Error("Login response did not include a user profile");
         setAuth(token || "session", user);
         toast.success("Logged in successfully");
-        router.push("/quiz");
+        router.push(user.role?.toLowerCase() === "teacher" ? "/creator/quizzes" : "/quiz");
       } else {
         const message = res.message || "We couldn't sign you in. Please check your details.";
         setErrorMessage(message);
@@ -78,19 +79,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FFF9F1] px-6 py-20 dark:bg-[#050510]">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-x-hidden bg-[#FFF9F1] px-4 py-12 dark:bg-[#050510] sm:px-6 lg:px-8 lg:py-8">
       <AuthBackground />
       <AuthThemeControls />
-      <div className="relative z-10 w-full max-w-sm">
+      <AuthBottomStrip />
+      <div className="relative z-10 grid w-full max-w-[1160px] items-center gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,.72fr)]">
+        <AuthShowcasePanel mode="login" />
+      <div className="mx-auto w-full max-w-md">
         {/* Logo */}
         <div className="mb-7 flex justify-center">
           <AuthBrandMark />
         </div>
 
         {/* Card */}
-        <div className="rounded-[28px] border border-pink-200/80 bg-white/82 p-6 shadow-[0_30px_80px_-42px_rgba(244,114,182,.75)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/88 dark:shadow-[0_30px_90px_-40px_rgba(91,69,196,.8)]">
-          <h1 className="text-lg font-bold text-text-primary text-center mb-1">Welcome back</h1>
-          <p className="text-xs text-text-secondary text-center mb-6"><span className="dark:hidden">Your colorful quiz party is waiting!</span><span className="hidden dark:inline">Your next space mission is waiting.</span></p>
+        <div className="rounded-[30px] border border-pink-200/80 bg-white/84 p-6 shadow-[0_30px_80px_-42px_rgba(244,114,182,.75)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/90 dark:shadow-[0_30px_90px_-40px_rgba(91,69,196,.8)] sm:p-7">
+          <div className="mb-6 text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-violet-600 dark:border-violet-300/15 dark:bg-violet-500/10 dark:text-violet-200">
+              <Sparkles className="h-3 w-3" /> Intelligent learning, resumed
+            </span>
+            <h1 className="mt-3 text-xl font-black tracking-tight text-text-primary">Welcome back</h1>
+            <p className="mt-1.5 text-xs text-text-secondary">Sign in and pick up exactly where you left off.</p>
+          </div>
 
           <form className="space-y-4" onSubmit={submit}>
             <div>
@@ -171,6 +180,7 @@ export default function LoginPage() {
             </Link>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

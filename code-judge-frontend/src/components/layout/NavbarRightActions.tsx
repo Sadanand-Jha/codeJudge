@@ -1,6 +1,8 @@
 "use client";
 
 import { Sparkles, UserPlus } from "lucide-react";
+import { usePathname } from "next/navigation";
+import Image from "next/image";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import NotificationBell from "./NotificationBell";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
@@ -8,6 +10,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { useUIStore } from "@/store/uiStore";
+import { isNestedQuizPath } from "@/lib/quizWorkspace";
 
 /**
  * The right-side cluster of the top navbar (theme toggle, notifications,
@@ -15,11 +18,13 @@ import { useUIStore } from "@/store/uiStore";
  * header and the code editor's own header so both show the same actions.
  */
 export default function NavbarRightActions() {
+  const pathname = usePathname();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const savedAvatar = useSavedAvatar();
   const creditBalance = useAICreditsStore((s) => s.balance);
   const openAuthModal = useUIStore((s) => s.openAuthModal);
+  const isStudentWorkspace = pathname === "/" || (pathname.startsWith("/quiz") && !isNestedQuizPath(pathname) && pathname !== "/quiz/create");
 
   // A user is "premium" (PRO / ULTIMATE) when they have an active paid
   // subscription. Derived solely from existing subscription/credit state —
@@ -33,7 +38,7 @@ export default function NavbarRightActions() {
   return (
     <div className="flex items-center gap-2">
       <WorkspaceSwitcher />
-      {isAuthenticated && (
+      {isAuthenticated && !isStudentWorkspace && (
         <div
           className="group relative flex h-8 items-center gap-1.5 overflow-hidden rounded-xl border border-violet-400/25 bg-gradient-to-r from-violet-500/[0.10] via-fuchsia-500/[0.08] to-pink-500/[0.10] px-2.5 shadow-[inset_0_0_14px_rgba(139,92,246,0.08)]"
           title="Demo AI credits"
@@ -55,9 +60,11 @@ export default function NavbarRightActions() {
             aria-label={user?.username || "Student account"}
           >
             {savedAvatar ? (
-              <img
+              <Image
                 src={savedAvatar.url}
                 alt={savedAvatar.label}
+                width={32}
+                height={32}
                 className="h-full w-full object-cover"
               />
             ) : (

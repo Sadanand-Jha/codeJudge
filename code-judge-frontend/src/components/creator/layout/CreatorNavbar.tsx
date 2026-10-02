@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import BackButton from "@/components/layout/BackButton";
 import WorkspaceSwitcher from "@/components/layout/WorkspaceSwitcher";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { useAuthStore } from "@/store/authStore";
@@ -110,12 +111,14 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
           <span className="hidden truncate text-[13px] font-bold tracking-tight text-text-primary sm:block">Studio</span>
         </Link>
 
+        {/* Back — internal Studio pages only (hidden across the quiz flow) */}
+        <BackButton className="border-border bg-card/60" />
+
         <div className="mx-1 hidden h-4 w-px shrink-0 bg-border sm:block" />
         <nav className="hidden shrink-0 items-center gap-0.5 md:flex">
           {[
             { label: "Quizzes", href: "/creator/quizzes" },
             { label: "Library", href: "/creator/tests" },
-            { label: "Analytics", href: "/creator/analytics" },
           ].map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (

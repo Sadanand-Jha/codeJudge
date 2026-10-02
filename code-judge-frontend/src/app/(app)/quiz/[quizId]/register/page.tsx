@@ -372,7 +372,6 @@ export default function QuizRegisterPage({ params }: { params: Promise<{ quizId:
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <MetricCard label="Total Marks" value={totalMarks.toString()} icon={Target} color="#EC4899" />
-                      <MetricCard label="Passing Marks" value={passingMarks.toString()} icon={CheckCircle2} color="#22C55E" />
                       <MetricCard label="Negative Marking" value={settings.negativeMarking ? `Yes (-${settings.negativeMarkValue})` : "No"} icon={XCircle} color={settings.negativeMarking ? "#EF4444" : "#22C55E"} />
                       <MetricCard label="Duration" value={quizDuration} icon={Clock} color="#F59E0B" />
                     </div>

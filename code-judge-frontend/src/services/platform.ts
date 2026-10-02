@@ -183,6 +183,47 @@ export interface SubjectiveImportPreview {
   expiresInSeconds: number;
 }
 
+export interface BankQuestion {
+  id: number;
+  subjectId: number;
+  subjectName: string;
+  chapterId: number | null;
+  chapterName: string | null;
+  topicId: number | null;
+  topicName: string | null;
+  difficultyId: number;
+  difficulty: string;
+  categoryId: number;
+  category: string;
+  questionText: string;
+  questionHtml: string;
+  createdAt: string;
+}
+
+export interface BankQuestionFilters {
+  subjectId?: number | null;
+  chapterId?: number | null;
+  topicId?: number | null;
+  difficultyId?: number | null;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface BankQuestionsData {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  questions: BankQuestion[];
+  facets: {
+    subjects: { id: number; name: string; count: number }[];
+    chapters: { id: number; subjectId: number; name: string; count: number }[];
+    topics: { id: number; chapterId: number; name: string; count: number }[];
+    difficulties: { id: number; name: string }[];
+  };
+}
+
 async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
   const key = `${path}?${new URLSearchParams(
     Object.entries(params ?? {}).map(([name, value]) => [name, String(value)])
@@ -245,6 +286,23 @@ export const platformApi = {
     const response = await platformClient.post<{ inserted: number; skippedDuplicates: number; selected: number }>(
       "/v1/platform/question-import/commit",
       { batchId, selectedIndexes }
+    );
+    return response.data;
+  }),
+  questions: (filters: BankQuestionFilters = {}) => {
+    const params: Record<string, string | number> = {};
+    if (filters.subjectId) params.subjectId = filters.subjectId;
+    if (filters.chapterId) params.chapterId = filters.chapterId;
+    if (filters.topicId) params.topicId = filters.topicId;
+    if (filters.difficultyId) params.difficultyId = filters.difficultyId;
+    if (filters.search) params.search = filters.search;
+    if (filters.page) params.page = filters.page;
+    if (filters.limit) params.limit = filters.limit;
+    return get<BankQuestionsData>("/questions", params);
+  },
+  deleteQuestion: (questionId: number) => schedulePlatformRequest(async () => {
+    const response = await platformClient.delete<{ deleted: number; id: number }>(
+      `/v1/platform/questions/${encodeURIComponent(String(questionId))}`
     );
     return response.data;
   }),

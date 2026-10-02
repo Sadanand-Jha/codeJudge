@@ -84,7 +84,7 @@ export function ReviewStep({
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 py-4 pb-8 sm:space-y-6 sm:py-8">
+    <div className="mx-auto max-w-6xl space-y-4 py-4 pb-8 sm:space-y-6 sm:py-8">
       {/* Header */}
       <div className="text-center">
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-md shadow-emerald-500/20 sm:mb-4 sm:h-14 sm:w-14">
@@ -97,8 +97,17 @@ export function ReviewStep({
           Your quiz is ready to review.
           Review and edit anything below.
         </p>
+        <div className="mx-auto mt-3 flex max-w-xl items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2 text-left">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+          <p className="text-xs leading-5 text-text-secondary">
+            AI can make mistakes — please review every question before it goes live.
+          </p>
+        </div>
       </div>
 
+      {/* Content — horizontal on desktop: editor left, summary rail right */}
+      <div className="grid grid-cols-1 items-start gap-4 sm:gap-6 lg:grid-cols-5">
+        <div className="min-w-0 space-y-4 sm:space-y-6 lg:col-span-3">
       {/* Quiz Information */}
       <Card
         title="Quiz Information"
@@ -137,71 +146,6 @@ export function ReviewStep({
           />
         </div>
       </Card>
-
-        {/* Thumbnail + Summary — responsive: stack on mobile, 3 cols on desktop */}
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-3">
-          {/* Thumbnail */}
-          <Card title="Thumbnail" className="order-2 sm:col-span-1">
-            <div className="flex flex-col items-center">
-              <label className="relative flex h-32 w-full max-w-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/60 p-3 text-center text-xs text-text-secondary transition-colors hover:border-violet-500/40 hover:bg-card-hover sm:h-40">
-                {config.thumbnailUrl ? (
-                  <img src={config.thumbnailUrl} alt="thumbnail" className="h-full w-full rounded-xl object-cover" />
-                ) : (
-                  <>
-                    <Upload className="mb-1 h-5 w-5 shrink-0" />
-                    <span className="text-[11px] sm:text-xs">Upload thumbnail</span>
-                  </>
-                )}
-                <input
-                  ref={thumbRef}
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={handleThumbUpload}
-                />
-              </label>
-              {config.thumbnailUrl && (
-                <button
-                  type="button"
-                  onClick={() => update({ thumbnailUrl: "" })}
-                  className="mt-2 inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-rose-500"
-                >
-                  <Trash2 className="h-3 w-3" /> Remove
-                </button>
-              )}
-            </div>
-          </Card>
-
-          {/* Summary rail — 2 per line on mobile, prevent icon overlap */}
-          <Card title="Summary" className="order-1 sm:col-span-2">
-            <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-center">
-              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
-                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
-                  <ListChecks className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Questions</span>
-                </div>
-                <p className="text-base font-bold text-text-primary sm:text-lg">{config.problems.length}</p>
-              </div>
-              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
-                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
-                  <Award className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Marks</span>
-                </div>
-                <p className="text-base font-bold text-text-primary sm:text-lg">{config.problems.length}</p>
-              </div>
-              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
-                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
-                  <Clock className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Duration</span>
-                </div>
-                <p className="text-base font-bold text-text-primary sm:text-lg">{config.duration} min</p>
-              </div>
-              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
-                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
-                  <Check className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Difficulty</span>
-                </div>
-                <p className="truncate text-base font-bold text-text-primary sm:text-lg">{config.difficulty}</p>
-              </div>
-            </div>
-          </Card>
-        </div>
 
       {/* Quiz Details */}
       <Card
@@ -352,6 +296,73 @@ export function ReviewStep({
           </p>
         )}
       </Card>
+        </div>
+
+        {/* Right rail — summary + thumbnail, sticky on desktop */}
+        <div className="min-w-0 lg:col-span-2">
+          <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-32">
+          <Card title="Summary">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-center">
+              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
+                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
+                  <ListChecks className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Questions</span>
+                </div>
+                <p className="text-base font-bold text-text-primary sm:text-lg">{config.problems.length}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
+                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
+                  <Award className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Marks</span>
+                </div>
+                <p className="text-base font-bold text-text-primary sm:text-lg">{config.problems.length}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
+                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
+                  <Clock className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Duration</span>
+                </div>
+                <p className="text-base font-bold text-text-primary sm:text-lg">{config.duration} min</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-2 sm:p-3">
+                <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs text-text-secondary">
+                  <Check className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> <span className="truncate">Difficulty</span>
+                </div>
+                <p className="truncate text-base font-bold text-text-primary sm:text-lg">{config.difficulty}</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card title="Thumbnail">
+            <div className="flex flex-col items-center">
+              <label className="relative flex h-32 w-full max-w-[220px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/60 p-3 text-center text-xs text-text-secondary transition-colors hover:border-violet-500/40 hover:bg-card-hover sm:h-40">
+                {config.thumbnailUrl ? (
+                  <img src={config.thumbnailUrl} alt="thumbnail" className="h-full w-full rounded-xl object-cover" />
+                ) : (
+                  <>
+                    <Upload className="mb-1 h-5 w-5 shrink-0" />
+                    <span className="text-[11px] sm:text-xs">Upload thumbnail</span>
+                  </>
+                )}
+                <input
+                  ref={thumbRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={handleThumbUpload}
+                />
+              </label>
+              {config.thumbnailUrl && (
+                <button
+                  type="button"
+                  onClick={() => update({ thumbnailUrl: "" })}
+                  className="mt-2 inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-rose-500"
+                >
+                  <Trash2 className="h-3 w-3" /> Remove
+                </button>
+              )}
+            </div>
+          </Card>
+          </div>
+        </div>
+      </div>
 
       {/* CTA */}
       <div className="mobile-viewport-actions sticky bottom-0 z-10 -mx-4 flex border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:justify-end sm:border-0 sm:bg-transparent sm:px-0 sm:pt-2 sm:backdrop-blur-none">

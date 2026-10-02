@@ -7,6 +7,8 @@ import { QuizService } from "../services/database/quiz.service.ts";
 import { ResultGenerationService } from "../services/resultGeneration.service.ts";
 import { sendCollaboratorInviteEmail } from "../services/email.ts";
 import { finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/quizSubmission.service.ts";
+import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
+import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
 import {
   acquireQuizSubmissionRecoveryLock,
   deleteFallbackQuizSubmission,
@@ -406,6 +408,10 @@ export const createQuiz = async (req: Request, res: Response) => {
       data: quiz,
     });
   } catch (error) {
+    if (error instanceof QuizCreationLimitError) {
+      res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
     console.error("Error creating quiz:", error);
     res.status(500).json({
       success: false,
@@ -599,6 +605,10 @@ export const cloneQuiz = async (req: Request, res: Response) => {
       data: clonedQuiz,
     });
   } catch (error) {
+    if (error instanceof QuizCreationLimitError) {
+      res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
     console.error("Error cloning quiz:", error);
     res.status(500).json({
       success: false,
@@ -739,6 +749,10 @@ export const addQuizProblem = async (req: Request, res: Response) => {
       data: problem,
     });
   } catch (error) {
+    if (error instanceof QuizQuestionLimitError) {
+      res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
     console.error("Error adding quiz problem:", error);
     res.status(500).json({
       success: false,
@@ -898,6 +912,10 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
       data: result,
     });
   } catch (error) {
+    if (error instanceof QuizQuestionLimitError) {
+      res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
     console.error("Error saving quiz problem:", error);
     res.status(500).json({
       success: false,
@@ -1009,6 +1027,10 @@ export const duplicateQuizProblem = async (req: Request, res: Response) => {
       data: duplicatedProblem,
     });
   } catch (error) {
+    if (error instanceof QuizQuestionLimitError) {
+      res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
     console.error("Error duplicating quiz problem:", error);
     res.status(500).json({
       success: false,
@@ -1867,6 +1889,72 @@ export const getPreviousQuizzes = async (req: Request, res: Response) => {
 };
 
 // ==================== RESULTS & REVIEW ====================
+
+/**
+ * GET /api/v1/user/quiz/:quizId/rating
+ * Return the current learner's eligibility/rating and anonymous aggregates.
+ */
+export const getQuizRating = async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.user?.userId);
+    const quizId = Number(req.params.quizId);
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+    if (!Number.isInteger(quizId) || quizId <= 0) {
+      res.status(400).json({ success: false, message: "Invalid quiz ID" });
+      return;
+    }
+
+    const rating = await quizService.getQuizRatingState(quizId, userId);
+    if (!rating) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
+      return;
+    }
+    res.status(200).json({ success: true, data: rating });
+  } catch (error) {
+    console.error("Error fetching quiz rating:", error);
+    res.status(500).json({ success: false, message: "Could not load quiz rating" });
+  }
+};
+
+/**
+ * POST /api/v1/user/quiz/:quizId/rating
+ * Only a learner with a completed attempt may rate, and only after quiz end.
+ */
+export const submitQuizRating = async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.user?.userId);
+    const quizId = Number(req.params.quizId);
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+    if (!Number.isInteger(quizId) || quizId <= 0) {
+      res.status(400).json({ success: false, message: "Invalid quiz ID" });
+      return;
+    }
+
+    const result = await quizService.createQuizRating(quizId, userId, req.body.rating);
+    if (result.status === "created") {
+      res.status(201).json({ success: true, data: result.rating, message: "Rating submitted" });
+      return;
+    }
+
+    const failures = {
+      quiz_not_found: { status: 404, message: "Quiz not found" },
+      already_rated: { status: 409, message: "You have already rated this quiz" },
+      quiz_not_ended: { status: 403, message: "You can rate this quiz after it ends" },
+      no_completed_attempt: { status: 403, message: "Only students who completed this quiz can rate it" },
+    } as const;
+    const failure = failures[result.status];
+    res.status(failure.status).json({ success: false, message: failure.message });
+  } catch (error) {
+    console.error("Error submitting quiz rating:", error);
+    res.status(500).json({ success: false, message: "Could not submit quiz rating" });
+  }
+};
 
 function areStudentResultsAvailable(result: any): boolean {
   if (result?.show_results_immediately === true) return true;

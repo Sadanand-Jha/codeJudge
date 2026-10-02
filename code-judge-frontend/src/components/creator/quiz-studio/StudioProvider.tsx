@@ -379,7 +379,6 @@ const StudioContext = createContext<StudioContextValue | null>(null);
 
 function initialState(): StudioState {
   const code = generateQuizCode();
-  const first = createEmptyQuestion("q_1");
   // Try hydrate gameMechanics from localStorage for new draft
   let persistedGameMechanics: any = null;
   try {
@@ -389,8 +388,10 @@ function initialState(): StudioState {
   return {
   step: "setup",
   info: { ...DEFAULT_QUIZ_INFO, id: code, code },
-  questions: [first],
-  activeQuestionId: first.id,
+  // A new draft starts with no questions — the creator adds the first one
+  // (manually or via AI) from the Questions step's empty state.
+  questions: [],
+  activeQuestionId: null,
   sections: [],
   settings: { ...DEFAULT_SETTINGS },
   audience: { ...DEFAULT_AUDIENCE, accessCode: generateQuizCode() },
@@ -632,7 +633,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
           databaseAutosaveSnapshotRef.current = null;
           setState((s) => {
             const localOnly = s.questions.filter((q) => q.serverId == null && (q.title.trim() || q.options.some((o) => o.content.trim())));
-            const merged = questions.length > 0 || localOnly.length > 0 ? [...questions, ...localOnly] : [createEmptyQuestion("q_1")];
+            // No questions on the server → stay empty (never seed a blank one).
+            const merged = [...questions, ...localOnly];
             return {
               ...s,
               questions: merged,
@@ -914,6 +916,13 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
   };
 
   const validateAllQuestions = (): boolean => {
+    if (state.questions.length === 0) {
+      toast.error({
+        title: "Add at least one question",
+        description: "A quiz needs at least one question before you can continue.",
+      });
+      return false;
+    }
     for (let i = 0; i < state.questions.length; i++) {
       const q = state.questions[i];
       const reason = findIncompleteReason(q);
@@ -1141,7 +1150,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId }: St
         timeLimit: state.info.duration || undefined,
         starttime: state.info.startDate || undefined,
         endtime: state.info.endDate || undefined,
-        status: state.info.startDate ? "scheduled" : "live",
+        // Saving content must never publish a quiz. Lifecycle changes only
+        // happen through the explicit schedule/start/end controls below.
+        status: state.info.quizLifecycle,
         audienceMode: state.audience.mode,
 
         randomizeQuestions: state.settings.randomizeQuestions,

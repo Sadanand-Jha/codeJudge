@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -141,6 +141,12 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const [blueprintName, setBlueprintName] = useState("");
   const [blueprintDescription, setBlueprintDescription] = useState("");
   const [savingBlueprint, setSavingBlueprint] = useState(false);
+  const [autoSavingSections, setAutoSavingSections] = useState(false);
+  // Tracks whether the current sections were built fresh ("new") or loaded
+  // from a saved blueprint, plus the signature of the last DB-saved state —
+  // so Continue auto-saves new sections exactly once.
+  const sectionsOriginRef = useRef<"new" | "blueprint">("new");
+  const savedSectionsSigRef = useRef<string | null>(null);
 
   const totalQuestions = useMemo(
     () => sections.reduce((sum, s) => sum + getSectionQuestionCount(s), 0),
@@ -167,8 +173,30 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const hasNextStep = step < STEPS.length - 1;
 
   const goBack = () => setStep((current) => Math.max(0, current - 1));
-  const goForward = () => {
-    if (!canContinue() || sectionChoicePending) return;
+  const goForward = async () => {
+    if (!canContinue() || sectionChoicePending || autoSavingSections) return;
+    // Newly created sections are persisted to the DB on Continue so they
+    // show up under "Use existing section" next time.
+    if (step === 1 && sectionEditorOpen && sectionsOriginRef.current === "new") {
+      const signature = JSON.stringify(sections);
+      if (signature !== savedSectionsSigRef.current) {
+        setAutoSavingSections(true);
+        try {
+          const saved = await saveSectionBlueprint({
+            name: `${title.trim() || "Untitled test"} sections`,
+            description: `${sections.length} section${sections.length === 1 ? "" : "s"} · ${totalQuestions} question${totalQuestions === 1 ? "" : "s"}`,
+            sections,
+          });
+          savedSectionsSigRef.current = signature;
+          setBlueprints((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
+          toast.success({ title: "Sections saved", description: "Find them again under Use existing section." });
+        } catch (error) {
+          toast.error({ title: "Could not save sections", description: error instanceof Error ? error.message : "Continuing without saving." });
+        } finally {
+          setAutoSavingSections(false);
+        }
+      }
+    }
     setStep((current) => Math.min(STEPS.length - 1, current + 1));
   };
 
@@ -238,6 +266,8 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
 
   const startNewSection = useCallback(() => {
     setSections([createDefaultSection(0)]);
+    sectionsOriginRef.current = "new";
+    savedSectionsSigRef.current = null;
     setBlueprintLibraryOpen(false);
     setSectionEditorOpen(true);
   }, []);
@@ -261,7 +291,10 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
     setBlueprintBusyId(blueprint.id);
     try {
       const selected = await useSectionBlueprint(blueprint.id);
-      setSections(cloneBlueprintSections(selected.sections));
+      const cloned = cloneBlueprintSections(selected.sections);
+      setSections(cloned);
+      sectionsOriginRef.current = "blueprint";
+      savedSectionsSigRef.current = JSON.stringify(cloned);
       setBlueprintLibraryOpen(false);
       setSectionEditorOpen(true);
       setStep(2);
@@ -293,6 +326,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
     try {
       const saved = await saveSectionBlueprint({ name: blueprintName, description: blueprintDescription, sections });
       setBlueprints((current) => [saved, ...current]);
+      savedSectionsSigRef.current = JSON.stringify(sections);
       setSaveBlueprintOpen(false);
       setBlueprintName("");
       setBlueprintDescription("");
@@ -411,10 +445,10 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           <button
             type="button"
             onClick={goForward}
-            disabled={!canContinue()}
+            disabled={!canContinue() || autoSavingSections}
             className="ml-auto inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-xs font-extrabold text-white shadow-[0_6px_18px_rgba(139,92,246,0.22)] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none sm:px-5"
           >
-            <span className="hidden sm:inline">Continue</span>
+            <span className="hidden sm:inline">{autoSavingSections ? "Saving…" : "Continue"}</span>
             <span className="max-w-[9rem] truncate sm:hidden">{STEPS[step + 1].label}</span>
             <ChevronRight className="h-4 w-4 shrink-0" />
           </button>

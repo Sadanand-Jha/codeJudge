@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { ArrowRight, Sparkles, Construction } from "lucide-react";
 import Link from "next/link";
-
 /**
  * Placeholder for creator modules that ship after the billing phase
  * (Tests, Question Bank, Students, Analytics, Coupons, Creator settings...).
@@ -14,6 +13,7 @@ export function ComingSoon({
   features,
   accent,
   action,
+  options,
 }: {
   title: string;
   description: string;
@@ -21,6 +21,7 @@ export function ComingSoon({
   features: string[];
   accent: string;
   action?: { label: string; href: string };
+  options?: Array<{ label: string; description: string; href: string; icon: LucideIcon }>;
 }) {
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-1 sm:px-0">
@@ -88,6 +89,27 @@ export function ComingSoon({
             </>
           )}
         </div>
+
+        {options && options.length > 0 && (
+          <div className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {options.map((option) => (
+              <Link
+                key={option.label}
+                href={option.href}
+                className="group flex items-center gap-3 rounded-xl border border-border bg-white/[0.02] px-4 py-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-pink-500/30 hover:shadow-[0_8px_24px_rgba(236,72,153,0.12)]"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)]">
+                  <option.icon className="h-4.5 w-4.5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-bold text-text-primary">{option.label}</span>
+                  <span className="mt-0.5 block truncate text-[11px] text-text-secondary">{option.description}</span>
+                </span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-pink-500" />
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

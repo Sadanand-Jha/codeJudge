@@ -18,6 +18,7 @@ import {
   PieChart,
   PartyPopper,
   Rocket,
+  Star,
   Target,
   Timer,
   Trophy,
@@ -28,8 +29,11 @@ import {
 import type { LucideIcon } from "lucide-react";
 import {
   getQuizResult,
+  getQuizRating,
   getQuizReview,
+  submitQuizRating,
   type QuestionReview,
+  type QuizRatingState,
   type QuizResult,
   type ReviewOption,
 } from "@/services/quiz";
@@ -349,6 +353,7 @@ function ScoreRing({ percentage }: { percentage: number }) {
 /* ─── Main component ─── */
 
 export default function AttemptReviewExperience({
+  quizId,
   attemptId,
 }: {
   quizId: string;
@@ -360,6 +365,12 @@ export default function AttemptReviewExperience({
   const [data, setData] = useState<AttemptReviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ratingState, setRatingState] = useState<QuizRatingState | null>(null);
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [ratingLoading, setRatingLoading] = useState(true);
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [ratingError, setRatingError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   // Slide direction for question transitions: +1 forward, -1 backward.
   const [navDir, setNavDir] = useState<1 | -1>(1);
@@ -396,10 +407,47 @@ export default function AttemptReviewExperience({
     };
   }, [attemptId, playQuizSound]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setRatingLoading(true);
+    setRatingError(null);
+    getQuizRating(quizId)
+      .then((rating) => {
+        if (!cancelled) setRatingState(rating);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setRatingError(getApiErrorMessage(err, "Could not load rating."));
+      })
+      .finally(() => {
+        if (!cancelled) setRatingLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [quizId]);
+
   const paletteStatus = useMemo(() => {
     if (!data) return [];
     return data.questions.map(questionStatus);
   }, [data]);
+
+  const handleRatingSubmit = async () => {
+    if (!ratingState?.canRate || selectedRating < 1 || selectedRating > 5 || ratingSubmitting) return;
+    setRatingSubmitting(true);
+    setRatingError(null);
+    try {
+      const nextState = await submitQuizRating(quizId, selectedRating);
+      setRatingState(nextState);
+      setSelectedRating(0);
+      setHoveredRating(0);
+      playQuizSound("success");
+    } catch (err: unknown) {
+      setRatingError(getApiErrorMessage(err, "Could not submit your rating."));
+      playQuizSound("error");
+    } finally {
+      setRatingSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -522,6 +570,18 @@ export default function AttemptReviewExperience({
                 </div>
               </div>
             </motion.section>
+
+            <QuizRatingPanel
+              state={ratingState}
+              loading={ratingLoading}
+              error={ratingError}
+              selected={selectedRating}
+              hovered={hoveredRating}
+              submitting={ratingSubmitting}
+              onSelect={setSelectedRating}
+              onHover={setHoveredRating}
+              onSubmit={handleRatingSubmit}
+            />
 
             {/* Question Palette — sizes to its content, no fixed height. */}
             <motion.section
@@ -864,6 +924,125 @@ export default function AttemptReviewExperience({
 }
 
 /* ─── Sub components — styles only ─── */
+
+function QuizRatingPanel({
+  state,
+  loading,
+  error,
+  selected,
+  hovered,
+  submitting,
+  onSelect,
+  onHover,
+  onSubmit,
+}: {
+  state: QuizRatingState | null;
+  loading: boolean;
+  error: string | null;
+  selected: number;
+  hovered: number;
+  submitting: boolean;
+  onSelect: (rating: number) => void;
+  onHover: (rating: number) => void;
+  onSubmit: () => void;
+}) {
+  const visibleRating = hovered || selected || state?.userRating || 0;
+  const statusCopy = state?.reason === "quiz_not_ended"
+    ? "Ratings open after the quiz ends. Come back to this review when the session is complete."
+    : state?.reason === "no_completed_attempt"
+      ? "Only students who completed this quiz can leave a rating."
+      : null;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.04 }}
+      className="box-border w-full max-w-full overflow-hidden rounded-[18px] border border-[#8B7CFF]/35 bg-[#0B1220]"
+    >
+      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-[15px] font-semibold text-[#F5F7FB]">How was this quiz?</h2>
+            <span className="rounded-full border border-[#20D889]/25 bg-[#20D889]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[#20D889]">
+              Anonymous
+            </span>
+          </div>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-[#9AAAC3]">
+            Your rating helps the teacher create better quizzes and question papers. Your identity is never shown.
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="h-10 w-48 animate-pulse rounded-xl bg-[#182235]" />
+        ) : state ? (
+          <div className="shrink-0">
+            <div
+              className="flex items-center gap-1"
+              role={state.canRate ? "radiogroup" : "img"}
+              aria-label={state.userRating ? `You rated this quiz ${state.userRating} out of 5` : "Rate this quiz from 1 to 5 stars"}
+              onMouseLeave={() => onHover(0)}
+            >
+              {Array.from({ length: 5 }).map((_, index) => {
+                const value = index + 1;
+                const active = value <= visibleRating;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role={state.canRate ? "radio" : undefined}
+                    aria-checked={state.canRate ? selected === value : undefined}
+                    aria-label={`${value} ${value === 1 ? "star" : "stars"}`}
+                    disabled={!state.canRate || submitting}
+                    onMouseEnter={() => state.canRate && onHover(value)}
+                    onFocus={() => state.canRate && onHover(value)}
+                    onBlur={() => onHover(0)}
+                    onClick={() => onSelect(value)}
+                    className="rounded-lg p-1 text-[#34435B] transition-transform enabled:hover:scale-110 enabled:focus-visible:outline-none enabled:focus-visible:ring-2 enabled:focus-visible:ring-[#8B7CFF] disabled:cursor-default"
+                  >
+                    <Star className={`h-7 w-7 ${active ? "fill-[#FFB84D] text-[#FFB84D]" : "fill-transparent"}`} />
+                  </button>
+                );
+              })}
+            </div>
+            {state.canRate && (
+              <button
+                type="button"
+                onClick={onSubmit}
+                disabled={!selected || submitting}
+                className="mt-2 inline-flex h-9 w-full items-center justify-center rounded-[10px] bg-[#8B7CFF] px-4 text-xs font-semibold text-white transition-colors hover:bg-[#7968F4] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {submitting ? "Submitting…" : selected ? `Submit ${selected}-star rating` : "Choose a rating"}
+              </button>
+            )}
+          </div>
+        ) : null}
+      </div>
+
+      {!loading && state && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#1D3150] bg-[#0F192B] px-4 py-2.5 text-[11px] sm:px-5">
+          <span className="text-[#9AAAC3]">
+            {state.userRating
+              ? `Thanks — your ${state.userRating}-star rating is saved.`
+              : statusCopy ?? "Choose carefully: each account can rate this quiz only once."}
+          </span>
+          <span className="inline-flex items-center gap-1.5 font-medium text-[#B9AEFF]">
+            <Star className="h-3.5 w-3.5 fill-[#FFB84D] text-[#FFB84D]" />
+            {state.averageRating === null
+              ? "Be the first to rate"
+              : `${state.averageRating.toFixed(1)} from ${state.ratingCount} ${state.ratingCount === 1 ? "rating" : "ratings"}`}
+          </span>
+        </div>
+      )}
+
+      {error && (
+        <p className="border-t border-[#FF4D5D]/20 bg-[#FF4D5D]/8 px-4 py-2.5 text-[11px] text-[#FF6572] sm:px-5">
+          {error}
+        </p>
+      )}
+    </motion.section>
+  );
+}
 
 function MetricCard({
   label,

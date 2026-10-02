@@ -6,7 +6,6 @@ import {
   Clock,
   Calendar,
   Target,
-  Award,
   Sparkles,
   BookOpen,
   ChevronRight,
@@ -358,12 +357,6 @@ export default function JoinQuizPage() {
                       label="Total Marks"
                       value={quiz.total_marks?.toString() || "—"}
                       color="#A855F7"
-                    />
-                    <InfoCard
-                      icon={Award}
-                      label="Passing Marks"
-                      value={quiz.passing_marks?.toString() || "—"}
-                      color="#22C55E"
                     />
                     <InfoCard
                       icon={BookOpen}

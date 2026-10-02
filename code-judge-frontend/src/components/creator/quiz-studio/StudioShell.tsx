@@ -559,8 +559,10 @@ export function StudioFooter() {
 
       {isQuestions ? (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-text-secondary">Question {activeIdx || 1} of {state.questions.length}</span>
-          <div className="ml-2 flex items-center gap-1.5">
+          <span className="text-xs text-text-secondary">
+            {state.questions.length === 0 ? "No questions yet" : `Question ${activeIdx || 1} of ${state.questions.length}`}
+          </span>
+          <div className={`ml-2 flex items-center gap-1.5 ${state.questions.length === 0 ? "hidden" : ""}`}>
             <button
               onClick={() => {
                 const idx = state.questions.findIndex((q) => q.id === state.activeQuestionId);

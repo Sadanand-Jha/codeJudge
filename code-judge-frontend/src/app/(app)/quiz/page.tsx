@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, History, KeyRound, ShieldCheck, Rocket, Radar, Gauge, Satellite, IceCreamCone, PartyPopper } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, BrainCircuit, Check, Coins, FileText, History, KeyRound, ShieldCheck, Rocket, Radar, Gauge, Satellite, PartyPopper, Sparkles, WandSparkles } from "lucide-react";
 import GuestGuard from "@/components/guards/GuestGuard";
 
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
-import QuizPartyAtmosphere from "@/components/quiz/live/QuizPartyAtmosphere";
+import QuizPartyAtmosphere, { QuizPartyColorStrip } from "@/components/quiz/live/QuizPartyAtmosphere";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTheme } from "@/context/ThemeContext";
@@ -104,15 +105,270 @@ function QuizPageBackground() {
   );
 }
 
+const AI_STUDIO_MOMENTS = [
+  {
+    eyebrow: "A topic is enough",
+    prompt: "OS deadlocks for BTech 3rd sem",
+    result: "10 placement-style questions with hints and explanations",
+    encouragement: "Your next sem-exam set could start with just five words.",
+    source: "Topic to quiz",
+    thinking: [
+      "Reading BTech syllabus scope for deadlocks…",
+      "Shortlisting 10 placement-style questions…",
+      "Drafting options, hints + explanations…",
+      "Balancing difficulty for 3rd sem…",
+    ],
+  },
+  {
+    eyebrow: "Bring your notes",
+    prompt: "Turn my DBMS normalization notes into a quiz",
+    result: "Key concepts found, balanced and ready for revision",
+    encouragement: "Drop in a unit. AI handles the first draft—you focus on cracking it.",
+    source: "Document to quiz",
+    thinking: [
+      "Scanning normalization notes 1NF → BCNF…",
+      "Extracting keys, FDs + anomalies…",
+      "Framing 10 revision questions…",
+      "Adding answer keys + quick notes…",
+    ],
+  },
+  {
+    eyebrow: "Make revision fun",
+    prompt: "A rapid-fire DSA + JavaScript challenge",
+    result: "Questions, answer keys, and interview-style explanations",
+    encouragement: "Build something your batchmates will actually want to attempt.",
+    source: "Idea to quiz",
+    thinking: [
+      "Mixing DSA patterns + JS fundamentals…",
+      "Picking arrays, closures + event loop…",
+      "Writing interview-style explanations…",
+      "Tuning for batch challenge mode…",
+    ],
+  },
+];
+
+function AIQuizStudioCard() {
+  const [activeMoment, setActiveMoment] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [streamChars, setStreamChars] = useState(0);
+  const moment = AI_STUDIO_MOMENTS[activeMoment];
+
+  // ── Demo credit system: teacher starts with 30 credits, 1 quiz costs 10 ──
+  const START_CREDITS = 30;
+  const COST_PER_QUIZ = 10;
+  const CYCLE_SECONDS = 6;
+  const creditsUsed = Math.min(
+    COST_PER_QUIZ,
+    Math.round(((elapsedSeconds + 1) / CYCLE_SECONDS) * COST_PER_QUIZ)
+  );
+  const creditsLeft = START_CREDITS - creditsUsed;
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setElapsedSeconds((current) => {
+        if (current >= CYCLE_SECONDS - 1) {
+          setActiveMoment((active) => (active + 1) % AI_STUDIO_MOMENTS.length);
+          return 0;
+        }
+        return current + 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  // ── Fast streaming like thinking section (~50 tokens/sec ≈ 200 chars/sec) ──
+  useEffect(() => {
+    setStreamChars(0);
+    const total = moment.thinking.join("").length + moment.result.length;
+    const fast = window.setInterval(() => {
+      setStreamChars((c) => {
+        if (c >= total) {
+          window.clearInterval(fast);
+          return c;
+        }
+        return Math.min(total, c + 8);
+      });
+    }, 40);
+    return () => window.clearInterval(fast);
+  }, [activeMoment]);
+
+  return (
+    <section className="group relative overflow-hidden rounded-[28px] border border-violet-200/80 bg-white/80 shadow-[0_28px_80px_-44px_rgba(91,33,182,.8)] backdrop-blur-2xl dark:border-violet-400/15 dark:bg-[#0E1321]/88 dark:shadow-[0_32px_90px_-38px_rgba(3,2,18,.98)]">
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="absolute -left-24 -top-28 h-64 w-64 rounded-full bg-violet-400/20 blur-3xl dark:bg-violet-600/20" />
+        <div className="absolute -bottom-28 right-[16%] h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/10" />
+        <div className="absolute right-[-5%] top-[-70%] h-72 w-72 rounded-full bg-fuchsia-300/20 blur-3xl dark:bg-fuchsia-500/10" />
+        <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.055]" style={{ backgroundImage: "linear-gradient(rgba(124,58,237,.7) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,.7) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
+      </div>
+
+      <div className="relative grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_.86fr] lg:items-stretch lg:gap-7">
+        <div className="flex min-w-0 flex-col justify-center">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 via-fuchsia-500 to-cyan-400 text-white shadow-[0_14px_28px_-12px_rgba(124,58,237,.9)]">
+              <BrainCircuit className="h-5 w-5" />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-sm font-black text-[#20263A] dark:text-white">AI Quiz Studio</h2>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/90 px-2 py-1 text-[8px] font-black uppercase tracking-[0.13em] text-emerald-700 dark:border-emerald-400/15 dark:bg-emerald-400/[0.08] dark:text-emerald-300">
+                  <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" /></span>
+                  AI online
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeMoment}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="mt-4 min-h-[96px]"
+            >
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-500 dark:text-fuchsia-300">{moment.eyebrow}</p>
+              <h3 className="mt-1.5 max-w-xl text-xl font-black leading-tight tracking-[-0.025em] text-[#171B2C] dark:text-white sm:text-2xl">Create a quiz people can’t wait to play.</h3>
+              <p className="mt-2 max-w-xl text-xs leading-5 text-[#667085] dark:text-[#A6AFC0]">{moment.encouragement}</p>
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Link href="/creator/quizzes/create" className="group/button inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 px-5 text-xs font-black text-white shadow-[0_16px_32px_-14px_rgba(124,58,237,.95)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_38px_-13px_rgba(124,58,237,1)]">
+              <WandSparkles className="h-4 w-4" /> Create with AI <ArrowRight className="h-4 w-4 transition-transform group-hover/button:translate-x-0.5" />
+            </Link>
+          </div>
+        </div>
+
+        <div className="relative overflow-hidden rounded-[22px] border border-violet-200/80 bg-[#FAFAFF]/92 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_18px_45px_-30px_rgba(76,29,149,.65)] dark:border-white/[0.08] dark:bg-[#090D18]/88 sm:p-4">
+          <div className="flex items-center justify-between gap-3 border-b border-violet-100 pb-3 dark:border-white/[0.07]">
+            <div className="flex items-center gap-2">
+              <span className="flex gap-1" aria-hidden="true"><span className="h-1.5 w-1.5 rounded-full bg-rose-400" /><span className="h-1.5 w-1.5 rounded-full bg-amber-400" /><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /></span>
+              <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#70778A] dark:text-[#8791A5]">Live AI draft</span>
+            </div>
+            <span className="relative inline-flex items-center gap-1.5 overflow-visible rounded-full border border-amber-300/70 bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-50 px-2.5 py-1 font-mono text-[9px] font-black text-amber-800 shadow-[0_2px_10px_-2px_rgba(245,158,11,.5)] dark:border-amber-400/30 dark:from-amber-400/15 dark:via-yellow-400/10 dark:to-amber-400/5 dark:text-amber-300">
+              <Coins className="h-3.5 w-3.5 text-amber-500 drop-shadow-[0_0_4px_rgba(245,158,11,.6)] dark:text-amber-400" />
+              <span className="inline-flex items-baseline gap-1">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span
+                    key={creditsLeft}
+                    initial={{ y: 8, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -8, opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="inline-block min-w-[2ch] text-right tabular-nums"
+                  >
+                    {creditsLeft}
+                  </motion.span>
+                </AnimatePresence>
+                <span>credits</span>
+              </span>
+            </span>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div key={activeMoment} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.3 }} className="py-3.5">
+              <div className="flex items-start gap-2.5">
+                <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300"><FileText className="h-3.5 w-3.5" /></span>
+                <div className="min-w-0">
+                  <span className="text-[8px] font-black uppercase tracking-[0.15em] text-[#98A2B3]">Your prompt</span>
+                  <p className="mt-0.5 truncate text-[11px] font-bold text-[#343A4E] dark:text-[#DCE2ED]">“{moment.prompt}”</p>
+                </div>
+              </div>
+              <div className="my-2.5 ml-3.5 h-4 border-l border-dashed border-violet-300 dark:border-violet-400/25" />
+              <div className="flex items-start gap-2.5">
+                <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"><Check className="h-3.5 w-3.5" /></span>
+                <div className="min-w-0">
+                  <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-300">
+                    AI is building
+                    <span className="inline-flex items-center gap-0.5" aria-hidden="true">
+                      <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:0ms]" />
+                      <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:150ms]" />
+                      <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:300ms]" />
+                    </span>
+                  </span>
+                  <div className="mt-1.5 space-y-1 rounded-xl border border-emerald-500/15 bg-emerald-500/[0.04] p-2.5 font-mono text-[10px] leading-4 dark:border-emerald-400/15 dark:bg-emerald-400/[0.05]">
+                    {(() => {
+                      let remaining = streamChars;
+                      const rows: { text: string; done: boolean; active: boolean }[] = [];
+                      const allLines = [...moment.thinking, `✓ ${moment.result}`];
+                      for (const line of allLines) {
+                        if (remaining >= line.length) {
+                          rows.push({ text: line, done: true, active: false });
+                          remaining -= line.length;
+                        } else if (remaining > 0) {
+                          rows.push({ text: line.slice(0, remaining), done: false, active: true });
+                          remaining = 0;
+                        } else {
+                          rows.push({ text: "", done: false, active: false });
+                        }
+                      }
+                      const isStreaming = streamChars < moment.thinking.join("").length + moment.result.length;
+                      return rows.map((row, i) => {
+                        const isResult = i === rows.length - 1;
+                        if (!row.text) {
+                          return (
+                            <p key={i} className="truncate text-[10px] text-[#B6BECB] dark:text-[#5A6577]">
+                              <span className="mr-1 text-[#C9D1DD] dark:text-[#4A5568]">›</span>···
+                            </p>
+                          );
+                        }
+                        return (
+                          <p
+                            key={i}
+                            className={
+                              isResult && row.done
+                                ? "font-bold text-[#343A4E] dark:text-[#DCE2ED]"
+                                : row.done
+                                  ? "text-[#6B7688] dark:text-[#8B95A7]"
+                                  : "text-[#343A4E] dark:text-[#DCE2ED]"
+                            }
+                          >
+                            <span className={isResult ? "mr-1 text-emerald-500" : "mr-1 text-emerald-500/70"}>{isResult && row.done ? "✓" : "›"}</span>
+                            {row.text}
+                            {row.active && (
+                              <span className="ml-0.5 inline-block h-3 w-[2px] animate-pulse bg-emerald-500 align-middle" />
+                            )}
+                            {isStreaming && isResult && row.done && (
+                              <span className="ml-0.5 inline-block h-3 w-[2px] animate-pulse bg-emerald-500 align-middle" />
+                            )}
+                          </p>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="mt-auto">
+            <div className="h-1 overflow-hidden rounded-full bg-violet-100 dark:bg-white/[0.06]">
+              <motion.div key={`progress-${activeMoment}`} initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 6, ease: "linear" }} className="h-full rounded-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400" />
+            </div>
+            <div className="mt-3 flex items-center gap-1.5">
+              {AI_STUDIO_MOMENTS.map((item, index) => (
+                <button key={item.source} type="button" onClick={() => { setActiveMoment(index); setElapsedSeconds(0); setStreamChars(0); }} className={`h-1.5 rounded-full transition-all ${index === activeMoment ? "w-7 bg-violet-500" : "w-1.5 bg-violet-200 hover:bg-violet-300 dark:bg-white/15 dark:hover:bg-white/25"}`} aria-label={`Show ${item.source} example`} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function QuizHome() {
   const { theme } = useTheme();
   const partyMode = theme === "light";
 
   return (
-    <div className="relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 py-6 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6 sm:py-8">
+    <div className="relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 pb-6 pt-10 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6 sm:pb-8 sm:pt-12">
       <QuizPageBackground />
-      <QuizPartyAtmosphere />
-      <QuizPageReady className="relative z-10 mx-auto w-full max-w-[1320px] sm:w-[calc(100%-48px)]">
+      <QuizPartyAtmosphere showBottomStrip={false} />
+      <div className="relative z-10 mx-auto w-full max-w-[1320px] sm:w-[calc(100%-48px)]">
+      <QuizPageReady>
       <main className="w-full space-y-5 sm:space-y-6">
         <header className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/75 px-5 py-6 shadow-[0_28px_90px_-42px_rgba(65,44,155,.7)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#101421]/78 dark:shadow-[0_32px_100px_-36px_rgba(3,2,18,.95)] sm:px-8 sm:py-8 lg:grid lg:grid-cols-[1.25fr_.75fr] lg:items-center lg:gap-8">
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
@@ -123,8 +379,8 @@ function QuizHome() {
 
           <div className="relative min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-pink-300/60 bg-pink-100/65 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-pink-600 dark:border-violet-500/20 dark:bg-violet-500/[0.08] dark:text-violet-300">
-              {partyMode ? <IceCreamCone className="h-3.5 w-3.5" /> : <span className="relative flex h-1.5 w-1.5"><span className="absolute h-full w-full animate-ping rounded-full bg-violet-500 opacity-50" /><span className="relative h-1.5 w-1.5 rounded-full bg-violet-500" /></span>}
-              {partyMode ? "ByteClash Ice Cream Party" : "ByteClash Mission Control"}
+              <Sparkles className="h-3.5 w-3.5" />
+              {partyMode ? "ByteClash AI Quiz Party" : "ByteClash AI Mission Control"}
             </div>
             <h1 className="mt-4 max-w-3xl text-[34px] font-black leading-[1.05] tracking-[-0.045em] text-[#101828] dark:text-white sm:text-[46px] lg:text-[54px]">
               {partyMode ? "Quiz time just got sweeter." : "This is not just a quiz."}
@@ -139,6 +395,9 @@ function QuizHome() {
               </Link>
               <Link href="#activity" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#DDE2EA] bg-white/55 px-5 text-sm font-semibold text-[#344054] transition hover:border-violet-500/30 hover:text-violet-600 dark:border-white/[0.09] dark:bg-white/[0.035] dark:text-[#BAC3D3] dark:hover:text-violet-300">
                 <History className="h-4 w-4" /> {partyMode ? "See my quiz treats" : "Open mission logs"}
+              </Link>
+              <Link href="/creator/quizzes/create" className="group inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-violet-300/55 bg-gradient-to-r from-violet-50/90 to-fuchsia-50/85 px-5 text-sm font-bold text-violet-700 shadow-[0_14px_30px_-20px_rgba(124,58,237,.7)] transition hover:-translate-y-0.5 hover:border-violet-400 dark:border-violet-400/25 dark:from-violet-500/10 dark:to-fuchsia-500/10 dark:text-violet-200">
+                <WandSparkles className="h-4 w-4" /> Create your own quiz <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </div>
           </div>
@@ -158,8 +417,11 @@ function QuizHome() {
             <span className="absolute right-[7%] top-[18%] text-4xl drop-shadow-lg">🍭</span>
             <span className="absolute bottom-[12%] left-[15%] text-4xl drop-shadow-lg">💦</span>
             <span className="absolute bottom-[10%] right-[12%] text-4xl drop-shadow-lg">🎉</span>
+            <span className="absolute left-[2%] top-[5%] inline-flex items-center gap-1.5 rounded-xl border border-violet-200/70 bg-white/80 px-3 py-2 text-[9px] font-black uppercase tracking-[0.13em] text-violet-600 shadow-lg backdrop-blur-md"><BrainCircuit className="h-3.5 w-3.5" /> AI creator ready</span>
           </div>}
         </header>
+
+        <AIQuizStudioCard />
 
         {/* ── Primary actions (compact) ── */}
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
@@ -173,7 +435,7 @@ function QuizHome() {
             party={partyMode}
           />
           <ActionCard
-            href="#activity"
+            href="/quiz/attempts"
             icon={History}
             title={partyMode ? "My quiz treats" : "Mission archive"}
             description={partyMode ? "Revisit your scores, happy wins, and colorful quiz memories." : "Review completed expeditions, scores, ranks, and flight history."}
@@ -205,6 +467,8 @@ function QuizHome() {
         </div>
       </main>
       </QuizPageReady>
+      </div>
+      <QuizPartyColorStrip className="relative z-20 -mx-4 mb-[-1.5rem] mt-8 sm:-mx-6 sm:mb-[-2rem]" />
     </div>
   );
 }

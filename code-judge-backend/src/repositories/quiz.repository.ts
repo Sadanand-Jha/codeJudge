@@ -11,6 +11,18 @@ import { pool } from "../config/database.ts";
  */
 export const MAX_QUIZ_ATTEMPTS = 5;
 
+export interface QuizRatingState {
+  averageRating: number | null;
+  ratingCount: number;
+  userRating: number | null;
+  canRate: boolean;
+  reason: "eligible" | "already_rated" | "quiz_not_ended" | "no_completed_attempt";
+}
+
+export type CreateQuizRatingResult =
+  | { status: "created"; rating: QuizRatingState }
+  | { status: "quiz_not_found" | "already_rated" | "quiz_not_ended" | "no_completed_attempt" };
+
 export class QuizRepository {
   /**
    * Get all quizzes with filters and pagination
@@ -122,7 +134,9 @@ export class QuizRepository {
             COUNT(DISTINCT CASE WHEN qa_attempt.status = 'completed' THEN qa_attempt.id END)::numeric
             * 100 / COUNT(DISTINCT qa_attempt.id), 1
           )
-        END AS completion_rate
+        END AS completion_rate,
+        COALESCE(MAX(rating_stats.average_rating), 0) AS rating,
+        COALESCE(MAX(rating_stats.rating_count), 0)::int AS rating_count
       FROM quiz q
       LEFT JOIN users u ON u.id = q.createdby
       LEFT JOIN quiz_visibility qv ON qv.id = q.visibility
@@ -131,6 +145,12 @@ export class QuizRepository {
       LEFT JOIN quiz_registration qr ON qr.quiz_id = q.id AND qr.is_registered = true
       LEFT JOIN quiz_problems qp ON qp.quiz_id = q.id AND qp.deleted_at IS NULL
       LEFT JOIN quiz_attempt qa_attempt ON qa_attempt.quiz_id = q.id
+      LEFT JOIN LATERAL (
+        SELECT ROUND(AVG(qr.rating)::numeric, 1) AS average_rating,
+               COUNT(*)::int AS rating_count
+        FROM quiz_rating qr
+        WHERE qr.quiz_id = q.id
+      ) rating_stats ON true
       ${whereClause}
       GROUP BY q.id, u.username, qv.heading, qd.heading, qs.name
       ORDER BY q.${safeSortBy} ${safeSortOrder}
@@ -1577,6 +1597,91 @@ export class QuizRepository {
 
     const result = await pool.query(query, queryParams);
     return { quizzes: result.rows, total };
+  }
+
+  /**
+   * Rating state for the current learner plus anonymous quiz aggregates.
+   * No creator-facing path receives user_id, attempt_id, or individual rows.
+   */
+  async getQuizRatingState(quizId: number, userId: number): Promise<QuizRatingState | null> {
+    const result = await pool.query(
+      `SELECT
+         (
+           LOWER(COALESCE(qs.name, '')) IN ('ended', 'completed')
+           OR (
+             q.endtime IS NOT NULL
+             AND q.endtime <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')
+           )
+         ) AS is_ended,
+         EXISTS (
+           SELECT 1
+           FROM quiz_attempt qa
+           WHERE qa.quiz_id = q.id
+             AND qa.user_id = $2
+             AND LOWER(qa.status) = 'completed'
+         ) AS has_completed_attempt,
+         my_rating.rating AS user_rating,
+         rating_stats.average_rating,
+         rating_stats.rating_count
+       FROM quiz q
+       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
+       LEFT JOIN quiz_rating my_rating
+         ON my_rating.quiz_id = q.id AND my_rating.user_id = $2
+       LEFT JOIN LATERAL (
+         SELECT ROUND(AVG(qr.rating)::numeric, 1) AS average_rating,
+                COUNT(*)::int AS rating_count
+         FROM quiz_rating qr
+         WHERE qr.quiz_id = q.id
+       ) rating_stats ON true
+       WHERE q.id = $1 AND q.deleted_at IS NULL`,
+      [quizId, userId]
+    );
+
+    if (!result.rows.length) return null;
+    const row = result.rows[0];
+    const userRating = row.user_rating == null ? null : Number(row.user_rating);
+    const isEnded = row.is_ended === true;
+    const hasCompletedAttempt = row.has_completed_attempt === true;
+    const reason: QuizRatingState["reason"] = userRating !== null
+      ? "already_rated"
+      : !isEnded
+        ? "quiz_not_ended"
+        : !hasCompletedAttempt
+          ? "no_completed_attempt"
+          : "eligible";
+
+    return {
+      averageRating: row.average_rating == null ? null : Number(row.average_rating),
+      ratingCount: Number(row.rating_count) || 0,
+      userRating,
+      canRate: reason === "eligible",
+      reason,
+    };
+  }
+
+  async createQuizRating(quizId: number, userId: number, rating: number): Promise<CreateQuizRatingResult> {
+    const state = await this.getQuizRatingState(quizId, userId);
+    if (!state) return { status: "quiz_not_found" };
+    if (state.reason !== "eligible") return { status: state.reason };
+
+    const inserted = await pool.query(
+      `INSERT INTO quiz_rating (quiz_id, user_id, attempt_id, rating)
+       SELECT $1, $2, qa.id, $3
+       FROM quiz_attempt qa
+       WHERE qa.quiz_id = $1
+         AND qa.user_id = $2
+         AND LOWER(qa.status) = 'completed'
+       ORDER BY qa.completed_at DESC NULLS LAST, qa.id DESC
+       LIMIT 1
+       ON CONFLICT (user_id, quiz_id) DO NOTHING
+       RETURNING id`,
+      [quizId, userId, rating]
+    );
+
+    if (!inserted.rowCount) return { status: "already_rated" };
+    const updated = await this.getQuizRatingState(quizId, userId);
+    if (!updated) return { status: "quiz_not_found" };
+    return { status: "created", rating: updated };
   }
 
   async getQuizResult(attemptId: number, userId: number): Promise<any | null> {

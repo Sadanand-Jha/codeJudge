@@ -178,19 +178,25 @@ export class userRepository {
         };
     }
 
-    async createUser(email: string, password: string, username: string, avatarUrl: string): Promise<any> {
+    async createUser(email: string, password: string, username: string, avatarUrl: string, accountType: "student" | "teacher" = "student"): Promise<any> {
         const query = `
             WITH chosen_avatar AS (
                 INSERT INTO avatar (is_male, url, created_at, updated_at)
                 VALUES (true, $4, NOW(), NOW())
                 ON CONFLICT (url) DO UPDATE SET url = EXCLUDED.url
                 RETURNING id
+            ), chosen_role AS (
+                SELECT id FROM role WHERE LOWER(name) = $5 LIMIT 1
             )
             INSERT INTO users (Username, Email, Password, role_id, avatar_id)
-            SELECT $1, $2, $3, 1, id FROM chosen_avatar
+            SELECT $1, $2, $3, chosen_role.id, chosen_avatar.id
+            FROM chosen_avatar CROSS JOIN chosen_role
             RETURNING *
         `;
-        const result = await pool.query(query, [username, email, password, avatarUrl]);
+        const result = await pool.query(query, [username, email, password, avatarUrl, accountType]);
+        if (!result.rows[0]) {
+            throw new Error(`Registration role is not configured: ${accountType}`);
+        }
         return result.rows[0];
     }
 

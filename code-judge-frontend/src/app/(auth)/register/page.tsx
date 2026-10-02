@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const hydrate = useAuthStore((s) => s.hydrate);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
 
   useEffect(() => {
@@ -18,9 +19,9 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated) {
-      router.replace("/quiz");
+      router.replace(user?.role?.toLowerCase() === "teacher" ? "/creator/quizzes" : "/quiz");
     }
-  }, [hasHydrated, isAuthenticated, router]);
+  }, [hasHydrated, isAuthenticated, router, user?.role]);
 
   if (!hasHydrated) {
     return (

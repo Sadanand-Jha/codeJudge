@@ -29,9 +29,9 @@ export class UserService {
         return this.repository.getUserByIdentifier(identifier);
     }
 
-    async createUser(email: string, password: string, username: string, avatarUrl: string): Promise<any> {
+    async createUser(email: string, password: string, username: string, avatarUrl: string, accountType: "student" | "teacher" = "student"): Promise<any> {
         const finalUsername = username || email.split('@')[0];
-        return this.repository.createUser(email, password, finalUsername, avatarUrl);
+        return this.repository.createUser(email, password, finalUsername, avatarUrl, accountType);
     }
 
     async updatePasswordByEmail(email: string, hashedPassword: string): Promise<boolean> {

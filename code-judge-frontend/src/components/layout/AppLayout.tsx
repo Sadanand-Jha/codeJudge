@@ -38,6 +38,7 @@ import { toast } from "@/lib/toast";
 import { isQuizProblemsPath, isNestedQuizPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
 import { Sidebar } from "@/components/ui/Sidebar";
+import BackButton from "@/components/layout/BackButton";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
 import { ChatProvider } from "@/context/ChatContext";
 import AuthModal from "@/components/modals/AuthModal";
@@ -256,6 +257,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
     if (FOCUS_MODE_ENABLED) {
       if (pathname === "/") return "Quiz";
       if (pathname === "/quiz") return isStudentPartyRoute ? "Quiz Party" : "Mission Control";
+      if (pathname === "/quiz/attempts") return "Attempts";
       if (pathname === "/quiz/join") return isStudentPartyRoute ? "Party Pass" : "Launch Bay";
       if (pathname.includes("/attempt")) return isStudentPartyRoute ? "Quiz Playtime" : "Mission in Progress";
       if (pathname.includes("/results")) return isStudentPartyRoute ? "Sweet Results" : "Mission Debrief";
@@ -486,10 +488,13 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
               <Menu className="w-5 h-5" />
             </button>
 
+            {/* Back — internal pages only; never inside the quiz flow */}
+            <BackButton />
+
             {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
             <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label={isStudentMissionRoute ? "Mission Control home" : isStudentPartyRoute ? "Quiz Party home" : "ByteClash home"}>
               {isStudentQuizRoute && <span className={cn("grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br", isStudentPartyRoute ? "from-pink-400 via-orange-400 to-amber-300 shadow-[0_0_18px_rgba(244,114,182,.28)]" : "from-violet-500 to-blue-600 shadow-[0_0_18px_rgba(124,92,255,.3)]")}>{isStudentPartyRoute ? <IceCreamCone className="h-3.5 w-3.5 text-white" /> : <Rocket className="h-3.5 w-3.5 text-white" />}</span>}
-              <span className="hidden text-sm font-bold tracking-tight text-text-primary sm:block">{isStudentMissionRoute ? "ByteClash Space Program" : isStudentPartyRoute ? "ByteClash Ice Cream Party" : "ByteClash"}</span>
+              <span className="hidden text-sm font-bold tracking-tight text-text-primary sm:block">{isStudentMissionRoute ? "ByteClash Space Program" : "ByteClash"}</span>
             </Link>
 
             {/* Page title — show on mobile too, truncated */}

@@ -478,9 +478,6 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
           <span className="hidden sm:flex items-center gap-1.5 whitespace-nowrap">
             <Target className="h-3 w-3 text-pink-500" /> Total Marks: <span className="text-text-primary font-semibold">{totalMarks}</span>
           </span>
-          <span className="hidden md:flex items-center gap-1.5 whitespace-nowrap">
-            <Target className="h-3 w-3 text-pink-500" /> Passing Marks: <span className="text-text-primary font-semibold">{quiz.passing_marks ?? "—"}</span>
-          </span>
           <span className="hidden lg:flex items-center gap-1.5 whitespace-nowrap">
             <Target className="h-3 w-3 text-pink-500" /> Negative Marking: <span className={quiz.negative_marking ? "text-red-500 font-semibold" : "text-text-primary"}>{quiz.negative_marking ? "Yes (-1)" : "No"}</span>
           </span>

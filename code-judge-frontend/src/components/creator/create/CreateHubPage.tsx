@@ -7,7 +7,6 @@ import {
   ListChecks,
   Layers,
   NotebookPen,
-  Presentation,
   ArrowRight,
   Sparkles,
   FilePlus2,
@@ -20,7 +19,7 @@ import { PageHeader, MockDataTag, Panel } from "@/components/creator/billing/ui"
 import { cn } from "@/lib/helpers";
 import { AiStreamText } from "@/components/ui";
 
-type CreateType = "quiz" | "test" | "series" | "problem" | "assessment";
+type CreateType = "quiz" | "test" | "series" | "problem";
 
 interface CreateOption {
   id: CreateType;
@@ -56,17 +55,6 @@ const CREATE_OPTIONS: CreateOption[] = [
     accent: "text-pink-500",
     tag: "Full-length mocks",
     features: ["Sections & subjects", "Negative marking", "Percentile scoring"],
-  },
-  {
-    id: "assessment",
-    title: "Assessment",
-    description: "A classroom assessment assigned to a class or batch with a due date.",
-    href: "/creator/tests/create?type=assessment",
-    icon: Presentation,
-    gradient: "from-sky-500 to-indigo-600",
-    accent: "text-sky-500",
-    tag: "Classroom",
-    features: ["Assign to classes", "Due dates", "Grade book"],
   },
   {
     id: "series",

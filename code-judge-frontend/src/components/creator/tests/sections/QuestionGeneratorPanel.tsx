@@ -15,6 +15,8 @@ import {
   Target,
   Gauge,
   Layers3,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
@@ -117,6 +119,7 @@ const compactCounter = ({
   max,
   disabled,
   labelClass,
+  incrementDisabled,
 }: {
   label: string;
   value: number;
@@ -124,21 +127,47 @@ const compactCounter = ({
   max: number;
   disabled: boolean;
   labelClass: string;
-}) => (
-  <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-    <span className={`truncate text-[10px] font-bold uppercase tracking-wide ${labelClass}`}>{label}</span>
-    <input
-      type="number"
-      min={0}
-      max={max}
-      value={value}
-      onChange={(event) => onChange(Math.max(0, Math.min(max, Math.floor(Number(event.target.value) || 0))))}
-      disabled={disabled}
-      aria-label={label}
-      className="h-9 w-full rounded-lg border border-border bg-card px-2 text-center text-sm font-bold text-text-primary tabular-nums outline-none transition-all focus:border-pink-500/50 disabled:opacity-50"
-    />
-  </div>
-);
+  incrementDisabled?: boolean;
+}) => {
+  const clamp = (v: number) => Math.max(0, Math.min(max, Math.floor(v || 0)));
+  const stepClass =
+    "grid h-7 w-7 shrink-0 place-items-center rounded-md text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary disabled:pointer-events-none disabled:opacity-30";
+  return (
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
+      <span className={`truncate text-[10px] font-bold uppercase tracking-wide ${labelClass}`}>{label}</span>
+      <div className="flex h-9 w-full items-center gap-0.5 rounded-lg border border-border bg-card px-1 outline-none transition-all focus-within:border-pink-500/50">
+        <button
+          type="button"
+          onClick={() => onChange(clamp(value - 1))}
+          disabled={disabled || value <= 0}
+          aria-label={`Decrease ${label}`}
+          className={stepClass}
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </button>
+        <input
+          type="number"
+          min={0}
+          max={max}
+          value={value}
+          onChange={(event) => onChange(clamp(Number(event.target.value)))}
+          disabled={disabled}
+          aria-label={label}
+          className="h-full w-full min-w-0 border-0 bg-transparent p-0 text-center text-sm font-bold text-text-primary tabular-nums outline-none disabled:opacity-50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        <button
+          type="button"
+          onClick={() => onChange(clamp(value + 1))}
+          disabled={disabled || value >= max || incrementDisabled}
+          aria-label={`Increase ${label}`}
+          className={stepClass}
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export function QuestionGeneratorPanel() {
   const toast = useToast();
@@ -353,6 +382,7 @@ export function QuestionGeneratorPanel() {
             onTopicIdsChange={setTopicIds}
             disabled={status === "generating"}
             columns="md:grid-cols-[25fr_35fr_40fr]"
+            showSelectionTree
           />
         </div>
 
@@ -365,43 +395,48 @@ export function QuestionGeneratorPanel() {
               <div className="md:border-x md:border-border md:px-4">
                 <p className="mb-1.5 text-[11px] font-bold text-text-primary">Difficulty</p>
                 <div className="flex gap-2">
-                  {compactCounter({ label: "Easy", value: easy, onChange: (v) => setEasy(v), max: 25, disabled: status === "generating", labelClass: "text-emerald-600 dark:text-emerald-400" })}
-                  {compactCounter({ label: "Medium", value: medium, onChange: (v) => setMedium(v), max: 25, disabled: status === "generating", labelClass: "text-amber-600 dark:text-amber-400" })}
-                  {compactCounter({ label: "Hard", value: hard, onChange: (v) => setHard(v), max: 25, disabled: status === "generating", labelClass: "text-rose-600 dark:text-rose-400" })}
+                  {compactCounter({ label: "Easy", value: easy, onChange: (v) => setEasy(v), max: 25, disabled: status === "generating", labelClass: "text-emerald-600 dark:text-emerald-400", incrementDisabled: sum >= total })}
+                  {compactCounter({ label: "Medium", value: medium, onChange: (v) => setMedium(v), max: 25, disabled: status === "generating", labelClass: "text-amber-600 dark:text-amber-400", incrementDisabled: sum >= total })}
+                  {compactCounter({ label: "Hard", value: hard, onChange: (v) => setHard(v), max: 25, disabled: status === "generating", labelClass: "text-rose-600 dark:text-rose-400", incrementDisabled: sum >= total })}
                 </div>
                 {sumMismatch ? (
                   <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
                     <AlertCircle className="h-3 w-3 shrink-0" /> Easy + Medium + Hard = {sum}, must equal Total ({total}).
                   </p>
                 ) : (
-                  <p className="mt-1.5 flex flex-wrap items-center gap-1 text-[11px] text-text-muted">
-                    <span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{easy}</span> easy ·{" "}
-                      <span className="font-bold text-amber-600 dark:text-amber-400">{medium}</span> medium ·{" "}
-                      <span className="font-bold text-rose-600 dark:text-rose-400">{hard}</span> hard
-                    </span>
-                    <button type="button" onClick={applyAutoSplit} className="font-bold text-pink-500 hover:text-pink-600">Reset 40/30/30</button>
-                  </p>
+                  <div className="mt-1.5">
+                    <button
+                      type="button"
+                      onClick={applyAutoSplit}
+                      disabled={status === "generating"}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-text-secondary transition-colors hover:border-pink-500/30 hover:text-pink-600 disabled:opacity-40"
+                    >
+                      <RotateCcw className="h-3 w-3" /> Reset
+                    </button>
+                  </div>
                 )}
               </div>
               <div className="md:pl-4">
                 <p className="mb-1.5 text-[11px] font-bold text-text-primary">Category</p>
                 <div className="flex gap-2">
-                  {compactCounter({ label: "Theory", value: theory, onChange: (v) => setTheory(v), max: 25, disabled: status === "generating", labelClass: "text-violet-600 dark:text-violet-400" })}
-                  {compactCounter({ label: "Numerical", value: numerical, onChange: (v) => setNumerical(v), max: 25, disabled: status === "generating", labelClass: "text-cyan-600 dark:text-cyan-400" })}
+                  {compactCounter({ label: "Theory", value: theory, onChange: (v) => setTheory(v), max: 25, disabled: status === "generating", labelClass: "text-violet-600 dark:text-violet-400", incrementDisabled: categorySum >= total })}
+                  {compactCounter({ label: "Numerical", value: numerical, onChange: (v) => setNumerical(v), max: 25, disabled: status === "generating", labelClass: "text-cyan-600 dark:text-cyan-400", incrementDisabled: categorySum >= total })}
                 </div>
                 {categorySumMismatch ? (
                   <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
                     <AlertCircle className="h-3 w-3 shrink-0" /> Theory + Numerical = {categorySum}, must equal Total ({total}).
                   </p>
                 ) : (
-                  <p className="mt-1.5 flex flex-wrap items-center gap-1 text-[11px] text-text-muted">
-                    <span>
-                      <span className="font-bold text-violet-600 dark:text-violet-400">{theory}</span> theory ·{" "}
-                      <span className="font-bold text-cyan-600 dark:text-cyan-400">{numerical}</span> numerical
-                    </span>
-                    <button type="button" onClick={applyAutoCategorySplit} className="font-bold text-pink-500 hover:text-pink-600">Auto 60/40</button>
-                  </p>
+                  <div className="mt-1.5">
+                    <button
+                      type="button"
+                      onClick={applyAutoCategorySplit}
+                      disabled={status === "generating"}
+                      className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-text-secondary transition-colors hover:border-pink-500/30 hover:text-pink-600 disabled:opacity-40"
+                    >
+                      <RotateCcw className="h-3 w-3" /> Reset
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -430,15 +465,6 @@ export function QuestionGeneratorPanel() {
                     syllabus.trim() ? "border-emerald-500/30" : "border-amber-400/45"
                   )}
                 />
-                <p className={cn(
-                  "mt-1.5 flex items-start gap-1.5 text-[10px] leading-4",
-                  syllabus.trim() ? "text-emerald-600 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"
-                )}>
-                  {syllabus.trim() ? <Check className="mt-0.5 h-3 w-3 shrink-0" /> : <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />}
-                  {syllabus.trim()
-                    ? "Good choice — your questions will stay closer to the material you covered."
-                    : "Add your syllabus for precise results. Without it, AI may generate from a much broader subject scope."}
-                </p>
               </div>
               <div className="flex flex-col justify-end gap-1.5">
                 <button
@@ -450,10 +476,6 @@ export function QuestionGeneratorPanel() {
                   {status === "generating" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                   {status === "generating" ? "Generating questions…" : "Generate Questions"}
                 </button>
-                <p className="flex items-start gap-1 text-[9px] leading-3.5 text-text-muted">
-                  <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" />
-                  AI can make mistakes. Review questions before using them.
-                </p>
                 {status === "generating" && (
                   <p className="flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
                     <AlertCircle className="h-3 w-3" /> Don&apos;t close this window · 30 sec–1 min
@@ -461,6 +483,15 @@ export function QuestionGeneratorPanel() {
                 )}
               </div>
             </div>
+            <p className={cn(
+              "mt-1.5 flex items-start gap-1.5 text-[10px] leading-4",
+              syllabus.trim() ? "text-emerald-600 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"
+            )}>
+              {syllabus.trim() ? <Check className="mt-0.5 h-3 w-3 shrink-0" /> : <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />}
+              {syllabus.trim()
+                ? "Good choice — your questions will stay closer to the material you covered."
+                : "Add your syllabus for precise results. Without it, AI may generate from a much broader subject scope."}
+            </p>
           </div>
 
           {error && (

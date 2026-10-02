@@ -18,6 +18,7 @@ const CRUMB_LABELS: Record<string, string> = {
   users: "User analytics",
   progress: "Student progress",
   "question-import": "Question ingestion",
+  questions: "Question bank",
   observability: "API observability",
   ai: "AI usage",
   health: "Platform health",

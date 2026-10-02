@@ -7,6 +7,8 @@ import { AdminQuizService } from "../services/database/adminQuiz.service.ts";
 import { ResultGenerationService } from "../services/resultGeneration.service.ts";
 import { sendCollaboratorInviteEmail } from "../services/email.ts";
 import { isDatabaseUnavailableError } from "../utils/databaseError.ts";
+import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
+import { MAX_QUESTIONS_PER_QUIZ, QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
 
 const quizService = new AdminQuizService();
 const resultGenerationService = new ResultGenerationService();
@@ -338,6 +340,10 @@ export const createQuiz = async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true, message: "Quiz created successfully", data: quiz });
   } catch (error) {
+    if (error instanceof QuizCreationLimitError) {
+      res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
     console.error("Error creating quiz:", error);
     res.status(500).json({ success: false, message: "Internal server error while creating quiz" });
   }
@@ -419,6 +425,10 @@ export const cloneQuiz = async (req: Request, res: Response) => {
     const clonedQuiz = await quizService.cloneQuiz(Number(quizId), name, code, userId);
     res.status(201).json({ success: true, message: "Quiz cloned successfully", data: clonedQuiz });
   } catch (error) {
+    if (error instanceof QuizCreationLimitError) {
+      res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
     console.error("Error cloning quiz:", error);
     res.status(500).json({ success: false, message: "Internal server error while cloning quiz" });
   }
@@ -563,16 +573,19 @@ export const addQuizProblem = async (req: Request, res: Response) => {
       return;
     }
 
-    const MAX_PROBLEMS = 25;
     const problemCount = await quizService.getQuizProblemCount(String(quizId));
-    if (problemCount >= MAX_PROBLEMS) {
-      res.status(400).json({ success: false, message: `A quiz can have at most ${MAX_PROBLEMS} problems` });
+    if (problemCount >= MAX_QUESTIONS_PER_QUIZ) {
+      res.status(400).json({ success: false, message: `A quiz can have at most ${MAX_QUESTIONS_PER_QUIZ} questions` });
       return;
     }
 
     const problem = await quizService.createQuizProblem({ ...req.body, quizId: Number(quizId) });
     res.status(201).json({ success: true, message: "Question added successfully", data: problem });
   } catch (error) {
+    if (error instanceof QuizQuestionLimitError) {
+      res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
     console.error("Error adding quiz problem:", error);
     res.status(500).json({ success: false, message: "Internal server error while adding question" });
   }
@@ -665,6 +678,10 @@ export const duplicateQuizProblem = async (req: Request, res: Response) => {
     const duplicatedProblem = await quizService.duplicateQuizProblem(Number(problemId));
     res.status(201).json({ success: true, message: "Question duplicated successfully", data: duplicatedProblem });
   } catch (error) {
+    if (error instanceof QuizQuestionLimitError) {
+      res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
     console.error("Error duplicating quiz problem:", error);
     res.status(500).json({ success: false, message: "Internal server error while duplicating question" });
   }
@@ -796,6 +813,10 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, message: "Question saved successfully", data: result });
   } catch (error) {
+    if (error instanceof QuizQuestionLimitError) {
+      res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
     console.error("Error saving quiz problem:", error);
     res.status(500).json({ success: false, message: "Internal server error while saving question" });
   }
