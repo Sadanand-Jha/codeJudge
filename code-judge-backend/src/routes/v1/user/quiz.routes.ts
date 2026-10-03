@@ -33,7 +33,9 @@ import {
   getQuizReview,
   getQuizRating,
   submitQuizRating,
+  getCreatorStats,
   getQuizLeaderboard,
+  getQuizCrowd,
   getQuizAnalytics,
   joinQuiz,
   getPreviousQuizzes,
@@ -127,6 +129,9 @@ router.put("/:quizId/game-mechanics", validate(quizGameMechanicsSchema), upsertQ
 router.get("/:quizId/rating", getQuizRating);
 router.post("/:quizId/rating", validate(quizRatingSchema), submitQuizRating);
 
+// Public creator card for the join page (aggregate-only, no personal info).
+router.get("/creator/:creatorId/stats", getCreatorStats);
+
 // GET /api/v1/user/quiz/:quizId — get a single quiz
 router.get("/:quizId", getQuizById);
 
@@ -211,6 +216,9 @@ router.post("/:quizId/retry-email", retryQuizResultsEmail);
 
 // GET /api/v1/user/quiz/:quizId/leaderboard — get quiz leaderboard
 router.get("/:quizId/leaderboard", getQuizLeaderboard);
+
+// GET /api/v1/user/quiz/:quizId/crowd — avatar-only participants (no ranks/scores)
+router.get("/:quizId/crowd", getQuizCrowd);
 
 // ==================== ANALYTICS ====================
 

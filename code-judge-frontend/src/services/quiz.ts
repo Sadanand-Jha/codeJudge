@@ -855,11 +855,13 @@ export async function getQuizReview(attemptId: string): Promise<QuestionReview[]
 export type QuizRatingReason =
   | "eligible"
   | "already_rated"
-  | "quiz_not_ended"
   | "no_completed_attempt";
 
 export interface QuizRatingState {
   averageRating: number | null;
+  averageQuestionRating: number | null;
+  averagePlatformRating: number | null;
+  averageTeacherRating: number | null;
   ratingCount: number;
   userRating: number | null;
   canRate: boolean;
@@ -872,9 +874,34 @@ export async function getQuizRating(quizId: string): Promise<QuizRatingState> {
   return response.data;
 }
 
-/** Submit the learner's one-time 1–5 star rating. */
-export async function submitQuizRating(quizId: string, rating: number): Promise<QuizRatingState> {
-  const response = await apiClient.post<QuizRatingState>(`/v1/user/quiz/${quizId}/rating`, { rating });
+export interface QuizRatingSubmission {
+  quizRating: number;
+  questionRating: number;
+  platformRating: number;
+  teacherRating: number;
+  feedback?: string;
+}
+
+/** Submit the learner's one-time multi-dimensional rating. */
+export async function submitQuizRating(quizId: string, submission: QuizRatingSubmission): Promise<QuizRatingState> {
+  const response = await apiClient.post<QuizRatingState>(`/v1/user/quiz/${quizId}/rating`, submission);
+  return response.data;
+}
+
+/** Aggregate-only public creator card. Never carries email or personal info. */
+export interface CreatorPublicStats {
+  username: string;
+  avatarUrl: string | null;
+  quizzesCreated: number;
+  uniqueStudents: number;
+  totalAttempts: number;
+  averageTeacherRating: number | null;
+  teacherRatingCount: number;
+}
+
+/** Get a quiz creator's public stats for the join-page card. */
+export async function getCreatorStats(creatorId: string): Promise<CreatorPublicStats> {
+  const response = await apiClient.get<CreatorPublicStats>(`/v1/user/quiz/creator/${creatorId}/stats`);
   return response.data;
 }
 
@@ -1021,6 +1048,21 @@ export interface QuizLeaderboardEntry {
  */
 export async function getQuizLeaderboard(quizId: string): Promise<QuizLeaderboardEntry[]> {
   const response = await apiClient.get<QuizLeaderboardEntry[]>(`/v1/user/quiz/${quizId}/leaderboard`);
+  return response.data;
+}
+
+/** Avatar-only crowd for the join-page background. No ranks, scores, or names. */
+export interface QuizCrowdAvatar {
+  avatarUrl: string | null;
+  status: "submitted" | "attempting";
+}
+
+/**
+ * Get avatar-only participants for a quiz
+ * GET /api/v1/user/quiz/:quizId/crowd
+ */
+export async function getQuizCrowdAvatars(quizId: string): Promise<QuizCrowdAvatar[]> {
+  const response = await apiClient.get<QuizCrowdAvatar[]>(`/v1/user/quiz/${quizId}/crowd`);
   return response.data;
 }
 

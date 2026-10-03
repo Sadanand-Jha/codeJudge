@@ -45,6 +45,10 @@ import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
 type QuestionStatus = "correct" | "wrong" | "skipped" | "answered";
+type RatingCategory = "quiz" | "questions" | "teacher" | "platform";
+type RatingSelection = Record<RatingCategory, number>;
+
+const EMPTY_RATINGS: RatingSelection = { quiz: 0, questions: 0, teacher: 0, platform: 0 };
 
 /** All answer shapes the attempt screen persists (see attempt page restore logic). */
 type SelectedAnswer =
@@ -353,10 +357,8 @@ function ScoreRing({ percentage }: { percentage: number }) {
 /* ─── Main component ─── */
 
 export default function AttemptReviewExperience({
-  quizId,
   attemptId,
 }: {
-  quizId: string;
   attemptId: string;
 }) {
   const { theme } = useTheme();
@@ -366,11 +368,12 @@ export default function AttemptReviewExperience({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ratingState, setRatingState] = useState<QuizRatingState | null>(null);
-  const [selectedRating, setSelectedRating] = useState(0);
-  const [hoveredRating, setHoveredRating] = useState(0);
+  const [selectedRatings, setSelectedRatings] = useState<RatingSelection>(EMPTY_RATINGS);
+  const [ratingFeedback, setRatingFeedback] = useState("");
   const [ratingLoading, setRatingLoading] = useState(true);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [ratingError, setRatingError] = useState<string | null>(null);
+  const [resolvedRatingQuizId, setResolvedRatingQuizId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   // Slide direction for question transitions: +1 forward, -1 backward.
   const [navDir, setNavDir] = useState<1 | -1>(1);
@@ -389,6 +392,10 @@ export default function AttemptReviewExperience({
         ]);
         if (!cancelled) {
           setData(buildAttemptReviewData(result, review));
+          // The URL uses the public quiz code, while rating endpoints require
+          // the numeric database id. The owned attempt result is the trusted
+          // source that connects those two identifiers.
+          setResolvedRatingQuizId(String(result.quiz_id));
           setSelectedQuestion(0);
           playQuizSound("success");
         }
@@ -408,8 +415,9 @@ export default function AttemptReviewExperience({
   }, [attemptId, playQuizSound]);
 
   useEffect(() => {
+    if (!resolvedRatingQuizId) return;
     let cancelled = false;
-    getQuizRating(quizId)
+    getQuizRating(resolvedRatingQuizId)
       .then((rating) => {
         if (!cancelled) setRatingState(rating);
       })
@@ -422,7 +430,7 @@ export default function AttemptReviewExperience({
     return () => {
       cancelled = true;
     };
-  }, [quizId]);
+  }, [resolvedRatingQuizId]);
 
   const paletteStatus = useMemo(() => {
     if (!data) return [];
@@ -430,14 +438,21 @@ export default function AttemptReviewExperience({
   }, [data]);
 
   const handleRatingSubmit = async () => {
-    if (!ratingState?.canRate || selectedRating < 1 || selectedRating > 5 || ratingSubmitting) return;
+    const allRated = Object.values(selectedRatings).every((rating) => rating >= 1 && rating <= 5);
+    if (!resolvedRatingQuizId || !ratingState?.canRate || !allRated || ratingSubmitting) return;
     setRatingSubmitting(true);
     setRatingError(null);
     try {
-      const nextState = await submitQuizRating(quizId, selectedRating);
+      const nextState = await submitQuizRating(resolvedRatingQuizId, {
+        quizRating: selectedRatings.quiz,
+        questionRating: selectedRatings.questions,
+        platformRating: selectedRatings.platform,
+        teacherRating: selectedRatings.teacher,
+        feedback: ratingFeedback.trim(),
+      });
       setRatingState(nextState);
-      setSelectedRating(0);
-      setHoveredRating(0);
+      setSelectedRatings(EMPTY_RATINGS);
+      setRatingFeedback("");
       playQuizSound("success");
     } catch (err: unknown) {
       setRatingError(getApiErrorMessage(err, "Could not submit your rating."));
@@ -487,7 +502,7 @@ export default function AttemptReviewExperience({
 
   return (
     <div className="student-quiz-theme attempt-review-theme relative min-h-[calc(100dvh-3.5rem)] overflow-x-hidden bg-[#050A14] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-[#F5F7FB]">
-      <QuizSpaceAtmosphere className="fixed" />
+      {!isMobile && <QuizSpaceAtmosphere className="fixed" />}
       {/* Subtle top glows — background stays mostly solid */}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[320px] overflow-hidden">
         <div
@@ -501,15 +516,7 @@ export default function AttemptReviewExperience({
       </div>
 
       <div className="relative mx-auto box-border w-full max-w-[1240px] px-4 py-4 sm:px-6 sm:py-6">
-        {/* Back + Attempt Review */}
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <Link
-            href="/quiz"
-            className="inline-flex items-center gap-2 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3 py-2 text-[13px] font-medium text-[#9AAAC3] transition-colors hover:border-[#2A4160] hover:text-[#F5F7FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Link>
+        <div className="mb-4 flex items-center justify-end gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#8B7CFF]/40 bg-[#8B7CFF]/10 px-3 py-2 text-[13px] font-semibold text-[#B9AEFF]">
             {theme === "light" ? <PartyPopper className="h-4 w-4" /> : <Rocket className="h-4 w-4" />}
             {theme === "light" ? "Victory recap" : "Mission debrief"}
@@ -520,8 +527,9 @@ export default function AttemptReviewExperience({
           <div className="min-w-0 space-y-4 md:space-y-5">
             {/* Summary Card */}
             <motion.section
-              initial={{ opacity: 0, y: 12 }}
+              initial={isMobile ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={isMobile ? { duration: 0 } : undefined}
               className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
             >
               <span className="inline-flex items-center rounded-[8px] bg-[#8B7CFF]/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#8B7CFF]">
@@ -569,23 +577,26 @@ export default function AttemptReviewExperience({
               </div>
             </motion.section>
 
-            <QuizRatingPanel
-              state={ratingState}
-              loading={ratingLoading}
-              error={ratingError}
-              selected={selectedRating}
-              hovered={hoveredRating}
-              submitting={ratingSubmitting}
-              onSelect={setSelectedRating}
-              onHover={setHoveredRating}
-              onSubmit={handleRatingSubmit}
-            />
+            <div className="xl:hidden">
+              <QuizRatingPanel
+                state={ratingState}
+                loading={ratingLoading}
+                error={ratingError}
+                selected={selectedRatings}
+                feedback={ratingFeedback}
+                submitting={ratingSubmitting}
+                isMobile={isMobile}
+                onSelect={(category, rating) => setSelectedRatings((current) => ({ ...current, [category]: rating }))}
+                onFeedback={setRatingFeedback}
+                onSubmit={handleRatingSubmit}
+              />
+            </div>
 
             {/* Question Palette — sizes to its content, no fixed height. */}
             <motion.section
-              initial={{ opacity: 0, y: 12 }}
+              initial={isMobile ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 }}
+              transition={isMobile ? { duration: 0 } : { delay: 0.05 }}
               className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -643,10 +654,10 @@ export default function AttemptReviewExperience({
             <AnimatePresence mode="wait" initial={false}>
             <motion.section
               key={currentQuestion.id}
-              initial={{ opacity: 0, x: isMobile ? 0 : 28 * navDir }}
+              initial={isMobile ? false : { opacity: 0, x: 28 * navDir }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: isMobile ? 0 : -24 * navDir }}
-              transition={isMobile ? { duration: 0.12 } : { duration: 0.22, ease: "easeOut" }}
+              exit={isMobile ? undefined : { opacity: 0, x: -24 * navDir }}
+              transition={isMobile ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
               className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
             >
               <div className="flex shrink-0 items-start justify-between gap-3">
@@ -848,9 +859,24 @@ export default function AttemptReviewExperience({
 
           {/* Sidebar */}
           <div className="min-w-0 space-y-4 md:space-y-5">
+            <div className="hidden xl:block">
+              <QuizRatingPanel
+                state={ratingState}
+                loading={ratingLoading}
+                error={ratingError}
+                selected={selectedRatings}
+                feedback={ratingFeedback}
+                submitting={ratingSubmitting}
+                isMobile={isMobile}
+                onSelect={(category, rating) => setSelectedRatings((current) => ({ ...current, [category]: rating }))}
+                onFeedback={setRatingFeedback}
+                onSubmit={handleRatingSubmit}
+              />
+            </div>
             <motion.section
-              initial={{ opacity: 0, y: 12 }}
+              initial={isMobile ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={isMobile ? { duration: 0 } : undefined}
               className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
             >
               <h2 className="text-[15px] font-semibold text-[#F5F7FB]">Result Analytics</h2>
@@ -881,9 +907,9 @@ export default function AttemptReviewExperience({
             </motion.section>
 
             <motion.section
-              initial={{ opacity: 0, y: 12 }}
+              initial={isMobile ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 }}
+              transition={isMobile ? { duration: 0 } : { delay: 0.05 }}
               className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
             >
               <h2 className="text-[15px] font-semibold text-[#F5F7FB]">Performance Insights</h2>
@@ -928,91 +954,70 @@ function QuizRatingPanel({
   loading,
   error,
   selected,
-  hovered,
+  feedback,
   submitting,
+  isMobile,
   onSelect,
-  onHover,
+  onFeedback,
   onSubmit,
 }: {
   state: QuizRatingState | null;
   loading: boolean;
   error: string | null;
-  selected: number;
-  hovered: number;
+  selected: RatingSelection;
+  feedback: string;
   submitting: boolean;
-  onSelect: (rating: number) => void;
-  onHover: (rating: number) => void;
+  isMobile: boolean;
+  onSelect: (category: RatingCategory, rating: number) => void;
+  onFeedback: (feedback: string) => void;
   onSubmit: () => void;
 }) {
-  const visibleRating = hovered || selected || state?.userRating || 0;
-  const statusCopy = state?.reason === "quiz_not_ended"
-    ? "Ratings open after the quiz ends. Come back to this review when the session is complete."
-    : state?.reason === "no_completed_attempt"
-      ? "Only students who completed this quiz can leave a rating."
-      : null;
+  const statusCopy = state?.reason === "no_completed_attempt"
+    ? "Only students who completed this quiz can leave a rating."
+    : null;
+  const allRated = Object.values(selected).every((rating) => rating > 0);
+
+  // Ratings are immutable. Once this account has rated the quiz, keep the
+  // review focused on the attempt instead of leaving a dead confirmation card.
+  if (!loading && state?.userRating) return null;
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: 12 }}
+      initial={isMobile ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.04 }}
-      className="box-border w-full max-w-full overflow-hidden rounded-[18px] border border-[#8B7CFF]/35 bg-[#0B1220]"
+      transition={isMobile ? { duration: 0 } : { delay: 0.04 }}
+      className="box-border w-full max-w-full overflow-hidden rounded-[16px] border border-[#8B7CFF]/30 bg-[#0B1220]"
     >
-      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[15px] font-semibold text-[#F5F7FB]">How was this quiz?</h2>
-            <span className="rounded-full border border-[#20D889]/25 bg-[#20D889]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[#20D889]">
-              Anonymous
-            </span>
-          </div>
-          <p className="mt-1 max-w-2xl text-xs leading-5 text-[#9AAAC3]">
-            Your rating helps the teacher create better quizzes and question papers. Your identity is never shown.
-          </p>
+      <div className="p-3.5 sm:p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-[#F5F7FB]">Rate quiz</h2>
+          <span className="text-[10px] uppercase tracking-[0.14em] text-[#6F819D]">Help us improve</span>
         </div>
-
-        {loading ? (
-          <div className="h-10 w-48 animate-pulse rounded-xl bg-[#182235]" />
-        ) : state ? (
-          <div className="shrink-0">
-            <div
-              className="flex items-center gap-1"
-              role={state.canRate ? "radiogroup" : "img"}
-              aria-label={state.userRating ? `You rated this quiz ${state.userRating} out of 5` : "Rate this quiz from 1 to 5 stars"}
-              onMouseLeave={() => onHover(0)}
-            >
-              {Array.from({ length: 5 }).map((_, index) => {
-                const value = index + 1;
-                const active = value <= visibleRating;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    role={state.canRate ? "radio" : undefined}
-                    aria-checked={state.canRate ? selected === value : undefined}
-                    aria-label={`${value} ${value === 1 ? "star" : "stars"}`}
-                    disabled={!state.canRate || submitting}
-                    onMouseEnter={() => state.canRate && onHover(value)}
-                    onFocus={() => state.canRate && onHover(value)}
-                    onBlur={() => onHover(0)}
-                    onClick={() => onSelect(value)}
-                    className="rounded-lg p-1 text-[#34435B] transition-transform enabled:hover:scale-110 enabled:focus-visible:outline-none enabled:focus-visible:ring-2 enabled:focus-visible:ring-[#8B7CFF] disabled:cursor-default"
-                  >
-                    <Star className={`h-7 w-7 ${active ? "fill-[#FFB84D] text-[#FFB84D]" : "fill-transparent"}`} />
-                  </button>
-                );
-              })}
+        {loading ? <div className={`mt-3 h-20 rounded-xl bg-[#182235] ${isMobile ? "" : "animate-pulse"}`} /> : state?.canRate ? (
+          <div className="mt-3 space-y-3">
+            <div className="grid gap-1.5">
+              <CompactRatingRow label="Quiz" value={selected.quiz} onChange={(rating) => onSelect("quiz", rating)} disabled={submitting} />
+              <CompactRatingRow label="Questions" value={selected.questions} onChange={(rating) => onSelect("questions", rating)} disabled={submitting} />
+              <CompactRatingRow label="Teacher" value={selected.teacher} onChange={(rating) => onSelect("teacher", rating)} disabled={submitting} />
+              <CompactRatingRow label="Platform" value={selected.platform} onChange={(rating) => onSelect("platform", rating)} disabled={submitting} />
             </div>
-            {state.canRate && (
+            <div className="flex flex-col gap-2">
+              <input
+                value={feedback}
+                onChange={(event) => onFeedback(event.target.value.slice(0, 600))}
+                placeholder="Optional feedback"
+                aria-label="Optional feedback"
+                className="h-9 w-full min-w-0 rounded-[10px] border border-[#263754] bg-[#0F192B] px-3 text-xs text-[#F5F7FB] outline-none placeholder:text-[#63738D] focus:border-[#8B7CFF]"
+              />
               <button
                 type="button"
                 onClick={onSubmit}
-                disabled={!selected || submitting}
-                className="mt-2 inline-flex h-9 w-full items-center justify-center rounded-[10px] bg-[#8B7CFF] px-4 text-xs font-semibold text-white transition-colors hover:bg-[#7968F4] disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!allRated || submitting}
+                className="inline-flex h-9 w-full items-center justify-center rounded-[10px] bg-[#8B7CFF] px-4 text-xs font-semibold text-white transition-colors hover:bg-[#7968F4] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {submitting ? "Submitting…" : selected ? `Submit ${selected}-star rating` : "Choose a rating"}
+                {submitting ? "Submitting…" : "Submit feedback"}
               </button>
-            )}
+            </div>
           </div>
         ) : null}
       </div>
@@ -1021,8 +1026,8 @@ function QuizRatingPanel({
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#1D3150] bg-[#0F192B] px-4 py-2.5 text-[11px] sm:px-5">
           <span className="text-[#9AAAC3]">
             {state.userRating
-              ? `Thanks — your ${state.userRating}-star rating is saved.`
-              : statusCopy ?? "Choose carefully: each account can rate this quiz only once."}
+              ? `Rating saved · Your identity will not be shown.`
+              : statusCopy ?? "Your identity will not be shown."}
           </span>
           <span className="inline-flex items-center gap-1.5 font-medium text-[#B9AEFF]">
             <Star className="h-3.5 w-3.5 fill-[#FFB84D] text-[#FFB84D]" />
@@ -1039,6 +1044,40 @@ function QuizRatingPanel({
         </p>
       )}
     </motion.section>
+  );
+}
+
+function CompactRatingRow({ label, value, onChange, disabled }: {
+  label: string;
+  value: number;
+  onChange: (rating: number) => void;
+  disabled: boolean;
+}) {
+  const [hovered, setHovered] = useState(0);
+  const visible = hovered || value;
+  return (
+    <div className="flex items-center justify-between rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-2.5 py-2">
+      <span className="text-[11px] font-medium text-[#B8C4D8]">{label}</span>
+      <div className="flex" role="radiogroup" aria-label={`Rate ${label.toLowerCase()}`} onMouseLeave={() => setHovered(0)}>
+        {[1, 2, 3, 4, 5].map((rating) => (
+          <button
+            key={rating}
+            type="button"
+            role="radio"
+            aria-checked={value === rating}
+            aria-label={`${rating} stars`}
+            disabled={disabled}
+            onMouseEnter={() => setHovered(rating)}
+            onFocus={() => setHovered(rating)}
+            onBlur={() => setHovered(0)}
+            onClick={() => onChange(rating)}
+            className="rounded p-0.5 text-[#34435B] enabled:hover:scale-110 enabled:focus-visible:outline-none enabled:focus-visible:ring-1 enabled:focus-visible:ring-[#8B7CFF]"
+          >
+            <Star className={`h-4 w-4 ${rating <= visible ? "fill-[#FFB84D] text-[#FFB84D]" : "fill-transparent"}`} />
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

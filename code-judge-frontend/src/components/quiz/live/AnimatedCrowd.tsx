@@ -257,12 +257,11 @@ export function AnimatedCrowd({ participants, className = "", onShow, onArmHide,
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial spawn seeds visible avatars once images are decoded
     setVisibleParticipants((prev) => {
       if (prev.length === 0) return [...fullPool];
-      // Add only newcomers
+      // Add only newcomers — every participant stays visible, no cap.
       const existing = new Set(prev.map((p) => p.id));
       const newcomers = fullPool.filter((p) => !existing.has(p.id));
       if (newcomers.length === 0) return prev;
-      // Keep cap at MAX_VISIBLE if needed, but respect parent's slicing; just append
-      return [...prev, ...newcomers].slice(-40);
+      return [...prev, ...newcomers];
     });
 
     setRoamingStates((prev) => {

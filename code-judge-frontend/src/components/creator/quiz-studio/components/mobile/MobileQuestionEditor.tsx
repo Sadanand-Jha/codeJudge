@@ -176,9 +176,9 @@ export function MobileQuestionEditor({
           <div className="relative min-w-0">
             <button
               onClick={() => setShowType(!showType)}
-              className="flex max-w-[128px] items-center gap-1 truncate rounded-xl border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-zinc-700 sm:max-w-none sm:px-3 sm:py-2"
+              className="flex max-w-[46vw] items-center gap-1 rounded-xl border border-zinc-200 bg-white px-2 py-1.5 text-xs font-semibold text-zinc-700 sm:max-w-none sm:px-3 sm:py-2"
             >
-              <span className="truncate">{TYPE_SHORT[q.type]}</span> <ChevronDown className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+              <span className="min-w-0 whitespace-normal break-words text-left leading-4">{TYPE_SHORT[q.type]}</span> <ChevronDown className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
             </button>
             {showType && (
               <div className="absolute right-0 top-full z-40 mt-2 w-60 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">

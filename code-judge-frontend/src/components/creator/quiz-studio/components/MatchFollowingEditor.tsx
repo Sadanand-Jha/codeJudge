@@ -337,9 +337,9 @@ export function MatchFollowingEditor() {
             <div className="relative">
               <button
                 onClick={() => setShowType(!showType)}
-                className="inline-flex max-w-[110px] items-center gap-1 truncate rounded-lg border border-border bg-card px-2 py-1.5 text-xs font-medium text-text-primary hover:bg-card-hover sm:max-w-none sm:px-3"
+                className="inline-flex max-w-[46vw] items-center gap-1 rounded-lg border border-border bg-card px-2 py-1.5 text-xs font-medium text-text-primary hover:bg-card-hover sm:max-w-none sm:px-3"
               >
-                <span className="truncate">{TYPE_SHORT[q.type]}</span> <ChevronDown className="h-3 w-3 shrink-0 text-text-muted" />
+                <span className="min-w-0 whitespace-normal break-words text-left leading-4">{TYPE_SHORT[q.type]}</span> <ChevronDown className="h-3 w-3 shrink-0 text-text-muted" />
               </button>
               {showType && (
                 <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-card shadow-xl">

@@ -223,7 +223,7 @@ export function StudioHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex min-h-[56px] h-auto w-full max-w-full flex-wrap items-center gap-2 border-b border-border bg-background px-2 py-2 sm:h-14 sm:flex-nowrap sm:gap-3 sm:px-4 sm:py-0 min-w-0 max-w-[100vw]">
+    <header className="sticky top-0 z-20 flex min-h-[56px] h-auto w-full max-w-[100vw] min-w-0 flex-wrap items-center gap-2 border-b border-border bg-background px-2 py-2 sm:gap-3 sm:px-4 lg:h-14 lg:flex-nowrap lg:py-0">
       <button aria-label="Exit quiz studio" title="Exit quiz studio" onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors sm:h-9 sm:w-9 sm:rounded-xl">
         <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </button>
@@ -241,7 +241,7 @@ export function StudioHeader() {
             className="min-w-0 flex-1 rounded-lg border border-input-border bg-input-bg px-2 py-1.5 text-sm font-semibold text-text-primary outline-none sm:min-w-[120px] sm:max-w-[40vw] sm:rounded-xl sm:px-3 sm:py-2"
           />
         ) : (
-          <button onClick={() => setEditing(true)} className="min-w-0 flex-1 whitespace-normal break-words text-left font-['Inter'] text-[13px] font-semibold leading-snug text-text-primary sm:max-w-none sm:truncate sm:text-[15px]">
+          <button onClick={() => setEditing(true)} className="min-w-0 flex-1 whitespace-normal break-words text-left font-['Inter'] text-[13px] font-semibold leading-snug text-text-primary sm:text-[15px]">
             {label}
           </button>
         )}
@@ -261,7 +261,7 @@ export function StudioHeader() {
         ) : null}
       </div>
 
-      <div className="ml-auto flex w-full min-w-0 items-center gap-2 border-t border-border/70 pt-2 sm:w-auto sm:shrink-0 sm:justify-end sm:border-0 sm:pt-0">
+      <div className="ml-auto flex w-full min-w-0 items-center gap-2 border-t border-border/70 pt-2 lg:w-auto lg:shrink-0 lg:justify-end lg:border-0 lg:pt-0">
         <button
           type="button"
           onClick={() => void prevMobileStep()}
@@ -393,11 +393,11 @@ export function StudioStepper() {
             aria-haspopup="menu"
             aria-expanded={stepMenuOpen}
             className={cn(
-              "flex h-9 max-w-[58vw] items-center gap-1.5 rounded-lg border bg-card px-2.5 text-xs font-semibold outline-none sm:max-w-none",
+              "flex min-h-9 max-w-[64vw] items-center gap-1.5 rounded-lg border bg-card px-2.5 py-2 text-xs font-semibold outline-none sm:max-w-none",
               stepMenuOpen ? "border-pink-500 text-pink-500" : "border-border text-text-primary"
             )}
           >
-            <span className="truncate">
+            <span className="min-w-0 whitespace-normal break-words text-left leading-4">
               {onMobilePath ? (
                 <span className="lg:hidden">{mobileStepIndex + 1}.</span>
               ) : (
@@ -438,7 +438,7 @@ export function StudioStepper() {
                         <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", active ? "bg-pink-500 text-white" : "bg-card-hover text-text-muted")}>
                           {index + 1}
                         </span>
-                        <span className="truncate">{step.label}</span>
+                        <span className="min-w-0 whitespace-normal break-words">{step.label}</span>
                         {active && <Check className="ml-auto h-3.5 w-3.5" />}
                       </button>
                     );
@@ -465,7 +465,7 @@ export function StudioStepper() {
                         <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", active ? "bg-pink-500 text-white" : "bg-card-hover text-text-muted")}>
                           {index + 1}
                         </span>
-                        <span className="truncate">{step.label}</span>
+                        <span className="min-w-0 whitespace-normal break-words">{step.label}</span>
                         {active && <Check className="ml-auto h-3.5 w-3.5" />}
                       </button>
                     );

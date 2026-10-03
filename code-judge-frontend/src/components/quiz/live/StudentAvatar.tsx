@@ -36,6 +36,15 @@ export function StudentAvatar({
   const dims = SIZE_MAP[size];
   const displayAvatarUrl = participant.avatarUrl || DEFAULT_AVATAR_URL;
 
+  // Presence dot follows the live status: green = submitted, blue =
+  // currently attempting. Same convention as AvatarHoverPreview.
+  const statusColor = {
+    submitted: "#22C55E",
+    attempting: "#3B82F6",
+    idle: "#9CA3AF",
+    disconnected: "#EF4444",
+  }[participant.status] ?? "#9CA3AF";
+
   // Breathing animation - subtle scale
   const breathAnim = useMemo(() => {
     const seed = participant.positionSeed || (index + 1) / (count + 1);
@@ -99,10 +108,10 @@ export function StudentAvatar({
             )}
           </div>
 
-          {/* Small yellow waiting dot */}
+          {/* Presence dot colored by live status */}
           <motion.div
-            className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#F59E0B] border-2 border-[#09090B]"
-            style={{ boxShadow: "0 0 8px rgba(245,158,11,0.6)" }}
+            className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#09090B]"
+            style={{ backgroundColor: statusColor, boxShadow: `0 0 8px ${statusColor}99` }}
             animate={{ scale: [1, 1.2, 1] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           />

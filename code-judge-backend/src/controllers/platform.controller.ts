@@ -149,6 +149,40 @@ export const getOverview = async (req: Request, res: Response) => {
   res.json({ success: true, data: { range: key, days, users, active, quizzes, attempts, engagement } });
 };
 
+// ── Anonymous learner feedback ───────────────────────────
+export const getFeedback = async (_req: Request, res: Response) => {
+  const data = await safe(async () => {
+    const summary = await one(
+      `SELECT COUNT(*)::int AS responses,
+              ROUND(AVG(rating)::numeric, 1) AS quiz_rating,
+              ROUND(AVG(question_rating)::numeric, 1) AS question_rating,
+              ROUND(AVG(teacher_rating)::numeric, 1) AS teacher_rating,
+              ROUND(AVG(platform_rating)::numeric, 1) AS platform_rating
+       FROM quiz_rating`
+    );
+    const recent = await pool.query(
+      `SELECT qr.id, q.name AS quiz_name, qr.rating AS quiz_rating,
+              qr.question_rating, qr.teacher_rating, qr.platform_rating, qr.feedback, qr.created_at
+       FROM quiz_rating qr
+       JOIN quiz q ON q.id = qr.quiz_id
+       WHERE qr.feedback IS NOT NULL AND BTRIM(qr.feedback) <> ''
+       ORDER BY qr.created_at DESC
+       LIMIT 12`
+    ).then((result) => result.rows);
+    return {
+      responses: num(summary?.responses),
+      averages: {
+        quiz: summary?.quiz_rating == null ? null : Number(summary.quiz_rating),
+        questions: summary?.question_rating == null ? null : Number(summary.question_rating),
+        teacher: summary?.teacher_rating == null ? null : Number(summary.teacher_rating),
+        platform: summary?.platform_rating == null ? null : Number(summary.platform_rating),
+      },
+      recent,
+    };
+  });
+  res.json({ success: true, data: data ?? { responses: 0, averages: { quiz: null, questions: null, teacher: null, platform: null }, recent: [], unavailable: true } });
+};
+
 // ── Time series ───────────────────────────────────────────
 export const getSeries = async (req: Request, res: Response) => {
   const { key, days } = parseRange(req.query);
@@ -684,7 +718,7 @@ export const getErrors = async (_req: Request, res: Response) => {
        FROM application_errors`
     );
     const items = await pool.query(
-      `SELECT error_id, fingerprint, error_type, error_code, message, endpoint, method, status_code,
+      `SELECT error_id, fingerprint, error_type, error_code, message, stack_trace, endpoint, method, status_code,
               occurrence_count, first_seen_at, last_seen_at, resolved_at, request_id, trace_id
        FROM application_errors ORDER BY last_seen_at DESC LIMIT 50`
     ).then((r) => r.rows);

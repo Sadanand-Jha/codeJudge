@@ -151,7 +151,23 @@ export interface AiUsageData {
 
 export interface PlatformErrorsData {
   available: boolean; reason?: string; errorsToday?: number; unresolved?: number;
-  items: { error_id: string; fingerprint: string; error_type: string; error_code: string | null; message: string; endpoint: string | null; method: string | null; status_code: number | null; occurrence_count: number; first_seen_at: string; last_seen_at: string; resolved_at: string | null; request_id: string | null; trace_id: string | null }[];
+  items: { error_id: string; fingerprint: string; error_type: string; error_code: string | null; message: string; stack_trace: string | null; endpoint: string | null; method: string | null; status_code: number | null; occurrence_count: number; first_seen_at: string; last_seen_at: string; resolved_at: string | null; request_id: string | null; trace_id: string | null }[];
+}
+
+export interface PlatformFeedbackData {
+  unavailable?: boolean;
+  responses: number;
+  averages: { quiz: number | null; questions: number | null; teacher: number | null; platform: number | null };
+  recent: Array<{
+    id: number;
+    quiz_name: string;
+    quiz_rating: number;
+    question_rating: number | null;
+    teacher_rating: number | null;
+    platform_rating: number | null;
+    feedback: string;
+    created_at: string;
+  }>;
 }
 
 export interface QuestionImportCatalog {
@@ -255,6 +271,7 @@ async function get<T>(path: string, params?: Record<string, string | number>): P
 export const platformApi = {
   session: () => get<{ authorized: true }>("/session"),
   overview: (range: PlatformRange, days?: number) => get<OverviewData>("/overview", days ? { range, days } : { range }),
+  feedback: () => get<PlatformFeedbackData>("/feedback"),
   series: (range: PlatformRange, days?: number) => get<{ points: SeriesPoint[] | null; unavailable?: boolean }>("/series", days ? { range, days } : { range }),
   live: () => get<LiveData>("/live"),
   activity: (scope = "all", search = "", page = 1, limit = 20) =>

@@ -50,7 +50,8 @@ const quizService = new QuizService();
 const resultGenerationService = new ResultGenerationService();
 
 /**
- * Student-safe quiz DTO. Creator identity is limited to public display fields;
+ * Student-safe quiz DTO. Creator identity is limited to public display fields
+ * plus the numeric creator id (needed for the aggregate-only creator card);
  * never send email/contact data, internal timestamps, or private configuration.
  */
 const toStudentQuiz = (quiz: Record<string, any>) => {
@@ -68,6 +69,7 @@ const toStudentQuiz = (quiz: Record<string, any>) => {
   id: quiz.id,
   code: quiz.code,
   name: quiz.name,
+  createdby: quiz.createdby,
   starttime: quiz.starttime,
   endtime: quiz.endtime,
   duration: quiz.duration,
@@ -1890,6 +1892,20 @@ export const getPreviousQuizzes = async (req: Request, res: Response) => {
 
 // ==================== RESULTS & REVIEW ====================
 
+async function resolveRatingQuizId(identifier: string | undefined): Promise<number | null> {
+  const value = String(identifier ?? "").trim();
+  if (!value) return null;
+
+  if (/^\d+$/.test(value)) {
+    const numericId = Number(value);
+    return Number.isSafeInteger(numericId) && numericId > 0 ? numericId : null;
+  }
+
+  const quiz = await quizService.getQuizByCode(value.toUpperCase());
+  const resolvedId = Number(quiz?.id);
+  return Number.isSafeInteger(resolvedId) && resolvedId > 0 ? resolvedId : null;
+}
+
 /**
  * GET /api/v1/user/quiz/:quizId/rating
  * Return the current learner's eligibility/rating and anonymous aggregates.
@@ -1897,13 +1913,13 @@ export const getPreviousQuizzes = async (req: Request, res: Response) => {
 export const getQuizRating = async (req: Request, res: Response) => {
   try {
     const userId = Number(req.user?.userId);
-    const quizId = Number(req.params.quizId);
+    const quizId = await resolveRatingQuizId(req.params.quizId);
     if (!userId) {
       res.status(401).json({ success: false, message: "Unauthorized access" });
       return;
     }
-    if (!Number.isInteger(quizId) || quizId <= 0) {
-      res.status(400).json({ success: false, message: "Invalid quiz ID" });
+    if (!quizId) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
       return;
     }
 
@@ -1920,23 +1936,49 @@ export const getQuizRating = async (req: Request, res: Response) => {
 };
 
 /**
+ * GET /api/v1/user/quiz/creator/:creatorId/stats
+ * Public creator card for the join page. Aggregate-only (username, avatar,
+ * counts, anonymous teacher-rating average) — never personal info.
+ */
+export const getCreatorStats = async (req: Request, res: Response) => {
+  try {
+    const creatorId = Number(req.params.creatorId);
+    if (!Number.isInteger(creatorId) || creatorId <= 0) {
+      res.status(400).json({ success: false, message: "Invalid creator ID" });
+      return;
+    }
+
+    const stats = await quizService.getCreatorPublicStats(creatorId);
+    if (!stats) {
+      res.status(404).json({ success: false, message: "Creator not found" });
+      return;
+    }
+    res.status(200).json({ success: true, data: stats });
+  } catch (error) {
+    console.error("Error fetching creator stats:", error);
+    res.status(500).json({ success: false, message: "Could not load creator stats" });
+  }
+};
+
+/**
  * POST /api/v1/user/quiz/:quizId/rating
- * Only a learner with a completed attempt may rate, and only after quiz end.
+ * Only a learner with a completed attempt may rate. A completed attempt means
+ * the quiz has ended for that learner, even if a shared live session remains open.
  */
 export const submitQuizRating = async (req: Request, res: Response) => {
   try {
     const userId = Number(req.user?.userId);
-    const quizId = Number(req.params.quizId);
+    const quizId = await resolveRatingQuizId(req.params.quizId);
     if (!userId) {
       res.status(401).json({ success: false, message: "Unauthorized access" });
       return;
     }
-    if (!Number.isInteger(quizId) || quizId <= 0) {
-      res.status(400).json({ success: false, message: "Invalid quiz ID" });
+    if (!quizId) {
+      res.status(404).json({ success: false, message: "Quiz not found" });
       return;
     }
 
-    const result = await quizService.createQuizRating(quizId, userId, req.body.rating);
+    const result = await quizService.createQuizRating(quizId, userId, req.body);
     if (result.status === "created") {
       res.status(201).json({ success: true, data: result.rating, message: "Rating submitted" });
       return;
@@ -1945,7 +1987,6 @@ export const submitQuizRating = async (req: Request, res: Response) => {
     const failures = {
       quiz_not_found: { status: 404, message: "Quiz not found" },
       already_rated: { status: 409, message: "You have already rated this quiz" },
-      quiz_not_ended: { status: 403, message: "You can rate this quiz after it ends" },
       no_completed_attempt: { status: 403, message: "Only students who completed this quiz can rate it" },
     } as const;
     const failure = failures[result.status];
@@ -2211,6 +2252,33 @@ export const getQuizLeaderboard = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching leaderboard",
+    });
+  }
+};
+
+// ==================== CROWD ====================
+
+/**
+ * GET /api/v1/user/quiz/:quizId/crowd
+ * Avatar-only participant list for the join-page background. Returns just
+ * avatar URLs plus a coarse live status (submitted/attempting) for the
+ * presence dot — no ranks, scores, names, or other user details.
+ */
+export const getQuizCrowd = async (req: Request, res: Response) => {
+  try {
+    const quizId = Number(req.params.quizId);
+    if (!Number.isInteger(quizId) || quizId <= 0) {
+      res.status(400).json({ success: false, message: "Invalid quiz ID" });
+      return;
+    }
+
+    const avatars = await quizService.getQuizCrowdAvatars(quizId);
+    res.status(200).json({ success: true, data: avatars });
+  } catch (error) {
+    console.error("Error fetching quiz crowd:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching quiz crowd",
     });
   }
 };

@@ -2,9 +2,9 @@
 
 import "./platform.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Users, Activity, Zap, CheckCircle2, RefreshCw, TrendingUp, Clock3, ListChecks } from "lucide-react";
+import { Users, Activity, Zap, CheckCircle2, RefreshCw, TrendingUp, Clock3, ListChecks, MessageSquareText, Star } from "lucide-react";
 import { platformApi } from "@/services/platform";
-import type { OverviewData, LiveData, ActivityItem, PlatformRange } from "@/services/platform";
+import type { OverviewData, LiveData, ActivityItem, PlatformRange, PlatformFeedbackData } from "@/services/platform";
 import { ChartSkeleton, FeedSkeleton, HeartbeatSkeleton, HeatmapSkeleton, KpiGridSkeleton, SectionCard, EmptyState, ErrorState, StatusDot, fmtInt, fmtPct, fmtDuration, timeAgo } from "@/components/platform/ui";
 import { SeriesChart } from "@/components/platform/charts";
 import { useAsync } from "@/components/platform/usePlatformAsync";
@@ -39,6 +39,7 @@ export default function PlatformOverviewPage() {
   const series = useAsync(() => platformApi.series(apiRange, days), `series:${rangeKey}`);
   const growth = useAsync(() => platformApi.growth(apiRange, days), `growth:${rangeKey}`);
   const alertsQ = useAsync(() => platformApi.alerts(), "alerts");
+  const feedbackQ = useAsync<PlatformFeedbackData>(() => platformApi.feedback(), "feedback");
 
   const [live, setLive] = useState<LiveData | null>(null);
   const [liveError, setLiveError] = useState(false);
@@ -70,7 +71,7 @@ export default function PlatformOverviewPage() {
   }, []);
 
   const refreshAll = () => {
-    overview.retry(); series.retry(); growth.retry(); alertsQ.retry(); loadLive();
+    overview.retry(); series.retry(); growth.retry(); alertsQ.retry(); feedbackQ.retry(); loadLive();
   };
 
   const applyCustom = () => {
@@ -171,6 +172,10 @@ export default function PlatformOverviewPage() {
       {/* Attention */}
       <AttentionPanel loading={alertsQ.loading} items={alerts} />
 
+      <SectionCard title="Learner feedback" subtitle="Anonymous signals from completed quizzes">
+        <FeedbackSnapshot query={feedbackQ} />
+      </SectionCard>
+
       {/* Main analytics */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,.9fr)]">
         <SectionCard
@@ -220,6 +225,38 @@ export default function PlatformOverviewPage() {
 
       {/* Recent activity */}
       <ActivityFeed />
+    </div>
+  );
+}
+
+function FeedbackSnapshot({ query }: { query: ReturnType<typeof useAsync<PlatformFeedbackData>> }) {
+  if (query.loading) return <FeedSkeleton rows={2} stats />;
+  if (query.error) return <ErrorState message={query.error.message} onRetry={query.retry} />;
+  const data = query.data;
+  if (!data || data.unavailable) return <EmptyState message="Feedback is unavailable" />;
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(280px,.7fr)_minmax(0,1.3fr)]">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {([
+          ["Quiz", data.averages.quiz],
+          ["Questions", data.averages.questions],
+          ["Teacher", data.averages.teacher],
+          ["Platform", data.averages.platform],
+        ] as const).map(([label, value]) => (
+          <div key={label} className="rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] px-3 py-3 text-center">
+            <div className="flex items-center justify-center gap-1 text-[18px] font-semibold text-[var(--text-primary)]"><Star size={13} className="fill-amber-400 text-amber-400" />{value?.toFixed(1) ?? "—"}</div>
+            <p className="mt-1 text-[10px] text-[var(--text-muted)]">{label}</p>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-2">
+        {!data.recent.length ? <EmptyState message="No written feedback yet" detail={`${data.responses} rating responses received.`} /> : data.recent.slice(0, 3).map((item) => (
+          <div key={item.id} className="flex gap-2.5 rounded-[9px] border border-[var(--border)] px-3 py-2.5">
+            <MessageSquareText size={13} className="mt-0.5 shrink-0 text-[var(--text-muted)]" />
+            <div className="min-w-0"><p className="line-clamp-2 text-[12px] leading-5 text-[var(--text-primary)]">{item.feedback}</p><p className="mt-0.5 truncate text-[10px] text-[var(--text-muted)]">{item.quiz_name} · {timeAgo(item.created_at)} · anonymous</p></div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

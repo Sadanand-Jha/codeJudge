@@ -9,6 +9,7 @@ import {
   Sparkles,
   BookOpen,
   ChevronRight,
+  ChevronDown,
   ShieldCheck,
   CheckCircle2,
   Layers3,
@@ -17,9 +18,15 @@ import {
   Rocket,
   KeyRound,
   ScanLine,
+  Star,
+  X,
+  Lock,
+  Eye,
+  Save,
+  BadgeCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { getQuizByCode, getQuizLeaderboard, type Quiz } from "@/services/quiz";
+import { getQuizByCode, getQuizCrowdAvatars, getQuizRating, getCreatorStats, type Quiz, type QuizRatingState, type CreatorPublicStats } from "@/services/quiz";
 import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
@@ -42,6 +49,11 @@ export default function JoinQuizPage() {
   // Exact avatars of users who already attempted this quiz (attempt table
   // via leaderboard). Undefined/empty → ambient decorative avatars.
   const [attemptUsers, setAttemptUsers] = useState<LiveParticipant[] | undefined>(undefined);
+  const [quizRating, setQuizRating] = useState<QuizRatingState | null>(null);
+  const [creatorStats, setCreatorStats] = useState<CreatorPublicStats | null>(null);
+  const [creatorStatsLoading, setCreatorStatsLoading] = useState(false);
+  const [creatorOpen, setCreatorOpen] = useState(false);
+  const creatorTimerRef = useRef<number | null>(null);
   const lookupInFlightRef = useRef(false);
   const initialCodeHandledRef = useRef(false);
   const isMobile = useIsMobile();
@@ -51,6 +63,40 @@ export default function JoinQuizPage() {
     const timer = window.setInterval(() => setClockMs(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  // Teacher stats auto-hide: visible for 2s after tap, then removed.
+  useEffect(() => {
+    return () => {
+      if (creatorTimerRef.current !== null) window.clearTimeout(creatorTimerRef.current);
+    };
+  }, []);
+
+  const handleCreatorToggle = useCallback(() => {
+    playQuizSound("select");
+    if (creatorTimerRef.current !== null) {
+      window.clearTimeout(creatorTimerRef.current);
+      creatorTimerRef.current = null;
+    }
+    // Chevron acts as both open + close: tap again to dismiss early.
+    if (creatorOpen) {
+      setCreatorOpen(false);
+      return;
+    }
+    setCreatorOpen(true);
+    creatorTimerRef.current = window.setTimeout(() => {
+      setCreatorOpen(false);
+      creatorTimerRef.current = null;
+    }, 2000);
+  }, [playQuizSound, creatorOpen]);
+
+  const handleCreatorClose = useCallback(() => {
+    playQuizSound("select");
+    if (creatorTimerRef.current !== null) {
+      window.clearTimeout(creatorTimerRef.current);
+      creatorTimerRef.current = null;
+    }
+    setCreatorOpen(false);
+  }, [playQuizSound]);
 
   const code = normalizeQuizCode(raw.replace(/[^a-zA-Z]/g, ""));
   const display = formatQuizCode(code);
@@ -62,39 +108,51 @@ export default function JoinQuizPage() {
     setLoading(true);
     setError(null);
     setAttemptUsers(undefined);
+    setQuizRating(null);
+    setCreatorStats(null);
+    setCreatorStatsLoading(false);
+    setCreatorOpen(false);
+    if (creatorTimerRef.current !== null) {
+      window.clearTimeout(creatorTimerRef.current);
+      creatorTimerRef.current = null;
+    }
     try {
       const data = await getQuizByCode(requestedCode);
       setQuiz(data as unknown as Quiz);
       setStep("details");
       playQuizSound("success");
-      // Pull the exact users (with their exact avatars) who already
-      // attempted this quiz. Falls back to ambient avatars on any failure.
+      // Rating is aggregate-only here; individual learner ratings and
+      // identities never leave the review/feedback workflow.
+      getQuizRating(String(data.id))
+        .then(setQuizRating)
+        .catch(() => setQuizRating(null));
+      // Creator card is aggregate-only too (no email / personal info).
+      const creatorId = (data as unknown as Quiz).createdby;
+      if (Number.isInteger(creatorId)) {
+        setCreatorStatsLoading(true);
+        getCreatorStats(String(creatorId))
+          .then(setCreatorStats)
+          .catch(() => setCreatorStats(null))
+          .finally(() => setCreatorStatsLoading(false));
+      }
+      // Crowd background shows every participant's avatar (avatar-only API —
+      // no ranks, scores, or names). Falls back to ambient avatars on failure.
       try {
-        const board = await getQuizLeaderboard(String((data as unknown as Quiz).id));
-        // One row per attempt → same user repeats. Keep only the first
-        // occurrence per user (leaderboard is ranked, so this is their best).
-        const seen = new Set<number>();
-        const unique = (board ?? []).filter((entry) => {
-          if (seen.has(entry.user_id)) return false;
-          seen.add(entry.user_id);
-          return true;
-        });
-        const users: LiveParticipant[] = unique.slice(0, 24).map((entry, i, list) => {
-          const name =
-            [entry.first_name, entry.last_name].filter(Boolean).join(" ") || entry.username;
+        const crowd = await getQuizCrowdAvatars(String((data as unknown as Quiz).id));
+        const users: LiveParticipant[] = (crowd ?? []).map((entry, i, list) => {
           return {
-            id: `attempt-user-${entry.user_id}`,
-            username: name,
-            avatar: (name.charAt(0) || "S").toUpperCase(),
-            avatarUrl: entry.avatar_url ?? undefined,
-            status: "idle",
+            id: `quiz-crowd-${i}`,
+            username: `Participant ${i + 1}`,
+            avatar: "S",
+            avatarUrl: entry.avatarUrl ?? undefined,
+            status: entry.status,
             progress: 0,
             questionsAnswered: 0,
             totalQuestions: 0,
             currentQuestion: 0,
             timeSpent: 0,
             connection: "good",
-            joinedAt: entry.completed_at,
+            joinedAt: new Date().toISOString(),
             positionSeed: (i + 1) / (list.length + 1),
           } satisfies LiveParticipant;
         });
@@ -320,10 +378,25 @@ export default function JoinQuizPage() {
                 </div>
 
                 <div className="relative border-b border-[#E4E7EC]/70 bg-gradient-to-br from-violet-500/[0.13] via-transparent to-cyan-400/[0.08] px-5 py-4 dark:border-white/[0.07] sm:px-6 sm:py-5">
-                  {/* Header is just avatar (30%) + quiz name / creator (rest). */}
+                  {/* Rating sits at the very top — stars only, no counts or labels. Always visible, even before the first rating. */}
+                  <div className="mb-3 flex justify-center">
+                    <span
+                      className="inline-flex items-center gap-0.5"
+                      role="img"
+                      aria-label={quizRating?.averageRating != null ? `Rated ${quizRating.averageRating.toFixed(1)} out of 5` : "No ratings yet"}
+                    >
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`h-4 w-4 ${quizRating?.averageRating != null && star <= Math.round(quizRating.averageRating) ? "fill-amber-400 text-amber-400" : "fill-amber-200/80 text-amber-500/70 dark:fill-white/[0.08] dark:text-white/25"}`}
+                        />
+                      ))}
+                    </span>
+                  </div>
+                  {/* Header is just avatar (30%) + quiz name / creator (rest). Stats panel stacks full-width below. */}
                   <div className="flex items-center gap-4">
                     <div className="w-[30%] max-w-28 shrink-0">
-                      <div className="relative grid aspect-square w-full place-items-center overflow-hidden rounded-2xl border-2 border-white/80 bg-gradient-to-br from-[#8B7CFF] to-[#5B4CE2] text-2xl font-bold uppercase text-white shadow-[0_12px_32px_-10px_rgba(124,92,255,.95)] dark:border-violet-300/20 sm:text-4xl">
+                      <div className="relative grid aspect-square w-full place-items-center overflow-hidden rounded-full border-2 border-white/80 bg-gradient-to-br from-[#8B7CFF] to-[#5B4CE2] text-2xl font-bold uppercase text-white shadow-[0_12px_32px_-10px_rgba(124,92,255,.95)] dark:border-violet-300/20 sm:text-4xl">
                         {quiz.creator_avatar_url ? (
                           // eslint-disable-next-line @next/next/no-img-element -- avatar URLs may be remote/user-configured
                           <img src={quiz.creator_avatar_url} alt={`${quiz.creator_name || "Quiz creator"} avatar`} className="h-full w-full object-cover" />
@@ -338,10 +411,25 @@ export default function JoinQuizPage() {
                     <div className="min-w-0 flex-1">
                       <h2 className="break-words text-lg font-bold leading-snug tracking-[-0.02em] text-[#101828] dark:text-white sm:text-2xl sm:leading-tight">{quiz.name}</h2>
                       {quiz.creator_name && (
-                        <p className="mt-1.5 truncate text-sm font-extrabold tracking-tight text-violet-600 dark:text-violet-300 sm:text-base">{quiz.creator_name}</p>
+                        <CreatorToggle
+                          creatorName={quiz.creator_name}
+                          teacherAvg={creatorStats?.averageTeacherRating ?? quizRating?.averageTeacherRating ?? null}
+                          open={creatorOpen}
+                          onToggle={handleCreatorToggle}
+                        />
                       )}
                     </div>
                   </div>
+                  {quiz.creator_name && (
+                    <CreatorStatsPanel
+                      creatorName={quiz.creator_name}
+                      open={creatorOpen}
+                      isMobile={isMobile}
+                      loading={creatorStatsLoading}
+                      stats={creatorStats}
+                      onClose={handleCreatorClose}
+                    />
+                  )}
                 </div>
 
                 <div className="relative space-y-3 p-4 sm:p-5">
@@ -358,15 +446,16 @@ export default function JoinQuizPage() {
                       value={quiz.total_marks?.toString() || "—"}
                       color="#A855F7"
                     />
+                  </div>
+
+                  <div className="grid items-stretch gap-3 md:grid-cols-2">
+                  <div className="flex min-w-0 flex-col gap-3">
                     <InfoCard
                       icon={BookOpen}
                       label="Difficulty"
                       value={quiz.difficulty_name || "Not specified"}
                       color="#F59E0B"
                     />
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-2">
                   <div className="overflow-hidden rounded-2xl border border-[#E4E7EC]/80 bg-white/55 backdrop-blur-sm dark:border-white/[0.07] dark:bg-white/[0.025]">
                     <div className="flex items-center justify-between border-b border-[#E4E7EC]/70 px-4 py-3 dark:border-white/[0.06]">
                       <div className="flex items-center gap-2">
@@ -400,9 +489,10 @@ export default function JoinQuizPage() {
                       </div>
                     </div>
                   </div>
+                  </div>
 
-                  <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.09] to-cyan-500/[0.05] p-4">
-                    <div className="flex gap-3">
+                  <div className="flex h-full flex-col rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.09] to-cyan-500/[0.05] p-4">
+                    <div className="mb-2.5 flex gap-3">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
                         <ShieldCheck className="h-4.5 w-4.5" />
                       </div>
@@ -413,13 +503,17 @@ export default function JoinQuizPage() {
                         <p className="mt-1 text-[11px] leading-5 text-emerald-700/80 dark:text-emerald-300/70">Quiz content stays protected and becomes available only after your access is approved.</p>
                       </div>
                     </div>
-                    <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-emerald-500/10 pt-2.5">
+                    <div className="mt-auto flex flex-col items-stretch gap-1.5 border-t border-emerald-500/10 pt-2.5">
                       {([
                         { icon: ShieldCheck, label: "Access controlled" },
                         { icon: UsersRound, label: "Private session" },
-                        { icon: CheckCircle2, label: "Entry verified" },
+                        // { icon: CheckCircle2, label: "Entry verified" },
+                        { icon: BadgeCheck, label: "Verified identity" },
+                        // { icon: Lock, label: "Protected content" },
+                        { icon: Eye, label: "Fair-play monitoring" },
+                        { icon: Save, label: "Auto-saved answers" },
                       ] satisfies Array<{ icon: LucideIcon; label: string }>).map(({ icon: Icon, label }) => (
-                        <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/10 bg-white/45 px-2.5 py-1 text-[9px] font-semibold text-emerald-800 dark:bg-black/10 dark:text-emerald-200">
+                        <span key={label} className="inline-flex w-full items-center gap-1.5 rounded-full border border-emerald-500/10 bg-white/45 px-2.5 py-1 text-[9px] font-semibold text-emerald-800 dark:bg-black/10 dark:text-emerald-200">
                           <Icon className="h-3 w-3" /> {label}
                         </span>
                       ))}
@@ -529,6 +623,158 @@ function JoinPageBackdrop() {
       <div className="absolute right-[23%] top-[30%] h-1.5 w-1.5 rounded-full bg-violet-300/50 shadow-[0_0_15px_4px_rgba(167,139,250,.2)]" />
       <div className="absolute bottom-[21%] left-[29%] h-1 w-1 rounded-full bg-cyan-200/50 shadow-[0_0_12px_3px_rgba(165,243,252,.16)]" />
     </div>
+  );
+}
+
+function CreatorToggle({
+  creatorName,
+  teacherAvg,
+  open,
+  onToggle,
+}: {
+  creatorName: string;
+  teacherAvg: number | null;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="mt-1.5 min-w-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-label={`About ${creatorName}`}
+        className="flex max-w-full flex-col items-start gap-1 rounded-lg px-1 py-0.5 outline-none transition-colors hover:bg-violet-500/[0.07] focus-visible:ring-2 focus-visible:ring-violet-400 dark:hover:bg-white/[0.05] sm:flex-row sm:items-center sm:gap-1.5"
+      >
+        <span className="max-w-full truncate text-sm font-extrabold tracking-tight text-violet-600 dark:text-violet-300 sm:text-base">
+          {creatorName}
+        </span>
+        {/* Teacher rating + chevron on its own line on mobile, inline on sm+. */}
+        <span className="inline-flex shrink-0 items-center gap-1.5">
+          <span
+            className="inline-flex shrink-0 items-center gap-[1px]"
+            role="img"
+            aria-label={teacherAvg != null ? `Teacher rating ${teacherAvg.toFixed(1)} out of 5` : "Teacher not rated yet"}
+          >
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={`h-3 w-3 ${teacherAvg != null && star <= Math.round(teacherAvg) ? "fill-amber-400 text-amber-400" : "fill-amber-200/70 text-amber-500/60 dark:fill-white/[0.08] dark:text-white/25"}`}
+              />
+            ))}
+          </span>
+          <ChevronDown
+            className={`h-3.5 w-3.5 shrink-0 text-violet-500 transition-transform duration-200 dark:text-violet-300 ${open ? "rotate-180" : ""}`}
+          />
+        </span>
+      </button>
+    </div>
+  );
+}
+
+function CreatorStatsPanel({
+  creatorName,
+  open,
+  isMobile,
+  loading,
+  stats,
+  onClose,
+}: {
+  creatorName: string;
+  open: boolean;
+  isMobile: boolean;
+  loading: boolean;
+  stats: CreatorPublicStats | null;
+  onClose: () => void;
+}) {
+  return (
+    <AnimatePresence initial={false}>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0, y: isMobile ? 0 : -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: isMobile ? 0 : -6 }}
+          transition={{ duration: isMobile ? 0.15 : 0.2 }}
+          className="relative mt-3 w-full overflow-hidden rounded-2xl border border-violet-500/15 bg-white/70 shadow-[0_16px_40px_-24px_rgba(124,92,255,.7)] backdrop-blur-md dark:border-white/[0.08] dark:bg-[#0D1322]/90"
+        >
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close teacher stats"
+            className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-[#98A2B3] outline-none transition-colors hover:bg-violet-500/[0.08] hover:text-[#101828] focus-visible:ring-2 focus-visible:ring-violet-400 dark:text-[#687386] dark:hover:bg-white/[0.06] dark:hover:text-white"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+            {loading ? (
+              <div className="flex items-center gap-2.5 p-3.5 pr-10">
+                <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-violet-500/15" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-2.5 w-2/3 animate-pulse rounded-full bg-[#E4E7EC] dark:bg-white/10" />
+                  <div className="h-2.5 w-1/2 animate-pulse rounded-full bg-[#E4E7EC] dark:bg-white/10" />
+                </div>
+              </div>
+            ) : stats ? (
+              <div className="p-3.5 pr-10">
+                <p className="truncate text-xs font-bold text-[#101828] dark:text-white">
+                  {stats.username || creatorName}
+                </p>
+                {/* Teacher rating strip */}
+                <div className="mt-2 flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-[1px]" role="img" aria-label={stats.averageTeacherRating != null ? `Teacher rating ${stats.averageTeacherRating.toFixed(1)} out of 5 from ${stats.teacherRatingCount} ratings` : "Teacher not rated yet"}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-3.5 w-3.5 ${stats.averageTeacherRating != null && star <= Math.round(stats.averageTeacherRating) ? "fill-amber-400 text-amber-400" : "fill-amber-200/70 text-amber-500/60 dark:fill-white/[0.08] dark:text-white/25"}`}
+                      />
+                    ))}
+                  </span>
+                  <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                    {stats.averageTeacherRating != null ? stats.averageTeacherRating.toFixed(1) : "New"}
+                  </span>
+                  {stats.teacherRatingCount > 0 && (
+                    <span className="text-[10px] font-semibold text-[#98A2B3] dark:text-[#687386]">
+                      · {stats.teacherRatingCount} {stats.teacherRatingCount === 1 ? "rating" : "ratings"}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2.5 grid grid-cols-3 gap-2 border-t border-[#E4E7EC]/70 pt-2.5 dark:border-white/[0.07]">
+                  <div className="min-w-0 text-center">
+                    <p className="flex items-center justify-center gap-1 text-sm font-extrabold text-[#101828] dark:text-white">
+                      <UsersRound className="h-3.5 w-3.5 text-violet-500" />
+                      {stats.uniqueStudents}
+                    </p>
+                    <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-[0.1em] text-[#98A2B3] dark:text-[#687386]">
+                      Students
+                    </p>
+                  </div>
+                  <div className="min-w-0 border-x border-[#E4E7EC]/70 px-1 text-center dark:border-white/[0.07]">
+                    <p className="flex items-center justify-center gap-1 text-sm font-extrabold text-[#101828] dark:text-white">
+                      <BookOpen className="h-3.5 w-3.5 text-violet-500" />
+                      {stats.quizzesCreated}
+                    </p>
+                    <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-[0.1em] text-[#98A2B3] dark:text-[#687386]">
+                      Quizzes
+                    </p>
+                  </div>
+                  <div className="min-w-0 text-center">
+                    <p className="flex items-center justify-center gap-1 text-sm font-extrabold text-[#101828] dark:text-white">
+                      <Zap className="h-3.5 w-3.5 text-violet-500" />
+                      {stats.totalAttempts}
+                    </p>
+                    <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-[0.1em] text-[#98A2B3] dark:text-[#687386]">
+                      Attempts
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="p-3.5 pr-10 text-[11px] font-semibold text-[#667085] dark:text-[#8F9AAF]">
+                Could not load teacher stats right now.
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
   );
 }
 

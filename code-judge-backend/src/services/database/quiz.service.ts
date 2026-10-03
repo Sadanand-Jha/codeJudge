@@ -3,6 +3,7 @@
 import {
   QuizRepository,
   type CreateQuizRatingResult,
+  type QuizRatingInput,
   type QuizRatingState,
 } from "../../repositories/quiz.repository.ts";
 import { assertQuizCreationAllowed } from "../quizCreationLimits.ts";
@@ -242,8 +243,16 @@ export class QuizService {
     return this.repository.getQuizRatingState(quizId, userId);
   }
 
-  async createQuizRating(quizId: number, userId: number, rating: number): Promise<CreateQuizRatingResult> {
-    return this.repository.createQuizRating(quizId, userId, rating);
+  async createQuizRating(quizId: number, userId: number, input: QuizRatingInput): Promise<CreateQuizRatingResult> {
+    return this.repository.createQuizRating(quizId, userId, input);
+  }
+
+  async getCreatorPublicStats(creatorId: number) {
+    return this.repository.getCreatorPublicStats(creatorId);
+  }
+
+  async getQuizCrowdAvatars(quizId: number) {
+    return this.repository.getQuizCrowdAvatars(quizId);
   }
 
   async getQuizResult(attemptId: number, userId: number): Promise<any | null> {

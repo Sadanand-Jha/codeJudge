@@ -433,10 +433,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         <AnimatePresence mode="wait" initial={false}>
         <motion.section
           key={current.id}
-          initial={{ opacity: 0, x: isMobile ? 0 : 18, scale: 1 }}
+          initial={isMobile ? false : { opacity: 0, x: 18, scale: 1 }}
           animate={{ opacity: 1, x: 0, scale: 1 }}
-          exit={{ opacity: 0, x: isMobile ? 0 : -14, scale: 1 }}
-          transition={isMobile ? { duration: 0.12 } : { duration: 0.22, ease: "easeOut" }}
+          exit={isMobile ? undefined : { opacity: 0, x: -14, scale: 1 }}
+          transition={isMobile ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
           className="relative overflow-hidden rounded-[24px] border border-border/80 bg-card/90 p-4 shadow-[0_18px_60px_-42px_rgba(42,23,90,.75)] backdrop-blur-xl sm:p-6"
         >
           <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-violet-500/[0.06] blur-3xl" />
@@ -601,7 +601,7 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound }: { comple
           </div>
         )}
 
-        <motion.div initial={{ opacity: 0, scale: 0.75, y: 18 }} animate={{ opacity: 1, scale: [0.75, 1.06, 1], y: 0 }} transition={{ duration: 0.5, ease: "easeOut" }} className="relative w-full max-w-md rounded-[2rem] border border-white/70 bg-white/95 px-6 py-8 text-center text-slate-950 shadow-[0_35px_120px_rgba(236,72,153,.35)] dark:border-white/15 dark:bg-[#11101a]/95 dark:text-white sm:px-9 sm:py-10">
+        <motion.div initial={isMobile ? false : { opacity: 0, scale: 0.75, y: 18 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={isMobile ? { duration: 0 } : { duration: 0.5, ease: "easeOut" }} className="relative w-full max-w-md rounded-[2rem] border border-white/70 bg-white/95 px-6 py-8 text-center text-slate-950 shadow-[0_35px_120px_rgba(236,72,153,.35)] dark:border-white/15 dark:bg-[#11101a]/95 dark:text-white sm:px-9 sm:py-10">
           <div className="mx-auto grid h-20 w-20 place-items-center rounded-[1.65rem] bg-gradient-to-br from-emerald-400 via-cyan-400 to-violet-500 text-white shadow-[0_18px_45px_-15px_rgba(34,197,94,.8)]">
             {isMobile ? <CheckCircle2 className="h-10 w-10" /> : <PartyPopper className="h-10 w-10" />}
           </div>

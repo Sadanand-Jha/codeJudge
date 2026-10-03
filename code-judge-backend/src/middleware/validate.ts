@@ -187,9 +187,26 @@ export const quizRegistrationSchema = z.object({
 });
 
 /** One immutable 1–5 star rating per learner and quiz. */
-export const quizRatingSchema = z.object({
-  rating: z.number().int().min(1).max(5),
+const detailedQuizRatingSchema = z.object({
+  quizRating: z.number().int().min(1).max(5),
+  questionRating: z.number().int().min(1).max(5),
+  platformRating: z.number().int().min(1).max(5),
+  teacherRating: z.number().int().min(1).max(5),
+  feedback: z.string().trim().max(600).optional().default(""),
 }).strict();
+
+export const quizRatingSchema = z.union([
+  detailedQuizRatingSchema,
+  // Keep already-open/cached review pages working while clients roll over to
+  // the richer feedback form.
+  z.object({ rating: z.number().int().min(1).max(5) }).strict().transform(({ rating }) => ({
+    quizRating: rating,
+    questionRating: rating,
+    platformRating: rating,
+    teacherRating: rating,
+    feedback: "",
+  })),
+]);
 
 /**
  * Schema for adding/updating quiz problems.

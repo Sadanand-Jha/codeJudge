@@ -13,15 +13,41 @@ export const MAX_QUIZ_ATTEMPTS = 5;
 
 export interface QuizRatingState {
   averageRating: number | null;
+  averageQuestionRating: number | null;
+  averagePlatformRating: number | null;
+  averageTeacherRating: number | null;
   ratingCount: number;
   userRating: number | null;
   canRate: boolean;
-  reason: "eligible" | "already_rated" | "quiz_not_ended" | "no_completed_attempt";
+  reason: "eligible" | "already_rated" | "no_completed_attempt";
 }
 
 export type CreateQuizRatingResult =
   | { status: "created"; rating: QuizRatingState }
-  | { status: "quiz_not_found" | "already_rated" | "quiz_not_ended" | "no_completed_attempt" };
+  | { status: "quiz_not_found" | "already_rated" | "no_completed_attempt" };
+
+export interface QuizRatingInput {
+  quizRating: number;
+  questionRating: number;
+  platformRating: number;
+  teacherRating: number;
+  feedback?: string;
+}
+
+/**
+ * Public creator card. Aggregate-only: username, avatar, quiz/attempt
+ * counts, and anonymous teacher-rating averages. Never carries email or
+ * any other personal info.
+ */
+export interface CreatorPublicStats {
+  username: string;
+  avatarUrl: string | null;
+  quizzesCreated: number;
+  uniqueStudents: number;
+  totalAttempts: number;
+  averageTeacherRating: number | null;
+  teacherRatingCount: number;
+}
 
 export class QuizRepository {
   /**
@@ -1193,6 +1219,29 @@ export class QuizRepository {
     return result.rows;
   }
 
+  /**
+   * Avatar-only crowd for the join-page background. One row per distinct
+   * participant (latest attempt wins), with a coarse live status so the UI
+   * can color the dot (submitted vs attempting). No ranks, scores, names,
+   * or any other user details.
+   */
+  async getQuizCrowdAvatars(quizId: number): Promise<Array<{ avatarUrl: string | null; status: "submitted" | "attempting" }>> {
+    const avatars = await pool.query(
+      `SELECT DISTINCT ON (qa.user_id) a.url AS avatar_url,
+              CASE WHEN LOWER(qa.status) = 'completed' THEN 'submitted' ELSE 'attempting' END AS status
+       FROM quiz_attempt qa
+       JOIN users u ON u.id = qa.user_id
+       LEFT JOIN avatar a ON a.id = u.avatar_id
+       WHERE qa.quiz_id = $1 AND LOWER(qa.status) IN ('completed', 'in_progress')
+       ORDER BY qa.user_id, qa.completed_at DESC NULLS LAST, qa.id DESC`,
+      [quizId]
+    );
+    return avatars.rows.map((row) => ({
+      avatarUrl: row.avatar_url ?? null,
+      status: row.status === "submitted" ? "submitted" : "attempting",
+    }));
+  }
+
   async getQuizAnalytics(quizId: number): Promise<any> {
     // --- Quiz meta for passing threshold ---
     const quizMeta = await pool.query(`SELECT total_marks, passing_marks, duration FROM quiz WHERE id=$1`, [quizId]);
@@ -1606,13 +1655,6 @@ export class QuizRepository {
   async getQuizRatingState(quizId: number, userId: number): Promise<QuizRatingState | null> {
     const result = await pool.query(
       `SELECT
-         (
-           LOWER(COALESCE(qs.name, '')) IN ('ended', 'completed')
-           OR (
-             q.endtime IS NOT NULL
-             AND q.endtime <= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Kolkata')
-           )
-         ) AS is_ended,
          EXISTS (
            SELECT 1
            FROM quiz_attempt qa
@@ -1622,13 +1664,18 @@ export class QuizRepository {
          ) AS has_completed_attempt,
          my_rating.rating AS user_rating,
          rating_stats.average_rating,
+         rating_stats.average_question_rating,
+         rating_stats.average_platform_rating,
+         rating_stats.average_teacher_rating,
          rating_stats.rating_count
        FROM quiz q
-       LEFT JOIN quiz_status qs ON qs.id = q.quiz_status
        LEFT JOIN quiz_rating my_rating
          ON my_rating.quiz_id = q.id AND my_rating.user_id = $2
        LEFT JOIN LATERAL (
          SELECT ROUND(AVG(qr.rating)::numeric, 1) AS average_rating,
+                ROUND(AVG(qr.question_rating)::numeric, 1) AS average_question_rating,
+                ROUND(AVG(qr.platform_rating)::numeric, 1) AS average_platform_rating,
+                ROUND(AVG(qr.teacher_rating)::numeric, 1) AS average_teacher_rating,
                 COUNT(*)::int AS rating_count
          FROM quiz_rating qr
          WHERE qr.quiz_id = q.id
@@ -1640,18 +1687,18 @@ export class QuizRepository {
     if (!result.rows.length) return null;
     const row = result.rows[0];
     const userRating = row.user_rating == null ? null : Number(row.user_rating);
-    const isEnded = row.is_ended === true;
     const hasCompletedAttempt = row.has_completed_attempt === true;
     const reason: QuizRatingState["reason"] = userRating !== null
       ? "already_rated"
-      : !isEnded
-        ? "quiz_not_ended"
-        : !hasCompletedAttempt
-          ? "no_completed_attempt"
-          : "eligible";
+      : !hasCompletedAttempt
+        ? "no_completed_attempt"
+        : "eligible";
 
     return {
       averageRating: row.average_rating == null ? null : Number(row.average_rating),
+      averageQuestionRating: row.average_question_rating == null ? null : Number(row.average_question_rating),
+      averagePlatformRating: row.average_platform_rating == null ? null : Number(row.average_platform_rating),
+      averageTeacherRating: row.average_teacher_rating == null ? null : Number(row.average_teacher_rating),
       ratingCount: Number(row.rating_count) || 0,
       userRating,
       canRate: reason === "eligible",
@@ -1659,14 +1706,17 @@ export class QuizRepository {
     };
   }
 
-  async createQuizRating(quizId: number, userId: number, rating: number): Promise<CreateQuizRatingResult> {
+  async createQuizRating(quizId: number, userId: number, input: QuizRatingInput): Promise<CreateQuizRatingResult> {
     const state = await this.getQuizRatingState(quizId, userId);
     if (!state) return { status: "quiz_not_found" };
     if (state.reason !== "eligible") return { status: state.reason };
 
     const inserted = await pool.query(
-      `INSERT INTO quiz_rating (quiz_id, user_id, attempt_id, rating)
-       SELECT $1, $2, qa.id, $3
+      `INSERT INTO quiz_rating (
+         quiz_id, user_id, attempt_id, rating,
+         question_rating, platform_rating, teacher_rating, feedback
+       )
+       SELECT $1, $2, qa.id, $3, $4, $5, $6, NULLIF(BTRIM($7), '')
        FROM quiz_attempt qa
        WHERE qa.quiz_id = $1
          AND qa.user_id = $2
@@ -1675,13 +1725,67 @@ export class QuizRepository {
        LIMIT 1
        ON CONFLICT (user_id, quiz_id) DO NOTHING
        RETURNING id`,
-      [quizId, userId, rating]
+      [
+        quizId,
+        userId,
+        input.quizRating,
+        input.questionRating,
+        input.platformRating,
+        input.teacherRating,
+        input.feedback ?? "",
+      ]
     );
 
     if (!inserted.rowCount) return { status: "already_rated" };
     const updated = await this.getQuizRatingState(quizId, userId);
     if (!updated) return { status: "quiz_not_found" };
     return { status: "created", rating: updated };
+  }
+
+  /**
+   * Aggregate-only public stats for a quiz creator's card on the join page.
+   * Counts distinct students across all of the creator's live quizzes
+   * (excluding the creator's own attempts) and the anonymous teacher-rating
+   * average. Returns null when the creator does not exist.
+   */
+  async getCreatorPublicStats(creatorId: number): Promise<CreatorPublicStats | null> {
+    // Scalar subqueries (no fan-out): joining attempts and ratings in one
+    // row would multiply counts, so each aggregate is computed separately.
+    const result = await pool.query(
+      `SELECT u.username,
+              a.url AS avatar_url,
+              (SELECT COUNT(*)::int FROM quiz q
+                WHERE q.createdby = u.id AND q.deleted_at IS NULL) AS quizzes_created,
+              (SELECT COUNT(DISTINCT qa.user_id)::int FROM quiz_attempt qa
+                 JOIN quiz q ON q.id = qa.quiz_id
+                WHERE q.createdby = u.id AND q.deleted_at IS NULL
+                  AND qa.user_id IS DISTINCT FROM u.id) AS unique_students,
+              (SELECT COUNT(*)::int FROM quiz_attempt qa
+                 JOIN quiz q ON q.id = qa.quiz_id
+                WHERE q.createdby = u.id AND q.deleted_at IS NULL) AS total_attempts,
+              (SELECT ROUND(AVG(qr.teacher_rating)::numeric, 1) FROM quiz_rating qr
+                 JOIN quiz q ON q.id = qr.quiz_id
+                WHERE q.createdby = u.id AND q.deleted_at IS NULL) AS average_teacher_rating,
+              (SELECT COUNT(qr.teacher_rating)::int FROM quiz_rating qr
+                 JOIN quiz q ON q.id = qr.quiz_id
+                WHERE q.createdby = u.id AND q.deleted_at IS NULL) AS teacher_rating_count
+       FROM users u
+       LEFT JOIN avatar a ON a.id = u.avatar_id
+       WHERE u.id = $1`,
+      [creatorId]
+    );
+
+    if (!result.rows.length) return null;
+    const row = result.rows[0];
+    return {
+      username: String(row.username ?? ""),
+      avatarUrl: row.avatar_url ?? null,
+      quizzesCreated: Number(row.quizzes_created) || 0,
+      uniqueStudents: Number(row.unique_students) || 0,
+      totalAttempts: Number(row.total_attempts) || 0,
+      averageTeacherRating: row.average_teacher_rating == null ? null : Number(row.average_teacher_rating),
+      teacherRatingCount: Number(row.teacher_rating_count) || 0,
+    };
   }
 
   async getQuizResult(attemptId: number, userId: number): Promise<any | null> {

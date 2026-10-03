@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import { pool } from "../config/database.ts";
 import { getClientIp } from "../utils/getClientIp.ts";
 import { observabilityContext } from "../services/observabilityContext.ts";
+import { runObservabilityRetentionCleanup } from "../services/observabilityRetention.ts";
 
 declare global {
   namespace Express {
@@ -210,6 +211,8 @@ export function observabilityMiddleware(req: Request, res: Response, next: NextF
             [memory.rss, memory.heapUsed, boundedJson({ service: "api", environment })]
           );
         }
+
+        await runObservabilityRetentionCleanup();
       } catch (error) {
         // Telemetry must never make an application request fail. A missing
         // migration therefore degrades to server logs until it is applied.

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowRight, AtSign, Crown, Eye, EyeOff, KeyRound, Lock, Shield, Sparkles, Swords, UserPlus } from "lucide-react";
+import { AlertCircle, ArrowRight, AtSign, BrainCircuit, Eye, EyeOff, KeyRound, Lock, UserPlus } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { login } from "@/services/auth";
 import { toast } from "@/lib/toast";
@@ -84,48 +84,26 @@ export default function LoginPage() {
       <div className="relative z-10 flex w-full max-w-md justify-center">
       <div className="mx-auto w-full max-w-md">
         {/* Logo */}
-        <div className="mb-7 flex justify-center">
-          <AuthBrandMark className="lg:hidden" />
-          <div className="hidden items-center gap-3 lg:flex">
-            <span className="relative grid h-11 w-11 place-items-center rounded-full border border-amber-300/45 bg-gradient-to-br from-amber-300 via-amber-500 to-orange-800 text-[#241307] shadow-[0_0_28px_rgba(245,158,11,.28),inset_0_1px_0_rgba(255,255,255,.55)]">
-              <Shield className="h-5 w-5" fill="currentColor" />
-              <Crown className="absolute -top-2 h-3.5 w-3.5 text-amber-300" />
-            </span>
-            <span className="text-left leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,.8)]">
-              <span className="block font-serif text-lg font-black tracking-wide text-amber-50">ByteClash</span>
-              <span className="mt-0.5 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.22em] text-amber-300/85">
-                <Swords className="h-2.5 w-2.5" /> The Quiz Kingdom
-              </span>
-            </span>
-          </div>
-        </div>
+        <div className="mb-7 flex justify-center"><AuthBrandMark /></div>
 
         {/* Card */}
-        <div className="relative overflow-hidden rounded-[30px] border border-pink-200/80 bg-white/84 p-6 shadow-[0_30px_80px_-42px_rgba(244,114,182,.75)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/90 dark:shadow-[0_30px_90px_-40px_rgba(91,69,196,.8)] sm:p-7 lg:rounded-[26px] lg:border-amber-300/25 lg:bg-[linear-gradient(145deg,rgba(20,18,19,.94),rgba(30,24,24,.9))] lg:shadow-[0_34px_90px_-34px_rgba(0,0,0,.92),0_0_45px_-24px_rgba(245,158,11,.38),inset_0_1px_0_rgba(255,232,183,.12)] lg:backdrop-blur-xl dark:lg:border-amber-300/25 dark:lg:bg-[linear-gradient(145deg,rgba(20,18,19,.94),rgba(30,24,24,.9))]">
-          <div className="pointer-events-none absolute inset-x-8 top-0 hidden h-px bg-gradient-to-r from-transparent via-amber-300/70 to-transparent lg:block" aria-hidden="true" />
-          <div className="pointer-events-none absolute -right-14 -top-14 hidden h-32 w-32 rounded-full bg-amber-400/[0.07] blur-3xl lg:block" aria-hidden="true" />
+        <div className="relative overflow-hidden rounded-[30px] border border-pink-200/80 bg-white/86 p-6 shadow-[0_30px_80px_-42px_rgba(244,114,182,.75)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/92 dark:shadow-[0_30px_90px_-40px_rgba(91,69,196,.8)] sm:p-7">
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-fuchsia-400/70 to-transparent" aria-hidden="true" />
+          <div className="pointer-events-none absolute -right-14 -top-14 h-32 w-32 rounded-full bg-violet-400/10 blur-3xl" aria-hidden="true" />
           <div className="mb-6 text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-violet-600 dark:border-violet-300/15 dark:bg-violet-500/10 dark:text-violet-200 lg:border-amber-300/25 lg:bg-amber-300/[0.07] lg:text-amber-200 dark:lg:border-amber-300/25 dark:lg:bg-amber-300/[0.07] dark:lg:text-amber-200">
-              <Sparkles className="h-3 w-3 lg:hidden" />
-              <Swords className="hidden h-3 w-3 lg:block" />
-              <span className="lg:hidden">Intelligent learning, resumed</span>
-              <span className="hidden lg:inline">The gates await</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-violet-600 dark:border-violet-300/15 dark:bg-violet-500/10 dark:text-violet-200">
+              <BrainCircuit className="h-3 w-3" />
+              Your AI learning workspace
             </span>
-            <h1 className="mt-3 text-xl font-black tracking-tight text-text-primary lg:font-serif lg:text-2xl lg:text-amber-50">
-              <span className="lg:hidden">Welcome back</span>
-              <span className="hidden lg:inline">Welcome back, challenger.</span>
-            </h1>
-            <p className="mt-1.5 text-xs text-text-secondary lg:text-amber-100/55">
-              <span className="lg:hidden">Sign in and pick up exactly where you left off.</span>
-              <span className="hidden lg:inline">Your next quest—and your classroom—are waiting.</span>
-            </p>
+            <h1 className="mt-3 text-2xl font-black tracking-tight text-text-primary">Welcome back</h1>
+            <p className="mt-1.5 text-xs text-text-secondary">Your quizzes, progress, and AI workspace are ready.</p>
           </div>
 
           <form className="space-y-4" onSubmit={submit} autoComplete="off">
             <div>
-              <label htmlFor="login-identifier" className="mb-2 block text-[11px] font-medium text-text-secondary lg:text-amber-100/65">Email or username</label>
+              <label htmlFor="login-identifier" className="mb-2 block text-[11px] font-medium text-text-secondary">Email or username</label>
               <div className="relative">
-                <AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted lg:text-amber-200/45" />
+                <AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                 <input
                   id="login-identifier"
                   type="text"
@@ -141,15 +119,15 @@ export default function LoginPage() {
                   name="login-identifier"
                   data-lpignore="true"
                   data-1p-ignore="true"
-                  className="w-full rounded-xl border border-input-border bg-input-bg py-2.5 pl-10 pr-3 text-sm text-text-primary placeholder-text-muted outline-none transition-colors focus:border-accent lg:border-amber-200/10 lg:bg-black/35 lg:text-amber-50 lg:placeholder:text-amber-100/25 lg:focus:border-amber-400/55 lg:focus:ring-2 lg:focus:ring-amber-400/10 dark:lg:border-amber-200/10 dark:lg:bg-black/35"
+                  className="w-full rounded-xl border border-input-border bg-input-bg py-3 pl-10 pr-3 text-sm text-text-primary placeholder-text-muted outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10"
                   placeholder="email@example.com or username"
                 />
               </div>
             </div>
             <div>
-              <label htmlFor="login-password" className="mb-2 block text-[11px] font-medium text-text-secondary lg:text-amber-100/65">Password</label>
+              <label htmlFor="login-password" className="mb-2 block text-[11px] font-medium text-text-secondary">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted lg:text-amber-200/45" />
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                 <input
                   id="login-password"
                   type={showPassword ? "text" : "password"}
@@ -162,7 +140,7 @@ export default function LoginPage() {
                   name="login-password"
                   data-lpignore="true"
                   data-1p-ignore="true"
-                  className="w-full rounded-xl border border-input-border bg-input-bg py-2.5 pl-10 pr-11 text-sm text-text-primary placeholder-text-muted outline-none transition-colors focus:border-accent lg:border-amber-200/10 lg:bg-black/35 lg:text-amber-50 lg:placeholder:text-amber-100/25 lg:focus:border-amber-400/55 lg:focus:ring-2 lg:focus:ring-amber-400/10 dark:lg:border-amber-200/10 dark:lg:bg-black/35"
+                  className="w-full rounded-xl border border-input-border bg-input-bg py-3 pl-10 pr-11 text-sm text-text-primary placeholder-text-muted outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10"
                   placeholder="••••••••"
                 />
                 <button
@@ -170,7 +148,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword((visible) => !visible)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
-                  className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-text-muted transition-colors hover:bg-black/5 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 dark:hover:bg-white/5 lg:text-amber-100/40 lg:hover:bg-amber-300/10 lg:hover:text-amber-200 lg:focus-visible:ring-amber-400/40"
+                  className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-text-muted transition-colors hover:bg-black/5 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 dark:hover:bg-white/5"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -189,20 +167,19 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-4 text-sm font-bold text-white shadow-[0_16px_32px_-18px_rgba(236,72,153,.9),inset_0_1px_0_rgba(255,255,255,.28)] transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_16px_34px_-18px_rgba(124,92,255,.95),inset_0_1px_0_rgba(255,255,255,.2)] lg:border-amber-200/45 lg:from-[#7C2D12] lg:via-[#D97706] lg:to-[#FBBF24] lg:text-[#251304] lg:shadow-[0_16px_34px_-16px_rgba(217,119,6,.7),inset_0_1px_0_rgba(255,248,220,.5)] dark:lg:from-[#7C2D12] dark:lg:via-[#D97706] dark:lg:to-[#FBBF24] dark:lg:text-[#251304] dark:lg:shadow-[0_16px_34px_-16px_rgba(217,119,6,.7),inset_0_1px_0_rgba(255,248,220,.5)]"
+              className="group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 px-4 text-sm font-bold text-white shadow-[0_16px_34px_-18px_rgba(168,85,247,.9),inset_0_1px_0_rgba(255,255,255,.25)] transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading && <AuthLoader className="h-4 w-4 text-current" />}
-              <span className="lg:hidden">{loading ? "Signing in..." : "Sign in"}</span>
-              <span className="hidden lg:inline">{loading ? "Opening the gates..." : "Enter the realm"}</span>
+              <span>{loading ? "Signing in..." : "Continue to ByteClash"}</span>
               {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
             </button>
           </form>
 
-          <div className="mt-5 grid grid-cols-2 gap-2.5 border-t border-input-border/70 pt-5 lg:border-amber-200/10">
-            <Link href="/forgot-password" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border border-input-border bg-input-bg/60 px-3 text-xs font-semibold text-text-secondary transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent active:translate-y-0 lg:border-amber-200/10 lg:bg-black/25 lg:text-amber-100/60 lg:hover:border-amber-400/35 lg:hover:bg-amber-300/[0.07] lg:hover:text-amber-200 dark:lg:border-amber-200/10 dark:lg:bg-black/25">
+          <div className="mt-5 grid grid-cols-1 gap-2.5 border-t border-input-border/70 pt-5 min-[420px]:grid-cols-2">
+            <Link href="/forgot-password" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border border-input-border bg-input-bg/60 px-3 text-xs font-semibold text-text-secondary transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent active:translate-y-0">
               <KeyRound className="h-3.5 w-3.5 transition-transform group-hover:-rotate-6" /> Reset password
             </Link>
-            <Link href="/register" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border border-input-border bg-input-bg/60 px-3 text-xs font-semibold text-text-secondary transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent active:translate-y-0 lg:border-amber-200/10 lg:bg-black/25 lg:text-amber-100/60 lg:hover:border-amber-400/35 lg:hover:bg-amber-300/[0.07] lg:hover:text-amber-200 dark:lg:border-amber-200/10 dark:lg:bg-black/25">
+            <Link href="/register" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border border-input-border bg-input-bg/60 px-3 text-xs font-semibold text-text-secondary transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent active:translate-y-0">
               <UserPlus className="h-3.5 w-3.5 transition-transform group-hover:scale-110" /> Create account
             </Link>
           </div>
