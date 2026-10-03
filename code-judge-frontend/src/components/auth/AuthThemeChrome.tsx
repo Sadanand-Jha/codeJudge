@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BrainCircuit, CheckCircle2, FileText, IceCreamCone, Layers3, LoaderCircle, Rocket, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -62,95 +62,118 @@ const REGISTER_AI_DEMOS = [
   },
 ];
 
+type AIShowcaseLine = {
+  id: string;
+  text: string;
+  kind: "build" | "thought";
+};
+
 function RegisterAIShowcase() {
   const [activeDemo, setActiveDemo] = useState(0);
-  const [stream, setStream] = useState({ chars: 0, paused: false });
+  const [phase, setPhase] = useState<"typing" | "thinking" | "building" | "complete">("typing");
+  const [typedWords, setTypedWords] = useState(0);
+  const [history, setHistory] = useState<AIShowcaseLine[]>([]);
+  const [liveLine, setLiveLine] = useState<AIShowcaseLine | null>(null);
   const demo = REGISTER_AI_DEMOS[activeDemo];
-  const allLines = useMemo(() => [...demo.steps, demo.result], [demo]);
-  const total = useMemo(() => allLines.reduce((sum, line) => sum + line.length, 0), [allLines]);
-  const pauseBoundaries = useMemo(() => {
-    let cursor = 0;
-    const boundaries: number[] = [];
-    for (const line of allLines) {
-      cursor += line.length;
-      if (/^(Hmm|Wait|Thinking)/.test(line)) boundaries.push(cursor);
-    }
-    return boundaries;
-  }, [allLines]);
+  const promptWords = demo.prompt.split(/\s+/);
 
   useEffect(() => {
-    let pauseIndex = 0;
-    let pauseUntil = 0;
-    let burstUntil = 0;
-    let speed = 120;
-    let fraction = 0;
-    let completedAt = 0;
-    let previousTick = performance.now();
+    const words = demo.prompt.split(/\s+/);
+    let cancelled = false;
+    let lineSequence = 0;
+    const timers = new Set<number>();
+    const createLine = (text: string, kind: AIShowcaseLine["kind"]): AIShowcaseLine => ({
+      id: `demo-${activeDemo}-line-${lineSequence++}`,
+      text,
+      kind,
+    });
+    const wait = (milliseconds: number) => new Promise<void>((resolve) => {
+      const timer = window.setTimeout(() => {
+        timers.delete(timer);
+        resolve();
+      }, milliseconds);
+      timers.add(timer);
+    });
 
-    const interval = window.setInterval(() => {
-      const now = performance.now();
-      const elapsed = Math.min((now - previousTick) / 1_000, 0.1);
-      previousTick = now;
+    const typeLine = async (text: string, kind: "build" | "thought") => {
+      let cursor = 0;
+      const line = createLine("", kind);
+      setLiveLine(line);
+      while (!cancelled && cursor < text.length) {
+        const chunkSize = kind === "thought" ? 2 : 3 + (cursor % 2);
+        cursor = Math.min(text.length, cursor + chunkSize);
+        setLiveLine({ ...line, text: text.slice(0, cursor) });
+        await wait(kind === "thought" ? 38 : 24);
+      }
+      if (cancelled) return;
+      setHistory((current) => [...current, { ...line, text }].slice(-6));
+      setLiveLine(null);
+    };
 
-      setStream((current) => {
-        if (current.chars >= total) {
-          if (completedAt === 0) completedAt = now;
-          if (now - completedAt > 1_250) {
-            window.clearInterval(interval);
-            setActiveDemo((index) => (index + 1) % REGISTER_AI_DEMOS.length);
-            return { chars: 0, paused: false };
-          }
-          return current;
+    const runDemo = async () => {
+      setPhase("typing");
+      setTypedWords(0);
+      setHistory([]);
+      setLiveLine(null);
+
+      await wait(350);
+      for (let index = 0; index < words.length && !cancelled; index += 1) {
+        setTypedWords(index + 1);
+        // 105–189ms per word: a natural-looking 5–10 token/second prompt.
+        await wait(105 + ((index * 37 + activeDemo * 19) % 85));
+      }
+      if (cancelled) return;
+
+      await wait(450);
+      setPhase("thinking");
+      setHistory([createLine("Hmm… I should map the topic before selecting questions.", "thought")]);
+      await wait(1_350);
+      const memoryThought = createLine("Wait… this should measure understanding, not simple recall.", "thought");
+      setHistory((current) => [...current, memoryThought]);
+      await wait(1_450);
+
+      for (const step of demo.steps) {
+        if (cancelled) return;
+        const isReflection = /^(Hmm|Wait|Thinking)/.test(step);
+        if (isReflection) {
+          setPhase("thinking");
+          // Thinking arrives as a complete reflection, then the output holds
+          // still. Only the building phase uses the fast character stream.
+          const reflection = createLine(step, "thought");
+          setHistory((current) => [...current, reflection].slice(-6));
+          await wait(1_700);
+        } else {
+          setPhase("building");
+          await typeLine(step, "build");
+          await wait(150);
         }
+      }
+      if (cancelled) return;
 
-        const nextPause = pauseBoundaries[pauseIndex];
-        if (nextPause !== undefined && current.chars >= nextPause && pauseUntil === 0) {
-          pauseUntil = now + 650;
-          fraction = 0;
-          return { chars: nextPause, paused: true };
-        }
+      setPhase("thinking");
+      const finalThought = createLine("One final check for accuracy, clarity, and ambiguity.", "thought");
+      setHistory((current) => [...current, finalThought].slice(-6));
+      await wait(1_500);
+      if (cancelled) return;
+      setPhase("complete");
+      await wait(2_700);
+      if (!cancelled) setActiveDemo((index) => (index + 1) % REGISTER_AI_DEMOS.length);
+    };
 
-        if (pauseUntil > now) return current.paused ? current : { ...current, paused: true };
+    void runDemo();
+    return () => {
+      cancelled = true;
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [activeDemo, demo]);
 
-        if (pauseUntil !== 0) {
-          pauseUntil = 0;
-          pauseIndex += 1;
-          burstUntil = now + 700;
-          speed = 250;
-        }
-
-        speed = now < burstUntil ? 250 : Math.max(120, speed - 10);
-        fraction += speed * elapsed;
-        const wholeChars = Math.floor(fraction);
-        fraction -= wholeChars;
-        const boundary = pauseBoundaries[pauseIndex] ?? total;
-
-        return {
-          chars: Math.min(total, boundary, current.chars + wholeChars),
-          paused: false,
-        };
-      });
-    }, 50);
-
-    return () => window.clearInterval(interval);
-  }, [activeDemo, pauseBoundaries, total]);
-
-  let remaining = stream.chars;
-  const rows: { index: number; text: string; done: boolean; active: boolean }[] = [];
-  for (const [index, line] of allLines.entries()) {
-    if (remaining >= line.length) {
-      rows.push({ index, text: line, done: true, active: false });
-      remaining -= line.length;
-    } else if (remaining > 0) {
-      rows.push({ index, text: line.slice(0, remaining), done: false, active: true });
-      remaining = 0;
-    } else {
-      rows.push({ index, text: "", done: false, active: false });
-    }
-  }
-
-  const visibleRows = rows.filter((row) => row.text).slice(-3);
-  const isFinished = stream.chars >= total;
+  const typedPrompt = promptWords.slice(0, typedWords).join(" ");
+  const visibleRows = [
+    ...history.slice(-2).map((line) => ({ ...line, isLive: false })),
+    ...(liveLine && !history.some((line) => line.id === liveLine.id) ? [{ ...liveLine, isLive: true }] : []),
+  ];
+  const completedBuildSteps = history.filter((line) => line.kind === "build").length;
+  const phaseLabel = phase === "typing" ? "Writing prompt" : phase === "thinking" ? "Thinking" : phase === "building" ? "Building" : "Quiz ready";
 
   return (
     <div className="relative my-8 overflow-hidden rounded-[26px] border border-white/80 bg-white/72 p-5 shadow-[0_24px_60px_-38px_rgba(79,70,229,.85)] dark:border-white/[0.08] dark:bg-white/[0.045]">
@@ -170,8 +193,9 @@ function RegisterAIShowcase() {
             <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.13em] text-violet-500 dark:text-violet-300">Prompt → reason → polished quiz</p>
           </div>
         </div>
-        <span className={cn("shrink-0 rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em]", isFinished ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300" : stream.paused ? "bg-violet-500/10 text-violet-600 dark:text-violet-300" : "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300")}>
-          {isFinished ? "Ready" : stream.paused ? "Thinking" : "Building"}
+        <span className={cn("inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em]", phase === "complete" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300" : phase === "thinking" ? "bg-violet-500/10 text-violet-600 dark:text-violet-300" : "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300")}>
+          {phase !== "complete" && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />}
+          {phaseLabel}
         </span>
       </div>
 
@@ -186,39 +210,54 @@ function RegisterAIShowcase() {
         >
           <div className="flex items-center gap-2 rounded-xl border border-violet-100/90 bg-violet-50/65 px-3.5 py-2.5 dark:border-violet-300/10 dark:bg-violet-500/[0.06]">
             <FileText className="h-3.5 w-3.5 shrink-0 text-violet-500" />
-            <p className="truncate font-mono text-[10px] font-bold text-[#3E455A] dark:text-[#D5DBE7]">“{demo.prompt}”</p>
+            <p className="min-h-4 truncate font-mono text-[10px] font-bold text-[#3E455A] dark:text-[#D5DBE7]">
+              {typedPrompt ? `“${typedPrompt}${phase === "typing" ? "" : "”"}` : <span className="font-normal text-[#98A2B3]">Write what you want to teach…</span>}
+              {phase === "typing" && <span className="ml-0.5 inline-block h-3 w-[2px] animate-pulse bg-violet-500 align-middle" />}
+            </p>
           </div>
 
-          <div className="mt-3 min-h-[84px] overflow-hidden rounded-xl border border-emerald-200/70 bg-emerald-50/55 px-3.5 py-2.5 font-mono text-[9px] leading-5 dark:border-emerald-300/10 dark:bg-emerald-500/[0.045]">
-            <AnimatePresence initial={false} mode="popLayout">
-              {visibleRows.map((row) => {
-                const isResult = row.index === rows.length - 1;
-                const isReflection = /^(Hmm|Wait|Thinking)/.test(row.text);
-                return (
-                  <motion.p
-                    layout
-                    key={row.index}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.13 }}
-                    className={cn("h-5 truncate whitespace-nowrap", isResult && row.done ? "font-black text-emerald-700 dark:text-emerald-300" : isReflection ? "italic text-violet-600 dark:text-violet-300" : "text-[#667085] dark:text-[#98A2B3]")}
-                  >
-                    <span className={cn("mr-1", isReflection ? "text-violet-500" : "text-emerald-500")}>{isResult && row.done ? "✓" : isReflection ? "∿" : "›"}</span>
-                    {row.text}
-                    {(row.active || (stream.paused && row.index === visibleRows[visibleRows.length - 1]?.index)) && <span className="ml-0.5 inline-block h-2.5 w-[2px] animate-pulse bg-emerald-500 align-middle" />}
-                  </motion.p>
-                );
-              })}
+          <div className="relative mt-3 h-[96px] overflow-hidden rounded-xl border border-emerald-200/70 bg-emerald-50/55 px-3.5 py-2.5 font-mono text-[9px] leading-5 dark:border-emerald-300/10 dark:bg-emerald-500/[0.045]">
+            <AnimatePresence mode="wait" initial={false}>
+              {phase === "complete" ? (
+                <motion.div key="complete" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="flex h-full items-center gap-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-500 text-white shadow-[0_10px_24px_-12px_rgba(16,185,129,.9)]">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[10px] font-black text-emerald-700 dark:text-emerald-300">Your quiz has been created</span>
+                    <span className="mt-0.5 block truncate text-[9px] text-[#667085] dark:text-[#98A2B3]">{demo.result} · ready to review</span>
+                  </span>
+                </motion.div>
+              ) : (
+                <motion.div key="stream" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex h-full flex-col justify-center">
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {visibleRows.map((row) => (
+                      <motion.p
+                        layout
+                        key={row.id}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.13 }}
+                        className={cn("h-5 truncate whitespace-nowrap", row.kind === "thought" ? "italic text-violet-600 dark:text-violet-300" : "text-[#667085] dark:text-[#98A2B3]")}
+                      >
+                        <span className={cn("mr-1", row.kind === "thought" ? "text-violet-500" : "text-emerald-500")}>{row.kind === "thought" ? "∿" : "›"}</span>
+                        {row.text}
+                        {row.isLive && <span className="ml-0.5 inline-block h-2.5 w-[2px] animate-pulse bg-emerald-500 align-middle" />}
+                      </motion.p>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              )}
             </AnimatePresence>
           </div>
 
           <div className="mt-3 grid grid-cols-3 gap-1.5">
             {demo.output.map((item, index) => (
-              <span key={item} className="inline-flex min-w-0 items-center justify-center gap-1 truncate rounded-lg border border-violet-200/60 bg-white/65 px-1.5 py-2 text-[8px] font-bold text-violet-700 dark:border-violet-300/10 dark:bg-white/[0.035] dark:text-violet-200">
-                {index === 0 ? <WandSparkles className="h-2.5 w-2.5 shrink-0" /> : index === 1 ? <CheckCircle2 className="h-2.5 w-2.5 shrink-0" /> : <Layers3 className="h-2.5 w-2.5 shrink-0" />}
+              <motion.span animate={{ opacity: phase === "complete" || completedBuildSteps > index * 2 ? 1 : 0.45 }} key={item} className={cn("inline-flex min-w-0 items-center justify-center gap-1 truncate rounded-lg border px-1.5 py-2 text-[8px] font-bold transition-colors", phase === "complete" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-300/10 dark:bg-emerald-500/[0.07] dark:text-emerald-300" : "border-violet-200/60 bg-white/65 text-violet-700 dark:border-violet-300/10 dark:bg-white/[0.035] dark:text-violet-200")}>
+                {phase === "complete" ? <CheckCircle2 className="h-2.5 w-2.5 shrink-0" /> : index === 0 ? <WandSparkles className="h-2.5 w-2.5 shrink-0" /> : index === 1 ? <CheckCircle2 className="h-2.5 w-2.5 shrink-0" /> : <Layers3 className="h-2.5 w-2.5 shrink-0" />}
                 <span className="truncate">{item}</span>
-              </span>
+              </motion.span>
             ))}
           </div>
         </motion.div>

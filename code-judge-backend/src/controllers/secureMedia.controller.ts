@@ -71,3 +71,35 @@ export const getSecureMedia = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * GET /api/v1/brand/logo (PUBLIC — no auth, used by navbars/footers/auth pages)
+ * Serves the site logo.png AES-256-GCM encrypted, same format as secure-media.
+ */
+export const getBrandLogo = async (_req: Request, res: Response) => {
+  try {
+    const secureDir = process.env.SECURE_MEDIA_DIR || './secure-media';
+    const filePath = `${secureDir}/logo.png`;
+
+    const encryptedBase64 = await secureMediaService.encryptImageFile(filePath);
+
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', 'attachment; filename="logo.png.enc"');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // Logo is static — allow short public caching (encrypted bytes are
+    // useless without the AES key, rotated per deploy).
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    res.status(200).json({
+      success: true,
+      data: encryptedBase64,
+      mimeType: 'application/octet-stream',
+    });
+  } catch (error) {
+    console.error("Error fetching brand logo:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching brand logo",
+    });
+  }
+};

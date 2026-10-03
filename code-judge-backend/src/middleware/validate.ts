@@ -19,13 +19,13 @@ export const registerSchema = z.object({
   username: z
     .string()
     .trim()
+    .toLowerCase()
     .min(3, "Username must be at least 3 characters")
     .max(50, "Username must be at most 50 characters")
     .regex(
       /^[a-z0-9_.-]+$/,
       "Username can only contain lowercase letters, numbers, underscores, hyphens, and dots"
-    )
-    .transform((val) => val.toLowerCase()),
+    ),
 
   email: z
     .string()
@@ -51,6 +51,7 @@ export const authRegisterSchema = z.object({
   username: z
     .string()
     .trim()
+    .toLowerCase()
     .min(3, "Username must be at least 3 characters")
     .max(20, "Username must be at most 20 characters")
     .regex(/^[a-z0-9]+$/, "Username can only contain lowercase letters and numbers"),

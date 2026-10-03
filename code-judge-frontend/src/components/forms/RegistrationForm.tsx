@@ -63,6 +63,7 @@ export default function RegistrationForm() {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [emailSubmitError, setEmailSubmitError] = useState<string | null>(null);
+  const [registrationSubmitError, setRegistrationSubmitError] = useState<string | null>(null);
 
   const [usernameStatus, setUsernameStatus] = useState<{
     checking: boolean;
@@ -112,6 +113,9 @@ export default function RegistrationForm() {
   const updateField = useCallback(
     (name: keyof FormState, value: string) => {
       if (name === "email") setEmailSubmitError(null);
+      if (name === "username" || name === "password" || name === "confirmPassword") {
+        setRegistrationSubmitError(null);
+      }
       setForm((prev) => ({
         ...prev,
         [name]: { ...prev[name], value, error: null, touched: true },
@@ -307,7 +311,9 @@ export default function RegistrationForm() {
       if (usernameErr || passErr || confirmErr) return;
 
       if (usernameStatus.available === false) {
-        toast.error("Username is already taken");
+        const message = "Username is already taken";
+        setRegistrationSubmitError(message);
+        toast.error(message);
         return;
       }
       if (!accountType) {
@@ -319,6 +325,7 @@ export default function RegistrationForm() {
       }
 
       playQuizSound("submit");
+      setRegistrationSubmitError(null);
       setSubmitting(true);
       try {
         const res = await register({
@@ -345,10 +352,14 @@ export default function RegistrationForm() {
           if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
           router.push("/login");
         } else {
-          toast.error(res.message || "Registration failed");
+          const message = res.message || "Registration failed";
+          setRegistrationSubmitError(message);
+          toast.error(message);
         }
       } catch (err: unknown) {
-        toast.error(getApiErrorMessage(err, "Something went wrong"));
+        const message = getApiErrorMessage(err, "Something went wrong");
+        setRegistrationSubmitError(message);
+        toast.error(message);
       } finally {
         setSubmitting(false);
       }
@@ -376,7 +387,7 @@ export default function RegistrationForm() {
   };
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-x-hidden bg-[#FFF9F1] px-4 py-12 dark:bg-[#050510] sm:px-6 lg:px-8 lg:py-8">
+    <div className="relative flex min-h-dvh items-start justify-center overflow-x-hidden bg-[#FFF9F1] px-4 pb-10 pt-16 dark:bg-[#050510] sm:px-6 sm:py-12 lg:items-center lg:px-8 lg:py-8">
       <AuthBackground />
       <AuthThemeControls />
       <AuthBottomStrip />
@@ -384,27 +395,25 @@ export default function RegistrationForm() {
         <AuthShowcasePanel mode="register" />
       <div className="mx-auto w-full max-w-md">
         {/* Brand */}
+        {step !== "register" && (
         <div className="mb-8 text-center">
           <AuthBrandMark className="mb-4" />
           {/* The profile sub-flow (register step) renders its own per-screen titles. */}
-          {step !== "register" && (
-            <>
-              <div className="mx-auto mb-4 flex w-44 items-center gap-2" aria-label={`Registration step ${step === "email" ? 1 : 2} of 6`}>
-                {[1, 2, 3, 4, 5, 6].map((item) => (
-                  <span key={item} className={`h-1 flex-1 rounded-full transition-colors ${item <= (step === "email" ? 1 : 2) ? "bg-accent" : "bg-input-border"}`} />
-                ))}
-              </div>
-              <h1 className="text-xl font-bold text-text-primary">
-                {step === "email" && "Create your account"}
-                {step === "verify" && "Check your email"}
-              </h1>
-              <p className="mt-2 text-sm text-text-secondary">
-                {step === "email" && "Enter your email to get started"}
-                {step === "verify" && `We sent a code to ${form.email.value}`}
-              </p>
-            </>
-          )}
+          <div className="mx-auto mb-4 flex w-44 items-center gap-2" aria-label={`Registration step ${step === "email" ? 1 : 2} of 6`}>
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <span key={item} className={`h-1 flex-1 rounded-full transition-colors ${item <= (step === "email" ? 1 : 2) ? "bg-accent" : "bg-input-border"}`} />
+            ))}
+          </div>
+          <h1 className="text-xl font-bold text-text-primary">
+            {step === "email" && "Create your account"}
+            {step === "verify" && "Check your email"}
+          </h1>
+          <p className="mt-2 text-sm text-text-secondary">
+            {step === "email" && "Enter your email to get started"}
+            {step === "verify" && `We sent a code to ${form.email.value}`}
+          </p>
         </div>
+        )}
 
         {/* Card for email + OTP. The profile sub-flow renders open (no card). */}
         {step !== "register" && (
@@ -539,7 +548,7 @@ export default function RegistrationForm() {
 
           {/* Step 3: Profile onboarding — one task per screen, open layout (no card). */}
           {step === "register" && (
-            <div className="mx-auto w-full max-w-[390px] rounded-[30px] border border-pink-200/70 bg-white/75 p-5 shadow-[0_30px_80px_-44px_rgba(244,114,182,.65)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/86 sm:p-6">
+            <div className="mx-auto w-full max-w-[390px] rounded-[26px] border border-pink-200/70 bg-white/75 p-4 shadow-[0_30px_80px_-44px_rgba(244,114,182,.65)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/86 sm:rounded-[30px] sm:p-6">
               <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-text-muted">
                 Profile setup · {profileStep} of 4
               </p>
@@ -561,12 +570,12 @@ export default function RegistrationForm() {
                 >
                   {profileStep === 1 && (
                     <div>
-                      <span className="mx-auto mt-5 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-[0_14px_28px_-14px_rgba(124,58,237,.85)]">
+                      <span className="mx-auto mt-4 grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-[0_14px_28px_-14px_rgba(124,58,237,.85)] sm:mt-5 sm:h-12 sm:w-12 sm:rounded-2xl">
                         <Sparkles className="h-5 w-5" />
                       </span>
-                      <h1 className="mt-4 text-center text-[25px] font-black tracking-tight text-text-primary">How will you use ByteClash?</h1>
-                      <p className="mt-2 text-center text-sm leading-6 text-text-secondary">We&rsquo;ll personalize your workspace, tools, and first experience.</p>
-                      <div className="mt-6 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Choose account type">
+                      <h1 className="mt-3 text-center text-[22px] font-black tracking-tight text-text-primary sm:mt-4 sm:text-[25px]">How will you use ByteClash?</h1>
+                      <p className="mt-1.5 text-center text-xs leading-5 text-text-secondary sm:mt-2 sm:text-sm sm:leading-6">We&rsquo;ll personalize your workspace, tools, and first experience.</p>
+                      <div className="mt-4 grid gap-2.5 sm:mt-5 sm:gap-3" role="radiogroup" aria-label="Choose account type">
                         {([
                           { id: "student" as const, icon: GraduationCap, title: "I'm a student", description: "Join quizzes, practice smarter, and track every result.", badge: "Learn" },
                           { id: "teacher" as const, icon: Presentation, title: "I'm a teacher", description: "Create quizzes, manage learners, and review insights.", badge: "Create" },
@@ -579,18 +588,22 @@ export default function RegistrationForm() {
                               role="radio"
                               aria-checked={selected}
                               onClick={() => { setAccountType(id); playQuizSound("select"); }}
-                              className={`group relative min-h-[190px] overflow-hidden rounded-[22px] border p-4 text-left transition-all duration-200 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${selected ? "border-violet-500 bg-violet-500/[0.09] shadow-[0_18px_42px_-25px_rgba(124,58,237,.8)]" : "border-input-border bg-input-bg/65 hover:border-violet-400/45"}`}
+                              className={`group relative min-h-[96px] overflow-hidden rounded-[18px] border p-3 pr-12 text-left transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 sm:min-h-[104px] sm:rounded-[20px] sm:p-3.5 sm:pr-14 ${selected ? "border-violet-500 bg-violet-500/[0.09] shadow-[0_18px_42px_-25px_rgba(124,58,237,.8)]" : "border-input-border bg-input-bg/65 hover:border-violet-400/45"}`}
                             >
-                              <span className={`grid h-11 w-11 place-items-center rounded-2xl transition-colors ${selected ? "bg-violet-600 text-white" : "bg-violet-500/10 text-violet-600 dark:text-violet-300"}`}><Icon className="h-5 w-5" /></span>
-                              <span className="mt-4 block text-sm font-black text-text-primary">{title}</span>
-                              <span className="mt-1.5 block text-[11px] leading-5 text-text-secondary">{description}</span>
+                              <span className="flex items-start gap-3">
+                                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors sm:h-11 sm:w-11 sm:rounded-2xl ${selected ? "bg-violet-600 text-white" : "bg-violet-500/10 text-violet-600 dark:text-violet-300"}`}><Icon className="h-5 w-5" /></span>
+                                <span className="min-w-0 pt-0.5">
+                                  <span className="block text-sm font-black text-text-primary">{title}</span>
+                                  <span className="mt-1 block text-[11px] leading-[18px] text-text-secondary">{description}</span>
+                                </span>
+                              </span>
                               <span className={`absolute right-3 top-3 rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-[0.13em] ${selected ? "bg-violet-600 text-white" : "bg-black/[0.04] text-text-muted dark:bg-white/[0.06]"}`}>{badge}</span>
                               {selected && <span className="absolute bottom-3 right-3 grid h-6 w-6 place-items-center rounded-full bg-violet-600 text-white"><Check className="h-3.5 w-3.5" strokeWidth={3} /></span>}
                             </button>
                           );
                         })}
                       </div>
-                      <button type="button" disabled={!accountType} onClick={() => goProfileStep(2)} className={`${AUTH_PRIMARY_BUTTON} mt-5 min-h-13`}>
+                      <button type="button" disabled={!accountType} onClick={() => goProfileStep(2)} className={`${AUTH_PRIMARY_BUTTON} mt-4 min-h-12 sm:mt-5`}>
                         Continue as {accountType ?? "…"} <ArrowRight className="h-4 w-4" />
                       </button>
                     </div>
@@ -619,24 +632,7 @@ export default function RegistrationForm() {
                     spellCheck={false}
                     autoFocus
                     onChange={(e) => handleUsernameChange(e.target.value)}
-                    onBlur={() => {
-                      const err = validateUsernameField(form.username.value);
-                      if (!err && form.username.value) {
-                        const checkId = ++usernameCheckIdRef.current;
-                        setUsernameStatus((prev) => ({ ...prev, checking: true }));
-                        checkUsername(form.username.value).then((res) => {
-                          if (checkId !== usernameCheckIdRef.current) return;
-                          setUsernameStatus({
-                            checking: false,
-                            available: res.available,
-                            message: res.message,
-                          });
-                        }).catch(() => {
-                          if (checkId !== usernameCheckIdRef.current) return;
-                          setUsernameStatus({ checking: false, available: null, message: "" });
-                        });
-                      }
-                    }}
+                    onBlur={() => validateUsernameField(form.username.value)}
                     aria-describedby="username-availability"
                     className={`w-full rounded-2xl bg-input-bg border px-5 py-4 pr-28 text-lg text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
                       form.username.touched && form.username.error
@@ -691,19 +687,19 @@ export default function RegistrationForm() {
                       <p className="mt-2 text-center text-sm text-text-secondary">
                         Choose how you&rsquo;ll appear in quizzes and waiting rooms.
                       </p>
-                      <div className="mt-6 flex justify-center">
-                        <span className="block h-28 w-28 overflow-hidden rounded-full border-2 border-violet-500 ring-2 ring-violet-500/20">
+                      <div className="mt-4 flex justify-center sm:mt-5">
+                        <span className="block h-20 w-20 overflow-hidden rounded-full border-2 border-violet-500 ring-2 ring-violet-500/20 sm:h-24 sm:w-24">
                           <Image
                             src={selectedAvatarUrl}
                             alt={PREDEFINED_AVATARS.find((a) => a.url === selectedAvatarUrl)?.label ?? "Selected avatar"}
-                            width={112}
-                            height={112}
+                            width={96}
+                            height={96}
                             className="h-full w-full object-cover"
                             priority
                           />
                         </span>
                       </div>
-                      <div className="mt-6 grid grid-cols-3 gap-3" role="radiogroup" aria-label="Choose your avatar">
+                      <div className="mx-auto mt-4 grid max-w-[270px] grid-cols-3 gap-2.5 sm:mt-5" role="radiogroup" aria-label="Choose your avatar">
                         {PREDEFINED_AVATARS.map((avatar) => {
                           const selected = selectedAvatarUrl === avatar.url;
                           return (
@@ -714,7 +710,7 @@ export default function RegistrationForm() {
                               aria-checked={selected}
                               aria-label={avatar.label}
                               onClick={() => { playQuizSound("select"); setSelectedAvatarUrl(avatar.url); }}
-                              className={`relative aspect-square overflow-hidden rounded-full border-2 p-1 transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+                              className={`relative mx-auto h-[72px] w-[72px] overflow-hidden rounded-full border-2 p-1 transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 sm:h-[78px] sm:w-[78px] ${
                                 selected
                                   ? "border-violet-500 ring-2 ring-violet-500/20 shadow-[0_0_18px_-6px_rgba(124,92,255,.55)]"
                                   : "border-input-border hover:border-violet-400/60"
@@ -730,7 +726,7 @@ export default function RegistrationForm() {
                           );
                         })}
                       </div>
-                      <div className="mt-6 flex gap-3">
+                      <div className="mt-5 flex gap-3">
                         <button
                           type="button"
                           onClick={() => goProfileStep(2)}
@@ -825,6 +821,26 @@ export default function RegistrationForm() {
                         </div>
 
                       </div>
+                      <AnimatePresence initial={false}>
+                        {registrationSubmitError && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -6, height: 0 }}
+                            animate={{ opacity: 1, y: 0, height: "auto" }}
+                            exit={{ opacity: 0, y: -4, height: 0 }}
+                            role="alert"
+                            aria-live="assertive"
+                            className="mt-4 overflow-hidden rounded-2xl border border-rose-300/70 bg-gradient-to-r from-rose-50 to-orange-50 px-4 py-3 text-rose-800 shadow-[0_12px_30px_-22px_rgba(225,29,72,.65)] dark:border-rose-400/25 dark:from-rose-500/10 dark:to-orange-500/10 dark:text-rose-200"
+                          >
+                            <span className="flex items-start gap-2.5">
+                              <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                              <span>
+                                <span className="block text-xs font-black">Couldn&rsquo;t create your account</span>
+                                <span className="mt-0.5 block text-[11px] leading-5 opacity-85">{registrationSubmitError}</span>
+                              </span>
+                            </span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       <div className="mt-6 flex gap-3">
                         <button
                           type="button"
@@ -850,7 +866,7 @@ export default function RegistrationForm() {
           )}
 
         {/* Footer */}
-        <p className="mt-6 text-center text-xs text-text-muted">
+        <p className="mt-4 text-center text-xs text-text-muted sm:mt-6">
           Already have an account?{" "}
           <Link href="/login" className="inline-flex items-center gap-1 font-semibold text-accent transition-colors hover:text-accent/80">
             <LogIn className="h-3.5 w-3.5" /> Sign in

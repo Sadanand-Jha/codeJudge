@@ -5,7 +5,7 @@ import { pool } from "../config/database.ts";
 export class userRepository {
     async getEmailByUsername(username: string): Promise<string | null> {
         const query = `
-            select email from users where username = $1
+            SELECT email FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1
         `;
         const result = await pool.query(query, [username]);
         if (result.rows.length > 0) {
@@ -16,7 +16,7 @@ export class userRepository {
     
     async checkUserExistsByEmail(email: string): Promise<boolean> {
         const query = `
-            select 1 from users where email = $1 limit 1
+            SELECT 1 FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1
         `;
         const result = await pool.query(query, [email]);
         return result.rows.length > 0;
@@ -24,7 +24,7 @@ export class userRepository {
 
     async checkUsernameExists(username: string): Promise<boolean> {
         const query = `
-            SELECT 1 FROM users WHERE username = $1 LIMIT 1
+            SELECT 1 FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1
         `;
         const result = await pool.query(query, [username]);
         return result.rows.length > 0;
@@ -32,7 +32,7 @@ export class userRepository {
 
     async getUserByEmail(email: string): Promise<any> {
         const query = `
-            SELECT * FROM users WHERE email = $1 LIMIT 1
+            SELECT * FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1
         `;
         const result = await pool.query(query, [email]);
         return result.rows.length > 0 ? result.rows[0] : null;
@@ -41,7 +41,7 @@ export class userRepository {
     async getUserByIdentifier(identifier: string): Promise<any> {
         const query = `
             SELECT * FROM users
-            WHERE LOWER(email) = $1 OR username = $1
+            WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1)
             LIMIT 1
         `;
         const result = await pool.query(query, [identifier]);
@@ -153,7 +153,7 @@ export class userRepository {
 
         return {
             id: user.id,
-            username: user.username,
+            username: String(user.username || '').toLowerCase(),
             email: user.email,
             role: user.role_name || null,
             firstName: user.first_name || null,
@@ -189,7 +189,7 @@ export class userRepository {
                 SELECT id FROM role WHERE LOWER(name) = $5 LIMIT 1
             )
             INSERT INTO users (Username, Email, Password, role_id, avatar_id)
-            SELECT $1, $2, $3, chosen_role.id, chosen_avatar.id
+            SELECT LOWER($1), LOWER($2), $3, chosen_role.id, chosen_avatar.id
             FROM chosen_avatar CROSS JOIN chosen_role
             RETURNING *
         `;

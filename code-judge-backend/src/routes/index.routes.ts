@@ -28,6 +28,7 @@ import authRoutes from "./auth.routes.ts"
 import { authenticate } from "../middleware/auth.ts";
 import { validate, quizGameConfigSchema } from "../middleware/validate.ts";
 import { getQuizGameConfig, upsertQuizGameConfig } from "../controllers/quiz.controller.ts";
+import { getBrandLogo } from "../controllers/secureMedia.controller.ts";
 
 const router = Router();
 
@@ -35,6 +36,11 @@ const router = Router();
 // password recovery and session bootstrap must remain reachable without an
 // existing session.
 router.use("/auth", authRoutes)
+
+// Brand logo (AES-encrypted) must be public — navbars, footers and auth
+// pages render before any session exists. All other secure-media stays
+// behind auth inside v1Routes.
+router.get("/v1/brand/logo", getBrandLogo);
 
 router.use("/v1", v1Routes);
 

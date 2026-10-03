@@ -221,7 +221,18 @@ export interface BankQuestionsData {
     chapters: { id: number; subjectId: number; name: string; count: number }[];
     topics: { id: number; chapterId: number; name: string; count: number }[];
     difficulties: { id: number; name: string }[];
+    categories: { id: number; name: string }[];
   };
+}
+
+export interface BankQuestionUpdate {
+  questionText: string;
+  questionHtml?: string | null;
+  difficultyId?: number | null;
+  categoryId?: number | null;
+  subjectId?: number | null;
+  chapterId?: number | null;
+  topicId?: number | null;
 }
 
 async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
@@ -300,6 +311,13 @@ export const platformApi = {
     if (filters.limit) params.limit = filters.limit;
     return get<BankQuestionsData>("/questions", params);
   },
+  updateQuestion: (questionId: number, payload: BankQuestionUpdate) => schedulePlatformRequest(async () => {
+    const response = await platformClient.put<BankQuestion>(
+      `/v1/platform/questions/${encodeURIComponent(String(questionId))}`,
+      payload
+    );
+    return response.data;
+  }),
   deleteQuestion: (questionId: number) => schedulePlatformRequest(async () => {
     const response = await platformClient.delete<{ deleted: number; id: number }>(
       `/v1/platform/questions/${encodeURIComponent(String(questionId))}`

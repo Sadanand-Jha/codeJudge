@@ -535,7 +535,6 @@ function QuizHome() {
             <span className="absolute right-[7%] top-[18%] text-4xl drop-shadow-lg">🍭</span>
             <span className="absolute bottom-[12%] left-[15%] text-4xl drop-shadow-lg">💦</span>
             <span className="absolute bottom-[10%] right-[12%] text-4xl drop-shadow-lg">🎉</span>
-            <span className="absolute left-[2%] top-[5%] inline-flex items-center gap-1.5 rounded-xl border border-violet-200/70 bg-white/80 px-3 py-2 text-[9px] font-black uppercase tracking-[0.13em] text-violet-600 shadow-lg backdrop-blur-md"><BrainCircuit className="h-3.5 w-3.5" /> AI creator ready</span>
           </div>}
         </header>
 

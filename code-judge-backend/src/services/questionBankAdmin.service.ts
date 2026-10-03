@@ -73,7 +73,7 @@ export async function listBankQuestions(filters: ListQuestionFilters) {
     LEFT JOIN chapter_topics ct ON ct.id = qb.topic_id
     ${whereSql}`;
 
-  const [rowsResult, countResult, subjectsResult, chaptersResult, topicsResult, difficultiesResult] = await Promise.all([
+  const [rowsResult, countResult, subjectsResult, chaptersResult, topicsResult, difficultiesResult, categoriesResult] = await Promise.all([
     pool.query(
       `SELECT qb.id,
               qb.subject_id AS "subjectId", s.subject_name AS "subjectName",
@@ -114,6 +114,7 @@ export async function listBankQuestions(filters: ListQuestionFilters) {
        ORDER BY ct.topic_name`
     ),
     pool.query(`SELECT id, name FROM question_difficulty ORDER BY id`),
+    pool.query(`SELECT id, name FROM question_category ORDER BY id`),
   ]);
 
   const total = Number(countResult.rows[0]?.total ?? 0);
@@ -129,8 +130,83 @@ export async function listBankQuestions(filters: ListQuestionFilters) {
       chapters: chaptersResult.rows as { id: number; subjectId: number; name: string; count: number }[],
       topics: topicsResult.rows as { id: number; chapterId: number; name: string; count: number }[],
       difficulties: difficultiesResult.rows as { id: number; name: string }[],
+      categories: categoriesResult.rows as { id: number; name: string }[],
     },
   };
+}
+
+export interface UpdateBankQuestionInput {
+  questionText: string;
+  questionHtml?: string | null;
+  difficultyId?: number | null;
+  categoryId?: number | null;
+  subjectId?: number | null;
+  chapterId?: number | null;
+  topicId?: number | null;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function textToHtml(value: string): string {
+  const paragraphs = value
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`);
+  return paragraphs.length ? paragraphs.join("") : `<p>${escapeHtml(value.trim())}</p>`;
+}
+
+export async function updateBankQuestion(id: number, input: UpdateBankQuestionInput): Promise<BankQuestionRow | null> {
+  const text = (input.questionText ?? "").trim();
+  if (!text) throw Object.assign(new Error("Question text is required."), { statusCode: 400 });
+  const html = (input.questionHtml ?? "").trim() ? String(input.questionHtml).trim() : textToHtml(text);
+
+  // Keep existing scope/lookups when the editor only changes text.
+  const current = await pool.query("SELECT * FROM subjective_question_bank WHERE id = $1", [id]);
+  if (!current.rows.length) return null;
+  const row = current.rows[0] as Record<string, unknown>;
+  const subjectId = input.subjectId ?? (row.subject_id as number);
+  const chapterId = input.chapterId !== undefined ? input.chapterId : (row.chapter_id as number | null);
+  const topicId = input.topicId !== undefined ? input.topicId : (row.topic_id as number | null);
+  const difficultyId = input.difficultyId ?? (row.difficulty_id as number);
+  const categoryId = input.categoryId ?? (row.category_id as number);
+
+  const updated = await pool.query(
+    `UPDATE subjective_question_bank
+     SET subject_id = $2, chapter_id = $3, topic_id = $4,
+         difficulty_id = $5, category_id = $6,
+         question_text = $7, question_html = $8, updated_at = NOW()
+     WHERE id = $1`,
+    [id, subjectId, chapterId, topicId, difficultyId, categoryId, text, html]
+  );
+  if ((updated.rowCount ?? 0) === 0) return null;
+
+  const fresh = await pool.query(
+    `SELECT qb.id,
+            qb.subject_id AS "subjectId", s.subject_name AS "subjectName",
+            qb.chapter_id AS "chapterId", sc.chapter_name AS "chapterName",
+            qb.topic_id AS "topicId", ct.topic_name AS "topicName",
+            qb.difficulty_id AS "difficultyId", qd.name AS "difficulty",
+            qb.category_id AS "categoryId", qc.name AS "category",
+            qb.question_text AS "questionText", qb.question_html AS "questionHtml",
+            qb.created_at AS "createdAt"
+     FROM subjective_question_bank qb
+     JOIN subjects s ON s.id = qb.subject_id
+     JOIN question_difficulty qd ON qd.id = qb.difficulty_id
+     JOIN question_category qc ON qc.id = qb.category_id
+     LEFT JOIN subject_chapters sc ON sc.id = qb.chapter_id
+     LEFT JOIN chapter_topics ct ON ct.id = qb.topic_id
+     WHERE qb.id = $1`,
+    [id]
+  );
+  return (fresh.rows[0] as BankQuestionRow) ?? null;
 }
 
 export async function deleteBankQuestion(id: number): Promise<boolean> {

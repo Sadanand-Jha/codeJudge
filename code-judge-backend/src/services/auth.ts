@@ -171,7 +171,7 @@ export async function sendOtp(email: string, clientIp?: string): Promise<Service
       return errorResponse('Invalid email format', 400);
     }
 
-    const normalizedEmail = email.toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
 
     // 2. Check if email already exists in database
     const existingUser = await userService.checkUserExistsByEmail(normalizedEmail);
@@ -310,7 +310,7 @@ export async function verifyOtp(email: string, otp: string): Promise<ServiceResp
       return errorResponse('Invalid OTP format', 400);
     }
 
-    const normalizedEmail = email.toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
 
     // 2. Retrieve OTP from cache
     const cachedOtp = await getCachedOtp(normalizedEmail);
@@ -399,7 +399,8 @@ export async function register(
       return errorResponse('Registration token is required', 400);
     }
 
-    const normalizedEmail = email.toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedUsername = username.trim().toLowerCase();
 
     // 2. Verify registration token exists in Redis
     const tokenEmail = await getCachedRegistrationToken(registrationToken);
@@ -413,19 +414,27 @@ export async function register(
       return errorResponse('Email mismatch: token does not match the provided email', 401);
     }
 
-    // 4. Double-check user doesn't already exist (race condition guard)
-    const existingUser = await userService.checkUserExistsByEmail(normalizedEmail);
+    // 4. Double-check both identifiers immediately before inserting. The
+    // controller also checks the username for UX, but this service-level guard
+    // protects direct callers and closes the availability-check race window.
+    const [existingUser, existingUsername] = await Promise.all([
+      userService.checkUserExistsByEmail(normalizedEmail),
+      userService.checkUsernameExists(normalizedUsername),
+    ]);
     if (existingUser) {
       // Clean up token since it's now invalid
       await deleteCachedRegistrationToken(registrationToken);
       return errorResponse('Email already registered', 400);
+    }
+    if (existingUsername) {
+      return errorResponse('Username is already taken', 400);
     }
 
     // 5. Hash password with bcrypt
     const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
     // 6. Save user to database and get the created user record (includes id)
-    const createdUser = await userService.createUser(normalizedEmail, hashedPassword, username, avatarUrl, accountType);
+    const createdUser = await userService.createUser(normalizedEmail, hashedPassword, normalizedUsername, avatarUrl, accountType);
 
     // 7. Delete registration token from Redis
     await deleteCachedRegistrationToken(registrationToken);
@@ -444,6 +453,35 @@ export async function register(
     );
   } catch (error) {
     console.error('Error in register:', error);
+
+    const databaseError = error as {
+      code?: string;
+      constraint?: string;
+      message?: string;
+    };
+
+    // Availability can change between the final check and INSERT. Convert
+    // database uniqueness failures into useful registration responses instead
+    // of leaking them as an opaque 500.
+    if (databaseError.code === '23505') {
+      const constraint = (databaseError.constraint || '').toLowerCase();
+      if (constraint.includes('username')) {
+        return errorResponse('Username is already taken', 400);
+      }
+      if (constraint.includes('email')) {
+        return errorResponse('Email already registered', 400);
+      }
+      return errorResponse('An account with these details already exists', 400);
+    }
+
+    if (databaseError.message?.startsWith('Registration role is not configured:')) {
+      return errorResponse('This account type is temporarily unavailable. Please try again shortly.', 503);
+    }
+
+    if (isTransientDatabaseError(error)) {
+      return errorResponse('Registration service is temporarily unavailable. Please try again.', 503);
+    }
+
     return errorResponse('Internal server error during registration', 500);
   }
 }

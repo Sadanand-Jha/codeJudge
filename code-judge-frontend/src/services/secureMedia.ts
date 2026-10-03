@@ -10,33 +10,15 @@ const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 
 /**
- * Derives a CryptoKey from the secret using SHA-256 (matching backend)
+ * Derives a CryptoKey from the secret using SHA-256 (matching backend:
+ * `crypto.createHash('sha256').update(secretKey).digest()`).
  */
 async function deriveKey(secretKey: string): Promise<CryptoKey> {
   const encoder = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secretKey),
-    'PBKDF2',
-    false,
-    ['deriveKey']
-  );
-
-  // Use a fixed salt for consistency (backend uses SHA-256 of secret)
-  const salt = encoder.encode('secure-media-salt');
-
-  return crypto.subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt,
-      iterations: 1,
-      hash: 'SHA-256',
-    },
-    keyMaterial,
-    { name: AES_ALGORITHM, length: 256 },
-    false,
-    ['decrypt']
-  );
+  const hash = await crypto.subtle.digest('SHA-256', encoder.encode(secretKey));
+  return crypto.subtle.importKey('raw', hash, { name: AES_ALGORITHM }, false, [
+    'decrypt',
+  ]);
 }
 
 /**

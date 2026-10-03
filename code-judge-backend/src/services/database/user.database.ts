@@ -30,7 +30,7 @@ export class UserService {
     }
 
     async createUser(email: string, password: string, username: string, avatarUrl: string, accountType: "student" | "teacher" = "student"): Promise<any> {
-        const finalUsername = username || email.split('@')[0];
+        const finalUsername = (username || email.split('@')[0]).trim().toLowerCase();
         return this.repository.createUser(email, password, finalUsername, avatarUrl, accountType);
     }
 

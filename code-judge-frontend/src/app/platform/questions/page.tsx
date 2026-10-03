@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, Layers3, RotateCcw, Search, Trash2 } from "lucide-react";
+import { ChevronDown, Layers3, Pencil, RotateCcw, Search, Trash2 } from "lucide-react";
 import { platformApi } from "@/services/platform";
 import type { BankQuestion, BankQuestionsData } from "@/services/platform";
 import { EmptyState, ErrorState, SectionCard, SectionSkeleton, fmtInt } from "@/components/platform/ui";
@@ -34,6 +34,11 @@ export default function QuestionBankPage() {
   const [page, setPage] = useState(1);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [editing, setEditing] = useState<BankQuestion | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editDifficultyId, setEditDifficultyId] = useState<number | null>(null);
+  const [editCategoryId, setEditCategoryId] = useState<number | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -115,9 +120,7 @@ export default function QuestionBankPage() {
   };
 
   const removeQuestion = async (question: BankQuestion) => {
-    if (typeof window !== "undefined" && !window.confirm(`Delete question #${question.id} from the bank? This cannot be undone.`)) {
-      return;
-    }
+    // No confirmation — delete immediately on click.
     setDeletingId(question.id);
     try {
       await platformApi.deleteQuestion(question.id);
@@ -127,6 +130,37 @@ export default function QuestionBankPage() {
       toast.error({ title: "Delete failed", description: getApiErrorMessage(error, "Unable to delete this question.") });
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const openEdit = (question: BankQuestion) => {
+    setEditing(question);
+    setEditText(question.questionText);
+    setEditDifficultyId(question.difficultyId);
+    setEditCategoryId(question.categoryId);
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    const text = editText.trim();
+    if (!text) {
+      toast.error({ title: "Question is empty", description: "Write the question text before saving." });
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await platformApi.updateQuestion(editing.id, {
+        questionText: text,
+        difficultyId: editDifficultyId,
+        categoryId: editCategoryId,
+      });
+      toast.success({ title: "Question updated", description: `#${editing.id} saved.` });
+      setEditing(null);
+      q.retry();
+    } catch (error) {
+      toast.error({ title: "Update failed", description: getApiErrorMessage(error, "Unable to update this question.") });
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -261,15 +295,27 @@ export default function QuestionBankPage() {
                               <span className="pf-mono text-[var(--text-muted)]">#{question.id}</span>
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => removeQuestion(question)}
-                            disabled={deletingId === question.id}
-                            aria-label={`Delete question ${question.id}`}
-                            className="pf-focus shrink-0 rounded-[8px] border border-[var(--danger)]/25 p-1.5 text-[var(--danger)] transition-colors hover:bg-[var(--danger)]/10 disabled:opacity-40"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openEdit(question)}
+                              aria-label={`Edit question ${question.id}`}
+                              title="Edit question"
+                              className="pf-focus rounded-[8px] border border-[var(--border)] p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--card-hover)] hover:text-[var(--text-primary)]"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeQuestion(question)}
+                              disabled={deletingId === question.id}
+                              aria-label={`Delete question ${question.id}`}
+                              title="Delete immediately"
+                              className="pf-focus shrink-0 rounded-[8px] border border-[var(--danger)]/25 p-1.5 text-[var(--danger)] transition-colors hover:bg-[var(--danger)]/10 disabled:opacity-40"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -290,6 +336,96 @@ export default function QuestionBankPage() {
           </div>
         )}
       </SectionCard>
+
+      {editing && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => !savingEdit && setEditing(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Edit question ${editing.id}`}
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-xl overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--card)] shadow-xl"
+          >
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+              <div>
+                <h3 className="text-sm font-bold text-[var(--text-primary)]">Edit question #{editing.id}</h3>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  {[editing.subjectName, editing.chapterName, editing.topicName].filter(Boolean).join(" · ")}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                disabled={savingEdit}
+                className="rounded-[8px] border border-[var(--border)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-40"
+              >
+                Close
+              </button>
+            </div>
+            <div className="space-y-3 px-4 py-4">
+              <label className="block">
+                <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Question text</span>
+                <textarea
+                  value={editText}
+                  onChange={(event) => setEditText(event.target.value)}
+                  rows={5}
+                  disabled={savingEdit}
+                  className="pf-focus min-h-[120px] w-full resize-y rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] p-3 text-[13px] leading-relaxed text-[var(--text-primary)] outline-none disabled:opacity-50"
+                />
+              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Difficulty</span>
+                  <select
+                    value={editDifficultyId ?? ""}
+                    onChange={(event) => setEditDifficultyId(event.target.value ? Number(event.target.value) : null)}
+                    disabled={savingEdit}
+                    className="h-10 w-full rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] px-3 text-[12px] font-medium text-[var(--text-primary)] outline-none disabled:opacity-50"
+                  >
+                    {(facets?.difficulties ?? []).map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Category</span>
+                  <select
+                    value={editCategoryId ?? ""}
+                    onChange={(event) => setEditCategoryId(event.target.value ? Number(event.target.value) : null)}
+                    disabled={savingEdit}
+                    className="h-10 w-full rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] px-3 text-[12px] font-medium text-[var(--text-primary)] outline-none disabled:opacity-50"
+                  >
+                    {(facets?.categories ?? []).map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                disabled={savingEdit}
+                className="rounded-[10px] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={savingEdit}
+                className="rounded-[10px] bg-[var(--accent)] px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {savingEdit ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

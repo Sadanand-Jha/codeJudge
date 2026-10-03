@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Globe, User, LogOut, Search, LogIn, Code2 } from "lucide-react";
+import { Globe, User, LogOut, Search, LogIn } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import NavbarPromoWidget from "./NavbarPromoWidget";
 import NotificationBell from "./NotificationBell";
 import { toast } from "@/lib/toast";
@@ -46,9 +47,7 @@ export default function Navbar() {
       <div className="flex h-12 items-center justify-between border-b border-border px-4">
         {/* Logo */}
         <Link href="/quiz" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] flex items-center justify-center">
-            <Code2 className="w-4 h-4 text-white" />
-          </div>
+          <SecureLogo size={28} />
           <span className="text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
         </Link>
 

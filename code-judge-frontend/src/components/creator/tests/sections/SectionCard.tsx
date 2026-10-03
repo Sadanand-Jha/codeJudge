@@ -223,19 +223,15 @@ export function SectionCard({
       aria-label={aiButtonLabel}
       whileHover={{ scale: 1.025, y: -1 }}
       whileTap={{ scale: 0.98 }}
-      className="section-ai-cta group relative isolate inline-flex min-w-[150px] items-center gap-2 overflow-hidden rounded-lg border border-pink-200/80 bg-gradient-to-r from-white via-pink-50/80 to-violet-50/90 px-2.5 py-2 text-xs font-extrabold text-violet-700 transition-[border-color,background-color,box-shadow] hover:border-pink-300 dark:border-white/15 dark:from-[#2b2038] dark:via-[#33203f] dark:to-[#29213f] dark:text-fuchsia-100 dark:hover:border-fuchsia-400/40"
+      className="group relative isolate inline-flex min-w-[150px] items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 px-3 py-2 text-xs font-black text-white shadow-[0_8px_20px_-8px_rgba(124,58,237,.8)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-8px_rgba(124,58,237,.9)]"
     >
       <motion.span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-0 -z-10 w-14 -skew-x-12 bg-gradient-to-r from-transparent via-pink-200/60 to-transparent blur-[1px] dark:via-white/20"
+        className="pointer-events-none absolute inset-y-0 left-0 -z-10 w-14 -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent blur-[1px]"
         initial={{ x: "-180%" }}
         animate={{ x: "520%" }}
         transition={{ duration: 2.6, repeat: Infinity, repeatDelay: 1.4, ease: "easeInOut" }}
       />
-      <span aria-hidden="true" className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_25%_10%,rgba(244,114,182,0.09),transparent_38%)] dark:bg-[radial-gradient(circle_at_25%_10%,rgba(255,255,255,0.12),transparent_38%)]" />
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-sm shadow-pink-500/20">
-        <Sparkles className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
-      </span>
       <span aria-hidden="true" className="inline-flex min-w-[96px] items-center text-left">
         <AiStreamText text={aiButtonLabel} tokensPerSecond={20} />
       </span>

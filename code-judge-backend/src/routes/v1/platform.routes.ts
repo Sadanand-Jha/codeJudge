@@ -19,6 +19,7 @@ import {
 import {
   getBankQuestions,
   removeBankQuestion,
+  updateBankQuestionHandler,
 } from "../../controllers/platformQuestionBank.controller.ts";
 
 const router = Router();
@@ -86,8 +87,9 @@ router.post("/question-import/preview/stream", uploadQuestionDocument, previewQu
 router.post("/question-import/json-preview", previewQuestionImportJson);
 router.post("/question-import/commit", commitQuestionImport);
 
-// Curated subjective question bank: read subject/chapter/topic-wise + delete.
+// Curated subjective question bank: read subject/chapter/topic-wise + delete/update.
 router.get("/questions", getBankQuestions);
+router.put("/questions/:questionId", updateBankQuestionHandler);
 router.delete("/questions/:questionId", removeBankQuestion);
 
 export default router;
