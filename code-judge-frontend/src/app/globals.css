@@ -6,6 +6,42 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ============================================
+   Auth page desktop-only space decor
+   Stars twinkle, asteroids drift slowly, shooting
+   star streaks occasionally. Rendered only on
+   md+ screens (hidden on mobile for perf) and also
+   killed by the mobile kill-switch below.
+   ============================================ */
+.auth-desktop-star {
+  animation: auth-star-twinkle 3s ease-in-out infinite;
+}
+@keyframes auth-star-twinkle {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.auth-desktop-asteroid {
+  animation: auth-asteroid-drift 12s ease-in-out infinite;
+}
+@keyframes auth-asteroid-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-4deg); }
+  50% { transform: translate3d(14px, -18px, 0) rotate(5deg); }
+}
+.auth-desktop-shooting {
+  width: 120px;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, rgba(255,255,255,.9), transparent);
+  transform: rotate(-24deg);
+  opacity: 0;
+  animation: auth-shooting 7s linear infinite;
+}
+@keyframes auth-shooting {
+  0%, 86% { opacity: 0; transform: rotate(-24deg) translateX(0); }
+  88% { opacity: 1; }
+  94%, 100% { opacity: 0; transform: rotate(-24deg) translateX(-220px); }
+}
+
+/* ============================================
    Sidebar Drag Prevention — Global Utility
    Prevents native browser dragging on sidebar elements
    (links, buttons, icons, text, images).
@@ -5113,7 +5149,10 @@ svg {
   }
 
   .quiz-party-floater,
-  .quiz-party-confetti {
+  .quiz-party-confetti,
+  .auth-desktop-star,
+  .auth-desktop-asteroid,
+  .auth-desktop-shooting {
     animation: none !important;
   }
 }
