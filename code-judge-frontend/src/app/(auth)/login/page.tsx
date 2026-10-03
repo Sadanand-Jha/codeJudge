@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, AtSign, Crown, Eye, EyeOff, KeyRound, Lock, Shield, Sparkles, Swords, UserPlus } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
@@ -81,20 +80,7 @@ export default function LoginPage() {
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-x-hidden bg-[#FFF9F1] px-4 py-12 dark:bg-[#050510] sm:px-6 lg:px-8 lg:py-8">
       <AuthBackground />
-      <div className="pointer-events-none fixed inset-0 z-[1] hidden overflow-hidden lg:block" aria-hidden="true">
-        <Image
-          src="/images/auth/login_page_img.png"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#2A160D]/10 via-transparent to-[#1D1110]/12 dark:from-[#050510]/38 dark:via-[#080814]/24 dark:to-[#050510]/30" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#24140E]/18 dark:to-[#050510]/42" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_45%,transparent_0%,rgba(20,12,18,.03)_62%,rgba(20,12,18,.18)_100%)] dark:bg-[radial-gradient(circle_at_65%_45%,transparent_0%,rgba(5,5,16,.08)_62%,rgba(5,5,16,.32)_100%)]" />
-      </div>
-      <AuthThemeControls fantasyDesktop />
+      <AuthThemeControls />
       <div className="relative z-10 flex w-full max-w-md justify-center">
       <div className="mx-auto w-full max-w-md">
         {/* Logo */}
