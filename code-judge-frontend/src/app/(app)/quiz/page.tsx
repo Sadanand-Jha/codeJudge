@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, BrainCircuit, Check, FileText, History, KeyRound, ShieldCheck, Rocket, Radar, Gauge, Satellite, PartyPopper, Sparkles, WandSparkles } from "lucide-react";
+import { ArrowRight, BrainCircuit, Check, FileText, History, KeyRound, ShieldCheck, Rocket, Radar, Gauge, Satellite, PartyPopper, Sparkles, UserRound, WandSparkles } from "lucide-react";
 import GuestGuard from "@/components/guards/GuestGuard";
 
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
@@ -507,7 +507,7 @@ function QuizHome() {
             <p className="mt-4 max-w-2xl text-[13px] leading-6 text-[#475467] dark:text-[#A1ABBC] sm:text-[15px]">
               {partyMode ? "Pop the balloons, splash some color, and turn every question into a cheerful little celebration." : "Receive your launch code, enter the assessment cockpit, and prove your skills beyond the classroom. Every attempt is a new destination."}
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <Link href="/quiz/join" className="group inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-6 text-sm font-bold text-white shadow-[0_14px_32px_-14px_rgba(244,114,182,.9)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-12px_rgba(244,114,182,.95)] dark:from-[#705CF1] dark:via-[#8B7CFF] dark:to-[#A46EFF] dark:shadow-[0_14px_32px_-14px_rgba(124,92,255,.95)] dark:hover:shadow-[0_18px_40px_-12px_rgba(124,92,255,1)]">
                 {partyMode ? <PartyPopper className="h-4 w-4" /> : <Rocket className="h-4 w-4" />} {partyMode ? "Join the quiz party" : "Launch a mission"} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
@@ -516,6 +516,9 @@ function QuizHome() {
               </Link>
               <Link href="/creator/quizzes/create" className="group inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-violet-300/55 bg-gradient-to-r from-violet-50/90 to-fuchsia-50/85 px-5 text-sm font-bold text-violet-700 shadow-[0_14px_30px_-20px_rgba(124,58,237,.7)] transition hover:-translate-y-0.5 hover:border-violet-400 dark:border-violet-400/25 dark:from-violet-500/10 dark:to-fuchsia-500/10 dark:text-violet-200">
                 <WandSparkles className="h-4 w-4" /> Create your own quiz <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              <Link href="/meet-the-developer" className="group inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#DDE2EA] bg-white/55 px-5 text-sm font-semibold text-[#344054] transition hover:-translate-y-0.5 hover:border-violet-500/30 hover:text-violet-600 dark:border-white/[0.09] dark:bg-white/[0.035] dark:text-[#BAC3D3] dark:hover:text-violet-300">
+                <UserRound className="h-4 w-4" /> Meet the developer <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </div>
           </div>
