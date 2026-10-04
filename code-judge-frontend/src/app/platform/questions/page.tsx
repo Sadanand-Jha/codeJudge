@@ -121,11 +121,32 @@ export default function QuestionBankPage() {
 
   const removeQuestion = async (question: BankQuestion) => {
     // No confirmation — delete immediately on click.
+    // Optimistic in-place removal: no refetch, no loading skeleton flash.
     setDeletingId(question.id);
     try {
       await platformApi.deleteQuestion(question.id);
       toast.success({ title: "Question deleted", description: `#${question.id} removed from the bank.` });
-      q.retry();
+      q.setData((prev) => {
+        if (!prev) return prev;
+        const questions = prev.questions.filter((item) => item.id !== question.id);
+        const decrement = <T extends { id: number; count: number }>(list: T[], id: number | null): T[] =>
+          id === null
+            ? list
+            : list.map((entry) => (entry.id === id ? { ...entry, count: Math.max(0, entry.count - 1) } : entry));
+        const total = Math.max(0, prev.total - 1);
+        return {
+          ...prev,
+          total,
+          totalPages: Math.max(1, Math.ceil(total / prev.limit)),
+          questions,
+          facets: {
+            ...prev.facets,
+            subjects: decrement(prev.facets.subjects, question.subjectId),
+            chapters: decrement(prev.facets.chapters, question.chapterId),
+            topics: decrement(prev.facets.topics, question.topicId),
+          },
+        };
+      });
     } catch (error) {
       toast.error({ title: "Delete failed", description: getApiErrorMessage(error, "Unable to delete this question.") });
     } finally {
@@ -135,7 +156,9 @@ export default function QuestionBankPage() {
 
   const openEdit = (question: BankQuestion) => {
     setEditing(question);
-    setEditText(question.questionText);
+    // Load from HTML so formatting (star patterns, lists, code) keeps line breaks.
+    // questionText is whitespace-collapsed for search — editing it would lose newlines.
+    setEditText(question.questionHtml ? htmlToEditableText(question.questionHtml) : question.questionText);
     setEditDifficultyId(question.difficultyId);
     setEditCategoryId(question.categoryId);
   };
@@ -149,14 +172,36 @@ export default function QuestionBankPage() {
     }
     setSavingEdit(true);
     try {
-      await platformApi.updateQuestion(editing.id, {
+      const updated = await platformApi.updateQuestion(editing.id, {
         questionText: text,
+        questionHtml: editableTextToHtml(text),
         difficultyId: editDifficultyId,
         categoryId: editCategoryId,
       });
       toast.success({ title: "Question updated", description: `#${editing.id} saved.` });
+      const editingId = editing.id;
       setEditing(null);
-      q.retry();
+      // In-place update: no refetch, no loading skeleton flash.
+      q.setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          questions: prev.questions.map((item) =>
+            item.id === editingId
+              ? {
+                  ...item,
+                  ...updated,
+                  // Keep previous display names if the API returns only ids.
+                  subjectName: updated.subjectName ?? item.subjectName,
+                  chapterName: updated.chapterName ?? item.chapterName,
+                  topicName: updated.topicName ?? item.topicName,
+                  difficulty: updated.difficulty ?? item.difficulty,
+                  category: updated.category ?? item.category,
+                }
+              : item
+          ),
+        };
+      });
     } catch (error) {
       toast.error({ title: "Update failed", description: getApiErrorMessage(error, "Unable to update this question.") });
     } finally {
@@ -247,9 +292,9 @@ export default function QuestionBankPage() {
           </div>
         }
       >
-        {q.loading ? (
+        {q.loading && !data ? (
           <SectionSkeleton rows={6} />
-        ) : q.error ? (
+        ) : q.error && !data ? (
           <ErrorState message={q.error.message} onRetry={q.retry} />
         ) : !data || data.questions.length === 0 ? (
           <EmptyState message="No questions match these filters" detail="Clear a filter or import questions from the ingestion page." />
@@ -278,11 +323,11 @@ export default function QuestionBankPage() {
                           <div className="min-w-0 flex-1">
                             {question.questionHtml ? (
                               <div
-                                className="text-[13px] leading-relaxed text-[var(--text-primary)] [&_ol]:list-decimal [&_p]:mb-1 [&_p:last-child]:mb-0 [&_table]:w-full [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5"
+                                className="text-[13px] leading-relaxed text-[var(--text-primary)] [&_ol]:list-decimal [&_p]:mb-1 [&_p:last-child]:mb-0 [&_table]:w-full [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:rounded-[8px] [&_pre]:bg-[var(--platform-soft)] [&_pre]:p-2.5 [&_pre]:font-mono [&_pre]:text-[12px] [&_pre]:leading-relaxed [&_code]:font-mono [&_code]:text-[12px] [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--border)] [&_blockquote]:pl-2"
                                 dangerouslySetInnerHTML={{ __html: question.questionHtml }}
                               />
                             ) : (
-                              <p className="text-[13px] leading-relaxed text-[var(--text-primary)]">{question.questionText}</p>
+                              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]">{question.questionText}</p>
                             )}
                             <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
                               <Pill tone={difficultyTone(question.difficulty)}>{question.difficulty}</Pill>
@@ -367,15 +412,24 @@ export default function QuestionBankPage() {
             </div>
             <div className="space-y-3 px-4 py-4">
               <label className="block">
-                <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Question text</span>
+                <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Question text (line breaks kept)</span>
                 <textarea
                   value={editText}
                   onChange={(event) => setEditText(event.target.value)}
                   rows={5}
                   disabled={savingEdit}
-                  className="pf-focus min-h-[120px] w-full resize-y rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] p-3 text-[13px] leading-relaxed text-[var(--text-primary)] outline-none disabled:opacity-50"
+                  className="pf-focus min-h-[120px] w-full resize-y whitespace-pre-wrap rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] p-3 font-mono text-[13px] leading-relaxed text-[var(--text-primary)] outline-none disabled:opacity-50"
                 />
               </label>
+              {editText.trim() && (
+                <div>
+                  <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Formatted preview (what students see)</span>
+                  <div
+                    className="rounded-[10px] border border-[var(--border)] bg-[var(--platform-soft)] p-3 text-[13px] leading-relaxed text-[var(--text-primary)] [&_ol]:list-decimal [&_p]:mb-1 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:font-mono [&_code]:font-mono"
+                    dangerouslySetInnerHTML={{ __html: editableTextToHtml(editText.trim()) }}
+                  />
+                </div>
+              )}
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Difficulty</span>
@@ -476,4 +530,45 @@ function difficultyTone(value: string): "green" | "amber" | "red" {
   if (difficulty === "easy") return "green";
   if (difficulty === "hard") return "red";
   return "amber";
+}
+
+/* HTML is the source of truth for rendering (it keeps <pre>/line-breaks for
+   e.g. star patterns). questionText is collapsed to a single line for search,
+   so never derive display/edit text from it when HTML exists. */
+function htmlToEditableText(html: string): string {
+  if (typeof window === "undefined") return html;
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  const root = template.content;
+  // Turn block boundaries into newlines before reading text.
+  root.querySelectorAll("br").forEach((el) => el.replaceWith(document.createTextNode("\n")));
+  root.querySelectorAll("p, div, pre, blockquote, li, h1, h2, h3, h4, tr").forEach((el) => {
+    el.prepend(document.createTextNode("\n"));
+    el.append(document.createTextNode("\n"));
+  });
+  const text = (root.textContent ?? "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return text;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/* Mirror of backend textToHtml: paragraphs split on blank lines, single
+   newlines become <br> so star-pattern lines survive a save. */
+function editableTextToHtml(value: string): string {
+  const paragraphs = value
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`);
+  return paragraphs.length ? paragraphs.join("") : `<p>${escapeHtml(value.trim())}</p>`;
 }

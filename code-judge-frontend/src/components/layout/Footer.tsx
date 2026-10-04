@@ -12,6 +12,7 @@ export default function Footer() {
             <Link href="/problems" className="hover:text-[#7C3AED] transition-colors">Problemset</Link>
             <Link href="/contests" className="hover:text-[#7C3AED] transition-colors">Contests</Link>
             <Link href="/about" className="hover:text-[#7C3AED] transition-colors">About</Link>
+            <Link href="/meet-the-developer" className="hover:text-[#7C3AED] transition-colors">Developer</Link>
           </div>
           <div className="text-[10px] text-[#6B7280]">
             &copy; {new Date().getFullYear()} ByteClash. All rights reserved.

@@ -52,6 +52,8 @@ export const FOCUS_ALLOWED_PREFIXES: string[] = [
   "/login",
   "/register",
   "/forgot-password",
+  // Public product story
+  "/meet-the-developer",
 ];
 
 /**

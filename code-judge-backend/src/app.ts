@@ -13,6 +13,8 @@ import { globalRateLimit } from "./middleware/globalRateLimit.ts";
 import { observabilityMiddleware } from "./middleware/observability.ts";
 import { kolkataTimestampMiddleware } from "./middleware/kolkataTimestamps.ts";
 import dns from "dns";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { pool } from "./config/database.ts"; // Serverless-cached pool
 
 // Re-export pool for backward compatibility (services importing from app.ts still work)
@@ -27,6 +29,8 @@ process.env.TZ = "Asia/Kolkata";
 import type { Express } from "express";
 
 const app: Express = express();
+const appFile = fileURLToPath(import.meta.url);
+const publicDirectory = path.resolve(path.dirname(appFile), "../public");
 
 // --- CORS: Serverless-optimized, supports wildcard for testing ---
 const rawFrontendUrl = process.env.FRONTEND_URL || "";
@@ -88,6 +92,14 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
+
+// Public brand/profile media. Files remain owned by the backend and are
+// exposed read-only with conservative caching; no directory listing exists.
+app.use("/me", express.static(path.join(publicDirectory, "me"), {
+  index: false,
+  immutable: true,
+  maxAge: "7d",
+}));
 
 // JSON dates named created_at/updated_at (and camelCase equivalents) are
 // returned with an explicit Kolkata offset instead of Date's default UTC `Z`.

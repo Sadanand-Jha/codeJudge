@@ -23,6 +23,7 @@ import {
   Radio,
   IceCreamCone,
   PartyPopper,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -446,6 +447,20 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             avatar={savedAvatar}
             onAuthRequired={() => handleAuthRequired(pathname + window.location.search)}
           />
+
+          <Link
+            href="/meet-the-developer"
+            onClick={() => setMobileMenuOpen(false)}
+            title={showLabels ? undefined : "Meet the developer"}
+            aria-label="Meet the developer"
+            className={cn(
+              "flex items-center gap-2 rounded-lg text-ai-text-mut transition-colors hover:bg-ai-hover hover:text-ai-text",
+              showLabels ? "px-3 py-2 text-[10px] font-medium" : "justify-center py-2.5"
+            )}
+          >
+            <Sparkles className="h-3.5 w-3.5 shrink-0" />
+            {showLabels && <span>Meet the developer</span>}
+          </Link>
 
           {showLabels && (
             <div className="px-3 text-[9px] text-ai-text-mut">ByteClash v1.0.0</div>

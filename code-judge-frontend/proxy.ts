@@ -34,6 +34,7 @@ const FOCUS_ALLOWED_PREFIXES = [
   "/login",
   "/register",
   "/forgot-password",
+  "/meet-the-developer",
 ];
 
 const FOCUS_ALLOWED_EXACT = ["/"];

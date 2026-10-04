@@ -42,6 +42,10 @@ const nextConfig: NextConfig = {
     // to BACKEND_URL, response Set-Cookie is then stored for frontend host.
     return [
       {
+        source: "/me/:path*",
+        destination: `${BACKEND_URL}/me/:path*`,
+      },
+      {
         source: "/api/:path*",
         destination: `${BACKEND_URL}/api/:path*`,
       },

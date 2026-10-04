@@ -26,5 +26,5 @@ export function useAsync<T>(fn: () => Promise<T>, key: string) {
     return () => { cancelled = true; };
   }, [key, nonce]);
   const retry = () => setNonce((n) => n + 1);
-  return { data, error, loading, retry };
+  return { data, error, loading, retry, setData };
 }
