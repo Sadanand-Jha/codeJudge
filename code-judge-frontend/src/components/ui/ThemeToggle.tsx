@@ -6,7 +6,7 @@ import { Sun, Moon } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
 
-export default function ThemeToggle({ className }: { className?: string }) {
+export default function ThemeToggle({ className, variant = "pill" }: { className?: string; variant?: "pill" | "icon" }) {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
 
@@ -25,6 +25,23 @@ export default function ThemeToggle({ className }: { className?: string }) {
 
     toggleTheme();
   };
+
+  if (variant === "icon") {
+    return (
+      <button
+        type="button"
+        onClick={handleThemeChange}
+        className={cn(
+          "grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border bg-card text-text-secondary transition-colors hover:text-text-primary",
+          className
+        )}
+        aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
+        title={`Switch to ${isDark ? "light" : "dark"} theme`}
+      >
+        {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      </button>
+    );
+  }
 
   return (
     <button

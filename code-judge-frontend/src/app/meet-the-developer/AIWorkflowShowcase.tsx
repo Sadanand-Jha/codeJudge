@@ -287,7 +287,7 @@ function WorkflowCard({
           {number}
         </div>
       </div>
-      <p className="relative mt-3 max-w-[55ch] text-xs leading-5 text-[var(--dev-muted)] sm:text-[13px]">{copy}</p>
+      <p className="relative mt-3 w-full text-xs leading-5 text-[var(--dev-muted)] sm:text-[13px]">{copy}</p>
       {children}
     </article>
   );
@@ -752,7 +752,7 @@ export default function AIWorkflowShowcase({ animated }: AIWorkflowShowcaseProps
 
   return (
     <section ref={sectionRef} className="mt-20" aria-labelledby="ai-workflow-showcase-title">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-8 flex flex-col gap-4">
         <div>
           <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-violet-700 dark:text-violet-300">
             <BrainCircuit className="h-3.5 w-3.5" /> Intelligence in motion
@@ -761,9 +761,6 @@ export default function AIWorkflowShowcase({ animated }: AIWorkflowShowcaseProps
             Watch the system work.
           </h2>
         </div>
-        <p className="max-w-sm text-sm leading-6 text-[var(--dev-muted)]">
-          One connected production workflow at a time. The system changes quietly every 30 seconds.
-        </p>
       </div>
 
       <div className="relative" aria-live="polite">

@@ -50,7 +50,7 @@ export default function NavbarRightActions() {
           <span className="relative hidden text-[9px] font-bold uppercase tracking-wide text-text-muted xl:inline">credits</span>
         </div>
       )}
-      <ThemeToggle />
+      <ThemeToggle variant="icon" />
       <NotificationBell />
       {isAuthenticated ? (
 <div className="flex shrink-0 items-center gap-2">

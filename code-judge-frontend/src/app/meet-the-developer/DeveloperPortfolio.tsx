@@ -170,7 +170,38 @@ function NeuralNetworkBackground({ animated }: { animated: boolean }) {
 export default function DeveloperPortfolio() {
   const isCompact = useMediaQuery("(max-width: 1023px)");
   const reducedMotion = useReducedMotion();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme, toggleTheme } = useTheme();
+  const prevThemeRef = useRef<string | null>(null);
+  const didForceDarkRef = useRef(false);
+  const userToggledRef = useRef(false);
+  const setThemeRef = useRef(setTheme);
+
+  useEffect(() => {
+    setThemeRef.current = setTheme;
+  });
+
+  // This page defaults to dark. Force dark on entry (remembering the previous
+  // global theme) and restore it on leave unless the user explicitly toggled.
+  useEffect(() => {
+    const current = document.documentElement.getAttribute("data-theme") ?? theme;
+    if (current !== "dark") {
+      prevThemeRef.current = current;
+      didForceDarkRef.current = true;
+      setThemeRef.current("dark");
+    }
+    return () => {
+      if (didForceDarkRef.current && !userToggledRef.current && prevThemeRef.current === "light") {
+        setThemeRef.current("light");
+      }
+    };
+    // Run once on mount — intentional page-level default, not reactive.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleToggleTheme = () => {
+    userToggledRef.current = true;
+    toggleTheme();
+  };
   const animated = !isCompact && !reducedMotion;
   const pointerX = useMotionValue(50); const pointerY = useMotionValue(28);
   const smoothX = useSpring(pointerX, { stiffness: 90, damping: 24 });
@@ -195,7 +226,7 @@ export default function DeveloperPortfolio() {
           </Link>
           <div className="flex items-center gap-2">
             <Link href="/about" className="hidden rounded-xl px-3 py-2 text-xs font-semibold text-[var(--dev-muted)] transition-colors hover:text-[var(--dev-text)] sm:inline-flex">About ByteClash</Link>
-            <button type="button" onClick={toggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--dev-border)] bg-[var(--dev-surface)] text-[var(--dev-muted)] transition-colors hover:text-[var(--dev-text)]">{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</button>
+            <button type="button" onClick={handleToggleTheme} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--dev-border)] bg-[var(--dev-surface)] text-[var(--dev-muted)] transition-colors hover:text-[var(--dev-text)]">{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</button>
             <Link href="/quiz" className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--dev-border)] bg-[var(--dev-surface)] px-3 py-2 text-xs font-semibold text-[var(--dev-muted)] transition-colors hover:border-violet-400/40 hover:text-[var(--dev-text)]"><ArrowLeft className="h-3.5 w-3.5" /> Platform</Link>
           </div>
         </div>
