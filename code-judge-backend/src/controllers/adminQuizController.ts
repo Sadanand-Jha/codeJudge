@@ -1238,3 +1238,102 @@ export const copyQuizCode = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: "Internal server error while copying quiz code" });
   }
 };
+
+// ==================== CREATOR PROFILE OVERVIEW ====================
+
+/**
+ * GET /api/v1/admin/quiz/profile-overview
+ *
+ * Aggregated dashboard numbers for the authenticated creator's own profile.
+ * Everything is scoped to quizzes created by the caller (quiz.createdby) and
+ * excludes the creator's own attempts. A handful of indexed aggregate queries
+ * — no per-row fetching, no N+1.
+ */
+export const getCreatorProfileOverview = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const [assessmentRow, attemptRow, studentRow, recentAttempts, recentQuizzes] = await Promise.all([
+      pool.query(
+        `SELECT COUNT(*)::int AS total,
+                COUNT(*) FILTER (WHERE q.quiz_status = 1)::int AS draft,
+                COUNT(*) FILTER (WHERE q.quiz_status IS DISTINCT FROM 1)::int AS published
+         FROM quiz q
+         WHERE q.createdby = $1 AND q.deleted_at IS NULL`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS total,
+                COUNT(*) FILTER (WHERE a.status = 'completed')::int AS completed
+         FROM quiz_attempts a
+         JOIN quiz q ON q.id = a.quiz_id
+         WHERE q.createdby = $1 AND q.deleted_at IS NULL AND a.user_id <> $1`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT COUNT(DISTINCT a.user_id)::int AS total,
+                COUNT(DISTINCT a.user_id) FILTER (WHERE a.created_at >= NOW() - INTERVAL '30 days')::int AS recent_active
+         FROM quiz_attempts a
+         JOIN quiz q ON q.id = a.quiz_id
+         WHERE q.createdby = $1 AND q.deleted_at IS NULL AND a.user_id <> $1`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT a.id, a.quiz_id AS "quizId", q.name AS "quizName",
+                a.user_id AS "studentId",
+                COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), u.display_name, u.username, 'Student') AS "studentName",
+                u.username AS "username",
+                a.score, a.percentage, a.status,
+                COALESCE(a.completed_at, a.created_at) AS "attemptedAt"
+         FROM quiz_attempts a
+         JOIN quiz q ON q.id = a.quiz_id
+         LEFT JOIN users u ON u.id = a.user_id
+         WHERE q.createdby = $1 AND q.deleted_at IS NULL AND a.user_id <> $1
+         ORDER BY COALESCE(a.completed_at, a.created_at) DESC
+         LIMIT 8`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT q.id, q.name, q.code, q.quiz_status AS status, q.created_at AS "createdAt"
+         FROM quiz q
+         WHERE q.createdby = $1 AND q.deleted_at IS NULL
+         ORDER BY q.created_at DESC NULLS LAST, q.id DESC
+         LIMIT 5`,
+        [userId]
+      ),
+    ]);
+
+    const assessments = assessmentRow.rows[0] ?? { total: 0, draft: 0, published: 0 };
+    const attempts = attemptRow.rows[0] ?? { total: 0, completed: 0 };
+    const students = studentRow.rows[0] ?? { total: 0, recent_active: 0 };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        assessments: {
+          total: assessments.total,
+          published: assessments.published,
+          draft: assessments.draft,
+        },
+        attempts: {
+          total: attempts.total,
+          completed: attempts.completed,
+        },
+        students: {
+          total: students.total,
+          recentActive: students.recent_active,
+          avgAttemptsPerStudent: students.total > 0 ? Number((attempts.total / students.total).toFixed(1)) : 0,
+        },
+        recentAttempts: recentAttempts.rows,
+        recentQuizzes: recentQuizzes.rows,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching creator profile overview:", error);
+    res.status(500).json({ success: false, message: "Internal server error while fetching profile overview" });
+  }
+};

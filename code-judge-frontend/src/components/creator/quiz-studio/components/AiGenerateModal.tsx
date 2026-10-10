@@ -119,6 +119,8 @@ export function AiGenerateModal({
     setBankSyllabus("");
     setReviewQuestions([]);
     setReviewOpen(false);
+    setAccepting(false);
+    setAcceptCount(0);
   };
 
   const handleClose = () => {
@@ -243,7 +245,12 @@ export function AiGenerateModal({
   };
 
   // ---- Review overlay actions (mirror AIStudio / AI assistant panel) ----
-  const closeReview = () => setReviewOpen(false);
+  // `accepting` drives the loading screen while accepted questions save.
+  const [accepting, setAccepting] = useState(false);
+  const [acceptCount, setAcceptCount] = useState(0);
+  const closeReview = () => {
+    if (!accepting) setReviewOpen(false);
+  };
 
   const handleRejectAll = () => {
     setReviewQuestions([]);
@@ -256,8 +263,11 @@ export function AiGenerateModal({
       setReviewOpen(false);
       return;
     }
+    if (accepting) return;
+    const questions = mapToCreatorQuestions(reviewQuestions);
+    setAcceptCount(questions.length);
+    setAccepting(true);
     try {
-      const questions = mapToCreatorQuestions(reviewQuestions);
       await onQuestionsAdded(questions);
       setAddedCount(questions.length);
       setReviewQuestions([]);
@@ -266,6 +276,8 @@ export function AiGenerateModal({
       toast.success(`Added ${questions.length} questions from AI`);
     } catch (err) {
       toast.error("Could not add questions", { description: (err as Error).message || "Please try again." });
+    } finally {
+      setAccepting(false);
     }
   };
 
@@ -614,6 +626,32 @@ export function AiGenerateModal({
       onAcceptOne={handleAcceptOne}
       onEditOne={handleEditOne}
     />
+    {/* Loading screen while accepted questions are being added */}
+    <AnimatePresence>
+      {accepting && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-7 text-center shadow-2xl">
+            <div className="relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-violet-500/15">
+              <div className="h-9 w-9 animate-spin rounded-full border-[3px] border-pink-500/20 border-t-pink-500" />
+              <span className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-pink-500/10" />
+            </div>
+            <h2 className="mt-5 text-base font-bold text-text-primary">
+              Adding {acceptCount} question{acceptCount === 1 ? "" : "s"}…
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-text-secondary">
+              Saving to your quiz. Please keep this window open.
+            </p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
     </>
   );
 }

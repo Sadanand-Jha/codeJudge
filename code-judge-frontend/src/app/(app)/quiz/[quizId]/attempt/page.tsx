@@ -152,15 +152,20 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         // blocked, the spinner must not stick forever.
         submittingRef.current = false;
         setSubmitting(false);
+        // Post-submit always returns home — the results page is intentionally
+        // skipped so students land back on the quiz hub.
         if (resultsAvailable) {
-          router.replace(`/quiz/${code}/results/${id}`);
+          toast.success({
+            title: "Quiz submitted",
+            description: "Your answers are secure.",
+          });
         } else {
           toast.success({
             title: "Quiz submitted",
             description: "Your answers are secure. Results will be available after the quiz ends.",
           });
-          router.replace("/quiz#activity");
         }
+        router.replace("/quiz");
       };
       // Let students perceive the confirmation sequence even when grading is
       // near-instant; the API has already confirmed success before this delay.

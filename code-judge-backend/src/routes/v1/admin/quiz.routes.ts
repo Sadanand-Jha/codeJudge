@@ -48,6 +48,7 @@ import {
   getQuizGameMechanics,
   upsertQuizGameMechanics,
   copyQuizCode,
+  getCreatorProfileOverview,
 } from "../../../controllers/adminQuizController.ts";
 
 const router = Router();
@@ -63,6 +64,10 @@ router.get("/exam-categories", getAllExamCategories);
 router.get("/visibility-options", getQuizVisibilityOptions);
 router.get("/difficulty-options", getQuizDifficultyOptions);
 router.get("/generate-code", generateQuizCodeEndpoint);
+
+// ==================== CREATOR PROFILE OVERVIEW ====================
+
+router.get("/profile-overview", getCreatorProfileOverview);
 
 // ==================== COPY QUIZ CODE ====================
 

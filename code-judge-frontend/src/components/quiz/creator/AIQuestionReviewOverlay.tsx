@@ -206,34 +206,36 @@ export default function AIQuestionReviewOverlay({
         animate={{ scale: 1, y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 340, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative flex h-[80vh] max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
+        className="relative flex h-[80vh] max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-border bg-background font-sans shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border bg-card/60 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#EC4899] to-[#8B5CF6] shadow-[0_4px_16px_rgba(236,72,153,0.4)]">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card/60 px-6 py-4">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#EC4899] to-[#8B5CF6] shadow-[0_4px_16px_rgba(236,72,153,0.4)]">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 className="text-sm font-bold text-text-primary">
                 {isEditing ? "Edit Question" : "AI Question Review"}
               </h3>
-              <p className="text-[10px] text-text-muted">
-                {isEditing
-                  ? `Editing question ${index + 1} of ${total} · Enter to navigate away, Esc to cancel`
-                  : "Review each question before adding it to your quiz · ↑/↓ to navigate"}
+              <p className="hidden truncate text-[10px] text-text-muted min-[480px]:block">
+                {isEditing ? (
+                  `Editing question ${index + 1} of ${total} · Esc to cancel`
+                ) : (
+                  <>Review each question before adding it to your quiz · ↑/↓ to navigate</>
+                )}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent sm:flex">
-              <CheckCircle2 className="h-3 w-3" />
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent sm:flex">
+              <CheckCircle2 className="h-3 w-3 shrink-0" />
               {total} generated
             </span>
             {onEditOne && current && !isEditing && (
               <button
                 onClick={startEditing}
-                className="flex h-8 items-center gap-1.5 rounded-lg border border-accent/30 bg-accent/10 px-3 text-[11px] font-bold text-accent transition-colors hover:bg-accent/20"
+                className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-accent/30 bg-accent/10 px-3 text-[11px] font-bold text-accent transition-colors hover:bg-accent/20"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -268,7 +270,7 @@ export default function AIQuestionReviewOverlay({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: direction * -48 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              className="max-h-full overflow-y-auto pb-1"
+              className="max-h-full overflow-y-auto pb-1 [scrollbar-width:thin] [scrollbar-color:var(--border)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent"
             >
               {isEditing && editDraft ? (
                 <QuestionEditForm draft={editDraft} onChange={updateDraft} />
@@ -309,28 +311,29 @@ export default function AIQuestionReviewOverlay({
                       {optionsPreview.map((opt) => (
                         <div
                           key={opt.id}
-                          className={`flex items-start gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                          className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
                             opt.isCorrect
                               ? "border-success/40 bg-success/10"
                               : "border-border bg-card-hover/40"
                           }`}
                         >
                           <span
-                            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                               opt.isCorrect ? "bg-success text-white" : "bg-card text-text-muted"
                             }`}
                           >
-                            {opt.isCorrect ? <Check className="h-3 w-3" /> : opt.label}
+                            {opt.label}
                           </span>
                           <span
-                            className={`text-xs leading-relaxed ${
+                            className={`min-w-0 flex-1 text-xs leading-relaxed ${
                               opt.isCorrect ? "font-semibold text-success" : "text-text-secondary"
                             }`}
                           >
                             {opt.content}
                           </span>
                           {opt.isCorrect && (
-                            <span className="ml-auto shrink-0 rounded-full bg-success/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-success">
+                            <span className="flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-success">
+                              <Check className="h-3 w-3" />
                               Correct
                             </span>
                           )}
@@ -383,11 +386,11 @@ export default function AIQuestionReviewOverlay({
                   {/* Tags */}
                   {current.tags.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <Tag className="h-3.5 w-3.5 text-text-muted" />
+                      <Tag className="h-3.5 w-3.5 shrink-0 text-text-muted" />
                       {current.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-card-hover px-2.5 py-0.5 text-[10px] font-medium text-text-secondary"
+                          className="whitespace-nowrap rounded-full bg-card-hover px-2.5 py-0.5 text-[10px] font-medium text-text-secondary"
                         >
                           #{tag}
                         </span>
@@ -400,25 +403,25 @@ export default function AIQuestionReviewOverlay({
           </AnimatePresence>
         </div>
 
-        {/* Footer */}
-        <div className="flex shrink-0 flex-col gap-3 border-t border-border bg-card/40 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Footer — wraps as a whole (nav / actions) so buttons are never clipped or overlapped. */}
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-border bg-card/40 px-6 py-4">
           {/* Navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={goPrev}
               disabled={isEditing || index <= 0}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
             </button>
-            <span className="px-1 text-[11px] text-text-muted">
+            <span className="shrink-0 px-1 text-[11px] tabular-nums text-text-muted">
               {index + 1} / {total}
             </span>
             <button
               onClick={goNext}
               disabled={isEditing || index >= total - 1}
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
               <ChevronRight className="h-4 w-4" />
@@ -426,19 +429,19 @@ export default function AIQuestionReviewOverlay({
           </div>
 
           {/* Accept / Reject */}
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-none sm:justify-end">
             {isEditing ? (
               <>
                 <button
                   onClick={cancelEdit}
-                  className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-bold text-text-primary transition-colors hover:border-danger/40 hover:text-danger"
+                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-card px-4 text-xs font-bold text-text-primary transition-colors hover:border-danger/40 hover:text-danger"
                 >
                   <X className="h-3.5 w-3.5" />
                   Cancel
                 </button>
                 <button
                   onClick={saveEdit}
-                  className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.4)] transition-all hover:brightness-105 active:scale-[0.98]"
+                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.4)] transition-all hover:brightness-105 active:scale-[0.98]"
                 >
                   <Save className="h-4 w-4" />
                   Save Changes
@@ -449,24 +452,24 @@ export default function AIQuestionReviewOverlay({
                 {onAcceptOne && current && (
                   <button
                     onClick={handleAcceptOne}
-                    className="flex h-9 items-center gap-1.5 rounded-xl border border-accent/30 bg-accent/10 px-4 text-xs font-bold text-accent transition-colors hover:bg-accent/20"
+                    className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-accent/30 bg-accent/10 px-4 text-xs font-bold text-accent transition-colors hover:bg-accent/20"
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-3.5 w-3.5 shrink-0" />
                     Add to Problem List
                   </button>
                 )}
                 <button
                   onClick={onReject}
-                  className="flex h-9 items-center gap-1.5 rounded-xl border border-danger/30 bg-danger/10 px-4 text-xs font-bold text-danger transition-colors hover:bg-danger/20"
+                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-danger/30 bg-danger/10 px-4 text-xs font-bold text-danger transition-colors hover:bg-danger/20"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5 shrink-0" />
                   Reject All
                 </button>
                 <button
                   onClick={onAccept}
-                  className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.4)] transition-all hover:brightness-105 active:scale-[0.98]"
+                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.4)] transition-all hover:brightness-105 active:scale-[0.98]"
                 >
-                  <Check className="h-4 w-4" />
+                  <Check className="h-4 w-4 shrink-0" />
                   Accept All ({total})
                 </button>
               </>
