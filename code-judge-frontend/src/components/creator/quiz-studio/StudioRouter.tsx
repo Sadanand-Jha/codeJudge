@@ -58,16 +58,10 @@ function StudioShellWithRouter({ onDashboard }: { onDashboard: () => void }) {
           <h2 className="mt-5 text-base font-bold text-text-primary">
             {loading ? "Loading quiz" : "Loading quiz questions"}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-text-secondary">
-            {loading
-              ? "Preparing your Creator Studio workspace…"
-              : "Waiting for the questions service. We’ll retry automatically until everything is ready."}
-          </p>
-          {!loading && (
-            <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] font-semibold text-text-muted">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-              Your saved questions remain protected
-            </div>
+          {loading && (
+            <p className="mt-2 text-sm leading-6 text-text-secondary">
+              Preparing your Creator Studio workspace…
+            </p>
           )}
         </div>
       </div>

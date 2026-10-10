@@ -20,10 +20,12 @@ import {
   Minus,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { generateQuestionsFromFiles, generateFromQuestionBank } from "@/services/ai";
+import { generateQuestionsFromFiles, generateFromQuestionBank, mapRawQuestionsToPreview } from "@/services/ai";
 import { toast } from "@/lib/toast";
-import type { RawAIGeneratedQuestion } from "@/services/ai";
+import type { AIQuestionPreview } from "@/services/ai";
 import type { CreatorQuestion } from "../types";
+import { mapToCreatorQuestions } from "@/utils/aiToCreatorQuestion";
+import AIQuestionReviewOverlay from "@/components/quiz/creator/AIQuestionReviewOverlay";
 import { QuestionBankFilters } from "@/components/creator/tests/sections/QuestionBankFilters";
 import { AiStreamText } from "@/components/ui";
 
@@ -66,87 +68,6 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function mapToCreatorQuestion(
-  raw: RawAIGeneratedQuestion,
-  index: number
-): CreatorQuestion {
-  const id = `ai_${Date.now()}_${index}`;
-  const isMcq =
-    raw.options && raw.options.length > 0 && raw.type !== "true_false";
-  const isTrueFalse = raw.type === "true_false";
-  const declaredAnswer = (raw.correctAnswer ?? raw.answer ?? "").trim();
-  const declaredIndex = Number.isInteger(raw.correctOptionIndex)
-    ? Number(raw.correctOptionIndex)
-    : -1;
-  const answerTextIndex = raw.options?.findIndex(
-    (content) => content.trim().toLowerCase() === declaredAnswer.toLowerCase()
-  ) ?? -1;
-  const resolvedCorrectIndex = answerTextIndex >= 0 ? answerTextIndex : declaredIndex;
-
-  let options: CreatorQuestion["options"];
-  let correctAnswer: number;
-
-  if (isTrueFalse) {
-    options = [
-      { id: `${id}_a`, label: "A", content: "True", isCorrect: resolvedCorrectIndex === 0 },
-      { id: `${id}_b`, label: "B", content: "False", isCorrect: resolvedCorrectIndex === 1 },
-    ];
-    correctAnswer = options.findIndex((option) => option.isCorrect);
-  } else if (isMcq) {
-    options = raw.options!.map((content, oi) => {
-      const label = String.fromCharCode(65 + oi);
-      const isCorrect =
-        oi === resolvedCorrectIndex ||
-        (resolvedCorrectIndex < 0 && label === declaredAnswer.toUpperCase().replace(/[^A-Z]/g, ""));
-      return { id: `${id}_${label.toLowerCase()}`, label, content, isCorrect };
-    });
-    const correctIdx = options.findIndex((o) => o.isCorrect);
-    correctAnswer = correctIdx;
-  } else {
-    // Subjective / short — no choices; keep placeholder options hidden in editor
-    options = [
-      { id: `${id}_a`, label: "A", content: "", isCorrect: true },
-      { id: `${id}_b`, label: "B", content: "", isCorrect: false },
-      { id: `${id}_c`, label: "C", content: "", isCorrect: false },
-      { id: `${id}_d`, label: "D", content: "", isCorrect: false },
-    ];
-    correctAnswer = 0;
-  }
-
-  const diff = (raw.difficulty ?? "medium").toLowerCase();
-  const difficultyMap: Record<string, CreatorQuestion["difficulty"]> = {
-    easy: "Easy",
-    medium: "Medium",
-    hard: "Hard",
-    expert: "Expert",
-  };
-
-  // Preserve full bank wording in title; also keep tags from bank
-  return {
-    id,
-    type: isMcq || isTrueFalse ? "single_choice" : "text",
-    title: raw.question || `AI Question ${index + 1}`,
-    options,
-    correctAnswer,
-    explanation: raw.explanation ?? "",
-    hint: raw.hint ?? "",
-    marks: 10,
-    negativeMarks: 0,
-    difficulty: difficultyMap[diff] ?? "Medium",
-    expectedTime: 2,
-    topic: raw.tags?.[0] ?? "",
-    bloomLevel: "Understand",
-    tags: raw.tags ?? [],
-    visibility: "visible",
-    status: "draft",
-    required: true,
-    attachments: [],
-    images: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-}
-
 export function AiGenerateModal({
   open,
   onClose,
@@ -163,6 +84,10 @@ export function AiGenerateModal({
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
   const [addedCount, setAddedCount] = useState(0);
+  // Review-before-add: generated questions wait in the overlay until accepted.
+  // Nothing is saved to the server before the creator accepts.
+  const [reviewQuestions, setReviewQuestions] = useState<AIQuestionPreview[]>([]);
+  const [reviewOpen, setReviewOpen] = useState(false);
   // Bank controls — balanced 10 paper default 4/3/3
   const [bankNumber, setBankNumber] = useState(10);
   const [bankEasy, setBankEasy] = useState(4);
@@ -192,6 +117,8 @@ export function AiGenerateModal({
     setDone(false);
     setAddedCount(0);
     setBankSyllabus("");
+    setReviewQuestions([]);
+    setReviewOpen(false);
   };
 
   const handleClose = () => {
@@ -254,12 +181,17 @@ export function AiGenerateModal({
       });
 
       setProgress(70);
-      const questions = rawQuestions.map((q, i) => mapToCreatorQuestion(q, i));
+      const previews = mapRawQuestionsToPreview(rawQuestions);
+      if (previews.length === 0) {
+        setError("AI returned no questions. Please try again.");
+        setGenerating(false);
+        return;
+      }
       setProgress(100);
-      await onQuestionsAdded(questions);
-      setAddedCount(questions.length);
-      setDone(true);
-      toast.success(`Added ${questions.length} questions from AI`);
+      setReviewQuestions(previews);
+      setGenerating(false);
+      setReviewOpen(true);
+      toast.success(`Generated ${previews.length} questions — review before adding`);
     } catch (err) {
       setError((err as Error).message || "AI generation failed. Please try again.");
       setGenerating(false);
@@ -293,19 +225,67 @@ export function AiGenerateModal({
         kind: bankKind,
       });
       setProgress(70);
-      const questions = rawQuestions.map((q, i) => mapToCreatorQuestion(q, i));
+      const previews = mapRawQuestionsToPreview(rawQuestions);
+      if (previews.length === 0) {
+        setError("AI returned no questions. Please try again.");
+        setGenerating(false);
+        return;
+      }
       setProgress(100);
-      await onQuestionsAdded(questions);
-      setAddedCount(questions.length);
-      setDone(true);
-      toast.success(`Generated ${questions.length} questions (E${bankEasy}·M${bankMedium}·H${bankHard})`);
+      setReviewQuestions(previews);
+      setGenerating(false);
+      setReviewOpen(true);
+      toast.success(`Generated ${previews.length} questions (E${bankEasy}·M${bankMedium}·H${bankHard}) — review before adding`);
     } catch (err) {
       setError((err as Error).message || "Question generation failed. Please try again.");
       setGenerating(false);
     }
   };
 
+  // ---- Review overlay actions (mirror AIStudio / AI assistant panel) ----
+  const closeReview = () => setReviewOpen(false);
+
+  const handleRejectAll = () => {
+    setReviewQuestions([]);
+    setReviewOpen(false);
+    toast.info("AI-generated questions discarded");
+  };
+
+  const handleAcceptAll = async () => {
+    if (reviewQuestions.length === 0) {
+      setReviewOpen(false);
+      return;
+    }
+    try {
+      const questions = mapToCreatorQuestions(reviewQuestions);
+      await onQuestionsAdded(questions);
+      setAddedCount(questions.length);
+      setReviewQuestions([]);
+      setReviewOpen(false);
+      setDone(true);
+      toast.success(`Added ${questions.length} questions from AI`);
+    } catch (err) {
+      toast.error("Could not add questions", { description: (err as Error).message || "Please try again." });
+    }
+  };
+
+  const handleAcceptOne = async (question: AIQuestionPreview) => {
+    try {
+      const questions = mapToCreatorQuestions([question]);
+      await onQuestionsAdded(questions);
+      setReviewQuestions((prev) => prev.filter((q) => q.id !== question.id));
+      toast.success("Question added to the quiz");
+    } catch (err) {
+      toast.error("Could not add question", { description: (err as Error).message || "Please try again." });
+    }
+  };
+
+  const handleEditOne = (question: AIQuestionPreview) => {
+    setReviewQuestions((prev) => prev.map((q) => (q.id === question.id ? { ...q, ...question } : q)));
+  };
+
   return (
+    <>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -319,7 +299,7 @@ export function AiGenerateModal({
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="ai-color-card flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl sm:max-h-[90dvh]"
+            className="ai-color-card flex max-h-[calc(100dvh-1rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl sm:max-h-[90dvh]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="ai-color-header flex shrink-0 items-center justify-between border-b border-border px-4 py-3 sm:px-5 sm:py-4">
@@ -424,6 +404,7 @@ export function AiGenerateModal({
                       kind={bankKind}
                       onKindChange={setBankKind}
                       disabled={generating}
+                      columns="grid-cols-1 sm:grid-cols-2 [&>*:last-child]:sm:col-span-2"
                     />
                   </div>
                   {/* Syllabus scope */}
@@ -623,5 +604,16 @@ export function AiGenerateModal({
         </motion.div>
       )}
     </AnimatePresence>
+    {/* Review overlay — renders after the modal so it paints above it */}
+    <AIQuestionReviewOverlay
+      open={reviewOpen}
+      questions={reviewQuestions}
+      onClose={closeReview}
+      onAccept={handleAcceptAll}
+      onReject={handleRejectAll}
+      onAcceptOne={handleAcceptOne}
+      onEditOne={handleEditOne}
+    />
+    </>
   );
 }

@@ -562,7 +562,7 @@ export default function AttemptReviewExperience({
                   <MetricCard label="Duration" value={data.duration} icon={Clock3} iconColor="#4EA1FF" />
                   <MetricCard
                     label="Rank"
-                    value={data.rank ? `#${data.rank}` : "-"}
+                    value="Coming Soon"
                     icon={Trophy}
                     iconColor="#C084FC"
                   />
@@ -889,7 +889,7 @@ export default function AttemptReviewExperience({
                 <AnalyticsMetric label="Correct" value={data.correct} icon={CheckCircle2} accent="#20D889" />
                 <AnalyticsMetric label="Wrong" value={data.wrong} icon={XCircle} accent="#FF4D5D" />
                 <AnalyticsMetric label="Skipped" value={data.skipped} icon={CircleDashed} accent="#91A0B7" />
-                <AnalyticsMetric label="Rank" value={data.rank ? `#${data.rank}` : "—"} icon={Trophy} />
+                <AnalyticsMetric label="Rank" value="Coming Soon" icon={Trophy} />
                 <AnalyticsMetric
                   label="Percentile"
                   value={data.percentile !== null ? `${data.percentile}%` : "—"}

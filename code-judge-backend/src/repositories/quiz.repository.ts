@@ -1800,32 +1800,33 @@ export class QuizRepository {
     const result = await pool.query(query, [attemptId, userId]);
     if (!result.rows.length) return null;
     const attempt = result.rows[0];
+    // Rank calculation temporarily disabled (coming soon on FE).
     // Rank is computed on read so every student (including historical
     // attempts, where rank was never persisted) sees a rank. Standard
     // competition ranking among completed attempts of the same quiz:
     // higher percentage wins; ties break on faster time, earlier
     // completion, then lower attempt id. NULL-safe via COALESCE.
-    if (attempt.rank == null && attempt.status === "completed") {
-      const rankRes = await pool.query(
-        `SELECT (COUNT(*)::int + 1) AS computed_rank
-         FROM quiz_attempt c
-         WHERE c.quiz_id = $1 AND c.status = 'completed' AND c.id <> $2
-           AND (
-             COALESCE(c.percentage, -1) > COALESCE($3::numeric, -1)
-             OR (COALESCE(c.percentage, -1) = COALESCE($3::numeric, -1)
-                 AND COALESCE(c.time_taken, 2147483647) < COALESCE($4::int, 2147483647))
-             OR (COALESCE(c.percentage, -1) = COALESCE($3::numeric, -1)
-                 AND COALESCE(c.time_taken, 2147483647) = COALESCE($4::int, 2147483647)
-                 AND COALESCE(c.completed_at, '9999-01-01'::timestamptz) < COALESCE($5::timestamptz, '9999-01-01'::timestamptz))
-             OR (COALESCE(c.percentage, -1) = COALESCE($3::numeric, -1)
-                 AND COALESCE(c.time_taken, 2147483647) = COALESCE($4::int, 2147483647)
-                 AND COALESCE(c.completed_at, '9999-01-01'::timestamptz) = COALESCE($5::timestamptz, '9999-01-01'::timestamptz)
-                 AND c.id < $2)
-           )`,
-        [attempt.quiz_id, attempt.id, attempt.percentage, attempt.time_taken, attempt.completed_at]
-      );
-      attempt.rank = rankRes.rows[0]?.computed_rank ?? null;
-    }
+    // if (attempt.rank == null && attempt.status === "completed") {
+    //   const rankRes = await pool.query(
+    //     `SELECT (COUNT(*)::int + 1) AS computed_rank
+    //      FROM quiz_attempt c
+    //      WHERE c.quiz_id = $1 AND c.status = 'completed' AND c.id <> $2
+    //        AND (
+    //          COALESCE(c.percentage, -1) > COALESCE($3::numeric, -1)
+    //          OR (COALESCE(c.percentage, -1) = COALESCE($3::numeric, -1)
+    //              AND COALESCE(c.time_taken, 2147483647) < COALESCE($4::int, 2147483647))
+    //          OR (COALESCE(c.percentage, -1) = COALESCE($3::numeric, -1)
+    //              AND COALESCE(c.time_taken, 2147483647) = COALESCE($4::int, 2147483647)
+    //              AND COALESCE(c.completed_at, '9999-01-01'::timestamptz) < COALESCE($5::timestamptz, '9999-01-01'::timestamptz))
+    //          OR (COALESCE(c.percentage, -1) = COALESCE($3::numeric, -1)
+    //              AND COALESCE(c.time_taken, 2147483647) = COALESCE($4::int, 2147483647)
+    //              AND COALESCE(c.completed_at, '9999-01-01'::timestamptz) = COALESCE($5::timestamptz, '9999-01-01'::timestamptz)
+    //              AND c.id < $2)
+    //        )`,
+    //     [attempt.quiz_id, attempt.id, attempt.percentage, attempt.time_taken, attempt.completed_at]
+    //   );
+    //   attempt.rank = rankRes.rows[0]?.computed_rank ?? null;
+    // }
     return attempt;
   }
 

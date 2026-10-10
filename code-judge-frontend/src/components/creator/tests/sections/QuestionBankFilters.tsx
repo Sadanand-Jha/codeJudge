@@ -83,7 +83,7 @@ function SinglePicker<T extends string | number>({ label, sub, placeholder, opti
             open && "border-pink-500/50"
           )}
         >
-          <span className={cn("truncate", !selected && "font-medium text-text-muted")}>
+          <span className={cn("truncate", !selected && "font-medium text-text-muted")} title={selected ? selected.name : placeholder}>
             {selected ? selected.name : placeholder}
           </span>
           <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-text-muted transition-transform", open && "rotate-180")} />
@@ -110,6 +110,7 @@ function SinglePicker<T extends string | number>({ label, sub, placeholder, opti
                   key={option.id}
                   type="button"
                   onClick={() => pick(option.id)}
+                  title={option.name}
                   className={cn(
                     "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors",
                     isSelected

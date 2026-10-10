@@ -92,8 +92,7 @@ export function TestResult() {
               icon={<Target className="h-4.5 w-4.5" />}
               tone="bg-violet-500/12 text-violet-500 dark:text-violet-300"
               label="Rank"
-              value={data.rank.toLocaleString("en-IN")}
-              sub={`of ${data.totalParticipants.toLocaleString("en-IN")} students`}
+              value="Coming Soon"
             />
             <StatCard
               icon={<TrendingUp className="h-4.5 w-4.5" />}

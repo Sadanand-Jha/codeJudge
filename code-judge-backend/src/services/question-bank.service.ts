@@ -9,7 +9,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mammoth from "mammoth";
-import { z } from "zod";
 import { chatWithAI } from "./ai.service.js";
 import type { LiveUsage } from "./ai.service.js";
 import { parseQuestionsJSON } from "./question-generation.service.js";
@@ -264,81 +263,32 @@ export const generateFromQuestionBank = async (
   if (topicId !== null && chapterId === null) throw new Error("Select a chapter before selecting a topic.");
   if (!["any", "theory", "numerical"].includes(kind)) throw new Error("Select a valid category.");
 
-  const result = await pool.query(
-    `SELECT qb.id, qb.question_text, lower(qd.name) AS difficulty, qc.name AS category,
-            s.subject_name, sc.chapter_name, ct.topic_name
-     FROM subjective_question_bank qb
-     JOIN subjects s ON s.id = qb.subject_id
-     LEFT JOIN subject_chapters sc ON sc.id = qb.chapter_id
-     LEFT JOIN chapter_topics ct ON ct.id = qb.topic_id
-     JOIN question_difficulty qd ON qd.id = qb.difficulty_id
-     JOIN question_category qc ON qc.id = qb.category_id
-     WHERE qb.subject_id = $1
-       AND ($2::int IS NULL OR qb.chapter_id = $2)
-       AND ($3::int IS NULL OR qb.topic_id = $3)
-       AND ($4::text = 'any' OR lower(qc.name) = $4)
-       AND lower(qd.name) = ANY($5::text[])
-     ORDER BY qb.id`,
-    [subjectId, chapterId, topicId, kind, [easy! > 0 ? "easy" : null, medium! > 0 ? "medium" : null, hard! > 0 ? "hard" : null].filter(Boolean)]
-  );
-  const candidates = result.rows.map((row) => ({
-    id: Number(row.id), question: String(row.question_text), difficulty: String(row.difficulty),
-    category: String(row.category), subject: String(row.subject_name),
-    chapter: row.chapter_name ? String(row.chapter_name) : "", topic: row.topic_name ? String(row.topic_name) : "",
-  }));
-  if (candidates.length < numberOfQuestions) {
-    throw new Error("We couldn't generate the requested number of questions for this scope. Broaden the filters or reduce the total.");
+  // Selection source is the curated MCQ Word file in backend public/
+  // (e.g. Operating_Systems_200_MCQs_Single_Correct.docx). That file covers
+  // Operating Systems only, so resolve the requested scope names here and
+  // constrain file selection to them further below.
+  const subjectRow = await pool.query(`SELECT subject_name FROM subjects WHERE id = $1`, [subjectId]);
+  const subjectName: string = subjectRow.rows[0]?.subject_name ? String(subjectRow.rows[0].subject_name) : "";
+  if (!subjectName) throw new Error("Select a subject.");
+  if (!/operating\s*systems?|\bos\b/i.test(subjectName)) {
+    throw new Error(`The curated MCQ bank currently covers Operating Systems only. "${subjectName}" is not available yet.`);
   }
-  for (const [difficulty, needed] of [["easy", easy!], ["medium", medium!], ["hard", hard!]] as const) {
-    const available = candidates.filter((question) => question.difficulty === difficulty).length;
-    if (available < needed) throw new Error("We couldn't generate the requested difficulty mix for this scope. Adjust the mix or reduce the total.");
+  const scopeNames: string[] = [];
+  if (chapterId !== null) {
+    const chapterRow = await pool.query(
+      `SELECT chapter_name FROM subject_chapters WHERE id = $1 AND subject_id = $2`,
+      [chapterId, subjectId]
+    );
+    const chapterName: string = chapterRow.rows[0]?.chapter_name ? String(chapterRow.rows[0].chapter_name) : "";
+    if (!chapterName) throw new Error("Select a valid chapter.");
+    scopeNames.push(chapterName);
   }
-
-  const promptCandidates = [
-    ...candidates.filter((q) => q.difficulty === "easy").slice(0, Math.max(easy! * 4, easy!)),
-    ...candidates.filter((q) => q.difficulty === "medium").slice(0, Math.max(medium! * 4, medium!)),
-    ...candidates.filter((q) => q.difficulty === "hard").slice(0, Math.max(hard! * 4, hard!)),
-  ];
-  const candidatePrompt = promptCandidates
-    .map((question) => `ID ${question.id} [${question.difficulty}|${question.category}] ${question.chapter} > ${question.topic}: ${question.question}`)
-    .join("\n");
-  let selectedIds: number[] = [];
-  let usage: LiveUsage | undefined;
-  try {
-    const response = await chatWithAI(`Select exactly ${numberOfQuestions} unique question IDs from the filtered candidates.
-Required difficulty counts: easy=${easy}, medium=${medium}, hard=${hard}. Category filter=${kind}.
-Return only JSON: {"ids":[1,2]}.
-Do not invent or rewrite questions. Prefer broad topic coverage and avoid near-duplicates.
-
-CANDIDATES:\n${candidatePrompt}`);
-    usage = response.usage;
-    const cleaned = response.content.replace(/```(?:json)?/gi, "").trim();
-    const parsed = JSON.parse(cleaned.slice(cleaned.indexOf("{"), cleaned.lastIndexOf("}") + 1));
-    selectedIds = z.object({ ids: z.array(z.number().int().positive()) }).parse(parsed).ids;
-  } catch (error) {
-    console.warn("[question-bank] AI selection failed, using filtered deterministic fallback:", error);
+  if (topicId !== null) {
+    const topicRow = await pool.query(`SELECT topic_name FROM chapter_topics WHERE id = $1`, [topicId]);
+    const topicName: string = topicRow.rows[0]?.topic_name ? String(topicRow.rows[0].topic_name) : "";
+    if (!topicName) throw new Error("Select a valid topic.");
+    scopeNames.push(topicName);
   }
-  const byId = new Map(candidates.map((question) => [question.id, question]));
-  const used = new Set<number>();
-  const selected: typeof candidates = [];
-  for (const [difficulty, needed] of [["easy", easy!], ["medium", medium!], ["hard", hard!]] as const) {
-    const preferred = selectedIds.map((id) => byId.get(id)).filter((q): q is (typeof candidates)[number] => Boolean(q) && q!.difficulty === difficulty);
-    const fallback = candidates.filter((q) => q.difficulty === difficulty);
-    for (const question of [...preferred, ...fallback]) {
-      if (selected.filter((q) => q.difficulty === difficulty).length >= needed) break;
-      if (!used.has(question.id)) { used.add(question.id); selected.push(question); }
-    }
-  }
-  return {
-    questions: selected.map((question) => ({
-      question: question.question,
-      options: [], answer: "", type: "long", difficulty: question.difficulty,
-      explanation: "", hint: "",
-      tags: [question.subject, question.chapter, question.topic, question.category].filter(Boolean),
-    })),
-    extractedText: "",
-    usage,
-  };
 
   const bankPath = await resolveBankPath();
   if (!bankPath) {
@@ -356,7 +306,9 @@ CANDIDATES:\n${candidatePrompt}`);
   if (parsedBank.length === 0) {
     throw new Error("The available curriculum data could not be processed safely.");
   }
-  const syllabus = request.syllabus?.trim() ?? "";
+  // Creator syllabus plus the resolved chapter/topic names all act as
+  // scope terms for the file bank (matched against chapter + question text).
+  const syllabus = [request.syllabus?.trim(), ...scopeNames].filter(Boolean).join("\n");
   const ignoredSyllabusWords = new Set([
     "and", "the", "with", "from", "into", "unit", "chapter", "topic", "topics",
     "module", "modules", "include", "including", "about", "basics", "introduction",

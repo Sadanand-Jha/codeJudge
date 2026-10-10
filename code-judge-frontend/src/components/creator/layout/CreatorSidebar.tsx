@@ -312,12 +312,6 @@ export function CreatorSidebar({
             ))}
           </div>
         )}
-        {FOCUS_MODE_ENABLED && (
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-            <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">Focus Mode</p>
-            <p className="text-[10px] text-text-muted leading-snug">Only Problems / Quizzes / Tests visible. Payments, analytics etc. hidden.</p>
-          </div>
-        )}
         {/* Back to Student Mode — mobile only, at last of sidebar */}
         {mobile && (
           <div className="mt-3 border-t border-border pt-3">

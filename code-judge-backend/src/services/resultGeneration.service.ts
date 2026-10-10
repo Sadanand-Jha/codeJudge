@@ -207,62 +207,62 @@ export class ResultGenerationService {
       });
     }
 
-    const sorted = [...evaluatedResults].sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      const aTime = a.timeTaken ?? Number.MAX_SAFE_INTEGER;
-      const bTime = b.timeTaken ?? Number.MAX_SAFE_INTEGER;
-      if (aTime !== bTime) return aTime - bTime;
-      const aDate = a.completedAt ? new Date(a.completedAt).getTime() : 0;
-      const bDate = b.completedAt ? new Date(b.completedAt).getTime() : 0;
-      return aDate - bDate;
-    });
+    // Rank calculation temporarily disabled (FE shows "Coming Soon").
+    // const sorted = [...evaluatedResults].sort((a, b) => {
+    //   if (b.score !== a.score) return b.score - a.score;
+    //   const aTime = a.timeTaken ?? Number.MAX_SAFE_INTEGER;
+    //   const bTime = b.timeTaken ?? Number.MAX_SAFE_INTEGER;
+    //   if (aTime !== bTime) return aTime - bTime;
+    //   const aDate = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+    //   const bDate = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+    //   return aDate - bDate;
+    // });
 
-    const ranks = new Map<number, number>();
-    let currentRank = 0;
-    let previousScore: number | null = null;
-    let previousTime: number | null = null;
-    let previousDate: number | null = null;
+    // const ranks = new Map<number, number>();
+    // let currentRank = 0;
+    // let previousScore: number | null = null;
+    // let previousTime: number | null = null;
+    // let previousDate: number | null = null;
 
-    for (const result of sorted) {
-      const time = result.timeTaken ?? Number.MAX_SAFE_INTEGER;
-      const date = result.completedAt ? new Date(result.completedAt).getTime() : 0;
+    // for (const result of sorted) {
+    //   const time = result.timeTaken ?? Number.MAX_SAFE_INTEGER;
+    //   const date = result.completedAt ? new Date(result.completedAt).getTime() : 0;
 
-      if (
-        previousScore !== null &&
-        result.score === previousScore &&
-        time === previousTime &&
-        date === previousDate
-      ) {
-        // Tie - same rank
-      } else {
-        currentRank++;
-      }
+    //   if (
+    //     previousScore !== null &&
+    //     result.score === previousScore &&
+    //     time === previousTime &&
+    //     date === previousDate
+    //   ) {
+    //     // Tie - same rank
+    //   } else {
+    //     currentRank++;
+    //   }
 
-      ranks.set(result.attemptId, currentRank);
-      previousScore = result.score;
-      previousTime = time;
-      previousDate = date;
-    }
+    //   ranks.set(result.attemptId, currentRank);
+    //   previousScore = result.score;
+    //   previousTime = time;
+    //   previousDate = date;
+    // }
 
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
 
       for (const result of evaluatedResults) {
-        const rank = ranks.get(result.attemptId) || 0;
+        // const rank = ranks.get(result.attemptId) || 0;
         await client.query(
           `UPDATE quiz_attempt
            SET score = $1, percentage = $2, correct_answers = $3,
-               wrong_answers = $4, skipped_questions = $5, rank = $6,
+               wrong_answers = $4, skipped_questions = $5,
                updated_at = CURRENT_TIMESTAMP
-           WHERE id = $7`,
+           WHERE id = $6`,
           [
             result.score,
             result.percentage,
             result.correctAnswers,
             result.wrongAnswers,
             result.skippedQuestions,
-            rank,
             result.attemptId,
           ]
         );
