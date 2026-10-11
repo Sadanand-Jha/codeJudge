@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
@@ -21,14 +20,16 @@ import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { cn } from "@/lib/helpers";
 import { useBillingData } from "./hooks";
+import { CreditPacksSection } from "./CreditPacksSection";
+import { CreditPackCheckout, type CheckoutPayload } from "./CreditPackCheckout";
 import {
   BillButton,
   EmptyState,
   ErrorState,
+  IconButton,
   PageHeader,
   Panel,
   PanelSkeleton,
-  StatusBadge,
   formatINR,
 } from "./ui";
 import {
@@ -39,6 +40,7 @@ import {
   openRazorpayCheckout,
   verifyCreditPayment,
   type CreditOrder,
+  type CreditPurchasePack,
   type PackOrderSummary,
 } from "@/services/aiCredits";
 
@@ -72,6 +74,9 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
   const validityMonths = getCreditValidityMonths();
 
   const [packId, setPackId] = useState<string | null>(null);
+  const [view, setView] = useState<"packs" | "checkout">("packs");
+  const [checkoutPackId, setCheckoutPackId] = useState<string | null>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<PurchasePhase>("summary");
   const [phaseError, setPhaseError] = useState<string | null>(null);
   const [processingNote, setProcessingNote] = useState("Creating your order…");
@@ -84,16 +89,27 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
 
   const selected: PackOrderSummary | null = packId ? buildOrderSummary(packId) : null;
 
-  const openSummary = (id: string) => {
-    setPackId(id);
-    setPhase("summary");
-    setPhaseError(null);
-    setReceipt(null);
-  };
-
   const closeModal = () => {
     if (phase === "processing") return;
+    if (phase === "success") setView("packs");
     setPackId(null);
+  };
+
+  /* Pricing card CTA → open the full checkout screen preselected. */
+  const openCheckout = (id: string) => {
+    setCheckoutPackId(id);
+    setView("checkout");
+    requestAnimationFrame(() => {
+      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const backToPacks = () => {
+    if (phase === "processing") return;
+    setView("packs");
+    requestAnimationFrame(() => {
+      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const handleRefresh = async () => {
@@ -105,17 +121,31 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
     }
   };
 
-  const handlePay = async () => {
-    if (!selected || phase === "processing") return;
+  const runPurchase = async (args: {
+    packId: string;
+    total?: number;
+    coupon?: string;
+    prefill?: { email?: string; method?: string; vpa?: string };
+    notes?: Record<string, string>;
+  }) => {
+    if (phase === "processing") return;
+    setPackId(args.packId);
     setPhase("processing");
     setPhaseError(null);
+    setReceipt(null);
     try {
       setProcessingNote("Creating your order…");
-      const order: CreditOrder = await createCreditOrder(selected.pack.id);
+      const summary = buildOrderSummary(args.packId);
+      const order: CreditOrder = await createCreditOrder(summary.pack.id, {
+        coupon: args.coupon,
+        amountPaise: args.total !== undefined ? Math.round(args.total * 100) : undefined,
+      });
       setProcessingNote("Waiting for payment…");
       const payment = await openRazorpayCheckout({
         order,
-        itemName: selected.pack.name,
+        itemName: summary.pack.name,
+        prefill: args.prefill,
+        notes: args.notes,
         onDismiss: () => setPhase("cancelled"),
       });
       setProcessingNote("Verifying payment…");
@@ -123,7 +153,7 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
       await refreshCredits();
       setReceipt({
         transactionId: verified.transactionId,
-        packName: selected.pack.name,
+        packName: summary.pack.name,
         credits: verified.credits,
         newBalance: verified.newBalance,
       });
@@ -131,6 +161,81 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
       toast.success({
         title: "Credits added",
         description: `${verified.credits} AI credits are now available.`,
+      });
+    } catch (err: unknown) {
+      setPhaseError(getApiErrorMessage(err, "Payment could not be completed. No amount was charged."));
+      setPhase("failed");
+    }
+  };
+
+  const handlePay = async () => {
+    if (!selected || phase === "processing") return;
+    await runPurchase({ packId: selected.pack.id });
+  };
+
+  const payFor = async (payload: CheckoutPayload) => {
+    const notes: Record<string, string> = {
+      method: payload.methodLabel,
+      receipt_email: payload.email,
+    };
+    if (payload.app) notes.app = payload.app;
+    if (payload.gstin) notes.gstin = payload.gstin;
+    if (payload.coupon) notes.coupon = payload.coupon;
+    await runPurchase({
+      packId: payload.pack.id,
+      total: payload.total,
+      coupon: payload.coupon,
+      prefill: {
+        email: payload.email || undefined,
+        method: payload.method,
+        vpa: payload.vpa,
+      },
+      notes,
+    });
+  };
+
+  // DEMO ONLY: grants credits locally after the UPI flow reports success.
+  // Production must confirm payment through the gateway webhook on the
+  // server (see the header comment in UpiPayment.tsx) and grant credits
+  // from the verified backend response — never from the browser.
+  const completeUpiPurchase = async ({ pack, orderId, total }: {
+    pack: CreditPurchasePack;
+    orderId: string;
+    total: number;
+  }) => {
+    if (phase === "processing") return;
+    setPackId(pack.id);
+    setPhase("processing");
+    setPhaseError(null);
+    setReceipt(null);
+    try {
+      setProcessingNote("Confirming your UPI payment…");
+      await new Promise((r) => setTimeout(r, 1200));
+      const store = useAICreditsStore.getState();
+      const newBalance = store.balance.totalRemaining + pack.credits;
+      useAICreditsStore.setState({
+        balance: {
+          ...store.balance,
+          purchasedCredits: store.balance.purchasedCredits + pack.credits,
+          totalRemaining: newBalance,
+          remaining: newBalance,
+        },
+        purchases: [
+          ...store.purchases,
+          { packId: pack.id, packName: pack.name, credits: pack.credits, price: total, timestamp: Date.now() },
+        ],
+      });
+      await refreshCredits();
+      setReceipt({
+        transactionId: orderId,
+        packName: pack.name,
+        credits: pack.credits,
+        newBalance,
+      });
+      setPhase("success");
+      toast.success({
+        title: "Credits added",
+        description: `${pack.credits} AI credits are now available.`,
       });
     } catch (err: unknown) {
       setPhaseError(getApiErrorMessage(err, "Payment could not be completed. No amount was charged."));
@@ -166,74 +271,43 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
 
       {state === "ready" && data && (
         <>
-          {/* Balance */}
-          <Panel
-            title="Available balance"
-            subtitle="One-time purchases · credits never expire"
-            action={
-              <BillButton variant="ghost" onClick={handleRefresh} disabled={refreshing}>
-                <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
-                {refreshing ? "Refreshing…" : "Refresh"}
-              </BillButton>
-            }
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <span className="grid h-11 w-11 place-items-center rounded-xl bg-amber-500/10 text-amber-500">
-                  <Coins className="h-5 w-5" />
-                </span>
-                <div>
-                  <p className="text-2xl font-black tabular-nums tracking-tight text-text-primary">
+          {/* Balance strip — compact, one row */}
+          <div className="flex min-h-[72px] items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 sm:px-5 dark:border-white/10 dark:bg-[#1e1419]">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid h-10 w-10 flex-none place-items-center rounded-xl bg-amber-500/10 text-amber-500">
+                <Coins className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-[15px] text-slate-500 dark:text-slate-400">
+                  <span className="font-extrabold tabular-nums text-slate-900 dark:text-white">
                     {balance.totalRemaining}
-                  </p>
-                  <p className="text-xs text-text-secondary">
-                    credits left · valid {validityMonths} months from purchase
-                  </p>
-                </div>
+                  </span>{" "}
+                  credits left
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Valid {validityMonths} months from purchase
+                </p>
               </div>
-              <Link
-                href="/creator/billing/transactions"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-pink-600 transition-colors hover:text-pink-500 dark:text-pink-300"
-              >
-                View transaction history <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
             </div>
-          </Panel>
+            <IconButton label={refreshing ? "Refreshing balance" : "Refresh balance"} onClick={handleRefresh}>
+              <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
+            </IconButton>
+          </div>
 
-          {/* Packs */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {data.packs.map((pack) => (
-              <div
-                key={pack.id}
-                className={cn(
-                  "relative flex flex-col rounded-2xl border border-border bg-card p-5 transition-colors",
-                  pack.popular && "border-pink-500/40 dark:border-pink-400/30"
-                )}
-              >
-                {pack.popular && (
-                  <span className="absolute -top-2.5 left-4">
-                    <StatusBadge label="Popular" tone="pink" />
-                  </span>
-                )}
-                <h3 className="text-base font-bold tracking-tight text-text-primary">{pack.name}</h3>
-                <p className="mt-3 text-3xl font-black tracking-tight tabular-nums text-text-primary">
-                  {pack.credits}
-                  <span className="ml-1.5 text-sm font-semibold text-text-muted">credits</span>
-                </p>
-                <p className="mt-1 text-2xl font-black tracking-tight tabular-nums text-text-primary">
-                  {formatINR(pack.price)}
-                </p>
-                <p className="mt-2 text-xs leading-5 text-text-secondary">{pack.blurb}</p>
-                <p className="mt-1 text-[11px] text-text-muted">Valid {validityMonths} months from purchase</p>
-                <BillButton
-                  variant={pack.popular ? "primary" : "outline"}
-                  className="mt-5 w-full justify-center"
-                  onClick={() => openSummary(pack.id)}
-                >
-                  {pack.cta}
-                </BillButton>
-              </div>
-            ))}
+          {/* Packs → checkout (card CTA opens the checkout screen) */}
+          <div ref={sectionRef} className="scroll-mt-4">
+            {view === "packs" ? (
+              <CreditPacksSection onSelectPack={(pack) => openCheckout(pack.id)} />
+            ) : (
+              <CreditPackCheckout
+                key={checkoutPackId ?? "default"}
+                initialPackId={checkoutPackId ?? undefined}
+                onBack={backToPacks}
+                onPay={payFor}
+                onUpiSuccess={completeUpiPurchase}
+                processing={phase === "processing"}
+              />
+            )}
           </div>
 
           {/* How credits work */}
@@ -336,7 +410,9 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
                       </div>
                       <div className="flex items-center justify-between">
                         <dt className="text-text-secondary">Validity</dt>
-                        <dd className="font-semibold text-text-primary">{validityMonths} months</dd>
+                        <dd className="font-semibold text-text-primary">
+                          {selected.pack.validityMonths} month{selected.pack.validityMonths !== 1 ? "s" : ""}
+                        </dd>
                       </div>
                       <div className="flex items-center justify-between border-t border-border pt-2.5">
                         <dt className="font-semibold text-text-primary">Total (incl. GST)</dt>

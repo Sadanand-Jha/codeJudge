@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { JoinQuizModal } from "./JoinQuizModal";
-import { QuizWarpExperience } from "./QuizWarpExperience";
+// DISCONNECTED: import { QuizWarpExperience } from "./QuizWarpExperience";
 import YourActivitySection from "./YourActivitySection";
-import { getQuizByCode } from "@/services/quiz";
+// DISCONNECTED (warp animation): import { getQuizByCode } from "@/services/quiz";
 
-/** Maximum loading screen duration in ms. */
-const MAX_LOADING_MS = 4000;
+// DISCONNECTED (warp animation): const MAX_LOADING_MS = 4000;
 
 interface LandingCardProps {
   icon: React.ReactNode;
@@ -62,50 +62,29 @@ function LandingCard({ icon, title, description, gradient, onClick, href }: Land
 }
 
 export function QuizLandingCards() {
+  const router = useRouter();
   const [joinOpen, setJoinOpen] = useState(false);
-  const [connectingCode, setConnectingCode] = useState<string | null>(null);
-  const [forceComplete, setForceComplete] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // DISCONNECTED (warp animation):
+  // const [connectingCode, setConnectingCode] = useState<string | null>(null);
+  // const [forceComplete, setForceComplete] = useState(false);
+  // const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleJoin = (code: string) => {
     setJoinOpen(false);
-    setConnectingCode(code);
-    setForceComplete(false);
-
-    const startTime = Date.now();
-
-    // Start the API call to validate/fetch the quiz by code
-    getQuizByCode(code)
-      .then(() => {
-        const elapsed = Date.now() - startTime;
-        // If the API responded before the 4s cap, complete the loading early
-        if (elapsed < MAX_LOADING_MS) {
-          setForceComplete(true);
-        }
-        // If elapsed >= MAX_LOADING_MS, the timeout already triggered forceComplete
-      })
-      .catch(() => {
-        const elapsed = Date.now() - startTime;
-        if (elapsed < MAX_LOADING_MS) {
-          setForceComplete(true);
-        }
-        // The target page will handle the error (e.g. "quiz not found")
-      });
-
-    // Cap the loading screen at 4 seconds regardless of API response time
-    timeoutRef.current = setTimeout(() => {
-      setForceComplete(true);
-    }, MAX_LOADING_MS);
+    // Warp animation disconnected — go straight to the waiting room
+    // (the target page handles an invalid code).
+    router.push(`/quiz/${code}/waiting`);
   };
 
-  const handleConnectingComplete = useCallback(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    setConnectingCode(null);
-    setForceComplete(false);
-  }, []);
+  // DISCONNECTED (warp animation):
+  // const handleConnectingComplete = useCallback(() => {
+  //   if (timeoutRef.current) {
+  //     clearTimeout(timeoutRef.current);
+  //     timeoutRef.current = null;
+  //   }
+  //   setConnectingCode(null);
+  //   setForceComplete(false);
+  // }, []);
 
   return (
     <>
@@ -138,6 +117,7 @@ export function QuizLandingCards() {
         onJoin={handleJoin}
       />
 
+      {/* DISCONNECTED (warp aeroplane animation):
       {connectingCode && (
         <QuizWarpExperience
           code={connectingCode}
@@ -146,6 +126,7 @@ export function QuizLandingCards() {
           forceComplete={forceComplete}
         />
       )}
+      */}
     </>
   );
 }

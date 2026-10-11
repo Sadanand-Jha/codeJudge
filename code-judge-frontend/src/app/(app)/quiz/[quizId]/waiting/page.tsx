@@ -23,7 +23,7 @@ import { CountdownCard } from "@/components/quiz/live/CountdownCard";
 import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { ParticipantsDrawer } from "@/components/quiz/live/ParticipantsDrawer";
 import type { LiveParticipant } from "@/types/liveAssessment";
-import QuizPartyAtmosphere from "@/components/quiz/live/QuizPartyAtmosphere";
+// DISCONNECTED: import QuizPartyAtmosphere from "@/components/quiz/live/QuizPartyAtmosphere";
 import { WaitingRoomToast } from "@/components/quiz/live/WaitingRoomToast";
 import { AvatarHoverPreview } from "@/components/quiz/live/AvatarHoverPreview";
 import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/WaitingRoomThemeContext";
@@ -236,7 +236,7 @@ function WaitingRoomPageInner({
       {viewMode !== "real" && !isMobile && (
         <div className="fixed inset-0 z-0 pointer-events-none">
           <div className={`absolute inset-0 ${viewMode === "light" ? "bg-[linear-gradient(145deg,#fff9ef_0%,#fff3fb_33%,#eef9ff_67%,#f3fff8_100%)]" : "bg-[linear-gradient(145deg,#050510_0%,#111026_48%,#071424_100%)]"}`} />
-          {viewMode === "light" && <QuizPartyAtmosphere />}
+          {/* DISCONNECTED: {viewMode === "light" && <QuizPartyAtmosphere />} (ice-cream floaters) */}
         </div>
       )}
 

@@ -927,30 +927,36 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     return null;
   };
 
-  const validateAllQuestions = (): boolean => {
+  const validateAllQuestions = (opts?: { silent?: boolean }): boolean => {
     if (state.questions.length === 0) {
-      toast.error({
-        title: "Add at least one question",
-        description: "A quiz needs at least one question before you can continue.",
-      });
+      if (!opts?.silent) {
+        toast.error({
+          title: "Add at least one question",
+          description: "A quiz needs at least one question before you can continue.",
+        });
+      }
       return false;
     }
     for (let i = 0; i < state.questions.length; i++) {
       const q = state.questions[i];
       const reason = findIncompleteReason(q);
       if (reason) {
-        toast.error({
-          title: `Question ${i + 1} is incomplete`,
-          description: `${reason.charAt(0).toUpperCase()}${reason.slice(1)}. Complete it or delete it before continuing.`,
-        });
+        if (!opts?.silent) {
+          toast.error({
+            title: `Question ${i + 1} is incomplete`,
+            description: `${reason.charAt(0).toUpperCase()}${reason.slice(1)}. Complete it or delete it before continuing.`,
+          });
+        }
         return false;
       }
       const dupes = findDuplicateOptionValues(q);
       if (dupes.length > 0) {
-        toast.error({
-          title: "Duplicate options",
-          description: `Question ${i + 1} has identical options (${dupes.join(", ")}). Make each option unique before moving on.`,
-        });
+        if (!opts?.silent) {
+          toast.error({
+            title: "Duplicate options",
+            description: `Question ${i + 1} has identical options (${dupes.join(", ")}). Make each option unique before moving on.`,
+          });
+        }
         return false;
       }
     }
@@ -1134,7 +1140,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   const [saveProgress, setSaveProgress] = useState<{ saved: number; total: number } | null>(null);
 
   const saveToServer = async (
-    opts?: { publish?: boolean; setupOnly?: boolean; skipParticipants?: boolean }
+    opts?: { publish?: boolean; setupOnly?: boolean; skipParticipants?: boolean; silentValidation?: boolean }
   ): Promise<{ quizId: string; code: string }> => {
     if (savingToServer) throw new Error("Save already in progress");
     if (state.info.title.trim().length < 3) {
@@ -1145,7 +1151,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     }
     // Validate the problems before persisting anything. setupOnly only creates
     // the quiz shell (no questions involved yet), so skip validation there.
-    if (!opts?.setupOnly && !validateAllQuestions()) {
+    // Background autosave validates silently — no toasts for half-written
+    // questions; explicit Save / Continue stays loud.
+    if (!opts?.setupOnly && !validateAllQuestions({ silent: opts?.silentValidation })) {
       throw new Error(QUESTION_VALIDATION_FAILED);
     }
     setSavingToServer(true);
@@ -1348,6 +1356,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
 
   useEffect(() => {
     if (!editMode || loading || !state.serverQuizId) return;
+    // No autosave on the questions step — problems are saved explicitly
+    // with the big per-problem Save button instead.
+    if (state.step === "questions") return;
 
     const snapshot = JSON.stringify({
       info: state.info,
@@ -1368,7 +1379,9 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
 
     setState((current) => ({ ...current, saveStatus: "saving" }));
     const timer = window.setTimeout(() => {
-      void saveToServer()
+      // Silent validation: a freshly added empty question must not pop an
+      // "incomplete" toast while the creator is still writing it.
+      void saveToServer({ silentValidation: true })
         .then(() => {
           databaseAutosaveSnapshotRef.current = snapshot;
           setState((current) => ({ ...current, saveStatus: "saved", lastSaved: new Date() }));
@@ -1386,6 +1399,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     editMode,
     loading,
     state.serverQuizId,
+    state.step,
     state.info,
     state.settings,
     state.questions,

@@ -104,12 +104,6 @@ const STEP_HELP: Record<string, { title: string; intro: string; items: string[] 
 
 // Mobile follows a focused subset of the Studio flow (see MOBILE_STEP_IDS).
 // Desktop keeps the complete Studio navigation.
-const LIFECYCLE_BADGE = {
-  draft: { label: "Draft", className: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400" },
-  scheduled: { label: "Scheduled", className: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300" },
-  live: { label: "Live", className: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300" },
-  ended: { label: "Ended", className: "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-500/30 dark:bg-slate-500/10 dark:text-slate-300" },
-} as const;
 
 function StudioHelpButton() {
   const { state } = useStudio();
@@ -193,13 +187,12 @@ export function StudioHeader() {
   const [continuing, setContinuing] = useState(false);
   const [saving, setSaving] = useState(false);
   const isMobileLast = mobileStepIndex !== -1 && mobileStepIndex === mobileSteps.length - 1;
-  const label = state.info.title.trim() === "" ? "Untitled Quiz" : state.info.title;
+  const label = state.info.title.trim();
   const activeIdx = state.questions.findIndex((q) => q.id === state.activeQuestionId);
   const total = state.questions.length;
   const currentNum = activeIdx >= 0 ? activeIdx + 1 : total > 0 ? 1 : 0;
   const progress = total > 0 ? Math.round((currentNum / Math.max(total, 1)) * 100) : 0;
   const topCounter = total > 0 ? `${currentNum} / ${total} questions` : `0 / ${total} questions`;
-  const lifecycleBadge = LIFECYCLE_BADGE[state.info.quizLifecycle] ?? LIFECYCLE_BADGE.draft;
 
   useEffect(() => setDraft(state.info.title), [state.info.title]);
 
@@ -240,14 +233,11 @@ export function StudioHeader() {
             }}
             className="min-w-0 flex-1 rounded-lg border border-input-border bg-input-bg px-2 py-1.5 text-sm font-semibold text-text-primary outline-none sm:min-w-[120px] sm:max-w-[40vw] sm:rounded-xl sm:px-3 sm:py-2"
           />
-        ) : (
+        ) : label !== "" ? (
           <button onClick={() => setEditing(true)} className="min-w-0 flex-1 whitespace-normal break-words text-left font-['Inter'] text-[13px] font-semibold leading-snug text-text-primary sm:text-[15px]">
             {label}
           </button>
-        )}
-        <span className={cn("inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold tracking-wide sm:px-2 sm:text-[10px]", lifecycleBadge.className)}>
-          {lifecycleBadge.label}
-        </span>
+        ) : null}
       </div>
 
       <div className="hidden items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 sm:flex ml-1 sm:ml-3 border-l border-border pl-2 sm:pl-3 shrink-0">

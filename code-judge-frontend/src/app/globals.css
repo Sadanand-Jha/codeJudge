@@ -352,6 +352,9 @@
 }
 
 @theme inline {
+  /* Site-wide typeface (Plus Jakarta Sans, loaded in app/layout.tsx) */
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
   /* Core surfaces */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -476,7 +479,7 @@
 body {
   background: var(--background);
   color: var(--text-primary);
-  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;

@@ -8,7 +8,6 @@ import {
   NotebookPen,
   FileText,
   ArrowRight,
-  Sparkles,
   Upload,
   Clock3,
   Settings2,
@@ -17,7 +16,6 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
-import { AiStreamText } from "@/components/ui";
 
 const FEATURE_SPOTLIGHT = [
   {
@@ -106,6 +104,7 @@ function CreateBanner({
   icon: Icon,
   iconClass,
   eyebrow,
+  eyebrowClass,
   title,
   sub,
   cta,
@@ -119,6 +118,7 @@ function CreateBanner({
   icon: LucideIcon;
   iconClass: string;
   eyebrow: string;
+  eyebrowClass: string;
   title: string;
   sub: string;
   cta: string;
@@ -130,26 +130,27 @@ function CreateBanner({
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay }}
+      className="h-full"
     >
       <Link
         href={href}
-        className={`group relative flex flex-col gap-4 overflow-hidden rounded-[22px] bg-gradient-to-br p-5 text-white transition-transform duration-200 hover:-translate-y-0.5 sm:p-6 ${gradient} ${shadow}`}
+        className={`group relative flex h-full flex-col gap-4 overflow-hidden rounded-[22px] bg-gradient-to-br p-5 text-slate-900 ring-1 ring-black/5 transition-transform duration-200 hover:-translate-y-0.5 sm:p-6 dark:text-white dark:ring-white/10 ${gradient} ${shadow}`}
       >
-        <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-white/20 blur-3xl" />
+        <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-white/50 blur-3xl dark:bg-white/10" />
         <div className={`pointer-events-none absolute -bottom-24 right-10 h-48 w-48 rounded-full blur-3xl ${orb}`} />
-        <div className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white shadow-xl ${iconClass}`}>
+        <div className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white shadow-lg dark:bg-white/95 ${iconClass}`}>
           <Icon className="h-7 w-7" strokeWidth={2.2} />
         </div>
         <div className="relative min-w-0 flex-1">
-          <span className="inline-flex items-center rounded-full bg-white/25 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-sm">
+          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] ${eyebrowClass}`}>
             {eyebrow}
           </span>
-          <h3 className="mt-2 text-[26px] font-black leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.25)]">
+          <h3 className="mt-2 text-[26px] font-black leading-none tracking-tight text-slate-900 dark:text-white">
             {title}
           </h3>
-          <p className="mt-2 text-[13px] font-medium leading-6 text-white">{sub}</p>
+          <p className="mt-2 text-[13px] font-medium leading-6 text-slate-600 dark:text-slate-300">{sub}</p>
         </div>
-        <span className={`relative inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-white px-5 text-[13px] font-black shadow-xl ${ctaClass}`}>
+        <span className={`relative inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl px-5 text-[13px] font-black shadow-lg transition-colors ${ctaClass}`}>
           {cta} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </span>
       </Link>
@@ -163,15 +164,6 @@ export function CreateHubPage() {
       <PageHeader
         title="Create New"
         subtitle="Choose what you want to build — one flow, built around your content type."
-        actions={
-          <Link
-            href="/creator/ai-studio"
-            className="hidden items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary transition-colors hover:border-pink-500/30 hover:text-text-primary sm:flex"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-violet-500" />
-            <AiStreamText text="AI Studio" />
-          </Link>
-        }
       />
 
       {/* Feature spotlight — one card at a time, rotating every 10s */}
@@ -180,46 +172,49 @@ export function CreateHubPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <CreateBanner
         href="/creator/quizzes"
-        gradient="from-violet-600 via-fuchsia-500 to-pink-500"
-        shadow="shadow-[0_20px_50px_-20px_rgba(192,38,211,.55)]"
-        orb="bg-cyan-300/30"
+        gradient="from-rose-100 via-pink-50 to-white dark:from-[#2A0F18] dark:via-[#1C0B12] dark:to-[#120A0E]"
+        shadow="shadow-[0_20px_50px_-24px_rgba(225,29,72,.35)]"
+        orb="bg-rose-300/40 dark:bg-rose-500/20"
         icon={ListChecks}
-        iconClass="text-fuchsia-600"
+        iconClass="text-rose-600"
         eyebrow="Your library"
+        eyebrowClass="bg-rose-600/10 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300"
         title="Your Quizzes"
         sub="Everything you've built lives here — open, edit, share and track your quizzes."
         cta="Open quizzes"
-        ctaClass="text-fuchsia-600"
+        ctaClass="bg-rose-600 text-white hover:bg-rose-700"
         delay={0.05}
       />
 
       <CreateBanner
         href="/creator/tests/create"
-        gradient="from-emerald-500 via-teal-500 to-cyan-600"
-        shadow="shadow-[0_20px_50px_-20px_rgba(16,185,129,.55)]"
-        orb="bg-amber-300/30"
+        gradient="from-rose-100 via-pink-50 to-white dark:from-[#2A0F18] dark:via-[#1C0B12] dark:to-[#120A0E]"
+        shadow="shadow-[0_20px_50px_-24px_rgba(225,29,72,.35)]"
+        orb="bg-rose-300/40 dark:bg-rose-500/20"
         icon={FileText}
-        iconClass="text-teal-600"
+        iconClass="text-rose-600"
         eyebrow="Complete papers"
+        eyebrowClass="bg-rose-600/10 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300"
         title="Question Papers"
         sub="Generate full question papers with sections, marking scheme and a print-ready layout."
         cta="Generate paper"
-        ctaClass="text-teal-600"
+        ctaClass="bg-rose-600 text-white hover:bg-rose-700"
         delay={0.1}
       />
 
       <CreateBanner
         href="/creator/problems/create"
-        gradient="from-amber-500 via-orange-500 to-rose-500"
-        shadow="shadow-[0_20px_50px_-20px_rgba(249,115,22,.55)]"
-        orb="bg-yellow-200/30"
+        gradient="from-rose-100 via-pink-50 to-white dark:from-[#2A0F18] dark:via-[#1C0B12] dark:to-[#120A0E]"
+        shadow="shadow-[0_20px_50px_-24px_rgba(225,29,72,.35)]"
+        orb="bg-rose-300/40 dark:bg-rose-500/20"
         icon={NotebookPen}
-        iconClass="text-orange-600"
+        iconClass="text-rose-600"
         eyebrow="Practice"
+        eyebrowClass="bg-rose-600/10 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300"
         title="Problems"
         sub="Create standalone coding or MCQ problems — set difficulty levels and reuse them anywhere."
         cta="Create problem"
-        ctaClass="text-orange-600"
+        ctaClass="bg-rose-600 text-white hover:bg-rose-700"
         delay={0.15}
       />
       </div>

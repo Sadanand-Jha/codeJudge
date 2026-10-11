@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, History } from "lucide-react";
 import GuestGuard from "@/components/guards/GuestGuard";
-import QuizPartyAtmosphere from "@/components/quiz/live/QuizPartyAtmosphere";
+// DISCONNECTED: import QuizPartyAtmosphere from "@/components/quiz/live/QuizPartyAtmosphere";
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
 
 export const metadata: Metadata = {
@@ -16,7 +16,7 @@ export default function QuizAttemptsPage() {
       <div className="relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 py-6 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6 sm:py-8">
         <div className="pricing-bg-light pointer-events-none absolute inset-0 z-0 opacity-100 dark:opacity-0" aria-hidden="true" />
         <div className="pricing-bg-space pointer-events-none absolute inset-0 z-0 opacity-0 dark:opacity-100" aria-hidden="true" />
-        <QuizPartyAtmosphere />
+        {/* DISCONNECTED: <QuizPartyAtmosphere /> (ice-cream floaters) */}
 
         <main className="relative z-10 mx-auto w-full max-w-[1280px]">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">

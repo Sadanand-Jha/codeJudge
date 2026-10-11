@@ -83,12 +83,16 @@ export interface VerifiedCreditPurchase {
  * Create a purchase order on the backend.
  * POST /api/v1/billing/credits/orders
  */
-export async function createCreditOrder(packId: string): Promise<CreditOrder> {
+export async function createCreditOrder(
+  packId: string,
+  opts?: { coupon?: string; amountPaise?: number }
+): Promise<CreditOrder> {
   const summary = buildOrderSummary(packId);
   const response = await apiClient.post<CreditOrder>("/v1/billing/credits/orders", {
     pack_id: summary.pack.id,
-    amount_paise: summary.total * 100,
+    amount_paise: opts?.amountPaise ?? summary.total * 100,
     currency: "INR",
+    ...(opts?.coupon ? { coupon: opts.coupon } : {}),
   });
   return response.data;
 }
@@ -129,7 +133,8 @@ export interface RazorpayCheckoutOptions {
   name: string;
   description: string;
   theme?: { color?: string };
-  prefill?: { email?: string; contact?: string; name?: string };
+  prefill?: { email?: string; contact?: string; name?: string; method?: string; vpa?: string };
+  notes?: Record<string, string>;
   handler: (response: {
     razorpay_payment_id: string;
     razorpay_order_id?: string;
@@ -159,6 +164,8 @@ function loadRazorpayScript(): Promise<void> {
 export async function openRazorpayCheckout(args: {
   order: CreditOrder;
   itemName: string;
+  prefill?: { email?: string; contact?: string; name?: string; method?: string; vpa?: string };
+  notes?: Record<string, string>;
   onDismiss: () => void;
 }): Promise<RazorpayPaymentPayload> {
   const key = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
@@ -178,6 +185,8 @@ export async function openRazorpayCheckout(args: {
       name: "ByteClash",
       description: args.itemName,
       theme: { color: "#EC4899" },
+      prefill: args.prefill,
+      notes: args.notes,
       handler: (response) =>
         resolve({
           razorpayPaymentId: response.razorpay_payment_id,

@@ -293,6 +293,8 @@ export interface CreditPurchasePack {
   cta: string;
   blurb: string;
   popular?: boolean;
+  /** How long purchased credits stay valid, in months from purchase. */
+  validityMonths: number;
 }
 
 export const CREDIT_PURCHASE_PACKS: CreditPurchasePack[] = [
@@ -303,6 +305,7 @@ export const CREDIT_PURCHASE_PACKS: CreditPurchasePack[] = [
     price: 49,
     cta: "Get Started",
     blurb: "For trying AI-powered question generation.",
+    validityMonths: 1,
   },
   {
     id: "teacher",
@@ -312,6 +315,7 @@ export const CREDIT_PURCHASE_PACKS: CreditPurchasePack[] = [
     cta: "Choose Teacher Pack",
     blurb: "For regular question-paper creation.",
     popular: true,
+    validityMonths: 3,
   },
   {
     id: "master",
@@ -320,8 +324,14 @@ export const CREDIT_PURCHASE_PACKS: CreditPurchasePack[] = [
     price: 199,
     cta: "Get Master Pack",
     blurb: "For frequent paper generation and advanced AI workflows.",
+    validityMonths: 3,
   },
 ];
+
+/** Validity for a pack id — falls back to the default when unknown. */
+export function getPackValidityMonths(packId: string): number {
+  return CREDIT_PURCHASE_PACKS.find((p) => p.id === packId)?.validityMonths ?? CREDIT_VALIDITY_MONTHS;
+}
 
 /* ============================================
    Per-plan usage budgets (cost protection)

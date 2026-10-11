@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Clock,
@@ -31,7 +32,7 @@ import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quiz
 import { getApiErrorMessage } from "@/lib/apiError";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import StudentQuizShell, { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
-import { QuizWarpExperience } from "@/components/quiz/live/QuizWarpExperience";
+// DISCONNECTED: import { QuizWarpExperience } from "@/components/quiz/live/QuizWarpExperience";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { LiveParticipant } from "@/types/liveAssessment";
 
@@ -58,6 +59,12 @@ export default function JoinQuizPage() {
   const initialCodeHandledRef = useRef(false);
   const isMobile = useIsMobile();
   const { playQuizSound } = useQuizSounds();
+  const router = useRouter();
+
+  // Warp animation disconnected — go straight to the waiting room.
+  useEffect(() => {
+    if (launchDestination) router.push(launchDestination);
+  }, [launchDestination, router]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setClockMs(Date.now()), 1000);
@@ -201,10 +208,10 @@ export default function JoinQuizPage() {
     setLaunchDestination(`/quiz/${code}/waiting`);
   };
 
-  const handleLaunchComplete = useCallback(() => {
-    setLaunchDestination(null);
-    setJoining(false);
-  }, []);
+  // DISCONNECTED (warp animation): const handleLaunchComplete = useCallback(() => {
+  //   setLaunchDestination(null);
+  //   setJoining(false);
+  // }, []);
 
   const formatDateTime = (iso: string | null) => {
     if (!iso) return "Not set";
@@ -551,6 +558,7 @@ export default function JoinQuizPage() {
           ) : null}
         </AnimatePresence>
     </StudentQuizShell>
+    {/* DISCONNECTED (warp aeroplane animation):
     {launchDestination && (
       <QuizWarpExperience
         code={code}
@@ -560,6 +568,7 @@ export default function JoinQuizPage() {
         onComplete={handleLaunchComplete}
       />
     )}
+    */}
     </>
   );
 }

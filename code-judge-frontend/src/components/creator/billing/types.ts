@@ -145,7 +145,8 @@ export type PaymentNotificationSetting =
   | "payout_completed"
   | "payout_failed"
   | "weekly_summary"
-  | "monthly_statement";
+  | "monthly_statement"
+  | "security_alerts";
 
 export interface TaxProfile {
   legalName: string;

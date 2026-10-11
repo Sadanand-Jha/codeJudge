@@ -305,7 +305,8 @@ export const DEFAULT_GAME_MECHANICS_STATE = DEFAULT_GAME_MECHANICS;
 export const STEPS: Array<{ id: StudioStepId; label: string }> = [
   { id: "setup", label: "Setup" },
   { id: "questions", label: "Questions" },
-  { id: "gameMechanics", label: "Game Mechanics" },
+  // DISCONNECTED (game mechanics not included as of now):
+  // { id: "gameMechanics", label: "Game Mechanics" },
   { id: "settings", label: "Settings" },
   { id: "audience", label: "Audience" },
   { id: "registration", label: "Registration" },

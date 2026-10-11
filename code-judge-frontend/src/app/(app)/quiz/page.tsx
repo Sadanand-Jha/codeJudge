@@ -7,7 +7,8 @@ import { ArrowRight, BrainCircuit, Check, FileText, History, ShieldCheck, Rocket
 import GuestGuard from "@/components/guards/GuestGuard";
 
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
-import QuizPartyAtmosphere, { QuizPartyColorStrip } from "@/components/quiz/live/QuizPartyAtmosphere";
+import { QuizPartyColorStrip } from "@/components/quiz/live/QuizPartyAtmosphere";
+// DISCONNECTED: default import QuizPartyAtmosphere (ice-cream floaters)
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTheme } from "@/context/ThemeContext";
@@ -484,7 +485,7 @@ function QuizHome() {
   return (
     <div className="relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 pb-6 pt-10 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6 sm:pb-8 sm:pt-12">
       <QuizPageBackground />
-      <QuizPartyAtmosphere showBottomStrip={false} />
+      {/* DISCONNECTED: <QuizPartyAtmosphere showBottomStrip={false} /> (ice-cream floaters) */}
       <div className="relative z-10 mx-auto w-full max-w-[1320px] sm:w-[calc(100%-48px)]">
       <QuizPageReady>
       <main className="w-full space-y-5 sm:space-y-6">
