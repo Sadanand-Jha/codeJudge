@@ -7,7 +7,6 @@ import { useToast } from "@/hooks/useToast";
 import { useBillingData } from "./hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   SegmentedControl,
   BillButton,
@@ -71,7 +70,6 @@ export function DocumentsPage({ demoState }: { demoState?: "empty" | "error" }) 
       <PageHeader
         title="Invoices & Statements"
         subtitle="Download invoices, statements and tax documents for your records."
-        badge={<MockDataTag />}
         actions={
           <BillButton icon={<FilePlus2 className="h-4 w-4" />} onClick={() => setGenOpen(true)}>
             Generate Statement

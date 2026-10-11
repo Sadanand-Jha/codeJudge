@@ -15,7 +15,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { PageHeader, MockDataTag, Panel, StatusBadge, BillButton, SegmentedControl } from "@/components/creator/billing/ui";
+import { PageHeader, Panel, StatusBadge, BillButton, SegmentedControl } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
 import { ORGANIZATION, ORG_MEMBERS } from "./mockData";
 
@@ -62,7 +62,6 @@ export function CompanyPage() {
       <PageHeader
         title="Company / Organization"
         subtitle="Business details, branding and team setup for your creator account."
-        badge={<MockDataTag />}
         actions={<BillButton onClick={save}>Save changes</BillButton>}
       />
 

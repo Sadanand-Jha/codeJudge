@@ -18,7 +18,6 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   StatCard,
   StatCardSkeleton,
@@ -195,7 +194,6 @@ export function AnalyticsOverviewPage({ demoState }: { demoState?: "empty" | "er
       <PageHeader
         title="Analytics"
         subtitle="Deep-dive into earnings, attempts and student behavior"
-        badge={<MockDataTag />}
         actions={
           <BillButton variant="ghost" icon={<Download className="h-4 w-4" />}>
             Export Report

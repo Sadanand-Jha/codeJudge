@@ -2,7 +2,7 @@
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Loader2, PartyPopper, Send, ShieldCheck, Sparkles, Target, Volume2, VolumeX } from "lucide-react";
+import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, Loader2, PartyPopper, Send, ShieldCheck, Sparkles, Target, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
 import {
@@ -16,7 +16,6 @@ import {
   type QuizBasic,
 } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
-import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
 import {
   clearQuizAttemptAnswers,
@@ -145,38 +144,16 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         } catch {
           // Ignore storage errors on cleanup.
         }
-        const resultsAvailable = quiz?.show_results_immediately === true ||
-          String(quiz?.status ?? "").toLowerCase() === "ended" ||
-          Boolean(quiz?.endtime && new Date(quiz.endtime).getTime() <= Date.now());
-        // Release the button before navigating: if router.replace is slow or
-        // blocked, the spinner must not stick forever.
-        submittingRef.current = false;
-        setSubmitting(false);
-        // Post-submit always returns home — the results page is intentionally
-        // skipped so students land back on the quiz hub.
-        if (resultsAvailable) {
-          toast.success({
-            title: "Quiz submitted",
-            description: "Your answers are secure.",
-          });
-        } else {
-          toast.success({
-            title: "Quiz submitted",
-            description: "Your answers are secure. Results will be available after the quiz ends.",
-          });
-        }
-        router.replace("/quiz");
+        // Stay on the confirmation screen (submitting remains true so the
+        // overlay stays mounted) — the student returns home via its button.
+        setSubmissionComplete(true);
+        playQuizSound("success");
       };
       // Let students perceive the confirmation sequence even when grading is
       // near-instant; the API has already confirmed success before this delay.
       const remaining = Math.max(0, 2400 - (Date.now() - submissionStartedAt));
-      const celebrate = () => {
-        setSubmissionComplete(true);
-        playQuizSound("success");
-        window.setTimeout(complete, isMobile ? 450 : 1350);
-      };
-      if (remaining > 0) window.setTimeout(celebrate, remaining);
-      else celebrate();
+      if (remaining > 0) window.setTimeout(complete, remaining);
+      else complete();
     };
     const buildResponses = () =>
       Object.entries(answersRef.current).map(([problemId, answer]) => ({ problemId: Number(problemId), ...answer }));
@@ -240,18 +217,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
             break;
           }
         }
-        // Worker is slow but answers are safely queued; stop blocking the UI.
+        // Worker is slow but answers are safely queued — show the
+        // confirmation screen and let the student go home from there.
         setSubmissionComplete(true);
         playQuizSound("success");
-        window.setTimeout(() => {
-          submittingRef.current = false;
-          setSubmitting(false);
-          toast.success({
-            title: "Quiz submitted",
-            description: "Grading is taking longer than usual. Results will appear shortly.",
-          });
-          router.replace("/quiz#activity");
-        }, isMobile ? 450 : 1350);
         return;
       }
       finishSubmission();
@@ -262,7 +231,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       setSubmitting(false);
       playQuizSound("error");
     }
-  }, [attemptId, code, isMobile, playQuizSound, quiz, router]);
+  }, [attemptId, playQuizSound]);
 
   // Exam-cell: after 3 violations the attempt is auto-submitted and flagged.
   const handleTerminate = useCallback((summary: ViolationSummary) => {
@@ -371,6 +340,10 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     void submit();
   }, [playQuizSound, submit]);
 
+  const handleGoHome = useCallback(() => {
+    router.replace("/quiz");
+  }, [router]);
+
   if (loading) return <StatusScreen loading text="Preparing your secure attempt…" />;
   if (error && !quiz) return <StatusScreen text={error} />;
   if (!quiz) return <StatusScreen text="This quiz could not be loaded." />;
@@ -387,7 +360,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       entryError={error}
       onTerminate={handleTerminate}
     >
-      {submitting && <SubmissionProgressOverlay complete={submissionComplete} soundEnabled={soundEnabled} onSound={playQuizSound} />}
+      {submitting && <SubmissionProgressOverlay complete={submissionComplete} soundEnabled={soundEnabled} onSound={playQuizSound} onHome={handleGoHome} />}
       {starting || (!attemptId && !error) ? (
         <div className="flex h-full items-center justify-center p-6">
           <StatusScreen loading text="Starting your secure attempt…" />
@@ -559,7 +532,7 @@ const SUBMIT_PARTY_BITS = Array.from({ length: 30 }, (_, index) => {
   };
 });
 
-function SubmissionProgressOverlay({ complete, soundEnabled, onSound }: { complete: boolean; soundEnabled: boolean; onSound: (sound: QuizSound) => void }) {
+function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: { complete: boolean; soundEnabled: boolean; onSound: (sound: QuizSound) => void; onHome: () => void }) {
   const [elapsed, setElapsed] = useState(0);
   const isMobile = useIsMobile();
 
@@ -612,7 +585,14 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound }: { comple
           </div>
           <p className="mt-5 text-[11px] font-black uppercase tracking-[0.24em] text-emerald-600 dark:text-emerald-300">Submission complete</p>
           <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">You did it!</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-white/55">Your answers are safe. Preparing your result now…</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-white/55">Your quiz responses have been submitted. You can go back now.</p>
+          <button
+            type="button"
+            onClick={onHome}
+            className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 text-sm font-bold text-white shadow-[0_16px_36px_-16px_rgba(244,114,182,.85)] transition duration-200 hover:-translate-y-0.5 dark:from-[#7765F5] dark:via-[#8B7CFF] dark:to-[#9A6BFF]"
+          >
+            <Home className="h-4 w-4" /> Back to Home
+          </button>
         </motion.div>
       </div>
     );

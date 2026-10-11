@@ -15,7 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { PageHeader, MockDataTag, Panel, StatusBadge, BillButton } from "@/components/creator/billing/ui";
+import { PageHeader, Panel, StatusBadge, BillButton } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
 import { CREATOR_PROFILE } from "./mockData";
 
@@ -62,7 +62,6 @@ export function CreatorProfilePage() {
       <PageHeader
         title="Creator Profile"
         subtitle="How you appear to students on ByteClash."
-        badge={<MockDataTag />}
         actions={
           <div className="flex items-center gap-2">
             <BillButton variant="ghost" href="/creator/profile/public">

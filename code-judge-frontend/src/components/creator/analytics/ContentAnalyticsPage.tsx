@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/useToast";
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   StatCard,
   StatCardSkeleton,
@@ -121,7 +120,6 @@ export function ContentAnalyticsPage({ demoState }: { demoState?: "empty" | "err
       <PageHeader
         title="Content Analytics"
         subtitle="Which content drives engagement and revenue"
-        badge={<MockDataTag />}
       />
 
       {state === "loading" && (

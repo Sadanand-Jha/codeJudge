@@ -6,8 +6,6 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import ThemeToggle from "@/components/ui/ThemeToggle";
-import BackButton from "@/components/layout/BackButton";
 import WorkspaceSwitcher from "@/components/layout/WorkspaceSwitcher";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { useAuthStore } from "@/store/authStore";
@@ -104,16 +102,6 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
           </button>
         )}
 
-        <Link href="/creator" className="mr-1 flex min-w-0 shrink-0 items-center gap-1.5 sm:mr-2 sm:gap-2">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-pink-500 to-violet-600">
-            <span className="text-[10px] font-black text-white">S</span>
-          </div>
-          <span className="hidden truncate text-[13px] font-bold tracking-tight text-text-primary sm:block">Studio</span>
-        </Link>
-
-        {/* Back — internal Studio pages only (hidden across the quiz flow) */}
-        <BackButton className="border-border bg-card/60" />
-
         <div className="mx-1 hidden h-4 w-px shrink-0 bg-border sm:block" />
         <nav className="hidden shrink-0 items-center gap-0.5 md:flex">
           {[
@@ -140,9 +128,6 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
       <div className="hidden min-w-0 flex-1 sm:block" />
       <div className="flex min-w-0 shrink-0 items-center gap-1">
         <WorkspaceSwitcher />
-        <div className="hidden shrink-0 min-[350px]:flex">
-          <ThemeToggle />
-        </div>
         <ProfileMenu />
       </div>
     </header>

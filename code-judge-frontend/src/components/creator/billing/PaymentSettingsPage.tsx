@@ -19,7 +19,6 @@ import { Toggle, SettingsRow } from "@/components/ui/settings";
 import { useBillingData } from "./hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   SegmentedControl,
   BillButton,
@@ -99,7 +98,6 @@ export function PaymentSettingsPage({ demoState }: { demoState?: "empty" | "erro
       <PageHeader
         title="Payment Settings"
         subtitle="Manage payout accounts, schedule and financial notifications."
-        badge={<MockDataTag />}
       />
 
       <SecureNote text={`Last financial activity: ${WALLET.lastActivity}`} />

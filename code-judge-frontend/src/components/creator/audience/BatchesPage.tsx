@@ -6,7 +6,6 @@ import { Plus, CalendarRange, PlayCircle, CalendarClock, CheckCircle2, UserCheck
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   PageHeader,
-  MockDataTag,
   StatCard,
   StatCardSkeleton,
   BillButton,
@@ -133,7 +132,6 @@ export function BatchesPage({ demoState }: { demoState?: "empty" | "error" }) {
       <PageHeader
         title="Batches"
         subtitle="Group students into batches with schedules and deadlines"
-        badge={<MockDataTag />}
         actions={
           <BillButton variant="ghost" icon={<Plus className="h-4 w-4" />} href="/creator/batches/new">
             New Batch

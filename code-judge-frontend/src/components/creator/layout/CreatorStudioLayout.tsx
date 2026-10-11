@@ -8,6 +8,7 @@ import { CreatorSidebar } from "./CreatorSidebar";
 import CreatorNavbar from "./CreatorNavbar";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuthStore } from "@/store/authStore";
+import { useTheme } from "@/context/ThemeContext";
 
 export default function CreatorStudioLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -15,6 +16,13 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   const [drawerOpen, setDrawerOpen] = useState(false);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { theme, setTheme } = useTheme();
+
+  // Studio is light-theme only (no toggle in the Studio navbar). Dark-mode
+  // styling across Studio components is intentionally left untouched.
+  useEffect(() => {
+    if (theme === "dark") setTheme("light");
+  }, [theme, setTheme]);
 
   useEffect(() => {
     if (hasHydrated && !isAuthenticated) {

@@ -5,7 +5,6 @@ import { Plus, BookOpen, Users, LayoutGrid, Activity, MoreHorizontal, Settings2,
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   PageHeader,
-  MockDataTag,
   StatCard,
   StatCardSkeleton,
   BillButton,
@@ -62,7 +61,6 @@ export function ClassesPage({ demoState }: { demoState?: "empty" | "error" }) {
       <PageHeader
         title="Classes"
         subtitle="Organize your students into classes for easier management"
-        badge={<MockDataTag />}
         actions={
           <>
             <BillButton variant="ghost" icon={<Plus className="h-4 w-4" />} href="/creator/classes/new">

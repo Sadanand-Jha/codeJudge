@@ -8,7 +8,6 @@ import { ConfirmDialog } from "@/components/ui/settings";
 import { useBillingData } from "./hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   StatusBadge,
   PAYOUT_STATUS_TONE,
@@ -72,7 +71,6 @@ export function RefundsPage({ demoState }: { demoState?: "empty" | "error" }) {
       <PageHeader
         title="Refunds"
         subtitle="Manage refund requests raised by students for your products."
-        badge={<MockDataTag />}
         actions={
           <BillButton variant="ghost" icon={<Download className="h-4 w-4" />} onClick={() => setExportOpen(true)}>
             Export

@@ -25,7 +25,6 @@ import {
   BillButton,
   EmptyState,
   ErrorState,
-  MockDataTag,
   PageHeader,
   Panel,
   PanelSkeleton,
@@ -218,7 +217,6 @@ export function AIStudioPage({ demoState }: { demoState?: "empty" | "error" }) {
       <PageHeader
         title="AI Studio"
         subtitle="Generate questions from your materials with AI."
-        badge={<MockDataTag />}
       />
 
       {state === "loading" && (

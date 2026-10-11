@@ -6,7 +6,6 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useBillingData } from "./hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   StatCard,
   StatCardSkeleton,
@@ -53,7 +52,6 @@ export function EarningsPage({ demoState }: { demoState?: "empty" | "error" }) {
       <PageHeader
         title="Earnings"
         subtitle="Revenue analytics, sales performance and where your money comes from."
-        badge={<MockDataTag />}
         actions={<BillButton variant="ghost" href="/creator/billing/transactions">View transactions</BillButton>}
       />
 

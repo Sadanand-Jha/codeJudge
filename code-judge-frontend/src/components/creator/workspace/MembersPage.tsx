@@ -14,7 +14,7 @@ import {
   Crown,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { PageHeader, MockDataTag, Panel, StatusBadge, BillButton, EmptyState } from "@/components/creator/billing/ui";
+import { PageHeader, Panel, StatusBadge, BillButton, EmptyState } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
 import { ORG_MEMBERS } from "./mockData";
 import type { OrgMember, OrgMemberRole } from "./types";
@@ -83,7 +83,6 @@ export function MembersPage() {
       <PageHeader
         title="Team Members"
         subtitle="People who help you create and manage your tests."
-        badge={<MockDataTag />}
         actions={<BillButton onClick={() => setInviteOpen(true)} icon={<UserPlus className="h-3.5 w-3.5" />}>Invite member</BillButton>}
       />
 

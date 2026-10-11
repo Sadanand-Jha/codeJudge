@@ -4,7 +4,7 @@ import type { ReactNode, ButtonHTMLAttributes } from "react";
 import { useState, useRef, useEffect, useId } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownRight, ArrowUpRight, CalendarDays, ChevronDown, Loader2, Lock, RotateCcw, Inbox, ShieldCheck, X } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, CalendarDays, ChevronDown, Loader2, Lock, RotateCcw, Inbox, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
 /* ============================================================
@@ -591,21 +591,6 @@ export function PageHeader({
       </div>
       {actions && <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
     </div>
-  );
-}
-
-/* ============================================================
-   Mock-data tag — makes it unambiguous the figures are sample data
-   ============================================================ */
-export function MockDataTag() {
-  return (
-    <span
-      title="These figures are sample data for UI development and will be replaced by real backend data."
-      className="inline-flex items-center gap-1 rounded-full border border-warning/25 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-300"
-    >
-      <ShieldCheck className="h-3 w-3" />
-      Sample data
-    </span>
   );
 }
 

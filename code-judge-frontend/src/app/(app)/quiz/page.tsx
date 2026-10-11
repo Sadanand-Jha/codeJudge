@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, BrainCircuit, Check, FileText, History, KeyRound, ShieldCheck, Rocket, Radar, Gauge, Satellite, PartyPopper, Sparkles, UserRound, WandSparkles } from "lucide-react";
+import { ArrowRight, BrainCircuit, Check, FileText, History, ShieldCheck, Rocket, Radar, Gauge, Satellite, PartyPopper, Sparkles, UserRound, WandSparkles } from "lucide-react";
 import GuestGuard from "@/components/guards/GuestGuard";
 
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
@@ -514,10 +514,10 @@ function QuizHome() {
               <Link href="#activity" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#DDE2EA] bg-white/55 px-5 text-sm font-semibold text-[#344054] transition hover:border-violet-500/30 hover:text-violet-600 dark:border-white/[0.09] dark:bg-white/[0.035] dark:text-[#BAC3D3] dark:hover:text-violet-300">
                 <History className="h-4 w-4" /> {partyMode ? "See my quiz treats" : "Open mission logs"}
               </Link>
-              <Link href="/creator/quizzes/create" className="group inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-violet-300/55 bg-gradient-to-r from-violet-50/90 to-fuchsia-50/85 px-5 text-sm font-bold text-violet-700 shadow-[0_14px_30px_-20px_rgba(124,58,237,.7)] transition hover:-translate-y-0.5 hover:border-violet-400 dark:border-violet-400/25 dark:from-violet-500/10 dark:to-fuchsia-500/10 dark:text-violet-200">
+              <Link href="/creator/quizzes/create" className="group hidden h-12 items-center justify-center gap-2 rounded-2xl border border-violet-300/55 bg-gradient-to-r from-violet-50/90 to-fuchsia-50/85 px-5 text-sm font-bold text-violet-700 shadow-[0_14px_30px_-20px_rgba(124,58,237,.7)] transition hover:-translate-y-0.5 hover:border-violet-400 sm:inline-flex dark:border-violet-400/25 dark:from-violet-500/10 dark:to-fuchsia-500/10 dark:text-violet-200">
                 <WandSparkles className="h-4 w-4" /> Create your own quiz <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
-              <Link href="/meet-the-developer" className="group inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#DDE2EA] bg-white/55 px-5 text-sm font-semibold text-[#344054] transition hover:-translate-y-0.5 hover:border-violet-500/30 hover:text-violet-600 dark:border-white/[0.09] dark:bg-white/[0.035] dark:text-[#BAC3D3] dark:hover:text-violet-300">
+              <Link href="/meet-the-developer" className="group hidden h-12 items-center justify-center gap-2 rounded-2xl border border-[#DDE2EA] bg-white/55 px-5 text-sm font-semibold text-[#344054] transition hover:-translate-y-0.5 hover:border-violet-500/30 hover:text-violet-600 sm:inline-flex dark:border-white/[0.09] dark:bg-white/[0.035] dark:text-[#BAC3D3] dark:hover:text-violet-300">
                 <UserRound className="h-4 w-4" /> Meet the developer <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
             </div>
@@ -544,27 +544,6 @@ function QuizHome() {
         <div className="hidden sm:block">
           <AIQuizStudioCard />
         </div>
-
-        {/* ── Primary actions (compact) ── */}
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-          <ActionCard
-            href="/quiz/join"
-            icon={KeyRound}
-            title={partyMode ? "Enter your party code" : "Enter launch code"}
-            description={partyMode ? "Use your 16-letter quiz pass and step into the celebration." : "Use your secure 16-letter mission key and prepare for departure."}
-            cta={partyMode ? "Join the fun" : "Begin launch sequence"}
-            primary
-            party={partyMode}
-          />
-          <ActionCard
-            href="/quiz/attempts"
-            icon={History}
-            title={partyMode ? "My quiz treats" : "Mission archive"}
-            description={partyMode ? "Revisit your scores, happy wins, and colorful quiz memories." : "Review completed expeditions, scores, ranks, and flight history."}
-            cta={partyMode ? "Open treat shelf" : "Open mission logs"}
-            party={partyMode}
-          />
-        </section>
 
         {/* ── Trust strip (existing content, compact) ── */}
         <section className="flex flex-col gap-2 rounded-2xl border border-[#E4E7EC] bg-white/75 px-4 py-3 backdrop-blur-xl dark:border-white/[0.07] dark:bg-[#111622]/75 sm:flex-row sm:items-center sm:gap-6">
@@ -600,81 +579,5 @@ export default function QuizDashboardPage() {
     <GuestGuard action="join-contest">
       <QuizHome />
     </GuestGuard>
-  );
-}
-
-function ActionCard({
-  href,
-  icon: Icon,
-  title,
-  description,
-  cta,
-  primary = false,
-  party = false,
-}: {
-  href: string;
-  icon: typeof KeyRound;
-  title: string;
-  description: string;
-  cta: string;
-  primary?: boolean;
-  party?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`group relative flex items-start gap-4 overflow-hidden rounded-[24px] border p-5 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 sm:p-6 ${
-        party
-          ? primary
-            ? "border-pink-300/60 bg-gradient-to-br from-white/90 to-pink-50/85 shadow-[0_20px_55px_-32px_rgba(244,114,182,.8)] hover:border-pink-400/70"
-            : "border-cyan-200/70 bg-gradient-to-br from-white/85 to-cyan-50/75 shadow-[0_20px_55px_-36px_rgba(34,199,232,.6)] hover:border-cyan-300"
-          : primary
-          ? "border-[#8B7CFF]/40 bg-white/85 shadow-[0_20px_55px_-32px_rgba(109,77,255,.8)] hover:border-[#8B7CFF]/65 hover:shadow-[0_24px_60px_-30px_rgba(109,77,255,.9)] dark:border-[#8B7CFF]/30 dark:bg-[#121725]/80 dark:shadow-[0_20px_60px_-34px_rgba(109,77,255,.7)]"
-          : "border-[#E4E7EC] bg-white/75 shadow-[0_20px_55px_-38px_rgba(16,24,40,.45)] hover:border-[#BDB4FF]/60 hover:shadow-[0_24px_60px_-34px_rgba(109,77,255,.5)] dark:border-white/[0.08] dark:bg-[#101520]/75 dark:hover:border-violet-400/30"
-      }`}
-    >
-      <span
-        aria-hidden="true"
-        className={`pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full blur-3xl transition-opacity duration-300 group-hover:opacity-100 ${
-          party ? (primary ? "bg-pink-400/25 opacity-80" : "bg-cyan-400/20 opacity-70") : primary ? "bg-violet-500/20 opacity-70" : "bg-cyan-400/10 opacity-40"
-        }`}
-      />
-      <span
-        className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border shadow-inner ${
-          party
-            ? primary
-              ? "border-pink-300/50 bg-pink-100/70 text-pink-600"
-              : "border-cyan-300/50 bg-cyan-100/65 text-cyan-600"
-            : primary
-            ? "border-[#8B7CFF]/25 bg-[#8B7CFF]/12 text-[#6B5CFF] dark:bg-violet-500/10 dark:text-[#A99FFF]"
-            : "border-[#DDE2EA] bg-[#F2F4F7] text-[#475467] dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-cyan-300"
-        }`}
-      >
-        <Icon className="h-5 w-5" strokeWidth={1.8} />
-      </span>
-      <span className="relative min-w-0 flex-1">
-        <span className="mb-2 block text-[9px] font-bold uppercase tracking-[0.17em] text-[#98A2B3] dark:text-[#68758A]">
-          {party ? (primary ? "Your party pass" : "Sweet memories") : (primary ? "Primary flight path" : "Mission intelligence")}
-        </span>
-        <span className="block text-[15px] font-semibold text-[#101828] dark:text-[#F4F6FA] sm:text-base">
-          {title}
-        </span>
-        <span className="mt-0.5 block text-[13px] leading-5 text-[#475467] dark:text-[#9AA4B5] sm:text-sm">
-          {description}
-        </span>
-        <span
-          className={`mt-2.5 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors duration-150 ${
-            party && primary
-              ? "bg-gradient-to-r from-pink-500 to-orange-400 text-white group-hover:from-pink-600 group-hover:to-orange-500"
-              : primary
-              ? "bg-[#8B7CFF] text-white group-hover:bg-[#7A6BF5]"
-              : "border border-[#E4E7EC] bg-[#F2F4F7] text-[#475467] group-hover:border-[#D0D5DD] group-hover:text-[#101828] dark:border-[#252D3A] dark:bg-[#19202C] dark:text-[#9AA4B5] dark:group-hover:border-[#353f52] dark:group-hover:text-[#F4F6FA]"
-          }`}
-        >
-          {cta}
-          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
-        </span>
-      </span>
-    </Link>
   );
 }

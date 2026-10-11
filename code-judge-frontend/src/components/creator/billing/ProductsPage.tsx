@@ -6,7 +6,6 @@ import { TrendingDown, TrendingUp, ShoppingBag, Layers, Sparkles } from "lucide-
 import { useBillingData } from "./hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   SegmentedControl,
   BillButton,
@@ -51,7 +50,6 @@ export function ProductsPage({ demoState }: { demoState?: "empty" | "error" }) {
       <PageHeader
         title="Products"
         subtitle="Revenue performance for every monetized test and series."
-        badge={<MockDataTag />}
         actions={<BillButton variant="ghost" href="/creator/tests/create">Create a Test</BillButton>}
       />
 

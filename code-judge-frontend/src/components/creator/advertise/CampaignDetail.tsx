@@ -7,7 +7,6 @@ import { cn } from "@/lib/helpers";
 import {
   BillButton,
   formatINR,
-  MockDataTag,
   Panel,
   StatusBadge,
   type StatusTone,
@@ -59,7 +58,6 @@ export function CampaignDetail({ campaign }: { campaign: AdCampaign }) {
               Resume
             </BillButton>
           ) : null}
-          <MockDataTag />
         </div>
       </div>
 

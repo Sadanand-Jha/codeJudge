@@ -15,7 +15,7 @@ import {
   Lock,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { PageHeader, MockDataTag, Panel, StatusBadge, BillButton } from "@/components/creator/billing/ui";
+import { PageHeader, Panel, StatusBadge, BillButton } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
 import { VERIFICATION } from "./mockData";
 import type { VerificationSection } from "./types";
@@ -46,7 +46,6 @@ export function VerificationPage() {
       <PageHeader
         title="Verification"
         subtitle="Verify your identity and business details to unlock payouts and grow trust."
-        badge={<MockDataTag />}
         actions={
           <BillButton variant="ghost" href="/creator/billing/settings">
             Payment settings

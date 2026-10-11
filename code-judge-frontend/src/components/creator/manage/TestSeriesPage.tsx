@@ -21,7 +21,6 @@ import {
   ErrorState,
   formatINR,
   formatINRCompact,
-  // MockDataTag, // hidden while mock data is commented out
   PageHeader,
   StatCard,
   StatCardSkeleton,
@@ -177,7 +176,6 @@ export function TestSeriesPage({ demoState }: { demoState?: "empty" | "error" })
       <PageHeader
         title="Test Series"
         subtitle="Bundle tests into series and sell them together."
-        // badge={<MockDataTag />} // hidden while mock data is commented out
         actions={
           <BillButton href="/creator/series/create" icon={<Plus className="h-4 w-4" />}>
             New Series

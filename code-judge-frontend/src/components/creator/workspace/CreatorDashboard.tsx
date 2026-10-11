@@ -29,7 +29,6 @@ import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   formatINRCompact,
   PageHeader,
-  MockDataTag,
   Panel,
   StatCardSkeleton,
   EmptyState,
@@ -310,7 +309,6 @@ export function CreatorDashboard({
       <PageHeader
         title={`Welcome back, ${profile.displayName.split(" ")[0]}`}
         subtitle="Here's what's happening with your tests and students today."
-        badge={<MockDataTag />}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <SegmentedControl

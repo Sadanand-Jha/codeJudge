@@ -6,7 +6,6 @@ import { Plus, Building2, School, Layers, UserCheck, MoreHorizontal, Settings2, 
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   PageHeader,
-  MockDataTag,
   StatCard,
   StatCardSkeleton,
   BillButton,
@@ -125,7 +124,6 @@ export function OrganizationsPage({ demoState }: { demoState?: "empty" | "error"
       <PageHeader
         title="Organizations"
         subtitle="Manage organizations and institutions that use your tests"
-        badge={<MockDataTag />}
         actions={
           <BillButton variant="ghost" icon={<Plus className="h-4 w-4" />} href="/creator/organizations/new">
             Add Organization

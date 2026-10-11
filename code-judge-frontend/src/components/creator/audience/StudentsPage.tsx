@@ -6,7 +6,6 @@ import { Search, Users, UserPlus, UserCheck, Star, Download, MoreHorizontal, Use
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   StatCard,
   StatCardSkeleton,
@@ -143,7 +142,6 @@ export function StudentsPage({ demoState }: { demoState?: "empty" | "error" }) {
       <PageHeader
         title="Your Students"
         subtitle="See who bought your tests and how they perform"
-        badge={<MockDataTag />}
         actions={
           <>
             <BillButton href="/creator/invitations">Invite Students</BillButton>

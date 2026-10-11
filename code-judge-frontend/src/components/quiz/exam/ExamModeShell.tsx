@@ -335,12 +335,12 @@ export default function ExamModeShell({
               <button
                 onClick={enterExamMode}
                 disabled={entering}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500 sm:px-6 sm:py-3"
+                className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500 sm:w-auto sm:px-6"
               >
                 {entering ? <QuizLoader className="h-4 w-4 text-white" /> : <Maximize2 className="h-4 w-4" />}
                 {entering ? "Checking eligibility…" : "Enter Exam Mode"}
               </button>
-              <button onClick={onExitPreview} className="rounded-xl border border-border px-5 py-2.5 text-sm font-semibold hover:bg-card-hover sm:px-6 sm:py-3">
+              <button onClick={onExitPreview} className="h-14 w-full rounded-2xl border border-border px-5 text-sm font-semibold hover:bg-card-hover sm:w-auto sm:px-6">
                 Cancel
               </button>
             </div>

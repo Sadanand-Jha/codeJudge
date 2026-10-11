@@ -1,92 +1,168 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  ClipboardList,
   ListChecks,
-  Layers,
   NotebookPen,
+  FileText,
   ArrowRight,
   Sparkles,
-  FilePlus2,
   Upload,
   Clock3,
   Settings2,
   GraduationCap,
+  type LucideIcon,
 } from "lucide-react";
-import { PageHeader, MockDataTag, Panel } from "@/components/creator/billing/ui";
+import { PageHeader } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
 import { AiStreamText } from "@/components/ui";
 
-type CreateType = "quiz" | "test" | "series" | "problem";
-
-interface CreateOption {
-  id: CreateType;
-  title: string;
-  description: string;
-  href: string;
-  icon: typeof ClipboardList;
-  gradient: string;
-  accent: string;
-  tag: string;
-  features: string[];
-}
-
-const CREATE_OPTIONS: CreateOption[] = [
+const FEATURE_SPOTLIGHT = [
   {
-    id: "quiz",
-    title: "Quiz",
-    description: "A quick, interactive assessment with instant scoring and feedback.",
-    href: "/creator/quizzes/create",
-    icon: ListChecks,
-    gradient: "from-emerald-500 to-teal-600",
-    accent: "text-emerald-500",
-    tag: "Quick & interactive",
-    features: ["Instant results", "Timer & scoring", "Public or private"],
+    icon: Clock3,
+    label: "Reusable question bank",
+    sub: "Build once, reuse across everything",
+    gradient: "from-emerald-400 to-teal-600",
+    glow: "bg-emerald-400/25",
+    tint: "from-emerald-500/[0.08] to-teal-500/[0.03]",
   },
   {
-    id: "test",
-    title: "Test",
-    description: "A full-length mock test with sections, negative marking and percentile.",
-    href: "/creator/tests/create",
-    icon: ClipboardList,
+    icon: Upload,
+    label: "Import & AI generation",
+    sub: "From files, topics or prompts",
     gradient: "from-pink-500 to-violet-600",
-    accent: "text-pink-500",
-    tag: "Full-length mocks",
-    features: ["Sections & subjects", "Negative marking", "Percentile scoring"],
+    glow: "bg-pink-500/25",
+    tint: "from-pink-500/[0.08] to-violet-500/[0.03]",
   },
   {
-    id: "series",
-    title: "Test Series",
-    description: "Bundle multiple tests into a series and sell them together.",
-    href: "/creator/series/create",
-    icon: Layers,
-    gradient: "from-violet-500 to-purple-600",
-    accent: "text-violet-500",
-    tag: "Bundle & sell",
-    features: ["Bundle tests", "Flexible pricing", "Scheduled release"],
+    icon: Settings2,
+    label: "Type-aware builder",
+    sub: "Right tools appear for the right type",
+    gradient: "from-amber-400 to-orange-600",
+    glow: "bg-amber-400/25",
+    tint: "from-amber-500/[0.10] to-orange-500/[0.03]",
   },
   {
-    id: "problem",
-    title: "Problem",
-    description: "A standalone coding or practice problem for your question bank.",
-    href: "/creator/problems/create",
-    icon: NotebookPen,
-    gradient: "from-amber-500 to-orange-600",
-    accent: "text-amber-500",
-    tag: "Practice",
-    features: ["Code or MCQ", "Difficulty levels", "Reusable anywhere"],
+    icon: GraduationCap,
+    label: "Sell or assign",
+    sub: "Publish, price or share with classes",
+    gradient: "from-cyan-400 to-blue-600",
+    glow: "bg-cyan-400/25",
+    tint: "from-cyan-500/[0.08] to-blue-500/[0.03]",
   },
 ];
 
-export function CreateHubPage({ demoState }: { demoState?: "empty" | "error" }) {
+const FEATURE_ROTATE_SECONDS = 10;
+
+function FeatureSpotlight() {
+  const [active, setActive] = useState(0);
+
+  // Advance one card every 10s.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActive((current) => (current + 1) % FEATURE_SPOTLIGHT.length);
+    }, FEATURE_ROTATE_SECONDS * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const feature = FEATURE_SPOTLIGHT[active];
+  const Icon = feature.icon;
+
+  return (
+    <div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={active}
+          initial={{ opacity: 0, x: 40, scale: 0.98 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={{ opacity: 0, x: -40, scale: 0.98 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className={cn(
+            "relative flex items-start gap-3 overflow-hidden rounded-2xl border border-border bg-card bg-gradient-to-br p-4",
+            feature.tint
+          )}
+        >
+          <div className={cn("pointer-events-none absolute -right-10 -top-14 h-36 w-36 rounded-full blur-3xl", feature.glow)} />
+          <div className={cn("relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-lg", feature.gradient)}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="relative min-w-0">
+            <p className="text-sm font-bold tracking-tight text-text-primary">{feature.label}</p>
+            <p className="mt-0.5 text-xs text-text-secondary">{feature.sub}</p>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function CreateBanner({
+  href,
+  gradient,
+  shadow,
+  orb,
+  icon: Icon,
+  iconClass,
+  eyebrow,
+  title,
+  sub,
+  cta,
+  ctaClass,
+  delay,
+}: {
+  href: string;
+  gradient: string;
+  shadow: string;
+  orb: string;
+  icon: LucideIcon;
+  iconClass: string;
+  eyebrow: string;
+  title: string;
+  sub: string;
+  cta: string;
+  ctaClass: string;
+  delay: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay }}
+    >
+      <Link
+        href={href}
+        className={`group relative flex flex-col gap-4 overflow-hidden rounded-[22px] bg-gradient-to-br p-5 text-white transition-transform duration-200 hover:-translate-y-0.5 sm:flex-row sm:items-center sm:p-6 ${gradient} ${shadow}`}
+      >
+        <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-white/20 blur-3xl" />
+        <div className={`pointer-events-none absolute -bottom-24 right-10 h-48 w-48 rounded-full blur-3xl ${orb}`} />
+        <div className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white shadow-xl ${iconClass}`}>
+          <Icon className="h-7 w-7" strokeWidth={2.2} />
+        </div>
+        <div className="relative min-w-0 flex-1">
+          <span className="inline-flex items-center rounded-full bg-white/25 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-sm">
+            {eyebrow}
+          </span>
+          <h3 className="mt-2 text-[26px] font-black leading-none tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.25)]">
+            {title}
+          </h3>
+          <p className="mt-2 text-[13px] font-medium leading-6 text-white">{sub}</p>
+        </div>
+        <span className={`relative inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-white px-5 text-[13px] font-black shadow-xl ${ctaClass}`}>
+          {cta} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </span>
+      </Link>
+    </motion.div>
+  );
+}
+
+export function CreateHubPage() {
   return (
     <div className="space-y-6">
       <PageHeader
         title="Create New"
         subtitle="Choose what you want to build — one flow, built around your content type."
-        badge={<MockDataTag />}
         actions={
           <Link
             href="/creator/ai-studio"
@@ -98,126 +174,53 @@ export function CreateHubPage({ demoState }: { demoState?: "empty" | "error" }) 
         }
       />
 
-      {/* Feature strip */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          { icon: Clock3, label: "Reusable question bank", sub: "Build once, reuse across everything" },
-          { icon: Upload, label: "Import & AI generation", sub: "From files, topics or prompts" },
-          { icon: Settings2, label: "Type-aware builder", sub: "Right tools appear for the right type" },
-          { icon: GraduationCap, label: "Sell or assign", sub: "Publish, price or share with classes" },
-        ].map((f, i) => {
-          const Icon = f.icon;
-          return (
-            <motion.div
-              key={f.label}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
-              className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4"
-            >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] text-violet-500">
-                <Icon className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-text-primary">{f.label}</p>
-                <p className="text-[11px] text-text-secondary">{f.sub}</p>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
+      {/* Feature spotlight — one card at a time, rotating every 10s */}
+      <FeatureSpotlight />
 
-      {/* Type cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {CREATE_OPTIONS.map((opt, i) => {
-          const Icon = opt.icon;
-          return (
-            <motion.div
-              key={opt.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.08 + i * 0.06 }}
-            >
-              <Link
-                href={opt.href}
-                className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card p-5 transition-all duration-200 hover:border-border-hover hover:shadow-[0_0_24px_rgba(236,72,153,0.08)]"
-              >
-                <div
-                  className={cn(
-                    "pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full opacity-[0.08] blur-2xl transition-opacity group-hover:opacity-[0.16]",
-                    "bg-gradient-to-br",
-                    opt.gradient
-                  )}
-                />
-                <div className="flex items-start justify-between">
-                  <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-lg", opt.gradient)}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <span className="rounded-full border border-border bg-white/[0.03] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-text-muted">
-                    {opt.tag}
-                  </span>
-                </div>
-                <h3 className="mt-4 text-base font-bold tracking-tight text-text-primary">{opt.title}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-text-secondary">{opt.description}</p>
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {opt.features.map((f) => (
-                    <span key={f} className="rounded-md border border-border bg-white/[0.03] px-1.5 py-0.5 text-[10px] font-medium text-text-muted">
-                      {f}
-                    </span>
-                  ))}
-                </div>
-                <div className={cn("mt-auto flex items-center gap-1.5 pt-5 text-[12px] font-semibold", opt.accent)}>
-                  <FilePlus2 className="h-3.5 w-3.5" />
-                  Create {opt.title}
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </Link>
-            </motion.div>
-          );
-        })}
-      </div>
+      <CreateBanner
+        href="/creator/quizzes"
+        gradient="from-violet-600 via-fuchsia-500 to-pink-500"
+        shadow="shadow-[0_20px_50px_-20px_rgba(192,38,211,.55)]"
+        orb="bg-cyan-300/30"
+        icon={ListChecks}
+        iconClass="text-fuchsia-600"
+        eyebrow="Your library"
+        title="Your Quizzes"
+        sub="Everything you've built lives here — open, edit, share and track your quizzes."
+        cta="Open quizzes"
+        ctaClass="text-fuchsia-600"
+        delay={0.05}
+      />
 
-      {/* Recent drafts */}
-      <Panel
-        title="Recent Drafts"
-        subtitle="Pick up where you left off"
-        action={
-          <Link href="/creator/tests" className="text-[11px] font-semibold text-pink-500 hover:text-pink-600 dark:text-ai-accent">
-            View all content →
-          </Link>
-        }
-      >
-        <div className="space-y-2">
-          {demoState === "empty" ? (
-            <p className="py-6 text-center text-sm text-text-secondary">No drafts yet — start creating above.</p>
-          ) : (
-            [
-              { name: "JEE Physics Mock Test #5", type: "Test", meta: "40 questions · 180 min", status: "Draft" },
-              { name: "NEET Biology Quiz: Genetics", type: "Quiz", meta: "15 questions · 20 min", status: "Draft" },
-              { name: "CAT 2027 Full Mock", type: "Test", meta: "3 sections · 120 min", status: "Scheduled" },
-            ].map((d) => (
-              <Link
-                key={d.name}
-                href="/creator/tests/create"
-                className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-white/[0.02] px-4 py-3 transition-colors hover:border-pink-500/30 hover:bg-pink-500/[0.03]"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-[13px] font-semibold text-text-primary">{d.name}</p>
-                    <span className="rounded-md border border-border bg-white/[0.04] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-text-muted">
-                      {d.type}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-text-secondary">{d.meta}</p>
-                </div>
-                <span className="shrink-0 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-300">
-                  {d.status}
-                </span>
-              </Link>
-            ))
-          )}
-        </div>
-      </Panel>
+      <CreateBanner
+        href="/creator/tests/create"
+        gradient="from-emerald-500 via-teal-500 to-cyan-600"
+        shadow="shadow-[0_20px_50px_-20px_rgba(16,185,129,.55)]"
+        orb="bg-amber-300/30"
+        icon={FileText}
+        iconClass="text-teal-600"
+        eyebrow="Complete papers"
+        title="Question Papers"
+        sub="Generate full question papers with sections, marking scheme and a print-ready layout."
+        cta="Generate paper"
+        ctaClass="text-teal-600"
+        delay={0.1}
+      />
+
+      <CreateBanner
+        href="/creator/problems/create"
+        gradient="from-amber-500 via-orange-500 to-rose-500"
+        shadow="shadow-[0_20px_50px_-20px_rgba(249,115,22,.55)]"
+        orb="bg-yellow-200/30"
+        icon={NotebookPen}
+        iconClass="text-orange-600"
+        eyebrow="Practice"
+        title="Problems"
+        sub="Create standalone coding or MCQ problems — set difficulty levels and reuse them anywhere."
+        cta="Create problem"
+        ctaClass="text-orange-600"
+        delay={0.15}
+      />
     </div>
   );
 }

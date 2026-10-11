@@ -22,7 +22,6 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useBillingData } from "./hooks";
 import {
   PageHeader,
-  MockDataTag,
   SecureNote,
   StatCard,
   StatCardSkeleton,
@@ -86,7 +85,6 @@ export function BillingDashboard({ demoState }: { demoState?: "empty" | "error" 
       <PageHeader
         title="Billing & Payments"
         subtitle="Track your earnings, payouts, transactions and financial activity."
-        badge={<MockDataTag />}
         actions={
           <>
             <DateRangePicker value={range} onChange={setRange} />

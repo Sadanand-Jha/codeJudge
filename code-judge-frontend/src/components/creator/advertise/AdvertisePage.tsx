@@ -19,7 +19,6 @@ import {
   BillButton,
   EmptyState,
   formatINR,
-  MockDataTag,
   SegmentedControl,
   StatusBadge,
 } from "@/components/creator/billing/ui";
@@ -63,7 +62,6 @@ export function AdvertisePage({ demoState }: { demoState?: "empty" | "error" }) 
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-[26px] font-extrabold tracking-tight text-text-primary">Advertise</h1>
-            <MockDataTag />
           </div>
           <p className="mt-1 text-[14px] leading-relaxed text-text-secondary">Get your test series in front of relevant students.</p>
         </div>

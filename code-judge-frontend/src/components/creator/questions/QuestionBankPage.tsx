@@ -24,7 +24,6 @@ import {
   BillButton,
   EmptyState,
   ErrorState,
-  // MockDataTag, // hidden while mock data is commented out
   PageHeader,
   Panel,
   SegmentedControl,
@@ -402,7 +401,6 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
       <PageHeader
         title="Question Bank"
         subtitle="Your reusable question library — organized by subject, topic and difficulty."
-        // badge={<MockDataTag />} // hidden while mock data is commented out
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <BillButton href="/creator/questions/new" icon={<Plus className="h-4 w-4" />}>

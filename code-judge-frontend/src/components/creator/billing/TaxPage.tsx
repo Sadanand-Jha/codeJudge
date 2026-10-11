@@ -7,7 +7,6 @@ import { useToast } from "@/hooks/useToast";
 import { useBillingData } from "./hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   StatusBadge,
   BillButton,
@@ -41,7 +40,6 @@ export function TaxPage({ demoState }: { demoState?: "empty" | "error" }) {
       <PageHeader
         title="Tax & Compliance"
         subtitle="Your business information and tax documents for the platform."
-        badge={<MockDataTag />}
         actions={<BillButton variant="ghost" href="/creator/billing/documents">All documents</BillButton>}
       />
 

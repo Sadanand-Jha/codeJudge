@@ -365,7 +365,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               <h1 className="text-base font-extrabold tracking-tight text-text-primary sm:text-lg">{meta.title}</h1>
               <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Draft</span>
             </div>
-            <p className="mt-0.5 max-w-2xl truncate text-xs text-text-secondary">{meta.subtitle}</p>
+            <p className="mt-0.5 max-w-2xl text-xs leading-5 text-text-secondary">{meta.subtitle}</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3 border-t border-border pt-2 text-xs text-text-secondary sm:border-0 sm:pt-0">

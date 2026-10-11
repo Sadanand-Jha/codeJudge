@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  Search, History, BookOpen, TrendingUp,
+  History, BookOpen, TrendingUp,
   CheckCircle2, Trophy, Copy,
   Send, Check, HelpCircle, Code2, Brain, Beaker, Calculator,
   Globe2, Palette, Database, Network, Hash, Target, Layers3,
-  Calendar, Timer, ArrowRight, ArrowUpRight, X, Milestone, Filter,
+  Calendar, Timer, ArrowRight, ArrowUpRight, Milestone, Filter,
   BarChart2, ChevronDown, ChevronLeft, ChevronRight, Award, Globe,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -192,46 +192,22 @@ function StatCard({
   );
 }
 
-function SearchField({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
-  return (
-    <div className="relative min-w-0 flex-1 sm:min-w-[200px]">
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3] dark:text-[#687386]" />
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder || "Search quizzes..."}
-        className="h-9 w-full rounded-lg border border-[#E4E7EC] bg-white pl-9 pr-8 text-[13px] text-[#101828] outline-none transition-colors duration-150 placeholder:text-[#98A2B3] focus:border-[#8B7CFF]/60 dark:border-[#252D3A] dark:bg-[#151A24] dark:text-[#F4F6FA] dark:placeholder:text-[#687386] dark:focus:border-[#8B7CFF]/50"
-      />
-      {value && (
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          aria-label="Clear search"
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-[#98A2B3] transition-colors duration-150 hover:text-[#101828] dark:text-[#687386] dark:hover:text-[#F4F6FA]"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-    </div>
-  );
-}
-
 function FilterSelect({ icon: Icon, value, options, onChange, label }: { icon: React.ElementType; value: string; options: readonly string[]; onChange: (v: string) => void; label: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label={label}
         className={cn(
-          "inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E4E7EC] bg-white px-2.5 text-xs font-medium text-[#475467] transition-colors duration-150 hover:border-[#D0D5DD] hover:text-[#101828] dark:border-[#252D3A] dark:bg-[#151A24] dark:text-[#9AA4B5] dark:hover:border-[#353f52] dark:hover:text-[#F4F6FA]",
+          "flex h-9 w-full items-center gap-1.5 rounded-lg border border-[#E4E7EC] bg-white px-2.5 text-xs font-medium text-[#475467] transition-colors duration-150 hover:border-[#D0D5DD] hover:text-[#101828] dark:border-[#252D3A] dark:bg-[#151A24] dark:text-[#9AA4B5] dark:hover:border-[#353f52] dark:hover:text-[#F4F6FA] sm:w-auto sm:inline-flex",
           open && "border-[#8B7CFF]/50 text-[#101828] dark:border-[#8B7CFF]/40 dark:text-[#F4F6FA]"
         )}
       >
-        <Icon className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" />
-        <span className="max-w-[88px] truncate">{value}</span>
-        <ChevronDown className={cn("h-3.5 w-3.5 text-[#98A2B3] transition-transform duration-150 dark:text-[#687386]", open && "rotate-180")} />
+        <Icon className="h-3.5 w-3.5 shrink-0 text-[#98A2B3] dark:text-[#687386]" />
+        <span className="min-w-0 flex-1 truncate text-left sm:max-w-[88px] sm:flex-none">{value}</span>
+        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-[#98A2B3] transition-transform duration-150 dark:text-[#687386]", open && "rotate-180")} />
       </button>
       {open && (
         <>
@@ -505,7 +481,6 @@ export default function YourActivitySection({
 }) {
   const [recentQuizzes, setRecentQuizzes] = useState<RecentQuiz[]>([]);
   const [recentLoading, setRecentLoading] = useState(false);
-  const [recentSearch, setRecentSearch] = useState("");
   const [recentStatus, setRecentStatus] = useState<string>("All");
   const [recentSort, setRecentSort] = useState<string>("Newest");
   const [recentPage, setRecentPage] = useState(1);
@@ -521,7 +496,6 @@ export default function YourActivitySection({
     getOldQuizzes({
       page: recentPage,
       limit: pageSize,
-      search: recentSearch || undefined,
       status: recentStatus === "All" ? undefined : recentStatus,
       sortBy: recentSort === "Newest" ? "completed_at" : recentSort === "Oldest" ? "completed_at" : "percentage",
       sortOrder: recentSort === "Oldest" || recentSort === "Lowest Score" ? "ASC" : "DESC",
@@ -536,7 +510,7 @@ export default function YourActivitySection({
       .catch(() => {})
       .finally(() => { if (!cancelled) setRecentLoading(false); });
     return () => { cancelled = true; };
-  }, [pageSize, recentPage, recentSearch, recentStatus, recentSort]);
+  }, [pageSize, recentPage, recentStatus, recentSort]);
 
   const paginationPages = useMemo(() => {
     const visibleCount = Math.min(5, recentTotalPages);
@@ -578,7 +552,7 @@ export default function YourActivitySection({
 
   return (
     <section aria-label={missionMode ? "Mission logs" : "My activity"} className="mx-auto w-full max-w-[1280px]">
-      {/* ── Analytics header: title left, Filter + Sort right (same row on desktop) ── */}
+      {/* ── Single analytics header: title + all controls in one place ── */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">{isAllAttemptsView ? "Attempt History" : missionMode ? "Mission Archive" : "My Activity"}</p>
@@ -586,12 +560,22 @@ export default function YourActivitySection({
             {isAllAttemptsView ? "All Attempts" : missionMode ? "Your Mission Logs" : "Your Activity"}
           </h2>
           <p className="mt-1 text-[13px] text-[#475467] dark:text-[#9AA4B5] sm:text-sm">
-            {isAllAttemptsView ? "Review your complete quiz history, scores, and results." : missionMode ? "Review completed expeditions, scores, and flight performance." : "Track your quiz attempts, scores and progress."}
+            {isAllAttemptsView ? "Review your complete quiz history, scores, and results." : missionMode ? "Review completed expeditions, scores, and flight performance." : "Track your quiz attempts, scores and progress."}{" "}
+            <span className="font-semibold tabular-nums">
+              · {recentTotal} {missionMode ? `mission${recentTotal === 1 ? "" : "s"}` : `attempt${recentTotal === 1 ? "" : "s"}`}
+            </span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <FilterSelect icon={Filter} value={recentStatus} options={STATUS_OPTIONS} onChange={(value) => { setRecentStatus(value); setRecentPage(1); }} label="Filter by status" />
-          <FilterSelect icon={TrendingUp} value={recentSort} options={SORT_OPTIONS} onChange={(value) => { setRecentSort(value); setRecentPage(1); }} label="Sort attempts" />
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          {!isAllAttemptsView && (
+            <Link href="/quiz/attempts" className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-pink-200 bg-white/80 px-3 text-xs font-bold text-pink-600 shadow-sm transition hover:border-pink-300 hover:bg-white dark:border-violet-400/20 dark:bg-white/[0.04] dark:text-violet-300 dark:hover:border-violet-400/35">
+              View all attempts <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
+          <div className="grid grid-cols-2 gap-2 sm:contents">
+            <FilterSelect icon={Filter} value={recentStatus} options={STATUS_OPTIONS} onChange={(value) => { setRecentStatus(value); setRecentPage(1); }} label="Filter by status" />
+            <FilterSelect icon={TrendingUp} value={recentSort} options={SORT_OPTIONS} onChange={(value) => { setRecentSort(value); setRecentPage(1); }} label="Sort attempts" />
+          </div>
         </div>
       </div>
 
@@ -603,35 +587,59 @@ export default function YourActivitySection({
         <StatCard icon={TrendingUp} label={missionMode ? "Average Flight Score" : "Average Score"} value={overview.avgScore === null ? "—" : `${overview.avgScore}%`} hint={missionMode ? "across missions" : "across attempts"} accent="text-[#B54708] dark:text-[#FFB84D]" />
       </div>}
 
+      {/* ── Score summary: single panel above the recent attempts ── */}
+      {!isAllAttemptsView && <div className="mt-4 md:max-w-md">
+        <section className="group relative min-w-0 overflow-hidden rounded-[24px] border border-pink-200/70 bg-gradient-to-br from-white/90 to-pink-50/75 p-5 shadow-[0_24px_65px_-44px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_24px_70px_-42px_rgba(80,55,170,.65)]">
+          <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-pink-300/20 blur-3xl dark:bg-violet-500/15" />
+          <h3 className="relative flex items-center gap-2 text-[15px] font-bold text-[#101828] dark:text-[#F4F6FA]"><span className="grid h-8 w-8 place-items-center rounded-xl bg-pink-100 text-pink-500 dark:bg-violet-500/10 dark:text-violet-300"><TrendingUp className="h-4 w-4" /></span>{missionMode ? "Flight Performance" : "Score Summary"}</h3>
+
+          <div className="relative mt-5">
+            <div className="flex items-center gap-4">
+              <div
+                className="relative grid h-24 w-24 shrink-0 place-items-center rounded-full p-[8px] shadow-[0_16px_38px_-24px_rgba(244,114,182,.8)] dark:shadow-[0_16px_38px_-22px_rgba(124,92,255,.75)]"
+                style={{ background: `conic-gradient(${(overview.avgScore ?? 0) >= 50 ? "#8B7CFF" : "#FF5B72"} ${Math.min(100, Math.max(0, overview.avgScore ?? 0)) * 3.6}deg, rgba(148,163,184,.16) 0deg)` }}
+              >
+                <div className="grid h-full w-full place-items-center rounded-full bg-white dark:bg-[#151B28]">
+                  <span className="text-xl font-black tabular-nums text-[#101828] dark:text-white">{overview.avgScore === null ? "—" : `${overview.avgScore}%`}</span>
+                </div>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#687386]">Average score</p>
+                <p className="mt-1 text-xs leading-5 text-[#667085] dark:text-[#8F9AAF]">{missionMode ? "Your combined flight accuracy across recent missions." : "Your combined score across recent quiz attempts."}</p>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2.5 border-t border-pink-200/65 pt-4 text-[13px] dark:border-white/[0.07]">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-[#475467] dark:text-[#9AA4B5]">
+                  <Award className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" /> Best score
+                </span>
+                <span className="font-bold text-[#101828] tabular-nums dark:text-[#F4F6FA]">{overview.bestScore === null ? "—" : `${overview.bestScore}%`}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-[#475467] dark:text-[#9AA4B5]">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" /> Total completed
+                </span>
+                <span className="font-bold text-[#101828] tabular-nums dark:text-[#F4F6FA]">{overview.completed}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 text-[#475467] dark:text-[#9AA4B5]">
+                  <Send className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" /> Completion rate
+                </span>
+                <span className="font-bold text-[#101828] tabular-nums dark:text-[#F4F6FA]">
+                  {overview.totalAttempts ? `${Math.round((overview.completed / overview.totalAttempts) * 100)}%` : "—"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </section>
+      </div>}
+
       {/* ── Recent attempts: full-width table (no narrow side column) ── */}
       <div className="relative mt-5 min-w-0 overflow-hidden rounded-[26px] border border-pink-200/70 bg-white/80 shadow-[0_28px_80px_-48px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-gradient-to-br dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_28px_85px_-44px_rgba(80,55,170,.65)]">
         <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-cyan-300/10 blur-3xl dark:bg-violet-500/10" />
-        <div className="relative flex flex-col gap-3 border-b border-pink-200/60 bg-gradient-to-r from-pink-50/70 via-white/30 to-cyan-50/55 p-4 dark:border-white/[0.07] dark:from-violet-500/[0.055] dark:via-transparent dark:to-cyan-400/[0.035] sm:p-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-xl border border-pink-200/70 bg-white/75 text-pink-500 shadow-sm dark:border-violet-400/15 dark:bg-violet-500/10 dark:text-violet-300"><History className="h-4 w-4" /></span>
-            <div>
-            <h3 className="text-[15px] font-bold text-[#101828] dark:text-[#F4F6FA]">{isAllAttemptsView ? "All Attempts" : missionMode ? "Recent Missions" : "Recent Attempts"}</h3>
-            <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.1em] text-[#98A2B3] tabular-nums dark:text-[#687386]">
-              {recentTotal} {missionMode ? `mission${recentTotal === 1 ? "" : "s"}` : `attempt${recentTotal === 1 ? "" : "s"}`}
-            </span>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            {!isAllAttemptsView && (
-              <Link href="/quiz/attempts" className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-pink-200 bg-white/80 px-3 text-xs font-bold text-pink-600 shadow-sm transition hover:border-pink-300 hover:bg-white dark:border-violet-400/20 dark:bg-white/[0.04] dark:text-violet-300 dark:hover:border-violet-400/35">
-                View all attempts <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            )}
-            <span className="hidden items-center gap-1 text-[11px] text-[#98A2B3] dark:text-[#687386] lg:inline-flex">
-              <BarChart2 className="h-3.5 w-3.5" /> Latest first
-            </span>
-            <div className="lg:w-72">
-              <SearchField value={recentSearch} onChange={(value) => { setRecentSearch(value); setRecentPage(1); }} placeholder={missionMode ? "Search missions..." : "Search quizzes..."} />
-            </div>
-          </div>
-        </div>
 
-          {/* Desktop column labels */}
+        {/* Desktop column labels */}
           {filtered.length > 0 && (
             <div className="relative hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] gap-3 border-b border-pink-100 bg-white/30 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.13em] text-[#98A2B3] dark:border-white/[0.06] dark:bg-black/[0.08] dark:text-[#687386] lg:grid">
               <span>{missionMode ? "Mission" : "Quiz"}</span>
@@ -673,53 +681,8 @@ export default function YourActivitySection({
           )}
         </div>
 
-        {/* ── Performance strip: full-width panels below the table ── */}
-        {!isAllAttemptsView && <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <section className="group relative min-w-0 overflow-hidden rounded-[24px] border border-pink-200/70 bg-gradient-to-br from-white/90 to-pink-50/75 p-5 shadow-[0_24px_65px_-44px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_24px_70px_-42px_rgba(80,55,170,.65)]">
-            <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-pink-300/20 blur-3xl dark:bg-violet-500/15" />
-            <h3 className="relative flex items-center gap-2 text-[15px] font-bold text-[#101828] dark:text-[#F4F6FA]"><span className="grid h-8 w-8 place-items-center rounded-xl bg-pink-100 text-pink-500 dark:bg-violet-500/10 dark:text-violet-300"><TrendingUp className="h-4 w-4" /></span>{missionMode ? "Flight Performance" : "Score Summary"}</h3>
-
-          <div className="relative mt-5">
-            <div className="flex items-center gap-4">
-              <div
-                className="relative grid h-24 w-24 shrink-0 place-items-center rounded-full p-[8px] shadow-[0_16px_38px_-24px_rgba(244,114,182,.8)] dark:shadow-[0_16px_38px_-22px_rgba(124,92,255,.75)]"
-                style={{ background: `conic-gradient(${(overview.avgScore ?? 0) >= 50 ? "#8B7CFF" : "#FF5B72"} ${Math.min(100, Math.max(0, overview.avgScore ?? 0)) * 3.6}deg, rgba(148,163,184,.16) 0deg)` }}
-              >
-                <div className="grid h-full w-full place-items-center rounded-full bg-white dark:bg-[#151B28]">
-                  <span className="text-xl font-black tabular-nums text-[#101828] dark:text-white">{overview.avgScore === null ? "—" : `${overview.avgScore}%`}</span>
-                </div>
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#687386]">Average score</p>
-                <p className="mt-1 text-xs leading-5 text-[#667085] dark:text-[#8F9AAF]">{missionMode ? "Your combined flight accuracy across recent missions." : "Your combined score across recent quiz attempts."}</p>
-              </div>
-            </div>
-            <div className="mt-4 space-y-2.5 border-t border-pink-200/65 pt-4 text-[13px] dark:border-white/[0.07]">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 text-[#475467] dark:text-[#9AA4B5]">
-                  <Award className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" /> Best score
-                </span>
-                <span className="font-bold text-[#101828] tabular-nums dark:text-[#F4F6FA]">{overview.bestScore === null ? "—" : `${overview.bestScore}%`}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 text-[#475467] dark:text-[#9AA4B5]">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" /> Total completed
-                </span>
-                <span className="font-bold text-[#101828] tabular-nums dark:text-[#F4F6FA]">{overview.completed}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 text-[#475467] dark:text-[#9AA4B5]">
-                  <Send className="h-3.5 w-3.5 text-[#98A2B3] dark:text-[#687386]" /> Completion rate
-                </span>
-                <span className="font-bold text-[#101828] tabular-nums dark:text-[#F4F6FA]">
-                  {overview.totalAttempts ? `${Math.round((overview.completed / overview.totalAttempts) * 100)}%` : "—"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          </section>
-
+        {/* ── Performance strip: remaining panels below the table ── */}
+        {!isAllAttemptsView && <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* Score distribution (derived from existing data) */}
           <section className="group relative min-w-0 overflow-hidden rounded-[24px] border border-cyan-200/70 bg-gradient-to-br from-white/90 to-cyan-50/70 p-5 shadow-[0_24px_65px_-44px_rgba(34,199,232,.65)] backdrop-blur-xl dark:border-white/[0.08] dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_24px_70px_-42px_rgba(80,55,170,.65)]">
             <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-400/10" />

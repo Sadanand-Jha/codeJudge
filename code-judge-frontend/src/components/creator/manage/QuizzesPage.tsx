@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -98,6 +99,13 @@ const STATUS_META: Record<QuizStatus, { label: string; tone: StatusTone }> = {
   completed: { label: "Completed", tone: "sky" },
 };
 
+const STATUS_ACCENT: Record<QuizStatus, { bar: string; avatar: string; tint: string }> = {
+  live: { bar: "from-emerald-400 to-teal-500", avatar: "from-emerald-400 to-teal-600", tint: "from-emerald-500/[0.08]" },
+  draft: { bar: "from-violet-400 to-purple-600", avatar: "from-violet-500 to-purple-600", tint: "from-violet-500/[0.07]" },
+  scheduled: { bar: "from-pink-500 to-rose-500", avatar: "from-pink-500 to-rose-600", tint: "from-pink-500/[0.08]" },
+  completed: { bar: "from-sky-400 to-blue-600", avatar: "from-sky-400 to-blue-600", tint: "from-sky-500/[0.08]" },
+};
+
 export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
   const router = useRouter();
   const [filter, setFilter] = useState<TabId>("all");
@@ -184,32 +192,33 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         }
       />
 
-      <section className="flex flex-col gap-3 rounded-xl border border-violet-200/70 bg-card px-4 py-3 shadow-[0_1px_2px_rgba(17,24,39,0.03)] dark:border-violet-400/15 sm:flex-row sm:items-center">
-        <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-300">
-            <WandSparkles className="h-5 w-5" />
-          </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-semibold text-text-primary"><AiStreamText text="Build your next quiz with AI" /></h2>
-              <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-violet-600 dark:text-violet-300">
+      <section className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-500 to-fuchsia-500 p-5 text-white shadow-[0_20px_50px_-20px_rgba(139,92,246,.6)] transition-transform duration-200 hover:-translate-y-0.5 sm:flex-row sm:items-center">
+        <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-white/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 right-10 h-48 w-48 rounded-full bg-cyan-300/30 blur-3xl" />
+        <div className="relative min-w-0 flex-1">
+          <div className="flex items-center gap-3">
+            <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-violet-600 shadow-lg">
+              <WandSparkles className="h-6 w-6" strokeWidth={2.2} />
+            </span>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h2 className="text-lg font-black tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.25)]"><AiStreamText text="Build your next quiz with AI" /></h2>
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/25 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white backdrop-blur-sm">
                 <Sparkles className="h-3 w-3" />
                 AI service
               </span>
             </div>
-            <p className="mt-0.5 text-xs leading-5 text-text-secondary">
-              <AiStreamText text="Upload a problem list and generate a complete, review-ready quiz in minutes." />
-            </p>
           </div>
+          <p className="mt-2.5 text-[13px] font-medium leading-6 text-white">
+            <AiStreamText text="Upload a problem list and generate a complete, review-ready quiz in minutes." />
+          </p>
         </div>
-        <BillButton
+        <Link
           href="/creator/quizzes/ai-generate"
-          variant="outline"
-          icon={<Sparkles className="h-3.5 w-3.5" />}
-          className="h-9 shrink-0 self-start rounded-lg px-3 sm:self-auto"
+          className="relative inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-white px-5 text-[13px] font-black text-violet-600 shadow-xl transition-transform group-hover:scale-[1.02]"
         >
+          <Sparkles className="h-4 w-4" />
           Generate with AI
-        </BillButton>
+        </Link>
       </section>
 
       {status === "loading" && (
@@ -288,28 +297,28 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-card shadow-[0_1px_2px_rgba(17,24,39,0.03)] lg:grid-cols-4">
-            <SummaryMetric label="Total quizzes" value={String(data.length)} hint="All quizzes" icon={ClipboardList} />
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border/60 shadow-[0_1px_2px_rgba(17,24,39,0.03)] lg:grid-cols-4">
+            <SummaryMetric label="Total quizzes" value={String(data.length)} hint="All quizzes" icon={ClipboardList} chip="from-violet-500 to-purple-600 shadow-violet-500/30" />
             <SummaryMetric
               label="Live now"
               value={String(stats.live)}
               hint="Accepting attempts"
               icon={Radio}
-              className="border-l border-border"
+              chip="from-emerald-400 to-teal-600 shadow-emerald-500/30"
             />
             <SummaryMetric
               label="Completion"
               value={stats.completion === null ? "—" : `${stats.completion.toFixed(0)}%`}
               hint={stats.completion === null ? "No attempts yet" : "Across attempts"}
               icon={BarChart3}
-              className="border-t border-border lg:border-l lg:border-t-0"
+              chip="from-amber-400 to-orange-600 shadow-amber-500/30"
             />
             <SummaryMetric
               label="Avg rating"
               value={stats.rating === null ? "—" : stats.rating.toFixed(1)}
               hint={stats.rating === null ? "No ratings yet" : "Student rating / 5"}
               icon={Star}
-              className="border-l border-t border-border lg:border-t-0"
+              chip="from-pink-500 to-rose-600 shadow-pink-500/30"
             />
           </div>
 
@@ -435,6 +444,7 @@ function QuizCardItem({
   onDelete: () => void;
 }) {
   const meta = STATUS_META[quiz.status];
+  const accent = STATUS_ACCENT[quiz.status];
   const hasAttempts = quiz.attempts > 0;
 
   return (
@@ -442,99 +452,93 @@ function QuizCardItem({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.025, 0.18), duration: 0.25 }}
-      className="relative flex min-h-[224px] flex-col rounded-xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(17,24,39,0.04)] transition-[border-color,box-shadow] hover:border-[#EC4899]/20 hover:shadow-[0_6px_18px_rgba(17,24,39,0.06)] sm:p-5"
+      className="relative flex min-h-[224px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_3px_rgba(17,24,39,0.04)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[#EC4899]/25 hover:shadow-[0_14px_32px_-12px_rgba(236,72,153,0.25)]"
     >
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-[15px] font-semibold tracking-tight text-text-primary" title={quiz.title}>
-            {quiz.title}
-          </h3>
-          <div className="mt-1.5 flex min-w-0 items-center gap-2">
-            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">Quiz code</span>
-            <MaskedCopyCode
-              quizId={quiz.id}
-              className="inline-flex min-w-0 items-center gap-2 rounded-md px-1 py-0.5 text-left text-[11px] font-medium transition-colors hover:bg-[#FDF2F8] hover:text-[#EC4899] dark:hover:bg-[#EC4899]/10"
-            />
+      <div className={cn("h-1.5 w-full shrink-0 bg-gradient-to-r", accent.bar)} />
+      <div className={cn("bg-gradient-to-b to-transparent", accent.tint)}>
+      <div className="px-4 pt-4 sm:px-5">
+        <div className="flex items-center gap-3">
+          <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-base font-black text-white shadow-lg", accent.avatar)}>
+            {(quiz.title || "?").charAt(0).toUpperCase()}
+          </span>
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <StatusBadge label={meta.label} tone={meta.tone} dot />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={onToggleMenu}
+                aria-label={`More actions for ${quiz.title}`}
+                aria-expanded={menuOpen}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+              {menuOpen && (
+                <>
+                  <button type="button" aria-label="Close actions menu" className="fixed inset-0 z-20 cursor-default" onClick={onCloseMenu} />
+                  <div className="absolute right-0 top-9 z-30 w-40 overflow-hidden rounded-lg border border-border bg-card p-1.5 shadow-[0_12px_30px_rgba(17,24,39,0.14)]">
+                    <MenuAction
+                      icon={Copy}
+                      label="Duplicate"
+                      onClick={() => {
+                        onCloseMenu();
+                        toast.success({ title: "Duplicate", description: "Use Edit → Clone from quiz settings." });
+                      }}
+                    />
+                    <MenuAction icon={ClipboardList} label="Responses" onClick={() => onGoTo("responses")} />
+                    <div className="my-1 border-t border-border" />
+                    <MenuAction icon={Trash2} label="Delete" danger onClick={onDelete} />
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
-        <StatusBadge label={meta.label} tone={meta.tone} dot />
-        <div className="relative">
-          <button
-            type="button"
-            onClick={onToggleMenu}
-            aria-label={`More actions for ${quiz.title}`}
-            aria-expanded={menuOpen}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-          {menuOpen && (
-            <>
-              <button type="button" aria-label="Close actions menu" className="fixed inset-0 z-20 cursor-default" onClick={onCloseMenu} />
-              <div className="absolute right-0 top-9 z-30 w-40 overflow-hidden rounded-lg border border-border bg-card p-1.5 shadow-[0_12px_30px_rgba(17,24,39,0.14)]">
-                <MenuAction
-                  icon={Copy}
-                  label="Duplicate"
-                  onClick={() => {
-                    onCloseMenu();
-                    toast.success({ title: "Duplicate", description: "Use Edit → Clone from quiz settings." });
-                  }}
-                />
-                <MenuAction icon={ClipboardList} label="Responses" onClick={() => onGoTo("responses")} />
-                <div className="my-1 border-t border-border" />
-                <MenuAction icon={Trash2} label="Delete" danger onClick={onDelete} />
-              </div>
-            </>
-          )}
+        <h3 className="mt-3 break-words text-base font-bold leading-snug tracking-tight text-text-primary" title={quiz.title}>
+          {quiz.title}
+        </h3>
+        <div className="mt-1.5 flex min-w-0 items-center gap-2">
+          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">Quiz code</span>
+          <MaskedCopyCode
+            quizId={quiz.id}
+            className="inline-flex min-w-0 items-center gap-2 rounded-md px-1 py-0.5 text-left text-[11px] font-medium transition-colors hover:bg-[#FDF2F8] hover:text-[#EC4899] dark:hover:bg-[#EC4899]/10"
+          />
         </div>
       </div>
 
       {quiz.questions === 0 ? (
-        <div className="mt-4 flex items-center justify-between gap-3 border-y border-border/70 py-3">
+        <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-pink-500/20 bg-pink-500/[0.06] px-3 py-2.5 sm:mx-5">
           <div className="min-w-0">
-            <p className="text-xs font-medium text-text-primary">Quiz has no questions yet.</p>
+            <p className="text-xs font-semibold text-text-primary">Quiz has no questions yet.</p>
             <p className="mt-0.5 text-[11px] text-text-muted">Finish setup before publishing.</p>
           </div>
           <button
             type="button"
             onClick={() => onGoTo("edit")}
-            className="shrink-0 text-xs font-semibold text-[#DB2777] transition-colors hover:text-[#BE185D] dark:text-[#F9A8D4]"
+            className="shrink-0 rounded-lg bg-pink-500 px-3 py-1.5 text-xs font-bold text-white shadow-md shadow-pink-500/25 transition hover:brightness-110"
           >
             Add questions
           </button>
         </div>
       ) : (
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-border/70 py-3 text-[11px] font-medium text-text-secondary">
-          <MetaItem icon={HelpCircle} text={`${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}`} />
-          {quiz.durationMin > 0 && <MetaItem icon={Timer} text={`${quiz.durationMin} min`} />}
+        <div className="mx-4 mt-4 flex flex-wrap items-center gap-2 sm:mx-5">
+          <MetaItem icon={HelpCircle} iconClass="text-violet-500" text={`${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}`} />
+          {quiz.durationMin > 0 && <MetaItem icon={Timer} iconClass="text-amber-500" text={`${quiz.durationMin} min`} />}
           <MetaItem
             icon={Users}
+            iconClass="text-cyan-500"
             text={hasAttempts ? `${quiz.attempts.toLocaleString("en-IN")} attempts` : "No attempts yet"}
           />
         </div>
       )}
 
-      {hasAttempts && (
-        <div className="mt-3">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="font-medium text-text-muted">Completion</span>
-            <span className="font-semibold tabular-nums text-text-primary">{quiz.completionRate}%</span>
-          </div>
-          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-border/70">
-            <div
-              className="h-full rounded-full bg-[#EC4899] transition-[width]"
-              style={{ width: `${Math.min(Math.max(quiz.completionRate, 0), 100)}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className={cn("mt-3", !hasAttempts && quiz.questions > 0 && "mb-1")}>
+      <div className={cn("mx-4 mt-3 sm:mx-5", !hasAttempts && quiz.questions > 0 && "mb-1")}>
         <Stars rating={quiz.rating} ratingCount={quiz.ratingCount} />
       </div>
+      </div>
 
-      <div className="mt-auto flex items-center gap-1 border-t border-border pt-3">
-        <CardAction icon={Pencil} label="Edit" onClick={() => onGoTo("edit")} />
+      <div className="mx-4 mb-4 mt-3 flex items-center gap-1.5 border-t border-border pt-3 sm:mx-5">
+        <CardAction icon={Pencil} label="Edit" primary onClick={() => onGoTo("edit")} />
         <CardAction icon={Eye} label="Preview" onClick={() => onGoTo("preview")} />
         <CardAction icon={BarChart3} label="Analytics" onClick={() => onGoTo("analytics")} />
       </div>
@@ -542,40 +546,48 @@ function QuizCardItem({
   );
 }
 
-function SummaryMetric({ label, value, hint, icon: Icon, className }: {
+function SummaryMetric({ label, value, hint, icon: Icon, chip, className }: {
   label: string;
   value: string;
   hint: string;
   icon: typeof ClipboardList;
+  chip: string;
   className?: string;
 }) {
   return (
-    <div className={cn("min-h-[96px] px-4 py-3.5 sm:px-5", className)}>
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.11em] text-text-muted">
-        <Icon className="h-3.5 w-3.5" />
+    <div className={cn("min-h-[96px] bg-card px-4 py-3.5 sm:px-5", className)}>
+      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.11em] text-text-muted">
+        <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-gradient-to-br text-white shadow-md", chip)}>
+          <Icon className="h-3.5 w-3.5" strokeWidth={2.2} />
+        </span>
         {label}
       </div>
-      <p className="mt-1 text-xl font-semibold tracking-tight tabular-nums text-text-primary">{value}</p>
+      <p className="mt-1.5 text-2xl font-black tracking-tight tabular-nums text-text-primary">{value}</p>
       <p className="mt-0.5 truncate text-[11px] text-text-muted">{hint}</p>
     </div>
   );
 }
 
-function MetaItem({ icon: Icon, text }: { icon: typeof HelpCircle; text: string }) {
+function MetaItem({ icon: Icon, iconClass, text }: { icon: typeof HelpCircle; iconClass?: string; text: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-      <Icon className="h-3.5 w-3.5 text-text-muted" />
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border/70 bg-white/[0.03] px-2 py-1 text-[11px] font-semibold text-text-secondary">
+      <Icon className={cn("h-3.5 w-3.5", iconClass ?? "text-text-muted")} />
       {text}
     </span>
   );
 }
 
-function CardAction({ icon: Icon, label, onClick }: { icon: typeof Pencil; label: string; onClick: () => void }) {
+function CardAction({ icon: Icon, label, onClick, primary }: { icon: typeof Pencil; label: string; onClick: () => void; primary?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-semibold text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary"
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors",
+        primary
+          ? "bg-pink-500/10 text-pink-600 hover:bg-pink-500/20 dark:text-pink-300"
+          : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+      )}
     >
       <Icon className="h-3.5 w-3.5" />
       {label}

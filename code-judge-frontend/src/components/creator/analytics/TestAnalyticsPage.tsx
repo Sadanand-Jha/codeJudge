@@ -7,7 +7,6 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   StatCard,
   StatCardSkeleton,
@@ -232,7 +231,6 @@ export function TestAnalyticsPage({ demoState }: { demoState?: "empty" | "error"
       <PageHeader
         title="Test Analytics"
         subtitle="Understand how each test performs"
-        badge={<MockDataTag />}
         actions={
           <SegmentedControl value={testId} onChange={setTestId} options={TEST_OPTIONS} size="md" />
         }

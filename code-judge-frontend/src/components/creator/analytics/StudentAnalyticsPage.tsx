@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/useToast";
 import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   StatCard,
   StatCardSkeleton,
@@ -127,7 +126,6 @@ export function StudentAnalyticsPage({ demoState }: { demoState?: "empty" | "err
       <PageHeader
         title="Student Analytics"
         subtitle="See how individual students perform"
-        badge={<MockDataTag />}
         actions={
           <BillButton variant="ghost" icon={<Download className="h-4 w-4" />}>
             Export

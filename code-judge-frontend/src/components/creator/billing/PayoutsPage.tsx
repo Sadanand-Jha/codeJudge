@@ -6,7 +6,6 @@ import { Download, Eye, Banknote, Plus } from "lucide-react";
 import { useBillingData } from "./hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   StatusBadge,
   PAYOUT_STATUS_TONE,
@@ -50,7 +49,6 @@ export function PayoutsPage({ demoState }: { demoState?: "empty" | "error" }) {
       <PageHeader
         title="Payouts"
         subtitle="Money transferred from your earnings balance to your bank account."
-        badge={<MockDataTag />}
         actions={
           <>
             <BillButton variant="ghost" icon={<Download className="h-4 w-4" />} onClick={() => setExportOpen(true)}>

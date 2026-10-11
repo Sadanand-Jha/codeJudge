@@ -5,7 +5,6 @@ import { Download, FileText } from "lucide-react";
 import { useBillingData } from "./hooks";
 import {
   PageHeader,
-  MockDataTag,
   Panel,
   SegmentedControl,
   BillButton,
@@ -71,7 +70,6 @@ export function TransactionsPage({ demoState }: { demoState?: "empty" | "error" 
       <PageHeader
         title="Transactions"
         subtitle="Complete ledger of every financial movement on your account."
-        badge={<MockDataTag />}
         actions={
           <>
             <DateRangePicker value={range} onChange={setRange} />

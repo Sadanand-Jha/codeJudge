@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings, UserRound, Bell, ShieldCheck, Building2, Wallet, LogOut, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { PageHeader, MockDataTag, Panel } from "@/components/creator/billing/ui";
+import { PageHeader, Panel } from "@/components/creator/billing/ui";
 import { Toggle } from "@/components/ui/settings";
 import { useToast } from "@/hooks/useToast";
 import { SETTINGS_SECTIONS } from "./mockData";
@@ -49,7 +49,6 @@ export function CreatorSettingsPage() {
       <PageHeader
         title="Creator Settings"
         subtitle="Manage your account, notifications and payout preferences."
-        badge={<MockDataTag />}
         actions={
           <button
             type="button"
