@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Coins } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import WorkspaceSwitcher from "@/components/layout/WorkspaceSwitcher";
+import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { useAuthStore } from "@/store/authStore";
 import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
@@ -84,8 +84,7 @@ function ProfileMenu() {
 }
 
 export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void }) {
-  const pathname = usePathname();
-
+  const creditBalance = useAICreditsStore((s) => s.balance.totalRemaining);
   return (
     <header className="sticky top-0 z-30 flex h-14 min-w-0 w-full max-w-full items-center gap-2 border-b border-border bg-card/80 px-2.5 backdrop-blur-xl sm:px-4">
       <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-none sm:shrink-0">
@@ -101,32 +100,19 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
             </svg>
           </button>
         )}
-
-        <div className="mx-1 hidden h-4 w-px shrink-0 bg-border sm:block" />
-        <nav className="hidden shrink-0 items-center gap-0.5 md:flex">
-          {[
-            { label: "Quizzes", href: "/creator/quizzes" },
-            { label: "Library", href: "/creator/tests" },
-          ].map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                  active ? "bg-white/[0.06] text-text-primary" : "text-text-secondary hover:bg-white/[0.03] hover:text-text-primary"
-                )}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
       </div>
 
       <div className="hidden min-w-0 flex-1 sm:block" />
       <div className="flex min-w-0 shrink-0 items-center gap-1">
+        <Link
+          href="/creator/billing/credits"
+          title="Buy AI credits"
+          aria-label={`${creditBalance} AI credits left. Buy more.`}
+          className="mr-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-xs font-bold tabular-nums text-amber-600 transition-colors hover:bg-amber-500/20 dark:text-amber-300"
+        >
+          <Coins className="h-3.5 w-3.5" />
+          {creditBalance}
+        </Link>
         <WorkspaceSwitcher />
         <ProfileMenu />
       </div>

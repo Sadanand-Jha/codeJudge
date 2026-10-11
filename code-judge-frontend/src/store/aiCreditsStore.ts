@@ -164,7 +164,10 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   creator: mockCreator,
   fairUsage: mockFairUsage,
   abuse: mockAbuse,
-  purchases: [],
+  purchases: [
+    { packId: "teacher", packName: "Teacher Pack", credits: 240, price: 99, timestamp: now - 21 * DAY },
+    { packId: "starting", packName: "Starting Pack", credits: 100, price: 49, timestamp: now - 6 * DAY },
+  ],
 
   consumeCredits: async (featureId, metadata?: { promptHash?: string; userAgent?: string; sessionId?: string }): Promise<{ success: boolean; reason?: string; retryAfterMs?: number; message?: string }> => {
     const cost = creditCostMap[featureId];

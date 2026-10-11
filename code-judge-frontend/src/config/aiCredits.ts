@@ -261,3 +261,176 @@ export const RATE_LIMIT_CONFIG: RateLimitConfig = {
    Low-credit threshold
    ============================================ */
 export const LOW_CREDIT_THRESHOLD = 0.2; // 20% of monthly allowance
+
+/* ============================================
+   Generation plans (Plus / Pro / Max storefront)
+   --------------------------------------------
+   INITIAL PROPOSAL — mirror of the backend billing configuration.
+   Prices, paper estimates, reasoning levels and model identifiers must
+   be read from here, never duplicated in components. Model names and
+   token rates below are approximate intended-architecture values, NOT
+   verified provider quotes: confirm availability and live pricing
+   before enabling production usage. Everything here is adjustable
+   without redesigning the frontend.
+   Billing: Plus is a one-time pack; Pro and Max are monthly plans.
+   Prices are in INR, GST-inclusive (no separate tax line at checkout).
+   Paper counts are estimates for typical papers (retrieval +
+   generation + evaluation + refinement), not guaranteed entitlements.
+   ============================================ */
+/* ============================================
+   Credit packs (one-time purchases — no subscriptions)
+   --------------------------------------------
+   Mirror of the backend billing configuration. Pack sizes, prices,
+   CTAs and blurbs must be read from here, never duplicated in
+   components. Prices are in INR, GST-inclusive.
+   ============================================ */
+export interface CreditPurchasePack {
+  id: string;
+  name: string;
+  credits: number;
+  /** Price in INR, GST-inclusive. */
+  price: number;
+  cta: string;
+  blurb: string;
+  popular?: boolean;
+}
+
+export const CREDIT_PURCHASE_PACKS: CreditPurchasePack[] = [
+  {
+    id: "starting",
+    name: "Starting Pack",
+    credits: 100,
+    price: 49,
+    cta: "Get Started",
+    blurb: "For trying AI-powered question generation.",
+  },
+  {
+    id: "teacher",
+    name: "Teacher Pack",
+    credits: 240,
+    price: 99,
+    cta: "Choose Teacher Pack",
+    blurb: "For regular question-paper creation.",
+    popular: true,
+  },
+  {
+    id: "master",
+    name: "Master Pack",
+    credits: 550,
+    price: 199,
+    cta: "Get Master Pack",
+    blurb: "For frequent paper generation and advanced AI workflows.",
+  },
+];
+
+/* ============================================
+   Per-plan usage budgets (cost protection)
+   --------------------------------------------
+   Central backend-mirror configuration. The frontend never enforces
+   these — enforcement is server-side. Approximate rates; verify with
+   the provider before production. Token rates are USD per 1M tokens.
+   ============================================ */
+export interface AIModelBudget {
+  planId: AIEffortLevel["id"];
+  provider: string;
+  generatorModel: string;
+  evaluatorModel: string;
+  fallbackModel: string;
+  /** USD per 1M tokens. */
+  inputRate: number;
+  /** USD per 1M cached-input tokens (0 when unsupported). */
+  cachedInputRate: number;
+  /** USD per 1M output tokens. */
+  outputRate: number;
+  /** Max refinement/evaluation iterations per expensive workflow. */
+  maxIterations: number;
+  /** Max retries per failed operation. */
+  maxRetries: number;
+  /** Token budget per complete paper (all calls combined). */
+  perPaperTokenBudget: number;
+  /** Included usage per billing period; resets monthly for plans. */
+  monthlyReset: boolean;
+}
+
+export const AI_MODEL_BUDGETS: AIModelBudget[] = [
+  {
+    planId: "plus",
+    provider: "OpenRouter",
+    generatorModel: "meta-llama/llama-3.3-70b-instruct",
+    evaluatorModel: "qwen/qwen-2.5-72b-instruct",
+    fallbackModel: "meta-llama/llama-3.3-70b-instruct",
+    inputRate: 0.35,
+    cachedInputRate: 0.0,
+    outputRate: 0.4,
+    maxIterations: 1,
+    maxRetries: 2,
+    perPaperTokenBudget: 120_000,
+    monthlyReset: false,
+  },
+  {
+    planId: "pro",
+    provider: "DeepSeek",
+    generatorModel: "deepseek-chat",
+    evaluatorModel: "deepseek-reasoner",
+    fallbackModel: "deepseek-chat",
+    inputRate: 0.27,
+    cachedInputRate: 0.07,
+    outputRate: 1.1,
+    maxIterations: 3,
+    maxRetries: 3,
+    perPaperTokenBudget: 400_000,
+    monthlyReset: true,
+  },
+  {
+    planId: "max",
+    provider: "DeepSeek",
+    generatorModel: "deepseek-reasoner",
+    evaluatorModel: "deepseek-reasoner",
+    fallbackModel: "deepseek-chat",
+    inputRate: 0.55,
+    cachedInputRate: 0.14,
+    outputRate: 2.19,
+    maxIterations: 6,
+    maxRetries: 3,
+    perPaperTokenBudget: 1_000_000,
+    monthlyReset: true,
+  },
+];
+
+/** How long purchased credits stay valid, in months from purchase. */
+export const CREDIT_VALIDITY_MONTHS = 3;
+
+/* ============================================
+   AI effort levels (question-paper generation)
+   --------------------------------------------
+   Credit charge per completed paper at each effort level. Read from
+   here (backend mirror) — never hardcode costs in components.
+   ============================================ */
+export interface AIEffortLevel {
+  id: "plus" | "pro" | "max";
+  label: string;
+  blurb: string;
+  /** Credits charged per generated paper at this effort level. */
+  creditsPerPaper: number;
+}
+
+export const AI_EFFORT_LEVELS: AIEffortLevel[] = [
+  {
+    id: "plus",
+    label: "Plus",
+    blurb: "Quick generation for straightforward questions and papers.",
+    creditsPerPaper: 5,
+  },
+  {
+    id: "pro",
+    label: "Pro",
+    blurb: "More detailed syllabus alignment and validation.",
+    creditsPerPaper: 12,
+  },
+  {
+    id: "max",
+    label: "Max",
+    blurb: "Advanced multi-step generation, refinement and quality checks.",
+    creditsPerPaper: 25,
+  },
+];

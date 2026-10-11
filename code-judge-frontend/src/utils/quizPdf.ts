@@ -97,9 +97,53 @@ function toPlainText(html: string | null | undefined): string {
     .trim();
 }
 
+/** Strip tags but keep line structure (block boundaries become newlines). */
+function htmlToLines(html: string | null | undefined): string[] {
+  if (!html) return [];
+  return String(html)
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|li|h[1-4]|blockquote|table|thead|tbody)>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .split("\n")
+    .map((l) => l.replace(/[ \t]+/g, " ").trim())
+    .filter((l) => l.length > 0);
+}
+
+/**
+ * Find a space-aligned data table inside plain lines (e.g. a Process /
+ * Arrival / Burst block pasted as text). Returns the row run with the
+ * first row as header, or null. Conservative: needs 3+ consecutive lines
+ * with identical column counts (2+), none longer than 80 chars — star
+ * patterns and code don't qualify.
+ */
+function extractTable(lines: string[]): { start: number; rows: string[][] } | null {
+  const split = (l: string) => l.split(/\s{2,}|\t+/).map((c) => c.trim()).filter(Boolean);
+  for (let start = 0; start <= lines.length - 3; start++) {
+    const first = split(lines[start]);
+    if (first.length < 2 || lines[start].length > 80) continue;
+    let end = start + 1;
+    while (
+      end < lines.length &&
+      lines[end].length <= 80 &&
+      split(lines[end]).length === first.length
+    ) {
+      end += 1;
+    }
+    if (end - start >= 3) {
+      return { start, rows: lines.slice(start, end).map(split) };
+    }
+  }
+  return null;
+}
+
 /** Extract the body of a fenced ``` block, if present. */
-function codeFence(html: string | null | undefined): { code: string[] | null; rest: string } {
-  if (!html) return { code: null, rest: "" };
+function codeFence(html: string | null | undefined): { code: string[] | null; rest: string } {  if (!html) return { code: null, rest: "" };
   const m = html.match(/```[\s\S]*?```/);
   if (!m) return { code: null, rest: html };
   const body = m[0].replace(/^```[^\n]*\n?/, "").replace(/\n?```$/, "");
@@ -199,8 +243,7 @@ function plainLines(text: string, o: Spec, width: number, indent: number): LineS
   }));
 }
 
-function codeBox(lines: string[], o: Spec, width: number): Box {
-  const wrapped: string[] = [];
+function codeBox(lines: string[], o: Spec, width: number): Box {  const wrapped: string[] = [];
   MEASURE.setFont("courier", "normal");
   MEASURE.setFontSize(o.sizePt);
   for (const raw of lines) {
@@ -216,8 +259,63 @@ function codeBox(lines: string[], o: Spec, width: number): Box {
   };
 }
 
-function imageBox(url: string, width: number): Box {
-  const embed = /^data:image\/(png|jpe?g|webp)/i.test(url) ? url : null;
+/** A bordered data grid for space-aligned tables found in question text.
+ *  First row renders bold as the header. Columns are measured and scaled
+ *  to fit the available width. */
+function tableBox(rows: string[][], o: Spec, width: number): Box {
+  const cols = rows[0].length;
+  const padX = 2;
+  const colW = new Array<number>(cols).fill(0);
+  rows.forEach((row, ri) => {
+    MEASURE.setFont(o.base, ri === 0 ? "bold" : "normal");
+    MEASURE.setFontSize(o.sizePt);
+    row.forEach((cell, ci) => {
+      colW[ci] = Math.max(colW[ci], MEASURE.getTextWidth(cell) as number);
+    });
+  });
+  const natural = colW.reduce((a, b) => a + b, 0) + padX * 2 * cols;
+  const scale = natural > width ? width / natural : 1;
+  const widths = colW.map((w) => w * scale + padX * 2 * scale);
+  const tableW = widths.reduce((a, b) => a + b, 0);
+  const ls = lineHeightMm(o.sizePt, 1.25);
+  const rowH = ls + 2;
+  const height = rows.length * rowH + 2.5;
+
+  return {
+    height,
+    draw: (x, y, out) => {
+      const top = y + 1;
+      rows.forEach((row, ri) => {
+        const rowTop = top + ri * rowH;
+        let cx = x;
+        row.forEach((cell, ci) => {
+          MEASURE.setFont(o.base, ri === 0 ? "bold" : "normal");
+          MEASURE.setFontSize(o.sizePt);
+          let label = cell;
+          const maxW = widths[ci] - padX * 2;
+          while (label.length > 1 && (MEASURE.getTextWidth(label + "…") as number) > maxW) {
+            label = label.slice(0, -1);
+          }
+          if (label !== cell) label += "…";
+          emitText(out, o.base, o.css, ri === 0 ? "bold" : "normal", o.sizePt, cx + padX, rowTop + 1 + ls * 0.85, label);
+          cx += widths[ci];
+        });
+      });
+      const bottom = top + rows.length * rowH;
+      for (let r = 0; r <= rows.length; r++) {
+        const yy = top + r * rowH;
+        out.push({ kind: "line", x1: x, y1: yy, x2: x + tableW, y2: yy, widthMm: 0.25 });
+      }
+      let cx = x;
+      for (let c = 0; c <= cols; c++) {
+        out.push({ kind: "line", x1: cx, y1: top, x2: cx, y2: bottom, widthMm: 0.25 });
+        if (c < cols) cx += widths[c];
+      }
+    },
+  };
+}
+
+function imageBox(url: string, width: number): Box {  const embed = /^data:image\/(png|jpe?g|webp)/i.test(url) ? url : null;
   if (!embed) {
     return boxFromLines([{ text: "[Image]", xOff: 6 }], { base: "helvetica", css: "Helvetica, Arial, sans-serif", style: "italic", sizePt: 8, lineFactor: 1.3 }, 1.5);
   }
@@ -272,10 +370,27 @@ function buildQuestionBoxes(q: CreatorQuestion, index: number, width: number, o:
   const ansStyle: Spec = { base: o.base, css: o.css, style: "bold", sizePt: o.optionPt, lineFactor: o.lineFactor };
 
   const { code, rest } = codeFence(q.title);
+  const restLines = htmlToLines(rest);
+  const table = extractTable(restLines);
   const body = rest ? toPlainText(rest) : "";
   if (code && code.length) {
     boxes.push(boxFromLines(wrapHanging(`${index + 1}.`, body, qStyle, width), qStyle, 1.2));
     boxes.push(codeBox(code, { ...optStyle, base: "courier", css: "Courier New, monospace" }, width));
+  } else if (table) {
+    // Intro text keeps the question number; the aligned block becomes a grid.
+    const intro = toPlainText(restLines.slice(0, table.start).join(" "));
+    const trailing = restLines.slice(table.start + table.rows.length);
+    boxes.push(boxFromLines(wrapHanging(`${index + 1}.`, intro || "Question", qStyle, width), qStyle, 1.2));
+    boxes.push(tableBox(table.rows, { ...qStyle, style: "normal" }, width));
+    if (trailing.length) {
+      boxes.push(
+        boxFromLines(
+          plainLines(trailing.join(" "), optStyle, width, 6),
+          optStyle,
+          0.8
+        )
+      );
+    }
   } else {
     boxes.push(boxFromLines(wrapHanging(`${index + 1}.`, body || "Question", qStyle, width), qStyle, 1.2));
   }
@@ -579,7 +694,12 @@ function drawBoxesAt(s: Sink, x: number, y: number, boxes: Box[]): void {
 }
 
 function isWide(q: CreatorQuestion): boolean {
-  return q.images.length > 0 || q.options.some((o) => o.imageUrl) || codeFence(q.title).code !== null;
+  return (
+    q.images.length > 0 ||
+    q.options.some((o) => o.imageUrl) ||
+    codeFence(q.title).code !== null ||
+    extractTable(htmlToLines(codeFence(q.title).rest)) !== null
+  );
 }
 
 export function layoutQuestionPaper(input: PaperInput, date: string, time: string): PdfPageModel[] {

@@ -324,7 +324,7 @@ export default function QuestionBankPage() {
                             {question.questionHtml ? (
                               <div
                                 className="text-[13px] leading-relaxed text-[var(--text-primary)] [&_ol]:list-decimal [&_p]:mb-1 [&_p:last-child]:mb-0 [&_table]:w-full [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:rounded-[8px] [&_pre]:bg-[var(--platform-soft)] [&_pre]:p-2.5 [&_pre]:font-mono [&_pre]:text-[12px] [&_pre]:leading-relaxed [&_code]:font-mono [&_code]:text-[12px] [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--border)] [&_blockquote]:pl-2"
-                                dangerouslySetInnerHTML={{ __html: question.questionHtml }}
+                                dangerouslySetInnerHTML={{ __html: renderQuestionHtml(question.questionHtml) }}
                               />
                             ) : (
                               <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[var(--text-primary)]">{question.questionText}</p>
@@ -551,6 +551,70 @@ function htmlToEditableText(html: string): string {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   return text;
+}
+
+/* Render-time only: if a <pre> block holds a space-aligned data table
+   (header + rows with consistent columns, e.g. Process/Arrival/Burst),
+   swap it for a real <table> so it reads as a table. Stored HTML is
+   never modified. Conservative on purpose: star patterns, code and
+   single-column pres are left untouched. */
+function renderQuestionHtml(html: string): string {
+  if (typeof window === "undefined") return html;
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  template.content.querySelectorAll("pre").forEach((pre) => {
+    const table = preTextToTable(pre);
+    if (table) pre.replaceWith(table);
+  });
+  const holder = document.createElement("div");
+  holder.appendChild(template.content.cloneNode(true));
+  return holder.innerHTML;
+}
+
+function preTextToTable(pre: HTMLPreElement): HTMLDivElement | null {
+  const lines = (pre.textContent ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length < 3) return null;
+  const rows = lines.map((line) => line.split(/\s{2,}|\t+/).map((cell) => cell.trim()).filter(Boolean));
+  const cols = rows[0].length;
+  if (cols < 2) return null;
+  if (!rows.every((row) => row.length === cols)) return null;
+  if (lines.some((line) => line.length > 80)) return null;
+
+  const doc = pre.ownerDocument;
+  const wrapper = doc.createElement("div");
+  wrapper.setAttribute("style", "overflow-x:auto;margin:8px 0;border:1px solid var(--border);border-radius:8px");
+  const table = doc.createElement("table");
+  table.setAttribute("style", "width:100%;border-collapse:collapse;font-size:12px");
+  const thead = doc.createElement("thead");
+  const headRow = doc.createElement("tr");
+  for (const cell of rows[0]) {
+    const th = doc.createElement("th");
+    th.setAttribute(
+      "style",
+      "border:1px solid var(--border);background:var(--platform-soft);padding:4px 8px;text-align:left;font-weight:700"
+    );
+    th.textContent = cell;
+    headRow.appendChild(th);
+  }
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+  const tbody = doc.createElement("tbody");
+  for (const row of rows.slice(1)) {
+    const tr = doc.createElement("tr");
+    for (const cell of row) {
+      const td = doc.createElement("td");
+      td.setAttribute("style", "border:1px solid var(--border);padding:4px 8px");
+      td.textContent = cell;
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  wrapper.appendChild(table);
+  return wrapper;
 }
 
 function escapeHtml(value: string): string {

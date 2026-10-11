@@ -41,27 +41,27 @@ export function playQuizSound(sound: QuizSound): void {
 
   switch (sound) {
     case "select":
-      tone(ctx, 640, now, 0.09, 0.025, "sine");
-      tone(ctx, 880, now + 0.045, 0.08, 0.018, "sine");
+      tone(ctx, 640, now, 0.09, 0.12, "sine");
+      tone(ctx, 880, now + 0.045, 0.08, 0.09, "sine");
       break;
     case "navigate":
-      tone(ctx, 430, now, 0.075, 0.018, "triangle");
+      tone(ctx, 430, now, 0.075, 0.09, "triangle");
       break;
     case "submit":
-      tone(ctx, 420, now, 0.13, 0.025, "sine");
-      tone(ctx, 610, now + 0.085, 0.15, 0.025, "sine");
+      tone(ctx, 420, now, 0.13, 0.12, "sine");
+      tone(ctx, 610, now + 0.085, 0.15, 0.12, "sine");
       break;
     case "stage":
-      tone(ctx, 760, now, 0.085, 0.014, "sine");
+      tone(ctx, 760, now, 0.085, 0.07, "sine");
       break;
     case "success":
-      tone(ctx, 520, now, 0.13, 0.024, "sine");
-      tone(ctx, 660, now + 0.09, 0.13, 0.024, "sine");
-      tone(ctx, 880, now + 0.18, 0.2, 0.026, "sine");
+      tone(ctx, 520, now, 0.13, 0.12, "sine");
+      tone(ctx, 660, now + 0.09, 0.13, 0.12, "sine");
+      tone(ctx, 880, now + 0.18, 0.2, 0.13, "sine");
       break;
     case "error":
-      tone(ctx, 260, now, 0.14, 0.02, "triangle");
-      tone(ctx, 190, now + 0.1, 0.18, 0.018, "triangle");
+      tone(ctx, 260, now, 0.14, 0.1, "triangle");
+      tone(ctx, 190, now + 0.1, 0.18, 0.09, "triangle");
       break;
   }
 }

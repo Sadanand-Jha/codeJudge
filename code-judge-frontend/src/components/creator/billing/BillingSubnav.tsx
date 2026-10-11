@@ -3,18 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Wallet, TrendingUp, ArrowLeftRight, Banknote, ShoppingBag, RotateCcw, Scale, FolderOpen, CreditCard } from "lucide-react";
+import { Wallet, ArrowLeftRight, CreditCard, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
 const BILLING_TABS = [
   { label: "Overview", href: "/creator/billing", icon: Wallet, exact: true },
-  { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },
+  // Selling tabs disabled for now (routes commented out, components kept):
+  // { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },
   { label: "Transactions", href: "/creator/billing/transactions", icon: ArrowLeftRight },
-  { label: "Payouts", href: "/creator/billing/payouts", icon: Banknote },
-  { label: "Products", href: "/creator/billing/products", icon: ShoppingBag },
-  { label: "Refunds", href: "/creator/billing/refunds", icon: RotateCcw },
-  { label: "Tax", href: "/creator/billing/tax", icon: Scale },
-  { label: "Documents", href: "/creator/billing/documents", icon: FolderOpen },
+  // { label: "Payouts", href: "/creator/billing/payouts", icon: Banknote },
+  // { label: "Products", href: "/creator/billing/products", icon: ShoppingBag },
+  // { label: "Refunds", href: "/creator/billing/refunds", icon: RotateCcw },
+  // { label: "Tax", href: "/creator/billing/tax", icon: Scale },
+  // { label: "Documents", href: "/creator/billing/documents", icon: FolderOpen },
+  { label: "AI Credits", href: "/creator/billing/credits", icon: Sparkles },
   { label: "Payment Settings", href: "/creator/billing/settings", icon: CreditCard },
 ];
 

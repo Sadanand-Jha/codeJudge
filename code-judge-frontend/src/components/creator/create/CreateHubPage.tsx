@@ -133,7 +133,7 @@ function CreateBanner({
     >
       <Link
         href={href}
-        className={`group relative flex flex-col gap-4 overflow-hidden rounded-[22px] bg-gradient-to-br p-5 text-white transition-transform duration-200 hover:-translate-y-0.5 sm:flex-row sm:items-center sm:p-6 ${gradient} ${shadow}`}
+        className={`group relative flex flex-col gap-4 overflow-hidden rounded-[22px] bg-gradient-to-br p-5 text-white transition-transform duration-200 hover:-translate-y-0.5 sm:p-6 ${gradient} ${shadow}`}
       >
         <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-white/20 blur-3xl" />
         <div className={`pointer-events-none absolute -bottom-24 right-10 h-48 w-48 rounded-full blur-3xl ${orb}`} />
@@ -177,6 +177,7 @@ export function CreateHubPage() {
       {/* Feature spotlight — one card at a time, rotating every 10s */}
       <FeatureSpotlight />
 
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <CreateBanner
         href="/creator/quizzes"
         gradient="from-violet-600 via-fuchsia-500 to-pink-500"
@@ -221,6 +222,7 @@ export function CreateHubPage() {
         ctaClass="text-orange-600"
         delay={0.15}
       />
+      </div>
     </div>
   );
 }

@@ -10,12 +10,9 @@ import {
   Users,
   Settings,
   Wallet,
-  TrendingUp,
+  Coins,
   ArrowLeftRight,
   ArrowLeft,
-  Banknote,
-  RotateCcw,
-  Scale,
   BookOpen,
   UserRound,
   Globe,
@@ -32,7 +29,6 @@ import {
        MailPlus,
   Megaphone,
   Plus,
-  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -102,13 +98,15 @@ const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
   {
     label: "Payments",
     items: [
-      { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },
+      { label: "Buy Credits", href: "/creator/billing/credits", icon: Coins },
+      // Selling pages disabled for now (routes commented out, components kept):
+      // { label: "Earnings", href: "/creator/billing/earnings", icon: TrendingUp },
       { label: "Transactions", href: "/creator/billing/transactions", icon: ArrowLeftRight },
-      { label: "Payouts", href: "/creator/billing/payouts", icon: Banknote },
+      // { label: "Payouts", href: "/creator/billing/payouts", icon: Banknote },
       { label: "Billing", href: "/creator/billing", icon: Wallet, exact: true },
-      { label: "Refunds", href: "/creator/billing/refunds", icon: RotateCcw },
-      { label: "Tax & Compliance", href: "/creator/billing/tax", icon: Scale },
-      { label: "Documents", href: "/creator/billing/documents", icon: FileText },
+      // { label: "Refunds", href: "/creator/billing/refunds", icon: RotateCcw },
+      // { label: "Tax & Compliance", href: "/creator/billing/tax", icon: Scale },
+      // { label: "Documents", href: "/creator/billing/documents", icon: FileText },
     ],
   },
   {
@@ -142,9 +140,19 @@ const FOCUS_CREATOR_ALLOWED = new Set([
   "/creator/create",
   // Rooms
   "/creator/rooms",
+  // Billing (credits + history; selling pages stay hidden)
+  "/creator/billing/credits",
+  "/creator/billing/transactions",
+]);
+
+// Exact billing overview route (prefix matching would also unlock the
+// hidden selling pages, so this stays exact-only).
+const FOCUS_CREATOR_EXACT = new Set([
+  "/creator/billing",
 ]);
 
 function isFocusAllowedHref(href: string): boolean {
+  if (FOCUS_CREATOR_EXACT.has(href)) return true;
   for (const allowed of FOCUS_CREATOR_ALLOWED) {
     if (href === allowed || href.startsWith(allowed + "/")) return true;
   }
