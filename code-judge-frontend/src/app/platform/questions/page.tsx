@@ -323,7 +323,7 @@ export default function QuestionBankPage() {
                           <div className="min-w-0 flex-1">
                             {question.questionHtml ? (
                               <div
-                                className="text-[13px] leading-relaxed text-[var(--text-primary)] [&_ol]:list-decimal [&_p]:mb-1 [&_p:last-child]:mb-0 [&_table]:w-full [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:rounded-[8px] [&_pre]:bg-[var(--platform-soft)] [&_pre]:p-2.5 [&_pre]:font-mono [&_pre]:text-[12px] [&_pre]:leading-relaxed [&_code]:font-mono [&_code]:text-[12px] [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--border)] [&_blockquote]:pl-2"
+                                className="text-[13px] leading-relaxed text-[var(--text-primary)] [&_ol]:list-decimal [&_p]:mb-1 [&_p:last-child]:mb-0 [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_table]:text-[12px] [&_th]:border [&_th]:border-[var(--border)] [&_th]:bg-[var(--platform-soft)] [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_td]:border [&_td]:border-[var(--border)] [&_td]:px-2.5 [&_td]:py-1.5 [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:rounded-[8px] [&_pre]:bg-[var(--platform-soft)] [&_pre]:p-2.5 [&_pre]:font-mono [&_pre]:text-[12px] [&_pre]:leading-relaxed [&_code]:font-mono [&_code]:text-[12px] [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--border)] [&_blockquote]:pl-2"
                                 dangerouslySetInnerHTML={{ __html: renderQuestionHtml(question.questionHtml) }}
                               />
                             ) : (
@@ -425,7 +425,7 @@ export default function QuestionBankPage() {
                 <div>
                   <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Formatted preview (what students see)</span>
                   <div
-                    className="rounded-[10px] border border-[var(--border)] bg-[var(--platform-soft)] p-3 text-[13px] leading-relaxed text-[var(--text-primary)] [&_ol]:list-decimal [&_p]:mb-1 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:font-mono [&_code]:font-mono"
+                    className="rounded-[10px] border border-[var(--border)] bg-[var(--platform-soft)] p-3 text-[13px] leading-relaxed text-[var(--text-primary)] [&_ol]:list-decimal [&_p]:mb-1 [&_p:last-child]:mb-0 [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_table]:text-[12px] [&_th]:border [&_th]:border-[var(--border)] [&_th]:bg-[var(--platform-soft)] [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_td]:border [&_td]:border-[var(--border)] [&_td]:bg-[var(--card)] [&_td]:px-2.5 [&_td]:py-1.5 [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:font-mono [&_code]:font-mono"
                     dangerouslySetInnerHTML={{ __html: editableTextToHtml(editText.trim()) }}
                   />
                 </div>
