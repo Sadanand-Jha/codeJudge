@@ -4,7 +4,7 @@
 import { pool } from "../config/database.ts";
 
 /** Keep in sync with QuizRepository.MAX_QUIZ_ATTEMPTS (max attempts per user per quiz). */
-export const MAX_QUIZ_ATTEMPTS = 5;
+export const MAX_QUIZ_ATTEMPTS = Infinity;
 
 export class UserQuizRepository {
   // ==================== QUIZ BROWSING ====================

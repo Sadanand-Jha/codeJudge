@@ -9,7 +9,7 @@ import { pool } from "../config/database.ts";
  * `checkQuizAccess` (fast path) and re-checked atomically in
  * `createQuizAttempt` to close the concurrent-start race.
  */
-export const MAX_QUIZ_ATTEMPTS = 5;
+export const MAX_QUIZ_ATTEMPTS = Infinity;
 
 export interface QuizRatingState {
   averageRating: number | null;
