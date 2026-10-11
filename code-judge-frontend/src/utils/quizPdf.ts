@@ -142,8 +142,40 @@ function extractTable(lines: string[]): { start: number; rows: string[][] } | nu
   return null;
 }
 
+/**
+ * Parse real <table> elements out of question HTML. Returns each table
+ * with its character offsets so surrounding intro/trailing text can be
+ * laid out normally around the grid. Only simple flat tables qualify
+ * (consistent cell counts, no nested tables).
+ */
+function extractHtmlTables(html: string): Array<{ start: number; end: number; rows: string[][] }> {
+  const out: Array<{ start: number; end: number; rows: string[][] }> = [];
+  if (!html || html.indexOf("<table") === -1) return out;
+  const tableRe = /<table[\s>][\s\S]*?<\/table\s*>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = tableRe.exec(html)) !== null) {
+    const rows: string[][] = [];
+    const rowRe = /<tr[\s>][\s\S]*?<\/tr\s*>/gi;
+    let rm: RegExpExecArray | null;
+    while ((rm = rowRe.exec(m[0])) !== null) {
+      const cells: string[] = [];
+      const cellRe = /<(td|th)[\s>]([\s\S]*?)<\/\1\s*>/gi;
+      let cm: RegExpExecArray | null;
+      while ((cm = cellRe.exec(rm[0])) !== null) {
+        cells.push(toPlainText(cm[2]).trim());
+      }
+      if (cells.length) rows.push(cells);
+    }
+    if (rows.length >= 2 && rows.every((r) => r.length >= 2 && r.length === rows[0].length)) {
+      out.push({ start: m.index, end: m.index + m[0].length, rows });
+    }
+  }
+  return out;
+}
+
 /** Extract the body of a fenced ``` block, if present. */
-function codeFence(html: string | null | undefined): { code: string[] | null; rest: string } {  if (!html) return { code: null, rest: "" };
+function codeFence(html: string | null | undefined): { code: string[] | null; rest: string } {
+  if (!html) return { code: null, rest: "" };
   const m = html.match(/```[\s\S]*?```/);
   if (!m) return { code: null, rest: html };
   const body = m[0].replace(/^```[^\n]*\n?/, "").replace(/\n?```$/, "");
@@ -315,7 +347,8 @@ function tableBox(rows: string[][], o: Spec, width: number): Box {
   };
 }
 
-function imageBox(url: string, width: number): Box {  const embed = /^data:image\/(png|jpe?g|webp)/i.test(url) ? url : null;
+function imageBox(url: string, width: number): Box {
+  const embed = /^data:image\/(png|jpe?g|webp)/i.test(url) ? url : null;
   if (!embed) {
     return boxFromLines([{ text: "[Image]", xOff: 6 }], { base: "helvetica", css: "Helvetica, Arial, sans-serif", style: "italic", sizePt: 8, lineFactor: 1.3 }, 1.5);
   }
@@ -370,10 +403,27 @@ function buildQuestionBoxes(q: CreatorQuestion, index: number, width: number, o:
   const ansStyle: Spec = { base: o.base, css: o.css, style: "bold", sizePt: o.optionPt, lineFactor: o.lineFactor };
 
   const { code, rest } = codeFence(q.title);
+  const htmlTables = extractHtmlTables(rest || "");
   const restLines = htmlToLines(rest);
   const table = extractTable(restLines);
   const body = rest ? toPlainText(rest) : "";
-  if (code && code.length) {
+  if (htmlTables.length) {
+    // Real <table> HTML: intro keeps the question number, each table
+    // becomes a bordered grid, text between/after flows normally.
+    const intro = toPlainText(rest.slice(0, htmlTables[0].start));
+    boxes.push(boxFromLines(wrapHanging(`${index + 1}.`, intro || "Question", qStyle, width), qStyle, 1.2));
+    htmlTables.forEach((t, ti) => {
+      boxes.push(tableBox(t.rows, { ...qStyle, style: "normal" }, width));
+      const nextStart = ti + 1 < htmlTables.length ? htmlTables[ti + 1].start : rest.length;
+      const between = toPlainText(rest.slice(t.end, nextStart));
+      if (between) {
+        boxes.push(boxFromLines(plainLines(between, optStyle, width, 6), optStyle, 0.8));
+      }
+    });
+    if (code && code.length) {
+      boxes.push(codeBox(code, { ...optStyle, base: "courier", css: "Courier New, monospace" }, width));
+    }
+  } else if (code && code.length) {
     boxes.push(boxFromLines(wrapHanging(`${index + 1}.`, body, qStyle, width), qStyle, 1.2));
     boxes.push(codeBox(code, { ...optStyle, base: "courier", css: "Courier New, monospace" }, width));
   } else if (table) {
@@ -694,11 +744,13 @@ function drawBoxesAt(s: Sink, x: number, y: number, boxes: Box[]): void {
 }
 
 function isWide(q: CreatorQuestion): boolean {
+  const rest = codeFence(q.title).rest;
   return (
     q.images.length > 0 ||
     q.options.some((o) => o.imageUrl) ||
     codeFence(q.title).code !== null ||
-    extractTable(htmlToLines(codeFence(q.title).rest)) !== null
+    extractHtmlTables(rest).length > 0 ||
+    extractTable(htmlToLines(rest)) !== null
   );
 }
 

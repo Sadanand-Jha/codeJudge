@@ -587,8 +587,8 @@ export default function YourActivitySection({
         <StatCard icon={TrendingUp} label={missionMode ? "Average Flight Score" : "Average Score"} value={overview.avgScore === null ? "—" : `${overview.avgScore}%`} hint={missionMode ? "across missions" : "across attempts"} accent="text-[#B54708] dark:text-[#FFB84D]" />
       </div>}
 
-      {/* ── Score summary: single panel above the recent attempts ── */}
-      {!isAllAttemptsView && <div className="mt-4 md:max-w-md">
+      {/* ── Analytics strip: summary + distribution + latest in one row above the table ── */}
+      {!isAllAttemptsView && <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
         <section className="group relative min-w-0 overflow-hidden rounded-[24px] border border-pink-200/70 bg-gradient-to-br from-white/90 to-pink-50/75 p-5 shadow-[0_24px_65px_-44px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_24px_70px_-42px_rgba(80,55,170,.65)]">
           <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-pink-300/20 blur-3xl dark:bg-violet-500/15" />
           <h3 className="relative flex items-center gap-2 text-[15px] font-bold text-[#101828] dark:text-[#F4F6FA]"><span className="grid h-8 w-8 place-items-center rounded-xl bg-pink-100 text-pink-500 dark:bg-violet-500/10 dark:text-violet-300"><TrendingUp className="h-4 w-4" /></span>{missionMode ? "Flight Performance" : "Score Summary"}</h3>
@@ -633,56 +633,7 @@ export default function YourActivitySection({
           </div>
 
         </section>
-      </div>}
 
-      {/* ── Recent attempts: full-width table (no narrow side column) ── */}
-      <div className="relative mt-5 min-w-0 overflow-hidden rounded-[26px] border border-pink-200/70 bg-white/80 shadow-[0_28px_80px_-48px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-gradient-to-br dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_28px_85px_-44px_rgba(80,55,170,.65)]">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-cyan-300/10 blur-3xl dark:bg-violet-500/10" />
-
-        {/* Desktop column labels */}
-          {filtered.length > 0 && (
-            <div className="relative hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] gap-3 border-b border-pink-100 bg-white/30 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.13em] text-[#98A2B3] dark:border-white/[0.06] dark:bg-black/[0.08] dark:text-[#687386] lg:grid">
-              <span>{missionMode ? "Mission" : "Quiz"}</span>
-              <span>Status</span>
-              <span>Score</span>
-              <span>Time</span>
-              <span>Date</span>
-              <span className="text-right">Action</span>
-            </div>
-          )}
-
-          <div className="relative divide-y divide-pink-100/80 dark:divide-white/[0.06]">
-            {recentLoading
-              ? Array.from({ length: isAllAttemptsView ? 10 : 5 }).map((_, i) => <SkeletonRow key={i} />)
-              : filtered.length === 0
-                ? <EmptyState missionMode={missionMode} />
-                : filtered.map((quiz, i) => <AttemptRow key={quiz.attempt_id} quiz={quiz} index={(recentPage - 1) * pageSize + i} />)}
-          </div>
-
-          {isAllAttemptsView && !recentLoading && recentTotalPages > 1 && (
-            <nav className="relative flex flex-col gap-3 border-t border-pink-100/80 bg-white/35 px-4 py-3 dark:border-white/[0.06] dark:bg-black/[0.08] sm:flex-row sm:items-center sm:justify-between sm:px-5" aria-label="Attempts pagination">
-              <p className="text-center text-[11px] font-medium text-[#667085] dark:text-[#8F9AAF] sm:text-left">
-                Showing {(recentPage - 1) * pageSize + 1}–{Math.min(recentPage * pageSize, recentTotal)} of {recentTotal}
-              </p>
-              <div className="flex items-center justify-center gap-1.5">
-                <button type="button" onClick={() => setRecentPage((page) => Math.max(1, page - 1))} disabled={recentPage === 1} aria-label="Previous page" className="grid h-9 w-9 place-items-center rounded-xl border border-pink-200 bg-white text-[#667085] transition-colors hover:border-violet-300 hover:text-violet-600 disabled:cursor-not-allowed disabled:opacity-35 dark:border-white/10 dark:bg-white/[0.04] dark:text-[#9AA4B5] dark:hover:border-violet-400/30 dark:hover:text-violet-300">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                {paginationPages.map((page) => (
-                  <button key={page} type="button" onClick={() => setRecentPage(page)} aria-current={page === recentPage ? "page" : undefined} className={cn("grid h-9 min-w-9 place-items-center rounded-xl border px-2 text-xs font-bold transition-colors", page === recentPage ? "border-violet-500 bg-violet-500 text-white shadow-sm" : "border-pink-200 bg-white text-[#667085] hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-[#9AA4B5] dark:hover:border-violet-400/30 dark:hover:text-violet-300")}>
-                    {page}
-                  </button>
-                ))}
-                <button type="button" onClick={() => setRecentPage((page) => Math.min(recentTotalPages, page + 1))} disabled={recentPage === recentTotalPages} aria-label="Next page" className="grid h-9 w-9 place-items-center rounded-xl border border-pink-200 bg-white text-[#667085] transition-colors hover:border-violet-300 hover:text-violet-600 disabled:cursor-not-allowed disabled:opacity-35 dark:border-white/10 dark:bg-white/[0.04] dark:text-[#9AA4B5] dark:hover:border-violet-400/30 dark:hover:text-violet-300">
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </nav>
-          )}
-        </div>
-
-        {/* ── Performance strip: remaining panels below the table ── */}
-        {!isAllAttemptsView && <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* Score distribution (derived from existing data) */}
           <section className="group relative min-w-0 overflow-hidden rounded-[24px] border border-cyan-200/70 bg-gradient-to-br from-white/90 to-cyan-50/70 p-5 shadow-[0_24px_65px_-44px_rgba(34,199,232,.65)] backdrop-blur-xl dark:border-white/[0.08] dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_24px_70px_-42px_rgba(80,55,170,.65)]">
             <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-400/10" />
@@ -741,7 +692,53 @@ export default function YourActivitySection({
             </section>
           )}
 
-        </div>}
+      </div>}
+
+      {/* ── Recent attempts: full-width table (no narrow side column) ── */}
+      <div className="relative mt-5 min-w-0 overflow-hidden rounded-[26px] border border-pink-200/70 bg-white/80 shadow-[0_28px_80px_-48px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:bg-gradient-to-br dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_28px_85px_-44px_rgba(80,55,170,.65)]">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-cyan-300/10 blur-3xl dark:bg-violet-500/10" />
+
+        {/* Desktop column labels */}
+          {filtered.length > 0 && (
+            <div className="relative hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] gap-3 border-b border-pink-100 bg-white/30 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.13em] text-[#98A2B3] dark:border-white/[0.06] dark:bg-black/[0.08] dark:text-[#687386] lg:grid">
+              <span>{missionMode ? "Mission" : "Quiz"}</span>
+              <span>Status</span>
+              <span>Score</span>
+              <span>Time</span>
+              <span>Date</span>
+              <span className="text-right">Action</span>
+            </div>
+          )}
+
+          <div className="relative divide-y divide-pink-100/80 dark:divide-white/[0.06]">
+            {recentLoading
+              ? Array.from({ length: isAllAttemptsView ? 10 : 5 }).map((_, i) => <SkeletonRow key={i} />)
+              : filtered.length === 0
+                ? <EmptyState missionMode={missionMode} />
+                : filtered.map((quiz, i) => <AttemptRow key={quiz.attempt_id} quiz={quiz} index={(recentPage - 1) * pageSize + i} />)}
+          </div>
+
+          {isAllAttemptsView && !recentLoading && recentTotalPages > 1 && (
+            <nav className="relative flex flex-col gap-3 border-t border-pink-100/80 bg-white/35 px-4 py-3 dark:border-white/[0.06] dark:bg-black/[0.08] sm:flex-row sm:items-center sm:justify-between sm:px-5" aria-label="Attempts pagination">
+              <p className="text-center text-[11px] font-medium text-[#667085] dark:text-[#8F9AAF] sm:text-left">
+                Showing {(recentPage - 1) * pageSize + 1}–{Math.min(recentPage * pageSize, recentTotal)} of {recentTotal}
+              </p>
+              <div className="flex items-center justify-center gap-1.5">
+                <button type="button" onClick={() => setRecentPage((page) => Math.max(1, page - 1))} disabled={recentPage === 1} aria-label="Previous page" className="grid h-9 w-9 place-items-center rounded-xl border border-pink-200 bg-white text-[#667085] transition-colors hover:border-violet-300 hover:text-violet-600 disabled:cursor-not-allowed disabled:opacity-35 dark:border-white/10 dark:bg-white/[0.04] dark:text-[#9AA4B5] dark:hover:border-violet-400/30 dark:hover:text-violet-300">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                {paginationPages.map((page) => (
+                  <button key={page} type="button" onClick={() => setRecentPage(page)} aria-current={page === recentPage ? "page" : undefined} className={cn("grid h-9 min-w-9 place-items-center rounded-xl border px-2 text-xs font-bold transition-colors", page === recentPage ? "border-violet-500 bg-violet-500 text-white shadow-sm" : "border-pink-200 bg-white text-[#667085] hover:border-violet-300 hover:text-violet-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-[#9AA4B5] dark:hover:border-violet-400/30 dark:hover:text-violet-300")}>
+                    {page}
+                  </button>
+                ))}
+                <button type="button" onClick={() => setRecentPage((page) => Math.min(recentTotalPages, page + 1))} disabled={recentPage === recentTotalPages} aria-label="Next page" className="grid h-9 w-9 place-items-center rounded-xl border border-pink-200 bg-white text-[#667085] transition-colors hover:border-violet-300 hover:text-violet-600 disabled:cursor-not-allowed disabled:opacity-35 dark:border-white/10 dark:bg-white/[0.04] dark:text-[#9AA4B5] dark:hover:border-violet-400/30 dark:hover:text-violet-300">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </nav>
+          )}
+        </div>
     </section>
   );
 }
