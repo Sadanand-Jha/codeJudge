@@ -1,13 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Code2 } from 'lucide-react';
 import { cn } from '@/lib/helpers';
 import { decryptSecureMedia } from '@/services/secureMedia';
 import { useTheme } from '@/context/ThemeContext';
 
 export type SecureLogoVariant = 'full' | 'mark';
 type LogoTheme = 'light' | 'dark';
+
+// Static fallback — same artwork family as the login page (AuthBrandMark).
+// `full` uses the wordmark exactly like login (`name.png` / `dark_name.png`),
+// `mark` uses the icon-only bubble for square slots (collapsed sidebar rail,
+// favicon-sized slots). This renders instantly on first paint, so the small
+// sidebar never flashes the generic Code2 box while the encrypted logo loads.
+const STATIC_LOGO_FALLBACK: Record<LogoTheme, Record<SecureLogoVariant, string>> = {
+  light: {
+    full: '/logos/name.png',
+    mark: '/logos/mark.png',
+  },
+  dark: {
+    full: '/logos/dark_name.png',
+    mark: '/logos/dark_mark.png',
+  },
+};
 
 // Module-level caches: one fetch + one object URL per variant+theme, shared by
 // every logo instance on the page (navbar, sidebar, footer, auth, ...).
@@ -62,20 +77,14 @@ async function fetchBrandLogoUrl(
 }
 
 /**
- * Site brand mark served AES-encrypted from the backend
- * (`GET /api/v1/brand/logo` -> public/logo/logo_with_name.png for light
- * `full`, dark_logo_with_name.png for dark `full`, logo.png / dark_logo_.png
- * for `mark`, whitespace-trimmed) and decrypted client-side. The active app
- * theme picks the artwork, so dark mode gets the dark-background logo.
+ * Site brand logo — same artwork as the login page (AuthBrandMark).
  *
- * - `variant="full"` — the QuizSupport wordmark + icon, drawn at `size`
- *   height with a 4:1 box (`object-contain`, so aspect changes degrade
- *   gracefully instead of cropping).
+ * - `variant="full"` — BAS NAME WALA only: the QuizSupport wordmark
+ *   (`/logos/name.png` / `/logos/dark_name.png`), no bubble icon. Never
+ *   upgrades from the backend, so header/sidebar always match login.
  * - `variant="mark"` — icon-only speech-bubble art for square slots
- *   (collapsed sidebar rail, auth headers, platform console).
- *
- * Falls back to the legacy gradient Code2 mark while loading or if
- * decryption is unavailable.
+ *   (collapsed sidebar rail, favicon-sized slots). Static file renders
+ *   instantly, then upgrades to the encrypted backend art when available.
  */
 export function SecureLogo({
   size = 28,
@@ -90,21 +99,27 @@ export function SecureLogo({
 }) {
   const { theme } = useTheme();
   const logoKey = `${variant}:${theme}`;
+  const staticFallback = STATIC_LOGO_FALLBACK[theme][variant];
 
-  const [logoUrl, setLogoUrl] = useState<string | null>(
-    () => logoUrlCache.get(logoKey) ?? null
+  const [logoUrl, setLogoUrl] = useState<string>(
+    () => logoUrlCache.get(logoKey) ?? staticFallback
   );
 
   // If `variant` or the active theme changes after mount, re-seed from the
   // cache during render (React's recommended state-adjustment pattern —
-  // avoids a sync setState inside the effect below).
+  // avoids a sync setState inside the effect below). Falls back to the
+  // static login-page artwork, never to a generic icon.
   const [prevKey, setPrevKey] = useState<string>(logoKey);
   if (prevKey !== logoKey) {
     setPrevKey(logoKey);
-    setLogoUrl(logoUrlCache.get(logoKey) ?? null);
+    setLogoUrl(logoUrlCache.get(logoKey) ?? STATIC_LOGO_FALLBACK[theme][variant]);
   }
 
   useEffect(() => {
+    // `full` is BAS NAME WALA only (login-page wordmark) — never fetch the
+    // backend bubble+text art, otherwise the header would flip back to the
+    // icon+name combo the user explicitly rejected.
+    if (variant === 'full') return;
     if (logoUrlCache.get(logoKey)) return;
     let cancelled = false;
     fetchBrandLogoUrl(variant, theme).then((url) => {
@@ -115,22 +130,6 @@ export function SecureLogo({
     };
   }, [logoKey, variant, theme]);
 
-  if (!logoUrl) {
-    return (
-      <span
-        aria-hidden="true"
-        style={{ width: size, height: size }}
-        className={cn(
-          'flex shrink-0 items-center justify-center bg-gradient-to-br from-[#7C3AED] to-[#3B82F6] text-white',
-          rounded && 'rounded-lg',
-          className
-        )}
-      >
-        <Code2 style={{ width: size * 0.57, height: size * 0.57 }} />
-      </span>
-    );
-  }
-
   return (
     <img
       src={logoUrl}
@@ -139,6 +138,9 @@ export function SecureLogo({
       draggable={false}
       onContextMenu={(e) => e.preventDefault()}
       onDragStart={(e) => e.preventDefault()}
+      onError={() => {
+        if (logoUrl !== staticFallback) setLogoUrl(staticFallback);
+      }}
       style={{ height: size, width: size * (variant === 'mark' ? 1 : 4) }}
       className={cn('shrink-0 object-contain', rounded && 'rounded-md', className)}
     />

@@ -370,22 +370,22 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         >
         {/* Logo */}
         <div className={cn("shrink-0 py-4 flex items-center", showLabels ? "px-6 justify-start" : "px-0 justify-center")}>
-          <Link href={homeHref} className="flex items-center gap-2.5">
-            {isStudentMissionRoute || isStudentPartyRoute ? (
-              <>
-                <SecureLogo size={32} variant="mark" />
-                {showLabels && (
-                  <span className="min-w-0 whitespace-nowrap">
-                    <span className="block text-base font-bold tracking-tight text-ai-text">{isStudentMissionRoute ? "Mission Control" : "Quiz Party"}</span>
-                    <span className={cn("mt-0.5 block text-[8px] font-bold uppercase tracking-[0.18em]", isStudentPartyRoute ? "text-pink-500" : "text-violet-500 dark:text-violet-300/70")}>{isStudentPartyRoute ? "Sprinkles & Smiles" : "QuizSupport Flight Deck"}</span>
-                  </span>
+          <Link href={homeHref} className="flex items-center gap-2.5" aria-label="QuizSupport home">
+            {showLabels ? (
+              /* Sidebar khulne pe — logo + name alag-alag images, side-by-side,
+                 same height. Combined (logo_with_name) wali single image use nahi hoti. */
+              <span className="flex min-w-0 flex-col">
+                <span className="flex items-center gap-2">
+                  <SecureLogo size={34} variant="mark" />
+                  <SecureLogo size={34} variant="full" />
+                </span>
+                {(isStudentMissionRoute || isStudentPartyRoute) && (
+                  <span className={cn("mt-1 block text-[8px] font-bold uppercase tracking-[0.18em]", isStudentPartyRoute ? "text-pink-500" : "text-violet-500 dark:text-violet-300/70")}>{isStudentPartyRoute ? "Sprinkles & Smiles" : "QuizSupport Flight Deck"}</span>
                 )}
-              </>
-            ) : showLabels ? (
-              <SecureLogo size={32} />
+              </span>
             ) : (
-              /* Collapsed 60px rail — the wide wordmark can't fit, use the mark */
-              <SecureLogo size={32} variant="mark" />
+              /* Collapsed 60px rail — sirf bubble mark */
+              <SecureLogo size={38} variant="mark" />
             )}
           </Link>
         </div>
@@ -511,7 +511,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
             {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
             <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label="QuizSupport home">
-              <SecureLogo size={24} />
+              <SecureLogo size={36} />
             </Link>
           </div>
 

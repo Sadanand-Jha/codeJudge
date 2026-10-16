@@ -78,7 +78,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-x-hidden bg-[#FFF9F1] px-4 py-12 dark:bg-[#050510] sm:px-6 lg:px-8 lg:py-8">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-x-hidden bg-[#FFF9F1] px-4 pb-12 pt-24 dark:bg-[#050510] sm:px-6 lg:px-8 lg:py-8">
       <AuthBackground />
       <AuthThemeControls />
       {/* Brand — page top-left corner */}

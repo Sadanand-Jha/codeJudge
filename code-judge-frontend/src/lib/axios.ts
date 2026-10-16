@@ -3,12 +3,12 @@ import axios from "axios";
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "development" ? "/api" : "https://api.quizsupport.com/api");
-// Direct calls when env is absolute (https://api.quizsupport.com/api).
-// api.quizsupport.com is same-site with www (eTLD+1 = quizsupport.com), so
-// SameSite=Lax cookies still flow on credentialed XHR — CORS allowlist on the
-// backend covers https://www.quizsupport.com. Relative env (/api) keeps the
-// same-origin Next.js rewrite proxy (see next.config.ts).
+  "/api";
+// Backend URL comes from env by default (set NEXT_PUBLIC_BACKEND_URL in
+// Vercel, e.g. https://api.quizsupport.com/api). Relative /api keeps the
+// same-origin Next.js rewrite proxy (next.config.ts) as fallback. Absolute
+// env values are honored as-is — api.quizsupport.com is same-site with www,
+// so SameSite=Lax cookies flow (backend CORS allows the www origin).
 const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "") || "/api";
 
 const apiClient = axios.create({

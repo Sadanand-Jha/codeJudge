@@ -387,7 +387,7 @@ export default function RegistrationForm() {
   };
 
   return (
-    <div className="relative flex min-h-dvh items-start justify-center overflow-x-hidden bg-[#FFF9F1] px-4 pb-10 pt-8 dark:bg-[#050510] sm:px-6 sm:pb-12 sm:pt-6 lg:items-center lg:px-8 lg:pb-8 lg:pt-4">
+    <div className="relative flex min-h-dvh items-start justify-center overflow-x-hidden bg-[#FFF9F1] px-4 pb-10 pt-24 dark:bg-[#050510] sm:px-6 sm:pb-12 sm:pt-20 lg:items-center lg:px-8 lg:pb-8 lg:pt-4">
       <AuthBackground />
       <AuthThemeControls />
       <AuthBottomStrip />

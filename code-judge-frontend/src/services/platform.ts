@@ -11,9 +11,9 @@ import { clearPlatformSession, notifyPlatformSessionInvalid } from "@/lib/platfo
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "development" ? "/api" : "https://api.quizsupport.com/api");
-// Honor absolute env (direct call to api.quizsupport.com — same-site sibling,
-// SameSite=Lax cookies flow with CORS credentials). Relative env stays on the
+  "/api";
+// Backend URL comes from env by default (NEXT_PUBLIC_BACKEND_URL). Absolute
+// env → direct call (api.quizsupport.com, same-site sibling); relative →
 // same-origin /api rewrite proxy.
 const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "") || "/api";
 

@@ -32,6 +32,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { useAuthStore } from "@/store/authStore";
 import { FOCUS_MODE_ENABLED } from "@/config/focusMode";
 

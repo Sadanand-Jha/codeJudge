@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, Coins } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import WorkspaceSwitcher from "@/components/layout/WorkspaceSwitcher";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { useSavedAvatar } from "@/store/avatarStore";
@@ -100,6 +101,10 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
             </svg>
           </button>
         )}
+        {/* Brand — SIRF NAME wala logo (login page jaisa) */}
+        <Link href="/creator/quizzes" className="flex shrink-0 items-center" aria-label="QuizSupport Creator Studio home">
+          <SecureLogo size={48} variant="full" />
+        </Link>
       </div>
 
       <div className="hidden min-w-0 flex-1 sm:block" />

@@ -71,6 +71,7 @@ export default function NavbarRightActions() {
               (user?.username || "U").charAt(0).toUpperCase()
             )}
           </div>
+          {/* PRO badge hidden for now (commented out on request)
           {isPremium && (
             <span
               className="relative inline-flex items-center overflow-hidden rounded-md bg-gradient-to-r from-[#EC4899]/20 to-[#8B5CF6]/20 px-1.5 py-0.25 text-[10px] font-semibold tracking-wider text-[#EC4899] ring-1 ring-[#8B5CF6]/40 premium-surface"
@@ -80,6 +81,7 @@ export default function NavbarRightActions() {
               PRO
             </span>
           )}
+          */}
         </div>
       ) : (
         <button
