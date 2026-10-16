@@ -6,7 +6,6 @@ import { BrainCircuit, CheckCircle2, FileText, IceCreamCone, Layers3, LoaderCirc
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
-import { SecureLogo } from "@/components/common/SecureLogo";
 
 export function AuthLoader({ className }: { className?: string }) {
   return <LoaderCircle className={cn("h-6 w-6 animate-spin text-current", className)} aria-label="Loading" />;
@@ -297,9 +296,19 @@ export function AuthThemeControls({ fantasyDesktop = false }: { fantasyDesktop?:
 }
 
 export function AuthBrandMark({ className }: { className?: string }) {
+  const { theme } = useTheme();
   return (
     <div className={cn("inline-flex justify-center", className)}>
-      <SecureLogo variant="full" size={64} />
+      <img
+        src={theme === "dark" ? "/logos/dark_name.png" : "/logos/name.png"}
+        alt="QuizSupport"
+        height={48}
+        draggable={false}
+        onContextMenu={(e) => e.preventDefault()}
+        onDragStart={(e) => e.preventDefault()}
+        style={{ height: 48, width: "auto" }}
+        className="shrink-0 object-contain"
+      />
     </div>
   );
 }

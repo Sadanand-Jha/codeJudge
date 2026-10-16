@@ -387,17 +387,22 @@ export default function RegistrationForm() {
   };
 
   return (
-    <div className="relative flex min-h-dvh items-start justify-center overflow-x-hidden bg-[#FFF9F1] px-4 pb-10 pt-16 dark:bg-[#050510] sm:px-6 sm:py-12 lg:items-center lg:px-8 lg:py-8">
+    <div className="relative flex min-h-dvh items-start justify-center overflow-x-hidden bg-[#FFF9F1] px-4 pb-10 pt-8 dark:bg-[#050510] sm:px-6 sm:pb-12 sm:pt-6 lg:items-center lg:px-8 lg:pb-8 lg:pt-4">
       <AuthBackground />
       <AuthThemeControls />
       <AuthBottomStrip />
+
+      {/* Brand — page top-left corner */}
+      <div className="absolute left-4 top-2 z-20 sm:left-6 sm:top-3">
+        <AuthBrandMark />
+      </div>
+
       <div className="relative z-10 grid w-full max-w-[1160px] items-center gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(380px,.72fr)]">
         <AuthShowcasePanel mode="register" />
       <div className="mx-auto w-full max-w-md">
         {/* Brand */}
         {step !== "register" && (
         <div className="mb-8 text-center">
-          <AuthBrandMark className="mb-4" />
           {/* The profile sub-flow (register step) renders its own per-screen titles. */}
           <div className="mx-auto mb-4 flex w-44 items-center gap-2" aria-label={`Registration step ${step === "email" ? 1 : 2} of 6`}>
             {[1, 2, 3, 4, 5, 6].map((item) => (

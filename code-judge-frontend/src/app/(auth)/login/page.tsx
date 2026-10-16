@@ -81,11 +81,12 @@ export default function LoginPage() {
     <div className="relative flex min-h-dvh items-center justify-center overflow-x-hidden bg-[#FFF9F1] px-4 py-12 dark:bg-[#050510] sm:px-6 lg:px-8 lg:py-8">
       <AuthBackground />
       <AuthThemeControls />
+      {/* Brand — page top-left corner */}
+      <div className="absolute left-4 top-4 z-20 sm:left-6 sm:top-6">
+        <AuthBrandMark />
+      </div>
       <div className="relative z-10 flex w-full max-w-md justify-center">
       <div className="mx-auto w-full max-w-md">
-        {/* Logo */}
-        <div className="mb-7 flex justify-center"><AuthBrandMark /></div>
-
         {/* Card */}
         <div className="relative overflow-hidden rounded-[30px] border border-pink-200/80 bg-white/86 p-6 shadow-[0_30px_80px_-42px_rgba(244,114,182,.75)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/92 dark:shadow-[0_30px_90px_-40px_rgba(91,69,196,.8)] sm:p-7">
           <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-fuchsia-400/70 to-transparent" aria-hidden="true" />

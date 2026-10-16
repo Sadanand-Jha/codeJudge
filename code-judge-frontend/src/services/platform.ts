@@ -11,10 +11,11 @@ import { clearPlatformSession, notifyPlatformSessionInvalid } from "@/lib/platfo
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "/api";
-const API_BASE = rawBase.startsWith("http")
-  ? "/api"
-  : rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "") || "/api";
+  (process.env.NODE_ENV === "development" ? "/api" : "https://api.quizsupport.com/api");
+// Honor absolute env (direct call to api.quizsupport.com — same-site sibling,
+// SameSite=Lax cookies flow with CORS credentials). Relative env stays on the
+// same-origin /api rewrite proxy.
+const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "") || "/api";
 
 const platformClient = axios.create({
   baseURL: API_BASE,

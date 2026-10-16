@@ -3,13 +3,13 @@ import axios from "axios";
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "/api";
-// Option B: Always use same-origin /api via Next.js rewrites so cookies are
-// first-party (SameSite=Lax). If env is absolute (https://.../api) we still
-// route through /api proxy - rewrites in next.config.ts forwards to real backend.
-const API_BASE = rawBase.startsWith("http")
-  ? "/api"
-  : rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "") || "/api";
+  (process.env.NODE_ENV === "development" ? "/api" : "https://api.quizsupport.com/api");
+// Direct calls when env is absolute (https://api.quizsupport.com/api).
+// api.quizsupport.com is same-site with www (eTLD+1 = quizsupport.com), so
+// SameSite=Lax cookies still flow on credentialed XHR — CORS allowlist on the
+// backend covers https://www.quizsupport.com. Relative env (/api) keeps the
+// same-origin Next.js rewrite proxy (see next.config.ts).
+const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "") || "/api";
 
 const apiClient = axios.create({
   baseURL: API_BASE,

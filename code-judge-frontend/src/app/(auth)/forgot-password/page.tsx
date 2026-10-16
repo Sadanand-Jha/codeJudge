@@ -205,10 +205,15 @@ export default function ForgotPasswordPage() {
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FFF9F1] px-6 py-20 dark:bg-[#050510]">
       <AuthBackground />
       <AuthThemeControls />
+
+      {/* Brand — page top-left corner */}
+      <div className="absolute left-4 top-4 z-20 sm:left-6 sm:top-6">
+        <AuthBrandMark />
+      </div>
+
       <div className="relative z-10 w-full max-w-sm">
         {/* Brand */}
         <div className="mb-8 text-center">
-          <AuthBrandMark className="mb-4" />
           <div className="mx-auto mb-4 flex w-36 items-center gap-2" aria-label={`Password reset step ${step === "email" ? 1 : step === "verify" ? 2 : 3} of 3`}>
             {[1, 2, 3].map((item) => {
               const current = step === "email" ? 1 : step === "verify" ? 2 : 3;
