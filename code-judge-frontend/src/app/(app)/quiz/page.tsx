@@ -499,7 +499,7 @@ function QuizHome() {
           <div className="relative min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-pink-300/60 bg-pink-100/65 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-pink-600 dark:border-violet-500/20 dark:bg-violet-500/[0.08] dark:text-violet-300">
               <Sparkles className="h-3.5 w-3.5" />
-              {partyMode ? "ByteClash AI Quiz Party" : "ByteClash AI Mission Control"}
+              {partyMode ? "QuizSupport AI Quiz Party" : "QuizSupport AI Mission Control"}
             </div>
             <h1 className="mt-4 max-w-3xl text-[34px] font-black leading-[1.05] tracking-[-0.045em] text-[#101828] dark:text-white sm:text-[46px] lg:text-[54px]">
               {partyMode ? "Quiz time just got sweeter." : "This is not just a quiz."}

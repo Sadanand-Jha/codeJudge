@@ -8,8 +8,8 @@ import { userRepository } from "../repositories/user.repository.js";
 const userRepo = new userRepository();
 
 const OTP_TTL_SECONDS = 300; // 5 minutes
-const OTP_EMAIL_SUBJECT = "Email Verification - byteclash";
-const OTP_EMAIL_SENDER_NAME = "byteclash Team";
+const OTP_EMAIL_SUBJECT = "Email Verification - quizsupport";
+const OTP_EMAIL_SENDER_NAME = "quizsupport Team";
 
 export interface OTPResult {
   success: boolean;

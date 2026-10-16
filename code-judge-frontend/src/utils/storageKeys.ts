@@ -1,28 +1,28 @@
 /**
- * Centralized localStorage keys for the ByteClash frontend.
+ * Centralized localStorage keys for the QuizSupport frontend.
  *
- * All keys MUST use the `byteclash_` prefix to keep the namespace consistent.
+ * All keys MUST use the `quizsupport_` prefix to keep the namespace consistent.
  */
 
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: "byteclash_token",
-  AUTH_USER: "byteclash_user",
+  AUTH_TOKEN: "quizsupport_token",
+  AUTH_USER: "quizsupport_user",
   /** Combined auth state (token + user) persisted by zustand persist. */
-  AUTH: "byteclash_auth",
+  AUTH: "quizsupport_auth",
   /** Dedicated platform (owner) session — isolated from regular auth. */
-  PLATFORM_TOKEN: "byteclash_platform_token",
-  PLATFORM_EMAIL: "byteclash_platform_email",
-  THEME: "byteclash_theme",
-  QUIZ_CREATION: "byteclash_quiz_creation",
-  QUIZ_PROGRESS_PREFIX: "byteclash_quiz_progress_",
-  LIVE_QUIZ_STARTED_PREFIX: "byteclash_live_quiz_started_",
-  WAITING_ROOM_THEME_STATE: "byteclash_waiting_room_theme_state",
-  SPLIT_PANE_LEFT_WIDTH: "byteclash_split_pane_left_width",
-  SPLIT_PANE_CONSOLE_HEIGHT: "byteclash_split_pane_console_height",
-  AI_LEFT_PANEL: "byteclash_ai_left_panel",
-  QUIZ_SYNC_SIGNATURE_PREFIX: "byteclash_quiz_sync_",
+  PLATFORM_TOKEN: "quizsupport_platform_token",
+  PLATFORM_EMAIL: "quizsupport_platform_email",
+  THEME: "quizsupport_theme",
+  QUIZ_CREATION: "quizsupport_quiz_creation",
+  QUIZ_PROGRESS_PREFIX: "quizsupport_quiz_progress_",
+  LIVE_QUIZ_STARTED_PREFIX: "quizsupport_live_quiz_started_",
+  WAITING_ROOM_THEME_STATE: "quizsupport_waiting_room_theme_state",
+  SPLIT_PANE_LEFT_WIDTH: "quizsupport_split_pane_left_width",
+  SPLIT_PANE_CONSOLE_HEIGHT: "quizsupport_split_pane_console_height",
+  AI_LEFT_PANEL: "quizsupport_ai_left_panel",
+  QUIZ_SYNC_SIGNATURE_PREFIX: "quizsupport_quiz_sync_",
   /** Per-quiz audience config, keyed by quiz code. */
-  QUIZ_AUDIENCE_PREFIX: "byteclash_quiz_audience_",
+  QUIZ_AUDIENCE_PREFIX: "quizsupport_quiz_audience_",
 } as const;
 
 /**
@@ -32,8 +32,8 @@ export const STORAGE_KEYS = {
 export const LEGACY_STORAGE_KEYS = [
   "token",
   "user",
-  "byteclash_theme",
-  "byteclash_quiz_creation",
+  "quizsupport_theme",
+  "quizsupport_quiz_creation",
   "waiting_room_theme_state",
   "split-pane-left-width",
   "split-pane-console-height",

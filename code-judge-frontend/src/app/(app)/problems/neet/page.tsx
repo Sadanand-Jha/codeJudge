@@ -1,7 +1,7 @@
 import { StreamPractice } from "../StreamPractice";
 
 export const metadata = {
-  title: "NEET Problems — ByteClash",
+  title: "NEET Problems — QuizSupport",
   description: "NEET practice problems — mix, subject-wise and chapter-wise drill-down.",
 };
 

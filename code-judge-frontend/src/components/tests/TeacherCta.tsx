@@ -53,7 +53,7 @@ export function TeacherCta() {
             <ArrowRight className="h-4 w-4" />
           </PrimaryButton>
           <div className="text-xs text-text-muted">
-            10,000+ educators already publishing on ByteClash
+            10,000+ educators already publishing on QuizSupport
           </div>
         </div>
       </div>

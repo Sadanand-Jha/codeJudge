@@ -1,4 +1,4 @@
--- Usernames are canonical lowercase identifiers throughout ByteClash.
+-- Usernames are canonical lowercase identifiers throughout QuizSupport.
 -- Stop before changing data if legacy rows would collapse to the same value;
 -- those accounts must be resolved deliberately rather than silently merged.
 DO $$

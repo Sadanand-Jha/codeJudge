@@ -6,7 +6,7 @@ import { cn } from "@/lib/helpers";
 import { usePurchasesStore } from "@/store/purchasesStore";
 // import { usePurchasesStore } from "@/store/purchasesStore";
 const USER_LABEL = "Student";
-const USER_EMAIL = "student@byteclash.dev";
+const USER_EMAIL = "student@quizsupport.dev";
 
 function InvoiceToolbar({ onPrint, onClose }: { onPrint: () => void; onClose: () => void }) {
   return (
@@ -74,7 +74,7 @@ export default function PurchaseInvoice() {
                     BC
                   </div>
                   <div>
-                    <div className="text-xl font-black text-text-primary">ByteClash</div>
+                    <div className="text-xl font-black text-text-primary">QuizSupport</div>
                     <div className="text-xs text-text-secondary">Learning Platform</div>
                   </div>
                 </div>
@@ -232,15 +232,15 @@ export default function PurchaseInvoice() {
               {/* Notes */}
               <div className="mt-8 border-t border-border pt-4 text-xs text-text-secondary">
                 <p>
-                  Thank you for choosing ByteClash. This invoice confirms your purchase of the
+                  Thank you for choosing QuizSupport. This invoice confirms your purchase of the
                   learning resources listed above. Access remains valid as described on each product.
-                  For billing questions, contact <span className="text-text-primary">support@byteclash.dev</span>.
+                  For billing questions, contact <span className="text-text-primary">support@quizsupport.dev</span>.
                 </p>
               </div>
 
               {/* Footer */}
               <div className="mt-8 border-t border-border pt-4 text-center text-xs text-text-muted">
-                © {new Date().getFullYear()} ByteClash. All rights reserved.
+                © {new Date().getFullYear()} QuizSupport. All rights reserved.
               </div>
             </div>
           </motion.div>

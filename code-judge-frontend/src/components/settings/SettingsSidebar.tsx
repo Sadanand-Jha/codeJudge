@@ -160,7 +160,7 @@ export default function SettingsSidebar({
 
         <div className="mt-6 rounded-xl border border-border bg-card-hover/60 p-4">
           <p className="text-[10px] font-medium leading-relaxed text-text-muted">
-            Settings sync across your whole ByteClash account — profile, editor and notifications.
+            Settings sync across your whole QuizSupport account — profile, editor and notifications.
           </p>
         </div>
       </nav>

@@ -42,9 +42,9 @@ const envOrigins = rawFrontendUrl
 
 const allowedOrigins = [
   ...envOrigins,
-  "https://quizbackend-dun.vercel.app",
-  "https://quizbackend-dun.vercel.app/api/v1",
-  "https://quizpart.vercel.app",
+  "https://quizsupport.com",
+  // "https://quizbackend-dun.vercel.app/api/v1",
+  // "https://quizpart.vercel.app",
   "http://localhost:3000",
   "http://localhost:3001",
   "http://127.0.0.1:3000",
@@ -52,6 +52,17 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 const isWildcard = allowedOrigins.includes("*");
+
+// Fail fast: wildcard origin + credentials:true in production would let ANY
+// website make authenticated requests as the user. Localhost entries above
+// are harmless (browsers only send a localhost Origin from a local page),
+// but "*" must never reach production — set explicit FRONTEND_URL instead.
+if (process.env.NODE_ENV === "production" && isWildcard) {
+  throw new Error(
+    "Refusing to start: FRONTEND_URL contains '*' in production. " +
+    "Set explicit origins instead, e.g. FRONTEND_URL=https://quizsupport.com,https://www.quizsupport.com"
+  );
+}
 
 app.set("trust proxy", 1);
 

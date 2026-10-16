@@ -4,8 +4,8 @@ import { useCallback, useSyncExternalStore } from "react";
 
 export type QuizSound = "select" | "navigate" | "submit" | "stage" | "success" | "error";
 
-const PREFERENCE_KEY = "byteclash_quiz_sounds";
-const PREFERENCE_EVENT = "byteclash-quiz-sounds-change";
+const PREFERENCE_KEY = "quizsupport_quiz_sounds";
+const PREFERENCE_EVENT = "quizsupport-quiz-sounds-change";
 let audioContext: AudioContext | null = null;
 
 function context(): AudioContext | null {

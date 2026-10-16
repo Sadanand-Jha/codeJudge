@@ -6,8 +6,8 @@ import GuestGuard from "@/components/guards/GuestGuard";
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
 
 export const metadata: Metadata = {
-  title: "Attempts — ByteClash",
-  description: "Review your complete ByteClash quiz attempt history.",
+  title: "Attempts — QuizSupport",
+  description: "Review your complete QuizSupport quiz attempt history.",
 };
 
 export default function QuizAttemptsPage() {

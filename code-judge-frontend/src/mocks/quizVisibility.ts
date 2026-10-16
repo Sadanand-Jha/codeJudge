@@ -42,7 +42,7 @@ export interface MockClassroom {
 }
 
 export const visibilityOptions: VisibilityOption[] = [
-  { id: "global", label: "Global", description: "Anyone on CodeJudge can discover and attempt this quiz.", icon: "Globe" },
+  { id: "global", label: "Global", description: "Anyone on QuizSupport can discover and attempt this quiz.", icon: "Globe" },
   { id: "college_only", label: "College Only", description: "Only students from selected colleges can access this quiz.", icon: "GraduationCap" },
   { id: "company_only", label: "Company Only", description: "Only employees of selected companies can access this quiz.", icon: "Building2" },
   { id: "organization", label: "Organization / Club", description: "Only members of selected organizations can access this quiz.", icon: "Users" },

@@ -27,7 +27,7 @@ function AllSeriesContent() {
         <div className="mb-10">
           <h1 className="text-2xl font-extrabold tracking-tight text-text-primary sm:text-3xl">All Test Series</h1>
           <p className="mt-2 max-w-2xl text-sm text-text-secondary">
-            Every free and paid test series on ByteClash — filter by exam, price, difficulty and creator.
+            Every free and paid test series on QuizSupport — filter by exam, price, difficulty and creator.
           </p>
         </div>
 

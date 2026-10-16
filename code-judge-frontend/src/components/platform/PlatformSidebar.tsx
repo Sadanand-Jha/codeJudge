@@ -76,7 +76,7 @@ function SidebarBody({ onNavigate, healthOk }: { onNavigate?: () => void; health
             C
           </div>
           <div className="min-w-0">
-            <p className="text-[14px] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">CodeJudge</p>
+            <p className="text-[14px] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">QuizSupport</p>
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">Control center</p>
           </div>
         </div>

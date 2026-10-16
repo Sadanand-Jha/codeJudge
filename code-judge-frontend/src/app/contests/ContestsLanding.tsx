@@ -102,7 +102,7 @@ const LEADERBOARD = [
 
 const BATTLE_STATS = [
   { value: 12483, decimals: 0, prefix: "", suffix: "", label: "Competitors", hint: "registered this month" },
-  { value: 248, decimals: 0, prefix: "", suffix: "", label: "Contests Completed", hint: "since ByteClash v1" },
+  { value: 248, decimals: 0, prefix: "", suffix: "", label: "Contests Completed", hint: "since QuizSupport v1" },
   { value: 1.8, decimals: 1, prefix: "", suffix: "M", label: "Problems Solved", hint: "across every battle" },
   { value: 1, decimals: 0, prefix: "#", suffix: "", label: "Current Champion", hint: "aarav_7x · 2487 rating" },
 ];

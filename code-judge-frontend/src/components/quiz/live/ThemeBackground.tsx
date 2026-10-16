@@ -323,7 +323,7 @@ function CyberCityBackground() {
         className="absolute right-[20%] top-[15%] px-3 py-1 rounded border border-[#22D3EE]/40 text-[8px] font-bold text-[#22D3EE]"
         style={{ background: 'rgba(34,211,238,0.1)', textShadow: '0 0 10px rgba(34,211,238,0.5)' }}
       >
-        BYTECLASH
+        QUIZSUPPORT
       </motion.div>
       <motion.div
         animate={{ opacity: [0.5, 1, 0.5] }}

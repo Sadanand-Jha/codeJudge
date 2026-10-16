@@ -1,7 +1,7 @@
 import { StreamPractice } from "../StreamPractice";
 
 export const metadata = {
-  title: "State PSC Problems — ByteClash",
+  title: "State PSC Problems — QuizSupport",
   description: "State PSC practice problems — mix, subject-wise and chapter-wise drill-down.",
 };
 

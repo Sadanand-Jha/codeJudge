@@ -116,7 +116,7 @@ function computeChecksum(content: string): string {
 // ──────────────────────────────────────────────
 async function migrate(dryRun: boolean = false, onlyMigration?: string): Promise<void> {
   console.log('\n═══════════════════════════════════════');
-  console.log('  byteclash – Database Migration');
+  console.log('  quizsupport – Database Migration');
   console.log('═══════════════════════════════════════\n');
 
   // Ensure migrations directory exists

@@ -310,7 +310,7 @@ export default function CodeAssistantPanel({
     const fullRange = { startLineNumber: 1, startColumn: 1, endLineNumber: lineCount + 1, endColumn: 1 };
     model.pushStackElement();
     const edits = [{ range: fullRange, text: target.proposedCode, forceMoveMarkers: true }];
-    editor.executeEdits("byteclash-ai", edits);
+    editor.executeEdits("quizsupport-ai", edits);
     model.pushStackElement();
 
     setSuggestions((prev) =>

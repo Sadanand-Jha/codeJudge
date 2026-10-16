@@ -278,7 +278,7 @@ export function countRoomQuizUsage(roomId: string): number {
   if (typeof window === "undefined") return 0;
   let count = 0;
   try {
-    const prefix = "byteclash_quiz_audience_";
+    const prefix = "quizsupport_quiz_audience_";
     for (let i = 0; i < window.localStorage.length; i++) {
       const key = window.localStorage.key(i);
       if (!key || !key.startsWith(prefix)) continue;

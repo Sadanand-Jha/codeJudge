@@ -41,7 +41,7 @@ interface QuizRegistrationState {
   clearAll: () => void;
 }
 
-const STORAGE_KEY = "byteclash_quiz_registrations";
+const STORAGE_KEY = "quizsupport_quiz_registrations";
 
 export const useQuizRegistrationStore = create<QuizRegistrationState>()(
   persist(

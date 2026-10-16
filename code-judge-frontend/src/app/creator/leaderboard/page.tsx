@@ -5,7 +5,7 @@ export default function CreatorLeaderboardRoute() {
   return (
     <ComingSoon
       title="Creator Leaderboard"
-      description="See how your tests rank among other creators on ByteClash by earnings, students and engagement."
+      description="See how your tests rank among other creators on QuizSupport by earnings, students and engagement."
       icon={Trophy}
       accent="#F59E0B"
       features={[

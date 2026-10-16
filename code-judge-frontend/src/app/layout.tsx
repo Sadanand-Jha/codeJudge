@@ -8,7 +8,7 @@ import AuthHydrator from "@/components/providers/AuthHydrator";
 import { STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "@/utils/storageKeys";
 
 export const metadata: Metadata = {
-  title: "ByteClash",
+  title: "QuizSupport",
   description: "AI-powered competitive programming platform.",
 };
 
@@ -49,12 +49,12 @@ function migrateLegacyStorageKeys() {
 
     if (Object.keys(legacyKeys).length === 0) return;
 
-    // Map legacy keys to new byteclash keys
+    // Map legacy keys to new quizsupport keys
     const keyMapping: Record<string, string> = {
       token: STORAGE_KEYS.AUTH_TOKEN,
       user: STORAGE_KEYS.AUTH_USER,
-      byteclash_theme: STORAGE_KEYS.THEME,
-      byteclash_quiz_creation: STORAGE_KEYS.QUIZ_CREATION,
+      quizsupport_theme: STORAGE_KEYS.THEME,
+      quizsupport_quiz_creation: STORAGE_KEYS.QUIZ_CREATION,
       waiting_room_theme_state: STORAGE_KEYS.WAITING_ROOM_THEME_STATE,
       "split-pane-left-width": STORAGE_KEYS.SPLIT_PANE_LEFT_WIDTH,
       "split-pane-console-height": STORAGE_KEYS.SPLIT_PANE_CONSOLE_HEIGHT,
@@ -102,7 +102,7 @@ function migrateLegacyStorageKeys() {
 
   // Clean up removed localStorage keys
   try {
-    localStorage.removeItem("byteclash_rooms");
+    localStorage.removeItem("quizsupport_rooms");
   } catch {
     // ignore
   }
@@ -128,13 +128,13 @@ export default function RootLayout({
       <head>
         {/* Critical theme script — runs synchronously before first paint so the
             correct data-theme attribute is present before CSS is evaluated.
-            Reads from localStorage (byteclash_theme) or falls back to the
+            Reads from localStorage (quizsupport_theme) or falls back to the
             OS prefers-color-scheme. This eliminates theme flash on initial
             load, refresh, and direct navigation to any route. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              (function(){try{var t;var s=localStorage.getItem('byteclash_theme')||localStorage.getItem('quizDibba_theme')||localStorage.getItem('quizdibba_theme');if(s==='light'||s==='dark'){t=s}else{t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
+              (function(){try{var t;var s=localStorage.getItem('quizsupport_theme')||localStorage.getItem('quizDibba_theme')||localStorage.getItem('quizdibba_theme');if(s==='light'||s==='dark'){t=s}else{t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
             `,
           }}
         />

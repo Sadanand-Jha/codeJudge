@@ -189,7 +189,7 @@ function RegisterAIShowcase() {
             <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-pulse rounded-full border-2 border-white bg-emerald-400" />
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-black text-[#20263A] dark:text-white">ByteClash AI Studio</p>
+            <p className="text-xs font-black text-[#20263A] dark:text-white">QuizSupport AI Studio</p>
             <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.13em] text-violet-500 dark:text-violet-300">Prompt → reason → polished quiz</p>
           </div>
         </div>
@@ -305,7 +305,7 @@ export function AuthBrandMark({ className }: { className?: string }) {
         {partyMode ? <IceCreamCone className="h-5 w-5" /> : <Rocket className="h-5 w-5" />}
       </div>
       <span className="text-left leading-tight">
-        <span className="block text-base font-extrabold tracking-tight text-text-primary">ByteClash</span>
+        <span className="block text-base font-extrabold tracking-tight text-text-primary">QuizSupport</span>
         <span className={cn("mt-0.5 flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.16em]", partyMode ? "text-pink-500" : "text-violet-300/80")}>
           <Sparkles className="h-2.5 w-2.5" /> {partyMode ? "Quiz Party" : "Space Program"}
         </span>
@@ -361,7 +361,7 @@ export function AuthShowcasePanel({ mode }: { mode: "login" | "register" }) {
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-black text-[#20263A] dark:text-white">ByteClash AI Creation Studio</p>
+              <p className="text-xs font-black text-[#20263A] dark:text-white">QuizSupport AI Creation Studio</p>
               <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-300">Ready</span>
             </div>
             <p className="mt-1 text-[11px] leading-5 text-[#687086] dark:text-[#8F9AAF]">Turn a topic or document into a polished quiz, mock test, or print-ready question paper.</p>

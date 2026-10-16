@@ -610,14 +610,14 @@ function footerEls(
   const css = "Helvetica, Arial, sans-serif";
   const sizePt = 8;
 
-  // "PDF created by ByteClash" is always required. The optional date/time,
+  // "PDF created by QuizSupport" is always required. The optional date/time,
   // quiz ID and page number are gated by the footer toggle and their own flags.
   const extras = cfg.footer.enabled;
   const right = extras && cfg.footer.showPageNumber ? `Page ${pageIndex + 1} of ${total}` : "";
   const rightW = right ? textWidthMm(base, "normal", sizePt, right) : 0;
   const available = pageW - margin * 2 - rightW - 6;
 
-  const bits = ["PDF created by ByteClash"];
+  const bits = ["PDF created by QuizSupport"];
   if (extras && cfg.footer.showDateTime) bits.push(`${date} ${time}`);
   if (extras && cfg.footer.showQuizId) bits.push(`Quiz ID: ${input.meta.quizId ?? "—"}`);
   const left = bits.join(" • ");

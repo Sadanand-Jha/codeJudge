@@ -190,7 +190,7 @@ function AdSlot() {
           <Sparkles className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <div className="text-[12px] font-extrabold leading-tight text-text-primary">ByteClash Pro</div>
+          <div className="text-[12px] font-extrabold leading-tight text-text-primary">QuizSupport Pro</div>
           <div className="mt-0.5 text-[10px] leading-snug text-text-secondary">
             Unlimited mocks, AI analytics & rank tracking for all exams.
           </div>

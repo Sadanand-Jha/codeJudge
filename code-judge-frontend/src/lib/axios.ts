@@ -25,7 +25,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== "undefined" && !config.headers.Authorization) {
     try {
-      const raw = localStorage.getItem("byteclash_auth");
+      const raw = localStorage.getItem("quizsupport_auth");
       if (raw) {
         const parsed = JSON.parse(raw);
         // Zustand persist shape: { state: { token, user, isAuthenticated }, version }

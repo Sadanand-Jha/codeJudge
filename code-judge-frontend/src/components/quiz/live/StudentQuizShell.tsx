@@ -157,7 +157,7 @@ export function QuizPrimaryButton({
 
 export default function StudentQuizShell({
   children,
-  eyebrow = "ByteClash",
+  eyebrow = "QuizSupport",
   title,
   subtitle,
   actions,

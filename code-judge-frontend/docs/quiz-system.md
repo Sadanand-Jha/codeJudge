@@ -855,4 +855,4 @@ When contributing to the quiz system:
 
 ## License
 
-Part of the CodeJudge platform. See main repository for license information.
+Part of the QuizSupport platform. See main repository for license information.

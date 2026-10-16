@@ -115,7 +115,7 @@ export function TestsHome({ initialExam, showContinue }: { initialExam?: ExamId;
         <div className="mt-16">
           <SectionHeading
             title="Featured Test Series"
-            subtitle="Hand-picked series by ByteClash educators"
+            subtitle="Hand-picked series by QuizSupport educators"
             href="/tests/series"
             icon={<TrendingUp className="h-4.5 w-4.5" />}
           />

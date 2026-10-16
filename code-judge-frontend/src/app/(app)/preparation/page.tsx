@@ -68,7 +68,7 @@ const GOAL_PRESETS: PrepGoal[] = [
 ];
 
 const DEFAULT_GOAL = GOAL_PRESETS[0];
-const GOAL_STORAGE_KEY = "byteclash.prep-goal";
+const GOAL_STORAGE_KEY = "quizsupport.prep-goal";
 
 /* ────────────────────────────── Mock state ────────────────────────────── */
 

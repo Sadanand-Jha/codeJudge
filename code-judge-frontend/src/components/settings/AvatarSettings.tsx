@@ -29,7 +29,7 @@ export default function AvatarSettings({
     <>
       <SettingsCard
         title="Profile Picture"
-        description="Choose an avatar for your CodeJudge profile."
+        description="Choose an avatar for your QuizSupport profile."
         icon={<Sparkles className="h-4 w-4" />}
       >
         <div className="space-y-4">

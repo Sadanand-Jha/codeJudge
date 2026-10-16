@@ -197,7 +197,7 @@ function WaitingRoomPageInner({
   const handleViewMode = (m:"light"|"dark"|"real")=>{
     playQuizSound("select");
     setViewMode(m);
-    try{ localStorage.setItem(`byteclash_waiting_view_mode_${quizCode}`, m);}catch{}
+    try{ localStorage.setItem(`quizsupport_waiting_view_mode_${quizCode}`, m);}catch{}
     if(m==="light"){ setTheme("light"); setWaitingTheme("ai-cloud"); setStudentOverride(undefined); }
     if(m==="dark"){ setTheme("dark"); setWaitingTheme("deep-space"); setStudentOverride(undefined); }
     // real keeps current theme for LiveCampus isDark — ThemeBackground hidden in real mode
@@ -287,7 +287,7 @@ function WaitingRoomPageInner({
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#EC4899] to-[#BE185D] flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <span className={`text-sm font-bold transition-colors duration-350 ${isDark ? 'text-white' : 'text-[#1a1a2e]'}`}>ByteClash</span>
+            <span className={`text-sm font-bold transition-colors duration-350 ${isDark ? 'text-white' : 'text-[#1a1a2e]'}`}>QuizSupport</span>
           </div>
         </div>
 

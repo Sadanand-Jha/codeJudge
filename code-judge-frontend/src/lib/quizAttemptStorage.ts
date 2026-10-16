@@ -1,7 +1,7 @@
 export type StoredAttemptAnswer = { option?: string; options?: string[]; textAnswer?: string };
 export type StoredAttemptAnswers = Record<number, StoredAttemptAnswer>;
 
-const STORAGE_PREFIX = "byteclash_quiz_answers_";
+const STORAGE_PREFIX = "quizsupport_quiz_answers_";
 
 export const quizAttemptStorageKey = (attemptId: number) => `${STORAGE_PREFIX}${attemptId}`;
 

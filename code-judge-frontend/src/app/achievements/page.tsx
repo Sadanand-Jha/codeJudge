@@ -2,7 +2,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import AchievementsPage from "@/components/profile/AchievementsPage";
 
 export const metadata = {
-  title: "Achievements · ByteClash",
+  title: "Achievements · QuizSupport",
   description: "Milestones you've unlocked along your journey.",
 };
 

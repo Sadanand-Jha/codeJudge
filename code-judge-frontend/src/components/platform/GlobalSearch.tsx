@@ -62,7 +62,7 @@ export function GlobalSearch() {
               {results?.quizzes.map((z) => <Link onClick={() => setOpen(false)} key={`q${z.id}`} href={`/quiz/${z.code}`} className="flex items-center justify-between rounded-[8px] px-3 py-2.5 text-[12px] hover:bg-[var(--card-hover)]"><span><span className="text-[var(--text-primary)]">{z.name}</span><span className="ml-2 text-[10px] text-[var(--text-muted)]">Assessment</span></span><ArrowUpRight size={13} className="text-[var(--text-muted)]" /></Link>)}
               {results?.attempts.map((a) => <div key={`a${a.id}`} className="flex items-center justify-between rounded-[8px] px-3 py-2.5 text-[12px] hover:bg-[var(--card-hover)]"><span className="text-[var(--text-primary)]">Attempt #{a.id}</span><span className="text-[10px] text-[var(--text-muted)]">{a.username ?? "Student"} · {a.status}</span></div>)}
             </div>
-            <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-2 text-[9px] text-[var(--text-muted)]"><span>Students · Assessments · Attempts</span><span>CodeJudge owner search</span></div>
+            <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-2 text-[9px] text-[var(--text-muted)]"><span>Students · Assessments · Attempts</span><span>QuizSupport owner search</span></div>
           </div>
         </div>
       )}

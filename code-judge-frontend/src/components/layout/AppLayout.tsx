@@ -38,6 +38,7 @@ import { logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
 import { isQuizProblemsPath, isNestedQuizPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { Sidebar } from "@/components/ui/Sidebar";
 import BackButton from "@/components/layout/BackButton";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
@@ -245,7 +246,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       await logout();
       useAuthStore.getState().logout();
       // A hard navigation destroys every in-memory Zustand store. The auth
-      // store also clears all persisted ByteClash data before this redirect.
+      // store also clears all persisted QuizSupport data before this redirect.
       window.location.replace("/login");
     } catch {
       toast.error("Failed to log out");
@@ -264,14 +265,14 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       if (pathname.includes("/results")) return isStudentPartyRoute ? "Sweet Results" : "Mission Debrief";
       if (pathname.includes("/register")) return isStudentPartyRoute ? "Party Check-in" : "Crew Check-in";
       if (pathname.startsWith("/quiz")) return isStudentPartyRoute ? "Celebration Zone" : "Flight Deck";
-      return fullNavItems.find((n) => (n.href === "/" ? pathname === "/" : pathname.startsWith(n.href)))?.label || "ByteClash";
+      return fullNavItems.find((n) => (n.href === "/" ? pathname === "/" : pathname.startsWith(n.href)))?.label || "QuizSupport";
     }
     if (pathname === PREPARATION_BASE) return "Preparation";
     const prepModule = getActivePreparationModule(pathname);
     if (prepModule) return `Preparation · ${prepModule.label}`;
     return (
       navItems.find((n) => (n.href === "/" ? pathname === "/" : pathname.startsWith(n.href)))?.label ||
-      "ByteClash"
+      "QuizSupport"
     );
   })();
 
@@ -370,14 +371,23 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         {/* Logo */}
         <div className={cn("shrink-0 py-4 flex items-center", showLabels ? "px-6 justify-start" : "px-0 justify-center")}>
           <Link href={homeHref} className="flex items-center gap-2.5">
-            <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6]", isStudentMissionRoute && "rounded-xl from-[#8B7CFF] via-[#765AEF] to-[#366ED8] shadow-[0_0_22px_rgba(124,92,255,.35)]", isStudentPartyRoute && "rounded-xl from-[#FF79B0] via-[#FF9E57] to-[#FFD34E] shadow-[0_0_22px_rgba(255,121,176,.3)]")}>
-              {isStudentMissionRoute ? <Rocket className="h-4 w-4 text-white" /> : isStudentPartyRoute ? <IceCreamCone className="h-4 w-4 text-white" /> : <Code2 className="h-4 w-4 text-accent-foreground" />}
-            </div>
-            {showLabels && (
-              <span className="min-w-0 whitespace-nowrap">
-                <span className="block text-base font-bold tracking-tight text-ai-text">{isStudentMissionRoute ? "Mission Control" : isStudentPartyRoute ? "Quiz Party" : "ByteClash"}</span>
-                {isStudentQuizRoute && <span className={cn("mt-0.5 block text-[8px] font-bold uppercase tracking-[0.18em]", isStudentPartyRoute ? "text-pink-500" : "text-violet-500 dark:text-violet-300/70")}>{isStudentPartyRoute ? "Sprinkles & Smiles" : "ByteClash Flight Deck"}</span>}
-              </span>
+            {isStudentMissionRoute || isStudentPartyRoute ? (
+              <>
+                <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6]", isStudentMissionRoute && "rounded-xl from-[#8B7CFF] via-[#765AEF] to-[#366ED8] shadow-[0_0_22px_rgba(124,92,255,.35)]", isStudentPartyRoute && "rounded-xl from-[#FF79B0] via-[#FF9E57] to-[#FFD34E] shadow-[0_0_22px_rgba(255,121,176,.3)]")}>
+                  {isStudentMissionRoute ? <Rocket className="h-4 w-4 text-white" /> : <IceCreamCone className="h-4 w-4 text-white" />}
+                </div>
+                {showLabels && (
+                  <span className="min-w-0 whitespace-nowrap">
+                    <span className="block text-base font-bold tracking-tight text-ai-text">{isStudentMissionRoute ? "Mission Control" : "Quiz Party"}</span>
+                    <span className={cn("mt-0.5 block text-[8px] font-bold uppercase tracking-[0.18em]", isStudentPartyRoute ? "text-pink-500" : "text-violet-500 dark:text-violet-300/70")}>{isStudentPartyRoute ? "Sprinkles & Smiles" : "QuizSupport Flight Deck"}</span>
+                  </span>
+                )}
+              </>
+            ) : showLabels ? (
+              <SecureLogo size={32} />
+            ) : (
+              /* Collapsed 60px rail — the wide wordmark can't fit, use the mark */
+              <SecureLogo size={32} variant="mark" />
             )}
           </Link>
         </div>
@@ -485,8 +495,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
           onCut={(e) => e.preventDefault()}
           className={cn(
             "app-topbar sticky top-0 z-30 flex h-14 min-w-0 w-full select-none items-center gap-2 border-b border-ai-border bg-ai-bg/60 px-3 backdrop-blur-2xl backdrop-saturate-150 sm:gap-4 sm:px-4",
-            isStudentMissionRoute && "border-violet-400/15 bg-white/72 shadow-[0_14px_44px_-34px_rgba(91,69,196,.8)] dark:bg-[#080C18]/78",
-            isStudentPartyRoute && "border-pink-300/45 bg-[#FFF9F2]/80 shadow-[0_14px_44px_-34px_rgba(244,114,182,.7)]"
+            isStudentMissionRoute && "border-violet-400/15 bg-white/72 shadow-[0_14px_44px_-34px_rgba(91,69,196,.8)] dark:bg-[#080C18]/78"
           )}
         >
           {/* Left: menu + brand + page title */}
@@ -503,17 +512,16 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             <BackButton />
 
             {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
-            <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label={isStudentMissionRoute ? "Mission Control home" : isStudentPartyRoute ? "Quiz Party home" : "ByteClash home"}>
-              {isStudentQuizRoute && <span className={cn("grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br", isStudentPartyRoute ? "from-pink-400 via-orange-400 to-amber-300 shadow-[0_0_18px_rgba(244,114,182,.28)]" : "from-violet-500 to-blue-600 shadow-[0_0_18px_rgba(124,92,255,.3)]")}>{isStudentPartyRoute ? <IceCreamCone className="h-3.5 w-3.5 text-white" /> : <Rocket className="h-3.5 w-3.5 text-white" />}</span>}
-              <span className="hidden text-sm font-bold tracking-tight text-text-primary sm:block">{isStudentMissionRoute ? "ByteClash Space Program" : "ByteClash"}</span>
+            <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label="QuizSupport home">
+              {isStudentQuizRoute ? (
+                <>
+                  <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 shadow-[0_0_18px_rgba(124,92,255,.3)]"><Rocket className="h-3.5 w-3.5 text-white" /></span>
+                  <span className="hidden text-sm font-bold tracking-tight text-text-primary sm:block">QuizSupport</span>
+                </>
+              ) : (
+                <SecureLogo size={24} />
+              )}
             </Link>
-
-            {/* Page title — show on mobile too, truncated */}
-            <div className="flex min-w-0 items-center gap-2">
-              {isStudentQuizRoute && <span className={cn("hidden h-4 w-px sm:block", isStudentPartyRoute ? "bg-pink-400/30" : "bg-violet-400/20")} />}
-              <h1 className="min-w-0 max-w-[40vw] truncate whitespace-nowrap text-sm font-semibold text-text-primary sm:max-w-none">{pageTitle}</h1>
-              {isStudentQuizRoute && <span className={cn("hidden items-center gap-1.5 rounded-full px-2 py-1 text-[8px] font-bold uppercase tracking-[0.13em] md:inline-flex", isStudentPartyRoute ? "border border-pink-300/45 bg-pink-100/70 text-pink-600" : "border border-emerald-400/15 bg-emerald-400/[0.06] text-emerald-600 dark:text-emerald-300")}><span className={cn("h-1.5 w-1.5 animate-pulse rounded-full", isStudentPartyRoute ? "bg-pink-400" : "bg-emerald-400")} /> {isStudentPartyRoute ? "Party time" : "Online"}</span>}
-            </div>
           </div>
 
           {/* Center spacer */}

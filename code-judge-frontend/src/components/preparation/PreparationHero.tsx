@@ -40,7 +40,7 @@ export function PreparationHero({
             className="inline-flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-text-muted"
           >
             <span className="h-1 w-1 rounded-full bg-pink-500 dark:bg-ai-accent" />
-            The ByteClash Preparation Hub
+            The QuizSupport Preparation Hub
           </motion.span>
 
           {/* Headline */}

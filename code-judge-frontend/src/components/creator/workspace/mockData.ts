@@ -30,7 +30,7 @@ export const CREATOR_PROFILE: CreatorProfile = {
   creatorUsername: "aaravcodes",
   displayName: "Aarav Verma",
   fullName: "Aarav Verma",
-  email: "aarav@byteclash.in",
+  email: "aarav@quizsupport.in",
   phone: "+91 98765 43210",
   location: "New Delhi, India",
   website: "aarav.byteshala.in",
@@ -39,7 +39,7 @@ export const CREATOR_PROFILE: CreatorProfile = {
   role: "Individual",
   verified: true,
   verificationStatus: "verified",
-  publicProfileUrl: "byteclash.in/@aaravcodes",
+  publicProfileUrl: "quizsupport.in/@aaravcodes",
   creatorId: "CR-00217",
   createdAt: "Mar 2023",
 
@@ -91,7 +91,7 @@ export const ORG_MEMBERS: OrgMember[] = [
   {
     id: "mem_1",
     name: "Aarav Verma",
-    email: "aarav@byteclash.in",
+    email: "aarav@quizsupport.in",
     role: "Owner",
     status: "Active",
     joinedAt: "Mar 2023",

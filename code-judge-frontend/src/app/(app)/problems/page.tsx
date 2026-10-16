@@ -4,8 +4,8 @@ import type { ProblemListItem } from "@/types/problem";
 import { cookies } from "next/headers";
 
 export const metadata = {
-  title: "Problems — ByteClash",
-  description: "Competitive programming and every competitive exam — one practice hub on ByteClash.",
+  title: "Problems — QuizSupport",
+  description: "Competitive programming and every competitive exam — one practice hub on QuizSupport.",
 };
 
 function FailedToLoad() {

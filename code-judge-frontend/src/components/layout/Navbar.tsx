@@ -48,7 +48,6 @@ export default function Navbar() {
         {/* Logo */}
         <Link href="/quiz" className="flex items-center gap-2">
           <SecureLogo size={28} />
-          <span className="text-sm font-bold text-text-primary tracking-tight">ByteClash</span>
         </Link>
 
         {/* Pro/Ultimate Promo Widget — always visible, auto-rotates between plans */}

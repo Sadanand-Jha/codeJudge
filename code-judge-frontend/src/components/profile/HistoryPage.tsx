@@ -11,7 +11,7 @@ export default function HistoryPage() {
       <div className="mx-auto max-w-4xl space-y-6">
         <ProfileSectionHeader
           title="History"
-          description="All your past submissions and activity on ByteClash."
+          description="All your past submissions and activity on QuizSupport."
           icon={History}
           iconTone="from-[#3B82F6] to-[#06B6D4]"
         />

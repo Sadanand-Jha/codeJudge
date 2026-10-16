@@ -138,7 +138,7 @@ export function seededCategory(name: string): string {
 }
 
 export function seededOrganizer(id: number): string {
-  return ["ByteClash Arena", "CodeForge League", "AlgoNauts", "ProblemPool"][Math.abs(id) % 4];
+  return ["QuizSupport Arena", "CodeForge League", "AlgoNauts", "ProblemPool"][Math.abs(id) % 4];
 }
 
 export function seededYourRank(id: number): number {

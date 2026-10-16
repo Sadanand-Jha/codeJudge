@@ -464,7 +464,7 @@ export default function RegistrationForm() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-black text-rose-700 dark:text-rose-200">
-                            {/already (registered|exists)/i.test(emailSubmitError) ? "You already have a ByteClash account" : "We couldn’t continue"}
+                            {/already (registered|exists)/i.test(emailSubmitError) ? "You already have a QuizSupport account" : "We couldn’t continue"}
                           </p>
                           <p className="mt-1 text-[11px] leading-5 text-rose-700/75 dark:text-rose-100/65">
                             {/already (registered|exists)/i.test(emailSubmitError)
@@ -573,7 +573,7 @@ export default function RegistrationForm() {
                       <span className="mx-auto mt-4 grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-[0_14px_28px_-14px_rgba(124,58,237,.85)] sm:mt-5 sm:h-12 sm:w-12 sm:rounded-2xl">
                         <Sparkles className="h-5 w-5" />
                       </span>
-                      <h1 className="mt-3 text-center text-[22px] font-black tracking-tight text-text-primary sm:mt-4 sm:text-[25px]">How will you use ByteClash?</h1>
+                      <h1 className="mt-3 text-center text-[22px] font-black tracking-tight text-text-primary sm:mt-4 sm:text-[25px]">How will you use QuizSupport?</h1>
                       <p className="mt-1.5 text-center text-xs leading-5 text-text-secondary sm:mt-2 sm:text-sm sm:leading-6">We&rsquo;ll personalize your workspace, tools, and first experience.</p>
                       <div className="mt-4 grid gap-2.5 sm:mt-5 sm:gap-3" role="radiogroup" aria-label="Choose account type">
                         {([

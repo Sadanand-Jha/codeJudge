@@ -170,7 +170,7 @@ export function ProfileSidebarContent({ onNavigate }: { onNavigate?: () => void 
       <div className="relative mt-4 overflow-hidden rounded-2xl border border-pink-200/70 bg-gradient-to-br from-pink-50/90 to-cyan-50/70 p-4 shadow-sm dark:border-white/[0.07] dark:from-violet-500/[0.09] dark:to-cyan-400/[0.035]">
         <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-pink-300/25 blur-2xl dark:bg-violet-500/20" />
         <p className="text-[10px] font-medium leading-relaxed text-text-muted">
-          Your profile is your identity across ByteClash. Customize it from{" "}
+          Your profile is your identity across QuizSupport. Customize it from{" "}
           <Link href="/settings" onClick={onNavigate} className="font-semibold text-[#F59E0B] hover:underline">
             Settings
           </Link>

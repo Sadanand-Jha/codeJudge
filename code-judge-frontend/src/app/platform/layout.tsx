@@ -67,7 +67,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
             <button onClick={() => setNavOpen(true)} className="mr-1 rounded-[8px] border border-[var(--border)] p-1.5 text-[var(--text-primary)] lg:hidden" aria-label="Open navigation">
               <Menu size={15} />
             </button>
-            <Link href="/quiz" className="hover:text-[var(--text-primary)]">CodeJudge</Link>
+            <Link href="/quiz" className="hover:text-[var(--text-primary)]">QuizSupport</Link>
             <span className="text-[var(--text-muted)]">/</span>
             <Link href="/platform" className="hover:text-[var(--text-primary)]">Platform</Link>
             {pathname !== "/platform" && (

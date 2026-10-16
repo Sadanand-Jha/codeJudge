@@ -793,7 +793,7 @@ export default function RoadmapsPage() {
                   <h4 className="text-xs font-semibold text-text-primary">Upcoming Contest</h4>
                 </div>
                 <div className="rounded-xl border border-border bg-card-hover p-3">
-                  <p className="text-xs font-medium text-text-primary">ByteClash Weekly #247</p>
+                  <p className="text-xs font-medium text-text-primary">QuizSupport Weekly #247</p>
                   <p className="text-[11px] text-text-secondary mt-0.5">Starts in 2 days</p>
                   <button className="mt-2 w-full h-7 rounded-md bg-accent/10 border border-accent/20 text-accent text-[11px] font-medium hover:bg-accent/20 transition-colors">
                     Register

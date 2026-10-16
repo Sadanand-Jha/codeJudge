@@ -1,7 +1,7 @@
 import { StreamPractice } from "../StreamPractice";
 
 export const metadata = {
-  title: "Other Competitive Exams — ByteClash",
+  title: "Other Competitive Exams — QuizSupport",
   description: "Practice problems for other competitive exams — mix, subject-wise and chapter-wise drill-down.",
 };
 

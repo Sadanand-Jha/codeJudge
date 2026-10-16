@@ -1,6 +1,6 @@
 # AI System — Complete Working & Output Generation
 
-This document explains **everything** about the AI subsystem in the CodeJudge platform: which files are involved, how the LLM is reached, what each endpoint does, how uploaded files become text, how prompts are built, and — most importantly — **how AI outputs are generated, parsed, normalized and surfaced** back to the user.
+This document explains **everything** about the AI subsystem in the QuizSupport platform: which files are involved, how the LLM is reached, what each endpoint does, how uploaded files become text, how prompts are built, and — most importantly — **how AI outputs are generated, parsed, normalized and surfaced** back to the user.
 
 The AI subsystem powers two UX flows:
 

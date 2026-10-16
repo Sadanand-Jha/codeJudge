@@ -64,7 +64,7 @@ const recentlyPracticed = [
   { title: "Arrays Timed Test #11", kind: "Test", when: "Yesterday", result: "72 percentile", href: "/tests/results" },
   { title: "LRU Cache", kind: "Problem", when: "Yesterday", result: "Solved", href: "/problems" },
   { title: "Aptitude — Percentages drill", kind: "Quiz", when: "2 days ago", result: "8/10", href: "/quiz" },
-  { title: "ByteClash Weekly #246", kind: "Contest", when: "Last week", result: "Rank 1,284", href: "/contests" },
+  { title: "QuizSupport Weekly #246", kind: "Contest", when: "Last week", result: "Rank 1,284", href: "/contests" },
 ];
 
 /* ─────────────────────────────── Page ─────────────────────────────── */
@@ -277,7 +277,7 @@ export default function PracticePage() {
                     W
                   </span>
                   <span className="min-w-0 leading-tight">
-                    <span className="block truncate text-xs font-semibold text-text-primary">ByteClash Weekly #247</span>
+                    <span className="block truncate text-xs font-semibold text-text-primary">QuizSupport Weekly #247</span>
                     <span className="block text-[10px] text-text-muted">Starts in 2 days · apply DSA skills</span>
                   </span>
                 </Link>

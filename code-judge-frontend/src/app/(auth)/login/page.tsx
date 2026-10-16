@@ -170,7 +170,7 @@ export default function LoginPage() {
               className="group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 px-4 text-sm font-bold text-white shadow-[0_16px_34px_-18px_rgba(168,85,247,.9),inset_0_1px_0_rgba(255,255,255,.25)] transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading && <AuthLoader className="h-4 w-4 text-current" />}
-              <span>{loading ? "Signing in..." : "Continue to ByteClash"}</span>
+              <span>{loading ? "Signing in..." : "Continue to QuizSupport"}</span>
               {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
             </button>
           </form>

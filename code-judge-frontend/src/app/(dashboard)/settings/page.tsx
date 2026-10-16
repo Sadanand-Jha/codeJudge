@@ -836,7 +836,7 @@ export default function SettingsPage() {
 
             {/* ===== APPEARANCE ===== */}
             <div id="appearance" className="scroll-mt-32">
-              <SettingsCard title="Appearance" description="Customize how ByteClash looks for you" icon={<Palette className="h-5 w-5" />}>
+              <SettingsCard title="Appearance" description="Customize how QuizSupport looks for you" icon={<Palette className="h-5 w-5" />}>
                 <div className="space-y-7">
                   {/* Theme */}
                   <div>

@@ -237,7 +237,7 @@ export function ContestsHero({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-500 dark:bg-amber-300" />
             </span>
-            The ByteClash Arena
+            The QuizSupport Arena
           </motion.div>
 
           <motion.h1

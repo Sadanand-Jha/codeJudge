@@ -1,14 +1,14 @@
-# ⚡ ByteClash
+# ⚡ QuizSupport
 
 > AI-Powered Competitive Programming & Assessment Platform
 
-ByteClash is a full-stack competitive programming platform with an integrated quiz/assessment system, real-time code editor, AI-powered analytics, and multi-language code execution — built for developers, students, and organizations.
+QuizSupport is a full-stack competitive programming platform with an integrated quiz/assessment system, real-time code editor, AI-powered analytics, and multi-language code execution — built for developers, students, and organizations.
 
 ---
 
 ## 🧠 About the Project
 
-ByteClash is a monorepo containing two applications:
+QuizSupport is a monorepo containing two applications:
 
 - **Frontend** (`code-judge-frontend/`) — Next.js 16 client with Monaco editor, math rendering, quiz platform, and glassmorphism UI
 - **Backend** (`code-judge-backend/`) — Express.js API with PostgreSQL, Redis, Judge0 code execution, AI hints, and OTP email auth
@@ -64,8 +64,8 @@ ByteClash is a monorepo containing two applications:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/byteclash.git
-cd byteclash
+git clone https://github.com/your-username/quizsupport.git
+cd quizsupport
 ```
 
 ### 2. Backend Setup
@@ -123,7 +123,7 @@ NODE_ENV=development
 PORT=8000
 
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/byteclash
+DATABASE_URL=postgresql://user:password@localhost:5432/quizsupport
 
 # Redis
 REDIS_URL=redis://localhost:6379
@@ -157,7 +157,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ## 📁 Project Structure
 
 ```
-byteclash/
+quizsupport/
 ├── code-judge-frontend/          # Next.js 16 Frontend
 │   ├── src/
 │   │   ├── app/                  # App Router routes

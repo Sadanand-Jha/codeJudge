@@ -155,7 +155,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
           title={isFollowers ? "Followers" : "Following"}
           description={
             isFollowers
-              ? "Developers following you on ByteClash."
+              ? "Developers following you on QuizSupport."
               : "Developers you follow — keep up with their problem solving."
           }
           icon={isFollowers ? Users : UserCheck}

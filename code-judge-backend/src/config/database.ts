@@ -40,7 +40,7 @@ function createPool(): pg.Pool {
     query_timeout: 35000,
     statement_timeout: 30000,
     idle_in_transaction_session_timeout: 15000,
-    application_name: 'codejudge-api',
+    application_name: 'quizsupport-api',
     maxLifetimeSeconds: 300,
     allowExitOnIdle: false, // keep event loop alive in dev, Vercel freezes anyway
   });

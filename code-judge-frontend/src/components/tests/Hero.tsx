@@ -89,7 +89,7 @@ export function TestsHero({ onSearch }: { onSearch?: (query: string) => void }) 
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink-500 opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-pink-500" />
             </span>
-            The ByteClash Assessment Hub
+            The QuizSupport Assessment Hub
           </motion.div>
 
           <motion.h1

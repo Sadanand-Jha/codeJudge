@@ -1,7 +1,7 @@
 import { StreamPractice } from "../StreamPractice";
 
 export const metadata = {
-  title: "CUET Problems — ByteClash",
+  title: "CUET Problems — QuizSupport",
   description: "CUET practice problems — mix, subject-wise and chapter-wise drill-down.",
 };
 

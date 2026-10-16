@@ -17,7 +17,7 @@ export async function generateMetadata({
   const post = getFeedPostById(postId);
   if (!post) return { title: "Article not found" };
   return {
-    title: `${post.title} — ByteClash`,
+    title: `${post.title} — QuizSupport`,
     description: post.subtitle,
   };
 }

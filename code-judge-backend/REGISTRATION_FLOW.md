@@ -1,4 +1,4 @@
-# byteclash — Registration Flow Documentation
+# quizsupport — Registration Flow Documentation
 
 ## Overview
 
@@ -381,7 +381,7 @@ JWT_EXPIRY=7d
 REDIS_URL=redis://localhost:6379
 
 # Database
-DATABASE_URL=postgres://user:password@localhost:5432/byteclash
+DATABASE_URL=postgres://user:password@localhost:5432/quizsupport
 ```
 
 ---

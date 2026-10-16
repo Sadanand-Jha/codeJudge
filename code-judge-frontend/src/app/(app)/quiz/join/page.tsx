@@ -250,7 +250,7 @@ export default function JoinQuizPage() {
   return (
     <>
     <StudentQuizShell
-      eyebrow="ByteClash"
+      eyebrow="QuizSupport"
       title="Join Quiz"
       subtitle="Enter a valid quiz code to verify access."
       backHref="/quiz"

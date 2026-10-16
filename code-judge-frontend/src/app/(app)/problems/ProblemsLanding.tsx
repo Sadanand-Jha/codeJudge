@@ -73,7 +73,7 @@ export function ProblemsLanding({ problems }: { problems: ProblemListItem[] }) {
                   Live problems from the
                   <br />
                   <span className="bg-gradient-to-r from-blue-500 via-violet-500 to-fuchsia-500 bg-clip-text text-transparent dark:from-blue-400 dark:via-violet-400 dark:to-fuchsia-400">
-                    ByteClash database.
+                    QuizSupport database.
                   </span>
                 </h2>
                 <p className="mt-3 max-w-lg text-[14px] leading-relaxed text-text-secondary">

@@ -102,7 +102,7 @@ export function QuizLandingCards() {
           <LandingCard
             icon="📝"
             title="Explore Quizzes"
-            description="Browse and practice quizzes from creators across ByteClash."
+            description="Browse and practice quizzes from creators across QuizSupport."
             gradient="from-[#8B5CF6] to-[#A855F7]"
             href="/quiz"
           />

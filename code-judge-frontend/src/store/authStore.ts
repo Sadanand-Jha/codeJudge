@@ -137,7 +137,7 @@ export const useAuthStore = create<AuthState>()(
             );
             keys.forEach((key) => {
               if (
-                key.startsWith("byteclash_") ||
+                key.startsWith("quizsupport_") ||
                 key.startsWith("codejudge-") ||
                 key === "token" ||
                 key === "user"
@@ -184,8 +184,8 @@ export const useAuthStore = create<AuthState>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        // One-time import of the legacy separate keys (byteclash_token /
-        // byteclash_user) written by previous builds.
+        // One-time import of the legacy separate keys (quizsupport_token /
+        // quizsupport_user) written by previous builds.
         if (!state.token) {
           try {
             const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);

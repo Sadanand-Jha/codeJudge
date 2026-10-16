@@ -61,7 +61,7 @@ export function CreatorProfilePage() {
     <div className="space-y-6">
       <PageHeader
         title="Creator Profile"
-        subtitle="How you appear to students on ByteClash."
+        subtitle="How you appear to students on QuizSupport."
         actions={
           <div className="flex items-center gap-2">
             <BillButton variant="ghost" href="/creator/profile/public">

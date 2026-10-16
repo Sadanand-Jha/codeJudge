@@ -29,7 +29,7 @@ src/
 
 | ID | Label | Description |
 |----|-------|-------------|
-| `global` | Global | Anyone on CodeJudge can discover/attempt |
+| `global` | Global | Anyone on QuizSupport can discover/attempt |
 | `college_only` | College Only | Selected colleges, departments, years, sections |
 | `company_only` | Company Only | Selected companies, departments, teams, roles |
 | `organization` | Organization / Club | Selected organizations/clubs |

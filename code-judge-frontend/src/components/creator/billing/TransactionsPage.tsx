@@ -219,7 +219,7 @@ function downloadFile(name: string, text: string) {
 function receiptText(txn: CreditTransaction): string {
   const gst = txn.price - txn.price / 1.18;
   return [
-    "ByteClash — Payment Receipt",
+    "QuizSupport — Payment Receipt",
     `Order ID: ${txn.id}`,
     `Pack: ${txn.packName} (${txn.credits} credits)`,
     `Amount paid: ${formatINR(txn.price)} (incl. 18% GST of ${formatINR(gst)})`,
@@ -234,7 +234,7 @@ function invoiceText(txn: CreditTransaction): string {
   const base = txn.price / 1.18;
   const gst = txn.price - base;
   return [
-    "ByteClash — GST Invoice",
+    "QuizSupport — GST Invoice",
     `Order ID: ${txn.id}`,
     `Pack: ${txn.packName} (${txn.credits} credits)`,
     `Taxable value: ${formatINR(base)}`,
@@ -855,7 +855,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
                                 onCopy={() => copyOrderId(txn)}
                                 onSupport={() => {
                                   setOpenMenuId(null);
-                                  toast.info({ title: "Contact support", description: "Write to support@byteclash.in with your order ID." });
+                                  toast.info({ title: "Contact support", description: "Write to support@quizsupport.in with your order ID." });
                                 }}
                                 onCheck={() => toast.info({ title: "Payment pending", description: `Order ${txn.id} is still being confirmed.` })}
                               />

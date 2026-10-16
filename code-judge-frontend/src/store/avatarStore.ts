@@ -23,7 +23,7 @@ export const useAvatarStore = create<AvatarState>()(
       setPendingAvatar: (id) => set({ pendingAvatarId: id || null }),
     }),
     {
-      name: "codejudge-avatar",
+      name: "quizsupport-avatar",
       partialize: (state) => ({ savedAvatarId: state.savedAvatarId }),
     }
   )

@@ -87,7 +87,7 @@ const defaultHeaders: Record<string, string> =
     ? {
         "HTTP-Referer":
           process.env.OPENROUTER_SITE_URL || process.env.FRONTEND_URL || "http://localhost:3000",
-        "X-Title": process.env.OPENROUTER_APP_NAME || "CodeJudge",
+        "X-Title": process.env.OPENROUTER_APP_NAME || "QuizSupport",
       }
     : {};
 
@@ -236,7 +236,7 @@ const generateJsonFromDocumentRemote = async (
       ? {
           "HTTP-Referer":
             process.env.OPENROUTER_SITE_URL || process.env.FRONTEND_URL || "http://localhost:3000",
-          "X-Title": process.env.OPENROUTER_APP_NAME || "CodeJudge",
+          "X-Title": process.env.OPENROUTER_APP_NAME || "QuizSupport",
         }
       : {};
   const docClient = new OpenAI({ baseURL: docBaseURL, apiKey: resolveApiKey(), defaultHeaders: docHeaders });

@@ -199,7 +199,7 @@ function pb(def: ProblemDef, index: number): MarketplaceProblem {
     addedDaysAgo: def.addedDaysAgo ?? (index % 12) + 1,
     hot: def.hot ?? 50 + ((index * 7) % 45),
     recommended: def.recommended ?? false,
-    source: def.source ?? "ByteClash",
+    source: def.source ?? "QuizSupport",
     contest_id: null,
     problem_index: null,
     real: false,

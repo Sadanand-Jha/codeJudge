@@ -28,8 +28,8 @@ export interface SuggestedEdits {
  * extracted from the streamed content, parsed, and removed before the message
  * is shown in the chat, so the raw JSON never reaches the user.
  */
-export const EDITS_OPEN = "<<<BYTECLASH_EDITS>>>";
-export const EDITS_CLOSE = "<<<END_BYTECLASH_EDITS>>>";
+export const EDITS_OPEN = "<<<QUIZSUPPORT_EDITS>>>";
+export const EDITS_CLOSE = "<<<END_QUIZSUPPORT_EDITS>>>";
 
 const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
@@ -270,7 +270,7 @@ function stripRawJson(raw: string): string {
     .replace(/\{[^{}]*\{[^{}]*\}[^{}]*\}/g, (b) =>
       /"startLine"|"edits"/.test(b) ? "" : b
     )
-    .replace(/<<<BYTECLASH_EDITS>>>[\s\S]*?<<<END_BYTECLASH_EDITS>>>/g, "")
+    .replace(/<<<QUIZSUPPORT_EDITS>>>[\s\S]*?<<<END_QUIZSUPPORT_EDITS>>>/g, "")
     .trim();
 }
 
@@ -468,7 +468,7 @@ export function applyEditsToEditor(
   // pushUndoStop before so the user's prior edits stay separate, then the
   // pushEditOperations applies everything as one undoable transaction.
   model.pushStackElement();
-  const endCursor = editor.executeEdits("byteclash-ai", ranges);
+  const endCursor = editor.executeEdits("quizsupport-ai", ranges);
   model.pushStackElement();
 
   // Restore/derived cursor: prefer the explicit returned one, else clamp.
@@ -506,7 +506,7 @@ export function applyEditsToEditor(
 //   const model = editor?.getModel?.();
 //   if (!model) return null;
 //
-//   const prevDecorations = (editor.__byteclashAiDecorations as string[] | undefined) ?? [];
+//   const prevDecorations = (editor.__quizsupportAiDecorations as string[] | undefined) ?? [];
 //
 //   const opts = edits.map((e) => {
 //     const line = clamp(Math.round(e.startLine), 1, model.getLineCount());
@@ -515,9 +515,9 @@ export function applyEditsToEditor(
 //       range,
 //       options: {
 //         isWholeLine: false,
-//         className: "byteclash-ai-edit-line",
-//         glyphMarginClassName: "byteclash-ai-edit-glyph",
-//         linesDecorationsClassName: "byteclash-ai-edit-gutter",
+//         className: "quizsupport-ai-edit-line",
+//         glyphMarginClassName: "quizsupport-ai-edit-glyph",
+//         linesDecorationsClassName: "quizsupport-ai-edit-gutter",
 //         overviewRuler: {
 //           color: "rgba(167,139,250,0.5)",
 //           darkColor: "rgba(167,139,250,0.6)",
@@ -529,18 +529,18 @@ export function applyEditsToEditor(
 //   });
 //
 //   const ids = editor.deltaDecorations(prevDecorations, opts);
-//   editor.__byteclashAiDecorations = ids;
+//   editor.__quizsupportAiDecorations = ids;
 //   return ids;
 // }
 
 // /** Remove the AI suggestion decorations (on reject/apply/close). */
 // export function clearEditDecorations(editor: any): void {
 //   if (!editor) return;
-//   const ids = (editor.__byteclashAiDecorations as string[] | undefined) ?? [];
+//   const ids = (editor.__quizsupportAiDecorations as string[] | undefined) ?? [];
 //   if (ids.length > 0) {
 //     editor.deltaDecorations(ids, []);
 //   }
-//   editor.__byteclashAiDecorations = [];
+//   editor.__quizsupportAiDecorations = [];
 // }
 
 // /** Cap ghost-text lines per edit so Monaco never renders an unbounded block. */
@@ -1187,7 +1187,7 @@ export function validateStructuralBalance(
 //   }
 // 
 //   // Track all created ids for teardown.
-//   editor.__byteclashInlineIds = createdIds;
+//   editor.__quizsupportInlineIds = createdIds;
 // 
 //   if (!Number.isFinite(firstLine)) firstLine = 1;
 //   firstLine = clamp(firstLine, 1, lineCount);
@@ -1319,7 +1319,7 @@ export function validateStructuralBalance(
 //   };
 // 
 //   const widget = {
-//     getId: () => "byteclash-inline-suggestion",
+//     getId: () => "quizsupport-inline-suggestion",
 //     getDomNode: () => buildWidget(),
 //     getPosition: () => ({
 //       position: {
@@ -1335,7 +1335,7 @@ export function validateStructuralBalance(
 //   } as any;
 // 
 //   editor.addContentWidget(widget);
-//   editor.__byteclashInlineWidget = widget;
+//   editor.__quizsupportInlineWidget = widget;
 // 
 //   return {
 //     detach: () => detachInlineSuggestion(editor),
@@ -1353,19 +1353,19 @@ export function validateStructuralBalance(
 // export function detachInlineSuggestion(editor: any): void {
 //   if (!editor) return;
 //   try {
-//     const ids = (editor.__byteclashInlineIds as string[] | undefined) ?? [];
+//     const ids = (editor.__quizsupportInlineIds as string[] | undefined) ?? [];
 //     if (ids.length > 0) editor.deltaDecorations(ids, []);
 //   } catch {
 //     /* ignore */
 //   }
 //   try {
-//     const widget = editor.__byteclashInlineWidget as unknown;
+//     const widget = editor.__quizsupportInlineWidget as unknown;
 //     if (widget) editor.removeContentWidget(widget as any);
 //   } catch {
 //     /* ignore */
 //   }
-//   editor.__byteclashInlineIds = [];
-//   editor.__byteclashInlineWidget = null;
+//   editor.__quizsupportInlineIds = [];
+//   editor.__quizsupportInlineWidget = null;
 // }
 // 
 /* ── END INLINE SUGGESTION (COMMENTED OUT) ──────────────────────────── */

@@ -32,7 +32,6 @@ export default function Sidebar() {
       <div className="px-6 py-6">
         <Link href="/quiz" className="flex items-center gap-2.5">
           <SecureLogo size={32} />
-          <span className="text-base font-bold text-white tracking-tight">ByteClash</span>
         </Link>
       </div>
 

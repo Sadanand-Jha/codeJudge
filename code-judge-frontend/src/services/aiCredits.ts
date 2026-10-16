@@ -182,7 +182,7 @@ export async function openRazorpayCheckout(args: {
       order_id: args.order.razorpayOrderId,
       amount: args.order.amountPaise,
       currency: args.order.currency,
-      name: "ByteClash",
+      name: "QuizSupport",
       description: args.itemName,
       theme: { color: "#EC4899" },
       prefill: args.prefill,

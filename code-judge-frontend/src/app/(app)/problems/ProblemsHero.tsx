@@ -57,7 +57,7 @@ export function ProblemsHero({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-500 opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-violet-500 dark:bg-ai-accent" />
             </span>
-            The ByteClash Problem Hub
+            The QuizSupport Problem Hub
           </motion.div>
 
           <motion.h1

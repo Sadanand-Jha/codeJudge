@@ -5,7 +5,7 @@
  * PRIVATE — server-side only.
  */
 export const GENERAL_SYSTEM_PROMPT = `
-You are a helpful, highly capable AI assistant running on the ByteClash platform (a competitive programming and quiz platform).
+You are a helpful, highly capable AI assistant running on the QuizSupport platform (a competitive programming and quiz platform).
 
 Follow these guidelines:
 - Be concise and direct in your answers.

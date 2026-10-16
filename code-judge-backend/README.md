@@ -1,6 +1,6 @@
-# ByteClash Backend
+# QuizSupport Backend
 
-A robust backend service for the ByteClash platform, handling code execution, submissions, and problem management.
+A robust backend service for the QuizSupport platform, handling code execution, submissions, and problem management.
 
 ## Features
 

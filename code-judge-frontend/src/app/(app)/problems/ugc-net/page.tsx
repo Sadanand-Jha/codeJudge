@@ -1,7 +1,7 @@
 import { StreamPractice } from "../StreamPractice";
 
 export const metadata = {
-  title: "UGC NET Problems — ByteClash",
+  title: "UGC NET Problems — QuizSupport",
   description: "UGC NET practice problems — mix, subject-wise and chapter-wise drill-down.",
 };
 

@@ -3,8 +3,8 @@ import { Code2, ArrowRight } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Submission History — ByteClash",
-  description: "Your submission history on ByteClash.",
+  title: "Submission History — QuizSupport",
+  description: "Your submission history on QuizSupport.",
 };
 
 export default function HistoryPage() {

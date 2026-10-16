@@ -22,7 +22,7 @@ import { cn } from "@/lib/helpers";
 export const UPI_CONFIG = {
   /** Demo merchant VPA — replace with a real business/merchant UPI ID. */
   MERCHANT_VPA: "yourshop@okhdfcbank",
-  MERCHANT_NAME: "ByteClash",
+  MERCHANT_NAME: "QuizSupport",
   /** QR + payment attempt lifetime. */
   QR_TTL_SECONDS: 300,
   /** Status poll cadence. */

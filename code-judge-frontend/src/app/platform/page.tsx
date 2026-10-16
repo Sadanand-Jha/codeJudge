@@ -96,7 +96,7 @@ export default function PlatformOverviewPage() {
           </div>
           <h1 className="text-[28px] font-semibold tracking-[-0.04em] text-[var(--text-primary)] sm:text-[34px]">Platform Overview</h1>
           <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-[var(--text-secondary)] sm:text-[14px]">
-            See how students are learning, taking assessments, and engaging with CodeJudge.
+            See how students are learning, taking assessments, and engaging with QuizSupport.
             <span className="ml-2 tabular-nums text-[var(--text-muted)]">Updated {secsAgo === null ? "…" : `${secsAgo}s ago`}</span>
           </p>
         </div>

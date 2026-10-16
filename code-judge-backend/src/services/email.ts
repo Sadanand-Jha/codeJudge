@@ -102,7 +102,7 @@ export async function sendOtpEmail(
       <tr><td style="padding:28px 28px 20px 28px;">
         <!-- Header: brand + lock icon -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-          <td style="font-size:22px;font-weight:800;color:#1e1b4b;letter-spacing:-0.5px;vertical-align:middle;">byteclash</td>
+          <td style="font-size:22px;font-weight:800;color:#1e1b4b;letter-spacing:-0.5px;vertical-align:middle;">quizsupport</td>
           <td style="text-align:right;vertical-align:middle;">
             <div style="display:inline-block;width:48px;height:48px;background:#f5f3ff;border-radius:12px;text-align:center;line-height:48px;">
               <span style="font-size:22px;">🔒</span>
@@ -110,7 +110,7 @@ export async function sendOtpEmail(
           </td>
         </tr></table>
 
-        <h1 style="margin:20px 0 8px 0;font-size:24px;font-weight:800;color:#1e1b4b;letter-spacing:-0.3px;line-height:1.2;">byteclash Registration</h1>
+        <h1 style="margin:20px 0 8px 0;font-size:24px;font-weight:800;color:#1e1b4b;letter-spacing:-0.3px;line-height:1.2;">quizsupport Registration</h1>
         <p style="margin:0 0 18px 0;font-size:14px;color:#64748b;line-height:20px;">Your One-Time Password (OTP) for registration is:</p>
 
         <!-- OTP box -->
@@ -150,7 +150,7 @@ export async function sendOtpEmail(
         </tr></table>
 
         <hr style="border:none;border-top:1px solid #f1f5f9;margin:18px 0 14px 0;" />
-        <p style="margin:0;font-size:12px;color:#64748b;">byteclash Team</p>
+        <p style="margin:0;font-size:12px;color:#64748b;">quizsupport Team</p>
       </td></tr>
     </table>
     <div style="max-width:560px;margin:12px auto 0 auto;text-align:center;font-size:11px;color:#94a3b8;">This is an automated email, please do not reply.</div>
@@ -178,7 +178,7 @@ export async function sendCollaboratorInviteEmail(payload: {
 }): Promise<void> {
   const { to, quizName, inviterUsername, inviteUrl } = payload;
   const subject = `Collaboration Invitation: ${quizName}`;
-  const text = `Hi ${to},\n\n${inviterUsername} has invited you to collaborate on the quiz "${quizName}".\n\nOpen the link below to view the invitation and accept or decline it:\n${inviteUrl}\n\nIf you did not expect this, you can ignore this email.\n\nbyteclash Team`;
+  const text = `Hi ${to},\n\n${inviterUsername} has invited you to collaborate on the quiz "${quizName}".\n\nOpen the link below to view the invitation and accept or decline it:\n${inviteUrl}\n\nIf you did not expect this, you can ignore this email.\n\nquizsupport Team`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
       <h2 style="color: #333;">Collaboration Invitation</h2>
@@ -189,7 +189,7 @@ export async function sendCollaboratorInviteEmail(payload: {
       </div>
       <p style="font-size: 14px; color: #888;">If you did not expect this invitation, you can safely ignore this email.</p>
       <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #aaa;">byteclash Team</p>
+      <p style="font-size: 12px; color: #aaa;">quizsupport Team</p>
     </div>
   `;
 

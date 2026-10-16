@@ -3,7 +3,7 @@
 // Used only when the primary Nodemailer/SMTP send fails (or SMTP is not
 // configured at all). Configuration (user provides these env vars):
 //   RESEND_API_KEY — required to enable the fallback
-//   RESEND_FROM    — verified sender, e.g. "byteclash <noreply@example.com>".
+//   RESEND_FROM    — verified sender, e.g. "quizsupport <noreply@example.com>".
 //                    Falls back to the SMTP from address when set, since that
 //                    is usually already a verified identity.
 import { Resend } from "resend";
@@ -33,7 +33,7 @@ export function getResendApiKey(): string | null {
 // Default test sender provided by Resend. Works without a verified domain but
 // only delivers to the Resend account owner's own address — enough to keep
 // auth/OTP flows alive until RESEND_FROM (verified domain) is set.
-const ONBOARDING_FROM = "byteclash <onboarding@resend.dev>";
+const ONBOARDING_FROM = "quizsupport <onboarding@resend.dev>";
 
 export function getResendFrom(): string {
   const from = (process.env.RESEND_FROM || "").trim();

@@ -39,7 +39,7 @@ function platformSecret(): string | null {
   // session token still cannot be verified as a platform token.
   return crypto
     .createHmac("sha256", regular)
-    .update("codejudge:platform-session:v1")
+    .update("quizsupport:platform-session:v1")
     .digest("hex");
 }
 

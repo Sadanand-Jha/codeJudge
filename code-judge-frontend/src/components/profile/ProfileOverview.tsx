@@ -118,7 +118,7 @@ export default function ProfileOverview() {
     if (profile?.isVerified) {
       list.push({
         title: "Verified",
-        desc: "Verified ByteClash member",
+        desc: "Verified QuizSupport member",
         icon: BadgeCheck,
         gradient: "from-[#3B82F6] to-[#06B6D4]",
         glow: "rgba(59,130,246,0.2)",
@@ -127,7 +127,7 @@ export default function ProfileOverview() {
     if (!list.length) {
       list.push({
         title: "Member",
-        desc: "Part of the ByteClash community",
+        desc: "Part of the QuizSupport community",
         icon: Award,
         gradient: "from-[#F59E0B] to-[#F97316]",
         glow: "rgba(245,158,11,0.25)",

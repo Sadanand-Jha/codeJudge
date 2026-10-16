@@ -62,7 +62,7 @@ export default function LightArrivalSection({ progress }: Props) {
       >
         <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#8B5CF6]/20 bg-white/60 px-4 py-1.5 text-[11px] font-medium tracking-wide text-[#7C3AED] backdrop-blur-sm shadow-[0_2px_12px_rgba(168,85,247,0.1)]">
           <Sparkles className="h-3.5 w-3.5" />
-          CodeJudge Premium
+          QuizSupport Premium
         </span>
       </motion.div>
 
@@ -84,7 +84,7 @@ export default function LightArrivalSection({ progress }: Props) {
         transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
         className="relative mx-auto mt-6 max-w-xl text-base leading-relaxed text-[#4a4a6a] sm:text-lg"
       >
-        Explore the premium capabilities of the CodeJudge ecosystem — AI companions,
+        Explore the premium capabilities of the QuizSupport ecosystem — AI companions,
         creator studios, and a cloud of possibilities.
       </motion.p>
 

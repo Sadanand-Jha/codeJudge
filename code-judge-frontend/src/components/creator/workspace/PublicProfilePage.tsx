@@ -17,7 +17,7 @@ export function PublicProfilePage() {
     <div className="space-y-6">
       <PageHeader
         title="Public Profile"
-        subtitle="A preview built from your actual ByteClash profile information."
+        subtitle="A preview built from your actual QuizSupport profile information."
         actions={
           <BillButton variant="ghost" href="/settings">
             Edit profile

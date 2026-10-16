@@ -4,8 +4,8 @@ import type { ProblemListItem } from "@/types/problem";
 import { cookies } from "next/headers";
 
 export const metadata = {
-  title: "Competitive Programming — ByteClash",
-  description: "Live competitive programming and DSA problems from the ByteClash database.",
+  title: "Competitive Programming — QuizSupport",
+  description: "Live competitive programming and DSA problems from the QuizSupport database.",
 };
 
 export default async function CompetitiveProgrammingRoute({

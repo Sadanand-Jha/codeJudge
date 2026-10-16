@@ -134,7 +134,7 @@
 }
 
 /* ============================================
-   ByteClash Theme Design System
+   QuizSupport Theme Design System
    ============================================
    Background: #09090B (dark) / #F8FAFC (light)
    Cards: #111827 (dark) / #FFFFFF (light)
@@ -3917,7 +3917,7 @@ svg {
 }
 
 /* ═══ Code Assistant — Monaco AI suggestion decorations ═══ */
-.byteclash-ai-edit-line {
+.quizsupport-ai-edit-line {
   background: linear-gradient(
     90deg,
     rgba(139, 92, 246, 0.14),
@@ -3925,7 +3925,7 @@ svg {
   );
   box-shadow: inset 2px 0 0 rgba(167, 139, 250, 0.75);
 }
-.monaco-editor .byteclash-ai-edit-line {
+.monaco-editor .quizsupport-ai-edit-line {
   background: linear-gradient(
     90deg,
     rgba(139, 92, 246, 0.14),
@@ -3933,7 +3933,7 @@ svg {
   );
   box-shadow: inset 2px 0 0 rgba(167, 139, 250, 0.75);
 }
-.byteclash-ai-edit-gutter {
+.quizsupport-ai-edit-gutter {
   background: rgba(167, 139, 250, 0.55);
   transform: scaleY(0.55);
   border-radius: 1px;
@@ -4537,7 +4537,7 @@ svg {
 
 
 /* ============================================
-   Tests Section — ByteClash
+   Tests Section — QuizSupport
    Premium exam-prep + test-series marketplace.
    Scoped via .tests-* hooks. Light & dark.
    ============================================ */
@@ -4655,7 +4655,7 @@ svg {
 }
 
 /* ============================================
-   Problems Section — ByteClash
+   Problems Section — QuizSupport
    Premium problem hub (hero + CP spotlight).
    Scoped via .problems-* hooks. Light & dark.
    ============================================ */
@@ -4743,7 +4743,7 @@ svg {
 }
 
 /* ============================================
-   Contests Section — ByteClash
+   Contests Section — QuizSupport
    Premium contest arena (hero + upcoming/past).
    Scoped via .contests-* hooks. Light & dark.
    ============================================ */

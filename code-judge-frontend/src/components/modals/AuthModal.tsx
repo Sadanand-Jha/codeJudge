@@ -141,7 +141,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
                   transition={{ delay: 0.15 }}
                   className="text-xl font-bold text-text-primary"
                 >
-                  Continue with ByteClash
+                  Continue with QuizSupport
                 </motion.h2>
 
                 <motion.p

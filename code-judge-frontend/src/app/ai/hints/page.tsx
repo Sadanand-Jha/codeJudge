@@ -2,7 +2,7 @@ import { Lightbulb } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "AI Hints — ByteClash",
+  title: "AI Hints — QuizSupport",
   description: "Get AI-powered hints for coding problems.",
 };
 
