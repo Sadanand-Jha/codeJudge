@@ -965,7 +965,7 @@ export interface PreviousQuiz {
   attempt_id: number;
   quiz_id: number;
   name: string;
-  code: string;
+  code?: string;
   total_marks: number;
   passing_marks: number;
   score: number;

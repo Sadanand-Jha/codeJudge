@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
-import { getPreviousQuizzes } from "@/services/quiz";
+import { getPreviousQuizzes, getQuizByCode } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { QuizLoader, QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
 
@@ -58,10 +58,24 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
       }
     }, LOOKUP_TIMEOUT_MS);
     getPreviousQuizzes({ limit: 50 })
-      .then(({ quizzes }) => {
+      .then(async ({ quizzes }) => {
+        if (cancelled) return;
+        // Code is no longer returned by old-quizzes API — resolve numeric id
+        // via quiz code, then match by quiz_id. Keep legacy code-match as fallback.
+        let quizIdNum: number | null = null;
+        try {
+          const quiz = await getQuizByCode(code);
+          quizIdNum = Number(quiz.id);
+        } catch {
+          quizIdNum = null;
+        }
         if (cancelled) return;
         window.clearTimeout(timer);
-        const match = (quizzes ?? []).find((quiz) => quiz.code === code);
+        const match = (quizzes ?? []).find((quiz) =>
+          quizIdNum != null
+            ? Number(quiz.quiz_id) === quizIdNum
+            : (quiz as { code?: string }).code === code
+        );
         if (match) {
           const target = `/quiz/${code}/results/${match.attempt_id}`;
           setOutcome({ key, kind: "redirect", target });

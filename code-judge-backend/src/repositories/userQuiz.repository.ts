@@ -413,7 +413,7 @@ export class UserQuizRepository {
     const safeSortOrder = sortOrder.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
     const result = await pool.query(`
-      SELECT qa.id AS attempt_id, q.id AS quiz_id, q.name, q.code, q.total_marks, q.passing_marks,
+      SELECT qa.id AS attempt_id, q.id AS quiz_id, q.name, q.total_marks, q.passing_marks,
         qa.score, qa.percentage, qa.rank, qa.status, qa.completed_at, qa.time_taken,
         qa.total_questions, qa.correct_answers, qa.wrong_answers, qa.skipped_questions
       FROM quiz_attempt qa JOIN quiz q ON q.id = qa.quiz_id

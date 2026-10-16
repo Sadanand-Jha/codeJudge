@@ -4,15 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   History, BookOpen, TrendingUp,
-  CheckCircle2, Trophy, Copy,
-  Send, Check, HelpCircle, Code2, Brain, Beaker, Calculator,
+  CheckCircle2, Trophy,
+  Send, HelpCircle, Code2, Brain, Beaker, Calculator,
   Globe2, Palette, Database, Network, Hash, Target, Layers3,
   Calendar, Timer, ArrowRight, ArrowUpRight, Milestone, Filter,
   BarChart2, ChevronDown, ChevronLeft, ChevronRight, Award, Globe,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { getOldQuizzes } from "@/services/quiz";
-import { formatQuizCode } from "@/utils/quizCode";
 
 /* ═══════════════════════════════════════════════════════════════
    TYPES (unchanged — same data as current implementation)
@@ -21,7 +20,7 @@ type RecentQuiz = {
   attempt_id: number;
   quiz_id: number;
   name: string;
-  code: string;
+  code?: string;
   total_marks: number;
   passing_marks: number;
   score: number;
@@ -116,48 +115,6 @@ function StatusChip({ status }: { status: string }) {
     <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold", t.chip)}>
       <span className={cn("h-1.5 w-1.5 rounded-full", t.dot)} />
       {label}
-    </span>
-  );
-}
-
-function CodeCopyChip({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
-  const formatted = formatQuizCode(code);
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(formatted);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = formatted;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
-  };
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 transition-colors duration-150",
-        copied
-          ? "border-[#12B76A]/40 bg-[#12B76A]/10 dark:border-[#20D889]/40 dark:bg-[#20D889]/10"
-          : "border-[#E4E7EC] bg-[#F2F4F7] dark:border-[#252D3A] dark:bg-[#19202C]"
-      )}
-      title="Quiz code"
-    >
-      <code className="text-[11px] font-semibold tracking-wider text-[#475467] dark:text-[#9AA4B5]">{formatted}</code>
-      <button
-        type="button"
-        onClick={handleCopy}
-        aria-label="Copy quiz code"
-        className={cn("rounded p-0.5 transition-colors duration-150", copied ? "text-[#039855] dark:text-[#20D889]" : "text-[#98A2B3] hover:text-[#6B5CFF] dark:text-[#687386] dark:hover:text-[#8B7CFF]")}
-      >
-        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-      </button>
     </span>
   );
 }
@@ -276,8 +233,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
           <div className="min-w-0 flex-1">
             <p className="break-words text-sm font-semibold leading-snug text-[#101828] dark:text-[#F4F6FA]">{quiz.name}</p>
             <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-[#98A2B3] dark:text-[#687386]">
-              {subject.label} ·
-              <CodeCopyChip code={quiz.code} />
+              {subject.label}
             </p>
           </div>
         </div>
@@ -316,7 +272,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
             {expanded ? "Less" : "Details"}
           </button>
           <Link
-            href={`/quiz/${quiz.code}/results/${quiz.attempt_id}`}
+            href={`/quiz/${quiz.quiz_id}/results/${quiz.attempt_id}`}
             className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-[#8B7CFF]/10 px-2.5 text-xs font-semibold text-[#6B5CFF] transition-colors duration-150 hover:bg-[#8B7CFF]/20 dark:bg-[#8B7CFF]/12 dark:text-[#8B7CFF] dark:hover:bg-[#8B7CFF]/20"
           >
             View <ArrowUpRight className="h-3 w-3" />
@@ -334,8 +290,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-[#101828] dark:text-[#F4F6FA]">{quiz.name}</p>
             <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[#98A2B3] dark:text-[#687386]">
-              {subject.label} ·
-              <CodeCopyChip code={quiz.code} />
+              {subject.label}
             </p>
           </div>
         </div>
@@ -380,7 +335,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
             {expanded ? "Less" : "Details"}
           </button>
           <Link
-            href={`/quiz/${quiz.code}/results/${quiz.attempt_id}`}
+            href={`/quiz/${quiz.quiz_id}/results/${quiz.attempt_id}`}
             className="inline-flex h-8 items-center gap-1 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 px-3 text-[11px] font-bold text-white shadow-[0_10px_22px_-13px_rgba(244,114,182,.9)] transition-all duration-150 hover:-translate-y-0.5 dark:from-violet-600 dark:to-indigo-500 dark:shadow-[0_10px_22px_-13px_rgba(124,92,255,.9)]"
           >
             View <ArrowUpRight className="h-3 w-3" />
@@ -416,7 +371,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
               {quiz.correct_answers + quiz.wrong_answers + quiz.skipped_questions}/{quiz.total_questions} answered
             </span>
             <Link
-              href={`/quiz/${quiz.code}`}
+              href={`/quiz/${quiz.quiz_id}`}
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6B5CFF] transition-colors duration-150 hover:text-[#5248d4] dark:text-[#8B7CFF] dark:hover:text-[#a394ff]"
             >
               <History className="h-3 w-3" /> Reattempt
@@ -555,7 +510,7 @@ export default function YourActivitySection({
       {/* ── Single analytics header: title + all controls in one place ── */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">{isAllAttemptsView ? "Attempt History" : missionMode ? "Mission Archive" : "My Activity"}</p>
+          {/* <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">{isAllAttemptsView ? "Attempt History" : missionMode ? "Mission Archive" : "My Activity"}</p> */}
           <h2 className="mt-1 text-[22px] font-bold leading-tight tracking-tight text-[#101828] dark:text-[#F4F6FA] sm:text-[24px]">
             {isAllAttemptsView ? "All Attempts" : missionMode ? "Your Mission Logs" : "Your Activity"}
           </h2>
@@ -587,8 +542,8 @@ export default function YourActivitySection({
         <StatCard icon={TrendingUp} label={missionMode ? "Average Flight Score" : "Average Score"} value={overview.avgScore === null ? "—" : `${overview.avgScore}%`} hint={missionMode ? "across missions" : "across attempts"} accent="text-[#B54708] dark:text-[#FFB84D]" />
       </div>}
 
-      {/* ── Analytics strip: summary + distribution + latest in one row above the table ── */}
-      {!isAllAttemptsView && <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+      {/* ── Analytics strip: DISABLED (Score Summary + Distribution + Latest Results) ── */}
+      {false && !isAllAttemptsView && <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
         <section className="group relative min-w-0 overflow-hidden rounded-[24px] border border-pink-200/70 bg-gradient-to-br from-white/90 to-pink-50/75 p-5 shadow-[0_24px_65px_-44px_rgba(244,114,182,.75)] backdrop-blur-xl dark:border-white/[0.08] dark:from-[#171D29]/95 dark:to-[#111621]/95 dark:shadow-[0_24px_70px_-42px_rgba(80,55,170,.65)]">
           <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-pink-300/20 blur-3xl dark:bg-violet-500/15" />
           <h3 className="relative flex items-center gap-2 text-[15px] font-bold text-[#101828] dark:text-[#F4F6FA]"><span className="grid h-8 w-8 place-items-center rounded-xl bg-pink-100 text-pink-500 dark:bg-violet-500/10 dark:text-violet-300"><TrendingUp className="h-4 w-4" /></span>{missionMode ? "Flight Performance" : "Score Summary"}</h3>

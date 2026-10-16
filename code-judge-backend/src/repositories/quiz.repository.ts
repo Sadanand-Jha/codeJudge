@@ -1624,7 +1624,6 @@ export class QuizRepository {
         qa.id AS attempt_id,
         q.id AS quiz_id,
         q.name,
-        q.code,
         q.total_marks,
         q.passing_marks,
         qa.score,
