@@ -11,19 +11,29 @@ import { SecureMediaService } from "../services/secureMedia.service.ts";
 const secureMediaService = new SecureMediaService();
 
 // --- Brand logo (GET /api/v1/brand/logo) --------------------------------------
-// Source of truth: two files in public/logo/ —
-//   logo_with_name.png — speech-bubble mark + "QuizSupport" wordmark (wide, ~4:1)
-//   logo.png           — icon-only mark (square, ~1:1)
-// variant=full serves the first, variant=mark the second. Drop a new file there
-// and the site picks it up on the next request (cache keyed on mtime + size).
+// Source of truth: four files in public/logo/ —
+//   logo_with_name.png       — mark + "QuizSupport" wordmark, light theme (~4:1)
+//   logo.png                 — icon-only mark, light theme (~1:1)
+//   dark_logo_with_name.png  — same wordmark drawn for dark backgrounds
+//   dark_logo_.png           — icon-only mark for dark backgrounds
+// Query: variant=full|mark (default full), theme=light|dark (default light).
+// Missing dark artwork degrades to the light file. Drop a new file there and
+// the site picks it up on the next request (cache keyed on mtime + size).
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const logoDir = path.resolve(moduleDir, "../../public/logo");
 
 type LogoVariant = "full" | "mark";
+type LogoTheme = "light" | "dark";
 
-const brandLogoFiles: Record<LogoVariant, string> = {
-  full: path.join(logoDir, "logo_with_name.png"),
-  mark: path.join(logoDir, "logo.png"),
+const brandLogoFiles: Record<LogoTheme, Record<LogoVariant, string>> = {
+  light: {
+    full: path.join(logoDir, "logo_with_name.png"),
+    mark: path.join(logoDir, "logo.png"),
+  },
+  dark: {
+    full: path.join(logoDir, "dark_logo_with_name.png"),
+    mark: path.join(logoDir, "dark_logo_.png"),
+  },
 };
 
 // Trim tolerance for the padding around the artwork. The source PNGs ship on a
@@ -42,18 +52,23 @@ async function statOrNull(file: string): Promise<{ mtimeMs: number; size: number
 }
 
 /** Read + process the variant's source file from public/logo/ (cached). */
-async function buildBrandLogoPng(variant: LogoVariant): Promise<Buffer> {
-  // If the with-name artwork is missing, degrade to the mark rather than 404.
-  const preferred = brandLogoFiles[variant];
-  let file = preferred;
+async function buildBrandLogoPng(variant: LogoVariant, theme: LogoTheme): Promise<Buffer> {
+  // Fallback chain: requested theme/variant → light/variant → light mark.
+  const candidates = [
+    brandLogoFiles[theme][variant],
+    brandLogoFiles.light[variant],
+    brandLogoFiles.light.mark,
+  ].filter((file, index, all) => all.indexOf(file) === index);
+
+  let file = candidates[0];
   let stat = await statOrNull(file);
-  if (!stat && variant === "full") {
-    file = brandLogoFiles.mark;
+  for (let i = 0; !stat && i < candidates.length; i++) {
+    file = candidates[i];
     stat = await statOrNull(file);
   }
   if (!stat) {
     // Preserve ENOENT semantics so the route answers 404 (not 500).
-    await fs.stat(preferred); // throws ENOENT for the preferred file
+    await fs.stat(candidates[0]); // throws ENOENT for the preferred file
     throw Object.assign(new Error("Brand logo not found"), { code: "ENOENT" });
   }
 
@@ -143,18 +158,20 @@ export const getSecureMedia = async (req: Request, res: Response) => {
  * GET /api/v1/brand/logo (PUBLIC — no auth, used by navbars/footers/auth pages)
  * Serves the site logo from public/logo/ — whitespace-trimmed and AES-256-GCM
  * encrypted, same envelope as secure-media.
- * Query: ?variant=full (default) serves logo_with_name.png (mark + wordmark),
- * ?variant=mark serves logo.png (icon-only) for square slots (collapsed
- * sidebar rail, auth headers, favicon generation).
+ * Query: ?variant=full (default) serves the with-name artwork, ?variant=mark
+ * serves the icon-only art for square slots (collapsed sidebar rail, auth
+ * headers, favicon generation). ?theme=dark serves the dark-background
+ * variants (dark_logo_with_name.png / dark_logo_.png); default is light.
  */
 export const getBrandLogo = async (req: Request, res: Response) => {
   try {
     const variant: LogoVariant = req.query.variant === "mark" ? "mark" : "full";
-    const png = await buildBrandLogoPng(variant);
+    const theme: LogoTheme = req.query.theme === "dark" ? "dark" : "light";
+    const png = await buildBrandLogoPng(variant, theme);
     const encryptedBase64 = secureMediaService.encrypt(png).toString("base64");
 
     res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="logo-${variant}.png.enc"`);
+    res.setHeader('Content-Disposition', `attachment; filename="logo-${variant}-${theme}.png.enc"`);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     // Logo is static — allow short public caching (encrypted bytes are
     // useless without the AES key, rotated per deploy).
