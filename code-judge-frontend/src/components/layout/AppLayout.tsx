@@ -511,7 +511,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
             {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
             <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label="QuizSupport home">
-              <SecureLogo size={36} />
+              <SecureLogo size={48} />
             </Link>
           </div>
 
