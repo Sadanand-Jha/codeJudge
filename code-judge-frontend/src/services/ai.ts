@@ -3,7 +3,7 @@ import { getAuthHeaders } from "@/lib/authHeaders";
 const rawBase =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://quizbackend-dun.vercel.app/api";
+  "https://api.quizsupport.com/api";
 const API_BASE = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
 
 /**

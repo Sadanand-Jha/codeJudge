@@ -86,7 +86,7 @@ export async function getSecureImageBlob(imageName: string): Promise<Blob> {
   const rawBase =
     process.env.NEXT_PUBLIC_BACKEND_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
-    "https://quizbackend-dun.vercel.app/api";
+    "https://api.quizsupport.com/api";
   const baseUrl = rawBase.replace(/\/v1\/?$/, "").replace(/\/$/, "");
   const endpoint = baseUrl
     ? `${baseUrl}/v1/secure-media/${encodeURIComponent(imageName)}`

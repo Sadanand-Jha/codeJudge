@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SecureLogo } from "@/components/common/SecureLogo";
 
 export default function Footer() {
   return (
@@ -6,7 +7,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground">
           <div className="flex items-center gap-3">
-            <span className="font-medium text-white">QuizSupport</span>
+            <SecureLogo size={16} />
             <span className="text-[#3F3F46]">|</span>
             <Link href="/quiz" className="hover:text-[#7C3AED] transition-colors">Quizzes</Link>
             <Link href="/problems" className="hover:text-[#7C3AED] transition-colors">Problemset</Link>

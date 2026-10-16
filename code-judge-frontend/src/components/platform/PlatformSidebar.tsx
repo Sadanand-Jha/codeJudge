@@ -11,6 +11,7 @@ import {
 import { ownerLogout } from "@/services/auth";
 import { clearPlatformSession, getPlatformEmail, notifyPlatformSessionInvalid } from "@/lib/platformToken";
 import { StatusDot } from "@/components/platform/ui";
+import { SecureLogo } from "@/components/common/SecureLogo";
 
 interface NavItem { label: string; href: string; icon: LucideIcon }
 
@@ -72,9 +73,7 @@ function SidebarBody({ onNavigate, healthOk }: { onNavigate?: () => void; health
     <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-[var(--border)] px-4 pb-4 pt-4">
         <div className="flex items-center gap-3">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-gradient-to-br from-[#EC4899] to-[#8B5CF6] text-[14px] font-black text-white shadow-[0_8px_24px_rgba(236,72,153,.24)]">
-            C
-          </div>
+          <SecureLogo variant="mark" size={36} />
           <div className="min-w-0">
             <p className="text-[14px] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">QuizSupport</p>
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--text-muted)]">Control center</p>

@@ -373,9 +373,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
           <Link href={homeHref} className="flex items-center gap-2.5">
             {isStudentMissionRoute || isStudentPartyRoute ? (
               <>
-                <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#3B82F6]", isStudentMissionRoute && "rounded-xl from-[#8B7CFF] via-[#765AEF] to-[#366ED8] shadow-[0_0_22px_rgba(124,92,255,.35)]", isStudentPartyRoute && "rounded-xl from-[#FF79B0] via-[#FF9E57] to-[#FFD34E] shadow-[0_0_22px_rgba(255,121,176,.3)]")}>
-                  {isStudentMissionRoute ? <Rocket className="h-4 w-4 text-white" /> : <IceCreamCone className="h-4 w-4 text-white" />}
-                </div>
+                <SecureLogo size={32} variant="mark" />
                 {showLabels && (
                   <span className="min-w-0 whitespace-nowrap">
                     <span className="block text-base font-bold tracking-tight text-ai-text">{isStudentMissionRoute ? "Mission Control" : "Quiz Party"}</span>
@@ -513,14 +511,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
             {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
             <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label="QuizSupport home">
-              {isStudentQuizRoute ? (
-                <>
-                  <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-violet-500 to-blue-600 shadow-[0_0_18px_rgba(124,92,255,.3)]"><Rocket className="h-3.5 w-3.5 text-white" /></span>
-                  <span className="hidden text-sm font-bold tracking-tight text-text-primary sm:block">QuizSupport</span>
-                </>
-              ) : (
-                <SecureLogo size={24} />
-              )}
+              <SecureLogo size={24} />
             </Link>
           </div>
 

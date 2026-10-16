@@ -14,7 +14,7 @@ const BACKEND_URL =
   process.env.BACKEND_URL ||
   (process.env.NODE_ENV === "development"
     ? "http://localhost:8000"
-    : "https://quizbackend-dun.vercel.app");
+    : "https://api.quizsupport.com");
 
 // Vercel Hobby serverless functions allow at most 300 seconds.
 export const maxDuration = 300;

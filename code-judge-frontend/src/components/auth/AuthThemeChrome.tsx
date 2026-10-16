@@ -6,6 +6,7 @@ import { BrainCircuit, CheckCircle2, FileText, IceCreamCone, Layers3, LoaderCirc
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
+import { SecureLogo } from "@/components/common/SecureLogo";
 
 export function AuthLoader({ className }: { className?: string }) {
   return <LoaderCircle className={cn("h-6 w-6 animate-spin text-current", className)} aria-label="Loading" />;
@@ -296,20 +297,9 @@ export function AuthThemeControls({ fantasyDesktop = false }: { fantasyDesktop?:
 }
 
 export function AuthBrandMark({ className }: { className?: string }) {
-  const { theme } = useTheme();
-  const partyMode = theme === "light";
-
   return (
-    <div className={cn("inline-flex items-center gap-2.5", className)}>
-      <div className={cn("grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br text-white", partyMode ? "from-pink-400 via-orange-400 to-amber-300 shadow-[0_12px_28px_-14px_rgba(244,114,182,.85)]" : "from-violet-500 via-indigo-500 to-blue-600 shadow-[0_12px_30px_-14px_rgba(124,92,255,.9)]")}>
-        {partyMode ? <IceCreamCone className="h-5 w-5" /> : <Rocket className="h-5 w-5" />}
-      </div>
-      <span className="text-left leading-tight">
-        <span className="block text-base font-extrabold tracking-tight text-text-primary">QuizSupport</span>
-        <span className={cn("mt-0.5 flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.16em]", partyMode ? "text-pink-500" : "text-violet-300/80")}>
-          <Sparkles className="h-2.5 w-2.5" /> {partyMode ? "Quiz Party" : "Space Program"}
-        </span>
-      </span>
+    <div className={cn("inline-flex justify-center", className)}>
+      <SecureLogo variant="full" size={64} />
     </div>
   );
 }

@@ -43,6 +43,7 @@ const envOrigins = rawFrontendUrl
 const allowedOrigins = [
   ...envOrigins,
   "https://quizsupport.com",
+  "https://www.quizsupport.com",
   // "https://quizbackend-dun.vercel.app/api/v1",
   // "https://quizpart.vercel.app",
   "http://localhost:3000",

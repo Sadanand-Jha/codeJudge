@@ -7,13 +7,13 @@ import type { NextConfig } from "next";
  * reads the runtime env on both `next dev` and deployed servers.
  *
  * Local dev:  BACKEND_URL=http://localhost:8000   (see .env, NODE_ENV=development)
- * Production: BACKEND_URL=https://quizbackend-dun.vercel.app (NODE_ENV=production, or Vercel dashboard env)
+ * Production: BACKEND_URL=https://api.quizsupport.com (NODE_ENV=production, or Vercel dashboard env)
  */
 const BACKEND_URL =
   process.env.BACKEND_URL ||
   (process.env.NODE_ENV === "development"
     ? "http://localhost:8000"
-    : "https://quizbackend-dun.vercel.app");
+    : "https://api.quizsupport.com");
 
 if (process.env.NODE_ENV === "development") {
   console.log(`[next.config] /api/* -> ${BACKEND_URL}/api/*`);

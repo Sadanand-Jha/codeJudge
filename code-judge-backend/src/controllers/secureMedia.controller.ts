@@ -1,6 +1,6 @@
 // Secure media controller. Serves AES-256-GCM encrypted images from a secure directory
 // as application/octet-stream to prevent browser media inspection. Also serves the
-// public brand logo (public/logo/logo.png) inside the same encrypted envelope.
+// public brand logos (public/logo/*.png) inside the same encrypted envelope.
 import type { Request, Response } from "express";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -11,106 +11,61 @@ import { SecureMediaService } from "../services/secureMedia.service.ts";
 const secureMediaService = new SecureMediaService();
 
 // --- Brand logo (GET /api/v1/brand/logo) --------------------------------------
-// Source of truth: backend public/logo/logo.png. Drop a new file there and the
-// site picks it up on the next request (cache keyed on mtime + size).
+// Source of truth: two files in public/logo/ —
+//   logo_with_name.png — speech-bubble mark + "QuizSupport" wordmark (wide, ~4:1)
+//   logo.png           — icon-only mark (square, ~1:1)
+// variant=full serves the first, variant=mark the second. Drop a new file there
+// and the site picks it up on the next request (cache keyed on mtime + size).
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-const brandLogoFile = path.resolve(moduleDir, "../../public/logo/logo.png");
-
-// Trim tolerance for the padding around the artwork. Tuned against logo.png's
-// near-white background: 25 strips the margins without eating the glyphs.
-const LOGO_TRIM_THRESHOLD = 25;
+const logoDir = path.resolve(moduleDir, "../../public/logo");
 
 type LogoVariant = "full" | "mark";
 
+const brandLogoFiles: Record<LogoVariant, string> = {
+  full: path.join(logoDir, "logo_with_name.png"),
+  mark: path.join(logoDir, "logo.png"),
+};
+
+// Trim tolerance for the padding around the artwork. The source PNGs ship on a
+// transparent canvas; 25 strips the margins without eating the glyphs.
+const LOGO_TRIM_THRESHOLD = 25;
+
 const logoCache = new Map<string, Buffer>();
 
-/**
- * Crop the speech-bubble mark (left icon) out of a wide, already-trimmed
- * wordmark banner. Splits at the first background gap whose start falls in the
- * first 45% of the image — i.e. the seam between mark and wordmark — then
- * re-trims the left slice. Used for square slots (collapsed sidebar rail,
- * favicon). Falls back to the full banner if no seam is found.
- */
-async function autoCropIcon(logoPng: Buffer): Promise<Buffer> {
-  const { data, info } = await sharp(logoPng)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const { width, height, channels } = info;
-
-  // Background ≈ top-left pixel. A column counts as background only when every
-  // pixel in it is within tolerance (sum of |ΔRGB| ≈ 25 per channel).
-  const bgR = data[0];
-  const bgG = data[1];
-  const bgB = data[2];
-  const tolerance = 75;
-  const isBgColumn = new Array<boolean>(width).fill(true);
-  for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) {
-      const i = (y * width + x) * channels;
-      const diff =
-        Math.abs(data[i] - bgR) +
-        Math.abs(data[i + 1] - bgG) +
-        Math.abs(data[i + 2] - bgB);
-      if (diff > tolerance) {
-        isBgColumn[x] = false;
-        break;
-      }
-    }
+async function statOrNull(file: string): Promise<{ mtimeMs: number; size: number } | null> {
+  try {
+    return await fs.stat(file);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
   }
-
-  const regionStart = Math.floor(width * 0.15);
-  const regionEnd = Math.floor(width * 0.45);
-  const minGap = 12;
-  let gapStart = -1;
-
-  for (let x = 0; x < width; ) {
-    if (!isBgColumn[x]) {
-      x++;
-      continue;
-    }
-    const runStart = x;
-    while (x < width && isBgColumn[x]) x++;
-    const runEnd = x; // exclusive
-    if (runStart < regionStart || runStart >= regionEnd || runEnd - runStart < minGap) {
-      continue;
-    }
-    let hasContentBefore = false;
-    for (let i = 0; i < runStart && !hasContentBefore; i++) {
-      if (!isBgColumn[i]) hasContentBefore = true;
-    }
-    let hasContentAfter = false;
-    for (let i = runEnd; i < width && !hasContentAfter; i++) {
-      if (!isBgColumn[i]) hasContentAfter = true;
-    }
-    if (hasContentBefore && hasContentAfter) {
-      gapStart = runStart;
-      break;
-    }
-  }
-
-  if (gapStart <= 0) return logoPng;
-
-  return sharp(logoPng)
-    .extract({ left: 0, top: 0, width: gapStart, height })
-    .trim({ threshold: LOGO_TRIM_THRESHOLD })
-    .png()
-    .toBuffer();
 }
 
-/** Read + process public/logo/logo.png for the requested variant (cached). */
+/** Read + process the variant's source file from public/logo/ (cached). */
 async function buildBrandLogoPng(variant: LogoVariant): Promise<Buffer> {
-  const stat = await fs.stat(brandLogoFile); // ENOENT -> 404 upstream
-  const cacheKey = `${stat.mtimeMs}:${stat.size}:${variant}`;
+  // If the with-name artwork is missing, degrade to the mark rather than 404.
+  const preferred = brandLogoFiles[variant];
+  let file = preferred;
+  let stat = await statOrNull(file);
+  if (!stat && variant === "full") {
+    file = brandLogoFiles.mark;
+    stat = await statOrNull(file);
+  }
+  if (!stat) {
+    // Preserve ENOENT semantics so the route answers 404 (not 500).
+    await fs.stat(preferred); // throws ENOENT for the preferred file
+    throw Object.assign(new Error("Brand logo not found"), { code: "ENOENT" });
+  }
+
+  const cacheKey = `${file}:${stat.mtimeMs}:${stat.size}`;
   const cached = logoCache.get(cacheKey);
   if (cached) return cached;
 
-  const source = await fs.readFile(brandLogoFile);
-  const trimmed = await sharp(source)
+  const source = await fs.readFile(file);
+  const png = await sharp(source)
     .trim({ threshold: LOGO_TRIM_THRESHOLD })
     .png()
     .toBuffer();
-  const png = variant === "mark" ? await autoCropIcon(trimmed) : trimmed;
 
   if (logoCache.size > 8) logoCache.clear();
   logoCache.set(cacheKey, png);
@@ -186,10 +141,11 @@ export const getSecureMedia = async (req: Request, res: Response) => {
 
 /**
  * GET /api/v1/brand/logo (PUBLIC — no auth, used by navbars/footers/auth pages)
- * Serves the site logo from public/logo/logo.png — whitespace-trimmed and
- * AES-256-GCM encrypted, same envelope as secure-media.
- * Query: ?variant=mark returns the icon-only crop for square slots
- * (collapsed sidebar rail, favicon generation).
+ * Serves the site logo from public/logo/ — whitespace-trimmed and AES-256-GCM
+ * encrypted, same envelope as secure-media.
+ * Query: ?variant=full (default) serves logo_with_name.png (mark + wordmark),
+ * ?variant=mark serves logo.png (icon-only) for square slots (collapsed
+ * sidebar rail, auth headers, favicon generation).
  */
 export const getBrandLogo = async (req: Request, res: Response) => {
   try {

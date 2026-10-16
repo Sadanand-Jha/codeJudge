@@ -53,14 +53,15 @@ async function fetchBrandLogoUrl(variant: SecureLogoVariant): Promise<string | n
 
 /**
  * Site brand mark served AES-encrypted from the backend
- * (`GET /api/v1/brand/logo` -> public/logo/logo.png, whitespace-trimmed) and
- * decrypted client-side.
+ * (`GET /api/v1/brand/logo` -> public/logo/logo_with_name.png for `full`,
+ * public/logo/logo.png for `mark`, whitespace-trimmed) and decrypted
+ * client-side.
  *
- * - `variant="full"` — the horizontal quizsupport wordmark, drawn at `size`
+ * - `variant="full"` — the QuizSupport wordmark + icon, drawn at `size`
  *   height with a 4:1 box (`object-contain`, so aspect changes degrade
  *   gracefully instead of cropping).
- * - `variant="mark"` — icon-only speech-bubble crop for square slots
- *   (collapsed sidebar rail).
+ * - `variant="mark"` — icon-only speech-bubble art for square slots
+ *   (collapsed sidebar rail, auth headers, platform console).
  *
  * Falls back to the legacy gradient Code2 mark while loading or if
  * decryption is unavailable.
