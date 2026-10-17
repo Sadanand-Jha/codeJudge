@@ -2,7 +2,7 @@ import { BarChart3, TrendingUp, Target, Award } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Analytics — QuizSupport",
+  title: "Analytics",
   description: "View your coding analytics on QuizSupport.",
 };
 

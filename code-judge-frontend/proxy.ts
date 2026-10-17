@@ -35,9 +35,14 @@ const FOCUS_ALLOWED_PREFIXES = [
   "/register",
   "/forgot-password",
   "/meet-the-developer",
+  "/about",
+  "/contact",
+  "/privacy",
+  "/pricing",
+  "/docs",
 ];
 
-const FOCUS_ALLOWED_EXACT = ["/"];
+const FOCUS_ALLOWED_EXACT = ["/", "/robots.txt", "/sitemap.xml"];
 
 function isPathAllowed(pathname: string): boolean {
   if (!FOCUS_MODE_ENABLED) return true;

@@ -3,7 +3,7 @@ import { Bookmark, ArrowRight } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Bookmarks — QuizSupport",
+  title: "Bookmarks",
   description: "Your bookmarked problems on QuizSupport.",
 };
 

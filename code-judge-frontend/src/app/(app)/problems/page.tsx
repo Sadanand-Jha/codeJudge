@@ -4,7 +4,7 @@ import type { ProblemListItem } from "@/types/problem";
 import { cookies } from "next/headers";
 
 export const metadata = {
-  title: "Problems — QuizSupport",
+  title: "Problems",
   description: "Competitive programming and every competitive exam — one practice hub on QuizSupport.",
 };
 

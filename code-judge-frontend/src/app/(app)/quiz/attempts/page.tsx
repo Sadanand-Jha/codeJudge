@@ -6,7 +6,7 @@ import GuestGuard from "@/components/guards/GuestGuard";
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
 
 export const metadata: Metadata = {
-  title: "Attempts — QuizSupport",
+  title: "Attempts",
   description: "Review your complete QuizSupport quiz attempt history.",
 };
 

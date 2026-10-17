@@ -370,14 +370,14 @@ export default function ExamModeShell({
                   type="button"
                   onClick={() => setShowRegistration(false)}
                   disabled={entering}
-                  className="inline-flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-border px-5 text-sm font-semibold disabled:opacity-50"
+                  className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-border px-5 text-sm font-semibold disabled:opacity-50 sm:w-auto sm:flex-1"
                 >
                   <ArrowLeft className="h-4 w-4" /> Back
                 </button>
                 <button
                   type="submit"
                   disabled={entering || !registrationComplete}
-                  className="inline-flex h-14 flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500"
+                  className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500 sm:w-auto sm:flex-[1.4]"
                 >
                   {entering ? <QuizLoader className="h-4 w-4 text-white" /> : <Rocket className="h-4 w-4" />}
                   {entering ? "Starting your attempt…" : "Start Exam"}

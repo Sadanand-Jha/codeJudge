@@ -4,8 +4,9 @@ import type { ProblemListItem } from "@/types/problem";
 import { cookies } from "next/headers";
 
 export const metadata = {
-  title: "Competitive Programming — QuizSupport",
-  description: "Live competitive programming and DSA problems from the QuizSupport database.",
+  title: "Competitive Programming",
+  description: "Take the Competitive Programming quiz online. Practice questions, instant results and score tracking.",
+  alternates: { canonical: "https://www.quizsupport.com/problems/competitive-programming" },
 };
 
 export default async function CompetitiveProgrammingRoute({

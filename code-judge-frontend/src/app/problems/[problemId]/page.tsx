@@ -92,14 +92,14 @@ export async function generateMetadata({ params }: ProblemPageProps) {
   try {
     const problem = await fetchProblem(problemId, (await cookies()).toString());
     return {
-      title: `${problem.title} — QuizSupport`,
+      title: `${problem.title}`,
       description: problem.statement
         ? problem.statement.replace(/<[^>]*>/g, "").slice(0, 160)
         : `Solve ${problem.title} on QuizSupport`,
     };
   } catch {
     return {
-      title: "Problem — QuizSupport",
+      title: "Problem",
     };
   }
 }

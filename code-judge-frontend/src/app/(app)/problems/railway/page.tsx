@@ -1,8 +1,9 @@
 import { StreamPractice } from "../StreamPractice";
 
 export const metadata = {
-  title: "Railway Problems — QuizSupport",
-  description: "Railway exams practice problems — mix, subject-wise and chapter-wise drill-down.",
+  title: "Railway Problems",
+  description: "Take the Railway quiz online. Practice questions, instant results and score tracking.",
+  alternates: { canonical: "https://www.quizsupport.com/problems/railway" },
 };
 
 export default function RailwayStreamPage() {

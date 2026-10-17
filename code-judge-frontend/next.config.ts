@@ -34,7 +34,18 @@ const legacyPreparationRedirects = [
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["10.107.212.98"],
   async redirects() {
-    return legacyPreparationRedirects.map((r) => ({ ...r, permanent: false }));
+    return [
+      // SEO: canonical host is www — 301 bare domain to www in production.
+      // (Vercel: also set quizsupport.com → www.quizsupport.com redirect in
+      // the dashboard Domains settings as a backup.)
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "quizsupport.com" }],
+        destination: "https://www.quizsupport.com/:path*",
+        permanent: true,
+      },
+      ...legacyPreparationRedirects.map((r) => ({ ...r, permanent: false })),
+    ];
   },
   async rewrites() {
     // Option B: Proxy /api to backend so auth cookies become first-party

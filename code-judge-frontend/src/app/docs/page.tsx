@@ -3,7 +3,7 @@ import { ArrowLeft, BookOpen, Code2, Terminal } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Documentation — QuizSupport",
+  title: "Documentation",
   description: "QuizSupport documentation and guides.",
 };
 

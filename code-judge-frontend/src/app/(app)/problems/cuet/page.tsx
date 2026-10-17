@@ -1,8 +1,9 @@
 import { StreamPractice } from "../StreamPractice";
 
 export const metadata = {
-  title: "CUET Problems — QuizSupport",
-  description: "CUET practice problems — mix, subject-wise and chapter-wise drill-down.",
+  title: "CUET Problems",
+  description: "Take the CUET quiz online. Practice questions, instant results and score tracking.",
+  alternates: { canonical: "https://www.quizsupport.com/problems/cuet" },
 };
 
 export default function CuetStreamPage() {

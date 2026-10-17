@@ -8,8 +8,32 @@ import AuthHydrator from "@/components/providers/AuthHydrator";
 import { STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "@/utils/storageKeys";
 
 export const metadata: Metadata = {
-  title: "QuizSupport",
-  description: "AI-powered competitive programming platform.",
+  metadataBase: new URL("https://www.quizsupport.com"),
+  title: {
+    default: "QuizSupport – Online Quiz Platform for Taking Quizzes & Tests",
+    template: "%s | QuizSupport",
+  },
+  description:
+    "Take online quizzes and practice tests on QuizSupport. Test your knowledge, track your scores and get instant results on any device.",
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    siteName: "QuizSupport",
+    title: "QuizSupport – Online Quiz Platform",
+    description:
+      "Take online quizzes and practice tests, track your scores and get instant results.",
+    url: "/",
+    images: ["/og-image.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "QuizSupport – Online Quiz Platform",
+    description:
+      "Take online quizzes and practice tests, track your scores and get instant results.",
+    images: ["/og-image.png"],
+  },
+  icons: { icon: "/icon.png" },
 };
 
 export const viewport: Viewport = {
@@ -136,6 +160,29 @@ export default function RootLayout({
             __html: `
               (function(){try{var t;var s=localStorage.getItem('quizsupport_theme')||localStorage.getItem('quizDibba_theme')||localStorage.getItem('quizdibba_theme');if(s==='light'||s==='dark'){t=s}else{t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
             `,
+          }}
+        />
+        {/* Structured data: WebSite + Organization (no sameAs yet — add your
+            official social profile URLs once they exist). */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  name: "QuizSupport",
+                  url: "https://www.quizsupport.com/",
+                },
+                {
+                  "@type": "Organization",
+                  name: "QuizSupport",
+                  url: "https://www.quizsupport.com/",
+                  logo: "https://www.quizsupport.com/logo.png",
+                },
+              ],
+            }),
           }}
         />
       </head>

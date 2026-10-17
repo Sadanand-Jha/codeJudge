@@ -1,8 +1,9 @@
 import { StreamPractice } from "../StreamPractice";
 
 export const metadata = {
-  title: "State PSC Problems — QuizSupport",
-  description: "State PSC practice problems — mix, subject-wise and chapter-wise drill-down.",
+  title: "State PSC Problems",
+  description: "Take the State PSC quiz online. Practice questions, instant results and score tracking.",
+  alternates: { canonical: "https://www.quizsupport.com/problems/state-psc" },
 };
 
 export default function StatePscStreamPage() {

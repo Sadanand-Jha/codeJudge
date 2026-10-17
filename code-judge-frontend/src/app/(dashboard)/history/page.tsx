@@ -3,7 +3,7 @@ import { Code2, ArrowRight } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
 export const metadata = {
-  title: "Submission History — QuizSupport",
+  title: "Submission History",
   description: "Your submission history on QuizSupport.",
 };
 

@@ -1,8 +1,9 @@
 import { StreamPractice } from "../StreamPractice";
 
 export const metadata = {
-  title: "UGC NET Problems — QuizSupport",
-  description: "UGC NET practice problems — mix, subject-wise and chapter-wise drill-down.",
+  title: "UGC NET Problems",
+  description: "Take the UGC NET quiz online. Practice questions, instant results and score tracking.",
+  alternates: { canonical: "https://www.quizsupport.com/problems/ugc-net" },
 };
 
 export default function UgcNetStreamPage() {
