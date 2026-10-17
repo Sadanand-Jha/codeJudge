@@ -398,10 +398,10 @@ export function RegistrationStep() {
                   ))}
 
                   <div className="flex flex-col gap-2 pt-1.5 sm:flex-row">
-                    <span className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-border px-5 text-sm font-semibold text-text-primary sm:w-auto sm:flex-1">
+                    <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-border px-5 text-sm font-semibold text-text-primary sm:h-14 sm:w-auto sm:flex-1">
                       <ArrowLeft className="h-4 w-4" /> Back
                     </span>
-                    <span className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500 sm:w-auto sm:flex-[1.4]">
+                    <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500 sm:h-14 sm:w-auto sm:flex-[1.4]">
                       <Rocket className="h-4 w-4" /> Start Exam
                     </span>
                   </div>
