@@ -509,9 +509,12 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             {/* Back — internal pages only; never inside the quiz flow */}
             <BackButton />
 
-            {/* Brand logo — always visible (the project sidebar hides in the quiz workspace) */}
+            {/* Brand logo — always visible (the project sidebar hides in the quiz workspace).
+                Mobile shows the icon-only mark; the full wordmark is too wide and
+                overlaps the header actions on small screens. */}
             <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label="QuizSupport home">
-              <SecureLogo size={48} />
+              <SecureLogo size={36} variant="mark" className="sm:hidden" />
+              <SecureLogo size={48} variant="full" className="hidden sm:block" />
             </Link>
           </div>
 

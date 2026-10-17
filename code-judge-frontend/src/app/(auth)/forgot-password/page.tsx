@@ -202,7 +202,7 @@ export default function ForgotPasswordPage() {
   const isResetEnabled = passwordsMatch && !submitting;
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FFF9F1] px-6 py-20 dark:bg-[#050510]">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#FFF9F1] px-6 py-20 dark:bg-[#050510]">
       <AuthBackground />
       <AuthThemeControls />
 
