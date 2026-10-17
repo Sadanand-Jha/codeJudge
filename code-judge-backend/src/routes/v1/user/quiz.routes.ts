@@ -2,7 +2,7 @@
 // submissions, game config, collaboration, and result generation under /api/v1/user/quiz.
 import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
-import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizRatingSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, submitQuizAttemptSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema, quizGameMechanicsSchema, reportViolationSchema, startQuizAttemptSchema } from "../../../middleware/validate.ts";
+import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizRatingSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, submitQuizAttemptSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema, quizGameMechanicsSchema, reportViolationSchema, startQuizAttemptSchema, paperPdfSchema } from "../../../middleware/validate.ts";
 import {
   getAllQuizzes,
   getQuizById,
@@ -63,10 +63,14 @@ import {
   getQuizGameMechanics,
   upsertQuizGameMechanics,
 } from "../../../controllers/quiz.controller.ts";
+import { renderPaperPdfController } from "../../../controllers/paperPdf.controller.ts";
 const router = Router();
 
 // All quiz routes require authentication
 router.use(authenticate);
+
+// POST /api/v1/user/quiz/paper-pdf — render a print-ready question-paper PDF
+router.post("/paper-pdf", validate(paperPdfSchema), renderPaperPdfController);
 
 // ==================== QUIZ SETTINGS ====================
 

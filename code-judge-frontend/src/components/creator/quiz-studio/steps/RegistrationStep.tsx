@@ -4,16 +4,16 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowDown,
+  ArrowLeft,
   ArrowUp,
   ChevronDown,
+  ClipboardList,
   Eye,
   GripVertical,
   Loader2,
-  Lock,
   Plus,
-  ShieldCheck,
+  Rocket,
   Trash2,
-  UserRound,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { toast } from "@/lib/toast";
@@ -34,6 +34,8 @@ export function RegistrationStep() {
   const { state, setState, saveToServer } = useStudio();
   const reg = state.registration;
   const fields = reg.fields;
+  // The exact list the student form renders (named, non-blank fields only).
+  const namedFields = fields.map((f) => f.name.trim()).filter(Boolean);
 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -140,38 +142,6 @@ export function RegistrationStep() {
                 </span>
               </span>
             </label>
-          </section>
-
-          {/* Platform Information */}
-          <section className="rounded-xl border border-border bg-card">
-            <div className="border-b border-border px-5 py-3.5">
-              <h3 className="text-sm font-semibold text-text-primary">Platform Information</h3>
-              <p className="mt-0.5 text-xs text-text-secondary">
-                Collected automatically by Risponse — not configurable.
-              </p>
-            </div>
-            <ul className="divide-y divide-border">
-              <li className="flex items-center gap-3 px-5 py-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-card text-text-secondary">
-                  <UserRound className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-text-primary">Name</p>
-                  <p className="text-xs text-text-secondary">Automatically collected</p>
-                </div>
-                <Lock className="h-3.5 w-3.5 shrink-0 text-text-muted" />
-              </li>
-              <li className="flex items-center gap-3 px-5 py-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-card text-text-secondary">
-                  <ShieldCheck className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-text-primary">Account Identity</p>
-                  <p className="text-xs text-text-secondary">Email & login — platform managed</p>
-                </div>
-                <Lock className="h-3.5 w-3.5 shrink-0 text-text-muted" />
-              </li>
-            </ul>
           </section>
 
           {/* Registration Fields */}
@@ -389,65 +359,62 @@ export function RegistrationStep() {
               <Eye className="h-4 w-4 text-text-muted" />
             </div>
             <div className="max-h-[70vh] overflow-y-auto p-5">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-                {state.info.title || "Untitled Quiz"}
-              </p>
-              <h4 className="mt-1 text-base font-semibold text-text-primary">
-                Register for Assessment
-              </h4>
-              {reg.settings.description && (
-                <p className="mt-1 text-xs leading-relaxed text-text-secondary">
-                  {reg.settings.description}
+              {/* Mirrors the real student registration gate (ExamModeShell)
+                  pixel-for-pixel so the creator sees exactly what is shown. */}
+              <div className="text-center">
+                <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 via-orange-400 to-amber-300 text-white shadow-[0_16px_34px_-16px_rgba(244,114,182,.9)] dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500">
+                  <ClipboardList className="h-6 w-6" />
+                </div>
+                <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-pink-500 dark:text-violet-300">
+                  Registration required
                 </p>
-              )}
+                <h4 className="mt-1 text-xl font-black tracking-tight text-text-primary">
+                  Fill your details to begin
+                </h4>
+                <p className="mt-1 truncate text-xs font-semibold text-text-muted">
+                  {state.info.title || "Untitled Quiz"}
+                </p>
+                <p className="mt-1.5 text-xs text-text-secondary">
+                  Your timer starts only after you submit this form.
+                </p>
+              </div>
 
-              <div className="mt-4 space-y-4">
-                {/* Platform-managed */}
-                <div className="rounded-lg border border-dashed border-border bg-card-hover/30 px-3 py-2.5">
-                  <label className="block text-xs font-medium text-text-primary">Name</label>
-                  <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-text-muted">
-                    <Lock className="h-3 w-3" /> Automatically provided by platform
+              {namedFields.length > 0 ? (
+                <div className="mt-5 space-y-3.5">
+                  {namedFields.map((name) => (
+                    <label key={name} className="block">
+                      <span className="mb-1 block text-[11px] font-semibold text-text-secondary">
+                        {name} <span className="text-rose-500">*</span>
+                      </span>
+                      <input
+                        type="text"
+                        readOnly
+                        maxLength={500}
+                        autoComplete="off"
+                        placeholder={`Enter ${name.toLowerCase()}`}
+                        className="h-12 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none"
+                      />
+                    </label>
+                  ))}
+
+                  <div className="flex flex-col gap-2 pt-1.5 sm:flex-row">
+                    <span className="inline-flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-border px-5 text-sm font-semibold text-text-primary">
+                      <ArrowLeft className="h-4 w-4" /> Back
+                    </span>
+                    <span className="inline-flex h-14 flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500">
+                      <Rocket className="h-4 w-4" /> Start Exam
+                    </span>
+                  </div>
+                  <p className="text-center text-[11px] text-text-muted">
+                    All fields are required to start.
                   </p>
                 </div>
-
-                {reg.settings.collectAdditionalInfo ? (
-                  fields.map((field) => (
-                    <div key={field.id}>
-                      <label className="block text-xs font-medium text-text-primary">
-                        {field.name.trim() || "Untitled field"}
-                      </label>
-                      <div className="mt-1.5">
-                        <input
-                          type="text"
-                          placeholder={
-                            field.name.trim()
-                              ? `Enter ${field.name.trim().toLowerCase()}`
-                              : "Enter value"
-                          }
-                          className={cn(inputCls, "py-2")}
-                          readOnly
-                        />
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="rounded-lg border border-dashed border-border px-3 py-3 text-center text-xs text-text-muted">
-                    No additional details required — students register with just
-                    their platform account.
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-5 flex justify-end border-t border-border pt-4">
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 px-4 py-2 text-xs font-semibold text-pink-900 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200">
-                  Continue →
-                </span>
-              </div>
-
-              <p className="mt-3 inline-flex items-center gap-1 text-[10px] text-text-muted">
-                <ShieldCheck className="h-3 w-3" />
-                Identity & contact details are managed by Risponse.
-              </p>
+              ) : (
+                <p className="mt-5 rounded-lg border border-dashed border-border px-3 py-3 text-center text-xs text-text-muted">
+                  No fields configured — students enter the exam directly, without
+                  a registration form.
+                </p>
+              )}
             </div>
           </section>
         </aside>

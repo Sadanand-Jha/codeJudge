@@ -9,6 +9,7 @@ import { sendCollaboratorInviteEmail } from "../services/email.ts";
 import { finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/quizSubmission.service.ts";
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
+import { sendEntitlementError } from "../services/entitlement.service.ts";
 import {
   acquireQuizSubmissionRecoveryLock,
   deleteFallbackQuizSubmission,
@@ -412,6 +413,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       data: quiz,
     });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizCreationLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
       return;
@@ -609,6 +611,7 @@ export const cloneQuiz = async (req: Request, res: Response) => {
       data: clonedQuiz,
     });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizCreationLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
       return;
@@ -753,6 +756,7 @@ export const addQuizProblem = async (req: Request, res: Response) => {
       data: problem,
     });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizQuestionLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
       return;
@@ -916,6 +920,7 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
       data: result,
     });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizQuestionLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
       return;
@@ -1031,6 +1036,7 @@ export const duplicateQuizProblem = async (req: Request, res: Response) => {
       data: duplicatedProblem,
     });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizQuestionLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
       return;

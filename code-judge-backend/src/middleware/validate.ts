@@ -201,6 +201,26 @@ export const startQuizAttemptSchema = z.object({
     .optional(),
 });
 
+/**
+ * Schema for the question-paper PDF renderer. The client builds a complete
+ * print-ready HTML document (including inline data-URL web fonts) and the
+ * backend only renders it with headless Chromium.
+ */
+export const paperPdfSchema = z
+  .object({
+    html: z.string().min(20, "html is too short").max(8_000_000, "html payload is too large"),
+    footer: z
+      .object({
+        left: z.string().max(300).optional(),
+        right: z.string().max(300).optional(),
+      })
+      .strict()
+      .optional(),
+    fontCss: z.string().max(4_000_000).optional(),
+    filename: z.string().max(160).optional(),
+  })
+  .strict();
+
 /** One immutable 1–5 star rating per learner and quiz. */
 const detailedQuizRatingSchema = z.object({
   quizRating: z.number().int().min(1).max(5),

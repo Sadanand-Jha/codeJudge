@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, Clock } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { StudioStepHeader, StudioStepLayout, SwitchField } from "../primitives";
@@ -13,7 +13,7 @@ const GROUPS: Array<{ id: string; label: string; fields: SettingField[]; comingS
     id: "general",
     label: "General",
     fields: [
-      { key: "negativeMarking", label: "Enable negative marking" },
+      { key: "negativeMarking", label: "Enable negative marking", description: "Deduct marks for wrong answers." },
     ],
   },
   {
@@ -55,41 +55,86 @@ export function SettingsStep() {
   return (
     <StudioStepLayout width="wide">
       <StudioStepHeader title="Quiz Settings" />
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className="rounded-2xl border border-border bg-card p-4 sm:p-5 min-w-0 overflow-hidden"
-      >
-        <div className="mb-4 sm:mb-5 flex items-center gap-2.5 min-w-0">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10">
-            <Clock className="h-4 w-4 text-pink-500" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-sm font-bold text-text-primary">Timing & Lifecycle</h3>
-          </div>
-        </div>
-        <TimingSection />
-      </motion.div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          <TimingSection />
 
-      {GROUPS.map((g, i) => (
-        <motion.div
-          key={g.id}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 + i * 0.06 }}
-        >
-          <SettingGroup
-          key={g.id}
-          id={g.id}
-          label={g.label}
-          fields={g.fields}
-          comingSoon={g.comingSoon}
-          alwaysOn={g.alwaysOn}
-          />
-        </motion.div>
-      ))}
+          {GROUPS.map((g, i) => (
+            <motion.div
+              key={g.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 + i * 0.06 }}
+            >
+              <SettingGroup
+                key={g.id}
+                id={g.id}
+                label={g.label}
+                fields={g.fields}
+                comingSoon={g.comingSoon}
+                alwaysOn={g.alwaysOn}
+              />
+            </motion.div>
+          ))}
+        </div>
+
+        <SummaryAside />
+      </div>
     </StudioStepLayout>
+  );
+}
+
+function SummaryAside() {
+  const { state } = useStudio();
+  const lifecycle = state.info.quizLifecycle;
+  const status =
+    lifecycle === "live"
+      ? { label: "Live", className: "text-emerald-600 dark:text-emerald-400" }
+      : lifecycle === "scheduled"
+        ? { label: "Scheduled", className: "text-amber-600 dark:text-amber-400" }
+        : lifecycle === "ended"
+          ? { label: "Ended", className: "text-rose-500" }
+          : { label: "Draft", className: "text-text-secondary" };
+
+  const startLabel =
+    lifecycle === "scheduled" && state.info.startDate
+      ? new Date(state.info.startDate).toLocaleString("en-IN", {
+          day: "numeric",
+          month: "short",
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : "Manual";
+
+  return (
+    <aside className="min-w-0 lg:sticky lg:top-4">
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">Summary</p>
+        <dl className="mt-3.5 space-y-3 text-xs">
+          <SummaryRow label="Status" value={status.label} valueClassName={status.className} />
+          <SummaryRow label="Start" value={startLabel} />
+          <SummaryRow label="Attempt time" value={`${state.info.duration || 60} min`} />
+          <SummaryRow label="Negative marking" value={state.settings.negativeMarking ? "On" : "Off"} />
+        </dl>
+      </div>
+    </aside>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  valueClassName,
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-text-secondary">{label}</dt>
+      <dd className={cn("font-semibold text-text-primary", valueClassName)}>{value}</dd>
+    </div>
   );
 }
 
@@ -115,7 +160,7 @@ function SettingGroup({
         aria-expanded={open}
       >
         <span className="flex items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+          <span className="text-sm font-bold text-text-primary">
             {label}
           </span>
           {comingSoon && (
@@ -196,6 +241,7 @@ function Field({ field }: { field: SettingField }) {
   return (
     <SwitchField
       label={field.label}
+      description={field.description}
       checked={!!value}
       onChange={(v) => updateSettings({ [field.key]: v })}
     />

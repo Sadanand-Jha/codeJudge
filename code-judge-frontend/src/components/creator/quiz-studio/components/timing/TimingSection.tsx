@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Clock } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../../StudioProvider";
 import { updateQuizStatus } from "@/services/quiz";
@@ -240,87 +240,116 @@ export function TimingSection() {
 
   return (
     <div className="mx-auto w-full max-w-none min-w-0 overflow-x-hidden">
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 min-w-0">
-        {/* LEFT — main flow */}
-        <div className="min-w-0 space-y-4 sm:space-y-6 overflow-hidden">
-          {/* Start mode selection */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="space-y-1 min-w-0 px-1"
-          >
-            <h3 className="text-sm font-bold text-text-primary break-words">
-              When should this quiz run?
-            </h3>
-          </motion.div>
+      <div className="min-w-0 space-y-4 sm:space-y-6 overflow-hidden">
+        {/* Timing & lifecycle */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-5"
+        >
+          <div className="mb-4 flex min-w-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10">
+              <Clock className="h-4 w-4 text-pink-500" />
+            </div>
+            <h3 className="min-w-0 text-sm font-bold text-text-primary">Timing & lifecycle</h3>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.15 }}
-            className="grid grid-cols-2 gap-2.5 sm:gap-3 min-w-0"
-          >
-            <ModeCard
-              active={mode === "schedule"}
+          <p className="text-sm font-medium text-text-primary">When should this quiz run?</p>
+
+          {/* Segmented control */}
+          <div className="mt-2.5 flex min-w-0 rounded-xl border border-border bg-card-hover p-1">
+            <button
+              type="button"
               onClick={() => {
                 if (isQuizActive) { setPendingMode("schedule"); setModeLockModal(true); return; }
                 switchMode("schedule");
               }}
-              title="Schedule"
-            />
-            <ModeCard
-              active={mode === "manual"}
+              className={cn(
+                "min-w-0 flex-1 rounded-lg border py-2 text-xs font-semibold transition-all sm:text-sm",
+                mode === "schedule"
+                  ? "border-pink-300 bg-card text-pink-500 shadow-sm dark:border-pink-400/40"
+                  : "border-transparent text-text-secondary hover:text-text-primary"
+              )}
+            >
+              Schedule
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 if (isQuizActive) { setPendingMode("manual"); setModeLockModal(true); return; }
                 switchMode("manual");
               }}
-              title="Start manually"
-            />
-          </motion.div>
+              className={cn(
+                "min-w-0 flex-1 rounded-lg border py-2 text-xs font-semibold transition-all sm:text-sm",
+                mode === "manual"
+                  ? "border-pink-300 bg-card text-pink-500 shadow-sm dark:border-pink-400/40"
+                  : "border-transparent text-text-secondary hover:text-text-primary"
+              )}
+            >
+              Start manually
+            </button>
+          </div>
 
-          <AnimatePresence mode="wait">
-            {mode === "schedule" ? (
-              <motion.div
-                key="schedule"
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 12 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ScheduleMode
-                  schedule={schedule}
-                  onChange={handleScheduleChange}
-                  manualStatus={manual.status}
-                  validationErrors={validationErrors}
-                />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="manual"
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 12 }}
-                transition={{ duration: 0.2 }}
-              >
-                <ManualMode
-                  manual={manual}
-                  onManualChange={handleManualChange}
-                  participantDuration={participantDuration}
-                  quizId={quizId}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="mt-4">
+            <AnimatePresence mode="wait">
+              {mode === "schedule" ? (
+                <motion.div
+                  key="schedule"
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 12 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ScheduleMode
+                    schedule={schedule}
+                    onChange={handleScheduleChange}
+                    manualStatus={manual.status}
+                    validationErrors={validationErrors}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="manual"
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 12 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ManualMode
+                    manual={manual}
+                    onManualChange={handleManualChange}
+                    participantDuration={participantDuration}
+                    quizId={quizId}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-          {/* Participant duration */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            className="space-y-2"
-          >
-            <p className="text-sm font-bold text-text-primary">Attempt duration</p>
+          {validationErrors.length > 0 && (
+            <div className="mt-3 space-y-1">
+              {validationErrors.map((err) => (
+                <p key={err} className="text-xs text-rose-500">
+                  {err}
+                </p>
+              ))}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Attempt duration */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-5"
+        >
+          <h3 className="text-sm font-bold text-text-primary">Attempt duration</h3>
+          <p className="mt-0.5 text-xs text-text-secondary">
+            Time limit for each participant&apos;s attempt.
+          </p>
+          <div className="mt-3">
             <DurationPicker
               value={participantDuration}
               onChange={(v) => {
@@ -330,20 +359,9 @@ export function TimingSection() {
               presets={DURATION_PRESETS}
               label="Time limit"
               max={45}
-              size="lg"
             />
-          </motion.div>
-
-          {validationErrors.length > 0 && (
-            <div className="space-y-1">
-              {validationErrors.map((err) => (
-                <p key={err} className="text-xs text-rose-500">
-                  {err}
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* Mode lock modal */}
@@ -372,48 +390,3 @@ export function TimingSection() {
   );
 }
 
-function ModeCard({
-  active,
-  onClick,
-  title,
-}: {
-  active: boolean;
-  onClick: () => void;
-  title: string;
-}) {
-  return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
-      className={cn(
-        "w-full min-w-0 overflow-hidden rounded-xl border p-3 text-left transition-all sm:p-4",
-        active
-          ? "border-pink-500/50 bg-pink-500/[0.08] ring-1 ring-pink-500/20"
-          : "border-border bg-card hover:bg-card-hover"
-      )}
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <div
-          className={cn(
-            "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2",
-            active ? "border-pink-500 bg-pink-500" : "border-border"
-          )}
-        >
-          {active && <div className="h-1.5 w-1.5 rounded-full bg-white dark:!bg-white" />}
-        </div>
-        <p
-          className={cn(
-            "min-w-0 text-xs font-semibold sm:text-sm",
-            active
-              ? "text-pink-500"
-              : "text-text-primary"
-          )}
-        >
-          {title}
-        </p>
-      </div>
-    </motion.button>
-  );
-}

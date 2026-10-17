@@ -10,6 +10,7 @@ import { UserService } from './database/user.database.js';
 import { sendOtpEmail } from './email.js';
 import generateOtp from './otpGenerator.js';
 import { isPlatformOwner } from './platformSession.js';
+import { ensureFreeSubscription } from './entitlement.service.js';
 import { isTransientDatabaseError, withTransientDatabaseRetry } from '../config/database.js';
 
 const OTP_TTL_SECONDS = 5 * 60; // 5 minutes — OTP validity
@@ -435,6 +436,15 @@ export async function register(
 
     // 6. Save user to database and get the created user record (includes id)
     const createdUser = await userService.createUser(normalizedEmail, hashedPassword, normalizedUsername, avatarUrl, accountType);
+
+    // 6b. Auto-assign the default free plan. A subscription hiccup must never
+    // block registration — the entitlement resolver falls back to free-plan
+    // defaults even when no subscription row exists.
+    try {
+      await ensureFreeSubscription(createdUser.id);
+    } catch (subscriptionError) {
+      console.error('Failed to assign default free subscription:', subscriptionError);
+    }
 
     // 7. Delete registration token from Redis
     await deleteCachedRegistrationToken(registrationToken);

@@ -1,9 +1,14 @@
 // Quiz creation limits — shared business logic for every quiz creation path
 // (creator studio, user API, cloning). Limits are enforced here so no client
 // can bypass them; the frontend only surfaces the error when a limit is hit.
+//
+// The total-quizzes cap is now resolved from the user's subscription
+// entitlements (`max_quizzes`, -1 = unlimited) instead of a hardcoded number.
+// Daily and cooldown caps remain fixed anti-abuse rules.
 import { pool } from "../config/database.ts";
+import { assertLimit } from "./entitlement.service.ts";
 
-/** Maximum quizzes a single user may own at any time. */
+/** Free-plan fallback for the entitlement-backed total-quizzes cap. */
 export const MAX_QUIZZES_PER_USER = 10;
 
 /** Maximum quizzes a single user may create per calendar day (IST). */
@@ -76,12 +81,9 @@ async function getQuizCreationStats(userId: number): Promise<QuizCreationStats> 
 export async function assertQuizCreationAllowed(userId: number): Promise<void> {
   const stats = await getQuizCreationStats(userId);
 
-  if (stats.total >= MAX_QUIZZES_PER_USER) {
-    throw new QuizCreationLimitError(
-      "MAX_QUIZZES",
-      `You have reached the maximum of ${MAX_QUIZZES_PER_USER} quizzes. Delete a quiz to create a new one.`
-    );
-  }
+  // Plan-based cap: throws EntitlementLimitError (mapped to 403 + upgrade
+  // prompt by controllers). The free plan defaults to MAX_QUIZZES_PER_USER.
+  await assertLimit(userId, "max_quizzes", stats.total);
 
   if (stats.today >= MAX_QUIZZES_PER_DAY) {
     throw new QuizCreationLimitError(

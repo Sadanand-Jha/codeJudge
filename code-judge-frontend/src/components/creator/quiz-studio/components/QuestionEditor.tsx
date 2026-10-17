@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CircleDot,
   ListChecks,
@@ -15,13 +15,12 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
-  ImageIcon,
   Clock,
   GripVertical,
   AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import type { CreatorQuestion, CreatorOption, CreatorQuestionType } from "../types";
+import type { CreatorQuestion, CreatorQuestionType } from "../types";
 import { useStudio } from "../StudioProvider";
 import { EditableContent, RichToolbar } from "./RichToolbar";
 import { MatchFollowingEditor } from "./MatchFollowingEditor";
@@ -77,8 +76,6 @@ export function QuestionEditor() {
   const [showType, setShowType] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
   const [pendingType, setPendingType] = useState<CreatorQuestionType | null>(null);
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
-  const pendingImageOption = useRef<string | null>(null);
   const [draggedOpt, setDraggedOpt] = useState<string | null>(null);
   const { difficultyOptions, fetchAll } = useQuizReferenceStore();
 
@@ -165,9 +162,6 @@ export function QuestionEditor() {
     }
   };
 
-  const updateOption = (id: string, patch: Partial<CreatorOption>) =>
-    update({ options: q.options.map((o) => (o.id === id ? { ...o, ...patch } : o)) });
-
   const addOption = () => {
     if (q.options.length >= 6) return;
     const label = String.fromCharCode(65 + q.options.length);
@@ -192,23 +186,6 @@ export function QuestionEditor() {
     update({ options: next.map((o, i) => ({ ...o, label: String.fromCharCode(65 + i) })) });
   };
 
-  const openImageAssistant = (optId: string) => {
-    pendingImageOption.current = optId;
-    imageInputRef.current?.click();
-  };
-
-  const handleOptionImagePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const optId = pendingImageOption.current;
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!optId || !file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") updateOption(optId, { imageUrl: reader.result });
-    };
-    reader.readAsDataURL(file);
-  };
-
   const activeIdx = state.questions.findIndex((x) => x.id === q.id);
 
   // Premium Match the Following — full-bleed editor per spec
@@ -218,8 +195,6 @@ export function QuestionEditor() {
 
   return (
     <div className="flex flex-1 flex-col min-h-0 bg-card">
-      <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleOptionImagePicked} />
-
       <div className="shrink-0 border-b border-border bg-card px-3 sm:px-6 py-3">
         <div className="flex items-center justify-between gap-2 sm:gap-3 min-w-0">
           <h2 className="text-[14px] sm:text-[15px] font-bold text-text-primary shrink-0">Question {String(activeIdx + 1).padStart(2, "0")}</h2>
@@ -278,7 +253,7 @@ export function QuestionEditor() {
             <span className="text-text-muted">Difficulty</span>
             <span className={cn("h-2 w-2 rounded-full", q.difficulty === "Easy" ? "bg-emerald-500" : q.difficulty === "Medium" ? "bg-amber-500" : q.difficulty === "Hard" ? "bg-orange-500" : "bg-rose-500")} />
             <button onClick={() => setShowDiff(!showDiff)} className="inline-flex items-center gap-1 font-medium text-text-primary">
-              {q.difficulty} <ChevronDown className="h-3 w-3 text-text-muted" />
+              {q.difficulty}
             </button>
             {showDiff && (
               <div className="absolute left-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
@@ -437,9 +412,6 @@ export function QuestionEditor() {
                         className="min-h-7 min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-1 text-sm leading-5 text-text-primary placeholder:text-text-muted focus:outline-none"
                       />
                       <div className="mt-0.5 flex shrink-0 items-center gap-0.5 sm:flex">
-                        <button onClick={() => openImageAssistant(o.id)} className="rounded p-1.5 text-text-muted hover:bg-card-hover">
-                          <ImageIcon className="h-3.5 w-3.5" />
-                        </button>
                         <button onClick={() => removeOption(o.id)} className="rounded p-1.5 text-text-muted hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>

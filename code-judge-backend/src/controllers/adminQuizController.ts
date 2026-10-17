@@ -9,6 +9,7 @@ import { sendCollaboratorInviteEmail } from "../services/email.ts";
 import { isDatabaseUnavailableError } from "../utils/databaseError.ts";
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { MAX_QUESTIONS_PER_QUIZ, QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
+import { sendEntitlementError } from "../services/entitlement.service.ts";
 
 const quizService = new AdminQuizService();
 const resultGenerationService = new ResultGenerationService();
@@ -341,6 +342,7 @@ export const createQuiz = async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true, message: "Quiz created successfully", data: quiz });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizCreationLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
       return;
@@ -426,6 +428,7 @@ export const cloneQuiz = async (req: Request, res: Response) => {
     const clonedQuiz = await quizService.cloneQuiz(Number(quizId), name, code, userId);
     res.status(201).json({ success: true, message: "Quiz cloned successfully", data: clonedQuiz });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizCreationLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
       return;
@@ -583,6 +586,7 @@ export const addQuizProblem = async (req: Request, res: Response) => {
     const problem = await quizService.createQuizProblem({ ...req.body, quizId: Number(quizId) });
     res.status(201).json({ success: true, message: "Question added successfully", data: problem });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizQuestionLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
       return;
@@ -679,6 +683,7 @@ export const duplicateQuizProblem = async (req: Request, res: Response) => {
     const duplicatedProblem = await quizService.duplicateQuizProblem(Number(problemId));
     res.status(201).json({ success: true, message: "Question duplicated successfully", data: duplicatedProblem });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizQuestionLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
       return;
@@ -814,6 +819,7 @@ export const saveQuizProblemFull = async (req: Request, res: Response) => {
 
     res.status(200).json({ success: true, message: "Question saved successfully", data: result });
   } catch (error) {
+    if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizQuestionLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
       return;

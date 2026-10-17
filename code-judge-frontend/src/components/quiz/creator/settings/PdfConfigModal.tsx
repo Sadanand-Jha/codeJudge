@@ -1,33 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Check,
-  ChevronDown,
-  FileText,
-  Download,
-  X,
-} from "lucide-react";
+import { ChevronDown, FileText, Download, X, KeyRound, Shuffle } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import {
-  PDF_QUESTION_SIZES,
-  PDF_OPTION_SIZES,
-  makeDefaultConfig,
-  toBaseFont,
-  MARGIN_MM,
-  pageSizeMm,
-  type PdfConfig,
-  type PdfStudent,
-  type PdfAnswerPlacement,
-  type PdfGenerationMode,
-} from "@/utils/pdfConfig";
+import { type PdfStudent, type PdfGenerationMode } from "@/utils/pdfConfig";
 import { getQuizResponses, type QuizResponseStudent } from "@/services/quiz";
-import { useQuizSettings } from "@/components/quiz/creator/settings/QuizSettingsContext";
-import { useQuizProblemsStore } from "@/store/quizProblemsStore";
-import { type QuizPdfMeta } from "@/utils/quizPdf";
+import {
+  buildPaperPreviewDocument,
+  loadPaperFontCss,
+  preparePaperQuestions,
+  type PaperMeta,
+  type PaperOptions,
+  type PaperQuestion,
+} from "@/utils/paperHtml";
+import { type PaperDownloadKind, type PaperDownloadMode } from "@/utils/paperPdf";
 import { toast } from "@/lib/toast";
-import PdfPreview from "@/components/quiz/creator/settings/PdfPreview";
+
+const A4_WIDTH_PX = 794;
 
 interface SectionProps {
   title: string;
@@ -67,9 +57,6 @@ const RADIO = {
   idle: "border-border bg-card-hover/40 text-text-secondary hover:border-border-hover",
 };
 
-const CHECK =
-  "rounded border border-border bg-card-hover/40 text-xs font-semibold text-text-primary";
-
 function RadioRow({
   label,
   hint,
@@ -105,27 +92,32 @@ function RadioRow({
   );
 }
 
-const FOOTER_OPTIONS: Array<[keyof PdfConfig["footer"], string]> = [
-  ["enabled", "Show footer"],
-  ["showDateTime", "Date and time"],
-  ["showPageNumber", "Page X of Y"],
-];
-
-const PLACEMENTS: { id: PdfConfig["studentDetails"]["placement"]; label: string }[] = [
-  { id: "top-left", label: "Top Left" },
-  { id: "top-center", label: "Top Center" },
-  { id: "top-right", label: "Top Right" },
-  { id: "below-header", label: "Below Quiz Header" },
-  { id: "bottom-left", label: "Bottom Left" },
-  { id: "bottom-center", label: "Bottom Center" },
-  { id: "bottom-right", label: "Bottom Right" },
-];
-
-const STUDENT_FIELDS: Array<{ id: PdfConfig["studentDetails"]["fields"][number]; label: string }> = [
-  { id: "name", label: "Name" },
-  { id: "username", label: "Username" },
-  { id: "rollNo", label: "Roll Number" },
-];
+function ToggleRow({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border bg-card-hover/40 px-3 py-2.5 text-xs text-text-primary transition-colors hover:border-border-hover">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-pink-500"
+      />
+      <span className="min-w-0">
+        <span className="block font-semibold">{label}</span>
+        {hint && <span className="mt-0.5 block text-[10px] font-normal text-text-muted">{hint}</span>}
+      </span>
+    </label>
+  );
+}
 
 function mapRegistered(students: QuizResponseStudent[]): PdfStudent[] {
   return students
@@ -138,51 +130,53 @@ function mapRegistered(students: QuizResponseStudent[]): PdfStudent[] {
     }));
 }
 
-const toSummary = (c: PdfConfig, registeredCount: number, taking: number) => {
-  const parts: string[] = [];
-  parts.push(c.page.orientation === "portrait" ? "Portrait" : "Landscape");
-  parts.push(c.page.size.toUpperCase());
-  parts.push(c.page.margins);
-  parts.push(c.page.layout === "two-column" ? "2-column" : "Full width");
-  parts.push(c.content.includeAnswers ? "With answers" : "Without answers");
-  if (c.generation.mode !== "single") {
-    parts.push(`${taking} student paper${taking !== 1 ? "s" : ""}`);
-  }
-  return parts.join(" • ");
-};
+export interface PaperDownloadConfig {
+  options: PaperOptions;
+  mode: PaperDownloadMode;
+  students: PdfStudent[];
+}
 
 export default function PdfConfigModal({
   open,
   onClose,
   questions,
-  quizName,
+  meta,
+  quizId,
+  shuffleDefaults,
   generating,
-  onGenerate,
+  onDownload,
 }: {
   open: boolean;
   onClose: () => void;
-  questions: import("@/components/quiz/creator/types").CreatorQuestion[];
-  quizName?: string;
+  questions: PaperQuestion[];
+  meta: PaperMeta;
+  quizId?: string | number | null;
+  shuffleDefaults?: { shuffleQuestions?: boolean; shuffleOptions?: boolean };
   generating?: boolean;
-  onGenerate: (config: PdfConfig, students: PdfStudent[]) => void;
+  onDownload: (kind: PaperDownloadKind, config: PaperDownloadConfig) => void;
 }) {
-  const { quiz, quizId, details } = useQuizSettings();
-  const hydrate = useQuizProblemsStore((s) => s.hydrate);
-
-  const [config, setConfig] = useState<PdfConfig>(makeDefaultConfig());
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    content: true,
-    layout: false,
-    typography: false,
-    header: false,
-    student: false,
-    footer: false,
-    generation: false,
+  const [options, setOptions] = useState<PaperOptions>({
+    includeAnswerKey: false,
+    showStudentBlock: true,
+    shuffleQuestions: shuffleDefaults?.shuffleQuestions ?? false,
+    shuffleOptions: shuffleDefaults?.shuffleOptions ?? false,
+    layout: "single",
   });
+  const [mode, setMode] = useState<PdfGenerationMode>("single");
   const [registered, setRegistered] = useState<PdfStudent[]>([]);
   const [manualMode, setManualMode] = useState<"all" | "manual">("all");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    content: true,
+    layout: false,
+    generation: false,
+  });
+
+  const [fontCss, setFontCss] = useState("");
+  const [previewHtml, setPreviewHtml] = useState("");
+  const [scale, setScale] = useState(0.6);
+  const previewWrapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -195,52 +189,82 @@ export default function PdfConfigModal({
 
   useEffect(() => {
     if (!open) return;
-    getQuizResponses(String(quizId ?? ""))
+    let cancelled = false;
+    loadPaperFontCss()
+      .then((css) => {
+        if (!cancelled) setFontCss(css);
+      })
+      .catch(() => {
+        if (!cancelled) toast.error({ title: "Fonts failed to load", description: "Could not load the print fonts." });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !quizId) return;
+    getQuizResponses(String(quizId))
       .then((res) => setRegistered(mapRegistered(res.students)))
       .catch(() => setRegistered([]))
       .finally(() => setLoadingStudents(false));
   }, [open, quizId]);
 
-  const set = <K extends keyof PdfConfig>(key: K, value: PdfConfig[K]) =>
-    setConfig((c) => ({ ...c, [key]: value }));
-
-  const meta: QuizPdfMeta = useMemo(
-    () => ({
-      quizName: quizName?.trim() || details.name || quiz?.name || "Quiz",
-      subject: details.subject,
-      difficulty: details.difficulty,
-      timeLimit: details.timeLimit ? `${details.timeLimit} min` : undefined,
-      topic: details.topic,
-      visibility: details.visibility,
-      quizId: quiz?.code || quizId,
-      creatorName: quiz?.creator_name ?? undefined,
-      totalQuestions: questions.length,
-      totalMarks: questions.reduce((s, q) => s + (q.marks || 0), 0),
-    }),
-    [quizName, details, quiz, quizId, questions]
-  );
-
-  hydrate();
-
   const takingStudents = useMemo(() => {
-    if (config.generation.mode === "single") return [];
-    const pool = config.studentDetails.source === "registered" ? registered : [];
+    if (mode === "single") return [];
+    const pool = registered;
     if (manualMode === "all") return pool;
     return pool.filter((s) => selectedIds.includes(s.id));
-  }, [config.generation.mode, config.studentDetails.source, registered, manualMode, selectedIds]);
+  }, [mode, registered, manualMode, selectedIds]);
 
   const previewStudent = useMemo(() => {
-    if (!config.studentDetails.enabled) return null;
-    if (config.studentDetails.source === "blank") return null;
-    return takingStudents[0] ?? registered[0] ?? null;
-  }, [config.studentDetails.enabled, config.studentDetails.source, takingStudents, registered]);
+    if (options.showStudentBlock === false) return null;
+    if (mode === "single") return null;
+    return takingStudents[0] ?? null;
+  }, [options.showStudentBlock, mode, takingStudents]);
 
-  const layout = pageSizeMm(config.page.size, config.page.orientation);
+  const prepared = useMemo(
+    () => preparePaperQuestions(questions, options),
+    // Re-shuffle intentionally when shuffle toggles flip.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [questions, options.shuffleQuestions, options.shuffleOptions]
+  );
 
-  const handleGenerate = () => {
-    const withStudents = config.generation.mode !== "single";
-    const list = withStudents ? takingStudents : [];
-    if (withStudents && list.length === 0) {
+  useEffect(() => {
+    if (!open || !fontCss) return;
+    const timer = setTimeout(() => {
+      setPreviewHtml(
+        buildPaperPreviewDocument(
+          {
+            meta,
+            questions: prepared,
+            options,
+            students: previewStudent ? [previewStudent] : null,
+          },
+          fontCss,
+          "paper"
+        )
+      );
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [open, fontCss, meta, prepared, options, previewStudent]);
+
+  useEffect(() => {
+    if (!open) return;
+    const el = previewWrapRef.current;
+    if (!el) return;
+    const update = () => {
+      const width = el.clientWidth - 8;
+      setScale(Math.max(0.25, Math.min(1, width / A4_WIDTH_PX)));
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [open]);
+
+  const handleDownload = (kind: PaperDownloadKind) => {
+    const students = mode === "single" ? [] : takingStudents;
+    if (mode !== "single" && students.length === 0) {
       toast.error({
         title: "No students selected",
         description: "Add registered students or choose a single question paper.",
@@ -248,21 +272,18 @@ export default function PdfConfigModal({
       });
       return;
     }
-    const finalConfig: PdfConfig = {
-      ...config,
-      generation: {
-        ...config.generation,
-        selectedStudentIds:
-          config.generation.mode === "single" || manualMode === "all"
-            ? null
-            : selectedIds,
-      },
-    };
-    onGenerate(finalConfig, list);
+    onDownload(kind, { options, mode, students });
   };
 
-  const toggleSection = (key: string) =>
-    setOpenSections((s) => ({ ...s, [key]: !s[key] }));
+  const summary = [
+    mode === "single" ? "Single paper" : `${takingStudents.length} student paper${takingStudents.length !== 1 ? "s" : ""}`,
+    options.layout === "two-column" ? "Two columns" : "Single column",
+    options.includeAnswerKey ? "Answer key page" : "No answers",
+    options.showStudentBlock ? "Student block" : "No student block",
+    options.shuffleQuestions || options.shuffleOptions ? "Shuffled" : "",
+  ]
+    .filter(Boolean)
+    .join(" • ");
 
   return (
     <AnimatePresence>
@@ -286,16 +307,15 @@ export default function PdfConfigModal({
             onClick={(e) => e.stopPropagation()}
             className="flex max-h-[calc(100dvh-3rem)] w-full max-w-[1060px] flex-col overflow-hidden rounded-[20px] border border-border bg-card shadow-[0_30px_90px_-20px_rgba(0,0,0,0.5)]"
           >
-            {/* Header */}
             <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-4">
               <div className="flex items-center gap-3">
                 <span className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border bg-card-hover/60 text-accent">
                   <FileText className="h-4 w-4" />
                 </span>
                 <div>
-                  <h3 className="text-base font-bold text-text-primary">Configure Question Paper</h3>
+                  <h3 className="text-base font-bold text-text-primary">Download Question Paper</h3>
                   <p className="mt-0.5 text-xs text-text-secondary">
-                    Adjust the settings, watch the live preview, then generate.
+                    Print-ready A4 PDF with the live preview below.
                   </p>
                 </div>
               </div>
@@ -308,319 +328,77 @@ export default function PdfConfigModal({
               </button>
             </div>
 
-            {/* Body */}
             <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-2">
-              {/* Settings */}
               <div className="space-y-3 overflow-y-auto border-b border-border p-5 lg:border-b-0 lg:border-r">
-                {/* Content */}
                 <Section
                   title="Content"
-                  summary={config.content.includeAnswers ? "With answers" : "Without answers"}
+                  summary={options.includeAnswerKey ? "With answer key" : "Questions only"}
                   open={openSections.content}
-                  onToggle={() => toggleSection("content")}
+                  onToggle={() => setOpenSections((s) => ({ ...s, content: !s.content }))}
                 >
-                  <div className="grid gap-2">
-                    <RadioRow
-                      label="Without Answers"
-                      hint="Questions and options only."
-                      checked={!config.content.includeAnswers}
-                      onClick={() => set("content", { ...config.content, includeAnswers: false })}
+                  <div className="space-y-1.5">
+                    <ToggleRow
+                      label="Include answer key"
+                      hint="Adds a separate answer key page at the end of the PDF."
+                      checked={!!options.includeAnswerKey}
+                      onChange={(value) => setOptions((o) => ({ ...o, includeAnswerKey: value }))}
                     />
-                    <RadioRow
-                      label="With Answers"
-                      hint="Questions + answers + explanations + hints."
-                      checked={config.content.includeAnswers}
-                      onClick={() => set("content", { ...config.content, includeAnswers: true })}
+                    <ToggleRow
+                      label="Include student details block"
+                      hint="Name / Roll No / Section lines at the top of the paper."
+                      checked={options.showStudentBlock !== false}
+                      onChange={(value) => setOptions((o) => ({ ...o, showStudentBlock: value }))}
+                    />
+                    <ToggleRow
+                      label="Shuffle questions"
+                      hint="Change the question order in the generated paper."
+                      checked={!!options.shuffleQuestions}
+                      onChange={(value) => setOptions((o) => ({ ...o, shuffleQuestions: value }))}
+                    />
+                    <ToggleRow
+                      label="Shuffle options"
+                      hint="Change the option order inside each question."
+                      checked={!!options.shuffleOptions}
+                      onChange={(value) => setOptions((o) => ({ ...o, shuffleOptions: value }))}
                     />
                   </div>
-                  {config.content.includeAnswers && (
-                    <div className="mt-3 space-y-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                        Answer placement
-                      </p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <RadioRow
-                          label="After each question"
-                          checked={config.content.answerPlacement === "after-question"}
-                          onClick={() => set("content", { ...config.content, answerPlacement: "after-question" as PdfAnswerPlacement })}
-                        />
-                        <RadioRow
-                          label="Answer key at end"
-                          checked={config.content.answerPlacement === "end"}
-                          onClick={() => set("content", { ...config.content, answerPlacement: "end" as PdfAnswerPlacement })}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </Section>
 
-                {/* Layout */}
                 <Section
-                  title="Page Layout"
-                  summary={`${layout.width}×${layout.height} · ${config.page.margins} margins`}
+                  title="Layout"
+                  summary={options.layout === "two-column" ? "Two columns" : "Single column"}
                   open={openSections.layout}
-                  onToggle={() => toggleSection("layout")}
+                  onToggle={() => setOpenSections((s) => ({ ...s, layout: !s.layout }))}
                 >
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                    Layout
-                  </p>
                   <div className="grid grid-cols-2 gap-2">
                     <RadioRow
-                      label="Full Width"
-                      hint="Single column."
-                      checked={config.page.layout === "full-width"}
-                      onClick={() => set("page", { ...config.page, layout: "full-width" })}
+                      label="Single Column"
+                      hint="One question per row, full width."
+                      checked={options.layout !== "two-column"}
+                      onClick={() => setOptions((o) => ({ ...o, layout: "single" }))}
                     />
                     <RadioRow
                       label="Two Columns"
-                      hint="Compact question paper."
-                      checked={config.page.layout === "two-column"}
-                      onClick={() => set("page", { ...config.page, layout: "two-column" })}
+                      hint="Compact layout; wide content spans fully."
+                      checked={options.layout === "two-column"}
+                      onClick={() => setOptions((o) => ({ ...o, layout: "two-column" }))}
                     />
                   </div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div>
-                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                        Page size
-                      </label>
-                      <div className="grid gap-1.5">
-                        {(["a4", "letter"] as const).map((s) => (
-                          <button key={s} type="button" onClick={() => set("page", { ...config.page, size: s })} className={cn(CHECK, "flex items-center justify-between px-2.5 py-1.5", config.page.size === s && "border-pink-500/50 bg-pink-500/[0.06] text-accent")}>
-                            {s === "a4" ? "A4" : "Letter"}
-                            {config.page.size === s && <Check className="h-3 w-3" />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                        Orientation
-                      </label>
-                      <div className="grid gap-1.5">
-                        {(["portrait", "landscape"] as const).map((o) => (
-                          <button key={o} type="button" onClick={() => set("page", { ...config.page, orientation: o })} className={cn(CHECK, "flex items-center justify-between px-2.5 py-1.5", config.page.orientation === o && "border-pink-500/50 bg-pink-500/[0.06] text-accent")}>
-                            {o === "portrait" ? "Portrait" : "Landscape"}
-                            {config.page.orientation === o && <Check className="h-3 w-3" />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                        Margins
-                      </label>
-                      <div className="grid gap-1.5">
-                        {(["narrow", "normal", "wide"] as const).map((m) => (
-                          <button key={m} type="button" onClick={() => set("page", { ...config.page, margins: m })} className={cn(CHECK, "flex items-center justify-between px-2.5 py-1.5", config.page.margins === m && "border-pink-500/50 bg-pink-500/[0.06] text-accent")}>
-                            {m[0].toUpperCase() + m.slice(1)}
-                            {m === "normal" && <span className="text-[10px] text-text-muted">{MARGIN_MM[m]}mm</span>}
-                            {config.page.margins === m && <Check className="h-3 w-3" />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
                 </Section>
 
-                {/* Typography */}
-                <Section
-                  title="Typography"
-                  summary={`${toBaseFont(config.typography.fontFamily).base} · ${config.typography.questionSize}/${config.typography.optionSize}pt`}
-                  open={openSections.typography}
-                  onToggle={() => toggleSection("typography")}
-                >
-                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                    Font family
-                  </label>
-                  <select
-                    value={config.typography.fontFamily}
-                    onChange={(e) => set("typography", { ...config.typography, fontFamily: e.target.value as PdfConfig["typography"]["fontFamily"] })}
-                    className="w-full rounded-lg border border-border bg-card-hover/40 px-3 py-2 text-xs text-text-primary focus:border-pink-500/50 focus:outline-none"
-                  >
-                    {["inter", "arial", "times", "georgia", "helvetica"].map((f) => (
-                      <option key={f} value={f}>
-                        {f === "times" ? "Times New Roman" : f === "helvetica" ? "Helvetica" : f[0].toUpperCase() + f.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                        Question text
-                      </label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {PDF_QUESTION_SIZES.map((s) => (
-                          <button key={s} type="button" onClick={() => set("typography", { ...config.typography, questionSize: s })} className={cn("h-7 min-w-7 rounded-md border px-1.5 text-[11px] font-semibold", config.typography.questionSize === s ? "border-pink-500/50 bg-pink-500/10 text-accent" : "border-border bg-card-hover/40 text-text-secondary hover:border-border-hover")}>
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                        Options
-                      </label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {PDF_OPTION_SIZES.map((s) => (
-                          <button key={s} type="button" onClick={() => set("typography", { ...config.typography, optionSize: s })} className={cn("h-7 min-w-7 rounded-md border px-1.5 text-[11px] font-semibold", config.typography.optionSize === s ? "border-pink-500/50 bg-pink-500/10 text-accent" : "border-border bg-card-hover/40 text-text-secondary hover:border-border-hover")}>
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                        Heading
-                      </label>
-                      <select value={config.typography.headingSize} onChange={(e) => set("typography", { ...config.typography, headingSize: e.target.value as PdfConfig["typography"]["headingSize"] })} className="w-full rounded-lg border border-border bg-card-hover/40 px-2 py-1.5 text-xs text-text-primary focus:border-pink-500/50 focus:outline-none">
-                        {["small", "medium", "large"].map((h) => (
-                          <option key={h} value={h}>{h[0].toUpperCase() + h.slice(1)}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                        Line spacing
-                      </label>
-                      <select value={config.typography.lineSpacing} onChange={(e) => set("typography", { ...config.typography, lineSpacing: e.target.value as PdfConfig["typography"]["lineSpacing"] })} className="w-full rounded-lg border border-border bg-card-hover/40 px-2 py-1.5 text-xs text-text-primary focus:border-pink-500/50 focus:outline-none">
-                        {["compact", "normal", "relaxed"].map((h) => (
-                          <option key={h} value={h}>{h[0].toUpperCase() + h.slice(1)}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-                        Question gap
-                      </label>
-                      <select value={config.typography.questionSpacing} onChange={(e) => set("typography", { ...config.typography, questionSpacing: e.target.value as PdfConfig["typography"]["questionSpacing"] })} className="w-full rounded-lg border border-border bg-card-hover/40 px-2 py-1.5 text-xs text-text-primary focus:border-pink-500/50 focus:outline-none">
-                        {["compact", "normal", "spacious"].map((h) => (
-                          <option key={h} value={h}>{h[0].toUpperCase() + h.slice(1)}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </Section>
-
-                {/* Quiz Header */}
-                <Section
-                  title="Quiz Header"
-                  summary="Metadata shown on page 1"
-                  open={openSections.header}
-                  onToggle={() => toggleSection("header")}
-                >
-                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                    {(
-                      [
-                        ["showQuizName", "Quiz Name"],
-                        ["showSubject", "Subject"],
-                        ["showQuestionCount", "Total Questions"],
-                        ["showMarks", "Total Marks"],
-                        ["showDuration", "Duration"],
-                        ["showDifficulty", "Difficulty"],
-                        ["showVisibility", "Visibility"],
-                      ] as const
-                    ).map(([key, label]) => (
-                      <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-card-hover/40 px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover">
-                        <input
-                          type="checkbox"
-                          checked={config.header[key]}
-                          onChange={(e) => set("header", { ...config.header, [key]: e.target.checked })}
-                          className="h-3.5 w-3.5 accent-pink-500"
-                        />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                </Section>
-
-                {/* Student Details */}
-                <Section
-                  title="Student Details"
-                  summary={config.studentDetails.enabled ? "Enabled" : "Off"}
-                  open={openSections.student}
-                  onToggle={() => toggleSection("student")}
-                >
-                  <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-text-primary">
-                    <input
-                      type="checkbox"
-                      checked={config.studentDetails.enabled}
-                      onChange={(e) => set("studentDetails", { ...config.studentDetails, enabled: e.target.checked })}
-                      className="h-3.5 w-3.5 accent-pink-500"
-                    />
-                    Add student details
-                  </label>
-
-                  {config.studentDetails.enabled && (
-                    <div className="mt-3 space-y-3">
-                      <div>
-                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Source</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <RadioRow label="Registered Students" checked={config.studentDetails.source === "registered"} onClick={() => set("studentDetails", { ...config.studentDetails, source: "registered" })} />
-                          <RadioRow label="Blank fields" checked={config.studentDetails.source === "blank"} onClick={() => set("studentDetails", { ...config.studentDetails, source: "blank" })} />
-                        </div>
-                      </div>
-                      <div>
-                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Fields</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {STUDENT_FIELDS.map((f) => (
-                            <button
-                              key={f.id}
-                              type="button"
-                              onClick={() => {
-                                const has = config.studentDetails.fields.includes(f.id);
-                                const fields = has
-                                  ? config.studentDetails.fields.filter((x) => x !== f.id)
-                                  : [...config.studentDetails.fields, f.id];
-                                if (fields.length === 0) return;
-                                set("studentDetails", { ...config.studentDetails, fields });
-                              }}
-                              className={cn("rounded-lg border px-3 py-1.5 text-xs font-semibold", config.studentDetails.fields.includes(f.id) ? "border-pink-500/50 bg-pink-500/10 text-accent" : "border-border bg-card-hover/40 text-text-secondary hover:border-border-hover")}
-                            >
-                              ✓ {f.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Placement</p>
-                        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                          {PLACEMENTS.map((p) => (
-                            <button key={p.id} type="button" onClick={() => set("studentDetails", { ...config.studentDetails, placement: p.id })} className={cn("rounded-lg border px-2 py-1.5 text-[11px] font-medium", config.studentDetails.placement === p.id ? "border-pink-500/50 bg-pink-500/10 text-accent" : "border-border bg-card-hover/40 text-text-secondary hover:border-border-hover")}>
-                              {p.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-text-muted">Format</p>
-                        <div className="grid grid-cols-3 gap-1.5">
-                          {(["inline", "separate-lines", "blank"] as const).map((f) => (
-                            <button key={f} type="button" onClick={() => set("studentDetails", { ...config.studentDetails, format: f })} className={cn("rounded-lg border px-2 py-2 text-[10px] font-medium leading-tight", config.studentDetails.format === f ? "border-pink-500/50 bg-pink-500/10 text-accent" : "border-border bg-card-hover/40 text-text-secondary hover:border-border-hover")}>
-                              {f === "inline" ? "Inline" : f === "separate-lines" ? "Separate lines" : "Fillable blank"}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </Section>
-
-                {/* Generation */}
                 <Section
                   title="PDF Generation"
-                  summary={config.generation.mode}
+                  summary={mode}
                   open={openSections.generation}
-                  onToggle={() => toggleSection("generation")}
+                  onToggle={() => setOpenSections((s) => ({ ...s, generation: !s.generation }))}
                 >
                   <div className="grid gap-2">
-                    <RadioRow label="Single Question Paper" hint="One generic PDF, no student details." checked={config.generation.mode === "single"} onClick={() => set("generation", { ...config.generation, mode: "single" as PdfGenerationMode })} />
-                    <RadioRow label="Individual Student PDFs" hint="One PDF per selected student." checked={config.generation.mode === "individual"} onClick={() => set("generation", { ...config.generation, mode: "individual" as PdfGenerationMode })} />
-                    <RadioRow label="Combined PDF" hint="All selected students in one PDF, one section per student." checked={config.generation.mode === "combined"} onClick={() => set("generation", { ...config.generation, mode: "combined" as PdfGenerationMode })} />
+                    <RadioRow label="Single Question Paper" hint="One generic PDF, no student details." checked={mode === "single"} onClick={() => setMode("single" as PdfGenerationMode)} />
+                    <RadioRow label="Individual Student PDFs" hint="One PDF per selected student." checked={mode === "individual"} onClick={() => setMode("individual" as PdfGenerationMode)} />
+                    <RadioRow label="Combined PDF" hint="All selected students in one PDF, one section per student." checked={mode === "combined"} onClick={() => setMode("combined" as PdfGenerationMode)} />
                   </div>
 
-                  {config.generation.mode !== "single" && (
+                  {mode !== "single" && (
                     <div className="mt-3 space-y-2">
                       {loadingStudents && (
                         <p className="text-[11px] text-text-muted">Loading registered students…</p>
@@ -677,38 +455,46 @@ export default function PdfConfigModal({
                   )}
                 </Section>
 
-                {/* Footer */}
-                <Section
-                  title="Footer"
-                  summary={config.footer.enabled ? "Footer enabled" : "Footer disabled"}
-                  open={openSections.footer}
-                  onToggle={() => toggleSection("footer")}
-                >
-                  <div className="space-y-1.5">
-                    {FOOTER_OPTIONS.map(([key, label]) => (
-                      <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-card-hover/40 px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover">
-                        <input
-                          type="checkbox"
-                          checked={config.footer[key]}
-                          onChange={(e) => set("footer", { ...config.footer, [key]: e.target.checked })}
-                          className="h-3.5 w-3.5 accent-pink-500"
-                        />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                </Section>
+                <div className="flex items-start gap-2 rounded-xl border border-border bg-card-hover/30 px-3 py-2.5 text-[11px] text-text-muted">
+                  <Shuffle className="mt-0.5 h-3 w-3 shrink-0" />
+                  <span>
+                    Tip: use the separate <span className="font-semibold text-text-secondary">Answer Key</span> button below
+                    to download a key-only file without question pages.
+                  </span>
+                </div>
               </div>
 
-              {/* Preview */}
-              <div className="flex flex-col overflow-y-auto bg-card-hover/30 p-5">
-                <PdfPreview config={config} meta={meta} questions={questions} student={previewStudent} />
+              <div className="flex flex-col gap-2 bg-card-hover/30 p-5">
+                <div
+                  ref={previewWrapRef}
+                  className="relative w-full overflow-hidden rounded-xl border border-border bg-[#E6E6E6]"
+                  style={{ aspectRatio: "210 / 297" }}
+                >
+                  {previewHtml ? (
+                    <iframe
+                      title="Question paper preview"
+                      srcDoc={previewHtml}
+                      sandbox="allow-same-origin"
+                      style={{
+                        width: A4_WIDTH_PX,
+                        height: `${100 / scale}%`,
+                        transform: `scale(${scale})`,
+                        transformOrigin: "top left",
+                        border: 0,
+                      }}
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-xs text-text-muted">
+                      Loading preview…
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-text-muted">Preview of the first pages. Final PDF is paginated on A4.</p>
               </div>
             </div>
 
-            {/* Footer / actions */}
             <div className="flex flex-col gap-2 border-t border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[11px] text-text-muted">{toSummary(config, registered.length, takingStudents.length)}</p>
+              <p className="text-[11px] text-text-muted">{summary}</p>
               <div className="flex items-center justify-end gap-2">
                 <button
                   onClick={onClose}
@@ -717,12 +503,20 @@ export default function PdfConfigModal({
                   Cancel
                 </button>
                 <button
-                  onClick={handleGenerate}
+                  onClick={() => handleDownload("key")}
+                  disabled={generating}
+                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-5 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover disabled:opacity-40"
+                >
+                  <KeyRound className="h-3.5 w-3.5" />
+                  Answer Key
+                </button>
+                <button
+                  onClick={() => handleDownload("paper")}
                   disabled={generating}
                   className="inline-flex h-10 items-center gap-2 rounded-lg bg-accent px-5 text-xs font-bold text-white transition-all hover:bg-accent/90 active:scale-[0.98] disabled:opacity-40"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  {generating ? "Generating…" : "Generate PDF"}
+                  {generating ? "Generating…" : "Question Paper"}
                 </button>
               </div>
             </div>

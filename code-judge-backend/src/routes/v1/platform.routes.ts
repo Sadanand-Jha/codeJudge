@@ -21,6 +21,7 @@ import {
   removeBankQuestion,
   updateBankQuestionHandler,
 } from "../../controllers/platformQuestionBank.controller.ts";
+import platformSubscriptionsRouter from "./platformSubscriptions.routes.ts";
 
 const router = Router();
 const questionDocumentUpload = multer({
@@ -55,6 +56,10 @@ const uploadQuestionDocument = (req: Request, res: Response, next: NextFunction)
 };
 
 router.use(requireOwner);
+
+// Subscription management (plans catalog in Phase 2; subscriptions, payments
+// and coupons arrive in later phases).
+router.use("/subscriptions", platformSubscriptionsRouter);
 
 // Lightweight authenticated-owner probe used by the client gate. Keeping
 // this separate from dashboard queries avoids loading analytics simply to

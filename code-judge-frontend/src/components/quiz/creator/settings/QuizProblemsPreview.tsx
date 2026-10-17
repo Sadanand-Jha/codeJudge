@@ -53,17 +53,16 @@ import {
 import {
   QUESTION_TYPE_LABELS,
   QUESTION_TYPE_ORDER,
-  VISIBILITY_OPTIONS,
   getQuestionStatus,
   type CreatorQuestion,
   type CreatorQuestionType,
 } from "@/components/quiz/creator/types";
 import { useQuizSettings } from "@/components/quiz/creator/settings/QuizSettingsContext";
-import { downloadQuizPaperPdf } from "@/utils/quizPdf";
-import { type PdfConfig, type PdfStudent } from "@/utils/pdfConfig";
+import { downloadQuizPaperPdf, getPaperPdfErrorMessage, type PaperDownloadKind } from "@/utils/paperPdf";
+import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/helpers";
-import PdfConfigModal from "@/components/quiz/creator/settings/PdfConfigModal";
+import PdfConfigModal, { type PaperDownloadConfig } from "@/components/quiz/creator/settings/PdfConfigModal";
 import { computeQuestionsSignature, getSyncedSignature, setSyncedSignature } from "@/utils/quizStorage";
 
 const QUESTION_TYPES: Array<{ id: CreatorQuestionType; label: string; short: string; icon: any; desc: string }> = [
@@ -225,33 +224,47 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
     }
   };
 
-  const handleDownloadPdf = (config: PdfConfig, students: PdfStudent[]) => {
-    setPdfModalOpen(false);
+  const paperMeta: PaperMeta = {
+    title: details.name || quiz?.name || "Quiz",
+    creatorName: quiz?.creator_name ?? undefined,
+    subject: details.subject || undefined,
+    date: formatPaperDate(details.startDate || quiz?.starttime) ?? formatPaperDate(new Date()),
+    totalMarks: problems.reduce((sum, q) => sum + (q.marks || 0), 0),
+    totalQuestions: problems.length,
+    duration: details.timeLimit ? `${details.timeLimit} min` : undefined,
+    difficulty: details.difficulty || undefined,
+    negativeMarking: details.negativeMarking ? String(details.negativeMarkValue ?? 1) : "None",
+  };
+
+  const handleDownloadPdf = (kind: PaperDownloadKind, config: PaperDownloadConfig) => {
     if (total === 0) return;
     setGeneratingPdf(true);
     downloadQuizPaperPdf(
       {
-        config,
-        meta: {
-          quizName: details.name || quiz?.name || "Quiz",
-          subject: details.subject,
-          description: details.description,
-          difficulty: details.difficulty,
-          timeLimit: details.timeLimit ? `${details.timeLimit} min` : undefined,
-          topic: details.topic,
-          visibility: VISIBILITY_OPTIONS.find((v) => v.id === details.visibility)?.label ?? details.visibility,
-          quizId: quiz?.code ?? code,
-          creatorName: quiz?.creator_name ?? undefined,
-          totalQuestions: problems.length,
-          totalMarks: problems.reduce((sum, q) => sum + (q.marks || 0), 0),
-        },
+        meta: paperMeta,
         questions: problems,
-        student: null,
+        options: config.options,
+        mode: config.mode,
+        students: config.students,
       },
-      students
+      kind
     )
-      .then(() => toast.success({ title: "Question paper downloaded", description: "PDF generated." }))
-      .catch(() => toast.error({ title: "Could not generate PDF", description: "Something went wrong." }))
+      .then((count) => {
+        toast.success({
+          title: kind === "key" ? "Answer key downloaded" : "Question paper downloaded",
+          description:
+            kind === "key"
+              ? "Compact answer key PDF with Q.No and correct option."
+              : config.mode !== "single"
+                ? `Generated ${count} student paper${count !== 1 ? "s" : ""}.`
+                : config.options.includeAnswerKey
+                  ? "Printable PDF with the answer key page at the end."
+                  : "Student copy with questions only — no answers included.",
+        });
+      })
+      .catch(async (error) => {
+        toast.error({ title: "Could not generate PDF", description: await getPaperPdfErrorMessage(error) });
+      })
       .finally(() => setGeneratingPdf(false));
   };
 
@@ -921,7 +934,20 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
         )}
       </AnimatePresence>
 
-      <PdfConfigModal key={pdfModalOpen ? "open" : "closed"} open={pdfModalOpen} onClose={() => setPdfModalOpen(false)} questions={problems} generating={generatingPdf} onGenerate={handleDownloadPdf} />
+      <PdfConfigModal
+        key={pdfModalOpen ? "open" : "closed"}
+        open={pdfModalOpen}
+        onClose={() => setPdfModalOpen(false)}
+        questions={problems}
+        meta={paperMeta}
+        quizId={quizId}
+        shuffleDefaults={{
+          shuffleQuestions: details.randomizeQuestions,
+          shuffleOptions: details.randomizeOptions,
+        }}
+        generating={generatingPdf}
+        onDownload={handleDownloadPdf}
+      />
     </div>
   );
 }

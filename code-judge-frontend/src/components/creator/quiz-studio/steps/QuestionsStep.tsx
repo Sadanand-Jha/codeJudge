@@ -25,10 +25,9 @@ import { StudentPreviewModal } from "../components/StudentPreviewModal";
 import { useStudio, isQuestionValidationError } from "../StudioProvider";
 import { Plus, Sparkles, ListChecks, Settings2, ChevronLeft, ChevronRight, Save, Eye } from "lucide-react";
 import type { CreatorQuestion } from "../types";
-import { downloadQuizPaperPdf } from "@/utils/quizPdf";
-import { type PdfConfig, type PdfStudent } from "@/utils/pdfConfig";
-import { QuizSettingsProvider } from "@/components/quiz/creator/settings/QuizSettingsContext";
-import PdfConfigModal from "@/components/quiz/creator/settings/PdfConfigModal";
+import { downloadQuizPaperPdf, getPaperPdfErrorMessage, type PaperDownloadKind } from "@/utils/paperPdf";
+import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
+import PdfConfigModal, { type PaperDownloadConfig } from "@/components/quiz/creator/settings/PdfConfigModal";
 import { generateQuizCode } from "@/services/quiz";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -107,42 +106,49 @@ export function QuestionsStep() {
     setHasChanges(false);
   };
 
-  const handleDownloadPdf = (config: PdfConfig, students: PdfStudent[]) => {
-    setPdfModalOpen(false);
+  const paperMeta: PaperMeta = {
+    title: state.info.title?.trim() || "Quiz",
+    creatorName: state.branding.creatorName?.trim() || undefined,
+    subject: state.info.subject || undefined,
+    course: state.info.classGrade || state.info.exam || undefined,
+    date: formatPaperDate(state.info.startDate) ?? formatPaperDate(new Date()),
+    totalMarks: state.questions.reduce((sum, q) => sum + (q.marks || 0), 0),
+    totalQuestions: state.questions.length,
+    duration: state.info.duration ? `${state.info.duration} min` : undefined,
+    difficulty: state.info.difficulty || undefined,
+    negativeMarking: state.settings.negativeMarking ? String(state.settings.negativeMarkValue ?? 1) : "None",
+  };
+
+  const handleDownloadPdf = (kind: PaperDownloadKind, config: PaperDownloadConfig) => {
     if (state.questions.length === 0) return;
     setGeneratingPdf(true);
     downloadQuizPaperPdf(
       {
-        config,
-        meta: {
-          quizName: state.info.title || "Quiz",
-          subject: state.info.subject,
-          difficulty: state.info.difficulty as "Easy" | "Medium" | "Hard" | "Expert",
-          timeLimit: state.info.duration ? `${state.info.duration} min` : undefined,
-          quizId: state.info.code || state.info.id,
-          totalQuestions: state.questions.length,
-          totalMarks: state.questions.reduce((sum, q) => sum + (q.marks || 0), 0),
-        },
+        meta: paperMeta,
         questions: state.questions,
-        student: null,
+        options: config.options,
+        mode: config.mode,
+        students: config.students,
       },
-      students
+      kind
     )
-      .then(() => {
+      .then((count) => {
         toast.success({
-          title: "Question paper downloaded",
+          title: kind === "key" ? "Answer key downloaded" : "Question paper downloaded",
           description:
-            config.generation.mode !== "single"
-              ? `Generated ${students.length} student paper${students.length !== 1 ? "s" : ""}.`
-              : config.content.includeAnswers
-                ? "Printable PDF with questions, answers and explanations."
-                : "Student copy with questions only — no answers included.",
+            kind === "key"
+              ? "Compact answer key PDF with Q.No and correct option."
+              : config.mode !== "single"
+                ? `Generated ${count} student paper${count !== 1 ? "s" : ""}.`
+                : config.options.includeAnswerKey
+                  ? "Printable PDF with the answer key page at the end."
+                  : "Student copy with questions only — no answers included.",
         });
       })
-      .catch(() => {
+      .catch(async (error) => {
         toast.error({
           title: "Could not generate PDF",
-          description: "Something went wrong while building the question paper.",
+          description: await getPaperPdfErrorMessage(error),
         });
       })
       .finally(() => setGeneratingPdf(false));
@@ -403,18 +409,19 @@ export function QuestionsStep() {
         quizTitle={state.info.title}
       />
 
-      {pdfCode && (
-        <QuizSettingsProvider code={pdfCode}>
-          <PdfConfigModal
-            open={pdfModalOpen}
-            onClose={() => setPdfModalOpen(false)}
-            questions={state.questions}
-            quizName={state.info.title}
-            generating={generatingPdf}
-            onGenerate={handleDownloadPdf}
-          />
-        </QuizSettingsProvider>
-      )}
+      <PdfConfigModal
+        open={pdfModalOpen}
+        onClose={() => setPdfModalOpen(false)}
+        questions={state.questions}
+        meta={paperMeta}
+        quizId={pdfCode}
+        shuffleDefaults={{
+          shuffleQuestions: state.settings.randomizeQuestions,
+          shuffleOptions: state.settings.randomizeOptions,
+        }}
+        generating={generatingPdf}
+        onDownload={handleDownloadPdf}
+      />
     </>
   );
 }

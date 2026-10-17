@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Trash2, Search, GripVertical, X, Sparkles, Download } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Trash2, Search, GripVertical, X, Sparkles, Download } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { useStudio } from "../StudioProvider";
@@ -65,6 +65,23 @@ export function QuestionList({
     reorderQuestions(reordered);
   };
 
+  // Button-based reorder (mirrors the registration form arrows). Moves the
+  // question relative to its visible neighbor, so it also behaves sensibly
+  // while a search filter is active.
+  const moveQuestion = (id: string, dir: -1 | 1) => {
+    const visIdx = visible.findIndex((x) => x.id === id);
+    const neighbor = visible[visIdx + dir];
+    if (visIdx === -1 || !neighbor) return;
+    const current = state.questions.map((q) => q.id);
+    const from = current.indexOf(id);
+    const to = current.indexOf(neighbor.id);
+    if (from === -1 || to === -1) return;
+    const reordered = Array.from(current);
+    reordered.splice(from, 1);
+    reordered.splice(to, 0, id);
+    reorderQuestions(reordered);
+  };
+
   return (
     <div className="flex h-[calc(100dvh-13rem)] max-h-full min-h-0 w-70 shrink-0 flex-col overflow-hidden rounded bg-card">
       <div className="px-3 pt-4 pb-3 border-b border-border shrink-0">
@@ -108,7 +125,7 @@ export function QuestionList({
           <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-text-muted">No matching questions.</p>
         ) : (
           <ul className="space-y-1">
-            {visible.map((q) => {
+            {visible.map((q, visIdx) => {
               const realIdx = state.questions.findIndex((x) => x.id === q.id);
               const active = state.activeQuestionId === q.id;
               const status = getQuestionStatus(q);
@@ -159,6 +176,28 @@ export function QuestionList({
                     <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", status === "complete" ? "bg-emerald-500" : status === "missing_answer" ? "bg-amber-400" : "bg-border")} />
                   </div>
                   <div className="absolute right-1 top-1 hidden group-hover:flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 shadow-sm">
+                    <button
+                      title="Move up"
+                      disabled={visIdx === 0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveQuestion(q.id, -1);
+                      }}
+                      className="rounded p-1 text-text-muted hover:bg-card-hover disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      title="Move down"
+                      disabled={visIdx === visible.length - 1}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveQuestion(q.id, 1);
+                      }}
+                      className="rounded p-1 text-text-muted hover:bg-card-hover disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
