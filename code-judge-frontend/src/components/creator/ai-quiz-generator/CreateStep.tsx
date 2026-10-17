@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, PartyPopper } from "lucide-react";
+import { ArrowRight, PartyPopper } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import type { AiQuizConfig } from "./types";
 
 export function CreateStep({
@@ -59,8 +60,8 @@ export function CreateStep({
 
   return (
     <div className="mx-auto max-w-lg space-y-5 py-10 text-center sm:space-y-6 sm:py-12">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/20">
-        <Loader2 className="h-7 w-7 animate-spin text-white" />
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card shadow-lg shadow-violet-500/20">
+        <SecureLogo variant="mark" size={32} className="animate-pulse motion-reduce:animate-none" />
       </div>
       <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">
         Creating your quiz…
@@ -69,7 +70,7 @@ export function CreateStep({
         Setting up questions, scoring, and quiz configuration.
       </p>
       <div className="flex items-center justify-center gap-3 text-xs text-text-muted">
-        <Loader2 className="h-3 w-3 animate-spin" />
+        <SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" />
         <span>This usually takes a few seconds</span>
       </div>
     </div>

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  Loader2,
   Save,
   Square,
   Zap,
@@ -15,6 +14,7 @@ import {
   Play,
   ListChecks,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { updateQuiz } from "@/services/quiz";
 import { useToast } from "@/hooks/useToast";
 import { useQuizSettings } from "./QuizSettingsContext";
@@ -174,7 +174,7 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
                     disabled={actionBusy}
                     className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(239,68,68,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(239,68,68,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
                   >
-                    {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Square className="h-4 w-4" />}
+                    {actionBusy ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Square className="h-4 w-4" />}
                     End Quiz
                   </button>
                 ) : (
@@ -183,7 +183,7 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
                     disabled={actionBusy}
                     className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(16,185,129,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(16,185,129,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
                   >
-                    {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                    {actionBusy ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Play className="h-4 w-4" />}
                     Start Quiz
                   </button>
                 )
@@ -194,7 +194,7 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
                 disabled={saving}
                 className="flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover disabled:opacity-50"
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {saving ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Save className="h-4 w-4" />}
                 {saving ? "Saving..." : "Save Draft"}
               </button>
             </div>
@@ -389,7 +389,7 @@ function ConfirmActionModal({
                     : "bg-gradient-to-r from-emerald-500 to-green-600 shadow-[0_4px_16px_rgba(16,185,129,0.4)] hover:shadow-[0_6px_24px_rgba(16,185,129,0.55)] hover:brightness-105"
                 )}
               >
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                {busy ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <CheckCircle2 className="h-4 w-4" />}
                 {confirmLabel}
               </button>
             </div>

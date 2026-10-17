@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeft, Check, FilePlus2, Layers, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, FilePlus2, Layers, Trash2 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import type { SectionBlueprint } from "@/services/aiGenerate";
 import { getSectionMarks, getSectionQuestionCount } from "./types";
 
@@ -27,7 +28,7 @@ export function SectionBlueprintLibrary({ blueprints, loading, busyId, onBack, o
       </div>
 
       {loading ? (
-        <div className="flex min-h-48 items-center justify-center gap-2 rounded-2xl border border-border bg-card text-sm text-text-secondary"><Loader2 className="h-4 w-4 animate-spin" /> Loading saved blueprints…</div>
+        <div className="flex min-h-48 items-center justify-center gap-2 rounded-2xl border border-border bg-card text-sm text-text-secondary"><SecureLogo variant="mark" size={20} className="animate-pulse motion-reduce:animate-none" /> Loading saved blueprints…</div>
       ) : blueprints.length === 0 ? (
         <div className="rounded-2xl border-2 border-dashed border-border bg-card/60 px-5 py-12 text-center">
           <Layers className="mx-auto h-8 w-8 text-text-muted" />
@@ -75,7 +76,7 @@ export function SectionBlueprintLibrary({ blueprints, loading, busyId, onBack, o
 
                 <div className="flex items-center gap-2 border-t border-border p-3">
                   <button type="button" onClick={() => onUse(blueprint)} disabled={busyId === blueprint.id} className="inline-flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-xs font-bold text-white disabled:opacity-50">
-                    {busyId === blueprint.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Use blueprint
+                    {busyId === blueprint.id ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Check className="h-3.5 w-3.5" />} Use blueprint
                   </button>
                   <button type="button" onClick={() => onDelete(blueprint)} disabled={busyId !== null} className="flex h-10 w-10 items-center justify-center rounded-xl border border-border text-text-muted transition-colors hover:border-rose-400/30 hover:text-rose-500 disabled:opacity-50" aria-label={`Delete ${blueprint.name}`}><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>

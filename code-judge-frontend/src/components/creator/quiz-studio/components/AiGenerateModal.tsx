@@ -9,7 +9,6 @@ import {
   FileCode2,
   FileImage,
   X,
-  Loader2,
   CheckCircle2,
   AlertCircle,
   Sparkles,
@@ -19,6 +18,7 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { generateQuestionsFromFiles, generateFromQuestionBank, mapRawQuestionsToPreview } from "@/services/ai";
 import { toast } from "@/lib/toast";
@@ -386,7 +386,7 @@ export function AiGenerateModal({
               ) : generating ? (
                 <div className="space-y-4 py-4">
                   <div className="text-center">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-pink-500" />
+                    <SecureLogo variant="mark" size={32} className="mx-auto animate-pulse motion-reduce:animate-none" />
                     <p className="mt-3 text-sm font-semibold text-text-primary">
                       Creating your questions…
                     </p>

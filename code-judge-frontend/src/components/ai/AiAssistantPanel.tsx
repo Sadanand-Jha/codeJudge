@@ -14,7 +14,6 @@ import {
   FileType2,
   FileCode,
   File,
-  Loader2,
   Send,
   AlertCircle,
   Square,
@@ -25,6 +24,7 @@ import { streamChat, streamChatWithFiles } from "@/services/ai";
 import { mapRawQuestionsToPreview } from "@/services/ai";
 import type { LiveUsage, AIQuestionPreview, RawAIGeneratedQuestion } from "@/services/ai";
 import { useChat, type ChatMessage } from "@/context/ChatContext";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import AIMessageRow from "@/components/ai/AIMessageRow";
 import AILogo from "@/components/ai/AILogo";
 import AIQuestionReviewOverlay from "@/components/quiz/creator/AIQuestionReviewOverlay";
@@ -549,7 +549,7 @@ export default function AiAssistantPanel({
                           {typeLabel(file)} · {formatFileSize(file.size)}
                         </span>
                         {file.status === "uploading" && (
-                          <Loader2 className="h-3 w-3 animate-spin text-text-muted" />
+                          <SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" />
                         )}
                         {file.status === "error" && <AlertCircle className="h-3 w-3 text-danger" />}
                         <button

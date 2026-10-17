@@ -12,10 +12,10 @@ import {
   IndianRupee,
   Calendar,
   Check,
-  Loader2,
   BarChart3,
   Copy,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { useStudio } from "../StudioProvider";
 import { toast } from "@/lib/toast";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -119,7 +119,7 @@ export function PublishStep({
             >
               {saving ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Starting…
+                  <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Starting…
                 </>
               ) : (
                 <>
@@ -212,7 +212,7 @@ export function PublishStep({
               >
                 {saving ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Publishing…
+                    <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Publishing…
                   </>
                 ) : (
                   <>

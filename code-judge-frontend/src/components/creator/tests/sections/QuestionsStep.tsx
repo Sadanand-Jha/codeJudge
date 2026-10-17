@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
   AlertCircle,
-  Loader2,
   Check,
   Download,
   FileText,
@@ -13,6 +12,7 @@ import {
   Clock3,
   WandSparkles,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
 import { generateQuestionPaper, downloadQuestionPaper } from "@/services/aiGenerate";
@@ -287,7 +287,7 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
                   className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
                 >
                   {status === "generating" ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" />
                   ) : (
                     <Sparkles className="h-3.5 w-3.5" />
                   )}
@@ -422,7 +422,7 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
                   className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3.5 py-2 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
                 >
                   {downloading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" />
                   ) : (
                     <Download className="h-3.5 w-3.5" />
                   )}

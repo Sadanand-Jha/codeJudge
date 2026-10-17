@@ -409,8 +409,15 @@ export default function ExamModeShell({
         <div className="qs-shadow w-full">
         <div className="qs-card overflow-hidden p-4 sm:p-8">
           <div className="mx-auto max-w-xl text-center">
-            <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--qs-brand)] text-[var(--qs-on-brand)] sm:h-16 sm:w-16">
-              <Rocket className="h-6 w-6 sm:h-7 sm:w-7" />
+            <div className="relative mx-auto flex h-14 w-14 items-center justify-center sm:h-16 sm:w-16">
+              <img
+                src="/logos/mark.png"
+                alt="QuizSupport"
+                width={64}
+                height={58}
+                draggable={false}
+                className="h-14 w-14 rounded-2xl border-2 border-[var(--qs-ink)] object-contain shadow-[0_4px_0_rgba(26,18,64,0.85)] sm:h-16 sm:w-16"
+              />
               <ShieldCheck className="absolute -bottom-1.5 -right-1.5 h-6 w-6 rounded-full border-2 border-[var(--qs-surface)] bg-[var(--qs-ok)] p-1 text-[var(--qs-on-brand)]" />
             </div>
             <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--qs-brand)]">Secure launch sequence</p>
@@ -424,6 +431,7 @@ export default function ExamModeShell({
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Fullscreen is required and will be requested automatically.</li>
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Switching tabs/windows may be recorded as a violation.</li>
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> Copying, cutting or pasting is blocked and recorded as a violation.</li>
+                <li className="flex gap-2 sm:hidden"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Pressing volume or other hardware buttons may be recorded as a violation.</li>
                 <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Leaving fullscreen (Esc) may be recorded as a violation.</li>
                 <li className="hidden gap-2 sm:flex"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)]" /> Your progress will be preserved during temporary warnings.</li>
                 <li className="flex gap-2"><span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--qs-brand)] sm:mt-1" /> After {maxViolations} violations {isLive ? "your attempt will be submitted automatically and flagged for review" : "the session will be terminated"}.</li>

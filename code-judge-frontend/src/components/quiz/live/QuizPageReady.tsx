@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { cn } from "@/lib/helpers";
-import { QuizLoader } from "./StudentQuizShell";
+import { SecureLogo } from "@/components/common/SecureLogo";
 
 /**
  * QuizPageReady — "render completely, then reveal" gate for mobile.
@@ -74,15 +74,11 @@ export default function QuizPageReady({
       </div>
       {!ready && (
         <div
-          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[var(--qs-bg,#FFF9F1)]"
+          className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--qs-bg,#FFF9F1)]"
           aria-hidden="true"
           aria-label={label}
         >
-          {/* Themed loader — ice-cream (light) / rocket (dark). */}
-          <QuizLoader size={36} />
-          <span className="text-xs font-semibold text-[var(--qs-muted,#667085)]">
-            Preparing your quiz…
-          </span>
+          <SecureLogo variant="mark" size={125} className="animate-pulse motion-reduce:animate-none" />
         </div>
       )}
     </div>

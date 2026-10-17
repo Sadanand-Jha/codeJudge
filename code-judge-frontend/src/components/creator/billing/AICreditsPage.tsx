@@ -9,12 +9,12 @@ import {
   ChevronDown,
   Coins,
   Info,
-  Loader2,
   Lock,
   RefreshCw,
   ShieldCheck,
   X,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { useToast } from "@/hooks/useToast";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -29,7 +29,6 @@ import {
   IconButton,
   PageHeader,
   Panel,
-  PanelSkeleton,
   formatINR,
 } from "./ui";
 import {
@@ -256,10 +255,9 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
       />
 
       {state === "loading" && (
-        <>
-          <PanelSkeleton title="Available balance" />
-          <PanelSkeleton title="Credit packs" />
-        </>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <SecureLogo variant="mark" size={40} className="animate-pulse motion-reduce:animate-none" />
+        </div>
       )}
       {state === "error" && <ErrorState onRetry={retry} message="Credit packs could not be loaded." />}
       {state === "empty" && (
@@ -430,7 +428,7 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
 
                 {phase === "processing" && (
                   <div className="flex flex-col items-center py-6 text-center" role="status" aria-live="polite">
-                    <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+                    <SecureLogo variant="mark" size={32} className="animate-pulse motion-reduce:animate-none" />
                     <p className="mt-3 text-sm font-semibold text-text-primary">{processingNote}</p>
                     <p className="mt-1 text-xs text-text-secondary">Do not close this window.</p>
                   </div>

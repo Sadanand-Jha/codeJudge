@@ -36,7 +36,6 @@ import {
   FileText,
   Save,
   Eye,
-  Loader2,
   Lightbulb,
   BookOpen,
   AlertTriangle,
@@ -44,6 +43,7 @@ import {
   MoreHorizontal,
   Download,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { useQuizProblemsStore } from "@/store/quizProblemsStore";
 import {
   syncQuizQuestions,
@@ -371,7 +371,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
           </div>
           <div className="ml-auto flex items-center gap-2">
             <button onClick={handleAdd} disabled={adding} className="h-8 px-4 rounded-lg bg-zinc-900 text-white text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-50">
-              {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add Question
+              {adding ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Plus className="h-3.5 w-3.5" />} Add Question
             </button>
           </div>
         </div>
@@ -384,7 +384,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
             <p className="text-sm text-zinc-500 mt-2">Create a question manually or let AI generate one from your content.</p>
             <div className="flex gap-3 justify-center mt-6">
               <button onClick={handleAdd} disabled={adding} className="h-9 px-5 rounded-xl bg-zinc-900 text-white text-sm font-medium inline-flex items-center gap-1.5">
-                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Create Question
+                {adding ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Plus className="w-4 h-4" />} Create Question
               </button>
               <button onClick={handleAdd} className="h-9 px-5 rounded-xl border border-zinc-200 bg-white text-sm font-medium">Generate with AI</button>
             </div>
@@ -439,7 +439,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
             <Download className="w-3.5 h-3.5" /> PDF
           </button>
           <button onClick={handleSyncQuestions} disabled={syncing || isSynced || lockSync} className="hidden sm:inline-flex h-8 px-3 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 items-center gap-1.5 disabled:opacity-40">
-            {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save Draft
+            {syncing ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Save className="w-3.5 h-3.5" />} Save Draft
           </button>
           <button onClick={handleContinue} disabled={continuing || lockSync} className="h-8 px-4 rounded-lg bg-zinc-900 text-white text-xs font-semibold hover:bg-zinc-800 flex items-center gap-1.5 disabled:opacity-40">
             Continue <ChevronRight className="w-3.5 h-3.5" />
@@ -522,7 +522,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
           </div>
           <div className="p-3 border-t border-zinc-100 space-y-2">
             <button onClick={handleAdd} disabled={adding} className="w-full h-9 rounded-xl bg-zinc-900 text-white text-xs font-medium hover:bg-zinc-800 flex items-center justify-center gap-1.5 disabled:opacity-50">
-              {adding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />} Add question
+              {adding ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Plus className="w-3.5 h-3.5" />} Add question
             </button>
             <button onClick={() => toast.success("AI Generate coming soon")} className="w-full h-9 rounded-xl border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 flex items-center justify-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-violet-600" /> AI Generate
@@ -689,7 +689,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
                 }
                 className="inline-flex min-h-12 w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-600 px-6 text-sm font-bold text-white shadow-[0_8px_24px_rgba(236,72,153,0.35)] transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:brightness-100 sm:ml-auto sm:w-auto"
               >
-                {syncing ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Save className="h-4 w-4 shrink-0" />}
+                {syncing ? <SecureLogo variant="mark" size={16} className="shrink-0 animate-pulse motion-reduce:animate-none" /> : <Save className="h-4 w-4 shrink-0" />}
                 {syncing ? "Saving…" : "Save Question"}
               </button>
             </div>
@@ -900,7 +900,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
         </span>
         <div className="ml-auto flex items-center gap-2">
           <button onClick={handleSyncQuestions} disabled={syncing || isSynced || lockSync} className="h-8 px-4 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 hidden sm:inline-flex disabled:opacity-40">
-            {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null} Save Draft
+            {syncing ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : null} Save Draft
           </button>
           <button onClick={handleContinue} disabled={continuing || lockSync} className="h-8 px-4 rounded-lg bg-zinc-900 text-white text-xs font-semibold hover:bg-zinc-800 flex items-center gap-1.5 disabled:opacity-40">
             Continue <ChevronRight className="w-3.5 h-3.5" />

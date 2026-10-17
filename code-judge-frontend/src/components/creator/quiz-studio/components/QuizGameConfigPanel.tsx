@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Gamepad2, Loader2, Save, AlertCircle, Check } from "lucide-react";
+import { Gamepad2, Save, AlertCircle, Check } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { useQuizGameConfig } from "@/hooks/useQuizGameConfig";
 import type { QuizGameConfig } from "@/services/quiz";
 import { cn } from "@/lib/helpers";
@@ -34,7 +35,7 @@ export function QuizGameConfigPanel({ quizId }: { quizId: string | number }) {
   if (loading && !draft) {
     return (
       <div className="rounded-2xl border border-border bg-card p-6 flex items-center gap-3">
-        <Loader2 className="h-5 w-5 animate-spin text-[var(--qs-brand)]" />
+        <SecureLogo variant="mark" size={24} className="animate-pulse motion-reduce:animate-none" />
         <p className="text-sm text-text-muted">Loading game configuration…</p>
       </div>
     );
@@ -89,7 +90,7 @@ export function QuizGameConfigPanel({ quizId }: { quizId: string | number }) {
           </div>
           <span className="ml-auto hidden sm:inline-flex items-center gap-2">
             {loading ? (
-              <span className="flex items-center gap-1.5 text-xs text-text-muted"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…</span>
+              <span className="flex items-center gap-1.5 text-xs text-text-muted"><SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> Loading…</span>
             ) : savedTick ? (
               <span className="flex items-center gap-1.5 text-xs text-emerald-600"><Check className="h-3.5 w-3.5" /> Saved</span>
             ) : null}
@@ -98,7 +99,7 @@ export function QuizGameConfigPanel({ quizId }: { quizId: string | number }) {
               disabled={saving || loading}
               className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--qs-brand)] px-4 py-2 text-xs font-semibold text-white hover:bg-[#5a2fd8] disabled:opacity-50"
             >
-              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} {saving ? "Saving…" : "Save"}
+              {saving ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Save className="h-3.5 w-3.5" />} {saving ? "Saving…" : "Save"}
             </button>
           </span>
         </div>
@@ -193,7 +194,7 @@ export function QuizGameConfigPanel({ quizId }: { quizId: string | number }) {
             disabled={saving || loading}
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--qs-brand)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#5a2fd8] disabled:opacity-50"
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {saving ? "Saving…" : "Save configuration"}
+            {saving ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Save className="h-4 w-4" />} {saving ? "Saving…" : "Save configuration"}
           </button>
           {savedTick && <p className="mt-2 text-center text-xs text-emerald-600 flex items-center justify-center gap-1"><Check className="h-3.5 w-3.5" /> Saved</p>}
         </div>

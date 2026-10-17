@@ -2,8 +2,9 @@
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, Loader2, PartyPopper, Send, ShieldCheck, Sparkles, Target, Volume2, VolumeX } from "lucide-react";
+import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Sparkles, Target, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
 import {
   getAttemptRegistrationState,
@@ -27,7 +28,6 @@ import {
 import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
-import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 
 type AnswerValue = StoredAttemptAnswer;
 
@@ -518,7 +518,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
             </button>
           ) : (
             <button type="button" onClick={handleManualSubmit} disabled={submitting} className="qs-btn col-start-2 min-h-12 gap-2 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50 sm:col-start-3 sm:px-4" style={{ background: "var(--qs-ok)", borderColor: "var(--qs-ok)" }}>
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> : <Send className="h-4 w-4" />} {submitting ? "Submitting…" : "Submit"}
+              {submitting ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Send className="h-4 w-4" />} {submitting ? "Submitting…" : "Submit"}
             </button>
           )}
         </footer>
@@ -678,10 +678,17 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
 }
 
 function StatusScreen({ loading = false, text }: { loading?: boolean; text: string }) {
+  if (loading) {
+    return (
+      <div className="qs-ui flex min-h-[70vh] items-center justify-center bg-[var(--qs-bg)] px-4">
+        <SecureLogo variant="mark" size={125} className="animate-pulse motion-reduce:animate-none" />
+      </div>
+    );
+  }
   return (
     <div className="qs-ui flex min-h-[70vh] items-center justify-center bg-[var(--qs-bg)] px-4">
       <div className="w-full max-w-md rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6 text-center">
-        {loading ? <QuizLoader className="mx-auto" /> : <AlertCircle className="mx-auto h-8 w-8 text-[var(--qs-bad)]" />}
+        <AlertCircle className="mx-auto h-8 w-8 text-[var(--qs-bad)]" />
         <p className="mt-3 text-sm leading-6 text-[var(--qs-muted)]">{text}</p>
       </div>
     </div>

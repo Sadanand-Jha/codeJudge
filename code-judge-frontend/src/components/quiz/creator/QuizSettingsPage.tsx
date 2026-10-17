@@ -12,7 +12,6 @@ import {
   Globe,
   GraduationCap,
   Lock,
-  Loader2,
   Mail,
   Save,
   School,
@@ -24,6 +23,7 @@ import {
   AlertTriangle,
   Zap,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { QuizDetails, DEFAULT_QUIZ_DETAILS, VISIBILITY_OPTIONS, QuizVisibility } from "./types";
 import { saveQuizDetails, clearQuizState } from "@/utils/quizStorage";
 import { getAllSubjects, getQuizVisibilityOptions, createQuiz, updateQuizStatus, getTimezones } from "@/services/quiz";
@@ -655,7 +655,7 @@ export default function QuizSettingsPage({
                     animate={{ opacity: 1 }}
                     className="flex items-center gap-1.5 rounded-full bg-pink-500/10 px-3 py-1.5 text-[10px] font-semibold text-pink-500"
                   >
-                    <Loader2 className="h-3 w-3 animate-spin" /> Saving...
+                    <SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" /> Saving...
                   </motion.span>
                 )}
                 {saveStatus === "saved" && (
@@ -679,7 +679,7 @@ export default function QuizSettingsPage({
                     disabled={actionBusy}
                     className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(239,68,68,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(239,68,68,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
                   >
-                    {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Square className="h-4 w-4" />}
+                    {actionBusy ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Square className="h-4 w-4" />}
                     End Quiz
                   </button>
                 ) : (
@@ -688,7 +688,7 @@ export default function QuizSettingsPage({
                     disabled={actionBusy}
                     className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
                   >
-                    {actionBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                    {actionBusy ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Zap className="h-4 w-4" />}
                     Start Quiz
                   </button>
                 )
@@ -708,7 +708,7 @@ export default function QuizSettingsPage({
               >
                 {savingToServer ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Saving Quiz...
+                    <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Saving Quiz...
                   </>
                 ) : (
                   <div className="flex items-center gap-1.5">
@@ -1369,7 +1369,7 @@ export default function QuizSettingsPage({
               >
                 {savingToServer ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Saving Quiz...
+                    <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Saving Quiz...
                   </>
                 ) : (
                   <>
@@ -1571,7 +1571,7 @@ function ConfirmActionModal({
                     : "bg-gradient-to-r from-amber-500 to-orange-600 shadow-[0_4px_16px_rgba(245,158,11,0.4)] hover:shadow-[0_6px_24px_rgba(245,158,11,0.55)] hover:brightness-105"
                 )}
               >
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+                {busy ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Icon className="h-4 w-4" />}
                 {confirmLabel}
               </button>
             </div>

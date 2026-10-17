@@ -10,11 +10,11 @@ import {
   ClipboardList,
   Eye,
   GripVertical,
-  Loader2,
   Plus,
   Rocket,
   Trash2,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { toast } from "@/lib/toast";
 import { useStudio, isQuestionValidationError } from "../StudioProvider";
@@ -165,7 +165,7 @@ export function RegistrationStep() {
                   disabled={saving}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors duration-150 hover:bg-card-hover disabled:pointer-events-none disabled:opacity-50"
                 >
-                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  {saving ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : null}
                   Save
                 </button>
                 <button

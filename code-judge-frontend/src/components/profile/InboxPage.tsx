@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import {
   Check,
-  Loader2,
   Mail,
   UserPlus,
   X,
@@ -202,7 +202,7 @@ export default function InboxPage() {
         {/* Content */}
         {loading ? (
           <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card py-16 text-sm text-text-secondary">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading inbox...
+            <SecureLogo variant="mark" size={20} className="animate-pulse motion-reduce:animate-none" /> Loading inbox...
           </div>
         ) : filtered.length === 0 ? (
           <motion.div
@@ -296,7 +296,7 @@ export default function InboxPage() {
                             disabled={busy}
                             className="flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 px-3 text-[11px] font-bold text-white transition-all hover:brightness-110 active:scale-[0.97] disabled:opacity-50"
                           >
-                            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                            {busy ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Check className="h-3.5 w-3.5" />}
                             Accept
                           </button>
                           <button

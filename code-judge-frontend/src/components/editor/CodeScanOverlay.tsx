@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { editor } from "monaco-editor";
 import { motion, useAnimationControls } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
 
@@ -476,7 +476,7 @@ export default function CodeScanOverlay({
               : "border-[#7C3AED]/25 bg-white/95 text-[#1e1e2e]"
           )}
         >
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-[#EC4899]" />
+          <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" />
           {loop ? PREPARING_STATUS : STATUSES[phase]}
         </div>
       </div>

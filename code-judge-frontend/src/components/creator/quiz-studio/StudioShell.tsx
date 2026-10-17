@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ChevronLeft, ChevronRight, Check, HelpCircle, Loader2, Rocket, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Check, HelpCircle, Rocket, X } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { useStudio, useSaveStatus, isQuestionValidationError } from "./StudioProvider";
 import { toast } from "@/lib/toast";
@@ -245,7 +246,7 @@ export function StudioHeader() {
 
       <div className="hidden items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 sm:flex ml-1 sm:ml-3 border-l border-border pl-2 sm:pl-3 shrink-0">
         {status === "saving" ? (
-          <span className="flex items-center gap-1 text-text-muted"><Loader2 className="h-3 w-3 animate-spin" />Saving…</span>
+          <span className="flex items-center gap-1 text-text-muted"><SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" />Saving…</span>
         ) : status === "saved" && lastSaved ? (
           <>
             <Check className="h-3.5 w-3.5" />
@@ -289,7 +290,7 @@ export function StudioHeader() {
               disabled={saving}
               className="inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary disabled:opacity-50 sm:rounded-xl"
             >
-              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+              {saving ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : "Save"}
             </button>
           )}
           <button
@@ -311,7 +312,7 @@ export function StudioHeader() {
             disabled={continuing}
             className="inline-flex h-9 min-w-0 flex-[1.25] items-center justify-center gap-1 rounded-lg bg-[var(--qs-brand)] px-3 text-xs font-bold text-white shadow-sm disabled:opacity-60 sm:rounded-xl sm:px-4"
           >
-            {continuing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>Continue</>}
+            {continuing ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <>Continue</>}
           </button>
         </div>
         {/* Desktop: Continue only */}
@@ -328,7 +329,7 @@ export function StudioHeader() {
           disabled={continuing}
           className="hidden lg:inline-flex h-8 items-center gap-1 rounded-lg bg-[var(--qs-brand)] px-4 text-xs font-semibold text-white hover:bg-[#5a2fd8] shadow-sm disabled:opacity-60"
         >
-          {continuing ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : <>Continue <span>→</span></>}
+          {continuing ? <><SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> Saving…</> : <>Continue <span>→</span></>}
         </button>
       </div>
     </header>
@@ -618,7 +619,7 @@ export function StudioFooter() {
               canContinue() && !continuing ? "bg-[var(--qs-brand)] text-white hover:bg-[#5a2fd8]" : "bg-card-hover text-text-muted cursor-not-allowed"
             )}
           >
-            {continuing ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : <>Continue <span>→</span></>}
+            {continuing ? <><SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> Saving…</> : <>Continue <span>→</span></>}
           </button>
         )}
       </div>

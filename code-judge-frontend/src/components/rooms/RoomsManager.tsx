@@ -11,13 +11,13 @@ import {
   Download,
   Eye,
   FileSpreadsheet,
-  Loader2,
   Plus,
   Search,
   Settings2,
   Trash2,
   Users,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { MAX_ROOMS_PER_CREATOR } from "@/lib/constants";
 import { useRoomStore, getOwnedRooms } from "@/store/roomStore";
@@ -214,7 +214,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
       <div className="flex min-h-[60vh] items-center justify-center px-4">
         <div className="rounded-2xl border border-border bg-card px-8 py-12 text-center shadow-lg">
           <div className="relative mx-auto h-14 w-14">
-            <Loader2 className="h-14 w-14 animate-spin text-pink-500" />
+            <SecureLogo variant="mark" size={48} className="animate-pulse motion-reduce:animate-none" />
           </div>
           <h2 className="mt-5 text-lg font-bold text-text-primary">Loading your rooms…</h2>
           <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-text-secondary">

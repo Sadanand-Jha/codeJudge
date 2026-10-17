@@ -240,16 +240,19 @@ export function QuizStateScreen({
   action?: React.ReactNode;
   loading?: boolean;
 }) {
+  if (loading) {
+    return (
+      <div className="qs-ui flex min-h-[calc(100dvh-3.5rem)] items-center justify-center bg-[var(--qs-bg)] px-4">
+        <SecureLogo variant="mark" size={125} className="animate-pulse motion-reduce:animate-none" />
+      </div>
+    );
+  }
   return (
     <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[var(--qs-bg)] px-4 py-6 sm:px-6">
       <QuizAmbientBackground />
       <div className="relative z-10 flex min-h-[70vh] items-center justify-center">
         <div className="qs-card w-full max-w-md p-6 text-center sm:p-8">
-          {loading ? (
-            <QuizLoader className="mx-auto" />
-          ) : (
-            icon
-          )}
+          {icon}
           {title && (
             <h1 className="mt-4 text-xl font-extrabold text-[var(--qs-ink)]">{title}</h1>
           )}

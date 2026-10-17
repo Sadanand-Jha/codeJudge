@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
-import { Database, Loader2, ArrowRight, Terminal } from "lucide-react";
+import { Database, ArrowRight, Terminal } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import type { ProblemListItem } from "@/types/problem";
 import { fetchProblemsLive } from "@/services/problems";
 import { mergeProblems } from "../marketplace";
@@ -82,7 +83,7 @@ export function CompetitiveProgrammingPage({
                   >
                     {refreshing ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" />
                         Syncing with database…
                       </>
                     ) : (

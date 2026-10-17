@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowLeft, AtSign, Check, CheckSquare, FileSpreadsheet, Loader2, Plus, Search, Users, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, AtSign, Check, CheckSquare, FileSpreadsheet, Plus, Search, Users, X } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { MAX_STUDENTS_PER_ROOM, MAX_ROOMS_PER_CREATOR } from "@/lib/constants";
 import { RoomStudent } from "@/types/room";
@@ -219,7 +220,7 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
   const avatarSrc = searchedUser?.avatarUrl ?? "";
 
   return (
-    <AudienceModal open={open} onClose={handleClose} title="Create a Room" subtitle="Add by username, import, or choose from existing rooms." icon={<Users className="h-5 w-5" />} size="md" footer={<div className="flex items-center justify-end gap-2"><button onClick={handleClose} className="h-9 cursor-pointer rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover">Cancel</button><button onClick={handleCreate} disabled={creating} className="flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50">{creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Create Room</button></div>}>
+    <AudienceModal open={open} onClose={handleClose} title="Create a Room" subtitle="Add by username, import, or choose from existing rooms." icon={<Users className="h-5 w-5" />} size="md" footer={<div className="flex items-center justify-end gap-2"><button onClick={handleClose} className="h-9 cursor-pointer rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover">Cancel</button><button onClick={handleCreate} disabled={creating} className="flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50">{creating ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Check className="h-3.5 w-3.5" />} Create Room</button></div>}>
       <div className="space-y-5">
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-text-primary">Room Name</label>
@@ -248,7 +249,7 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
                   <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key==="Enter"){ e.preventDefault(); handleSearch(); } }} placeholder="Enter username e.g. quizplayer101" className="h-10 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10" />
                 </div>
                 <button onClick={handleSearch} disabled={searching || !query.trim()} className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50">
-                  {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />} Search
+                  {searching ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Search className="h-3.5 w-3.5" />} Search
                 </button>
               </div>
               {searchError && <p className="mt-2 text-xs font-medium text-danger">{searchError}</p>}

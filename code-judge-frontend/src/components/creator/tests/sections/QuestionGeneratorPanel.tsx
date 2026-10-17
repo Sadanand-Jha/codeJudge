@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import {
   Sparkles,
   AlertCircle,
-  Loader2,
   Copy,
   Check,
   RotateCcw,
@@ -18,6 +17,7 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { useToast } from "@/hooks/useToast";
 import { generateSubjectiveQuestions } from "@/services/aiGenerate";
@@ -473,7 +473,7 @@ export function QuestionGeneratorPanel() {
                   disabled={status === "generating" || sumMismatch || categorySumMismatch || !subjectId}
                   className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
                 >
-                  {status === "generating" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  {status === "generating" ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Sparkles className="h-3.5 w-3.5" />}
                   {status === "generating" ? "Generating questions…" : "Generate Questions"}
                 </button>
                 {status === "generating" && (

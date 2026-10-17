@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Activity, Trophy, UserPlus, Code2, Loader2, CalendarDays, BellRing } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
+import { Activity, Trophy, UserPlus, Code2, CalendarDays, BellRing } from "lucide-react";
 import { getMyContests } from "@/services/contests";
 import { getIncomingCollaboratorRequests } from "@/services/quiz";
 import { groupLabel, timeAgo, type ActivityEvent } from "@/services/profile";
@@ -92,7 +93,7 @@ export default function ActivityPage() {
 
         {loading ? (
           <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card py-16 text-sm text-text-secondary">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading activity...
+            <SecureLogo variant="mark" size={20} className="animate-pulse motion-reduce:animate-none" /> Loading activity...
           </div>
         ) : grouped.length === 0 ? (
           <motion.div

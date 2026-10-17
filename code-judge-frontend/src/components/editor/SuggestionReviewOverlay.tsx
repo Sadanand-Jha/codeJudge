@@ -7,7 +7,6 @@ import {
   Check,
   FileCode2,
   Sparkles,
-  Loader2,
   Copy,
   Maximize2,
   Minimize2,
@@ -15,6 +14,7 @@ import {
   Minus,
   FileDiff,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import MonacoEditorWrapper, {
   type MonacoEditorWrapperHandle,
 } from "./MonacoEditor";
@@ -479,7 +479,7 @@ export default function SuggestionReviewOverlay({
                   className="inline-flex h-[42px] items-center gap-2 rounded-xl bg-[#7C3AED] px-5 text-[13px] font-semibold text-white shadow-[0_2px_12px_rgba(124,58,237,0.3)] transition-colors hover:bg-[#6D28D9] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {applying ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" />
                   ) : (
                     <Check className="h-4 w-4" />
                   )}

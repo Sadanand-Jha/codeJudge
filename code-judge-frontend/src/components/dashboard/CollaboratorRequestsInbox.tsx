@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import Link from "next/link";
-import { Check, Loader2, Mail, UserPlus, X, XCircle, CheckCircle2 } from "lucide-react";
+import { Check, Mail, UserPlus, X, XCircle, CheckCircle2 } from "lucide-react";
 import {
   getIncomingCollaboratorRequests,
   respondToCollaboratorRequest,
@@ -107,7 +108,7 @@ export default function CollaboratorRequestsInbox() {
 
       {loading ? (
         <div className="mt-6 flex items-center justify-center gap-2 py-8 text-sm text-text-muted">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading invites...
+          <SecureLogo variant="mark" size={20} className="animate-pulse motion-reduce:animate-none" /> Loading invites...
         </div>
       ) : requests.length === 0 ? (
         <div className="mt-6 rounded-xl border border-dashed border-border bg-card-hover p-8 text-center">
@@ -160,7 +161,7 @@ export default function CollaboratorRequestsInbox() {
                         disabled={busy}
                         className="flex h-8 items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 px-3 text-[11px] font-bold text-text-primary transition-all hover:brightness-110 active:scale-[0.97] disabled:opacity-50"
                       >
-                        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                        {busy ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Check className="h-3.5 w-3.5" />}
                         Accept
                       </button>
                       <button

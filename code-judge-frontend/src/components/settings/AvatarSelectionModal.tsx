@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Loader2, User, Lock, Sparkles } from "lucide-react";
+import { X, Check, User, Lock, Sparkles } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import {
   getPredefinedAvatarByUrl,
   type PredefinedAvatar,
@@ -317,7 +318,7 @@ export default function AvatarSelectionModal({
               >
                 {saving ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" />
                     Saving...
                   </>
                 ) : (

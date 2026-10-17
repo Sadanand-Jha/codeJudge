@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import {
   Users,
   UserCheck,
   UserPlus,
-  Loader2,
   Star,
   AtSign,
   Eye,
@@ -189,7 +189,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
                 disabled={searching || !query.trim()}
                 className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
               >
-                {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                {searching ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Search className="h-3.5 w-3.5" />}
                 Search
               </button>
             </div>
@@ -233,7 +233,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
                   )}
                 >
                   {busyId === searchedUser.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" />
                   ) : isAlreadyFollowing ? (
                     <UserCheck className="h-3.5 w-3.5" />
                   ) : (
@@ -294,7 +294,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
 
         {loading ? (
           <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card py-16 text-sm text-text-secondary">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+            <SecureLogo variant="mark" size={20} className="animate-pulse motion-reduce:animate-none" /> Loading...
           </div>
         ) : users.length === 0 ? (
           <motion.div
@@ -369,7 +369,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
                           disabled={busy}
                           className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#F59E0B]/30 bg-[#F59E0B]/10 px-3 text-[11px] font-bold text-[#F59E0B] transition-all hover:bg-[#F59E0B]/15 active:scale-[0.97] disabled:opacity-50"
                         >
-                          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5" />}
+                          {busy ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <UserCheck className="h-3.5 w-3.5" />}
                           Unfollow
                         </button>
                       )}
@@ -385,7 +385,7 @@ export default function SocialPage({ mode }: SocialPageProps) {
                           )}
                         >
                           {busy ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" />
                           ) : user.isFollowing ? (
                             <UserCheck className="h-3.5 w-3.5" />
                           ) : (

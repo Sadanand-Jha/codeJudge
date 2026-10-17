@@ -5,12 +5,12 @@ import {
   Sparkles,
   Check,
   X,
-  Loader2,
   Lightbulb,
   HelpCircle,
   Smile,
   Send,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import type { CreatorQuestion } from "../types";
@@ -141,7 +141,7 @@ export function AiAssistantPanel({
 
           {working && (
             <div className="ai-color-note flex items-center gap-2 rounded-xl p-3 text-xs text-text-secondary">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-pink-500" />
+              <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" />
               Generating…
             </div>
           )}

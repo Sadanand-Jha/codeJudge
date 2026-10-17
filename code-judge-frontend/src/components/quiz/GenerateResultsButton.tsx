@@ -8,11 +8,11 @@ import {
   AlertCircle,
   CheckCircle2,
   X,
-  Loader2,
   RefreshCw,
   Trophy,
 } from "lucide-react";
 import { generateQuizResults, retryQuizResultsEmail } from "@/services/quiz";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { useToast } from "@/hooks/useToast";
 
 type GenerationState = "idle" | "confirming" | "regenerate-confirm" | "generating" | "success" | "partial-success" | "error";
@@ -144,7 +144,7 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
         >
           <div className="flex flex-col items-center text-center">
             <div className="w-16 h-16 rounded-2xl bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center mb-5">
-              <Loader2 className="w-8 h-8 text-[#EC4899] animate-spin" />
+              <SecureLogo variant="mark" size={40} className="animate-pulse motion-reduce:animate-none" />
             </div>
             <h3 className="text-lg font-bold text-white mb-2">Generating Results...</h3>
             <p className="text-xs text-[#6B7280] mb-6">
@@ -165,7 +165,7 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
                   {index < loadingStep ? (
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] shrink-0" />
                   ) : index === loadingStep ? (
-                    <Loader2 className="w-3.5 h-3.5 text-[#EC4899] shrink-0 animate-spin" />
+                    <SecureLogo variant="mark" size={14} className="shrink-0 animate-pulse motion-reduce:animate-none" />
                   ) : (
                     <div className="w-3.5 h-3.5 rounded-full border border-white/10 shrink-0" />
                   )}

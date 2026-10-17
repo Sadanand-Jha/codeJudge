@@ -6,13 +6,14 @@ import {
   Sparkles, Upload, FileText, Image, X, ChevronRight, ChevronDown,
   Settings, Play, Pause, RotateCcw, Check, Edit3, Trash2,
   Wand2, FileSpreadsheet, FileType, Archive, CheckCircle2,
-  AlertCircle, Loader2, Plus, Minus, Sliders, BookOpen,
+  AlertCircle, Plus, Minus, Sliders, BookOpen,
   BarChart3, Lightbulb, Tag, ImageIcon, HelpCircle,
   File, FileCode, FileImage, FileArchive, FileText as FileTxt,
   ChevronLeft, GripVertical, Eye, Download, RefreshCw,
   SlidersHorizontal, Target, Clock, Zap, Brain,
   Presentation, Table, FileType2, Code2
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { useAICreditConsumption } from "@/hooks/useAICreditConsumption";
 import { toast } from "@/lib/toast";
 import { generateQuestionsFromFiles, generateFromQuestionBank, mapRawQuestionsToPreview } from "@/services/ai";
@@ -591,7 +592,7 @@ export default function AIStudio({
               </div>
 
               <button onClick={handleGenerateFromBank} disabled={isGenerating || bankEasy + bankMedium + bankHard !== bankNumber || !bankSubjectId} className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-3 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:cursor-not-allowed">
-                {isGenerating ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating... {Math.round(generationProgress)}%</> : <><Wand2 className="h-4 w-4" /> Generate {bankNumber} Questions</>}
+                {isGenerating ? <><SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Generating... {Math.round(generationProgress)}%</> : <><Wand2 className="h-4 w-4" /> Generate {bankNumber} Questions</>}
               </button>
             </motion.div>
           )}
@@ -714,7 +715,7 @@ export default function AIStudio({
                           )}
                           {file.status === "processing" && (
                             <div className="flex items-center gap-1 text-[10px] text-accent">
-                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" />
                               Processing...
                             </div>
                           )}
@@ -988,7 +989,7 @@ export default function AIStudio({
               >
                 {isGenerating ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" />
                     Generating... {Math.round(generationProgress)}%
                   </>
                 ) : (

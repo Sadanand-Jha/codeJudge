@@ -10,12 +10,12 @@ import {
   ArrowLeft,
   Copy,
   ListChecks,
-  Loader2,
   Plus,
   Square,
   Trash2,
   Zap,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { toast } from "@/lib/toast";
 import { isQuizProblemsPath } from "@/lib/quizWorkspace";
@@ -351,7 +351,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                   className="flex h-7 shrink-0 items-center gap-1 rounded-lg bg-gradient-to-br from-pink-500 to-accent px-2 text-[10px] font-bold text-white shadow-[0_4px_14px_-2px_rgba(236,72,153,0.55)] transition-all duration-150 hover:brightness-110 hover:shadow-[0_4px_18px_-2px_rgba(236,72,153,0.7)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                   title="Add problem"
                 >
-                  {adding ? <Loader2 className="h-3 w-3 animate-spin" strokeWidth={2.5} /> : <Plus className="h-3 w-3" strokeWidth={2.5} />}
+                  {adding ? <SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" /> : <Plus className="h-3 w-3" strokeWidth={2.5} />}
                   {adding ? "Adding..." : "Add"}
                 </button>
               </div>
@@ -489,7 +489,7 @@ export default function QuizWorkspaceFrame({ children }: { children: React.React
                     disabled={adding}
                     className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-pink-500 transition-colors hover:text-pink-400 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {adding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                    {adding ? <SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" /> : <Plus className="h-3 w-3" />}
                     {adding ? "Adding..." : "Add Problem"}
                   </button>
                 </div>

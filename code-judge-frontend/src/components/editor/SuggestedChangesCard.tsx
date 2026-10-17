@@ -2,7 +2,8 @@
 
 import { memo, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Check, X, AlertTriangle, Loader2, RefreshCw, Code2 } from "lucide-react";
+import { Sparkles, Check, X, AlertTriangle, RefreshCw, Code2 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import type { AIEdit, DiffLine } from "@/lib/codeEdits";
 import { buildEditDiff } from "@/lib/codeEdits";
@@ -163,7 +164,7 @@ function SuggestedChangesCard({
             className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-3.5 py-1.5 text-[11px] font-bold text-white shadow-[0_2px_10px_rgba(124,58,237,0.35)] transition-all hover:brightness-110 active:scale-[0.97] disabled:opacity-60"
           >
             {applying ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" />
             ) : (
               <Check className="h-3.5 w-3.5" />
             )}

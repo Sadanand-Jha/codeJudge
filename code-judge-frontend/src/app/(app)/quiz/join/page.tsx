@@ -258,7 +258,6 @@ export default function JoinQuizPage() {
       crowdParticipants={attemptUsers}
       crowdSpeed={2}
       hideHeader
-      fitViewport
     >
         <AnimatePresence mode="wait">
           {step === "code" ? (
@@ -365,7 +364,7 @@ export default function JoinQuizPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: isMobile ? 0 : -12 }}
               transition={isMobile ? { duration: 0.15 } : undefined}
-              className="has-mobile-viewport-actions relative space-y-3 sm:space-y-4"
+              className="relative space-y-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:space-y-4"
             >
               <div className="qs-shadow">
               <div className="qs-card overflow-hidden p-0">
@@ -513,28 +512,30 @@ export default function JoinQuizPage() {
               </div>
               </div>
 
-              <div className="mobile-viewport-actions border-t-2 border-[var(--qs-line)] px-4 py-3 sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
-                <button
-                  onClick={handleJoin}
-                  disabled={joining || status?.label === "Ended"}
-                  className="qs-btn h-14 w-full px-4 text-sm disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  {joining ? (
-                    <QuizLoader size={16} />
-                  ) : status?.label === "Ended" ? (
-                    "Quiz Has Ended"
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      Join Quiz
-                      <ChevronRight className="h-4 w-4" />
-                    </>
-                  )}
-                </button>
-                <p className="mt-2 text-center text-[10px] font-semibold text-[var(--qs-muted)]">
-                  {/* REGISTRATION STEP COMMENTED OUT — Registration and access verification happen in the next step. */}
-                  Access verification happens in the next step.
-                </p>
+              <div className="fixed inset-x-0 bottom-0 z-[70] border-t-2 border-[var(--qs-line)] bg-[var(--background)] px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-10px_28px_rgba(0,0,0,0.14)] sm:px-6 lg:border-t-0 lg:bg-transparent lg:shadow-none">
+                <div className="mx-auto w-full max-w-3xl">
+                  <button
+                    onClick={handleJoin}
+                    disabled={joining || status?.label === "Ended"}
+                    className="qs-btn h-14 w-full px-4 text-sm disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {joining ? (
+                      <QuizLoader size={16} />
+                    ) : status?.label === "Ended" ? (
+                      "Quiz Has Ended"
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        Join Quiz
+                        <ChevronRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                  <p className="mt-2 text-center text-[10px] font-semibold text-[var(--qs-muted)]">
+                    {/* REGISTRATION STEP COMMENTED OUT — Registration and access verification happen in the next step. */}
+                    Access verification happens in the next step.
+                  </p>
+                </div>
               </div>
             </motion.div>
           ) : null}

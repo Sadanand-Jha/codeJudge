@@ -4,7 +4,8 @@ import type { ReactNode, ButtonHTMLAttributes } from "react";
 import { useState, useRef, useEffect, useId } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowDownRight, ArrowUpRight, CalendarDays, ChevronDown, Loader2, Lock, RotateCcw, Inbox, X } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, CalendarDays, ChevronDown, Lock, RotateCcw, Inbox, X } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 
 /* ============================================================
@@ -83,7 +84,7 @@ export function BillButton({
   );
   const content = (
     <>
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : icon}
+      {loading ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : icon}
       {children}
     </>
   );

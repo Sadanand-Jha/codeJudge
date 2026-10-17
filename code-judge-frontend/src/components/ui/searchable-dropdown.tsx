@@ -10,7 +10,8 @@ import {
   type ChangeEvent,
 } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Search, Check, Loader2, X, AlertCircle, RotateCw } from "lucide-react";
+import { ChevronDown, Search, Check, X, AlertCircle, RotateCw } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 
 /* =============================================
@@ -377,7 +378,7 @@ export function SearchableDropdown({
 
         {/* Right-side controls: loading / clear / chevron */}
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-          {loading && <Loader2 className="h-4 w-4 text-accent animate-spin" />}
+          {loading && <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" />}
           {showClearButton && !loading && (
             <button
               type="button"
@@ -413,7 +414,7 @@ export function SearchableDropdown({
             {/* Loading state */}
             {loading && (
               <div className="flex items-center justify-center gap-2 py-4 text-sm text-text-secondary">
-                <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" />
                 <span>Searching...</span>
               </div>
             )}

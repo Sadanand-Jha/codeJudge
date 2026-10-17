@@ -12,8 +12,8 @@ import {
   Shield,
   Timer,
   ArrowLeft,
-  Loader2,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import AppLayout from "@/components/layout/AppLayout";
 import GuestGuard from "@/components/guards/GuestGuard";
 import { getContestById, registerForContest, type Contest } from "@/services/contests";
@@ -256,7 +256,7 @@ function ContestRegisterContent({ params }: { params: { contestId: string } }) {
             >
               {registering ? (
                 <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Registering...
+                  <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Registering...
                 </span>
               ) : (
                 <span className="flex items-center gap-2">

@@ -6,11 +6,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   User, IdCard, Trophy, Code2, Shield, Lock, Bell, Palette,
   Link2, AlertTriangle, Save, Trash2, Check,
-  ExternalLink, Loader2, Download, Pause, MessageSquareX,
+  ExternalLink, Download, Pause, MessageSquareX,
   Globe, Mail, Phone, Calendar, Moon, Sun, Monitor,
   Users, Star, MapPin, BadgeCheck, Camera, AtSign,
   Hash, Clock, Sparkles, ChevronDown,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import AppLayout from "@/components/layout/AppLayout";
 import AvatarSettings from "@/components/settings/AvatarSettings";
 import SettingsSidebar, { SettingsMobileNav } from "@/components/settings/SettingsSidebar";
@@ -558,7 +559,7 @@ export default function SettingsPage() {
                   className="flex h-11 items-center gap-2 rounded-xl bg-accent px-5 text-xs font-bold text-white opacity-40 cursor-not-allowed"
                 >
                   {saving ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
+                    <><SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Saving...</>
                   ) : (
                     <><Save className="h-4 w-4" /> Save Changes</>
                   )}

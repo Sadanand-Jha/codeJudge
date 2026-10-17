@@ -37,9 +37,9 @@ import {
   MoreHorizontal,
   Search,
   RefreshCw,
-  Loader2,
   User,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import {
   StudioQuestion,
   QuizSettingsConfig,
@@ -663,7 +663,7 @@ function ParticipantsTab({ quizId }: { quizId: string }) {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 text-[#EC4899] animate-spin" />
+          <SecureLogo variant="mark" size={32} className="animate-pulse motion-reduce:animate-none" />
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">

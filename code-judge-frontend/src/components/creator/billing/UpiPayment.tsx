@@ -11,12 +11,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import {
-  Loader2,
   RefreshCw,
   Smartphone,
   Timer,
   XCircle,
 } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 
 export const UPI_CONFIG = {
@@ -297,7 +297,7 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
       <div className="mx-auto mt-3 w-fit rounded-xl bg-white p-3 shadow-sm">
         {qr.status === "loading" ? (
           <div className="grid h-[200px] w-[200px] place-items-center" role="status" aria-label="Generating QR code">
-            <Loader2 className="h-8 w-8 animate-spin text-pink-600" aria-hidden="true" />
+            <SecureLogo variant="mark" size={32} className="animate-pulse motion-reduce:animate-none" aria-hidden="true" />
           </div>
         ) : qr.status === "error" || !qr.url ? (
           <div className="flex h-[200px] w-[200px] flex-col items-center justify-center gap-2 px-4 text-center">
@@ -438,7 +438,7 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
         )}
       >
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-pink-500/10 text-pink-600 dark:text-pink-400" aria-hidden="true">
-          <Loader2 className="h-7 w-7 animate-spin" />
+          <SecureLogo variant="mark" size={28} className="animate-pulse motion-reduce:animate-none" />
         </span>
         <p className="mt-4 text-base font-extrabold text-slate-900 dark:text-white">Waiting for payment</p>
         <p className="mx-auto mt-1 max-w-xs text-[13px] text-slate-500 dark:text-slate-400">

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Rocket, ShieldCheck, IceCreamCone, PartyPopper } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { QuizLoader } from "./StudentQuizShell";
 import { useTheme } from "@/context/ThemeContext";
@@ -457,11 +458,9 @@ export function QuizWarpExperience({
             className="absolute inset-0 z-30 flex items-center justify-center px-6 text-center"
           >
             <div>
-              <motion.div
-                animate={{ boxShadow: ["0 0 25px rgba(139,124,255,.2)", "0 0 70px rgba(139,124,255,.55)", "0 0 25px rgba(139,124,255,.2)"] }}
-                transition={{ duration: 1.2, repeat: Infinity }}
-                className="mx-auto h-2 w-2 rounded-full bg-white"
-              />
+              <div className="mx-auto w-fit">
+                <SecureLogo variant="mark" size={36} className="animate-pulse motion-reduce:animate-none" />
+              </div>
               <p className="mt-7 text-[10px] font-bold uppercase tracking-[0.45em] text-violet-200/75">Destination reached</p>
               <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] text-white sm:text-5xl">WELCOME ABOARD</h2>
               <p className="mt-3 text-xs text-white/45">Preparing your secure quiz environment…</p>
