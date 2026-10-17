@@ -13,7 +13,6 @@ import {
   LogOut,
   BookOpen,
   Trophy,
-  Loader2,
   ChevronDown,
   User,
   Waypoints,
@@ -276,7 +275,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   if (!hasHydrated || isBlockedRoute) {
     return (
       <div className="min-h-dvh bg-background flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-accent animate-spin" />
+        <SecureLogo variant="mark" size={40} className="animate-pulse motion-reduce:animate-none" />
       </div>
     );
   }

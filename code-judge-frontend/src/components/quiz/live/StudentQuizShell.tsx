@@ -2,8 +2,9 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { WaitingRoomThemeProvider } from "@/context/WaitingRoomThemeContext";
 import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
@@ -217,12 +218,11 @@ export default function StudentQuizShell({
 }
 
 /* ── qs-ui brand loader (replaces the theme-dependent icon spinner) ── */
-export function QuizLoader({ className }: { className?: string }) {
+export function QuizLoader({ className, size = 32 }: { className?: string; size?: number }) {
   return (
-    <Loader2
-      className={cn("h-7 w-7 animate-spin text-[var(--qs-brand)]", className)}
-      aria-label="Loading"
-    />
+    <span role="status" aria-label="Loading" className={cn("shrink-0", className)}>
+      <SecureLogo variant="mark" size={size} className="animate-pulse motion-reduce:animate-none" />
+    </span>
   );
 }
 

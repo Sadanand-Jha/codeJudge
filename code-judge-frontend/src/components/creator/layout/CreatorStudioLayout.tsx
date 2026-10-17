@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2 } from "lucide-react";
+import { X } from "lucide-react";
 import { CreatorSidebar } from "./CreatorSidebar";
 import CreatorNavbar from "./CreatorNavbar";
 import AppLayout from "@/components/layout/AppLayout";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -34,7 +35,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
     return (
       <AppLayout>
         <div className="qs-ui flex min-h-screen items-center justify-center bg-[var(--qs-bg)]">
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--qs-brand)]" />
+          <SecureLogo variant="mark" size={36} className="animate-pulse motion-reduce:animate-none" />
         </div>
       </AppLayout>
     );
@@ -44,7 +45,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
     return (
       <AppLayout>
         <div className="qs-ui flex min-h-screen items-center justify-center bg-[var(--qs-bg)]">
-          <Loader2 className="h-6 w-6 animate-spin text-[var(--qs-brand)]" />
+          <SecureLogo variant="mark" size={36} className="animate-pulse motion-reduce:animate-none" />
         </div>
       </AppLayout>
     );

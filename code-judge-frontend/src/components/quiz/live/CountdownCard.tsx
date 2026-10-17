@@ -61,7 +61,7 @@ export function CountdownCard({ targetAt, onStarted, className = "" }: Countdown
       )}
       {started && (
         <motion.div className="flex items-center gap-1.5 text-[var(--qs-ok)] text-sm font-semibold" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <QuizLoader className="h-4 w-4" />
+          <QuizLoader size={16} />
           Redirecting to quiz...
         </motion.div>
       )}

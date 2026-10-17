@@ -195,7 +195,7 @@ export function QuizWarpExperience({
         aria-label="Entering quiz"
       >
         <div>
-          <QuizLoader className="mx-auto block h-9 w-9" />
+          <QuizLoader className="mx-auto block w-fit" size={36} />
           <p className={`mt-5 text-[10px] font-bold uppercase tracking-[0.3em] ${light ? "text-pink-600" : "text-cyan-200/70"}`}>
             Entering quiz
           </p>

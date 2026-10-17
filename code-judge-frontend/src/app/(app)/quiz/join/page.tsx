@@ -343,7 +343,7 @@ export default function JoinQuizPage() {
                     className="qs-btn h-13 w-full px-4 text-sm disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     {loading ? (
-                      <><QuizLoader className="h-4 w-4" /> Verifying access…</>
+                      <><QuizLoader size={16} /> Verifying access…</>
                     ) : (
                       <>Verify &amp; continue <ChevronRight className="h-4 w-4" /></>
                     )}
@@ -520,7 +520,7 @@ export default function JoinQuizPage() {
                   className="qs-btn h-14 w-full px-4 text-sm disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   {joining ? (
-                    <QuizLoader className="h-4 w-4" />
+                    <QuizLoader size={16} />
                   ) : status?.label === "Ended" ? (
                     "Quiz Has Ended"
                   ) : (

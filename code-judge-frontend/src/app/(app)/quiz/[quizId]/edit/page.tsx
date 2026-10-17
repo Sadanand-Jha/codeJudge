@@ -2,7 +2,8 @@
 
 import { use, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { getQuizCode } from "@/services/quiz";
 
 export default function EditQuizPage({ params }: { params: Promise<{ quizId: string }> }) {
@@ -30,7 +31,7 @@ export default function EditQuizPage({ params }: { params: Promise<{ quizId: str
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      <SecureLogo variant="mark" size={40} className="animate-pulse motion-reduce:animate-none" />
     </div>
   );
 }

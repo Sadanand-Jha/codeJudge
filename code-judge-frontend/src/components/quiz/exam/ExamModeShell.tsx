@@ -382,7 +382,7 @@ export default function ExamModeShell({
                   disabled={entering || !registrationComplete}
                   className="qs-btn h-11 w-full gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:w-auto sm:flex-[1.4]"
                 >
-                  {entering ? <QuizLoader className="h-4 w-4" /> : <Rocket className="h-4 w-4" />}
+                  {entering ? <QuizLoader size={16} /> : <Rocket className="h-4 w-4" />}
                   {entering ? "Starting your attempt…" : "Start Exam"}
                 </button>
               </div>
@@ -443,7 +443,7 @@ export default function ExamModeShell({
                 disabled={entering}
                 className="qs-btn h-14 w-full gap-2 text-sm disabled:cursor-wait disabled:opacity-70 sm:w-auto sm:px-6"
               >
-                {entering ? <QuizLoader className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                {entering ? <QuizLoader size={16} /> : <Maximize2 className="h-4 w-4" />}
                 {entering ? "Checking eligibility…" : "Enter Exam Mode"}
               </button>
               <button onClick={onExitPreview} className="qs-btn qs-btn-ghost h-14 w-full text-sm sm:w-auto sm:px-6">

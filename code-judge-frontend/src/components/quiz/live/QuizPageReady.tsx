@@ -79,7 +79,7 @@ export default function QuizPageReady({
           aria-label={label}
         >
           {/* Themed loader — ice-cream (light) / rocket (dark). */}
-          <QuizLoader className="h-9 w-9" />
+          <QuizLoader size={36} />
           <span className="text-xs font-semibold text-[var(--qs-muted,#667085)]">
             Preparing your quiz…
           </span>
