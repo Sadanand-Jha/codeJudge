@@ -87,14 +87,14 @@ function ProfileMenu() {
 export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void }) {
   const creditBalance = useAICreditsStore((s) => s.balance.totalRemaining);
   return (
-    <header className="qs-ui sticky top-0 z-30 flex h-14 min-w-0 w-full max-w-full items-center gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)]/85 px-2.5 backdrop-blur-xl sm:px-4">
-      <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-none sm:shrink-0">
+    <header className="creator-topbar qs-ui sticky top-0 z-30 flex h-14 min-w-0 w-full max-w-full items-center gap-2 border-b border-ai-border bg-ai-sidebar px-3 sm:border-b-2 sm:border-[var(--qs-line)] sm:bg-[var(--qs-surface)]/85 sm:px-4 sm:backdrop-blur-xl">
+      <div className="flex min-w-0 flex-1 items-center gap-4 sm:flex-none sm:shrink-0 sm:gap-1">
         {onMobileMenuToggle && (
           <button
             type="button"
             onClick={onMobileMenuToggle}
             aria-label="Open Studio navigation"
-            className="-ml-1 shrink-0 rounded-lg p-2 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
+            className="shrink-0 rounded-lg p-2 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)] sm:-ml-1 lg:hidden"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />

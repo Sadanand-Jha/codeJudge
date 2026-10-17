@@ -1,16 +1,50 @@
 // QuizSupport OTP email — themed to match the qs-ui site theme.
 // Brand: #6A3DF0, page #F7F5FF, ink #1A1240, sun #FFD23F, chunky 20px card.
-// Logo loads from the public website URL (no attachments, so nothing shows
-// as a separate file). Fully fluid + media-query responsive for mobile/desktop.
+// Logo = backend file public/logo/quizsupport-logo-light.png (mascot +
+// "QuizSupport" wordmark), embedded via CID (Content-ID) with
+// contentDisposition:inline — the ONLY method Gmail/Outlook render.
+// NOTE on "separate file": Gmail shows a paperclip whenever ANY image is
+// attached, but a CID-inline image renders INSIDE the body (in place of the
+// company name) and is NOT a downloadable PDF/file. Remote URLs and
+// data-URIs are both stripped by Gmail — this is why images were invisible.
+// Fully fluid + media-query responsive for mobile/desktop.
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import logger from '../utils/logger.js';
 import { getTransporter, getFromAddress } from './smtp.js';
 import { isResendConfigured, sendViaResend } from './resend.js';
+
+interface EmailInlineAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+  cid: string;
+}
 
 interface EmailOptions {
   to: string;
   subject: string;
   text?: string;
   html?: string;
+  inlineAttachments?: EmailInlineAttachment[];
+}
+
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+// Backend image with the name artwork (mascot + "QuizSupport" wordmark).
+const OTP_LOGO_PATH = path.resolve(moduleDir, '../../public/logo/quizsupport-logo-light.png');
+const OTP_LOGO_CID = 'quizsupport-logo';
+
+let cachedLogo: Buffer | null | undefined;
+
+async function getOtpLogo(): Promise<Buffer | null> {
+  if (cachedLogo !== undefined) return cachedLogo;
+  try {
+    cachedLogo = await fs.readFile(OTP_LOGO_PATH);
+  } catch {
+    cachedLogo = null;
+  }
+  return cachedLogo;
 }
 
 function requireTransport() {
@@ -31,6 +65,15 @@ async function deliverEmail(options: EmailOptions): Promise<string> {
   const ctx = requireTransport();
   let smtpError: unknown = null;
 
+  const inlineFiles = options.inlineAttachments ?? [];
+  const smtpAttachments = inlineFiles.map((a) => ({
+    filename: a.filename,
+    content: a.content,
+    contentType: a.contentType,
+    cid: a.cid,
+    contentDisposition: 'inline' as const,
+  }));
+
   if (ctx) {
     try {
       const info = await ctx.transporter.sendMail({
@@ -39,6 +82,7 @@ async function deliverEmail(options: EmailOptions): Promise<string> {
         subject: options.subject,
         html: options.html || (options.text ? `<p>${options.text}</p>` : '<p></p>'),
         ...(options.text ? { text: options.text } : {}),
+        ...(smtpAttachments.length ? { attachments: smtpAttachments } : {}),
       });
       logger.info(`Email dispatched via SMTP to ${options.to}: ${info.messageId}`);
       return info.messageId;
@@ -49,12 +93,21 @@ async function deliverEmail(options: EmailOptions): Promise<string> {
   }
 
   // Fallback: Resend API (also the primary path when SMTP is not configured).
+  // CID content-ids are an SMTP/MIME concept — Resend's API has no CID
+  // support, so inline images can't render there. Skip the logo on this
+  // path and send the themed text + OTP (still fully usable).
   if (isResendConfigured()) {
     try {
+      const resendHtml = inlineFiles.length
+        ? options.html?.replace(
+            new RegExp(`<img[^>]*src="cid:${OTP_LOGO_CID}"[^>]*>`, 'i'),
+            `<span style="font-size:24px;font-weight:800;color:#1A1240;">Quiz<span style="color:#6A3DF0;">Support</span></span>`
+          )
+        : options.html;
       return await sendViaResend({
         to: options.to,
         subject: options.subject,
-        html: options.html || (options.text ? `<p>${options.text}</p>` : undefined),
+        html: resendHtml || (options.text ? `<p>${options.text}</p>` : undefined),
         text: options.text,
       });
     } catch (resendError) {
@@ -99,13 +152,12 @@ export async function sendOtpEmail(
   // Regular spaces let narrow clients (e.g. Gmail app) line-break mid-code,
   // rendering "6 9 9 1" over "2 3" on two lines.
   const spacedOtp = otp.split('').join('&nbsp;');
-  // Logo served from the public website — plain remote <img>, zero attachments,
-  // so no separate file/download ever appears. FRONTEND_URL is the deployed
-  // site (e.g. https://quizsupport.com); falls back to localhost in dev.
-  const siteUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',')[0].trim().replace(/\/$/, '');
-  const logoUrl = `${siteUrl}/logos/name.png`;
-  // Theme: qs-ui light — page #F7F5FF, surface #FFFFFF, ink #1A1240,
-  // muted #5C5679, brand #6A3DF0, line #E0DBF5, sun #FFD23F, card radius 20px.
+  // Backend logo file via CID: renders inline in place of the company name.
+  // Loaded lazily + cached so OTP sends stay fast.
+  const logo = await getOtpLogo();
+  const logoImg = logo
+    ? `<img class="otp-logo" src="cid:${OTP_LOGO_CID}" alt="QuizSupport" width="220" style="display:block;width:220px;max-width:100%;height:auto;border:0;outline:none;margin:0 auto;" />`
+    : `<span style="font-size:24px;font-weight:800;color:#1A1240;">Quiz<span style="color:#6A3DF0;">Support</span></span>`;
   const html = `<!DOCTYPE html>
 <html lang="en" style="margin:0;padding:0;">
 <head>
@@ -130,7 +182,7 @@ export async function sendOtpEmail(
         <!-- Header: website logo IN PLACE OF the company name (no text brand) -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
           <td align="center" style="text-align:center;vertical-align:middle;">
-            <img class="otp-logo" src="${logoUrl}" alt="QuizSupport" width="220" style="display:block;width:220px;max-width:100%;height:auto;border:0;outline:none;margin:0 auto;" />
+            ${logoImg}
           </td>
         </tr></table>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
@@ -185,8 +237,20 @@ export async function sendOtpEmail(
   const text = `QuizSupport verification\n\nYour OTP for verification is: ${otp}\n\nThis OTP is valid for 5 minutes. Never share it with anyone.\n\nIf you did not request this, please ignore this email.`;
 
   try {
-    // No attachments — logo is a remote <img>, so Gmail/Outlook never show a separate file.
-    await deliverEmail({ to, subject, html, text });
+    // CID-inline logo: renders inside the body, NOT a downloadable PDF/file.
+    await deliverEmail({
+      to,
+      subject,
+      html,
+      text,
+      ...(logo
+        ? {
+            inlineAttachments: [
+              { filename: 'quizsupport-logo.png', content: logo, contentType: 'image/png', cid: OTP_LOGO_CID },
+            ],
+          }
+        : {}),
+    });
   } catch (error) {
     logger.error(`Failed to send OTP email to ${to}:`, error);
     throw error;

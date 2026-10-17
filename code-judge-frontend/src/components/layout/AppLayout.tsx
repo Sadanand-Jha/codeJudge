@@ -304,7 +304,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/60 z-40"
             onClick={() => {
               setMobileMenuOpen(false);
               setAccountMenuOpen(false);
@@ -321,7 +321,6 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
           // `100vh` can extend behind mobile browser chrome. `100dvh` tracks
           // the actually visible viewport, keeping the account action onscreen.
           "app-sidebar-rail fixed left-0 top-0 h-dvh w-64 will-change-transform border-r border-ai-border bg-ai-sidebar flex flex-col z-50 overflow-hidden transition-transform duration-200 ease-out",
-          sidebarExpanded && "app-sidebar-rail-expanded",
           mobileMenuOpen && "app-sidebar-mobile-open"
         )}
       >
@@ -399,7 +398,6 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
           <ProfileMenu
             showLabels={showLabels}
-            sidebarExpanded={sidebarExpanded}
             setSidebarExpanded={setSidebarExpanded}
             open={accountMenuOpen}
             onOpenChange={setAccountMenuOpen}
@@ -417,8 +415,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
       <div
         className={cn(
           "flex-1 w-0 min-w-0 flex flex-col",
-          isStudioRoute ? "h-dvh overflow-hidden" : "min-h-dvh",
-          !isStudioRoute && "lg:ml-[3.75rem]"
+          isStudioRoute ? "h-dvh overflow-hidden" : "min-h-dvh"
         )}
       >
         {/* ===== TOP HEADER ===== */}
@@ -436,10 +433,11 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         >
           {/* Left: menu + brand + page title */}
           <div className="flex items-center gap-4 min-w-0 flex-1">
-            {/* Mobile menu button */}
+            {/* Navigation menu button */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden shrink-0 p-2 rounded-lg hover:bg-accent/5 text-text-secondary"
+              aria-label="Open navigation"
+              className="shrink-0 p-2 rounded-lg hover:bg-accent/5 text-text-secondary"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -522,9 +520,8 @@ function NavIcon({ Icon, isActive, showDot }: { Icon: LucideIcon; isActive: bool
 }
 
 // Student account menu — student-only.
-function ProfileMenu({ showLabels, sidebarExpanded, setSidebarExpanded, open, onOpenChange, isAuthenticated, username, avatar, onAuthRequired }: {
+function ProfileMenu({ showLabels, setSidebarExpanded, open, onOpenChange, isAuthenticated, username, avatar, onAuthRequired }: {
   showLabels: boolean;
-  sidebarExpanded: boolean;
   setSidebarExpanded: (v: boolean) => void;
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -555,10 +552,8 @@ function ProfileMenu({ showLabels, sidebarExpanded, setSidebarExpanded, open, on
       onAuthRequired();
       return;
     }
-    // Collapsed rail: the first click expands the sidebar (opening the menu
-    // here would render a clipped card); only expand it and let the user
-    // click again to open the account menu.
-    if (!sidebarExpanded) {
+    // Collapsed rail (icon-only) would clip the menu card — expand first.
+    if (!showLabels) {
       setSidebarExpanded(true);
       return;
     }

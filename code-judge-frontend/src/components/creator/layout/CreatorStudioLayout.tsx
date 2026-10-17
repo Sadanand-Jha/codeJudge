@@ -79,7 +79,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[70] bg-[#1a1240]/50 backdrop-blur-sm"
+              className="fixed inset-0 z-[70] bg-[#1a1240]/50 backdrop-blur-sm lg:hidden"
               onClick={() => setDrawerOpen(false)}
             />
           )}
@@ -93,7 +93,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
               animate={{ x: 0 }}
               exit={{ x: -320 }}
               transition={{ type: "spring", stiffness: 380, damping: 34 }}
-              className="fixed inset-y-0 left-0 z-[80] w-[min(264px,calc(100vw-2rem))] border-r-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-2xl"
+              className="fixed inset-y-0 left-0 z-[80] w-[min(264px,calc(100vw-2rem))] border-r-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-2xl lg:hidden"
             >
               <button
                 type="button"
@@ -107,6 +107,10 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
             </motion.aside>
           )}
         </AnimatePresence>
+
+        <aside data-sidebar="true" className="hidden w-60 shrink-0 border-r-2 border-[var(--qs-line)] bg-[var(--qs-surface)] lg:block">
+          <CreatorSidebar pathname={pathname} />
+        </aside>
 
         {/* Main content */}
         <div data-studio="true" className="flex-1 flex min-h-0 min-w-0">

@@ -504,18 +504,6 @@ html {
   transform: translate3d(0, 0, 0);
 }
 
-/* The desktop sidebar is a fixed-width compositor layer. Expanding it no
-   longer animates width or pushes the page, so opening the rail does not
-   trigger layout and paint work on every animation frame. */
-@media (min-width: 1024px) {
-  .app-sidebar-rail {
-    transform: translate3d(calc(-100% + 3.75rem), 0, 0);
-  }
-
-  .app-sidebar-rail.app-sidebar-rail-expanded {
-    transform: translate3d(0, 0, 0);
-  }
-}
 body {
   min-height: 100dvh;
   height: auto;
@@ -5002,6 +4990,16 @@ textarea {
   --qs-poly-3: #21175a;
   --qs-poly-4: #2a1e73;
   --qs-poly-5: #4b2a7b;
+}
+
+/* The studio navbar keeps the same mobile chrome as the student topbar so
+   switching modes never repaints or shifts the fixed header. */
+@media (max-width: 639px) {
+  .creator-topbar {
+    padding-left: max(.75rem, env(safe-area-inset-left));
+    padding-right: max(.75rem, env(safe-area-inset-right));
+    background: var(--ai-sidebar);
+  }
 }
 
 /* ============================================
