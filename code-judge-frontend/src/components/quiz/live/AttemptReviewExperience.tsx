@@ -16,8 +16,6 @@ import {
   LayoutGrid,
   Medal,
   PieChart,
-  PartyPopper,
-  Rocket,
   Star,
   Target,
   Timer,
@@ -38,9 +36,7 @@ import {
   type ReviewOption,
 } from "@/services/quiz";
 import { getApiErrorMessage } from "@/lib/apiError";
-import QuizSpaceAtmosphere from "./QuizSpaceAtmosphere";
 import { QuizStateScreen } from "./StudentQuizShell";
-import { useTheme } from "@/context/ThemeContext";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
@@ -313,7 +309,7 @@ function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): A
   };
 }
 
-/* ─── Score ring — dark track, green progress, subtle glow ─── */
+/* ─── Score ring — qs-ui track, brand progress ─── */
 
 function ScoreRing({ percentage }: { percentage: number }) {
   const clamped = Math.max(0, Math.min(100, Number(percentage) || 0));
@@ -326,27 +322,27 @@ function ScoreRing({ percentage }: { percentage: number }) {
   return (
     <div className="relative h-[112px] w-[112px] shrink-0 sm:h-[128px] sm:w-[128px]" role="img" aria-label={`Score ${clamped}%`}>
       <svg viewBox={`0 0 ${size} ${size}`} className="h-full w-full -rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" style={{ stroke: "var(--border)" }} strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" style={{ stroke: "var(--qs-line)" }} strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="#20D889"
+          style={{
+            stroke: "var(--qs-brand)",
+            filter: "drop-shadow(0 0 6px color-mix(in srgb, var(--qs-brand) 40%, transparent))",
+            transition: "stroke-dasharray 0.8s ease",
+          }}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${filled} ${c}`}
-          style={{
-            filter: "drop-shadow(0 0 6px rgba(32,216,137,0.45))",
-            transition: "stroke-dasharray 0.8s ease",
-          }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-[20px] font-bold leading-none text-[#F5F7FB] sm:text-[22px]">
+        <span className="qs-display text-[20px] font-extrabold leading-none text-[var(--qs-ink)] sm:text-[22px]">
           {Number.isInteger(clamped) ? `${clamped}%` : `${clamped.toFixed(1)}%`}
         </span>
-        <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6F819D]">
+        <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--qs-muted)]">
           Score
         </span>
       </div>
@@ -361,7 +357,6 @@ export default function AttemptReviewExperience({
 }: {
   attemptId: string;
 }) {
-  const { theme } = useTheme();
   const { playQuizSound } = useQuizSounds();
   const [selectedQuestion, setSelectedQuestion] = useState(0);
   const [data, setData] = useState<AttemptReviewData | null>(null);
@@ -466,7 +461,7 @@ export default function AttemptReviewExperience({
     return (
       <QuizStateScreen
         loading
-        title={theme === "light" ? "Preparing your victory recap" : "Preparing mission debrief"}
+        title="Preparing your review"
         text="Checking your answers and building the full review…"
       />
     );
@@ -478,7 +473,7 @@ export default function AttemptReviewExperience({
         title="Review unavailable"
         text={error ?? "Attempt review not found."}
         action={
-          <Link href="/quiz" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 px-4 text-sm font-semibold text-white dark:from-violet-500 dark:to-indigo-500">
+          <Link href="/quiz" className="inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:-translate-y-0.5">
             <ArrowLeft className="h-4 w-4" /> Back to quiz home
           </Link>
         }
@@ -493,7 +488,7 @@ export default function AttemptReviewExperience({
       <QuizStateScreen
         title="Nothing to review yet"
         text="This attempt does not contain any reviewable questions."
-        action={<Link href="/quiz" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-orange-400 px-4 text-sm font-semibold text-white dark:from-violet-500 dark:to-indigo-500"><ArrowLeft className="h-4 w-4" /> Back to quiz home</Link>}
+        action={<Link href="/quiz" className="inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:-translate-y-0.5"><ArrowLeft className="h-4 w-4" /> Back to quiz home</Link>}
       />
     );
   }
@@ -501,25 +496,21 @@ export default function AttemptReviewExperience({
   const currentStatus = questionStatus(currentQuestion);
 
   return (
-    <div className="student-quiz-theme attempt-review-theme relative min-h-[calc(100dvh-3.5rem)] overflow-x-hidden bg-[#050A14] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-[#F5F7FB]">
-      {!isMobile && <QuizSpaceAtmosphere className="fixed" />}
-      {/* Subtle top glows — background stays mostly solid */}
+    <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)] overflow-x-hidden bg-[var(--qs-bg)] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-[var(--qs-ink)]">
+      {/* Subtle brand glows — background stays mostly solid */}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[320px] overflow-hidden">
-        <div
-          className="absolute -top-24 left-[-80px] h-[280px] w-[380px] rounded-full opacity-100"
-          style={{ background: "radial-gradient(closest-side, rgba(92,124,255,0.10), transparent)" }}
-        />
-        <div
-          className="absolute -top-24 right-[-80px] h-[280px] w-[380px] rounded-full opacity-100"
-          style={{ background: "radial-gradient(closest-side, rgba(139,124,255,0.10), transparent)" }}
-        />
+        <div className="absolute -top-24 left-[-80px] h-[280px] w-[380px] rounded-full bg-[var(--qs-brand)]/[0.07] blur-3xl" />
+        <div className="absolute -top-24 right-[-80px] h-[280px] w-[380px] rounded-full bg-[var(--qs-brand)]/[0.05] blur-3xl" />
       </div>
 
       <div className="relative mx-auto box-border w-full max-w-[1240px] px-4 py-4 sm:px-6 sm:py-6">
-        <div className="mb-4 flex items-center justify-end gap-3">
-          <span className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#8B7CFF]/40 bg-[#8B7CFF]/10 px-3 py-2 text-[13px] font-semibold text-[#B9AEFF]">
-            {theme === "light" ? <PartyPopper className="h-4 w-4" /> : <Rocket className="h-4 w-4" />}
-            {theme === "light" ? "Victory recap" : "Mission debrief"}
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <Link href="/quiz" className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition hover:border-[var(--qs-brand)]/45">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Link>
+          <span className="inline-flex items-center gap-1.5 rounded-xl border-2 border-[var(--qs-brand)]/30 bg-[var(--qs-brand)]/10 px-3 py-2 text-[13px] font-bold text-[var(--qs-brand)]">
+            <Trophy className="h-4 w-4" />
+            Attempt review
           </span>
         </div>
 
@@ -530,23 +521,23 @@ export default function AttemptReviewExperience({
               initial={isMobile ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={isMobile ? { duration: 0 } : undefined}
-              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
+              className="box-border w-full max-w-full rounded-3xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-5"
             >
-              <span className="inline-flex items-center rounded-[8px] bg-[#8B7CFF]/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#8B7CFF]">
-                {theme === "light" ? "Party scorecard" : "Mission scorecard"}
+              <span className="inline-flex items-center rounded-lg bg-[var(--qs-brand)]/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">
+                Attempt scorecard
               </span>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#F5F7FB] sm:text-[32px] sm:leading-[1.15]">
+              <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[32px] sm:leading-[1.15]">
                 {data.quizName}
               </h1>
-              <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] text-[#9AAAC3] sm:text-sm">
+              <p className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[13px] text-[var(--qs-muted)] sm:text-sm">
                 <span>Attempted on {data.attemptDate}</span>
-                <span aria-hidden className="text-[#34435B]">•</span>
+                <span aria-hidden className="text-[var(--qs-line)]">•</span>
                 <span>Submitted at {data.submittedAt}</span>
               </p>
               {data.flagged && (
                 <p
                   title={data.flagReason ?? "Flagged by exam-cell proctoring"}
-                  className="mt-2 inline-flex items-center rounded-[8px] border border-[#FF4D5D]/30 bg-[#FF4D5D]/10 px-2 py-1 text-xs font-medium text-[#FF6572]"
+                  className="mt-2 inline-flex items-center rounded-lg border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-bad)]/10 px-2 py-1 text-xs font-semibold text-[var(--qs-bad)]"
                 >
                   Flagged for review
                 </p>
@@ -556,22 +547,22 @@ export default function AttemptReviewExperience({
                 <div className="flex items-center">
                   <ScoreRing percentage={data.percentage} />
                 </div>
-                <div aria-hidden className="h-px shrink-0 bg-[#1D3150] min-[540px]:h-auto min-[540px]:w-px" />
+                <div aria-hidden className="h-px shrink-0 bg-[var(--qs-line)] min-[540px]:h-auto min-[540px]:w-px" />
                 <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:gap-2.5">
-                  <MetricCard label="Score" value={data.score} icon={Target} iconColor="#8B7CFF" />
-                  <MetricCard label="Duration" value={data.duration} icon={Clock3} iconColor="#4EA1FF" />
+                  <MetricCard label="Score" value={data.score} icon={Target} iconColor="var(--qs-brand)" />
+                  <MetricCard label="Duration" value={data.duration} icon={Clock3} iconColor="var(--qs-ok)" />
                   <MetricCard
                     label="Rank"
                     value="Coming Soon"
                     icon={Trophy}
-                    iconColor="#C084FC"
+                    iconColor="var(--qs-brand)"
                   />
                   <MetricCard
                     label="Submitted"
                     value={data.submittedAtShort}
                     titleValue={data.submittedAt}
                     icon={Upload}
-                    iconColor="#38BDF8"
+                    iconColor="var(--qs-muted)"
                   />
                 </div>
               </div>
@@ -597,28 +588,28 @@ export default function AttemptReviewExperience({
               initial={isMobile ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={isMobile ? { duration: 0 } : { delay: 0.05 }}
-              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
+              className="box-border w-full max-w-full rounded-3xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-5"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <h2 className="flex items-center gap-2 text-[15px] font-semibold text-[#F5F7FB]">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-[#8B7CFF]/12 text-[#8B7CFF]">
+                <h2 className="flex items-center gap-2 text-[15px] font-extrabold text-[var(--qs-ink)]">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]">
                     <LayoutGrid className="h-4 w-4" />
                   </span>
                   Question Palette
                 </h2>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#9AAAC3]">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--qs-muted)]">
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-[#20D889]" /> Correct
+                    <span className="h-2 w-2 rounded-full bg-[var(--qs-ok)]" /> Correct
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-[#FF4D5D]" /> Wrong
+                    <span className="h-2 w-2 rounded-full bg-[var(--qs-bad)]" /> Wrong
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-[#6F819D]" /> Skipped
+                    <span className="h-2 w-2 rounded-full bg-[var(--qs-muted)]" /> Skipped
                   </span>
                 </div>
               </div>
-              <p className="mt-1.5 text-xs text-[#6F819D]">
+              <p className="mt-1.5 text-xs text-[var(--qs-muted)]">
                 Green = correct, red = wrong, amber = answered, gray = skipped, blue = current
               </p>
               <div className="mt-3 grid grid-cols-6 gap-1.5 min-[420px]:grid-cols-8 sm:gap-2" role="group" aria-label="Question palette">
@@ -631,16 +622,16 @@ export default function AttemptReviewExperience({
                       onClick={() => { playQuizSound("select"); setNavDir(index >= selectedQuestion ? 1 : -1); setSelectedQuestion(index); }}
                       aria-current={isActive ? "true" : undefined}
                       aria-label={`Question ${question.number}: ${state}${isActive ? ", current" : ""}`}
-                      className={`flex h-9 items-center justify-center rounded-[10px] border text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF] sm:h-10 sm:text-sm ${
+                      className={`flex h-9 items-center justify-center rounded-xl border-2 text-[13px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)] sm:h-10 sm:text-sm ${
                         isActive
-                          ? "border-[#5C7CFF] bg-[#5C7CFF]/15 text-[#8FA7FF]"
+                          ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/15 text-[var(--qs-brand)]"
                           : state === "correct"
-                            ? "border-[#20D889]/60 bg-[#20D889]/10 text-[#20D889] hover:border-[#20D889]"
+                            ? "border-[var(--qs-ok)]/60 bg-[var(--qs-ok)]/10 text-[var(--qs-ok)] hover:border-[var(--qs-ok)]"
                             : state === "wrong"
-                              ? "border-[#FF4D5D]/60 bg-[#FF4D5D]/10 text-[#FF6572] hover:border-[#FF4D5D]"
+                              ? "border-[var(--qs-bad)]/60 bg-[var(--qs-bad)]/10 text-[var(--qs-bad)] hover:border-[var(--qs-bad)]"
                               : state === "answered"
-                                ? "border-[#F5A524]/60 bg-[#F5A524]/10 text-[#F5A524] hover:border-[#F5A524]"
-                                : "border-[#34435B] bg-[#182235] text-[#91A0B7] hover:border-[#4A5D7E]"
+                                ? "border-[var(--qs-sun)] bg-[var(--qs-sun)]/30 text-[var(--qs-ink)] hover:border-[var(--qs-sun)]"
+                                : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)]/40"
                       }`}
                     >
                       {question.number}
@@ -658,11 +649,11 @@ export default function AttemptReviewExperience({
               animate={{ opacity: 1, x: 0 }}
               exit={isMobile ? undefined : { opacity: 0, x: -24 * navDir }}
               transition={isMobile ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
-              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
+              className="box-border w-full max-w-full rounded-3xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-5"
             >
               <div className="flex shrink-0 items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center rounded-[8px] bg-[#5C7CFF]/12 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#8FA7FF]">
+                  <span className="inline-flex items-center rounded-lg bg-[var(--qs-brand)]/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--qs-brand)]">
                     Question {currentQuestion.number}
                   </span>
                   <DifficultyBadge difficulty={currentQuestion.difficulty} />
@@ -672,7 +663,7 @@ export default function AttemptReviewExperience({
                   onClick={() => setCollapsed((v) => !v)}
                   aria-expanded={!collapsed}
                   aria-label={collapsed ? "Expand question" : "Collapse question"}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-[#1D3150] bg-[#0F192B] text-[#9AAAC3] transition-colors hover:text-[#F5F7FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF]"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]"
                 >
                   <ChevronDown className={`h-4 w-4 transition-transform ${collapsed ? "" : "rotate-180"}`} />
                 </button>
@@ -681,17 +672,17 @@ export default function AttemptReviewExperience({
               {!collapsed && (
                 // No inner scroll here — the page itself scrolls.
                 <div>
-                  <h3 className="mt-3 text-[18px] font-semibold leading-snug text-[#F5F7FB] sm:text-[22px]">
+                  <h3 className="mt-3 text-[18px] font-semibold leading-snug text-[var(--qs-ink)] sm:text-[22px]">
                     {currentQuestion.statement}
                   </h3>
 
                   <div className="mt-4 space-y-2.5">
                     {currentQuestion.selected?.kind === "text" && (
-                      <div className="rounded-[12px] border border-[#F5A524]/40 bg-[#F5A524]/5 p-3 sm:p-3.5">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5A524]">
+                      <div className="rounded-xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/15 p-3 sm:p-3.5">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--qs-ink)]">
                           Your response
                         </p>
-                        <p className="mt-1 break-words text-[14px] font-medium leading-relaxed text-[#F5F7FB] sm:text-[15px]">
+                        <p className="mt-1 break-words text-[14px] font-medium leading-relaxed text-[var(--qs-ink)] sm:text-[15px]">
                           {currentQuestion.selected.text}
                         </p>
                       </div>
@@ -708,53 +699,53 @@ export default function AttemptReviewExperience({
                       return (
                         <div
                           key={option.id}
-                          className={`box-border flex w-full max-w-full items-start gap-3 rounded-[12px] border p-3 sm:p-3.5 ${
+                          className={`box-border flex w-full max-w-full items-start gap-3 rounded-xl border-2 p-3 sm:p-3.5 ${
                             isCorrect
-                              ? "border-[#20D889] bg-[#20D889]/10"
+                              ? "border-[var(--qs-ok)] bg-[var(--qs-ok)]/10"
                               : selectedWrong
-                                ? "border-[#FF4D5D] bg-[#FF4D5D]/10"
-                                : "border-[#1D3150] bg-[#0F192B]"
+                                ? "border-[var(--qs-bad)] bg-[var(--qs-bad)]/10"
+                                : "border-[var(--qs-line)] bg-[var(--qs-bg)]"
                           }`}
                         >
                           <span
                             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
                               isCorrect
-                                ? "bg-[#20D889] text-[#050A14]"
+                                ? "bg-[var(--qs-ok)] text-[var(--qs-on-brand)]"
                                 : selectedWrong
-                                  ? "bg-[#FF4D5D] text-white"
-                                  : "bg-[#1A2740] text-[#9AAAC3]"
+                                  ? "bg-[var(--qs-bad)] text-[var(--qs-on-brand)]"
+                                  : "bg-[var(--qs-line)] text-[var(--qs-muted)]"
                             }`}
                           >
                             {option.label}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="flex flex-wrap items-center gap-2 break-words text-[14px] font-medium leading-relaxed text-[#F5F7FB] sm:text-[15px]">
+                            <p className="flex flex-wrap items-center gap-2 break-words text-[14px] font-medium leading-relaxed text-[var(--qs-ink)] sm:text-[15px]">
                               <span className="min-w-0 break-words">{option.text}</span>
                               {isCorrect && (
-                                <CheckCircle2 className="h-4 w-4 shrink-0 text-[#20D889]" aria-label="Correct option" />
+                                <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--qs-ok)]" aria-label="Correct option" />
                               )}
                               {selectedWrong && (
-                                <XCircle className="h-4 w-4 shrink-0 text-[#FF4D5D]" aria-label="Your incorrect selection" />
+                                <XCircle className="h-4 w-4 shrink-0 text-[var(--qs-bad)]" aria-label="Your incorrect selection" />
                               )}
                             </p>
                             <div className="mt-2 flex flex-wrap gap-1.5">
                               {isSelected && (
                                 <span
-                                  className={`rounded-[8px] border px-2 py-0.5 text-[11px] font-medium ${
+                                  className={`rounded-lg border-2 px-2 py-0.5 text-[11px] font-semibold ${
                                     isCorrect
-                                      ? "border-[#20D889]/40 bg-transparent text-[#20D889]"
-                                      : "border-[#FF4D5D]/40 bg-transparent text-[#FF6572]"
+                                      ? "border-[var(--qs-ok)]/40 bg-transparent text-[var(--qs-ok)]"
+                                      : "border-[var(--qs-bad)]/40 bg-transparent text-[var(--qs-bad)]"
                                   }`}
                                 >
                                   Your Answer
                                 </span>
                               )}
                               {isCorrect && (
-                                <span className="rounded-[8px] border border-[#20D889]/40 bg-transparent px-2 py-0.5 text-[11px] font-medium text-[#20D889]">
+                                <span className="rounded-lg border-2 border-[var(--qs-ok)]/40 bg-transparent px-2 py-0.5 text-[11px] font-semibold text-[var(--qs-ok)]">
                                   Correct Answer
                                 </span>
                               )}
-                              <span className="rounded-[8px] border border-[#34435B] bg-transparent px-2 py-0.5 text-[11px] font-medium text-[#9AAAC3]">
+                              <span className="rounded-lg border-2 border-[var(--qs-line)] bg-transparent px-2 py-0.5 text-[11px] font-semibold text-[var(--qs-muted)]">
                                 Marks {isCorrect ? currentQuestion.marksObtained : 0}/{currentQuestion.maxMarks}
                               </span>
                             </div>
@@ -784,7 +775,7 @@ export default function AttemptReviewExperience({
                         );
                       })()}
                       icon={Check}
-                      iconBg="bg-[#20D889]/15 text-[#20D889]"
+                      iconBg="bg-[var(--qs-ok)]/15 text-[var(--qs-ok)]"
                     />
                     <StatBlock
                       label="Correct Answer"
@@ -797,29 +788,29 @@ export default function AttemptReviewExperience({
                           : currentQuestion.correctOptionId.toUpperCase();
                       })()}
                       icon={CheckCircle2}
-                      iconBg="bg-[#4EA1FF]/15 text-[#4EA1FF]"
+                      iconBg="bg-[var(--qs-brand)]/15 text-[var(--qs-brand)]"
                     />
                     <StatBlock
                       label="Marks Obtained"
                       value={`${currentQuestion.marksObtained}/${currentQuestion.maxMarks}`}
                       icon={Medal}
-                      iconBg="bg-[#8B7CFF]/15 text-[#8B7CFF]"
+                      iconBg="bg-[var(--qs-sun)]/30 text-[var(--qs-ink)]"
                     />
                     <StatBlock
                       label="Time Spent"
                       value={currentQuestion.timeSpent}
                       icon={Timer}
-                      iconBg="bg-[#8B7CFF]/15 text-[#B9AEFF]"
+                      iconBg="bg-[var(--qs-line)] text-[var(--qs-muted)]"
                     />
                   </div>
 
                   {currentQuestion.explanation && (
-                    <div className="mt-3 rounded-[12px] border border-[#1D3150] bg-[#0F192B] p-3 sm:p-3.5">
-                      <div className="mb-1 flex items-center gap-1.5 text-[13px] font-semibold text-[#F5F7FB]">
-                        <BookOpen className="h-3.5 w-3.5 text-[#8B7CFF]" />
+                    <div className="mt-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 sm:p-3.5">
+                      <div className="mb-1 flex items-center gap-1.5 text-[13px] font-bold text-[var(--qs-ink)]">
+                        <BookOpen className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
                         Explanation
                       </div>
-                      <p className="break-words text-[13px] leading-relaxed text-[#9AAAC3] sm:text-sm">
+                      <p className="break-words text-[13px] leading-relaxed text-[var(--qs-muted)] sm:text-sm">
                         {currentQuestion.explanation}
                       </p>
                     </div>
@@ -828,16 +819,16 @@ export default function AttemptReviewExperience({
               )}
 
               {/* Prev / Next */}
-              <div className="review-question-nav z-20 mt-3 flex shrink-0 items-center justify-between gap-2 border-t border-[#1D3150] bg-[#0B1220] pt-3">
+              <div className="z-20 mt-3 flex shrink-0 items-center justify-between gap-2 border-t-2 border-[var(--qs-line)] pt-3">
                 <button
                   onClick={() => { playQuizSound("navigate"); setNavDir(-1); setSelectedQuestion((current) => Math.max(0, current - 1)); }}
                   disabled={selectedQuestion === 0}
-                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3 py-2 text-xs font-medium text-[#F5F7FB] transition-colors hover:border-[#2A4160] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF]"
+                  className="inline-flex items-center gap-1.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]/45 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
                   Previous
                 </button>
-                <span className="text-xs text-[#6F819D]">
+                <span className="text-xs font-semibold text-[var(--qs-muted)]">
                   {selectedQuestion + 1} / {data.questions.length}
                 </span>
                 <button
@@ -847,7 +838,7 @@ export default function AttemptReviewExperience({
                     setSelectedQuestion((current) => Math.min(data.questions.length - 1, current + 1));
                   }}
                   disabled={selectedQuestion === data.questions.length - 1}
-                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-3 py-2 text-xs font-medium text-[#F5F7FB] transition-colors hover:border-[#2A4160] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C7CFF]"
+                  className="inline-flex items-center gap-1.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]/45 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]"
                 >
                   Next
                   <ChevronRight className="h-3.5 w-3.5" />
@@ -877,18 +868,18 @@ export default function AttemptReviewExperience({
               initial={isMobile ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={isMobile ? { duration: 0 } : undefined}
-              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
+              className="box-border w-full max-w-full rounded-3xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-5"
             >
-              <h2 className="text-[15px] font-semibold text-[#F5F7FB]">Result Analytics</h2>
-              <p className="mt-0.5 text-xs text-[#6F819D]">Score, ranking, and answer breakdown.</p>
+              <h2 className="text-[15px] font-extrabold text-[var(--qs-ink)]">Result Analytics</h2>
+              <p className="mt-0.5 text-xs text-[var(--qs-muted)]">Score, ranking, and answer breakdown.</p>
               <div className="mt-3 space-y-1.5">
                 <AnalyticsMetric label="Overall Score" value={data.score} icon={Target} />
                 <AnalyticsMetric label="Accuracy" value={`${data.percentage}%`} icon={PieChart} />
                 <AnalyticsMetric label="Attempt Time" value={data.attemptDate} icon={Clock3} />
                 <AnalyticsMetric label="Avg Time / Q" value={data.avgTimePerQuestion} icon={Timer} />
-                <AnalyticsMetric label="Correct" value={data.correct} icon={CheckCircle2} accent="#20D889" />
-                <AnalyticsMetric label="Wrong" value={data.wrong} icon={XCircle} accent="#FF4D5D" />
-                <AnalyticsMetric label="Skipped" value={data.skipped} icon={CircleDashed} accent="#91A0B7" />
+                <AnalyticsMetric label="Correct" value={data.correct} icon={CheckCircle2} accent="var(--qs-ok)" />
+                <AnalyticsMetric label="Wrong" value={data.wrong} icon={XCircle} accent="var(--qs-bad)" />
+                <AnalyticsMetric label="Skipped" value={data.skipped} icon={CircleDashed} accent="var(--qs-muted)" />
                 <AnalyticsMetric label="Rank" value="Coming Soon" icon={Trophy} />
                 <AnalyticsMetric
                   label="Percentile"
@@ -897,10 +888,10 @@ export default function AttemptReviewExperience({
                 />
               </div>
 
-              <div className="mt-3 rounded-[12px] border border-[#1D3150] bg-[#0F192B] p-3">
-                <div className="mb-2 flex items-center justify-between text-xs font-medium text-[#F5F7FB]">
+              <div className="mt-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+                <div className="mb-2 flex items-center justify-between text-xs font-semibold text-[var(--qs-ink)]">
                   <span>Correct vs Wrong vs Skipped</span>
-                  <PieChart className="h-3.5 w-3.5 text-[#8B7CFF]" />
+                  <PieChart className="h-3.5 w-3.5 text-[var(--qs-brand)]" />
                 </div>
                 <DonutBreakdown correct={data.correct} wrong={data.wrong} skipped={data.skipped} />
               </div>
@@ -910,25 +901,25 @@ export default function AttemptReviewExperience({
               initial={isMobile ? false : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={isMobile ? { duration: 0 } : { delay: 0.05 }}
-              className="box-border w-full max-w-full rounded-[18px] border border-[#1D3150] bg-[#0B1220] p-4 sm:p-5"
+              className="box-border w-full max-w-full rounded-3xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-5"
             >
-              <h2 className="text-[15px] font-semibold text-[#F5F7FB]">Performance Insights</h2>
+              <h2 className="text-[15px] font-extrabold text-[var(--qs-ink)]">Performance Insights</h2>
               {data.insights.difficultyPerformance.length > 0 ? (
-                <div className="mt-3 rounded-[12px] border border-[#1D3150] bg-[#0F192B] p-3">
-                  <div className="text-xs font-semibold text-[#F5F7FB]">Difficulty-wise Performance</div>
+                <div className="mt-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+                  <div className="text-xs font-bold text-[var(--qs-ink)]">Difficulty-wise Performance</div>
                   <div className="mt-2 space-y-2">
                     {data.insights.difficultyPerformance.map((item) => (
                       <div key={item.difficulty}>
-                        <div className="mb-1 flex items-center justify-between text-[11px] text-[#9AAAC3]">
+                        <div className="mb-1 flex items-center justify-between text-[11px] text-[var(--qs-muted)]">
                           <span>{item.difficulty}</span>
                           <span>{item.accuracy}%</span>
                         </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-[#1D3150]">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--qs-line)]">
                           <div
                             className="h-1.5 rounded-full"
                             style={{
                               width: `${item.accuracy}%`,
-                              background: "linear-gradient(90deg, #8B7CFF, #4EA1FF)",
+                              background: "var(--qs-brand)",
                             }}
                           />
                         </div>
@@ -937,7 +928,7 @@ export default function AttemptReviewExperience({
                   </div>
                 </div>
               ) : (
-                <p className="mt-2 text-xs text-[#9AAAC3]">No performance breakdown available.</p>
+                <p className="mt-2 text-xs text-[var(--qs-muted)]">No performance breakdown available.</p>
               )}
             </motion.section>
           </div>
@@ -986,14 +977,14 @@ function QuizRatingPanel({
       initial={isMobile ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={isMobile ? { duration: 0 } : { delay: 0.04 }}
-      className="box-border w-full max-w-full overflow-hidden rounded-[16px] border border-[#8B7CFF]/30 bg-[#0B1220]"
+      className="box-border w-full max-w-full overflow-hidden rounded-3xl border-2 border-[var(--qs-brand)]/25 bg-[var(--qs-surface)]"
     >
       <div className="p-3.5 sm:p-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-[#F5F7FB]">Rate quiz</h2>
-          <span className="text-[10px] uppercase tracking-[0.14em] text-[#6F819D]">Help us improve</span>
+          <h2 className="text-sm font-extrabold text-[var(--qs-ink)]">Rate quiz</h2>
+          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--qs-muted)]">Help us improve</span>
         </div>
-        {loading ? <div className={`mt-3 h-20 rounded-xl bg-[#182235] ${isMobile ? "" : "animate-pulse"}`} /> : state?.canRate ? (
+        {loading ? <div className={`mt-3 h-20 rounded-xl bg-[var(--qs-line)] ${isMobile ? "" : "animate-pulse"}`} /> : state?.canRate ? (
           <div className="mt-3 space-y-3">
             <div className="grid gap-1.5">
               <CompactRatingRow label="Quiz" value={selected.quiz} onChange={(rating) => onSelect("quiz", rating)} disabled={submitting} />
@@ -1007,13 +998,13 @@ function QuizRatingPanel({
                 onChange={(event) => onFeedback(event.target.value.slice(0, 600))}
                 placeholder="Optional feedback"
                 aria-label="Optional feedback"
-                className="h-9 w-full min-w-0 rounded-[10px] border border-[#263754] bg-[#0F192B] px-3 text-xs text-[#F5F7FB] outline-none placeholder:text-[#63738D] focus:border-[#8B7CFF]"
+                className="h-9 w-full min-w-0 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 text-xs text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
               />
               <button
                 type="button"
                 onClick={onSubmit}
                 disabled={!allRated || submitting}
-                className="inline-flex h-9 w-full items-center justify-center rounded-[10px] bg-[#8B7CFF] px-4 text-xs font-semibold text-white transition-colors hover:bg-[#7968F4] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-9 w-full items-center justify-center rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-xs font-bold text-[var(--qs-on-brand)] transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {submitting ? "Submitting…" : "Submit feedback"}
               </button>
@@ -1023,14 +1014,14 @@ function QuizRatingPanel({
       </div>
 
       {!loading && state && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#1D3150] bg-[#0F192B] px-4 py-2.5 text-[11px] sm:px-5">
-          <span className="text-[#9AAAC3]">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-2.5 text-[11px] sm:px-5">
+          <span className="text-[var(--qs-muted)]">
             {state.userRating
               ? `Rating saved · Your identity will not be shown.`
               : statusCopy ?? "Your identity will not be shown."}
           </span>
-          <span className="inline-flex items-center gap-1.5 font-medium text-[#B9AEFF]">
-            <Star className="h-3.5 w-3.5 fill-[#FFB84D] text-[#FFB84D]" />
+          <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--qs-brand)]">
+            <Star className="h-3.5 w-3.5 fill-[var(--qs-sun)] text-[var(--qs-sun)]" />
             {state.averageRating === null
               ? "Be the first to rate"
               : `${state.averageRating.toFixed(1)} from ${state.ratingCount} ${state.ratingCount === 1 ? "rating" : "ratings"}`}
@@ -1039,7 +1030,7 @@ function QuizRatingPanel({
       )}
 
       {error && (
-        <p className="border-t border-[#FF4D5D]/20 bg-[#FF4D5D]/8 px-4 py-2.5 text-[11px] text-[#FF6572] sm:px-5">
+        <p className="border-t-2 border-[var(--qs-bad)]/20 bg-[var(--qs-bad)]/10 px-4 py-2.5 text-[11px] font-medium text-[var(--qs-bad)] sm:px-5">
           {error}
         </p>
       )}
@@ -1056,8 +1047,8 @@ function CompactRatingRow({ label, value, onChange, disabled }: {
   const [hovered, setHovered] = useState(0);
   const visible = hovered || value;
   return (
-    <div className="flex items-center justify-between rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-2.5 py-2">
-      <span className="text-[11px] font-medium text-[#B8C4D8]">{label}</span>
+    <div className="flex items-center justify-between rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-2">
+      <span className="text-[11px] font-semibold text-[var(--qs-muted)]">{label}</span>
       <div className="flex" role="radiogroup" aria-label={`Rate ${label.toLowerCase()}`} onMouseLeave={() => setHovered(0)}>
         {[1, 2, 3, 4, 5].map((rating) => (
           <button
@@ -1071,9 +1062,9 @@ function CompactRatingRow({ label, value, onChange, disabled }: {
             onFocus={() => setHovered(rating)}
             onBlur={() => setHovered(0)}
             onClick={() => onChange(rating)}
-            className="rounded p-0.5 text-[#34435B] enabled:hover:scale-110 enabled:focus-visible:outline-none enabled:focus-visible:ring-1 enabled:focus-visible:ring-[#8B7CFF]"
+            className="rounded p-0.5 text-[var(--qs-line)] enabled:hover:scale-110 enabled:focus-visible:outline-none enabled:focus-visible:ring-1 enabled:focus-visible:ring-[var(--qs-brand)]"
           >
-            <Star className={`h-4 w-4 ${rating <= visible ? "fill-[#FFB84D] text-[#FFB84D]" : "fill-transparent"}`} />
+            <Star className={`h-4 w-4 ${rating <= visible ? "fill-[var(--qs-sun)] text-[var(--qs-sun)]" : "fill-transparent"}`} />
           </button>
         ))}
       </div>
@@ -1097,14 +1088,14 @@ function MetricCard({
   titleValue?: string;
 }) {
   return (
-    <div className="box-border min-w-0 rounded-[12px] border border-[#1D3150] bg-[#0F192B] p-2.5 sm:p-3">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6F819D]">
+    <div className="box-border min-w-0 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-2.5 sm:p-3">
+      <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--qs-muted)]">
         <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: iconColor }} />
         <span className="truncate">{label}</span>
       </div>
       <div
         title={titleValue ?? value}
-        className={`mt-1 text-[16px] font-semibold text-[#F5F7FB] sm:text-[18px] ${
+        className={`mt-1 text-[16px] font-bold text-[var(--qs-ink)] sm:text-[18px] ${
           truncate ? "truncate" : "break-words"
         }`}
       >
@@ -1116,13 +1107,13 @@ function MetricCard({
 
 function DifficultyBadge({ difficulty }: { difficulty: "Easy" | "Medium" | "Hard" }) {
   const styles: Record<string, string> = {
-    Easy: "border-[#20D889]/30 bg-[#20D889]/10 text-[#20D889]",
-    Medium: "border-[#FFB84D]/30 bg-[#FFB84D]/10 text-[#FFB84D]",
-    Hard: "border-[#FF4D5D]/30 bg-[#FF4D5D]/10 text-[#FF6572]",
+    Easy: "border-[var(--qs-ok)]/40 bg-[var(--qs-ok)]/10 text-[var(--qs-ok)]",
+    Medium: "border-[var(--qs-sun)] bg-[var(--qs-sun)]/30 text-[var(--qs-ink)]",
+    Hard: "border-[var(--qs-bad)]/40 bg-[var(--qs-bad)]/10 text-[var(--qs-bad)]",
   };
   return (
     <span
-      className={`inline-flex items-center rounded-[8px] border px-2 py-1 text-[11px] font-semibold ${styles[difficulty]}`}
+      className={`inline-flex items-center rounded-lg border-2 px-2 py-1 text-[11px] font-bold ${styles[difficulty]}`}
     >
       {difficulty}
     </span>
@@ -1132,24 +1123,24 @@ function DifficultyBadge({ difficulty }: { difficulty: "Easy" | "Medium" | "Hard
 function StatusBadge({ status }: { status: QuestionStatus }) {
   if (status === "correct")
     return (
-      <span className="inline-flex items-center gap-1 rounded-[8px] border border-[#20D889]/30 bg-[#20D889]/10 px-2 py-1 text-[11px] font-semibold text-[#20D889]">
+      <span className="inline-flex items-center gap-1 rounded-lg border-2 border-[var(--qs-ok)]/40 bg-[var(--qs-ok)]/10 px-2 py-1 text-[11px] font-bold text-[var(--qs-ok)]">
         <Check className="h-3 w-3" /> Correct
       </span>
     );
   if (status === "wrong")
     return (
-      <span className="inline-flex items-center gap-1 rounded-[8px] border border-[#FF4D5D]/30 bg-[#FF4D5D]/10 px-2 py-1 text-[11px] font-semibold text-[#FF6572]">
+      <span className="inline-flex items-center gap-1 rounded-lg border-2 border-[var(--qs-bad)]/40 bg-[var(--qs-bad)]/10 px-2 py-1 text-[11px] font-bold text-[var(--qs-bad)]">
         <XCircle className="h-3 w-3" /> Wrong
       </span>
     );
   if (status === "answered")
     return (
-      <span className="inline-flex items-center gap-1 rounded-[8px] border border-[#F5A524]/30 bg-[#F5A524]/10 px-2 py-1 text-[11px] font-semibold text-[#F5A524]">
+      <span className="inline-flex items-center gap-1 rounded-lg border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/30 px-2 py-1 text-[11px] font-bold text-[var(--qs-ink)]">
         <Check className="h-3 w-3" /> Answered
       </span>
     );
   return (
-    <span className="inline-flex items-center gap-1 rounded-[8px] border border-[#34435B] bg-[#182235] px-2 py-1 text-[11px] font-semibold text-[#91A0B7]">
+    <span className="inline-flex items-center gap-1 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-1 text-[11px] font-bold text-[var(--qs-muted)]">
       <CircleDashed className="h-3 w-3" /> Skipped
     </span>
   );
@@ -1167,15 +1158,15 @@ function StatBlock({
   iconBg: string;
 }) {
   return (
-    <div className="box-border flex min-w-0 items-center gap-2.5 rounded-[12px] border border-[#1D3150] bg-[#111D31] p-2.5 sm:p-3">
-      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] ${iconBg}`}>
+    <div className="box-border flex min-w-0 items-center gap-2.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-2.5 sm:p-3">
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${iconBg}`}>
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6F819D] sm:text-[11px]">
+        <span className="block truncate text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--qs-muted)] sm:text-[11px]">
           {label}
         </span>
-        <span title={value} className="block truncate text-[15px] font-semibold text-[#F5F7FB] sm:text-base">
+        <span title={value} className="block truncate text-[15px] font-bold text-[var(--qs-ink)] sm:text-base">
           {value}
         </span>
       </span>
@@ -1187,7 +1178,7 @@ function AnalyticsMetric({
   label,
   value,
   icon: Icon,
-  accent = "#8B7CFF",
+  accent = "var(--qs-brand)",
 }: {
   label: string;
   value: string | number;
@@ -1195,12 +1186,12 @@ function AnalyticsMetric({
   accent?: string;
 }) {
   return (
-    <div className="flex min-w-0 items-center justify-between gap-2 rounded-[10px] border border-[#1D3150] bg-[#0F192B] px-2.5 py-2">
-      <div className="flex min-w-0 items-center gap-1.5 text-xs text-[#9AAAC3]">
+    <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-2">
+      <div className="flex min-w-0 items-center gap-1.5 text-xs text-[var(--qs-muted)]">
         <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
         <span className="truncate">{label}</span>
       </div>
-      <div title={String(value)} className="max-w-[45%] truncate text-xs font-semibold text-[#F5F7FB]">
+      <div title={String(value)} className="max-w-[45%] truncate text-xs font-bold text-[var(--qs-ink)]">
         {value}
       </div>
     </div>
@@ -1210,21 +1201,21 @@ function AnalyticsMetric({
 function DonutBreakdown({ correct, wrong, skipped }: { correct: number; wrong: number; skipped: number }) {
   const total = Math.max(1, correct + wrong + skipped);
   const rows = [
-    { label: "Correct", count: correct, pct: Math.round((correct / total) * 100), dot: "bg-[#20D889]", text: "text-[#20D889]" },
-    { label: "Wrong", count: wrong, pct: Math.round((wrong / total) * 100), dot: "bg-[#FF4D5D]", text: "text-[#FF6572]" },
-    { label: "Skipped", count: skipped, pct: Math.round((skipped / total) * 100), dot: "bg-[#6F819D]", text: "text-[#91A0B7]" },
+    { label: "Correct", count: correct, pct: Math.round((correct / total) * 100), dot: "bg-[var(--qs-ok)]", text: "text-[var(--qs-ok)]" },
+    { label: "Wrong", count: wrong, pct: Math.round((wrong / total) * 100), dot: "bg-[var(--qs-bad)]", text: "text-[var(--qs-bad)]" },
+    { label: "Skipped", count: skipped, pct: Math.round((skipped / total) * 100), dot: "bg-[var(--qs-muted)]", text: "text-[var(--qs-muted)]" },
   ];
   return (
     <div className="flex items-center gap-3">
       <div className="relative h-[72px] w-[72px] shrink-0">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-          <circle cx="50" cy="50" r="40" fill="none" style={{ stroke: "var(--border)" }} strokeWidth="12" />
+          <circle cx="50" cy="50" r="40" fill="none" style={{ stroke: "var(--qs-line)" }} strokeWidth="12" />
           {(() => {
             let cumulative = 0;
             const segs = [
-              { pct: (correct / total) * 100, color: "#20D889" },
-              { pct: (wrong / total) * 100, color: "#FF4D5D" },
-              { pct: (skipped / total) * 100, color: "#6F819D" },
+              { pct: (correct / total) * 100, color: "var(--qs-ok)" },
+              { pct: (wrong / total) * 100, color: "var(--qs-bad)" },
+              { pct: (skipped / total) * 100, color: "var(--qs-muted)" },
             ].filter((s) => s.pct > 0);
             return segs.map((seg, i) => {
               const start = (cumulative / 100) * 360;
@@ -1250,16 +1241,16 @@ function DonutBreakdown({ correct, wrong, skipped }: { correct: number; wrong: n
           })()}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-sm font-bold leading-none text-[#F5F7FB]">{correct + wrong + skipped}</span>
-          <span className="mt-0.5 text-[8px] uppercase tracking-wider text-[#6F819D]">Total</span>
+          <span className="text-sm font-extrabold leading-none text-[var(--qs-ink)]">{correct + wrong + skipped}</span>
+          <span className="mt-0.5 text-[8px] uppercase tracking-wider text-[var(--qs-muted)]">Total</span>
         </div>
       </div>
       <div className="min-w-0 flex-1 space-y-1.5">
         {rows.map((row) => (
           <div key={row.label} className="flex items-center gap-2 text-[11px]">
             <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${row.dot}`} />
-            <span className="text-[#9AAAC3]">{row.label}</span>
-            <span className={`ml-auto font-semibold text-[#F5F7FB]`}>
+            <span className="text-[var(--qs-muted)]">{row.label}</span>
+            <span className={`ml-auto font-bold text-[var(--qs-ink)]`}>
               {row.count} ({row.pct}%)
             </span>
           </div>

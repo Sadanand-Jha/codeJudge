@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -65,8 +64,8 @@ const features = [
     icon: MessageSquare,
     title: "Discussions",
     description: "Ask questions and help others.",
-    color: "text-[#EC4899]",
-    bgColor: "bg-[#EC4899]/10",
+    color: "text-accent-secondary",
+    bgColor: "bg-accent-secondary/10",
   },
 ];
 
@@ -77,8 +76,6 @@ const socialProof = [
 ];
 
 export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalProps) {
-  const [showSocialProof, setShowSocialProof] = useState(false);
-
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -127,7 +124,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
                   transition={{ delay: 0.1 }}
                   className="relative mb-4"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7C3AED] to-[#3B82F6]">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent">
                     <Lock className="h-7 w-7 text-white" />
                   </div>
                   <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-card" style={{ borderColor: "var(--border)", borderWidth: 2 }}>
@@ -197,7 +194,7 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
                 >
                   <Link
                     href={`/register${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#3B82F6] px-6 py-3.5 text-[14px] font-semibold text-white shadow-lg shadow-accent/25 hover:shadow-accent/40 transition-all hover:scale-[1.02]"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-[14px] font-semibold text-accent-foreground shadow-lg shadow-accent/25 transition-all hover:bg-accent-hover hover:shadow-accent/40"
                     onClick={onClose}
                   >
                     Create Free Account
@@ -229,7 +226,8 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
               {/* Social Proof */}
               <motion.div
                 initial={{ opacity: 0 }}
-                animate={{ opacity: showSocialProof ? 1 : 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.55 }}
                 className="border-t border-border px-8 py-5"
               >
                 <div className="flex items-center justify-center gap-6">

@@ -18,11 +18,11 @@ import {
   validateUsername,
 } from "@/lib/validators";
 import AuthBackground from "@/components/auth/AuthBackground";
-import { AuthBottomStrip, AuthBrandMark, AuthLoader, AuthShowcasePanel, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
+import { AuthBrandMark, AuthLoader, AuthShowcasePanel, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
 
-const AUTH_PRIMARY_BUTTON = "group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-4 text-sm font-bold text-white shadow-[0_16px_32px_-18px_rgba(236,72,153,.9),inset_0_1px_0_rgba(255,255,255,.28)] transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-40 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_16px_34px_-18px_rgba(124,92,255,.95),inset_0_1px_0_rgba(255,255,255,.2)]";
+const AUTH_PRIMARY_BUTTON = "group flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] transition-all hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40";
 
 type Step = "email" | "verify" | "register";
 type AccountType = "student" | "teacher";
@@ -387,10 +387,9 @@ export default function RegistrationForm() {
   };
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-x-hidden bg-[#FFF9F1] px-4 py-20 dark:bg-[#050510] sm:px-6 lg:px-8 lg:pb-8 lg:pt-4">
+    <div className="qs-ui relative flex min-h-dvh items-center justify-center overflow-x-hidden px-4 py-20 sm:px-6 lg:px-8 lg:pb-8 lg:pt-4">
       <AuthBackground />
       <AuthThemeControls />
-      <AuthBottomStrip />
 
       {/* Brand — page top-left corner */}
       <div className="absolute left-4 top-2 z-20 sm:left-6 sm:top-3">
@@ -406,14 +405,14 @@ export default function RegistrationForm() {
           {/* The profile sub-flow (register step) renders its own per-screen titles. */}
           <div className="mx-auto mb-4 flex w-44 items-center gap-2" aria-label={`Registration step ${step === "email" ? 1 : 2} of 6`}>
             {[1, 2, 3, 4, 5, 6].map((item) => (
-              <span key={item} className={`h-1 flex-1 rounded-full transition-colors ${item <= (step === "email" ? 1 : 2) ? "bg-accent" : "bg-input-border"}`} />
+              <span key={item} className={`h-1 flex-1 rounded-full transition-colors ${item <= (step === "email" ? 1 : 2) ? "bg-[var(--qs-brand)]" : "bg-[var(--qs-line)]"}`} />
             ))}
           </div>
-          <h1 className="text-xl font-bold text-text-primary">
+          <h1 className="text-xl text-[var(--qs-ink)]">
             {step === "email" && "Create your account"}
             {step === "verify" && "Check your email"}
           </h1>
-          <p className="mt-2 text-sm text-text-secondary">
+          <p className="mt-2 text-sm text-[var(--qs-muted)]">
             {step === "email" && "Enter your email to get started"}
             {step === "verify" && `We sent a code to ${form.email.value}`}
           </p>
@@ -422,14 +421,15 @@ export default function RegistrationForm() {
 
         {/* Card for email + OTP. The profile sub-flow renders open (no card). */}
         {step !== "register" && (
-        <div className="rounded-[28px] border border-pink-200/80 bg-white/82 p-6 shadow-[0_30px_80px_-42px_rgba(244,114,182,.75)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/88 dark:shadow-[0_30px_90px_-40px_rgba(91,69,196,.8)]">
+        <div className="qs-shadow">
+        <div className="qs-card p-6">
           {/* Step 1: Email */}
           {step === "email" && (
             <form className="space-y-5" onSubmit={handleSendOtp}>
               <div>
-                <label htmlFor="registration-email" className="mb-2 block text-[11px] font-semibold text-text-secondary">Email address</label>
+                <label htmlFor="registration-email" className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--qs-muted)]">Email address</label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
                 <input
                   id="registration-email"
                   type="email"
@@ -438,18 +438,18 @@ export default function RegistrationForm() {
                   onBlur={() => validateEmailField(form.email.value)}
                   aria-invalid={Boolean(form.email.error || emailSubmitError)}
                   aria-describedby={form.email.error || emailSubmitError ? "registration-email-error" : undefined}
-                  className={`w-full rounded-xl bg-input-bg border py-3 pl-10 pr-4 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                  className={`w-full rounded-xl border-2 bg-[var(--qs-surface)] py-3 pl-10 pr-4 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] ${
                     (form.email.touched && form.email.error) || emailSubmitError
-                      ? "border-red-500"
+                      ? "border-[var(--qs-bad)]"
                       : form.email.touched && !form.email.error
-                      ? "border-green-500"
-                      : "border-input-border"
+                      ? "border-[var(--qs-ok)]"
+                      : "border-[var(--qs-line)]"
                   }`}
                   placeholder="you@example.com"
                 />
                 </div>
                 {form.email.touched && form.email.error && (
-                  <p id="registration-email-error" className="mt-2 text-xs text-red-400">{form.email.error}</p>
+                  <p id="registration-email-error" className="mt-2 text-xs text-[var(--qs-bad)]">{form.email.error}</p>
                 )}
                 <AnimatePresence initial={false}>
                   {!form.email.error && emailSubmitError && (
@@ -460,24 +460,23 @@ export default function RegistrationForm() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -4, scale: 0.98 }}
                       transition={{ duration: 0.22, ease: "easeOut" }}
-                      className="relative mt-3 overflow-hidden rounded-2xl border border-rose-200/90 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-3.5 shadow-[0_14px_34px_-24px_rgba(225,29,72,.75)] dark:border-rose-400/20 dark:from-rose-500/[0.11] dark:via-[#151322] dark:to-orange-500/[0.06]"
+                      className="relative mt-3 overflow-hidden rounded-2xl border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] p-3.5"
                     >
-                      <div className="pointer-events-none absolute -right-5 -top-8 h-20 w-20 rounded-full bg-rose-300/20 blur-2xl dark:bg-rose-500/10" />
                       <div className="relative flex items-start gap-3">
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-rose-500 text-white shadow-[0_10px_22px_-12px_rgba(225,29,72,.9)]">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--qs-bad)] text-[var(--qs-on-brand)]">
                           <CircleAlert className="h-4.5 w-4.5" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-black text-rose-700 dark:text-rose-200">
+                          <p className="text-xs font-black text-[var(--qs-bad)]">
                             {/already (registered|exists)/i.test(emailSubmitError) ? "You already have a QuizSupport account" : "We couldn’t continue"}
                           </p>
-                          <p className="mt-1 text-[11px] leading-5 text-rose-700/75 dark:text-rose-100/65">
+                          <p className="mt-1 text-[11px] leading-5 text-[var(--qs-bad)] opacity-75">
                             {/already (registered|exists)/i.test(emailSubmitError)
                               ? "This email is already registered. Sign in to continue, or enter a different email above."
                               : emailSubmitError}
                           </p>
                           {/already (registered|exists)/i.test(emailSubmitError) && (
-                            <Link href="/login" className="mt-2 inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-rose-600 px-3 text-[10px] font-black text-white shadow-sm transition hover:bg-rose-700">
+                            <Link href="/login" className="mt-2 inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-[var(--qs-bad)] px-3 text-[10px] font-black text-[var(--qs-on-brand)] transition hover:brightness-105">
                               <LogIn className="h-3 w-3" /> Sign in instead <ArrowRight className="h-3 w-3" />
                             </Link>
                           )}
@@ -510,15 +509,11 @@ export default function RegistrationForm() {
                   value={form.otp.value}
                   onChange={(e) => updateField("otp", e.target.value.replace(/\D/g, ""))}
                   onBlur={() => validateOtpField(form.otp.value)}
-                  className={`w-full rounded-xl bg-input-border/50 border px-4 py-3.5 text-lg text-text-primary text-center tracking-[0.4em] placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
-                    form.otp.touched && form.otp.error
-                      ? "border-red-500"
-                      : "border-input-border"
-                  }`}
+                  className={`qs-input h-14 w-full text-center text-lg ${form.otp.touched && form.otp.error ? "border-[var(--qs-bad)]" : ""}`}
                   placeholder="------"
                 />
                 {form.otp.touched && form.otp.error && (
-                  <p className="mt-2 text-xs text-red-400">{form.otp.error}</p>
+                  <p className="mt-2 text-xs text-[var(--qs-bad)]">{form.otp.error}</p>
                 )}
               </div>
               <button
@@ -534,7 +529,7 @@ export default function RegistrationForm() {
                   type="button"
                   disabled={countdown > 0 || sendingOtp}
                   onClick={handleResendOtp}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-input-border bg-transparent px-4 text-sm font-semibold text-text-secondary transition-all hover:border-accent hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-transparent px-4 text-sm font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {sendingOtp
                     ? <AuthLoader className="h-4 w-4" />
@@ -549,17 +544,18 @@ export default function RegistrationForm() {
             </form>
           )}
         </div>
+        </div>
           )}
 
           {/* Step 3: Profile onboarding — one task per screen, open layout (no card). */}
           {step === "register" && (
-            <div className="mx-auto w-full max-w-[390px] rounded-[26px] border border-pink-200/70 bg-white/75 p-4 shadow-[0_30px_80px_-44px_rgba(244,114,182,.65)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/86 sm:rounded-[30px] sm:p-6">
-              <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-text-muted">
+            <div className="qs-card mx-auto w-full max-w-[390px] p-4 sm:p-6">
+              <p className="text-center text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--qs-muted)]">
                 Profile setup · {profileStep} of 4
               </p>
-              <div className="mt-2 h-1 overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/10">
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--qs-line)]">
                 <motion.div
-                  className="h-full rounded-full bg-violet-500"
+                  className="h-full rounded-full bg-[var(--qs-brand)]"
                   animate={{ width: `${(profileStep / 4) * 100}%` }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
                 />
@@ -575,11 +571,11 @@ export default function RegistrationForm() {
                 >
                   {profileStep === 1 && (
                     <div>
-                      <span className="mx-auto mt-4 grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-[0_14px_28px_-14px_rgba(124,58,237,.85)] sm:mt-5 sm:h-12 sm:w-12 sm:rounded-2xl">
+                      <span className="mx-auto mt-4 grid h-10 w-10 place-items-center rounded-xl bg-[var(--qs-brand)] text-[var(--qs-on-brand)] sm:mt-5 sm:h-12 sm:w-12 sm:rounded-2xl">
                         <Sparkles className="h-5 w-5" />
                       </span>
-                      <h1 className="mt-3 text-center text-[22px] font-black tracking-tight text-text-primary sm:mt-4 sm:text-[25px]">How will you use QuizSupport?</h1>
-                      <p className="mt-1.5 text-center text-xs leading-5 text-text-secondary sm:mt-2 sm:text-sm sm:leading-6">We&rsquo;ll personalize your workspace, tools, and first experience.</p>
+                      <h1 className="mt-3 text-center text-[22px] text-[var(--qs-ink)] sm:mt-4 sm:text-[25px]">How will you use QuizSupport?</h1>
+                      <p className="mt-1.5 text-center text-xs leading-5 text-[var(--qs-muted)] sm:mt-2 sm:text-sm sm:leading-6">We&rsquo;ll personalize your workspace, tools, and first experience.</p>
                       <div className="mt-4 grid gap-2.5 sm:mt-5 sm:gap-3" role="radiogroup" aria-label="Choose account type">
                         {([
                           { id: "student" as const, icon: GraduationCap, title: "I'm a student", description: "Join quizzes, practice smarter, and track every result.", badge: "Learn" },
@@ -593,17 +589,17 @@ export default function RegistrationForm() {
                               role="radio"
                               aria-checked={selected}
                               onClick={() => { setAccountType(id); playQuizSound("select"); }}
-                              className={`group relative min-h-[96px] overflow-hidden rounded-[18px] border p-3 pr-12 text-left transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 sm:min-h-[104px] sm:rounded-[20px] sm:p-3.5 sm:pr-14 ${selected ? "border-violet-500 bg-violet-500/[0.09] shadow-[0_18px_42px_-25px_rgba(124,58,237,.8)]" : "border-input-border bg-input-bg/65 hover:border-violet-400/45"}`}
+                              className={`group relative min-h-[96px] overflow-hidden rounded-[18px] border-2 p-3 pr-12 text-left transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-none sm:min-h-[104px] sm:rounded-[20px] sm:p-3.5 sm:pr-14 ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/[0.08]" : "border-[var(--qs-line)] bg-[var(--qs-bg)] hover:border-[var(--qs-brand)]/50"}`}
                             >
                               <span className="flex items-start gap-3">
-                                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors sm:h-11 sm:w-11 sm:rounded-2xl ${selected ? "bg-violet-600 text-white" : "bg-violet-500/10 text-violet-600 dark:text-violet-300"}`}><Icon className="h-5 w-5" /></span>
+                                <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors sm:h-11 sm:w-11 sm:rounded-2xl ${selected ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]"}`}><Icon className="h-5 w-5" /></span>
                                 <span className="min-w-0 pt-0.5">
-                                  <span className="block text-sm font-black text-text-primary">{title}</span>
-                                  <span className="mt-1 block text-[11px] leading-[18px] text-text-secondary">{description}</span>
+                                  <span className="block text-sm font-black text-[var(--qs-ink)]">{title}</span>
+                                  <span className="mt-1 block text-[11px] leading-[18px] text-[var(--qs-muted)]">{description}</span>
                                 </span>
                               </span>
-                              <span className={`absolute right-3 top-3 rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-[0.13em] ${selected ? "bg-violet-600 text-white" : "bg-black/[0.04] text-text-muted dark:bg-white/[0.06]"}`}>{badge}</span>
-                              {selected && <span className="absolute bottom-3 right-3 grid h-6 w-6 place-items-center rounded-full bg-violet-600 text-white"><Check className="h-3.5 w-3.5" strokeWidth={3} /></span>}
+                              <span className={`absolute right-3 top-3 rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-[0.13em] ${selected ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "bg-[var(--qs-line)] text-[var(--qs-muted)]"}`}>{badge}</span>
+                              {selected && <span className="absolute bottom-3 right-3 grid h-6 w-6 place-items-center rounded-full bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"><Check className="h-3.5 w-3.5" strokeWidth={3} /></span>}
                             </button>
                           );
                         })}
@@ -621,10 +617,10 @@ export default function RegistrationForm() {
                         if (isUsernameReady) goProfileStep(3);
                       }}
                     >
-                      <h1 className="mt-6 text-center text-[26px] font-bold tracking-tight text-text-primary">
+                      <h1 className="mt-6 text-center text-[26px] text-[var(--qs-ink)]">
                         Choose your username
                       </h1>
-                      <p className="mt-2 text-center text-sm text-text-secondary">
+                      <p className="mt-2 text-center text-sm text-[var(--qs-muted)]">
                         This is how people will see you across your workspace.
                       </p>
                       <div className="mt-6">
@@ -639,38 +635,38 @@ export default function RegistrationForm() {
                     onChange={(e) => handleUsernameChange(e.target.value)}
                     onBlur={() => validateUsernameField(form.username.value)}
                     aria-describedby="username-availability"
-                    className={`w-full rounded-2xl bg-input-bg border px-5 py-4 pr-28 text-lg text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                    className={`w-full rounded-2xl border-2 bg-[var(--qs-surface)] px-5 py-4 pr-28 text-lg text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] ${
                       form.username.touched && form.username.error
-                        ? "border-red-500"
+                        ? "border-[var(--qs-bad)]"
                         : form.username.touched && !form.username.error && usernameStatus.available === false
-                        ? "border-red-500"
+                        ? "border-[var(--qs-bad)]"
                         : form.username.touched && !form.username.error && usernameStatus.available === true
-                        ? "border-green-500"
-                        : "border-input-border"
+                        ? "border-[var(--qs-ok)]"
+                        : "border-[var(--qs-line)]"
                     }`}
                     placeholder="Choose a username"
                   />
                   {usernameStatus.checking && (
-                    <span className="pointer-events-none absolute right-4 top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent">
+                    <span className="pointer-events-none absolute right-4 top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 rounded-full bg-[var(--qs-brand)]/10 px-2.5 py-1 text-[10px] font-bold text-[var(--qs-brand)]">
                       <AuthLoader className="h-3 w-3" /> Checking
                     </span>
                   )}
                 </div>
                 <div id="username-availability" className="mt-2 min-h-5" aria-live="polite">
                   {form.username.touched && form.username.error ? (
-                    <p className="text-xs text-red-400">{form.username.error}</p>
+                    <p className="text-xs text-[var(--qs-bad)]">{form.username.error}</p>
                   ) : !form.username.error && usernameStatus.checking ? (
-                    <p className="text-xs text-text-muted flex items-center gap-1.5">
+                    <p className="text-xs text-[var(--qs-muted)] flex items-center gap-1.5">
                       <AuthLoader className="h-3 w-3" /> Checking username availability…
                     </p>
                   ) : !form.username.error && !usernameStatus.checking && usernameStatus.available === false ? (
-                    <p className="text-xs text-red-400">{usernameStatus.message}</p>
+                    <p className="text-xs text-[var(--qs-bad)]">{usernameStatus.message}</p>
                   ) : !form.username.error && !usernameStatus.checking && usernameStatus.available === true ? (
-                    <p className="text-xs font-medium text-green-500 flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-[var(--qs-ok)] flex items-center gap-1.5">
                       <Check className="h-3.5 w-3.5" strokeWidth={3} /> Username available
                     </p>
                   ) : (
-                    <p className="text-xs text-text-muted">Only lowercase letters and numbers</p>
+                    <p className="text-xs text-[var(--qs-muted)]">Only lowercase letters and numbers</p>
                   )}
                 </div>
                 <button
@@ -686,14 +682,14 @@ export default function RegistrationForm() {
 
                   {profileStep === 3 && (
                     <div>
-                      <h1 className="mt-6 text-center text-[26px] font-bold tracking-tight text-text-primary">
+                      <h1 className="mt-6 text-center text-[26px] text-[var(--qs-ink)]">
                         Pick your avatar
                       </h1>
-                      <p className="mt-2 text-center text-sm text-text-secondary">
+                      <p className="mt-2 text-center text-sm text-[var(--qs-muted)]">
                         Choose how you&rsquo;ll appear in quizzes and waiting rooms.
                       </p>
                       <div className="mt-4 flex justify-center sm:mt-5">
-                        <span className="block h-20 w-20 overflow-hidden rounded-full border-2 border-violet-500 ring-2 ring-violet-500/20 sm:h-24 sm:w-24">
+                        <span className="block h-20 w-20 overflow-hidden rounded-full border-2 border-[var(--qs-brand)] ring-2 ring-[var(--qs-brand)]/20 sm:h-24 sm:w-24">
                           <Image
                             src={selectedAvatarUrl}
                             alt={PREDEFINED_AVATARS.find((a) => a.url === selectedAvatarUrl)?.label ?? "Selected avatar"}
@@ -715,15 +711,15 @@ export default function RegistrationForm() {
                               aria-checked={selected}
                               aria-label={avatar.label}
                               onClick={() => { playQuizSound("select"); setSelectedAvatarUrl(avatar.url); }}
-                              className={`relative mx-auto h-[72px] w-[72px] overflow-hidden rounded-full border-2 p-1 transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 sm:h-[78px] sm:w-[78px] ${
+                              className={`relative mx-auto h-[72px] w-[72px] overflow-hidden rounded-full border-2 p-1 transition-all duration-200 active:scale-95 focus-visible:outline-none sm:h-[78px] sm:w-[78px] ${
                                 selected
-                                  ? "border-violet-500 ring-2 ring-violet-500/20 shadow-[0_0_18px_-6px_rgba(124,92,255,.55)]"
-                                  : "border-input-border hover:border-violet-400/60"
+                                  ? "border-[var(--qs-brand)] ring-2 ring-[var(--qs-brand)]/20"
+                                  : "border-[var(--qs-line)] hover:border-[var(--qs-brand)]/60"
                               }`}
                             >
                               <Image src={avatar.url} alt="" width={96} height={96} className="h-full w-full rounded-full object-cover" />
                               {selected && (
-                                <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full border-2 border-white bg-violet-600 text-white dark:border-[#111526]">
+                                <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full border-2 border-[var(--qs-surface)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
                                   <Check className="h-3 w-3" strokeWidth={3} />
                                 </span>
                               )}
@@ -735,7 +731,7 @@ export default function RegistrationForm() {
                         <button
                           type="button"
                           onClick={() => goProfileStep(2)}
-                          className="min-h-13 flex-1 rounded-xl border border-input-border text-sm font-semibold text-text-secondary transition-colors hover:border-accent hover:text-text-primary"
+                          className="min-h-13 flex-1 rounded-xl border-2 border-[var(--qs-line)] text-sm font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
                         >
                           Back
                         </button>
@@ -752,10 +748,10 @@ export default function RegistrationForm() {
 
                   {profileStep === 4 && (
                     <form onSubmit={handleRegister}>
-                      <h1 className="mt-6 text-center text-[26px] font-bold tracking-tight text-text-primary">
+                      <h1 className="mt-6 text-center text-[26px] text-[var(--qs-ink)]">
                         Create your password
                       </h1>
-                      <p className="mt-2 text-center text-sm text-text-secondary">
+                      <p className="mt-2 text-center text-sm text-[var(--qs-muted)]">
                         Keep your account secure.
                       </p>
                       <div className="mt-6 space-y-3">
@@ -766,10 +762,10 @@ export default function RegistrationForm() {
                               value={form.password.value}
                               onChange={(e) => updateField("password", e.target.value)}
                               onBlur={() => validatePasswordField(form.password.value)}
-                              className={`w-full rounded-2xl bg-input-bg border px-5 py-4 pr-12 text-base text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                              className={`w-full rounded-2xl border-2 bg-[var(--qs-surface)] px-5 py-4 pr-12 text-base text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] ${
                                 form.password.touched && form.password.error
-                                  ? "border-red-500"
-                                  : "border-input-border"
+                                  ? "border-[var(--qs-bad)]"
+                                  : "border-[var(--qs-line)]"
                               }`}
                               placeholder="Password"
                             />
@@ -778,15 +774,15 @@ export default function RegistrationForm() {
                               tabIndex={-1}
                               onClick={() => setShowPassword((v) => !v)}
                               aria-label={showPassword ? "Hide password" : "Show password"}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-2 text-text-muted hover:bg-black/5 hover:text-text-primary transition-colors"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-2 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-ink)]"
                             >
                               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                           </div>
                           {form.password.touched && form.password.error ? (
-                            <p className="mt-2 text-xs text-red-400">{form.password.error}</p>
+                            <p className="mt-2 text-xs text-[var(--qs-bad)]">{form.password.error}</p>
                           ) : (
-                            <p className="mt-2 text-xs text-text-muted">At least 8 characters</p>
+                            <p className="mt-2 text-xs text-[var(--qs-muted)]">At least 8 characters</p>
                           )}
                         </div>
 
@@ -797,12 +793,12 @@ export default function RegistrationForm() {
                               value={form.confirmPassword.value}
                               onChange={(e) => updateField("confirmPassword", e.target.value)}
                               onBlur={() => validateConfirmPasswordField(form.confirmPassword.value)}
-                              className={`w-full rounded-2xl bg-input-bg border px-5 py-4 pr-12 text-base text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                              className={`w-full rounded-2xl border-2 bg-[var(--qs-surface)] px-5 py-4 pr-12 text-base text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] ${
                                 form.confirmPassword.touched && form.confirmPassword.error
-                                  ? "border-red-500"
+                                  ? "border-[var(--qs-bad)]"
                                   : form.confirmPassword.touched && passwordsMatch
-                                  ? "border-green-500"
-                                  : "border-input-border"
+                                  ? "border-[var(--qs-ok)]"
+                                  : "border-[var(--qs-line)]"
                               }`}
                               placeholder="Confirm password"
                             />
@@ -811,15 +807,15 @@ export default function RegistrationForm() {
                               tabIndex={-1}
                               onClick={() => setShowConfirmPassword((v) => !v)}
                               aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-2 text-text-muted hover:bg-black/5 hover:text-text-primary transition-colors"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-2 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-ink)]"
                             >
                               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                           </div>
                           {form.confirmPassword.touched && form.confirmPassword.error ? (
-                            <p className="mt-2 text-xs text-red-400">{form.confirmPassword.error}</p>
+                            <p className="mt-2 text-xs text-[var(--qs-bad)]">{form.confirmPassword.error}</p>
                           ) : form.confirmPassword.touched && passwordsMatch ? (
-                            <p className="mt-2 text-xs font-medium text-green-500 flex items-center gap-1.5">
+                            <p className="mt-2 text-xs font-bold text-[var(--qs-ok)] flex items-center gap-1.5">
                               <Check className="h-3.5 w-3.5" strokeWidth={3} /> Passwords match
                             </p>
                           ) : null}
@@ -834,7 +830,7 @@ export default function RegistrationForm() {
                             exit={{ opacity: 0, y: -4, height: 0 }}
                             role="alert"
                             aria-live="assertive"
-                            className="mt-4 overflow-hidden rounded-2xl border border-rose-300/70 bg-gradient-to-r from-rose-50 to-orange-50 px-4 py-3 text-rose-800 shadow-[0_12px_30px_-22px_rgba(225,29,72,.65)] dark:border-rose-400/25 dark:from-rose-500/10 dark:to-orange-500/10 dark:text-rose-200"
+                            className="mt-4 overflow-hidden rounded-2xl border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-4 py-3 text-[var(--qs-bad)]"
                           >
                             <span className="flex items-start gap-2.5">
                               <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
@@ -850,7 +846,7 @@ export default function RegistrationForm() {
                         <button
                           type="button"
                           onClick={() => goProfileStep(3)}
-                          className="min-h-13 flex-1 rounded-xl border border-input-border text-sm font-semibold text-text-secondary transition-colors hover:border-accent hover:text-text-primary"
+                          className="min-h-13 flex-1 rounded-xl border-2 border-[var(--qs-line)] text-sm font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
                         >
                           Back
                         </button>
@@ -871,9 +867,9 @@ export default function RegistrationForm() {
           )}
 
         {/* Footer */}
-        <p className="mt-4 text-center text-xs text-text-muted sm:mt-6">
+        <p className="mt-4 text-center text-xs text-[var(--qs-muted)] sm:mt-6">
           Already have an account?{" "}
-          <Link href="/login" className="inline-flex items-center gap-1 font-semibold text-accent transition-colors hover:text-accent/80">
+          <Link href="/login" className="inline-flex items-center gap-1 font-bold text-[var(--qs-brand)] transition-colors hover:underline">
             <LogIn className="h-3.5 w-3.5" /> Sign in
           </Link>
         </p>

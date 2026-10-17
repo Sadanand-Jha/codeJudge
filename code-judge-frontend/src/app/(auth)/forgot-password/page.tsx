@@ -15,7 +15,7 @@ import {
 import AuthBackground from "@/components/auth/AuthBackground";
 import { AuthBrandMark, AuthLoader, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
 
-const AUTH_PRIMARY_BUTTON = "group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-4 text-sm font-bold text-white shadow-[0_16px_32px_-18px_rgba(236,72,153,.9),inset_0_1px_0_rgba(255,255,255,.28)] transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-40 dark:from-violet-600 dark:via-indigo-500 dark:to-blue-600 dark:shadow-[0_16px_34px_-18px_rgba(124,92,255,.95),inset_0_1px_0_rgba(255,255,255,.2)]";
+const AUTH_PRIMARY_BUTTON = "group flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] transition-all hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40";
 
 type Step = "email" | "verify" | "reset";
 
@@ -202,7 +202,7 @@ export default function ForgotPasswordPage() {
   const isResetEnabled = passwordsMatch && !submitting;
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#FFF9F1] px-6 py-20 dark:bg-[#050510]">
+    <div className="qs-ui relative flex min-h-dvh items-center justify-center overflow-hidden px-6 py-20">
       <AuthBackground />
       <AuthThemeControls />
 
@@ -217,15 +217,15 @@ export default function ForgotPasswordPage() {
           <div className="mx-auto mb-4 flex w-36 items-center gap-2" aria-label={`Password reset step ${step === "email" ? 1 : step === "verify" ? 2 : 3} of 3`}>
             {[1, 2, 3].map((item) => {
               const current = step === "email" ? 1 : step === "verify" ? 2 : 3;
-              return <span key={item} className={`h-1 flex-1 rounded-full transition-colors ${item <= current ? "bg-accent" : "bg-input-border"}`} />;
+              return <span key={item} className={`h-1 flex-1 rounded-full transition-colors ${item <= current ? "bg-[var(--qs-brand)]" : "bg-[var(--qs-line)]"}`} />;
             })}
           </div>
-          <h1 className="text-xl font-bold text-text-primary">
+          <h1 className="text-xl text-[var(--qs-ink)]">
             {step === "email" && "Reset your password"}
             {step === "verify" && "Check your email"}
             {step === "reset" && "Set a new password"}
           </h1>
-          <p className="mt-2 text-sm text-text-secondary">
+          <p className="mt-2 text-sm text-[var(--qs-muted)]">
             {step === "email" && "Enter your account email to get started"}
             {step === "verify" && `We sent a code to ${email.value}`}
             {step === "reset" && "Choose a strong new password"}
@@ -233,14 +233,15 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-[28px] border border-pink-200/80 bg-white/82 p-6 shadow-[0_30px_80px_-42px_rgba(244,114,182,.75)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/88 dark:shadow-[0_30px_90px_-40px_rgba(91,69,196,.8)]">
+        <div className="qs-shadow">
+        <div className="qs-card p-6">
           {/* Step 1: Email */}
           {step === "email" && (
             <form className="space-y-5" onSubmit={handleSendOtp}>
               <div>
-                <label htmlFor="reset-email" className="mb-2 block text-[11px] font-semibold text-text-secondary">Account email</label>
+                <label htmlFor="reset-email" className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--qs-muted)]">Account email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
                 <input
                   id="reset-email"
                   type="email"
@@ -251,18 +252,18 @@ export default function ForgotPasswordPage() {
                   onBlur={() =>
                     setEmail((prev) => ({ ...prev, error: validateEmail(prev.value) }))
                   }
-                  className={`w-full rounded-xl bg-input-bg border py-3 pl-10 pr-4 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                  className={`w-full rounded-xl border-2 bg-[var(--qs-surface)] py-3 pl-10 pr-4 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] ${
                     email.touched && email.error
-                      ? "border-red-500"
+                      ? "border-[var(--qs-bad)]"
                       : email.touched && !email.error
-                      ? "border-green-500"
-                      : "border-input-border"
+                      ? "border-[var(--qs-ok)]"
+                      : "border-[var(--qs-line)]"
                   }`}
                   placeholder="you@example.com"
                 />
                 </div>
                 {email.touched && email.error && (
-                  <p className="mt-2 text-xs text-red-400">{email.error}</p>
+                  <p className="mt-2 text-xs text-[var(--qs-bad)]">{email.error}</p>
                 )}
               </div>
               <button
@@ -292,13 +293,11 @@ export default function ForgotPasswordPage() {
                   onBlur={() =>
                     setOtp((prev) => ({ ...prev, error: validateOtp(prev.value) }))
                   }
-                  className={`w-full rounded-xl bg-input-border/50 border px-4 py-3.5 text-lg text-text-primary text-center tracking-[0.4em] placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
-                    otp.touched && otp.error ? "border-red-500" : "border-input-border"
-                  }`}
+                  className={`qs-input h-14 w-full text-center text-lg ${otp.touched && otp.error ? "border-[var(--qs-bad)]" : ""}`}
                   placeholder="------"
                 />
                 {otp.touched && otp.error && (
-                  <p className="mt-2 text-xs text-red-400">{otp.error}</p>
+                  <p className="mt-2 text-xs text-[var(--qs-bad)]">{otp.error}</p>
                 )}
               </div>
               <button
@@ -314,7 +313,7 @@ export default function ForgotPasswordPage() {
                   type="button"
                   disabled={countdown > 0 || sendingOtp}
                   onClick={handleResendOtp}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-input-border bg-input-bg/50 px-4 text-xs font-semibold text-text-secondary transition-all hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-transparent px-4 text-xs font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                   {countdown > 0 ? `Resend in ${countdown}s` : "Resend code"}
@@ -338,10 +337,10 @@ export default function ForgotPasswordPage() {
                     onBlur={() =>
                       setPassword((prev) => ({ ...prev, error: validatePassword(prev.value) }))
                     }
-                    className={`w-full rounded-xl bg-input-bg border px-4 py-3 pr-11 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                    className={`w-full rounded-xl border-2 bg-[var(--qs-surface)] px-4 py-3 pr-11 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] ${
                       password.touched && password.error
-                        ? "border-red-500"
-                        : "border-input-border"
+                        ? "border-[var(--qs-bad)]"
+                        : "border-[var(--qs-line)]"
                     }`}
                     placeholder="New password"
                   />
@@ -350,13 +349,13 @@ export default function ForgotPasswordPage() {
                     tabIndex={-1}
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-text-muted hover:bg-black/5 hover:text-text-primary transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-ink)]"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 {password.touched && password.error && (
-                  <p className="mt-2 text-xs text-red-400">{password.error}</p>
+                  <p className="mt-2 text-xs text-[var(--qs-bad)]">{password.error}</p>
                 )}
               </div>
 
@@ -375,12 +374,12 @@ export default function ForgotPasswordPage() {
                         error: validateConfirmPassword(password.value, prev.value),
                       }))
                     }
-                    className={`w-full rounded-xl bg-input-bg border px-4 py-3 pr-11 text-sm text-text-primary placeholder-text-muted outline-none transition-all focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+                    className={`w-full rounded-xl border-2 bg-[var(--qs-surface)] px-4 py-3 pr-11 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] ${
                       confirmPassword.touched && confirmPassword.error
-                        ? "border-red-500"
+                        ? "border-[var(--qs-bad)]"
                         : confirmPassword.touched && passwordsMatch
-                        ? "border-green-500"
-                        : "border-input-border"
+                        ? "border-[var(--qs-ok)]"
+                        : "border-[var(--qs-line)]"
                     }`}
                     placeholder="Confirm new password"
                   />
@@ -389,7 +388,7 @@ export default function ForgotPasswordPage() {
                     tabIndex={-1}
                     onClick={() => setShowConfirmPassword((v) => !v)}
                     aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-text-muted hover:bg-black/5 hover:text-text-primary transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-ink)]"
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -399,12 +398,12 @@ export default function ForgotPasswordPage() {
                   </button>
                 </div>
                 {confirmPassword.touched && confirmPassword.error && (
-                  <p className="mt-2 text-xs text-red-400">{confirmPassword.error}</p>
+                  <p className="mt-2 text-xs text-[var(--qs-bad)]">{confirmPassword.error}</p>
                 )}
                 {confirmPassword.touched &&
                   !confirmPassword.error &&
                   passwordsMatch && (
-                    <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-green-500"><Check className="h-3.5 w-3.5" /> Passwords match</p>
+                    <p className="mt-2 flex items-center gap-1.5 text-xs font-bold text-[var(--qs-ok)]"><Check className="h-3.5 w-3.5" /> Passwords match</p>
                   )}
               </div>
 
@@ -420,11 +419,12 @@ export default function ForgotPasswordPage() {
             </form>
           )}
         </div>
+        </div>
 
         {/* Footer */}
-        <p className="mt-6 text-center text-xs text-text-muted">
+        <p className="mt-6 text-center text-xs text-[var(--qs-muted)]">
           Remember your password?{" "}
-          <Link href="/login" className="inline-flex items-center gap-1 font-semibold text-accent transition-colors hover:text-accent/80">
+          <Link href="/login" className="inline-flex items-center gap-1 font-bold text-[var(--qs-brand)] transition-colors hover:underline">
             <LogIn className="h-3.5 w-3.5" /> Sign in
           </Link>
         </p>

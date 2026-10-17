@@ -98,9 +98,9 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
   if (!valid) {
     return (
       <ResultState
-        icon={<ShieldCheck className="h-8 w-8 text-text-muted" />}
+        icon={<ShieldCheck className="h-8 w-8 text-[var(--qs-muted)]" />}
         text="Invalid quiz code."
-        action={<Link href="/quiz#activity" className="mt-5 inline-flex min-h-10 items-center justify-center rounded-xl bg-pink-600 px-4 text-sm font-semibold text-white">View my activity</Link>}
+        action={<Link href="/quiz#activity" className="mt-5 inline-flex min-h-10 items-center justify-center rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:-translate-y-0.5">View my activity</Link>}
       />
     );
   }
@@ -114,7 +114,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
         icon={<QuizLoader />}
         text="Loading your verified result…"
         action={
-          <Link href={redirectTarget} className="mt-5 inline-flex min-h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold text-text-primary">
+          <Link href={redirectTarget} className="mt-5 inline-flex min-h-10 items-center justify-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-sm font-bold text-[var(--qs-ink)]">
             Continue to your result
           </Link>
         }
@@ -127,18 +127,18 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
   if (active?.kind === "error") {
     return (
       <ResultState
-        icon={<ShieldCheck className="h-8 w-8 text-text-muted" />}
+        icon={<ShieldCheck className="h-8 w-8 text-[var(--qs-muted)]" />}
         text={active.message}
         action={
           <div className="mt-5 flex items-center justify-center gap-2">
             <button
               type="button"
               onClick={() => setRetryKey((key) => key + 1)}
-              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-pink-600 px-4 text-sm font-semibold text-white"
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:-translate-y-0.5"
             >
               Retry
             </button>
-            <Link href="/quiz#activity" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold text-text-primary">
+            <Link href="/quiz#activity" className="inline-flex min-h-10 items-center justify-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-sm font-bold text-[var(--qs-ink)]">
               View my activity
             </Link>
           </div>
@@ -150,9 +150,9 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
   if (active?.kind === "miss") {
     return (
       <ResultState
-        icon={<ShieldCheck className="h-8 w-8 text-text-muted" />}
+        icon={<ShieldCheck className="h-8 w-8 text-[var(--qs-muted)]" />}
         text="No verified result was found for this quiz on this device."
-        action={<Link href="/quiz#activity" className="mt-5 inline-flex min-h-10 items-center justify-center rounded-xl bg-pink-600 px-4 text-sm font-semibold text-white">View my activity</Link>}
+        action={<Link href="/quiz#activity" className="mt-5 inline-flex min-h-10 items-center justify-center rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:-translate-y-0.5">View my activity</Link>}
       />
     );
   }
@@ -163,7 +163,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
 function ResultState({ icon, text, action }: { icon: React.ReactNode; text: string; action?: React.ReactNode }) {
   return (
     <QuizStateScreen
-      icon={<div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-100 to-orange-100 text-pink-600 shadow-sm dark:from-violet-500/15 dark:to-cyan-500/10 dark:text-violet-300">{icon}</div>}
+      icon={<div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]">{icon}</div>}
       title="Opening your scorecard"
       text={text}
       action={action}

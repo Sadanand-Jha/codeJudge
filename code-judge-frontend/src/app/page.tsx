@@ -1,76 +1,132 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import QuizCodeForm from "@/components/marketing/QuizCodeForm";
+import SampleQuizDemo from "@/components/marketing/SampleQuizDemo";
+import { SecureLogo } from "@/components/common/SecureLogo";
 
 export const metadata: Metadata = {
+  title: {
+    absolute: "QuizSupport – Make a quiz. Share a code. See results instantly.",
+  },
+  description:
+    "Make a quiz in minutes, share it with an access code, and get instant results on any device. Join quizzes, track scores and practice for JEE, NEET, GATE, SSC, UPSC and Banking.",
   alternates: { canonical: "https://www.quizsupport.com/" },
 };
 
-const CATEGORY_LINKS = [
-  { href: "/quiz", label: "Online Quizzes", desc: "Join live quizzes with a code and get instant results." },
-  { href: "/quiz/join", label: "Join a Quiz", desc: "Enter your quiz access code and start your practice test." },
-  { href: "/problems", label: "Exam Practice", desc: "JEE, NEET, GATE, SSC, UPSC, Banking and more practice sets." },
-  { href: "/problems/jee", label: "JEE Practice", desc: "JEE practice problems, subject-wise and chapter-wise." },
-  { href: "/problems/neet", label: "NEET Practice", desc: "NEET practice problems, subject-wise and chapter-wise." },
-  { href: "/problems/ssc", label: "SSC Practice", desc: "SSC exam practice problems and drills." },
+const STEPS = [
+  {
+    title: "Write your questions",
+    desc: "Add questions and answer options, mark the right one, and set how long people get.",
+  },
+  {
+    title: "Share the code",
+    desc: "Every quiz gets its own access code. Send it on WhatsApp, email, or pin it in a group.",
+    code: "VQBA-MIDJ-ETTW-EFRT",
+  },
+  {
+    title: "See who scored what",
+    desc: "Players get instant feedback. You see every score and each person\u2019s history in one place.",
+  },
 ];
 
 export default function HomePage() {
   return (
-    <main className="mx-auto max-w-4xl px-6 py-12">
-      <h1>Take Online Quizzes and Practice Tests</h1>
-      <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-        QuizSupport is an online quiz platform for taking quizzes and practice tests.
-        Join a quiz with an access code, answer questions on any device, and get
-        instant results with score tracking.
-      </p>
-      <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-        Students use QuizSupport to prepare for school tests, college quizzes and
-        competitive exams such as JEE, NEET, GATE, SSC, UPSC and Banking — while
-        teachers and creators use it to host quizzes and track performance.
-      </p>
-      <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-        Every quiz gives you instant feedback on your answers, keeps a history of
-        your scores, and works on mobile and desktop without any installation.
-      </p>
+    <div className="qs-ui min-h-screen">
+      <div className="qs-wrap">
+        <nav className="flex items-center justify-between gap-4 py-[22px]" aria-label="Main">
+          <Link href="/" className="inline-flex items-center" aria-label="QuizSupport home">
+            <SecureLogo size={34} variant="full" rounded={false} />
+          </Link>
+          <div className="flex items-center gap-3 sm:gap-[22px]">
+            <Link href="/quiz" className="qs-link hidden sm:block">
+              Quizzes
+            </Link>
+            <Link href="/login" className="qs-link hidden sm:block">
+              Log in
+            </Link>
+            <Link href="/creator/quizzes/create" className="qs-btn px-4 py-[11px] text-[15px]">
+              Create a quiz
+            </Link>
+          </div>
+        </nav>
 
-      <nav aria-label="Quiz categories" className="mt-8">
-        <h2 className="text-lg font-semibold">Browse quiz categories</h2>
-        <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-          {CATEGORY_LINKS.map((c) => (
-            <li key={c.href} className="rounded-xl border border-border p-4">
-              <Link href={c.href} className="font-medium underline-offset-4 hover:underline">
-                {c.label}
-              </Link>
-              <p className="mt-1 text-sm text-muted-foreground">{c.desc}</p>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Link
-          href="/quiz"
-          className="rounded-lg bg-[#7C3AED] px-5 py-2.5 text-sm font-semibold text-white"
-        >
-          Start a Quiz
-        </Link>
-        <Link
-          href="/login"
-          className="rounded-lg border border-border px-5 py-2.5 text-sm font-semibold"
-        >
-          Log in
-        </Link>
+        <header className="grid items-center gap-11 pb-16 pt-8 lg:grid-cols-[1.05fr_.95fr] lg:gap-14 lg:pb-[88px] lg:pt-12">
+          <div>
+            <h1 className="max-w-[13em] text-[clamp(42px,6vw,76px)] font-extrabold">
+              Make a quiz in minutes. Share it with a code.
+            </h1>
+            <p className="mb-7 mt-5 max-w-[30em] text-[20px] text-[var(--qs-muted)]">
+              Write your questions, get an access code, and send it to anyone. They
+              answer on any device and see their score right away.
+            </p>
+            <QuizCodeForm />
+            <p className="qs-sub mt-2">
+              Want to host your own?{" "}
+              <Link href="/creator/quizzes/create">Create a quiz for free</Link>
+            </p>
+          </div>
+          <SampleQuizDemo />
+        </header>
       </div>
 
-      <footer className="mt-12 border-t border-border pt-6 text-sm text-muted-foreground">
-        <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2">
-          <Link href="/about" className="hover:underline">About</Link>
-          <Link href="/contact" className="hover:underline">Contact</Link>
-          <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
-          <Link href="/quiz" className="hover:underline">Quizzes</Link>
-        </nav>
-      </footer>
-    </main>
+      <section className="border-t border-[var(--qs-line)] py-16 lg:py-[72px]">
+        <div className="qs-wrap">
+          <h2 className="max-w-[16em] text-[clamp(32px,4.4vw,48px)] font-extrabold">
+            From blank page to live quiz in three steps
+          </h2>
+          <div className="qs-steps mt-10 grid gap-8 lg:grid-cols-3 lg:gap-0">
+            {STEPS.map((step, index) => (
+              <div
+                key={step.title}
+                className={
+                  index === 0
+                    ? "qs-step lg:pr-7"
+                    : "qs-step lg:border-l lg:border-[var(--qs-line)] lg:px-7"
+                }
+              >
+                <h3 className="text-2xl">{step.title}</h3>
+                <p className="mt-2 text-[var(--qs-muted)]">{step.desc}</p>
+                {step.code && (
+                  <span className="qs-code-chip text-base tracking-[0.12em]">{step.code}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="pb-16 pt-6">
+        <div className="qs-wrap">
+          <div className="qs-cta">
+            <h2 className="max-w-[14em] text-[clamp(30px,4vw,44px)]">
+              Your first quiz takes about five minutes.
+            </h2>
+            <Link href="/creator/quizzes/create" className="qs-btn">
+              Create a quiz
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <div className="qs-wrap">
+        <footer className="flex flex-wrap justify-between gap-4 border-t border-[var(--qs-line)] pb-10 pt-7 text-[15px] text-[var(--qs-muted)]">
+          <span>© QuizSupport</span>
+          <nav className="flex flex-wrap gap-x-[22px] gap-y-2" aria-label="Footer">
+            <Link href="/about" className="qs-link">
+              About
+            </Link>
+            <Link href="/contact" className="qs-link">
+              Contact
+            </Link>
+            <Link href="/privacy" className="qs-link">
+              Privacy Policy
+            </Link>
+            <Link href="/quiz" className="qs-link">
+              Quizzes
+            </Link>
+          </nav>
+        </footer>
+      </div>
+    </div>
   );
 }
-

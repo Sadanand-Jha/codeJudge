@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 import { Toaster } from "@/components/ui/toast";
@@ -137,6 +137,21 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+/* QuizSupport marketing/quiz design typefaces (scoped via .qs-ui) */
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  weight: ["600", "800"],
+  variable: "--font-bricolage",
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -186,7 +201,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${jakarta.className} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
+      <body className={`${jakarta.className} ${bricolage.variable} ${dmSans.variable} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>
         <ThemeProvider>
           <AuthHydrator />
           {children}

@@ -5,25 +5,20 @@ import { useMemo, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
-  UserPlus,
   Clock,
   FileText,
   Award,
   ListChecks,
   Music,
   MessageSquare,
-  Sparkles,
   ArrowLeft,
   AlertTriangle,
-  Check,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CountdownCard } from "@/components/quiz/live/CountdownCard";
 import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { ParticipantsDrawer } from "@/components/quiz/live/ParticipantsDrawer";
 import type { LiveParticipant } from "@/types/liveAssessment";
-// DISCONNECTED: import QuizPartyAtmosphere from "@/components/quiz/live/QuizPartyAtmosphere";
 import { WaitingRoomToast } from "@/components/quiz/live/WaitingRoomToast";
 import { AvatarHoverPreview } from "@/components/quiz/live/AvatarHoverPreview";
 import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/WaitingRoomThemeContext";
@@ -31,10 +26,11 @@ import { useTheme } from "@/context/ThemeContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { useToast } from "@/hooks/useToast";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
-import { getQuizByCode, getQuizCode, quizCodePath, type Quiz } from "@/services/quiz";
+import { getQuizByCode, getQuizCode, type Quiz } from "@/services/quiz";
 import { isValidQuizCode } from "@/utils/quizCode";
 import dynamic from "next/dynamic";
 import { Sun, Moon, Globe } from "lucide-react";
@@ -102,7 +98,7 @@ export default function WaitingRoomPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="qs-ui min-h-screen flex items-center justify-center">
         <QuizLoader />
       </div>
     );
@@ -171,10 +167,8 @@ function WaitingRoomPageInner({
   toast: ReturnType<typeof useToast>;
   isDark: boolean;
 }) {
-  const { activeConfig, setTheme: setWaitingTheme, setStudentOverride } = useWaitingRoomTheme();
+  const { setTheme: setWaitingTheme, setStudentOverride } = useWaitingRoomTheme();
   const { playQuizSound } = useQuizSounds();
-  const textPrimary = activeConfig.textPrimary;
-  const textSecondary = activeConfig.textSecondary;
   const { setTheme } = useTheme();
   const [viewMode, setViewMode] = useState<"light"|"dark"|"real">(isDark ? "dark" : "light");
   const [clockMs, setClockMs] = useState<number | null>(null);
@@ -220,17 +214,15 @@ function WaitingRoomPageInner({
   };
 
   const infoCards = [
-    { icon: Users, label: "Students", value: participants.length, color: "#EC4899" },
-    { icon: Clock, label: "Starts In", value: remainingTime, color: "#F59E0B" },
-    { icon: ListChecks, label: "Questions", value: "—", color: "#3B82F6" },
-    { icon: FileText, label: "Type", value: "MCQ", color: "#22C55E" },
-    { icon: Award, label: "Max Marks", value: quiz.total_marks || "—", color: "#A855F7" },
+    { icon: Users, label: "Students", value: String(participants.length) },
+    { icon: Clock, label: "Starts In", value: remainingTime },
+    { icon: ListChecks, label: "Questions", value: "—" },
+    { icon: FileText, label: "Type", value: "MCQ" },
+    { icon: Award, label: "Max Marks", value: quiz.total_marks || "—" },
   ];
 
   return (
-    <div className={`waiting-page h-dvh flex flex-col overflow-hidden relative transition-all duration-350 ${
-      isDark ? 'bg-[#050510]' : 'bg-[#FAFBFF]'
-    }`}>
+    <div className="qs-ui h-dvh flex flex-col overflow-hidden relative bg-[var(--qs-bg)]">
       {/* Theme Background — hidden in Real World, visible in light/dark.
           Skipped on mobile: static page background instead of 60+ loops. */}
       {viewMode !== "real" && !isMobile && (
@@ -262,9 +254,7 @@ function WaitingRoomPageInner({
       <WaitingRoomToast />
 
       {/* Top Bar */}
-      <div className={`relative z-[200] flex items-center justify-between px-4 sm:px-6 py-3 transition-all duration-350 ${
-        isDark ? 'border-b border-border' : 'border-b border-black/[0.06]'
-      }`}>
+      <div className="relative z-[200] flex items-center justify-between gap-2 px-4 py-3 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)]/80 backdrop-blur-xl sm:px-6">
         <div className="flex items-center gap-3">
           {/* Back Button */}
           <motion.button
@@ -273,69 +263,57 @@ function WaitingRoomPageInner({
             whileHover={{ y: -2 }}
             whileTap={{ y: 0 }}
             onClick={() => setExitModalOpen(true)}
-            className={`nav-btn flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-250 ${
-              isDark
-                ? 'bg-white/[0.05] border-border-hover text-muted-foreground hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
-                : 'bg-black/[0.03] border-black/[0.12] text-[#5a5a7a] hover:text-[#1a1a2e] hover:border-[#8B5CF6]/40 hover:bg-black/[0.06] hover:shadow-[0_0_20px_rgba(139,92,246,0.12)]'
-            }`}
+            className="qs-btn qs-btn-ghost gap-2 px-4 py-2 text-sm"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back</span>
+            <span className="hidden sm:inline">Back</span>
           </motion.button>
 
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#EC4899] to-[#BE185D] flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className={`text-sm font-bold transition-colors duration-350 ${isDark ? 'text-white' : 'text-[#1a1a2e]'}`}>QuizSupport</span>
+            <SecureLogo size={32} variant="mark" rounded={false} />
+            <span className="text-sm font-bold text-[var(--qs-ink)]">QuizSupport</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {/* View Mode Toggle: Light / Dark / Real World */}
-          <div className={`hidden sm:flex items-center rounded-full border p-1 backdrop-blur-xl ${isDark ? "bg-white/[0.05] border-white/10" : "bg-black/[0.04] border-black/10"}`}>
+          <div className="hidden sm:flex items-center rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1">
             <button
               onClick={()=> handleViewMode("light")}
               title="Light mode"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="light" ? "bg-white text-[#1a1a2e] shadow-sm border border-black/10" : isDark ? "text-white/60 hover:text-white" : "text-black/60 hover:text-black"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="light" ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"}`}
             >
               <Sun className="w-3.5 h-3.5" /> Light
             </button>
             <button
               onClick={()=> handleViewMode("dark")}
               title="Dark mode"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="dark" ? "bg-[#111217] text-white shadow border border-white/10" : isDark ? "text-white/60 hover:text-white" : "text-black/60 hover:text-black"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="dark" ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"}`}
             >
               <Moon className="w-3.5 h-3.5" /> Dark
             </button>
             <button
               onClick={()=> handleViewMode("real")}
               title="Real World — Live Campus"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="real" ? "bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white shadow" : isDark ? "text-white/60 hover:text-white" : "text-black/60 hover:text-black"}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="real" ? "bg-[var(--qs-sun)] text-[var(--qs-ink)]" : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"}`}
             >
               <Globe className="w-3.5 h-3.5" /> Real World
             </button>
           </div>
           {/* Mobile compact toggle */}
-          <div className={`flex sm:hidden items-center rounded-full border p-1 backdrop-blur-xl ${isDark ? "bg-white/[0.05] border-white/10" : "bg-black/[0.04] border-black/10"}`}>
-            <button onClick={()=> handleViewMode("light")} className={`p-1.5 rounded-full ${viewMode==="light" ? "bg-white text-[#1a1a2e] shadow" : isDark ? "text-white/60" : "text-black/60"}`}><Sun className="w-3.5 h-3.5" /></button>
-            <button onClick={()=> handleViewMode("dark")} className={`p-1.5 rounded-full ${viewMode==="dark" ? "bg-[#111217] text-white shadow" : isDark ? "text-white/60" : "text-black/60"}`}><Moon className="w-3.5 h-3.5" /></button>
-            <button onClick={()=> handleViewMode("real")} className={`p-1.5 rounded-full ${viewMode==="real" ? "bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] text-white shadow" : isDark ? "text-white/60" : "text-black/60"}`}><Globe className="w-3.5 h-3.5" /></button>
+          <div className="flex sm:hidden items-center rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1">
+            <button onClick={()=> handleViewMode("light")} className={`p-1.5 rounded-full ${viewMode==="light" ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "text-[var(--qs-muted)]"}`}><Sun className="w-3.5 h-3.5" /></button>
+            <button onClick={()=> handleViewMode("dark")} className={`p-1.5 rounded-full ${viewMode==="dark" ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "text-[var(--qs-muted)]"}`}><Moon className="w-3.5 h-3.5" /></button>
+            <button onClick={()=> handleViewMode("real")} className={`p-1.5 rounded-full ${viewMode==="real" ? "bg-[var(--qs-sun)] text-[var(--qs-ink)]" : "text-[var(--qs-muted)]"}`}><Globe className="w-3.5 h-3.5" /></button>
           </div>
           {/* Participants Button */}
           <button
             onClick={() => { playQuizSound("navigate"); setDrawerOpen(true); }}
-            className={`nav-btn flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-250 ${
-              isDark
-                ? 'bg-white/[0.05] border-border-hover text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
-                : 'bg-black/[0.03] border-black/[0.12] text-[#1a1a2e] hover:border-[#8B5CF6]/40 hover:bg-black/[0.06] hover:shadow-[0_0_20px_rgba(139,92,246,0.12)]'
-            }`}
+            className="qs-btn qs-btn-ghost gap-2 px-4 py-2 text-sm"
           >
             <Users className="w-4 h-4" />
-            <span>Participants</span>
-            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white shadow-[0_0_12px_rgba(236,72,153,0.3)] ${
-              isDark ? 'bg-gradient-to-r from-[#A855F7] to-[#EC4899]' : 'bg-gradient-to-r from-[#8B5CF6] to-[#EC4899]'
-            }`}>
+            <span className="hidden sm:inline">Participants</span>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--qs-sun)] text-[var(--qs-ink)]">
               {participants.length}
             </span>
           </button>
@@ -357,20 +335,14 @@ function WaitingRoomPageInner({
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border mb-3 transition-all duration-350 ${
-            isDark
-              ? 'bg-[#EC4899]/10 border-[#EC4899]/20'
-              : 'bg-[#EC4899]/10 border-[#EC4899]/25'
-          }`}
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] mb-3"
         >
           <motion.span
-            className="w-2 h-2 rounded-full bg-[#EC4899]"
+            className="w-2 h-2 rounded-full bg-[var(--qs-brand)]"
             animate={{ opacity: [1, 0.3, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           />
-          <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors duration-350 ${
-            isDark ? 'text-[#EC4899]' : 'text-[#EC4899]'
-          }`}>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--qs-brand)]">
             Waiting Room
           </span>
         </motion.div>
@@ -379,8 +351,7 @@ function WaitingRoomPageInner({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="waiting-header-title text-2xl sm:text-3xl font-bold mb-1 transition-all duration-350"
-          style={{ color: textPrimary }}
+          className="qs-display text-2xl sm:text-3xl font-extrabold mb-1 text-[var(--qs-ink)]"
         >
           {quiz.name}
         </motion.h1>
@@ -389,8 +360,7 @@ function WaitingRoomPageInner({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="waiting-header-sub text-sm transition-all duration-350"
-          style={{ color: textSecondary }}
+          className="text-sm text-[var(--qs-muted)]"
         >
           Secure assessment • Code: {quiz.code}
         </motion.p>
@@ -399,12 +369,8 @@ function WaitingRoomPageInner({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className={`waiting-header-hint text-xs mt-2 transition-all duration-350 ${
-            isDark ? 'text-[#FBBF24]' : 'text-[#F59E0B]'
-          }`}
+          className="text-xs font-semibold mt-2 text-[var(--qs-brand)]"
         >
-          {/* REGISTRATION STEP COMMENTED OUT — no per-student check-in display. */}
-          {/* {registered ? `Registered as ${registration?.studentName} (${registration?.rollNumber})` : "Waiting for the teacher to start the quiz..."} */}
           {"Waiting for the teacher to start the quiz..."}
         </motion.p>
       </div>
@@ -419,27 +385,16 @@ function WaitingRoomPageInner({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 + i * 0.05 }}
               whileHover={{ y: -2 }}
-              className={`waiting-stat-card flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-xl border transition-all duration-350 ${
-                isDark
-                  ? 'bg-gray-900/70 border-purple-500/30 hover:border-purple-400/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]'
-                  : 'bg-white/70 border-gray-200/50 hover:border-gray-300/80 shadow-md'
-              }`}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
             >
               <div
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{ 
-                  backgroundColor: isDark ? `${card.color}25` : `${card.color}15`,
-                  border: `1px solid ${card.color}40`,
-                  boxShadow: isDark ? `0 0 10px ${card.color}30` : 'none'
-                }}
+                className="w-7 h-7 rounded-lg flex items-center justify-center border-2 border-[var(--qs-line)] bg-[var(--qs-bg)]"
               >
-                <card.icon className="w-3.5 h-3.5" style={{ color: card.color }} />
+                <card.icon className="w-3.5 h-3.5 text-[var(--qs-brand)]" />
               </div>
               <div>
-                <p className="waiting-stat-label text-[9px] uppercase tracking-wider transition-colors duration-350"
-                  style={{ color: textSecondary }}>{card.label}</p>
-                <p className="waiting-stat-value text-xs font-bold transition-colors duration-350"
-                  style={{ color: textPrimary }}>{card.value}</p>
+                <p className="text-[9px] uppercase tracking-wider text-[var(--qs-muted)]">{card.label}</p>
+                <p className="text-xs font-bold text-[var(--qs-ink)]">{card.value}</p>
               </div>
             </motion.div>
           ))}
@@ -455,8 +410,8 @@ function WaitingRoomPageInner({
               animate={{ opacity: 1 }}
               className="text-center"
             >
-              <Users className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground">Waiting for participants...</p>
+              <Users className="w-10 h-10 mx-auto text-[var(--qs-muted)] mb-3" />
+              <p className="text-sm text-[var(--qs-muted)]">Waiting for participants...</p>
             </motion.div>
           </div>
         )}
@@ -475,14 +430,10 @@ function WaitingRoomPageInner({
               description: "Ambient classroom music will be available in a future update.",
             })
           }
-          className={`nav-btn flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-250 ${
-            isDark
-              ? 'bg-white/[0.05] border-border-hover text-muted-foreground hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
-              : 'bg-black/[0.03] border-black/[0.12] text-[#5a5a7a] hover:text-[#1a1a2e] hover:border-[#8B5CF6]/40 hover:bg-black/[0.06] hover:shadow-[0_0_20px_rgba(139,92,246,0.12)]'
-          }`}
+          className="qs-btn qs-btn-ghost gap-2 px-4 py-2 text-xs"
         >
           <Music className="w-3.5 h-3.5" />
-          <span>Music</span>
+          <span className="hidden sm:inline">Music</span>
         </motion.button>
         <motion.button
           initial={{ opacity: 0, x: -20 }}
@@ -496,54 +447,34 @@ function WaitingRoomPageInner({
               description: "In-room chat with classmates will be available in a future update.",
             })
           }
-          className={`nav-btn flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-xl border transition-all duration-250 ${
-            isDark
-              ? 'bg-white/[0.05] border-border-hover text-muted-foreground hover:text-white hover:border-[#A855F7]/40 hover:bg-white/[0.08] hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'
-              : 'bg-black/[0.03] border-black/[0.12] text-[#5a5a7a] hover:text-[#1a1a2e] hover:border-[#8B5CF6]/40 hover:bg-black/[0.06] hover:shadow-[0_0_20px_rgba(139,92,246,0.12)]'
-          }`}
+          className="qs-btn qs-btn-ghost gap-2 px-4 py-2 text-xs"
         >
           <MessageSquare className="w-3.5 h-3.5" />
-          <span>Chat</span>
+          <span className="hidden sm:inline">Chat</span>
         </motion.button>
       </div>
 
       {/* Bottom Right Summary Card */}
-      <div className="absolute bottom-4 right-4 z-[200]">
+      <div className="absolute bottom-4 right-4 z-[200] hidden sm:block">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className={`waiting-summary-card px-4 py-3 rounded-2xl backdrop-blur-xl border shadow-xl transition-all duration-350 ${
-            isDark
-              ? 'bg-[#111217]/80 border-border-hover shadow-black/40'
-              : 'bg-white/80 border-black/[0.08] shadow-black/10'
-          }`}
+          className="px-4 py-3 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_6px_0_rgba(26,18,64,0.08)]"
         >
           <div className="flex items-center gap-4">
             <div className="text-center">
-              <p className={`waiting-summary-value text-lg font-bold transition-colors duration-350 ${
-                isDark ? 'text-white' : 'text-[#1a1a2e]'
-              }`}>{participants.length}</p>
-              <p className={`waiting-summary-muted text-[9px] uppercase tracking-wider transition-colors duration-350 ${
-                isDark ? 'text-muted-foreground' : 'text-[#9ca3af]'
-              }`}>Joined</p>
+              <p className="text-lg font-extrabold text-[var(--qs-ink)]">{participants.length}</p>
+              <p className="text-[9px] uppercase tracking-wider text-[var(--qs-muted)]">Joined</p>
             </div>
-            <div className={`waiting-summary-divider w-px h-8 transition-colors duration-350 ${
-              isDark ? 'bg-white/[0.08]' : 'bg-black/[0.08]'
-            }`} />
+            <div className="w-px h-8 bg-[var(--qs-line)]" />
             <div className="text-center">
-              <p className="waiting-summary-accent text-lg font-bold text-[#EC4899]">15-20</p>
-              <p className={`waiting-summary-muted text-[9px] uppercase tracking-wider transition-colors duration-350 ${
-                isDark ? 'text-muted-foreground' : 'text-[#9ca3af]'
-              }`}>Visible</p>
+              <p className="text-lg font-extrabold text-[var(--qs-brand)]">15-20</p>
+              <p className="text-[9px] uppercase tracking-wider text-[var(--qs-muted)]">Visible</p>
             </div>
-            <div className={`waiting-summary-divider w-px h-8 transition-colors duration-350 ${
-              isDark ? 'bg-white/[0.08]' : 'bg-black/[0.08]'
-            }`} />
+            <div className="w-px h-8 bg-[var(--qs-line)]" />
             <div className="text-center">
-              <p className="waiting-summary-warning text-lg font-bold text-[#F59E0B]">Soon</p>
-              <p className={`waiting-summary-muted text-[9px] uppercase tracking-wider transition-colors duration-350 ${
-                isDark ? 'text-muted-foreground' : 'text-[#9ca3af]'
-              }`}>Starts</p>
+              <p className="text-lg font-extrabold text-amber-500">Soon</p>
+              <p className="text-[9px] uppercase tracking-wider text-[var(--qs-muted)]">Starts</p>
             </div>
           </div>
         </motion.div>
@@ -555,18 +486,14 @@ function WaitingRoomPageInner({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`waiting-announcement flex items-center gap-3 px-4 py-2.5 rounded-2xl backdrop-blur-xl border shadow-xl transition-all duration-350 ${
-            isDark
-              ? 'bg-[#111217]/80 border-[#EC4899]/20'
-              : 'bg-white/80 border-[#EC4899]/25'
-          }`}
+          className="flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_6px_0_rgba(26,18,64,0.08)]"
         >
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#EC4899] to-[#BE185D] flex items-center justify-center text-sm">
+          <div className="w-8 h-8 rounded-full bg-[var(--qs-brand)] flex items-center justify-center text-sm">
             👩‍🏫
           </div>
-          <div>
-            <p className={`waiting-announcement-text text-xs font-medium transition-colors duration-350 ${isDark ? 'text-white' : 'text-[#1a1a2e]'}`}>The teacher will start the quiz soon.</p>
-            <p className="waiting-announcement-sub text-[10px] text-muted-foreground">Get ready and stay here! 🚀</p>
+          <div className="text-left">
+            <p className="text-xs font-semibold text-[var(--qs-ink)]">The teacher will start the quiz soon.</p>
+            <p className="text-[10px] text-[var(--qs-muted)]">Get ready and stay here! 🚀</p>
           </div>
         </motion.div>
 
@@ -590,50 +517,38 @@ function WaitingRoomPageInner({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className={`waiting-exit-modal w-full max-w-md rounded-2xl border border-[#EC4899]/20 p-6 shadow-2xl transition-all duration-350 ${
-                isDark
-                  ? 'bg-card border-[#EC4899]/20'
-                  : 'bg-white border-[#EC4899]/25'
-              }`}
+              className="qs-card w-full max-w-md p-6 shadow-[0_8px_0_rgba(26,18,64,0.15)]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-[#F59E0B]/10 border border-[#F59E0B]/20 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
+                <div className="w-10 h-10 rounded-full bg-[var(--qs-sun)]/30 border-2 border-[var(--qs-sun)] flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-300" />
                 </div>
                 <div>
-                  <h3 className={`waiting-exit-modal-title text-lg font-semibold transition-colors duration-350 ${isDark ? 'text-white' : 'text-[#1a1a2e]'}`}>Leave Waiting Room?</h3>
-                  <p className="waiting-exit-modal-sub text-xs text-muted-foreground">Leaving will not affect your quiz access</p>
+                  <h3 className="text-lg font-extrabold text-[var(--qs-ink)]">Leave Waiting Room?</h3>
+                  <p className="text-xs text-[var(--qs-muted)]">Leaving will not affect your quiz access</p>
                 </div>
               </div>
 
-              <div className={`waiting-exit-modal-body rounded-xl border p-4 mb-4 transition-all duration-350 ${
-                isDark
-                  ? 'border-border bg-[#0B0D12]'
-                  : 'border-black/10 bg-gray-50'
-              }`}>
+              <div className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4 mb-4">
                 <div className="flex items-center justify-between">
-                  <span className="waiting-exit-modal-label text-sm text-muted-foreground">Quiz starts in:</span>
-                  <span className="waiting-exit-value text-sm font-bold text-[#F59E0B]">{remainingTime}</span>
+                  <span className="text-sm text-[var(--qs-muted)]">Quiz starts in:</span>
+                  <span className="text-sm font-bold text-amber-600 dark:text-amber-300">{remainingTime}</span>
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="waiting-exit-modal-label text-sm text-muted-foreground">Quiz access:</span>
-                  <span className="waiting-exit-value text-sm font-bold text-[#22C55E]">Ready when it starts</span>
+                  <span className="text-sm text-[var(--qs-muted)]">Quiz access:</span>
+                  <span className="text-sm font-bold text-[var(--qs-ok)]">Ready when it starts</span>
                 </div>
               </div>
 
-              <p className="waiting-exit-modal-sub text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-[var(--qs-muted)] mb-4">
                 You can come back anytime before the quiz starts. The teacher will start the quiz soon!
               </p>
 
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setExitModalOpen(false)}
-                  className={`flex-1 h-10 rounded-xl border text-sm font-medium transition-colors ${
-                    isDark
-                      ? 'border-border-hover bg-white/[0.04] text-white hover:border-border-hover'
-                      : 'border-black/10 bg-white text-[#1a1a2e] hover:border-black/20'
-                  }`}
+                  className="qs-btn qs-btn-ghost flex-1 h-10 py-0 text-sm"
                 >
                   Stay Here
                 </button>
@@ -642,7 +557,7 @@ function WaitingRoomPageInner({
                     setExitModalOpen(false);
                     router.push(`/quiz`);
                   }}
-                  className="flex-1 h-10 rounded-xl bg-[#EC4899] text-sm font-bold text-white hover:shadow-[0_0_16px_rgba(236,72,153,0.4)] transition-all"
+                  className="qs-btn flex-1 h-10 py-0 text-sm"
                 >
                   Leave Room
                 </button>

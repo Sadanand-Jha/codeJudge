@@ -3,109 +3,33 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, BrainCircuit, Check, FileText, ShieldCheck, Rocket, Radar, Gauge, Satellite, PartyPopper, Sparkles, WandSparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, BrainCircuit, Check, FileText, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
 import GuestGuard from "@/components/guards/GuestGuard";
 
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
-import { QuizPartyColorStrip } from "@/components/quiz/live/QuizPartyAtmosphere";
-// DISCONNECTED: default import QuizPartyAtmosphere (ice-cream floaters)
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
-import { useIsMobile } from "@/hooks/useIsMobile";
+import QuizCodeForm from "@/components/marketing/QuizCodeForm";
+import SampleQuizDemo, { type SampleQuizQuestion } from "@/components/marketing/SampleQuizDemo";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
 
-/* ── Same ambient background as the upgrade/pricing page ── */
-function QuizPageBackground() {
-  const isMobile = useIsMobile();
-  const stars = useMemo(
-    () =>
-      Array.from({ length: 48 }).map((_, i) => ({
-        id: i,
-        left: `${(i * 37 + 11) % 100}%`,
-        top: `${(i * 53 + 7) % 100}%`,
-        size: 1 + (i % 3),
-        opacity: 0.3 + ((i * 13) % 50) / 100,
-        delay: `${((i * 7) % 40) / 10}s`,
-        duration: `${2.5 + ((i * 11) % 30) / 10}s`,
-      })),
-    []
-  );
-  const shootingStars = useMemo(
-    () => [
-      { id: 0, left: "18%", top: "12%", delay: "1.5s", duration: "7s" },
-      { id: 1, left: "62%", top: "28%", delay: "4.5s", duration: "9s" },
-    ],
-    []
-  );
-  // Mobile: flat mesh only (all hooks above stay unconditional). The desktop
-  // version mounts 48 twinkling stars, shooting stars, 3 animated nebulas,
-  // a planet and 3 blur-[100px] orbs.
-  if (isMobile) {
-    return (
-      <>
-        <div className="pricing-bg-light pointer-events-none absolute inset-0 z-0 opacity-100 dark:opacity-0" aria-hidden="true" />
-        <div className="pricing-bg-space pointer-events-none absolute inset-0 z-0 opacity-0 dark:opacity-100" aria-hidden="true" />
-      </>
-    );
-  }
-  return (
-    <>
-      {/* Light theme mesh + blobs */}
-      <div className="pricing-bg-light pointer-events-none absolute inset-0 z-0 opacity-100 transition-opacity duration-500 ease-out dark:opacity-0" aria-hidden="true">
-        <div className="pricing-blob pricing-blob-1" />
-        <div className="pricing-blob pricing-blob-2" />
-        <div className="pricing-blob pricing-blob-3" />
-      </div>
-      {/* Dark deep-space + stars + nebulas */}
-      <div className="pricing-bg-space pointer-events-none absolute inset-0 z-0 opacity-0 transition-opacity duration-500 ease-out dark:opacity-100" aria-hidden="true">
-        <div className="pricing-stars">
-          {stars.map((s) => (
-            <span
-              key={s.id}
-              className="pricing-star"
-              style={{
-                left: s.left,
-                top: s.top,
-                width: `${s.size}px`,
-                height: `${s.size}px`,
-                "--star-opacity": s.opacity,
-                "--twinkle-delay": s.delay,
-                "--twinkle-duration": s.duration,
-              } as React.CSSProperties}
-            />
-          ))}
-        </div>
-        {shootingStars.map((ss) => (
-          <span
-            key={ss.id}
-            className="pricing-shooting-star"
-            style={{
-              left: ss.left,
-              top: ss.top,
-              "--shoot-delay": ss.delay,
-              "--shoot-duration": ss.duration,
-            } as React.CSSProperties}
-          />
-        ))}
-        <div className="pricing-nebula -left-20 top-20 h-[320px] w-[320px] bg-[#7C3AED]/20" />
-        <div className="pricing-nebula -right-20 bottom-20 h-[380px] w-[380px] bg-[#EC4899]/20" style={{ animationDelay: "6s" }} />
-        <div className="pricing-nebula left-1/3 top-1/2 h-[300px] w-[300px] bg-[#6366F1]/15" style={{ animationDelay: "12s" }} />
-        <div className="absolute -right-20 top-20 h-52 w-52 rounded-full bg-gradient-to-br from-violet-300/45 via-violet-600/40 to-[#21104D] opacity-70 shadow-[inset_-24px_-18px_40px_rgba(5,3,25,.7),0_0_90px_rgba(124,58,237,.22)]">
-          <span className="absolute left-[22%] top-[26%] h-5 w-5 rounded-full bg-white/[0.07]" />
-          <span className="absolute left-1/2 top-1/2 h-[145%] w-[195%] -translate-x-1/2 -translate-y-1/2 rotate-[-17deg] rounded-[50%] border-[4px] border-violet-100/10 border-l-violet-100/35" />
-        </div>
-        <div className="absolute left-1/2 top-[36%] h-[46rem] w-[46rem] -translate-x-1/2 rounded-full border border-violet-100/[0.045]" />
-        <div className="absolute left-1/2 top-[45%] h-[28rem] w-[70rem] -translate-x-1/2 rotate-[-10deg] rounded-[50%] border border-cyan-100/[0.04]" />
-      </div>
-      {/* Local ambient orbs — clearly visible soft color balloons in both themes */}
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute -left-28 -top-28 h-[360px] w-[360px] rounded-full bg-[#8B7CFF]/15 blur-[100px] dark:bg-[#7C3AED]/30" />
-        <div className="absolute -right-24 top-10 h-[320px] w-[320px] rounded-full bg-[#EC4899]/10 blur-[100px] dark:bg-[#EC4899]/20" />
-        <div className="absolute left-[28%] top-[42%] h-[300px] w-[300px] rounded-full bg-[#4F9DFF]/10 blur-[100px] dark:bg-[#6366F1]/15" />
-      </div>
-    </>
-  );
-}
+const QUIZ_HUB_SAMPLE_QUESTIONS: SampleQuizQuestion[] = [
+  {
+    q: "Which data structure follows Last-In-First-Out (LIFO) order?",
+    o: ["Queue", "Stack", "Linked list", "Binary tree"],
+    a: 1,
+  },
+  {
+    q: "What is the time complexity of binary search on a sorted array?",
+    o: ["O(n)", "O(n log n)", "O(log n)", "O(1)"],
+    a: 2,
+  },
+  {
+    q: "Which of these is a primitive type in JavaScript?",
+    o: ["Array", "Object", "Symbol", "Function"],
+    a: 2,
+  },
+];
 
 const AI_STUDIO_MOMENTS = [
   {
@@ -306,16 +230,16 @@ function AIThinkingConsole({ thinking, result }: { thinking: string[]; result: s
 
   return (
     <div className="w-full min-w-0">
-      <span className="inline-flex h-5 items-center gap-1 text-[8px] font-black uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-300">
+      <span className="inline-flex h-5 items-center gap-1 text-[8px] font-black uppercase tracking-[0.15em] text-[var(--qs-ok)]">
         {isFinished ? "Quiz draft ready" : stream.paused ? "AI is thinking" : "AI is building"}
         <span className="inline-flex items-center gap-0.5" aria-hidden="true">
-          <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:0ms]" />
-          <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:150ms]" />
-          <span className="h-1 w-1 animate-bounce rounded-full bg-emerald-500 [animation-delay:300ms]" />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-[var(--qs-ok)] [animation-delay:0ms]" />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-[var(--qs-ok)] [animation-delay:150ms]" />
+          <span className="h-1 w-1 animate-bounce rounded-full bg-[var(--qs-ok)] [animation-delay:300ms]" />
         </span>
       </span>
 
-      <div className="mt-1 h-[52px] w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-emerald-500/15 bg-emerald-500/[0.04] p-2 font-mono text-[10px] leading-4 dark:border-emerald-400/15 dark:bg-emerald-400/[0.05]">
+      <div className="mt-1 h-[52px] w-full min-w-0 max-w-full overflow-hidden rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2 font-mono text-[10px] leading-4">
         <span className="sr-only">AI pauses to think, accelerates to 250 tokens per second, then settles back to 120. Only the latest two steps are shown.</span>
         <AnimatePresence initial={false} mode="popLayout">
           {visibleRows.map((row) => {
@@ -332,20 +256,20 @@ function AIThinkingConsole({ thinking, result }: { thinking: string[]; result: s
                 className={cn(
                   "h-4 truncate whitespace-nowrap",
                   isResult && row.done
-                    ? "font-bold text-[#343A4E] dark:text-[#DCE2ED]"
+                    ? "font-bold text-[var(--qs-ink)]"
                     : isReflection
-                      ? "italic text-violet-600 dark:text-violet-300"
+                      ? "italic text-[var(--qs-brand)]"
                       : row.done
-                        ? "text-[#6B7688] dark:text-[#8B95A7]"
-                        : "text-[#343A4E] dark:text-[#DCE2ED]"
+                        ? "text-[var(--qs-muted)]"
+                        : "text-[var(--qs-ink)]"
                 )}
               >
-                <span className={cn("mr-1", isResult ? "text-emerald-500" : isReflection ? "text-violet-500" : "text-emerald-500/70")}>
+                <span className={cn("mr-1", isResult ? "text-[var(--qs-ok)]" : isReflection ? "text-[var(--qs-brand)]" : "text-[var(--qs-ok)] opacity-70")}>
                   {isResult && row.done ? "✓" : isReflection ? "∿" : "›"}
                 </span>
                 {row.text}
                 {(row.active || (stream.paused && row.index === visibleRows[visibleRows.length - 1]?.index) || (isStreaming && isResult && row.done)) && (
-                  <span className="ml-0.5 inline-block h-3 w-[2px] animate-pulse bg-emerald-500 align-middle" />
+                  <span className="ml-0.5 inline-block h-3 w-[2px] animate-pulse bg-[var(--qs-ok)] align-middle" />
                 )}
               </motion.p>
             );
@@ -388,88 +312,105 @@ function AIQuizStudioCard() {
   }, []);
 
   return (
-    <section className="group relative overflow-hidden rounded-[28px] border border-violet-200/80 bg-white/80 shadow-[0_28px_80px_-44px_rgba(91,33,182,.8)] backdrop-blur-2xl dark:border-violet-400/15 dark:bg-[#0E1321]/88 dark:shadow-[0_32px_90px_-38px_rgba(3,2,18,.98)]">
-      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -left-24 -top-28 h-64 w-64 rounded-full bg-violet-400/20 blur-3xl dark:bg-violet-600/20" />
-        <div className="absolute -bottom-28 right-[16%] h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/10" />
-        <div className="absolute right-[-5%] top-[-70%] h-72 w-72 rounded-full bg-fuchsia-300/20 blur-3xl dark:bg-fuchsia-500/10" />
-        <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.055]" style={{ backgroundImage: "linear-gradient(rgba(124,58,237,.7) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,.7) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-      </div>
-
-      <div className="relative grid gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_.86fr] lg:items-center lg:gap-7">
-        <div className="flex min-w-0 flex-col justify-center">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-violet-600 via-fuchsia-500 to-cyan-400 text-white shadow-[0_14px_28px_-12px_rgba(124,58,237,.9)]">
-              <BrainCircuit className="h-5 w-5" />
-            </span>
-            <div>
+    <section className="qs-shadow">
+      <div className="qs-card lg:p-7">
+        <div className="grid gap-6 lg:grid-cols-[1fr_.86fr] lg:items-center lg:gap-8">
+          <div className="flex min-w-0 flex-col justify-center">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                <BrainCircuit className="h-5 w-5" />
+              </span>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-sm font-black text-[#20263A] dark:text-white">AI Quiz Studio</h2>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/90 px-2 py-1 text-[8px] font-black uppercase tracking-[0.13em] text-emerald-700 dark:border-emerald-400/15 dark:bg-emerald-400/[0.08] dark:text-emerald-300">
-                  <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" /></span>
+                <h2 className="qs-display text-lg">AI Quiz Studio</h2>
+                <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-ok)] bg-[var(--qs-okbg)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.13em] text-[var(--qs-ok)]">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--qs-ok)] opacity-70" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--qs-ok)]" />
+                  </span>
                   AI online
                 </span>
               </div>
             </div>
-          </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeCopyBeat}
-              initial={{ opacity: 0, x: 24, skewX: -3 }}
-              animate={{ opacity: 1, x: 0, skewX: 0 }}
-              exit={{ opacity: 0, x: -24, skewX: 3 }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="mt-4 h-[116px] overflow-hidden"
-            >
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-500 dark:text-fuchsia-300">{copyBeat.eyebrow}</p>
-              <h3 className="mt-1.5 line-clamp-2 max-w-xl text-xl font-black leading-tight tracking-[-0.025em] text-[#171B2C] dark:text-white sm:text-2xl">{copyBeat.headline}</h3>
-              <p className="mt-2 line-clamp-1 max-w-xl text-xs leading-5 text-[#667085] dark:text-[#A6AFC0]">{copyBeat.support}</p>
-            </motion.div>
-          </AnimatePresence>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeCopyBeat}
+                initial={{ opacity: 0, x: 24, skewX: -3 }}
+                animate={{ opacity: 1, x: 0, skewX: 0 }}
+                exit={{ opacity: 0, x: -24, skewX: 3 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                className="mt-4 h-[116px] overflow-hidden"
+              >
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">{copyBeat.eyebrow}</p>
+                <h3 className="mt-1.5 line-clamp-2 max-w-xl text-2xl font-extrabold leading-tight">{copyBeat.headline}</h3>
+                <p className="mt-2 line-clamp-1 max-w-xl text-sm text-[var(--qs-muted)]">{copyBeat.support}</p>
+              </motion.div>
+            </AnimatePresence>
 
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link href="/creator/quizzes/create" className="group/button inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 px-5 text-xs font-black text-white shadow-[0_16px_32px_-14px_rgba(124,58,237,.95)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_38px_-13px_rgba(124,58,237,1)]">
-              <WandSparkles className="h-4 w-4" /> Create with AI <ArrowRight className="h-4 w-4 transition-transform group-hover/button:translate-x-0.5" />
-            </Link>
-          </div>
-        </div>
-
-        <div className="relative w-full min-w-0 overflow-hidden rounded-[20px] border border-violet-200/80 bg-[#FAFAFF]/92 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.9),0_18px_45px_-30px_rgba(76,29,149,.65)] dark:border-white/[0.08] dark:bg-[#090D18]/88">
-          <div className="flex items-center gap-3 border-b border-violet-100 pb-2 dark:border-white/[0.07]">
-            <div className="flex items-center gap-2">
-              <span className="flex gap-1" aria-hidden="true"><span className="h-1.5 w-1.5 rounded-full bg-rose-400" /><span className="h-1.5 w-1.5 rounded-full bg-amber-400" /><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /></span>
-              <span className="text-[9px] font-black uppercase tracking-[0.15em] text-[#70778A] dark:text-[#8791A5]">Live AI draft</span>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link href="/creator/quizzes/create" className="qs-btn group/button px-6">
+                <WandSparkles className="h-4 w-4" /> Create with AI
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/button:translate-x-0.5" />
+              </Link>
             </div>
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div key={activeMoment} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.3 }} className="py-2.5">
-              <div className="flex items-start gap-2.5">
-                <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300"><FileText className="h-3.5 w-3.5" /></span>
-                <div className="w-0 min-w-0 flex-1">
-                  <span className="text-[8px] font-black uppercase tracking-[0.15em] text-[#98A2B3]">Your prompt</span>
-                  <p className="mt-0.5 truncate text-[11px] font-bold text-[#343A4E] dark:text-[#DCE2ED]">“{moment.prompt}”</p>
-                </div>
+          <div className="relative w-full min-w-0 overflow-hidden rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5">
+            <div className="flex items-center gap-3 border-b-2 border-[var(--qs-line)] pb-2">
+              <div className="flex items-center gap-2">
+                <span className="flex gap-1" aria-hidden="true">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--qs-bad)]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--qs-sun)]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--qs-ok)]" />
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[var(--qs-muted)]">Live AI draft</span>
               </div>
-              <div className="my-1.5 ml-3.5 h-3 border-l border-dashed border-violet-300 dark:border-violet-400/25" />
-              <div className="flex items-start gap-2.5">
-                <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300"><Check className="h-3.5 w-3.5" /></span>
-                <div className="w-0 min-w-0 flex-1">
-                  <AIThinkingConsole key={activeMoment} thinking={moment.thinking} result={moment.result} />
-                </div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-
-          <div className="mt-auto">
-            <div className="h-1 overflow-hidden rounded-full bg-violet-100 dark:bg-white/[0.06]">
-              <motion.div key={`progress-${activeMoment}`} initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: CYCLE_SECONDS, ease: "linear" }} className="h-full rounded-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400" />
             </div>
-            <div className="mt-2 flex items-center gap-1.5">
-              {AI_STUDIO_MOMENTS.map((item, index) => (
-                <button key={item.source} type="button" onClick={() => { setActiveMoment(index); setElapsedSeconds(0); }} className={`h-1.5 rounded-full transition-all ${index === activeMoment ? "w-7 bg-violet-500" : "w-1.5 bg-violet-200 hover:bg-violet-300 dark:bg-white/15 dark:hover:bg-white/25"}`} aria-label={`Show ${item.source} example`} />
-              ))}
+
+            <AnimatePresence mode="wait">
+              <motion.div key={activeMoment} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.3 }} className="py-2.5">
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                    <FileText className="h-3.5 w-3.5" />
+                  </span>
+                  <div className="w-0 min-w-0 flex-1">
+                    <span className="text-[8px] font-bold uppercase tracking-[0.15em] text-[var(--qs-muted)]">Your prompt</span>
+                    <p className="mt-0.5 truncate text-[11px] font-bold text-[var(--qs-ink)]">“{moment.prompt}”</p>
+                  </div>
+                </div>
+                <div className="my-1.5 ml-3.5 h-3 border-l-2 border-dashed border-[var(--qs-line)]" />
+                <div className="flex items-start gap-2.5">
+                  <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
+                    <Check className="h-3.5 w-3.5" />
+                  </span>
+                  <div className="w-0 min-w-0 flex-1">
+                    <AIThinkingConsole key={activeMoment} thinking={moment.thinking} result={moment.result} />
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="mt-auto">
+              <div className="qs-bar">
+                <motion.div
+                  key={`progress-${activeMoment}`}
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: CYCLE_SECONDS, ease: "linear" }}
+                  className="h-full rounded-full bg-[var(--qs-brand)]"
+                />
+              </div>
+              <div className="mt-2 flex items-center gap-1.5">
+                {AI_STUDIO_MOMENTS.map((item, index) => (
+                  <button
+                    key={item.source}
+                    type="button"
+                    onClick={() => { setActiveMoment(index); setElapsedSeconds(0); }}
+                    className={`h-1.5 rounded-full transition-all ${index === activeMoment ? "w-7 bg-[var(--qs-brand)]" : "w-1.5 bg-[var(--qs-line)] hover:bg-[var(--qs-brand)]/40"}`}
+                    aria-label={`Show ${item.source} example`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -478,90 +419,72 @@ function AIQuizStudioCard() {
   );
 }
 
+function TrustStrip() {
+  return (
+    <section className="grid gap-3 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 py-4 sm:grid-cols-2">
+      <span className="inline-flex items-start gap-2.5 text-sm text-[var(--qs-muted)]">
+        <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-ok)]" />
+        <span>
+          <strong className="font-bold text-[var(--qs-ink)]">Verified entry — </strong>
+          Every quiz code is checked before a quiz begins.
+        </span>
+      </span>
+      <span className="inline-flex items-start gap-2.5 text-sm text-[var(--qs-muted)] sm:border-l-2 sm:border-[var(--qs-line)] sm:pl-5">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-brand)]" />
+        <span>
+          <strong className="font-bold text-[var(--qs-ink)]">Private by default — </strong>
+          Your answers stay secure throughout every attempt.
+        </span>
+      </span>
+    </section>
+  );
+}
+
 function QuizHome() {
   const { theme } = useTheme();
-  const partyMode = theme === "light";
+  const missionMode = theme === "dark";
 
   return (
-    <div className="relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[#F7F8FA] px-4 pb-6 pt-10 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6 sm:pb-8 sm:pt-12">
-      <QuizPageBackground />
-      {/* DISCONNECTED: <QuizPartyAtmosphere showBottomStrip={false} /> (ice-cream floaters) */}
-      <div className="relative z-10 mx-auto w-full max-w-[1320px] sm:w-[calc(100%-48px)]">
+    <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)]">
       <QuizPageReady>
-      <main className="w-full space-y-5 sm:space-y-6">
-        <header className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white/75 px-5 py-6 shadow-[0_28px_90px_-42px_rgba(65,44,155,.7)] backdrop-blur-2xl dark:border-white/[0.08] dark:bg-[#101421]/78 dark:shadow-[0_32px_100px_-36px_rgba(3,2,18,.95)] sm:px-8 sm:py-8 lg:grid lg:grid-cols-[1.25fr_.75fr] lg:items-center lg:gap-8">
-          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-            <div className="absolute -left-28 -top-36 h-80 w-80 rounded-full bg-violet-500/15 blur-3xl" />
-            <div className="absolute -bottom-40 right-0 h-80 w-80 rounded-full bg-cyan-400/[0.08] blur-3xl" />
-            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.055]" style={{ backgroundImage: "linear-gradient(rgba(139,124,255,.75) 1px, transparent 1px), linear-gradient(90deg, rgba(139,124,255,.75) 1px, transparent 1px)", backgroundSize: "34px 34px" }} />
-          </div>
+        <div className="qs-wrap relative pb-12 pt-4 sm:pt-6">
+          <main className="w-full space-y-8">
+            <header className="grid items-center gap-11 pt-4 lg:grid-cols-[1.05fr_.95fr] lg:gap-14">
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  QuizSupport quiz hub
+                </span>
+                <h1 className="mt-4 max-w-[13em] text-[clamp(34px,4.6vw,56px)] font-extrabold">
+                  Make a quiz in minutes.
+                  <span className="block text-[var(--qs-brand)]">Share it with a code.</span>
+                </h1>
+                <p className="mb-7 mt-4 max-w-[30em] text-[var(--qs-muted)]">
+                  Enter your quiz code to join a live quiz.
+                </p>
+                <QuizCodeForm />
+                <p className="qs-sub mt-2">
+                  Want to build your own?{" "}
+                  <Link href="/creator/quizzes/create">Create a quiz for free</Link>
+                </p>
+              </div>
+              <div className="hidden md:block">
+                <SampleQuizDemo questions={QUIZ_HUB_SAMPLE_QUESTIONS} label="Sample live quiz" />
+              </div>
+            </header>
 
-          <div className="relative min-w-0">
-            <div className="inline-flex items-center gap-2 rounded-full border border-pink-300/60 bg-pink-100/65 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-pink-600 dark:border-violet-500/20 dark:bg-violet-500/[0.08] dark:text-violet-300">
-              <Sparkles className="h-3.5 w-3.5" />
-              {partyMode ? "QuizSupport AI Quiz Party" : "QuizSupport AI Mission Control"}
+            <div className="hidden md:block">
+              <AIQuizStudioCard />
             </div>
-            <h1 className="mt-4 max-w-3xl text-[34px] font-black leading-[1.05] tracking-[-0.045em] text-[#101828] dark:text-white sm:text-[46px] lg:text-[54px]">
-              {partyMode ? "Quiz time just got sweeter." : "This is not just a quiz."}
-              <span className="block bg-gradient-to-r from-pink-500 via-orange-400 to-cyan-500 bg-clip-text text-transparent dark:from-violet-600 dark:via-fuchsia-500 dark:to-cyan-500">{partyMode ? "Grab a scoop and join the party!" : "It’s your next space mission."}</span>
-            </h1>
-            <p className="mt-4 max-w-2xl text-[13px] leading-6 text-[#475467] dark:text-[#A1ABBC] sm:text-[15px]">
-              {partyMode ? "Pop the balloons, splash some color, and turn every question into a cheerful little celebration." : "Receive your launch code, enter the assessment cockpit, and prove your skills beyond the classroom. Every attempt is a new destination."}
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-              <Link href="/quiz/join" className="group inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-6 text-sm font-bold text-white shadow-[0_14px_32px_-14px_rgba(244,114,182,.9)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-12px_rgba(244,114,182,.95)] dark:from-[#705CF1] dark:via-[#8B7CFF] dark:to-[#A46EFF] dark:shadow-[0_14px_32px_-14px_rgba(124,92,255,.95)] dark:hover:shadow-[0_18px_40px_-12px_rgba(124,92,255,1)]">
-                {partyMode ? <PartyPopper className="h-4 w-4" /> : <Rocket className="h-4 w-4" />} {partyMode ? "Join the quiz party" : "Launch a mission"} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
+
+            <TrustStrip />
+
+            <div id="activity" className="scroll-mt-20">
+              <YourActivitySection missionMode={missionMode} />
             </div>
-          </div>
-
-          {!partyMode && <div className="relative mx-auto mt-8 hidden h-[260px] w-full max-w-[360px] lg:block" aria-hidden="true">
-            <div className="absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full border border-violet-500/15" />
-            <div className="absolute left-1/2 top-1/2 h-32 w-64 -translate-x-1/2 -translate-y-1/2 rotate-[-18deg] rounded-[50%] border border-cyan-400/15" />
-            <div className="absolute left-1/2 top-1/2 grid h-28 w-28 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-violet-300/20 bg-gradient-to-br from-[#2D2368] via-[#5B45C4] to-[#171333] text-5xl shadow-[inset_-16px_-12px_28px_rgba(5,3,25,.55),0_0_60px_rgba(124,92,255,.28)]">🧑‍🚀</div>
-            <div className="absolute left-[8%] top-[18%] rounded-xl border border-cyan-300/10 bg-[#081226]/50 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.13em] text-cyan-200/65 backdrop-blur-md"><Radar className="mr-1.5 inline h-3.5 w-3.5" />Signal locked</div>
-            <div className="absolute bottom-[12%] right-[2%] rounded-xl border border-violet-300/10 bg-[#120d29]/55 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.13em] text-violet-200/70 backdrop-blur-md"><Gauge className="mr-1.5 inline h-3.5 w-3.5" />Systems ready</div>
-            <div className="absolute right-[12%] top-[6%] h-3 w-3 rounded-full bg-amber-400 shadow-[0_0_18px_rgba(251,191,36,.75)]" />
-          </div>}
-          {partyMode && <div className="relative mx-auto mt-8 hidden h-[260px] w-full max-w-[360px] lg:block" aria-hidden="true">
-            <div className="absolute left-1/2 top-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-pink-200/70 via-amber-100/70 to-cyan-100/70 blur-sm" />
-            <div className="absolute left-1/2 top-[42%] grid h-28 w-28 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-[38px] border-4 border-white bg-gradient-to-br from-pink-300 to-pink-500 text-6xl shadow-[0_20px_45px_-18px_rgba(244,114,182,.65)]">🍨</div>
-            <span className="absolute left-[8%] top-[14%] text-5xl drop-shadow-lg">🎈</span>
-            <span className="absolute right-[7%] top-[18%] text-4xl drop-shadow-lg">🍭</span>
-            <span className="absolute bottom-[12%] left-[15%] text-4xl drop-shadow-lg">💦</span>
-            <span className="absolute bottom-[10%] right-[12%] text-4xl drop-shadow-lg">🎉</span>
-          </div>}
-        </header>
-
-        <div className="hidden sm:block">
-          <AIQuizStudioCard />
+          </main>
         </div>
-
-        {/* ── Trust strip (existing content, compact) ── */}
-        <section className="flex flex-col gap-2 rounded-2xl border border-[#E4E7EC] bg-white/75 px-4 py-3 backdrop-blur-xl dark:border-white/[0.07] dark:bg-[#111622]/75 sm:flex-row sm:items-center sm:gap-6">
-          <span className="inline-flex items-center gap-2 text-xs text-[#475467] dark:text-[#9AA4B5]">
-            <Satellite className="h-4 w-4 shrink-0 text-[#039855] dark:text-[#20D889]" />
-            <span>
-              <strong className="font-semibold text-[#101828] dark:text-[#F4F6FA]">{partyMode ? "Party pass — " : "Flight clearance — "}</strong>
-              {partyMode ? "Every quiz code is checked before the fun begins." : "Every launch code is verified before boarding begins."}
-            </span>
-          </span>
-          <span className="inline-flex items-center gap-2 text-xs text-[#475467] dark:text-[#9AA4B5] sm:border-l sm:border-[#E4E7EC] sm:pl-6 sm:dark:border-[#252D3A]">
-            <ShieldCheck className="h-4 w-4 shrink-0 text-[#1570EF] dark:text-[#4F9DFF]" />
-            <span>
-              <strong className="font-semibold text-[#101828] dark:text-[#F4F6FA]">{partyMode ? "Safe play — " : "Protected cockpit — "}</strong>
-              {partyMode ? "Your answers stay private while the colors and confetti fly." : "Your assessment session and answers remain secure throughout the mission."}
-            </span>
-          </span>
-        </section>
-
-        <div id="activity" className="scroll-mt-20">
-          <YourActivitySection missionMode={!partyMode} />
-        </div>
-      </main>
       </QuizPageReady>
-      </div>
-      <QuizPartyColorStrip className="relative z-20 -mx-4 mb-[-1.5rem] mt-8 sm:-mx-6 sm:mb-[-2rem]" />
     </div>
   );
 }

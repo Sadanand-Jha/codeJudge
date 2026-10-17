@@ -32,7 +32,7 @@ export default function ThemeToggle({ className, variant = "pill" }: { className
         type="button"
         onClick={handleThemeChange}
         className={cn(
-          "grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border bg-card text-text-secondary transition-colors hover:text-text-primary",
+          "grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-ai-border bg-ai-surface text-ai-text-sec transition-colors hover:bg-ai-hover hover:text-ai-text",
           className
         )}
         aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}

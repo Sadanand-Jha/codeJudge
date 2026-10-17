@@ -40,21 +40,27 @@ export function CountdownCard({ targetAt, onStarted, className = "" }: Countdown
   const pulse = seconds <= 10 && seconds > 0;
 
   return (
-    <motion.div className={`flex flex-col items-center gap-3 rounded-3xl border border-border bg-[#171923] px-6 py-5 ${className}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
-      <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        <Clock className="w-3.5 h-3.5 text-[#EC4899]" />
+    <motion.div
+      className={`qs-ui flex flex-col items-center gap-3 rounded-3xl border-2 border-[var(--qs-line)] px-6 py-5 shadow-[0_6px_0_rgba(26,18,64,0.12)] ${className}`}
+      style={{ background: "var(--qs-surface)" }}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 0.2 }}
+    >
+      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--qs-muted)]">
+        <Clock className="w-3.5 h-3.5 text-[var(--qs-brand)]" />
         Quiz starts in
       </div>
-      <motion.div className="text-4xl font-extrabold text-white tabular-nums" animate={pulse ? { scale: [1, 1.08, 1] } : {}} transition={{ duration: 0.6, repeat: pulse ? Infinity : 0 }}>
+      <motion.div className="text-4xl font-extrabold text-[var(--qs-ink)] tabular-nums" animate={pulse ? { scale: [1, 1.08, 1] } : {}} transition={{ duration: 0.6, repeat: pulse ? Infinity : 0 }}>
         {formatDuration(seconds)}
       </motion.div>
       {!started && seconds > 0 && (
-        <div className="w-40 h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
-          <motion.div className="h-full rounded-full bg-gradient-to-r from-[#EC4899] to-[#F472B6]" initial={{ width: "100%" }} animate={{ width: `${(seconds / 45) * 100}%` }} transition={{ duration: 0.5 }} />
+        <div className="w-40 h-1.5 rounded-full bg-[var(--qs-line)] overflow-hidden">
+          <motion.div className="h-full rounded-full bg-[var(--qs-brand)]" initial={{ width: "100%" }} animate={{ width: `${(seconds / 45) * 100}%` }} transition={{ duration: 0.5 }} />
         </div>
       )}
       {started && (
-        <motion.div className="flex items-center gap-1.5 text-[#22C55E] text-sm font-medium" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <motion.div className="flex items-center gap-1.5 text-[var(--qs-ok)] text-sm font-semibold" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <QuizLoader className="h-4 w-4" />
           Redirecting to quiz...
         </motion.div>

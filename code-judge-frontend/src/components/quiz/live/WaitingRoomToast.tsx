@@ -48,16 +48,14 @@ export function WaitingRoomToast() {
              animate={{ opacity: 1, x: 0, scale: 1 }}
              exit={{ opacity: 0, x: 100, scale: 0.8 }}
              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-             className="toast-waiting-toast pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/10 bg-card/90 backdrop-blur-xl shadow-2xl shadow-[#EC4899]/10 min-w-[280px] max-w-[320px]"
+             className="toast-waiting-toast pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_6px_0_rgba(26,18,64,0.15)] min-w-[280px] max-w-[320px]"
              >
              {/* Avatar */}
              <div className="relative shrink-0">
                <div
-                 className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden toast-waiting-avatar"
+                 className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden toast-waiting-avatar border-2 border-[var(--qs-brand)]"
                  style={{
-                   border: "2px solid rgba(236,72,153,0.5)",
-                   backgroundColor: "var(--card, #171923)",
-                   boxShadow: "0 0 12px rgba(236,72,153,0.3)",
+                   backgroundColor: "var(--qs-bg)",
                  }}
                >
                  {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -69,8 +67,7 @@ export function WaitingRoomToast() {
                </div>
                {/* Glow pulse */}
                <motion.div
-                 className="absolute inset-0 rounded-full"
-                 style={{ border: "2px solid rgba(236,72,153,0.5)" }}
+                 className="absolute inset-0 rounded-full border-2 border-[var(--qs-brand)]"
                  initial={{ scale: 1, opacity: 0.5 }}
                  animate={{ scale: 1.5, opacity: 0 }}
                  transition={{ duration: 0.8, repeat: 1 }}
@@ -79,17 +76,17 @@ export function WaitingRoomToast() {
 
              {/* Content */}
              <div className="flex-1 min-w-0">
-               <p className="toast-waiting-username text-sm font-bold truncate">
+               <p className="toast-waiting-username text-sm font-bold truncate text-[var(--qs-ink)]">
                  {toast.participant.username}
                </p>
-               <p className="text-[11px] text-[#EC4899]">joined the classroom</p>
-               <p className="toast-waiting-timestamp text-[9px] mt-0.5">a few seconds ago</p>
+               <p className="text-[11px] font-semibold text-[var(--qs-brand)]">joined the classroom</p>
+               <p className="toast-waiting-timestamp text-[9px] mt-0.5 text-[var(--qs-muted)]">a few seconds ago</p>
              </div>
 
              {/* Close button */}
             <button
               onClick={() => removeToast(toast.id)}
-              className="toast-waiting-close shrink-0 p-1 rounded-lg hover:bg-white/[0.06] text-text-muted hover:text-text-primary transition-colors"
+              className="toast-waiting-close shrink-0 p-1 rounded-lg hover:bg-[var(--qs-brand)]/10 text-[var(--qs-muted)] hover:text-[var(--qs-ink)] transition-colors"
             >
                <X className="w-3.5 h-3.5" />
              </button>

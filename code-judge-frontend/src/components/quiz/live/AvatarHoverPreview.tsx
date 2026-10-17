@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, Award, Flame, Trophy, Crown, Zap, Star } from 'lucide-react'
+import { Users, Award, Flame, Trophy, Crown } from 'lucide-react'
 import type { LiveParticipant } from '@/types/liveAssessment'
 
 interface AvatarHoverPreviewProps {
@@ -91,27 +91,21 @@ export function AvatarHoverPreview({ participant, onEnter, onLeave }: AvatarHove
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 8 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="fixed z-[9999] pointer-events-auto"
+          className="qs-ui fixed z-[9999] pointer-events-auto"
           style={{
             left: `${position.x}px`,
             top: `${position.y}px`,
             width: `${CARD_WIDTH}px`,
+            background: "var(--qs-surface)",
+            color: "var(--qs-ink)",
+            border: "2px solid var(--qs-line)",
+            borderRadius: "18px",
+            boxShadow: "0 8px 0 rgba(26, 18, 64, 0.18)",
           }}
           onPointerEnter={onEnter}
           onPointerLeave={onLeave}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Backdrop blur behind card */}
-          <div
-            className="absolute inset-0 rounded-2xl"
-            style={{
-              background: 'rgba(17, 24, 39, 0.85)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(168, 85, 247, 0.15)',
-            }}
-          />
-
           {/* Card content */}
           <div className="relative p-4">
             {/* Header with avatar and basic info */}
@@ -139,21 +133,21 @@ export function AvatarHoverPreview({ participant, onEnter, onLeave }: AvatarHove
                 </div>
                 {/* Status indicator */}
                 <div
-                  className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-[#111827]"
-                  style={{ backgroundColor: statusColor }}
+                  className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2"
+                  style={{ backgroundColor: statusColor, borderColor: "var(--qs-surface)" }}
                 />
               </div>
 
               {/* Name and basic info */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold text-white truncate">{participant.username}</h3>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Roll #{participant.id.slice(-4)}</p>
+                <h3 className="text-sm font-extrabold text-[var(--qs-ink)] truncate">{participant.username}</h3>
+                <p className="text-[10px] text-[var(--qs-muted)] mt-0.5">Roll #{participant.id.slice(-4)}</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <div
                     className="w-1.5 h-1.5 rounded-full"
                     style={{ backgroundColor: statusColor }}
                   />
-                  <span className="text-[10px] font-medium" style={{ color: statusColor }}>
+                  <span className="text-[10px] font-semibold" style={{ color: statusColor }}>
                     {statusLabel}
                   </span>
                 </div>
@@ -162,40 +156,40 @@ export function AvatarHoverPreview({ participant, onEnter, onLeave }: AvatarHove
 
             {/* Stats pills */}
             <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover">
-                <Flame className="w-3 h-3 text-[#F59E0B]" />
+              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[var(--qs-bg)] border-2 border-[var(--qs-line)]">
+                <Flame className="w-3 h-3 text-amber-500" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] text-muted-foreground">Streak</p>
-                  <p className="text-[11px] font-bold text-white">12 days</p>
+                  <p className="text-[9px] text-[var(--qs-muted)]">Streak</p>
+                  <p className="text-[11px] font-bold text-[var(--qs-ink)]">12 days</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover">
-                <Trophy className="w-3 h-3 text-[#EC4899]" />
+              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[var(--qs-bg)] border-2 border-[var(--qs-line)]">
+                <Trophy className="w-3 h-3 text-[var(--qs-brand)]" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] text-muted-foreground">Rating</p>
-                  <p className="text-[11px] font-bold text-white">1,847</p>
+                  <p className="text-[9px] text-[var(--qs-muted)]">Rating</p>
+                  <p className="text-[11px] font-bold text-[var(--qs-ink)]">1,847</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover">
-                <Award className="w-3 h-3 text-[#8B5CF6]" />
+              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[var(--qs-bg)] border-2 border-[var(--qs-line)]">
+                <Award className="w-3 h-3 text-[var(--qs-brand)]" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] text-muted-foreground">Solved</p>
-                  <p className="text-[11px] font-bold text-white">342</p>
+                  <p className="text-[9px] text-[var(--qs-muted)]">Solved</p>
+                  <p className="text-[11px] font-bold text-[var(--qs-ink)]">342</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover">
-                <Users className="w-3 h-3 text-[#22C55E]" />
+              <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-[var(--qs-bg)] border-2 border-[var(--qs-line)]">
+                <Users className="w-3 h-3 text-[var(--qs-ok)]" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[9px] text-muted-foreground">Quizzes</p>
-                  <p className="text-[11px] font-bold text-white">28</p>
+                  <p className="text-[9px] text-[var(--qs-muted)]">Quizzes</p>
+                  <p className="text-[11px] font-bold text-[var(--qs-ink)]">28</p>
                 </div>
               </div>
             </div>
 
             {/* Premium badge (if applicable) */}
-            <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-lg bg-gradient-to-r from-[#A855F7]/10 to-[#EC4899]/10 border border-[#A855F7]/20">
-              <Crown className="w-3.5 h-3.5 text-[#A855F7]" />
-              <span className="text-[10px] font-bold text-[#A855F7]">Premium Member</span>
+            <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-lg border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)]/10">
+              <Crown className="w-3.5 h-3.5 text-[var(--qs-brand)]" />
+              <span className="text-[10px] font-bold text-[var(--qs-brand)]">Premium Member</span>
             </div>
 
             {/* Reaction buttons */}
@@ -203,26 +197,26 @@ export function AvatarHoverPreview({ participant, onEnter, onLeave }: AvatarHove
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover hover:border-[#A855F7]/40 hover:bg-white/[0.08] transition-all duration-250"
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-[var(--qs-bg)] border-2 border-[var(--qs-line)] hover:border-[var(--qs-brand)] transition-all duration-250"
               >
                 <span className="text-sm">👋</span>
-                <span className="text-[10px] font-medium text-muted-foreground">Wave</span>
+                <span className="text-[10px] font-semibold text-[var(--qs-muted)]">Wave</span>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover hover:border-[#A855F7]/40 hover:bg-white/[0.08] transition-all duration-250"
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-[var(--qs-bg)] border-2 border-[var(--qs-line)] hover:border-[var(--qs-brand)] transition-all duration-250"
               >
                 <span className="text-sm">👏</span>
-                <span className="text-[10px] font-medium text-muted-foreground">Clap</span>
+                <span className="text-[10px] font-semibold text-[var(--qs-muted)]">Clap</span>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.05] border border-border-hover hover:border-[#A855F7]/40 hover:bg-white/[0.08] transition-all duration-250"
+                className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-[var(--qs-bg)] border-2 border-[var(--qs-line)] hover:border-[var(--qs-brand)] transition-all duration-250"
               >
                 <span className="text-sm">❤️</span>
-                <span className="text-[10px] font-medium text-muted-foreground">React</span>
+                <span className="text-[10px] font-semibold text-[var(--qs-muted)]">React</span>
               </motion.button>
             </div>
           </div>

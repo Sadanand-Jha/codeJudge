@@ -119,11 +119,11 @@ export default function NotificationBell() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Notifications"
-        className="relative flex items-center gap-1 rounded-lg p-1 hover:text-text-primary transition-colors"
+        className="relative grid h-8 w-8 place-items-center rounded-lg border border-ai-border bg-ai-surface text-ai-text-sec transition-colors hover:bg-ai-hover hover:text-ai-text"
       >
         <Bell className="h-3.5 w-3.5" />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#EC4899] px-0.5 text-[8px] font-bold text-white shadow-[0_0_6px_rgba(236,72,153,0.8)]">
+          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-ai-accent px-0.5 text-[8px] font-bold text-accent-foreground">
             {unreadCount}
           </span>
         )}
@@ -144,17 +144,17 @@ export default function NotificationBell() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 6, scale: 0.97 }}
               transition={{ duration: 0.15 }}
-              className="absolute right-0 top-[calc(100%+8px)] z-50 w-80 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/30"
+              className="absolute right-0 top-[calc(100%+8px)] z-50 w-80 overflow-hidden rounded-2xl border border-ai-border bg-ai-surface shadow-2xl shadow-black/20 dark:shadow-black/40"
             >
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div className="flex items-center justify-between border-b border-ai-border px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-[#EC4899] to-[#7C3AED]">
-                    <Bell className="h-3.5 w-3.5 text-white" />
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ai-accent">
+                    <Bell className="h-3.5 w-3.5 text-accent-foreground" />
                   </span>
                   <div>
-                    <p className="text-xs font-bold text-text-primary">Notifications</p>
-                    <p className="text-[10px] text-text-muted">
+                    <p className="text-xs font-bold text-ai-text">Notifications</p>
+                    <p className="text-[10px] text-ai-text-mut">
                       {unreadCount > 0 ? `${unreadCount} unread` : "You're all caught up"}
                     </p>
                   </div>
@@ -162,7 +162,7 @@ export default function NotificationBell() {
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllRead}
-                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold text-text-secondary transition-colors hover:bg-accent/5 hover:text-text-primary"
+                    className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold text-ai-text-sec transition-colors hover:bg-ai-hover hover:text-ai-text"
                   >
                     <CheckCheck className="h-3 w-3" />
                     Mark all read
@@ -174,9 +174,9 @@ export default function NotificationBell() {
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="px-4 py-10 text-center">
-                    <Bell className="mx-auto h-5 w-5 text-text-muted" />
-                    <p className="mt-3 text-xs font-semibold text-text-primary">No notifications</p>
-                    <p className="mt-1 text-[10px] text-text-muted">
+                    <Bell className="mx-auto h-5 w-5 text-ai-text-mut" />
+                    <p className="mt-3 text-xs font-semibold text-ai-text">No notifications</p>
+                    <p className="mt-1 text-[10px] text-ai-text-mut">
                       New activity will appear here.
                     </p>
                   </div>
@@ -190,10 +190,10 @@ export default function NotificationBell() {
                         href={notification.href ?? "#"}
                         onClick={() => markRead(notification.id)}
                         className={cn(
-                          "flex items-start gap-3 border-b border-border/60 px-4 py-3 transition-colors last:border-b-0",
+                          "flex items-start gap-3 border-b border-ai-border/60 px-4 py-3 transition-colors last:border-b-0",
                           notification.unread
-                            ? "bg-gradient-to-r from-[#EC4899]/[0.05] to-[#7C3AED]/[0.03] hover:from-[#EC4899]/[0.09] hover:to-[#7C3AED]/[0.06]"
-                            : "hover:bg-accent/5"
+                            ? "bg-ai-accent/[0.06] hover:bg-ai-accent/10"
+                            : "hover:bg-ai-hover"
                         )}
                       >
                         <span
@@ -218,7 +218,7 @@ export default function NotificationBell() {
                           </p>
                         </div>
                         {notification.unread && (
-                          <span className="mt-1.5 flex h-1.5 w-1.5 shrink-0 rounded-full bg-[#EC4899] shadow-[0_0_8px_rgba(236,72,153,0.8)]" />
+                          <span className="mt-1.5 flex h-1.5 w-1.5 shrink-0 rounded-full bg-ai-accent" />
                         )}
                       </Wrapper>
                     );
@@ -227,11 +227,11 @@ export default function NotificationBell() {
               </div>
 
               {/* Footer */}
-              <div className="border-t border-border bg-background/50 px-4 py-2.5">
+              <div className="border-t border-ai-border bg-ai-bg/50 px-4 py-2.5">
                 <Link
                   href="/inbox"
                   onClick={close}
-                  className="flex items-center justify-center gap-1 text-[10px] font-bold text-accent transition-colors hover:text-text-primary"
+                  className="flex items-center justify-center gap-1 text-[10px] font-bold text-ai-accent transition-colors hover:text-ai-accent-hover"
                 >
                   View all notifications
                   <ChevronRight className="h-3 w-3" />

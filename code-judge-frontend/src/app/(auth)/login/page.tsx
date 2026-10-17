@@ -37,7 +37,7 @@ export default function LoginPage() {
 
   if (!hasHydrated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="qs-ui flex min-h-screen items-center justify-center">
         <AuthLoader />
       </div>
     );
@@ -78,7 +78,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-x-hidden bg-[#FFF9F1] px-4 pb-12 pt-24 dark:bg-[#050510] sm:px-6 lg:px-8 lg:py-8">
+    <div className="qs-ui relative flex min-h-dvh items-center justify-center overflow-x-hidden px-4 pb-12 pt-24 sm:px-6 lg:px-8 lg:py-8">
       <AuthBackground />
       <AuthThemeControls />
       {/* Brand — page top-left corner */}
@@ -88,23 +88,22 @@ export default function LoginPage() {
       <div className="relative z-10 flex w-full max-w-md justify-center">
       <div className="mx-auto w-full max-w-md">
         {/* Card */}
-        <div className="relative overflow-hidden rounded-[30px] border border-pink-200/80 bg-white/86 p-6 shadow-[0_30px_80px_-42px_rgba(244,114,182,.75)] backdrop-blur-2xl dark:border-violet-300/15 dark:bg-[#0E1323]/92 dark:shadow-[0_30px_90px_-40px_rgba(91,69,196,.8)] sm:p-7">
-          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-fuchsia-400/70 to-transparent" aria-hidden="true" />
-          <div className="pointer-events-none absolute -right-14 -top-14 h-32 w-32 rounded-full bg-violet-400/10 blur-3xl" aria-hidden="true" />
+        <div className="qs-shadow">
+        <div className="qs-card p-6 sm:p-7">
           <div className="mb-6 text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-violet-600 dark:border-violet-300/15 dark:bg-violet-500/10 dark:text-violet-200">
+            <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--qs-brand)]">
               <BrainCircuit className="h-3 w-3" />
               Your AI learning workspace
             </span>
-            <h1 className="mt-3 text-2xl font-black tracking-tight text-text-primary">Welcome back</h1>
-            <p className="mt-1.5 text-xs text-text-secondary">Your quizzes, progress, and AI workspace are ready.</p>
+            <h1 className="qs-display mt-3 text-2xl text-[var(--qs-ink)]">Welcome back</h1>
+            <p className="mt-1.5 text-xs text-[var(--qs-muted)]">Your quizzes, progress, and AI workspace are ready.</p>
           </div>
 
           <form className="space-y-4" onSubmit={submit} autoComplete="off">
             <div>
-              <label htmlFor="login-identifier" className="mb-2 block text-[11px] font-medium text-text-secondary">Email or username</label>
+              <label htmlFor="login-identifier" className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--qs-muted)]">Email or username</label>
               <div className="relative">
-                <AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
                 <input
                   id="login-identifier"
                   type="text"
@@ -120,15 +119,15 @@ export default function LoginPage() {
                   name="login-identifier"
                   data-lpignore="true"
                   data-1p-ignore="true"
-                  className="w-full rounded-xl border border-input-border bg-input-bg py-3 pl-10 pr-3 text-sm text-text-primary placeholder-text-muted outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10"
+                  className="w-full rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-3 pl-10 pr-3 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                   placeholder="email@example.com or username"
                 />
               </div>
             </div>
             <div>
-              <label htmlFor="login-password" className="mb-2 block text-[11px] font-medium text-text-secondary">Password</label>
+              <label htmlFor="login-password" className="mb-2 block text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--qs-muted)]">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
                 <input
                   id="login-password"
                   type={showPassword ? "text" : "password"}
@@ -141,7 +140,7 @@ export default function LoginPage() {
                   name="login-password"
                   data-lpignore="true"
                   data-1p-ignore="true"
-                  className="w-full rounded-xl border border-input-border bg-input-bg py-3 pl-10 pr-11 text-sm text-text-primary placeholder-text-muted outline-none transition-colors focus:border-violet-500 focus:ring-2 focus:ring-violet-500/10"
+                  className="w-full rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-3 pl-10 pr-11 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                   placeholder="••••••••"
                 />
                 <button
@@ -149,7 +148,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword((visible) => !visible)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   aria-pressed={showPassword}
-                  className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-text-muted transition-colors hover:bg-black/5 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 dark:hover:bg-white/5"
+                  className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-ink)] focus-visible:outline-none"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -159,7 +158,7 @@ export default function LoginPage() {
               <div
                 role="alert"
                 aria-live="polite"
-                className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs font-medium leading-relaxed text-red-700 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-300"
+                className="flex items-start gap-2 rounded-xl border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-3.5 py-3 text-xs font-semibold leading-relaxed text-[var(--qs-bad)]"
               >
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{errorMessage}</span>
@@ -168,7 +167,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="group flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 px-4 text-sm font-bold text-white shadow-[0_16px_34px_-18px_rgba(168,85,247,.9),inset_0_1px_0_rgba(255,255,255,.25)] transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-50"
+              className="qs-btn group min-h-12 w-full px-4 text-sm disabled:cursor-not-allowed disabled:opacity-45"
             >
               {loading && <AuthLoader className="h-4 w-4 text-current" />}
               <span>{loading ? "Signing in..." : "Continue to QuizSupport"}</span>
@@ -176,14 +175,15 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-5 grid grid-cols-1 gap-2.5 border-t border-input-border/70 pt-5 min-[420px]:grid-cols-2">
-            <Link href="/forgot-password" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border border-input-border bg-input-bg/60 px-3 text-xs font-semibold text-text-secondary transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent active:translate-y-0">
+          <div className="mt-5 grid grid-cols-1 gap-2.5 border-t-2 border-[var(--qs-line)] pt-5 min-[420px]:grid-cols-2">
+            <Link href="/forgot-password" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]">
               <KeyRound className="h-3.5 w-3.5 transition-transform group-hover:-rotate-6" /> Reset password
             </Link>
-            <Link href="/register" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border border-input-border bg-input-bg/60 px-3 text-xs font-semibold text-text-secondary transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/[0.06] hover:text-accent active:translate-y-0">
+            <Link href="/register" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]">
               <UserPlus className="h-3.5 w-3.5 transition-transform group-hover:scale-110" /> Create account
             </Link>
           </div>
+        </div>
         </div>
       </div>
       </div>

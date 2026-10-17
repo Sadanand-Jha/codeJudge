@@ -2,47 +2,47 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, IceCream, Rocket } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { useTheme } from "@/context/ThemeContext";
 import { WaitingRoomThemeProvider } from "@/context/WaitingRoomThemeContext";
 import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
 import type { LiveParticipant } from "@/types/liveAssessment";
-import QuizSpaceAtmosphere from "./QuizSpaceAtmosphere";
 import QuizPageReady from "./QuizPageReady";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
 /* ═══════════════════════════════════════════════════════════════
-   Shared student-quiz page shell — same design language as the
-   Quizzes landing (/quiz): ambient background, centered max-width
-   container, eyebrow + title + subtitle header, violet accent.
-   Logic-free: pages keep their own data fetching and handlers.
+   Shared student-quiz page shell — QuizSupport design language
+   (.qs-ui): lavender canvas, indigo ink, violet brand, Bricolage
+   display type. Logic-free: pages keep their own data fetching.
 
    Backgrounds:
-   - "orbs" (default): soft static gradient orbs, both themes.
-   - "sky": waiting-room animated sky (deep-space in dark theme,
-     ai-cloud in light) + roaming avatar crowd, purely decorative.
+   - "orbs" (default): soft static brand/sun orbs, both themes.
+   - "sky": brand canvas + roaming avatar crowd (kept from the
+     waiting room), purely decorative.
    ═══════════════════════════════════════════════════════════════ */
 
 export function QuizAmbientBackground() {
-  const isMobile = useIsMobile();
-  // Mobile: two small static orbs, no blur-[100px] layers, no space/party
-  // atmosphere. Large blurs force full-screen GPU readback every frame.
-  if (isMobile) {
-    return (
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[#8B7CFF]/10 dark:bg-[#7C3AED]/20" />
-        <div className="absolute -right-16 top-16 h-44 w-44 rounded-full bg-[#EC4899]/10 dark:bg-[#EC4899]/15" />
-      </div>
-    );
-  }
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
-      <div className="absolute -left-28 -top-28 h-[360px] w-[360px] rounded-full bg-[#8B7CFF]/15 blur-[100px] dark:bg-[#7C3AED]/30" />
-      <div className="absolute -right-24 top-10 h-[320px] w-[320px] rounded-full bg-[#EC4899]/10 blur-[100px] dark:bg-[#EC4899]/20" />
-      <div className="absolute left-[28%] top-[42%] h-[300px] w-[300px] rounded-full bg-[#4F9DFF]/10 blur-[100px] dark:bg-[#6366F1]/15" />
-      <QuizSpaceAtmosphere />
+      <div className="absolute inset-0 bg-[var(--qs-bg)]" />
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, var(--qs-line) 1px, transparent 1px), linear-gradient(to bottom, var(--qs-line) 1px, transparent 1px)",
+          backgroundSize: "56px 56px",
+          maskImage: "radial-gradient(80% 70% at 50% 0%, #000 25%, transparent 78%)",
+          WebkitMaskImage: "radial-gradient(80% 70% at 50% 0%, #000 25%, transparent 78%)",
+        }}
+      />
+      <div
+        className="absolute inset-x-0 top-0 h-[520px]"
+        style={{
+          background:
+            "radial-gradient(60% 100% at 50% 0%, color-mix(in srgb, var(--qs-brand) 9%, transparent), transparent 72%)",
+        }}
+      />
     </div>
   );
 }
@@ -89,21 +89,16 @@ export function QuizSkyBackground({
   const ambient = useAmbientParticipants();
   const pool = participants && participants.length > 0 ? participants : ambient;
   const isMobile = useIsMobile();
-  // Mobile: static gradient only — no ThemeBackground canvas-loops, no party
-  // confetti, no roaming AnimatedCrowd. Content reveals via QuizPageReady.
+  // Mobile: static canvas only — no roaming AnimatedCrowd. Content reveals
+  // via QuizPageReady.
   if (isMobile) {
-    return (
-      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-transparent to-transparent dark:from-white/[0.03] dark:via-transparent dark:to-transparent" />
-      </div>
-    );
+    return <QuizAmbientBackground />;
   }
   return (
     <WaitingRoomThemeProvider>
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-[linear-gradient(145deg,#fff9ef_0%,#fff3fb_33%,#eef9ff_67%,#f3fff8_100%)] dark:bg-[linear-gradient(145deg,#070714_0%,#111026_48%,#071424_100%)]" />
-        <QuizSpaceAtmosphere />
-      
+        <QuizAmbientBackground />
+
         {crowd && (
           <div
             key={participants && participants.length > 0 ? "real" : "ambient"}
@@ -119,10 +114,7 @@ export function QuizSkyBackground({
 
 export function QuizBackLink({ href, label = "Back" }: { href: string; label?: string }) {
   return (
-    <Link
-      href={href}
-      className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-pink-200/80 bg-white/80 px-3 text-xs font-semibold text-pink-700 shadow-sm transition-colors duration-150 hover:border-pink-300 hover:bg-pink-50 dark:border-[#252D3A] dark:bg-[#151A24] dark:text-[#9AA4B5] dark:hover:border-[#353f52] dark:hover:text-[#F4F6FA]"
-    >
+    <Link href={href} className="qs-btn qs-btn-ghost gap-1.5 px-3.5 py-2 text-xs">
       <ArrowLeft className="h-3.5 w-3.5" /> {label}
     </Link>
   );
@@ -141,10 +133,7 @@ export function QuizPrimaryButton({
   children: React.ReactNode;
   className?: string;
 }) {
-  const cls = cn(
-    "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-4 text-sm font-semibold text-white shadow-[0_12px_28px_-16px_rgba(244,114,182,.75)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-16px_rgba(244,114,182,.85)] disabled:cursor-not-allowed disabled:opacity-50 dark:from-[#8B7CFF] dark:via-[#7A6BF5] dark:to-[#6856E8] dark:hover:shadow-[0_14px_30px_-16px_rgba(124,92,255,.9)]",
-    className
-  );
+  const cls = cn("qs-btn gap-1.5 px-5 py-3 text-sm", className);
   if (href && !disabled) {
     return <Link href={href} className={cls}>{children}</Link>;
   }
@@ -188,7 +177,7 @@ export default function StudentQuizShell({
 }) {
   return (
     <div className={cn(
-      "relative bg-[#FFF9F1] px-4 text-[#101828] dark:bg-[#0B0D10] dark:text-[#F4F6FA] sm:px-6",
+      "qs-ui relative bg-[var(--qs-bg)] px-4 text-[var(--qs-ink)] sm:px-6",
       fitViewport
         ? "min-h-[calc(100dvh-3.5rem)] overflow-x-hidden overflow-y-auto py-3 lg:h-[calc(100dvh-3.5rem)] lg:min-h-0 lg:overflow-hidden lg:py-4"
         : "min-h-[calc(100dvh-3.5rem)] overflow-hidden py-6 sm:py-8"
@@ -206,15 +195,15 @@ export default function StudentQuizShell({
           </div>
         )}
         {!hideHeader && (
-        <header className="border-b border-pink-200/70 pb-5 dark:border-[#252D3A]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3] dark:text-[#687386]">
+        <header className="border-b-2 border-[var(--qs-line)] pb-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
             {eyebrow}
           </p>
-          <h1 className="mt-1 text-[26px] font-bold leading-tight tracking-tight sm:text-[32px]">
+          <h1 className="mt-1.5 text-[26px] font-extrabold leading-tight sm:text-[32px]">
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-1.5 max-w-xl text-[13px] leading-5 text-[#475467] dark:text-[#9AA4B5] sm:text-[14px] sm:leading-6">
+            <p className="mt-1.5 max-w-xl text-[13px] leading-5 text-[var(--qs-muted)] sm:text-[14px] sm:leading-6">
               {subtitle}
             </p>
           )}
@@ -227,14 +216,14 @@ export default function StudentQuizShell({
   );
 }
 
-/* ── Theme-aware student-quiz loader (replaces the old pink spinner) ──
-   Light theme → ice-cream (warm amber). Dark theme → rocket (violet). */
+/* ── qs-ui brand loader (replaces the theme-dependent icon spinner) ── */
 export function QuizLoader({ className }: { className?: string }) {
-  const { theme } = useTheme();
-  if (theme === "dark") {
-    return <Rocket className={cn("h-7 w-7 animate-spin text-violet-400", className)} />;
-  }
-  return <IceCream className={cn("h-7 w-7 animate-spin text-amber-500", className)} />;
+  return (
+    <Loader2
+      className={cn("h-7 w-7 animate-spin text-[var(--qs-brand)]", className)}
+      aria-label="Loading"
+    />
+  );
 }
 
 /* ── Centered loading / error / empty card (replaces per-page duplicates) ── */
@@ -252,19 +241,19 @@ export function QuizStateScreen({
   loading?: boolean;
 }) {
   return (
-    <div className="relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[#FFF9F1] px-4 py-6 dark:bg-[#0B0D10] sm:px-6">
+    <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[var(--qs-bg)] px-4 py-6 sm:px-6">
       <QuizAmbientBackground />
       <div className="relative z-10 flex min-h-[70vh] items-center justify-center">
-        <div className="w-full max-w-md rounded-[24px] border border-pink-200/80 bg-white/85 p-6 text-center shadow-[0_24px_65px_-38px_rgba(244,114,182,.65)] backdrop-blur-xl dark:border-[#252D3A] dark:bg-[#151A24] sm:p-8">
+        <div className="qs-card w-full max-w-md p-6 text-center sm:p-8">
           {loading ? (
             <QuizLoader className="mx-auto" />
           ) : (
             icon
           )}
           {title && (
-            <h1 className="mt-4 text-xl font-bold text-[#101828] dark:text-[#F4F6FA]">{title}</h1>
+            <h1 className="mt-4 text-xl font-extrabold text-[var(--qs-ink)]">{title}</h1>
           )}
-          <p className="mt-2 text-sm leading-6 text-[#475467] dark:text-[#9AA4B5]">{text}</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--qs-muted)]">{text}</p>
           {action && <div className="mt-6">{action}</div>}
         </div>
       </div>

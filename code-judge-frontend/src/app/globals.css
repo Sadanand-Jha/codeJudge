@@ -157,14 +157,14 @@
   --popover: #111827;
   --popover-foreground: #FFFFFF;
 
-  /* == Brand / state — white + pink identity == */
-  --primary: #EC4899;
-  --primary-foreground: #FFFFFF;
+  /* == Brand / state — violet professional identity == */
+  --primary: #8F6BFF;
+  --primary-foreground: #120D2B;
   --secondary: #1F2937;
   --secondary-foreground: #F3F4F6;
-  --accent: #EC4899;
-  --accent-foreground: #FFFFFF;
-  --accent-secondary: #DB2777;
+  --accent: #8F6BFF;
+  --accent-foreground: #120D2B;
+  --accent-secondary: #7C55F6;
   --muted: #1F2937;
   --muted-foreground: #9CA3AF;
   --success: #22C55E;
@@ -185,8 +185,8 @@
   --input: rgba(255, 255, 255, 0.08);
   --input-bg: #0A0A0C;
   --input-border: rgba(255, 255, 255, 0.08);
-  --input-focus-ring: rgba(236, 72, 153, 0.15);
-  --ring: #EC4899;
+  --input-focus-ring: rgba(143, 107, 255, 0.15);
+  --ring: #8F6BFF;
 
   /* == Navigation == */
   --sidebar: #111827;
@@ -197,8 +197,8 @@
   --text-primary: #FFFFFF;
   --text-secondary: #9CA3AF;
   --text-muted: #6B7280;
-  --link: #EC4899;
-  --link-visited: #DB2777;
+  --link: #8F6BFF;
+  --link-visited: #A78BFA;
   --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
 
   /* == AI workspace (LM Studio-style app chrome) == */
@@ -211,9 +211,9 @@
   --ai-text: #F4F4F5;
   --ai-text-sec: #9CA3AF;
   --ai-text-mut: #6B7280;
-  --ai-accent: #EC4899;
-  --ai-accent-hover: #DB2777;
-  --ai-accent-soft: rgba(236, 72, 153, 0.12);
+  --ai-accent: #8F6BFF;
+  --ai-accent-hover: #7C55F6;
+  --ai-accent-soft: rgba(143, 107, 255, 0.14);
   --ai-user-bubble: #19142A;
 
   /* == Creator Profile (premium) == */
@@ -245,18 +245,18 @@
   --foreground: #111827;
   --card: #FFFFFF;
   --card-foreground: #111827;
-  --card-hover: #FDF2F8;
+  --card-hover: #F7F5FE;
   --popover: #FFFFFF;
   --popover-foreground: #111827;
 
-  /* == Brand / state — white + pink identity == */
-  --primary: #EC4899;
+  /* == Brand / state — violet professional identity == */
+  --primary: #6A3DF0;
   --primary-foreground: #FFFFFF;
-  --secondary: #FDF2F8;
-  --secondary-foreground: #111827;
-  --accent: #EC4899;
+  --secondary: #F1EDFE;
+  --secondary-foreground: #1A1240;
+  --accent: #6A3DF0;
   --accent-foreground: #FFFFFF;
-  --accent-secondary: #DB2777;
+  --accent-secondary: #5A2ED8;
   --muted: #F9FAFB;
   --muted-foreground: #64748B;
   --success: #22C55E;
@@ -277,8 +277,8 @@
   --input: #E5E7EB;
   --input-bg: #FFFFFF;
   --input-border: #E5E7EB;
-  --input-focus-ring: rgba(236, 72, 153, 0.12);
-  --ring: #EC4899;
+  --input-focus-ring: rgba(106, 61, 240, 0.12);
+  --ring: #6A3DF0;
 
   /* == Navigation == */
   --sidebar: #FFFFFF;
@@ -289,8 +289,8 @@
   --text-primary: #111827;
   --text-secondary: #64748B;
   --text-muted: #64748B;
-  --link: #EC4899;
-  --link-visited: #DB2777;
+  --link: #6A3DF0;
+  --link-visited: #5A2ED8;
   --card-shadow: 0 1px 3px rgba(17, 24, 39, 0.04), 0 4px 16px rgba(17, 24, 39, 0.04);
 
   /* == AI workspace (LM Studio-style app chrome) == */
@@ -298,15 +298,15 @@
   --ai-sidebar: #FFFFFF;
   --ai-composer: #FFFFFF;
   --ai-surface: #FFFFFF;
-  --ai-hover: #FDF2F8;
+  --ai-hover: #F5F3FC;
   --ai-border: #E5E7EB;
   --ai-text: #111827;
   --ai-text-sec: #64748B;
   --ai-text-mut: #94A3B8;
-  --ai-accent: #EC4899;
-  --ai-accent-hover: #DB2777;
-  --ai-accent-soft: #FDF2F8;
-  --ai-user-bubble: #FDF2F8;
+  --ai-accent: #6A3DF0;
+  --ai-accent-hover: #5A2ED8;
+  --ai-accent-soft: #F1EDFE;
+  --ai-user-bubble: #F1EDFE;
 
   /* == Creator Profile (premium) == */
   --profile-bg: #FCFCFD;
@@ -3571,193 +3571,6 @@ svg {
 }
 
 /* ============================================
-   Waiting Page — Light Theme Polish
-   Toast notifications & stat/info boxes (cards).
-   Scoped exclusively to [data-theme="light"]
-   via semantic hook classes added in the Waiting
-   Room page and WaitingRoomToast components.
-   Dark theme is untouched — these rules only
-   fire when Light Theme is active.
-   ============================================ */
-
-/* ---- Page shell ---- */
-[data-theme="light"] .waiting-page {
-  background-color: #F8FAFC !important;
-}
-
-/* ---- Top bar ---- */
-[data-theme="light"] .waiting-top-bar {
-  background-color: #FFFFFF !important;
-  border-bottom-color: #E2E8F0 !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
-}
-
-/* Waiting room back button */
-[data-theme="light"] .waiting-back-btn {
-  background: rgba(15, 23, 42, 0.03) !important;
-  border-color: #E2E8F0 !important;
-  color: #64748B !important;
-}
-
-[data-theme="light"] .waiting-back-btn:hover {
-  color: #0F172A !important;
-  border-color: #CBD5E1 !important;
-  background: rgba(15, 23, 42, 0.05) !important;
-}
-
-/* ---- Participant button ---- */
-[data-theme="light"] .waiting-participants-btn {
-  background: rgba(15, 23, 42, 0.03) !important;
-  border-color: #E2E8F0 !important;
-  color: #475569 !important;
-}
-
-[data-theme="light"] .waiting-participants-btn:hover {
-  color: #0F172A !important;
-  border-color: #CBD5E1 !important;
-}
-
-/* ---- Header / branding ---- */
-[data-theme="light"] .waiting-header-title {
-  color: #0F172A !important;
-}
-
-[data-theme="light"] .waiting-header-sub {
-  color: #64748B !important;
-}
-
-[data-theme="light"] .waiting-header-hint {
-  color: #B4530D !important;
-}
-
-/* ---- Toast waiting room overlay (backdrop for the whole toast list) ---- */
-[data-theme="light"] .toast-waiting-room {
-  /* no-op — positioning only; cards get individual styling */
-}
-
-/* Waiting room badge */
-[data-theme="light"] .waiting-room-badge {
-  background: rgba(236, 72, 153, 0.05) !important;
-  border-color: rgba(236, 72, 153, 0.15) !important;
-  color: #9D1C2F !important;
-}
-
-/* ---- Info stat cards ---- */
-[data-theme="light"] .waiting-stat-card {
-  background: rgba(15, 23, 42, 0.02) !important;
-  border-color: #E2E8F0 !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
-}
-
-[data-theme="light"] .waiting-stat-card:hover {
-  background: #FFFFFF !important;
-  border-color: #CBD5E1 !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
-}
-
-[data-theme="light"] .waiting-stat-label {
-  color: #94A3B8 !important;
-}
-
-[data-theme="light"] .waiting-stat-value {
-  color: #0F172A !important;
-}
-
-/* ---- Join button ---- */
-[data-theme="light"] .waiting-join-btn {
-  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.2) !important;
-}
-
-/* ---- Empty state ---- */
-[data-theme="light"] .waiting-empty {
-  color: #94A3B8 !important;
-}
-
-/* ---- Bottom-left quick action buttons ---- */
-[data-theme="light"] .waiting-quick-action {
-  background: rgba(15, 23, 42, 0.03) !important;
-  border-color: #E2E8F0 !important;
-  color: #64748B !important;
-}
-
-[data-theme="light"] .waiting-quick-action:hover {
-  color: #0F172A !important;
-  border-color: #CBD5E1 !important;
-}
-
-/* ---- Bottom-right summary card ---- */
-[data-theme="light"] .waiting-summary-card {
-  background: #FFFFFF !important;
-  border-color: #E2E8F0 !important;
-  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06) !important;
-}
-
-[data-theme="light"] .waiting-summary-value {
-  color: #0F172A !important;
-}
-
-[data-theme="light"] .waiting-summary-muted {
-  color: #94A3B8 !important;
-}
-
-[data-theme="light"] .waiting-summary-accent {
-  color: #C2410D !important;
-}
-
-[data-theme="light"] .waiting-summary-warning {
-  color: #B4530D !important;
-}
-
-[data-theme="light"] .waiting-summary-divider {
-  background-color: rgba(15, 23, 42, 0.06) !important;
-}
-
-/* ---- Announcement card ---- */
-[data-theme="light"] .waiting-announcement {
-  background: #FFFFFF !important;
-  border-color: rgba(236, 72, 153, 0.15) !important;
-  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06) !important;
-}
-
-[data-theme="light"] .waiting-announcement-text {
-  color: #0F172A !important;
-}
-
-[data-theme="light"] .waiting-announcement-sub {
-  color: #64748B !important;
-}
-
-/* ---- Exit confirmation modal ---- */
-[data-theme="light"] .waiting-exit-modal {
-  background-color: #FFFFFF !important;
-  border-color: rgba(236, 72, 153, 0.15) !important;
-  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.12) !important;
-}
-
-[data-theme="light"] .waiting-exit-modal-title {
-  color: #0F172A !important;
-}
-
-[data-theme="light"] .waiting-exit-modal-sub {
-  color: #64748B !important;
-}
-
-[data-theme="light"] .waiting-exit-modal-body {
-  background-color: rgba(15, 23, 42, 0.02) !important;
-  border-color: #E2E8F0 !important;
-  color: #475569 !important;
-}
-
-[data-theme="light"] .waiting-exit-modal-body .waiting-exit-value {
-  color: #0F172A !important;
-}
-
-
-[data-theme="light"] .waiting-exit-modal-label {
-  color: #B4530D !important;
-}
-
-/* ============================================
    Scroll Story — Cinematic Pricing Experience
    ============================================ */
 
@@ -4969,97 +4782,6 @@ svg {
 [data-theme="light"] .bg-\[\#FF4D5D\].text-white,
 [data-theme="light"] .bg-\[\#FF4D5D\] .text-white { color: #FFFFFF !important; }
 
-/* Attempt review is a complete destination, not a legacy report embedded in
-   the quiz shell. Light mode is a celebratory score party; dark mode is a
-   glassy mission debrief. The selectors stay scoped so creator analytics and
-   unrelated cards keep their own visual system. */
-.attempt-review-theme {
-  isolation: isolate;
-  transition: background-color 420ms cubic-bezier(.22, 1, .36, 1), color 420ms cubic-bezier(.22, 1, .36, 1);
-}
-
-.attempt-review-theme::before,
-.attempt-review-theme::after {
-  content: "";
-  position: fixed;
-  z-index: 0;
-  width: 22rem;
-  height: 22rem;
-  border-radius: 999px;
-  pointer-events: none;
-  filter: blur(80px);
-  opacity: .2;
-}
-
-.attempt-review-theme::before { left: -8rem; top: 18%; }
-.attempt-review-theme::after { right: -10rem; bottom: 4%; }
-
-[data-theme="light"] .attempt-review-theme {
-  background-color: #fffaf4 !important;
-  background-image:
-    radial-gradient(circle at 10% 8%, rgba(251, 113, 133, .16), transparent 28%),
-    radial-gradient(circle at 88% 16%, rgba(56, 189, 248, .15), transparent 30%),
-    linear-gradient(145deg, #fff8f1 0%, #fffafd 48%, #f2fbff 100%);
-}
-
-[data-theme="light"] .attempt-review-theme::before { background: #fb7185; }
-[data-theme="light"] .attempt-review-theme::after { background: #38bdf8; }
-
-[data-theme="dark"] .attempt-review-theme {
-  background-color: #060913 !important;
-  background-image:
-    radial-gradient(circle at 12% 0%, rgba(124, 92, 255, .18), transparent 30%),
-    radial-gradient(circle at 90% 22%, rgba(34, 211, 238, .08), transparent 28%),
-    linear-gradient(180deg, #080b18 0%, #060913 55%, #090714 100%);
-}
-
-[data-theme="dark"] .attempt-review-theme::before { background: #7c3aed; opacity: .14; }
-[data-theme="dark"] .attempt-review-theme::after { background: #0ea5e9; opacity: .09; }
-
-[data-theme="light"] .attempt-review-theme .bg-\[\#0B1220\] {
-  border-color: rgba(244, 114, 182, .25) !important;
-  background: rgba(255, 255, 255, .82) !important;
-  box-shadow: 0 24px 70px -45px rgba(219, 39, 119, .42), 0 1px 0 rgba(255, 255, 255, .9) inset !important;
-}
-
-[data-theme="light"] .attempt-review-theme .bg-\[\#0F192B\],
-[data-theme="light"] .attempt-review-theme .bg-\[\#111D31\] {
-  border-color: rgba(148, 163, 184, .24) !important;
-  background: linear-gradient(145deg, rgba(255, 255, 255, .92), rgba(255, 247, 252, .76)) !important;
-}
-
-[data-theme="dark"] .attempt-review-theme .bg-\[\#0B1220\] {
-  border-color: rgba(139, 124, 255, .2) !important;
-  background: linear-gradient(145deg, rgba(17, 22, 36, .94), rgba(11, 15, 29, .9)) !important;
-  box-shadow: 0 28px 80px -52px rgba(124, 92, 255, .75), 0 1px 0 rgba(255, 255, 255, .035) inset !important;
-}
-
-[data-theme="dark"] .attempt-review-theme .bg-\[\#0F192B\],
-[data-theme="dark"] .attempt-review-theme .bg-\[\#111D31\] {
-  border-color: rgba(139, 124, 255, .14) !important;
-  background: rgba(15, 20, 35, .88) !important;
-}
-
-.attempt-review-theme section {
-  scroll-margin-top: 5rem;
-}
-
-.attempt-review-theme button,
-.attempt-review-theme a {
-  -webkit-tap-highlight-color: transparent;
-}
-
-@media (max-width: 539px) {
-  .attempt-review-theme::before,
-  .attempt-review-theme::after {
-    display: none;
-  }
-
-  .attempt-review-theme .review-question-nav {
-    bottom: max(.5rem, env(safe-area-inset-bottom));
-  }
-}
-
 /* ============================================
    Profile workspace — party / mission surfaces
    Shared rules make every profile sub-page inherit the same visual language
@@ -5225,5 +4947,385 @@ textarea {
   [role="dialog"] {
     max-height: calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
     overscroll-behavior: contain;
+  }
+}
+
+/* ============================================================
+   QuizSupport quiz design — ".qs-ui"
+   Marketing / quiz-hub visual language: lavender canvas, indigo
+   ink, violet brand, yellow offset shadows, Bricolage Grotesque
+   display type + DM Sans body. Everything is scoped under
+   .qs-ui so the rest of the app is untouched.
+   ============================================================ */
+
+.qs-ui {
+  --qs-bg: #f7f5ff;
+  --qs-surface: #ffffff;
+  --qs-ink: #1a1240;
+  --qs-muted: #5c5679;
+  --qs-brand: #6a3df0;
+  --qs-on-brand: #ffffff;
+  --qs-line: #e0dbf5;
+  --qs-ok: #13795b;
+  --qs-okbg: #dff5ec;
+  --qs-bad: #c2303a;
+  --qs-badbg: #fde4e6;
+  --qs-sun: #ffd23f;
+  --qs-poly-0: #f6f3ff;
+  --qs-poly-1: #f0ebff;
+  --qs-poly-2: #e8e0ff;
+  --qs-poly-3: #ddd2ff;
+  --qs-poly-4: #d0c2ff;
+  --qs-poly-5: #ffe9a3;
+
+  background: var(--qs-bg);
+  color: var(--qs-ink);
+  font-family: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+[data-theme="dark"] .qs-ui {
+  --qs-bg: #120d2b;
+  --qs-surface: #1c1640;
+  --qs-ink: #f1eeff;
+  --qs-muted: #a9a2cc;
+  --qs-brand: #8f6bff;
+  --qs-on-brand: #120d2b;
+  --qs-line: #332a66;
+  --qs-ok: #4fd1a1;
+  --qs-okbg: #12382d;
+  --qs-bad: #ff7a85;
+  --qs-badbg: #44171e;
+  --qs-poly-0: #120d2b;
+  --qs-poly-1: #150f33;
+  --qs-poly-2: #1a1240;
+  --qs-poly-3: #21175a;
+  --qs-poly-4: #2a1e73;
+  --qs-poly-5: #4b2a7b;
+}
+
+@layer components {
+  .qs-ui h1,
+  .qs-ui h2,
+  .qs-ui h3,
+  .qs-ui .qs-display {
+    font-family: var(--font-bricolage), "Bricolage Grotesque", var(--font-dm-sans), system-ui, sans-serif;
+    line-height: 1.05;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  .qs-ui .qs-display {
+    font-weight: 800;
+  }
+
+  .qs-ui :focus-visible {
+    outline: 3px solid var(--qs-brand);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  .qs-wrap {
+    max-width: 1120px;
+    margin-inline: auto;
+    padding-inline: 24px;
+  }
+
+  .qs-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 15px 22px;
+    border-radius: 12px;
+    border: 2px solid var(--qs-brand);
+    background: var(--qs-brand);
+    color: var(--qs-on-brand);
+    text-decoration: none;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.15s ease;
+  }
+
+  .qs-btn:hover {
+    filter: brightness(1.08);
+  }
+
+  .qs-btn-ghost {
+    background: transparent;
+    color: var(--qs-ink);
+    border-color: var(--qs-line);
+  }
+
+  .qs-card {
+    background: var(--qs-surface);
+    border: 2px solid var(--qs-ink);
+    border-radius: 24px;
+    padding: 26px;
+  }
+
+  .qs-shadow {
+    position: relative;
+  }
+
+  .qs-shadow::before {
+    content: "";
+    position: absolute;
+    inset: 18px -16px -16px 18px;
+    background: var(--qs-sun);
+    border-radius: 26px;
+    z-index: 0;
+  }
+
+  .qs-shadow > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .qs-input {
+    width: 100%;
+    font-family: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 2px solid var(--qs-line);
+    background: var(--qs-surface);
+    color: var(--qs-ink);
+  }
+
+  .qs-input::placeholder {
+    letter-spacing: 0.02em;
+    font-weight: 500;
+    color: var(--qs-muted);
+    opacity: 1;
+  }
+
+  .qs-input:focus {
+    border-color: var(--qs-brand);
+    outline: none;
+  }
+
+  .qs-bar {
+    height: 6px;
+    border-radius: 6px;
+    background: var(--qs-line);
+    overflow: hidden;
+  }
+
+  .qs-bar > b {
+    display: block;
+    height: 100%;
+    background: var(--qs-brand);
+    transition: width 0.3s ease;
+  }
+
+  .qs-opt {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    font-family: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--qs-ink);
+    background: var(--qs-bg);
+    border: 2px solid var(--qs-line);
+    border-radius: 12px;
+    padding: 13px 15px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .qs-opt:hover:not(:disabled) {
+    border-color: var(--qs-brand);
+  }
+
+  .qs-opt:disabled {
+    cursor: default;
+  }
+
+  .qs-opt-ok {
+    background: var(--qs-okbg);
+    border-color: var(--qs-ok);
+    color: var(--qs-ok);
+    font-weight: 700;
+  }
+
+  .qs-opt-bad {
+    background: var(--qs-badbg);
+    border-color: var(--qs-bad);
+    color: var(--qs-bad);
+    font-weight: 700;
+  }
+
+  .qs-code-chip {
+    display: inline-block;
+    margin-top: 12px;
+    font-family: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    background: var(--qs-sun);
+    color: #1a1240;
+    padding: 6px 12px;
+    border-radius: 8px;
+  }
+
+  .qs-steps {
+    counter-reset: qs-step;
+  }
+
+  .qs-step::before {
+    counter-increment: qs-step;
+    content: counter(qs-step);
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--qs-ink);
+    color: var(--qs-bg);
+    font-family: var(--font-bricolage), "Bricolage Grotesque", system-ui, sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 16px;
+  }
+
+  .qs-exams {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 2px solid var(--qs-ink);
+  }
+
+  .qs-exams > li > a {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding: 18px 4px;
+    border-bottom: 1px solid var(--qs-line);
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .qs-exams strong {
+    font-family: var(--font-bricolage), "Bricolage Grotesque", system-ui, sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .qs-exams span {
+    color: var(--qs-muted);
+    font-size: 15px;
+    text-align: right;
+  }
+
+  .qs-exams > li > a:hover strong {
+    color: var(--qs-brand);
+  }
+
+  .qs-cta {
+    background: var(--qs-brand);
+    color: var(--qs-on-brand);
+    border-radius: 28px;
+    padding: 56px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+
+  .qs-cta .qs-btn {
+    background: var(--qs-on-brand);
+    color: var(--qs-brand);
+    border-color: var(--qs-on-brand);
+  }
+
+  .qs-sub {
+    color: var(--qs-muted);
+    font-size: 15px;
+  }
+
+  .qs-sub a {
+    color: var(--qs-brand);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .qs-sub a:hover {
+    text-decoration: underline;
+  }
+
+  .qs-link {
+    text-decoration: none;
+    color: var(--qs-muted);
+    font-weight: 500;
+    transition: color 0.15s ease;
+  }
+
+  .qs-link:hover {
+    color: var(--qs-ink);
+  }
+
+  .qs-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-bricolage), "Bricolage Grotesque", system-ui, sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .qs-logo i {
+    font-style: normal;
+    display: inline-grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    background: var(--qs-brand);
+    color: var(--qs-on-brand);
+    border-radius: 9px 9px 9px 2px;
+    font-size: 19px;
+  }
+
+  .qs-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--qs-muted);
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  @media (max-width: 860px) {
+    .qs-shadow::before {
+      inset: 14px -8px -10px 12px;
+    }
+
+    .qs-cta {
+      padding: 36px 26px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .qs-btn,
+    .qs-opt,
+    .qs-bar > b {
+      transition: none;
+    }
   }
 }

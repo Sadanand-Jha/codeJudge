@@ -74,13 +74,13 @@ export default function QuizPageReady({
       </div>
       {!ready && (
         <div
-          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#FFF9F1] dark:bg-[#0B0D10]"
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[var(--qs-bg,#FFF9F1)]"
           aria-hidden="true"
           aria-label={label}
         >
           {/* Themed loader — ice-cream (light) / rocket (dark). */}
           <QuizLoader className="h-9 w-9" />
-          <span className="text-xs font-semibold text-[#667085] dark:text-[#8F9AAF]">
+          <span className="text-xs font-semibold text-[var(--qs-muted,#667085)]">
             Preparing your quiz…
           </span>
         </div>

@@ -26,7 +26,6 @@ import {
 } from "@/lib/quizAttemptStorage";
 import { useQuizSounds, type QuizSound } from "@/hooks/useQuizSounds";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import QuizSpaceAtmosphere from "@/components/quiz/live/QuizSpaceAtmosphere";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 
@@ -378,6 +377,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       attemptId={attemptId !== null ? String(attemptId) : null}
       onEnterExam={handleEnterExam}
       onExitPreview={() => router.replace("/quiz")}
+      onViewResult={attemptId !== null ? () => router.replace(`/quiz/${code}/results/${attemptId}`) : undefined}
       entryError={error}
       onTerminate={handleTerminate}
       registrationFields={skipRegistration ? [] : quiz.registration_fields ?? []}
@@ -392,40 +392,36 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           <StatusScreen text={error || "This quiz has no available questions."} />
         </div>
       ) : (
-      <div className="relative h-full min-h-0 overflow-hidden bg-[#F7F7FB] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 dark:bg-[#090A10] sm:px-6 sm:py-6">
-      {!isMobile && <QuizSpaceAtmosphere />}
+      <div className="qs-ui relative h-full min-h-0 overflow-hidden bg-[var(--qs-bg)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:py-6">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -left-24 top-12 h-72 w-72 rounded-full bg-violet-500/[0.06] blur-3xl dark:bg-violet-500/[0.09]" />
-        <div className="absolute -right-28 bottom-0 h-80 w-80 rounded-full bg-pink-500/[0.05] blur-3xl dark:bg-pink-500/[0.08]" />
-        <div className="absolute -right-24 top-[18%] hidden h-56 w-56 rounded-full border border-violet-200/[0.05] dark:block" />
-        <div className="absolute -right-10 top-[23%] hidden h-28 w-44 rotate-[-18deg] rounded-[50%] border border-cyan-100/[0.045] dark:block" />
-        <span className="absolute left-[8%] top-[16%] hidden h-1 w-1 rounded-full bg-white/45 shadow-[0_0_8px_rgba(255,255,255,.55)] dark:block" />
-        <span className="absolute right-[12%] top-[9%] hidden h-1.5 w-1.5 rounded-full bg-violet-200/50 shadow-[0_0_10px_rgba(196,181,253,.55)] dark:block" />
-        <span className="absolute bottom-[18%] left-[14%] hidden h-1 w-1 rounded-full bg-cyan-100/50 shadow-[0_0_9px_rgba(165,243,252,.5)] dark:block" />
+        <div className="absolute -left-24 top-12 h-72 w-72 rounded-full bg-[var(--qs-brand)]/[0.07] blur-3xl" />
+        <div className="absolute -right-28 bottom-0 h-80 w-80 rounded-full bg-[var(--qs-brand)]/[0.05] blur-3xl" />
+        <div className="absolute -right-16 -top-20 hidden h-64 w-64 rounded-full border-2 border-[var(--qs-line)] sm:block" />
+        <div className="absolute right-[6%] top-[10%] hidden h-10 w-10 rotate-12 rounded-xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/40 lg:block" />
       </div>
       <div className="relative mx-auto h-full min-h-0 max-w-4xl overflow-hidden">
       <QuizPageReady className="h-full min-h-0 overflow-hidden" label="Loading question">
       <main className="relative flex h-full min-h-0 flex-col gap-3 sm:gap-4">
-        <div className="shrink-0 overflow-hidden rounded-[22px] border border-pink-200/75 bg-white/90 shadow-[0_18px_55px_-38px_rgba(244,114,182,.75)] dark:border-violet-400/15 dark:bg-[#111624]/92 dark:shadow-[0_20px_60px_-36px_rgba(124,92,255,.65)]">
+        <div className="shrink-0 overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
           <div className="flex items-center justify-between gap-3 px-3.5 py-3.5 sm:px-4">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-white shadow-[0_10px_22px_-14px_rgba(16,185,129,.9)]">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
                 <ShieldCheck className="h-4 w-4" />
               </span>
               <span className="min-w-0">
-                <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-emerald-600 dark:text-emerald-300">Secure channel {autoSubmitted ? "· submitted" : "· connected"}</span>
-                <span className="mt-0.5 block truncate text-xs font-bold text-text-primary">Question {index + 1} of {questions.length}</span>
+                <span className="block text-[9px] font-black uppercase tracking-[0.16em] text-[var(--qs-ok)]">Secure channel {autoSubmitted ? "· submitted" : "· connected"}</span>
+                <span className="mt-0.5 block truncate text-xs font-bold text-[var(--qs-ink)]">Question {index + 1} of {questions.length}</span>
               </span>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <span className="hidden items-center gap-1.5 rounded-xl border border-pink-100 bg-pink-50 px-2.5 py-1.5 text-[10px] font-bold text-pink-600 dark:border-violet-400/15 dark:bg-violet-500/[0.07] dark:text-violet-200 min-[420px]:inline-flex"><Target className="h-3.5 w-3.5" /> {answered} answered</span>
-              <button type="button" onClick={toggleQuizSounds} className="grid h-9 w-9 place-items-center rounded-xl border border-pink-100 bg-pink-50 text-pink-600 transition hover:border-pink-300 hover:bg-pink-100 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-violet-200 dark:hover:border-violet-400/25" aria-label={soundEnabled ? "Mute quiz sounds" : "Enable quiz sounds"} title={soundEnabled ? "Quiz sounds on" : "Quiz sounds off"}>
+              <span className="hidden items-center gap-1.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1.5 text-[10px] font-bold text-[var(--qs-brand)] min-[420px]:inline-flex"><Target className="h-3.5 w-3.5" /> {answered} answered</span>
+              <button type="button" onClick={toggleQuizSounds} className="grid h-9 w-9 place-items-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-brand)] transition hover:border-[var(--qs-brand)]" aria-label={soundEnabled ? "Mute quiz sounds" : "Enable quiz sounds"} title={soundEnabled ? "Quiz sounds on" : "Quiz sounds off"}>
                 {soundEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
               </button>
             </div>
           </div>
-          <div className="h-1.5 overflow-hidden bg-pink-100 dark:bg-white/[0.055]">
-            <motion.div className="h-full rounded-r-full bg-gradient-to-r from-violet-500 via-pink-500 to-rose-400" animate={{ width: `${progress}%` }} transition={isMobile ? { duration: 0 } : { duration: 0.45, ease: "easeOut" }} />
+          <div className="h-1.5 overflow-hidden bg-[var(--qs-line)]">
+            <motion.div className="h-full rounded-r-full bg-[var(--qs-brand)]" animate={{ width: `${progress}%` }} transition={isMobile ? { duration: 0 } : { duration: 0.45, ease: "easeOut" }} />
           </div>
         </div>
 
@@ -437,20 +433,20 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           animate={{ opacity: 1, x: 0, scale: 1 }}
           exit={isMobile ? undefined : { opacity: 0, x: -14, scale: 1 }}
           transition={isMobile ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
-          className="relative overflow-hidden rounded-[24px] border border-border/80 bg-card/90 p-4 shadow-[0_18px_60px_-42px_rgba(42,23,90,.75)] backdrop-blur-xl sm:p-6"
+          className="relative overflow-hidden rounded-[24px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-6"
         >
-          <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-violet-500/[0.06] blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[var(--qs-brand)]/[0.06] blur-3xl" />
           <div className="relative flex items-center justify-between gap-3">
-            <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-300">
-              <span className="grid h-6 w-6 place-items-center rounded-lg bg-violet-500/10 text-[10px]">{index + 1}</span>
+            <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
+              <span className="grid h-6 w-6 place-items-center rounded-lg bg-[var(--qs-brand)]/10 text-[10px]">{index + 1}</span>
               Question
             </p>
-            <span className="rounded-full border border-border bg-background/65 px-2.5 py-1 text-[9px] font-semibold text-text-muted">
+            <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[9px] font-semibold text-[var(--qs-muted)]">
               {current.quiz_problem_type === 2 ? "Select all that apply" : current.options.length ? "Choose one answer" : "Written response"}
             </span>
           </div>
-          <h2 className="relative mt-4 whitespace-pre-wrap text-base font-semibold leading-7 tracking-[-0.01em] text-text-primary sm:text-lg">{current.problem_statement}</h2>
-          {current.problem_description && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-text-secondary">{current.problem_description}</p>}
+          <h2 className="relative mt-4 whitespace-pre-wrap text-base font-semibold leading-7 tracking-[-0.01em] text-[var(--qs-ink)] sm:text-lg">{current.problem_statement}</h2>
+          {current.problem_description && <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--qs-muted)]">{current.problem_description}</p>}
 
           <div className="relative mt-5 grid gap-3 sm:grid-cols-2">
             {current.options.map((option, optionIndex) => {
@@ -476,13 +472,13 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
                       persistAnswer(current.id, { option: optionId });
                     }
                   }}
-                  className={`group flex min-h-16 items-center gap-3 rounded-2xl border p-3 text-left text-sm leading-5 transition-all duration-200 ${selected ? "border-pink-500/70 bg-gradient-to-r from-pink-500/[0.11] to-violet-500/[0.06] text-text-primary shadow-[0_8px_24px_-18px_rgba(236,72,153,.9)] ring-2 ring-pink-500/10" : "border-border bg-background/65 text-text-secondary hover:-translate-y-0.5 hover:border-violet-500/30 hover:bg-card-hover/60 hover:text-text-primary"}`}
+                  className={`group flex min-h-16 items-center gap-3 rounded-2xl border-2 p-3 text-left text-sm leading-5 transition-all duration-200 ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/10 text-[var(--qs-ink)]" : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)] hover:-translate-y-0.5 hover:border-[var(--qs-brand)]/50 hover:text-[var(--qs-ink)]"}`}
                 >
-                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border text-[11px] font-bold transition-colors ${selected ? "border-pink-500 bg-pink-500 text-white" : "border-border bg-card text-text-muted group-hover:border-violet-500/30 group-hover:text-violet-500"}`}>
+                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border-2 text-[11px] font-bold transition-colors ${selected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] group-hover:border-[var(--qs-brand)]/50 group-hover:text-[var(--qs-brand)]"}`}>
                     {String.fromCharCode(65 + optionIndex)}
                   </span>
                   <span className="flex-1">{option.option_statement}</span>
-                  <CheckCircle2 className={`h-4 w-4 shrink-0 transition-opacity ${selected ? "text-pink-500 opacity-100" : "opacity-0"}`} />
+                  <CheckCircle2 className={`h-4 w-4 shrink-0 transition-opacity ${selected ? "text-[var(--qs-brand)] opacity-100" : "opacity-0"}`} />
                 </button>
               );
             })}
@@ -498,30 +494,30 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
               rows={8}
               maxLength={20000}
               placeholder="Write your answer here…"
-              className="mt-5 w-full resize-y rounded-xl border border-border bg-background p-4 text-sm leading-6 text-text-primary outline-none focus:border-pink-500"
+              className="mt-5 w-full resize-y rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4 text-sm leading-6 text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)]"
             />
           )}
         </motion.section>
         </AnimatePresence>
 
         {error && (
-          <div className="mt-3 flex items-start gap-2 rounded-xl border border-rose-500/20 bg-rose-500/[0.06] p-3 text-xs text-rose-600 dark:text-rose-300">
+          <div className="mt-3 flex items-start gap-2 rounded-xl border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] p-3 text-xs text-[var(--qs-bad)]">
             <AlertCircle className="h-4 w-4 shrink-0" /> {error}
           </div>
         )}
         <div className="h-1" aria-hidden="true" />
         </div>
 
-        <footer className="grid shrink-0 grid-cols-2 gap-2 rounded-2xl border border-pink-200/80 bg-white/95 p-2.5 shadow-[0_14px_38px_-18px_rgba(17,12,40,.55)] dark:border-violet-400/15 dark:bg-[#111624]/95 sm:grid-cols-[auto_1fr_auto] sm:gap-3">
-          <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="inline-flex min-h-12 items-center justify-center gap-1 rounded-xl border border-pink-200 bg-pink-50/70 px-3 text-sm font-semibold text-text-primary transition hover:border-violet-500/30 disabled:opacity-40 dark:border-white/[0.08] dark:bg-white/[0.04] sm:px-4">
+        <footer className="grid shrink-0 grid-cols-2 gap-2 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:grid-cols-[auto_1fr_auto] sm:gap-3">
+          <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="qs-btn qs-btn-ghost min-h-12 gap-1 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-40 sm:px-4">
             <ChevronLeft className="h-4 w-4" /> Previous
           </button>
           {index < questions.length - 1 ? (
-            <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.min(questions.length - 1, value + 1)); }} className="col-start-2 inline-flex min-h-12 items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-violet-600 to-pink-600 px-3 text-sm font-semibold text-white shadow-[0_10px_24px_-12px_rgba(219,39,119,.8)] transition hover:-translate-y-0.5 sm:col-start-3 sm:px-5">
+            <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.min(questions.length - 1, value + 1)); }} className="qs-btn col-start-2 min-h-12 gap-1 px-3 text-sm sm:col-start-3 sm:px-5">
               Next <ChevronRight className="h-4 w-4" />
             </button>
           ) : (
-            <button type="button" onClick={handleManualSubmit} disabled={submitting} className="col-start-2 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white disabled:opacity-50 sm:col-start-3 sm:px-4">
+            <button type="button" onClick={handleManualSubmit} disabled={submitting} className="qs-btn col-start-2 min-h-12 gap-2 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50 sm:col-start-3 sm:px-4" style={{ background: "var(--qs-ok)", borderColor: "var(--qs-ok)" }}>
               {submitting ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" /> : <Send className="h-4 w-4" />} {submitting ? "Submitting…" : "Submit"}
             </button>
           )}
@@ -601,17 +597,23 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
           </div>
         )}
 
-        <motion.div initial={isMobile ? false : { opacity: 0, scale: 0.75, y: 18 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={isMobile ? { duration: 0 } : { duration: 0.5, ease: "easeOut" }} className="relative w-full max-w-md rounded-[2rem] border border-white/70 bg-white/95 px-6 py-8 text-center text-slate-950 shadow-[0_35px_120px_rgba(236,72,153,.35)] dark:border-white/15 dark:bg-[#11101a]/95 dark:text-white sm:px-9 sm:py-10">
-          <div className="mx-auto grid h-20 w-20 place-items-center rounded-[1.65rem] bg-gradient-to-br from-emerald-400 via-cyan-400 to-violet-500 text-white shadow-[0_18px_45px_-15px_rgba(34,197,94,.8)]">
+        <motion.div
+          initial={isMobile ? false : { opacity: 0, scale: 0.75, y: 18 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={isMobile ? { duration: 0 } : { duration: 0.5, ease: "easeOut" }}
+          className="qs-ui relative w-full max-w-md rounded-[2rem] border-2 border-[var(--qs-line)] px-6 py-8 text-center shadow-[0_10px_0_rgba(26,18,64,0.35)] sm:px-9 sm:py-10"
+          style={{ background: "var(--qs-surface)", color: "var(--qs-ink)" }}
+        >
+          <div className="mx-auto grid h-20 w-20 place-items-center rounded-[1.65rem] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
             {isMobile ? <CheckCircle2 className="h-10 w-10" /> : <PartyPopper className="h-10 w-10" />}
           </div>
-          <p className="mt-5 text-[11px] font-black uppercase tracking-[0.24em] text-emerald-600 dark:text-emerald-300">Submission complete</p>
+          <p className="mt-5 text-[11px] font-black uppercase tracking-[0.24em] text-[var(--qs-ok)]">Submission complete</p>
           <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">You did it!</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-white/55">Your quiz responses have been submitted. You can go back now.</p>
+          <p className="mt-2 text-sm leading-6 text-[var(--qs-muted)]">Your quiz responses have been submitted. You can go back now.</p>
           <button
             type="button"
             onClick={onHome}
-            className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 text-sm font-bold text-white shadow-[0_16px_36px_-16px_rgba(244,114,182,.85)] transition duration-200 hover:-translate-y-0.5 dark:from-[#7765F5] dark:via-[#8B7CFF] dark:to-[#9A6BFF]"
+            className="qs-btn mt-6 h-12 w-full gap-2 text-sm"
           >
             <Home className="h-4 w-4" /> Back to Home
           </button>
@@ -622,40 +624,40 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
 
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-md" role="status" aria-live="polite" aria-label={stage.title}>
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-white p-6 text-slate-950 shadow-[0_30px_100px_rgba(0,0,0,.45)] dark:bg-[#101016] dark:text-white sm:p-8">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-pink-500/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-violet-500/15 blur-3xl" />
+      <div className="qs-ui relative w-full max-w-md overflow-hidden rounded-3xl border-2 border-[var(--qs-line)] p-6 shadow-[0_10px_0_rgba(26,18,64,0.35)] sm:p-8" style={{ background: "var(--qs-surface)", color: "var(--qs-ink)" }}>
+        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[var(--qs-brand)]/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-[var(--qs-brand)]/10 blur-3xl" />
 
         <div className="relative">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-[0_12px_36px_rgba(236,72,153,.3)]">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
             <StageIcon key={stageIndex} className="h-8 w-8 animate-[quiz-submit-pop_.35s_ease-out] motion-reduce:animate-none" />
           </div>
-          <p className="mt-5 text-center text-[11px] font-bold uppercase tracking-[0.22em] text-pink-600 dark:text-pink-400">Submission in progress</p>
+          <p className="mt-5 text-center text-[11px] font-bold uppercase tracking-[0.22em] text-[var(--qs-brand)]">Submission in progress</p>
           <h2 key={`title-${stageIndex}`} className="mt-2 animate-[quiz-submit-rise_.3s_ease-out] text-center text-xl font-bold tracking-tight motion-reduce:animate-none sm:text-2xl">
             {stage.title}
           </h2>
-          <p key={`detail-${stageIndex}`} className="mt-2 min-h-10 animate-[quiz-submit-rise_.3s_ease-out] text-center text-sm leading-5 text-slate-500 motion-reduce:animate-none dark:text-white/55">
+          <p key={`detail-${stageIndex}`} className="mt-2 min-h-10 animate-[quiz-submit-rise_.3s_ease-out] text-center text-sm leading-5 text-[var(--qs-muted)] motion-reduce:animate-none">
             {stage.detail}
           </p>
 
-          <div className="mt-6 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
-            <div className="h-full rounded-full bg-gradient-to-r from-pink-500 via-fuchsia-500 to-violet-500 transition-[width] duration-500 ease-out motion-reduce:transition-none" style={{ width: `${progress}%` }} />
+          <div className="mt-6 h-2 overflow-hidden rounded-full bg-[var(--qs-line)]">
+            <div className="h-full rounded-full bg-[var(--qs-brand)] transition-[width] duration-500 ease-out motion-reduce:transition-none" style={{ width: `${progress}%` }} />
           </div>
 
           <div className="mt-5 grid grid-cols-4 gap-2" aria-hidden="true">
             {SUBMISSION_STAGES.map((item, itemIndex) => (
               <div key={item.title} className="flex flex-col items-center gap-2">
-                <span className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-bold transition-colors duration-300 ${itemIndex < stageIndex ? "border-emerald-500 bg-emerald-500 text-white" : itemIndex === stageIndex ? "border-pink-500 bg-pink-500 text-white" : "border-slate-200 bg-slate-50 text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white/30"}`}>
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full border-2 text-[10px] font-bold transition-colors duration-300 ${itemIndex < stageIndex ? "border-[var(--qs-ok)] bg-[var(--qs-ok)] text-[var(--qs-on-brand)]" : itemIndex === stageIndex ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]"}`}>
                   {itemIndex < stageIndex ? <CheckCircle2 className="h-3.5 w-3.5" /> : itemIndex + 1}
                 </span>
-                <span className={`hidden text-center text-[9px] leading-3 sm:block ${itemIndex <= stageIndex ? "text-slate-600 dark:text-white/65" : "text-slate-400 dark:text-white/30"}`}>
+                <span className={`hidden text-center text-[9px] leading-3 sm:block ${itemIndex <= stageIndex ? "text-[var(--qs-ink)]" : "text-[var(--qs-muted)]"}`}>
                   {item.title.replace(" your", "")}
                 </span>
               </div>
             ))}
           </div>
 
-          <p className="mt-6 text-center text-[11px] text-slate-400 dark:text-white/35">Please keep this window open. Your answers are safe.</p>
+          <p className="mt-6 text-center text-[11px] text-[var(--qs-muted)]">Please keep this window open. Your answers are safe.</p>
         </div>
       </div>
       <style jsx>{`
@@ -677,10 +679,10 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
 
 function StatusScreen({ loading = false, text }: { loading?: boolean; text: string }) {
   return (
-    <div className="flex min-h-[70vh] items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 text-center">
-        {loading ? <QuizLoader className="mx-auto" /> : <AlertCircle className="mx-auto h-8 w-8 text-rose-500" />}
-        <p className="mt-3 text-sm leading-6 text-text-secondary">{text}</p>
+    <div className="qs-ui flex min-h-[70vh] items-center justify-center bg-[var(--qs-bg)] px-4">
+      <div className="w-full max-w-md rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6 text-center">
+        {loading ? <QuizLoader className="mx-auto" /> : <AlertCircle className="mx-auto h-8 w-8 text-[var(--qs-bad)]" />}
+        <p className="mt-3 text-sm leading-6 text-[var(--qs-muted)]">{text}</p>
       </div>
     </div>
   );

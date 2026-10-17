@@ -12,10 +12,10 @@ const secureMediaService = new SecureMediaService();
 
 // --- Brand logo (GET /api/v1/brand/logo) --------------------------------------
 // Source of truth: four files in public/logo/ —
-//   logo_with_name.png       — mark + "QuizSupport" wordmark, light theme (~4:1)
-//   logo.png                 — icon-only mark, light theme (~1:1)
-//   dark_logo_with_name.png  — same wordmark drawn for dark backgrounds
-//   dark_logo_.png           — icon-only mark for dark backgrounds
+//   quizsupport-logo-light.png — mark + "QuizSupport" wordmark, light theme (~4.9:1)
+//   quizsupport-icon-light.png — icon-only mascot mark, light theme (~1.09:1)
+//   quizsupport-logo-dark.png  — same wordmark drawn for dark backgrounds
+//   quizsupport-icon-dark.png  — icon-only mascot mark for dark backgrounds
 // Query: variant=full|mark (default full), theme=light|dark (default light).
 // Missing dark artwork degrades to the light file. Drop a new file there and
 // the site picks it up on the next request (cache keyed on mtime + size).
@@ -27,12 +27,12 @@ type LogoTheme = "light" | "dark";
 
 const brandLogoFiles: Record<LogoTheme, Record<LogoVariant, string>> = {
   light: {
-    full: path.join(logoDir, "logo_with_name.png"),
-    mark: path.join(logoDir, "logo.png"),
+    full: path.join(logoDir, "quizsupport-logo-light.png"),
+    mark: path.join(logoDir, "quizsupport-icon-light.png"),
   },
   dark: {
-    full: path.join(logoDir, "dark_logo_with_name.png"),
-    mark: path.join(logoDir, "dark_logo_.png"),
+    full: path.join(logoDir, "quizsupport-logo-dark.png"),
+    mark: path.join(logoDir, "quizsupport-icon-dark.png"),
   },
 };
 
@@ -161,7 +161,7 @@ export const getSecureMedia = async (req: Request, res: Response) => {
  * Query: ?variant=full (default) serves the with-name artwork, ?variant=mark
  * serves the icon-only art for square slots (collapsed sidebar rail, auth
  * headers, favicon generation). ?theme=dark serves the dark-background
- * variants (dark_logo_with_name.png / dark_logo_.png); default is light.
+ * variants (quizsupport-logo-dark.png / quizsupport-icon-dark.png); default is light.
  */
 export const getBrandLogo = async (req: Request, res: Response) => {
   try {
