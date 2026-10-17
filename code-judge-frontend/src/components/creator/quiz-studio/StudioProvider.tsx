@@ -48,7 +48,6 @@ import {
   DEFAULT_BRANDING,
   DEFAULT_GAME_MECHANICS_STATE,
   createEmptyQuestion,
-  getRegistrationFieldDef,
 } from "./types";
 import { DEFAULT_GAME_MECHANICS, normalizeGameMechanics, zeroAllMechanics } from "./types/gameMechanics";
 
@@ -373,6 +372,9 @@ interface StudioContextValue {
   };
   saveAudienceParticipants: () => Promise<void>;
   audienceDirty: boolean;
+  /** Rich content rendered inside the header Help panel, set by the active step. */
+  helpExtra: ReactNode;
+  setHelpExtra: Dispatch<SetStateAction<ReactNode>>;
 }
 
 const StudioContext = createContext<StudioContextValue | null>(null);
@@ -397,7 +399,7 @@ function initialState(): StudioState {
   audience: { ...DEFAULT_AUDIENCE, accessCode: generateQuizCode() },
   registration: {
     settings: { ...DEFAULT_REGISTRATION.settings },
-    fields: DEFAULT_REGISTRATION.fields.map((f) => ({ ...f, options: f.options ? [...f.options] : undefined })),
+    fields: DEFAULT_REGISTRATION.fields.map((f) => ({ ...f })),
   },
   pricing: { ...DEFAULT_PRICING },
   branding: { ...DEFAULT_BRANDING },
@@ -447,7 +449,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         audience: { ...DEFAULT_AUDIENCE, accessCode: generateQuizCode() },
         registration: {
           settings: { ...DEFAULT_REGISTRATION.settings },
-          fields: DEFAULT_REGISTRATION.fields.map((f) => ({ ...f, options: f.options ? [...f.options] : undefined })),
+          fields: DEFAULT_REGISTRATION.fields.map((f) => ({ ...f })),
         },
         pricing: { ...DEFAULT_PRICING },
         branding: { ...DEFAULT_BRANDING },
@@ -465,6 +467,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
   const [loading, setLoading] = useState(editMode && !!initialQuizId);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [questionsLoading, setQuestionsLoading] = useState(editMode && !!initialQuizId);
+  const [helpExtra, setHelpExtra] = useState<ReactNode>(null);
 
   /**
    * Snapshot of question content hashes captured when questions are loaded from
@@ -498,6 +501,11 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         loadedQuiz = quiz;
         const info = mapQuizToStudioInfo(quiz);
         const settings = mapQuizToStudioSettings(quiz);
+        // Creator-defined registration field names. A NULL column (legacy
+        // quizzes) keeps the default seed names; an explicit array wins.
+        const registrationFields = Array.isArray(quiz.registration_fields)
+          ? quiz.registration_fields
+          : DEFAULT_REGISTRATION.fields.map((f) => f.name);
         const quizSnapshot = JSON.stringify({
           title: info.title,
           shortDescription: info.shortDescription,
@@ -519,6 +527,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             showResultsImmediately: settings.showResultsImmediately,
             negativeMarking: settings.negativeMarking,
           },
+          registrationFields,
         });
         quizSnapshotRef.current = quizSnapshot;
 
@@ -542,6 +551,10 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
           serverQuizId: initialQuizId,
           gameMechanics: loadedGameMechanics,
           audience: loadedAudience,
+          registration: {
+            settings: { ...DEFAULT_REGISTRATION.settings },
+            fields: registrationFields.map((name, i) => ({ id: `rfld_srv_${i}`, name })),
+          },
         }));
       } catch (err) {
         console.error("Failed to load quiz for editing:", err);
@@ -980,14 +993,8 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       if (roomCount === 0 && manualCount === 0) errs.push("No audience selected — select at least one room");
     }
     const regFields = state.registration?.fields ?? [];
-    const emptySelect = regFields.find((f) => {
-      const def = getRegistrationFieldDef(f.key);
-      const options = f.options ?? def?.options ?? [];
-      return def?.inputType === "select" && options.length === 0;
-    });
-    if (emptySelect) {
-      const label = getRegistrationFieldDef(emptySelect.key)?.label ?? emptySelect.key;
-      errs.push(`Registration field "${label}" has no options`);
+    if (regFields.some((f) => !f.name.trim())) {
+      errs.push("Some registration fields have no name");
     }
     if (state.pricing.mode === "paid" && state.pricing.price <= 0) errs.push("Paid quiz requires a price");
     return errs;
@@ -1159,6 +1166,10 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     setSavingToServer(true);
     setSaveProgress(null);
     try {
+      // Free-form field names only; unnamed draft rows and blanks are dropped.
+      const registrationFields = state.registration.fields
+        .map((f) => f.name.trim())
+        .filter(Boolean);
       const payload = {
         name: state.info.title.trim(),
         code: state.info.code,
@@ -1186,6 +1197,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
         totalMarks: summary.totalMarks,
         passingMarks: state.info.passingMarks || Math.ceil(summary.totalMarks * 0.4),
         tags: state.info.tags.length > 0 ? state.info.tags : undefined,
+        registrationFields,
       };
 
       let quizId = state.serverQuizId || null;
@@ -1209,6 +1221,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             showResultsImmediately: state.settings.showResultsImmediately,
             negativeMarking: state.settings.negativeMarking,
           },
+          registrationFields: payload.registrationFields,
         });
         if (currentSnapshot !== quizSnapshotRef.current) {
           await updateQuiz(quizId, {
@@ -1227,6 +1240,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
             negativeMarking: payload.negativeMarking,
             totalMarks: payload.totalMarks,
             passingMarks: payload.passingMarks,
+            registrationFields: payload.registrationFields,
           });
           quizSnapshotRef.current = currentSnapshot;
         }
@@ -1368,6 +1382,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       pricing: state.pricing,
       branding: state.branding,
       gameMechanics: state.gameMechanics,
+      registration: state.registration,
     });
 
     // The first complete server-loaded state is the baseline, not a change.
@@ -1407,6 +1422,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     state.pricing,
     state.branding,
     state.gameMechanics,
+    state.registration,
   ]);
 
   const saveGameMechanicsOnly = useCallback(async () => {
@@ -1553,8 +1569,10 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       summary,
       saveAudienceParticipants,
       audienceDirty,
+      helpExtra,
+      setHelpExtra,
     }),
-    [state, stepIndex, mobileStepIndex, summary, savingToServer, saveProgress, loading, loadError, questionsLoading, editMode, steps, mobileSteps, saveAudienceParticipants, audienceDirty]
+    [state, stepIndex, mobileStepIndex, summary, savingToServer, saveProgress, loading, loadError, questionsLoading, editMode, steps, mobileSteps, saveAudienceParticipants, audienceDirty, helpExtra]
   );
 
   return <StudioContext.Provider value={value}>{children}</StudioContext.Provider>;

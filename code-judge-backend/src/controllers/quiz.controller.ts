@@ -82,6 +82,7 @@ const toStudentQuiz = (quiz: Record<string, any>) => {
   status: effectiveStatus,
   show_results_immediately: quiz.show_results_immediately === true,
   leaderboard: quiz.leaderboard === true,
+  registration_fields: Array.isArray(quiz.registration_fields) ? quiz.registration_fields : null,
   });
 };
 
@@ -400,6 +401,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       negativeMarking: body.negativeMarking,
       leaderboard: true,
       status: "draft",
+      registrationFields: Array.isArray(body.registrationFields) ? body.registrationFields : undefined,
     });
 
 
@@ -1266,6 +1268,9 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
       userId: Number(userId),
       quizId: Number(quizId),
       totalQuestions,
+      // Stored on the attempt itself so the timer (started_at) only begins
+      // once the student has submitted the registration form.
+      registrationData: req.body?.registrationData,
     });
 
     res.status(201).json({
@@ -1287,6 +1292,43 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Internal server error while starting quiz",
+    });
+  }
+};
+
+/**
+ * GET /api/v1/user/quiz/:quizId/attempt-registration
+ * Returns whether the student already has an active attempt (so the
+ * registration form is skipped on refresh/resume) plus the stored values.
+ */
+export const getAttemptRegistrationState = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const { quizId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const latestAttempt = await quizService.getQuizAttempt(Number(userId), Number(quizId));
+    const activeAttempt =
+      latestAttempt && String(latestAttempt.status).toLowerCase() === "in_progress"
+        ? latestAttempt
+        : null;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        hasActiveAttempt: Boolean(activeAttempt),
+        registrationData: activeAttempt?.registration_data ?? null,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching attempt registration state:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching attempt registration state",
     });
   }
 };

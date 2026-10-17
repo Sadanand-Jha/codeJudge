@@ -5,7 +5,6 @@ import { AlertCircle, CheckCircle2, AlertOctagon } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import type { StudioState } from "../types";
-import { getRegistrationFieldDef } from "../types";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { StudioStepHeader, StudioStepLayout } from "../primitives";
 
@@ -256,17 +255,12 @@ function computeItems(
     });
   }
 
-  const emptySelectField = regFields.find((f) => {
-    const def = getRegistrationFieldDef(f.key);
-    const options = f.options ?? def?.options ?? [];
-    return def?.inputType === "select" && options.length === 0;
-  });
-  if (emptySelectField) {
+  if (regFields.some((f) => !f.name.trim())) {
     items.push({
-      id: "reg-options",
+      id: "reg-field-names",
       severity: "error",
-      label: `Registration field "${getRegistrationFieldDef(emptySelectField.key)?.label}" has no options`,
-      detail: "Add at least one option for select fields.",
+      label: "Some registration fields have no name",
+      detail: "Every registration field needs a name before saving.",
       fix: () => goToStep("registration"),
     });
   }

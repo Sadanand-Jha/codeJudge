@@ -29,7 +29,6 @@ export function QuestionList({
   onDownloadPdf,
   onSave,
   saving,
-  hasChanges,
   saveProgress,
   onToggleSidebar,
 }: {
@@ -37,7 +36,6 @@ export function QuestionList({
   onDownloadPdf?: () => void;
   onSave?: () => void;
   saving?: boolean;
-  hasChanges?: boolean;
   saveProgress?: { saved: number; total: number } | null;
   onToggleSidebar?: () => void;
 }) {
@@ -205,13 +203,8 @@ export function QuestionList({
         </div>
         <button
           onClick={onSave}
-          disabled={!hasChanges || saving}
-          className={cn(
-            "mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-semibold transition-colors",
-            hasChanges && !saving
-              ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20"
-              : "border-border bg-card text-text-muted cursor-not-allowed opacity-50"
-          )}
+          disabled={saving}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 py-2 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
         >
           {saving
             ? (saveProgress ? `Saving ${saveProgress.saved}/${saveProgress.total}…` : "Saving…")

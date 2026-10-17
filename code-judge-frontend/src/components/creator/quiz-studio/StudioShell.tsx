@@ -106,7 +106,7 @@ const STEP_HELP: Record<string, { title: string; intro: string; items: string[] 
 // Desktop keeps the complete Studio navigation.
 
 function StudioHelpButton() {
-  const { state } = useStudio();
+  const { state, helpExtra } = useStudio();
   const [open, setOpen] = useState(false);
   const help = STEP_HELP[state.step] ?? STEP_HELP.setup;
 
@@ -168,6 +168,9 @@ function StudioHelpButton() {
                       </li>
                     ))}
                   </ol>
+                  {helpExtra && (
+                    <div className="mt-6 border-t border-border pt-5">{helpExtra}</div>
+                  )}
                 </motion.aside>
               </div>
             )}

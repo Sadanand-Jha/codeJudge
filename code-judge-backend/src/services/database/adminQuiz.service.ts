@@ -36,7 +36,7 @@ export class AdminQuizService {
     duration?: number; totalMarks?: number; passingMarks?: number;
     shuffleQuestions?: boolean; shuffleOptions?: boolean;
     showResultsImmediately?: boolean; negativeMarking?: boolean;
-    leaderboard?: boolean; status?: string;
+    leaderboard?: boolean; status?: string; registrationFields?: string[];
   }): Promise<any> {
     await assertQuizCreationAllowed(data.createdby);
     return this.repository.createQuiz(data);

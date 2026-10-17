@@ -212,6 +212,7 @@ export class QuizRepository {
         q.show_results_immediately,
         q.negative_marking,
         q.leaderboard,
+        q.registration_fields,
         qs.name AS status,
         q.created_at,
         q.updated_at,
@@ -278,6 +279,7 @@ export class QuizRepository {
         q.show_results_immediately,
         q.negative_marking,
         q.leaderboard,
+        q.registration_fields,
         qs.name AS status,
         q.created_at,
         q.updated_at,
@@ -501,6 +503,7 @@ export class QuizRepository {
     negativeMarking?: boolean;
     leaderboard?: boolean;
     status?: string;
+    registrationFields?: string[];
   }): Promise<any> {
     let statusId: number | null = null;
     if (data.status) {
@@ -516,9 +519,10 @@ export class QuizRepository {
         name, code, createdby, starttime, visibility, audience_mode, difficulty,
         subject_id, exam_cat, duration, total_marks, passing_marks,
         shuffle_questions, shuffle_options, show_results_immediately,
-        negative_marking, leaderboard, quiz_status, created_at, updated_at
+        negative_marking, leaderboard, quiz_status, registration_fields,
+        created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const result = await pool.query(query, [
@@ -540,6 +544,7 @@ export class QuizRepository {
       data.negativeMarking || false,
       data.leaderboard !== false,
       statusId,
+      data.registrationFields ? JSON.stringify(data.registrationFields) : null,
     ]);
     return result.rows[0];
   }
@@ -631,7 +636,7 @@ export class QuizRepository {
     const updateableFields = [
       "name", "code", "starttime", "endtime", "visibility", "audience_mode", "difficulty",
       "subject_id", "exam_cat", "duration", "total_marks", "passing_marks", "shuffle_questions", "shuffle_options",
-      "show_results_immediately", "negative_marking", "leaderboard", "quiz_status"
+      "show_results_immediately", "negative_marking", "leaderboard", "quiz_status", "registration_fields"
     ];
 
     const fieldKeyMap: Record<string, string> = {
@@ -647,13 +652,14 @@ export class QuizRepository {
       audienceMode: "audience_mode",
       passingMarks: "passing_marks",
       passingPercentage: "passing_marks",
+      registrationFields: "registration_fields",
     };
 
     for (const field of updateableFields) {
       const camelKey = Object.keys(fieldKeyMap).find((k) => fieldKeyMap[k] === field);
       const raw = data[field] !== undefined ? data[field] : (camelKey ? data[camelKey] : undefined);
       if (raw !== undefined) {
-        const val = raw === null ? null : raw;
+        const val = raw === null ? null : field === "registration_fields" ? JSON.stringify(raw) : raw;
         paramCount++;
         fields.push(`${field} = $${paramCount}`);
         values.push(val);
@@ -702,14 +708,15 @@ export class QuizRepository {
       const newQuiz = await client.query(
         `INSERT INTO quiz (name, code, createdby, starttime, endtime, visibility, difficulty,
          total_marks, passing_marks, shuffle_questions, shuffle_options, show_results_immediately,
-         negative_marking, leaderboard, quiz_status, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+         negative_marking, leaderboard, quiz_status, registration_fields, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
          RETURNING *`,
         [
           newName, newCode, createdBy, original.starttime, original.endtime,
           original.visibility, original.difficulty, original.total_marks, original.passing_marks,
           original.shuffle_questions, original.shuffle_options, original.show_results_immediately,
-          original.negative_marking, original.leaderboard, draftStatusId
+          original.negative_marking, original.leaderboard, draftStatusId,
+          original.registration_fields ? JSON.stringify(original.registration_fields) : null,
         ]
       );
 
@@ -1025,6 +1032,7 @@ export class QuizRepository {
     userId: number;
     quizId: number;
     totalQuestions: number;
+    registrationData?: Record<string, string>;
   }): Promise<any> {
     const client = await pool.connect();
     try {
@@ -1049,10 +1057,15 @@ export class QuizRepository {
         throw err;
       }
       const result = await client.query(
-        `INSERT INTO quiz_attempt (user_id, quiz_id, total_questions, status, created_at, updated_at)
-         VALUES ($1, $2, $3, 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `INSERT INTO quiz_attempt (user_id, quiz_id, total_questions, registration_data, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'in_progress', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
          RETURNING *`,
-        [data.userId, data.quizId, data.totalQuestions]
+        [
+          data.userId,
+          data.quizId,
+          data.totalQuestions,
+          data.registrationData ? JSON.stringify(data.registrationData) : null,
+        ]
       );
       await client.query("COMMIT");
       return result.rows[0];

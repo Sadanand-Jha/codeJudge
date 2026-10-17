@@ -336,6 +336,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       negativeMarking: body.negativeMarking,
       leaderboard: true,
       status: body.status || "draft",
+      registrationFields: Array.isArray(body.registrationFields) ? body.registrationFields : undefined,
     });
 
     res.status(201).json({ success: true, message: "Quiz created successfully", data: quiz });

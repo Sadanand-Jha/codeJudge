@@ -108,7 +108,6 @@ function RadioRow({
 const FOOTER_OPTIONS: Array<[keyof PdfConfig["footer"], string]> = [
   ["enabled", "Show footer"],
   ["showDateTime", "Date and time"],
-  ["showQuizId", "Quiz ID"],
   ["showPageNumber", "Page X of Y"],
 ];
 
@@ -156,12 +155,14 @@ export default function PdfConfigModal({
   open,
   onClose,
   questions,
+  quizName,
   generating,
   onGenerate,
 }: {
   open: boolean;
   onClose: () => void;
   questions: import("@/components/quiz/creator/types").CreatorQuestion[];
+  quizName?: string;
   generating?: boolean;
   onGenerate: (config: PdfConfig, students: PdfStudent[]) => void;
 }) {
@@ -205,7 +206,7 @@ export default function PdfConfigModal({
 
   const meta: QuizPdfMeta = useMemo(
     () => ({
-      quizName: details.name || quiz?.name || "Quiz",
+      quizName: quizName?.trim() || details.name || quiz?.name || "Quiz",
       subject: details.subject,
       difficulty: details.difficulty,
       timeLimit: details.timeLimit ? `${details.timeLimit} min` : undefined,
@@ -216,7 +217,7 @@ export default function PdfConfigModal({
       totalQuestions: questions.length,
       totalMarks: questions.reduce((s, q) => s + (q.marks || 0), 0),
     }),
-    [details, quiz, quizId, questions]
+    [quizName, details, quiz, quizId, questions]
   );
 
   hydrate();
@@ -519,7 +520,6 @@ export default function PdfConfigModal({
                         ["showDuration", "Duration"],
                         ["showDifficulty", "Difficulty"],
                         ["showVisibility", "Visibility"],
-                        ["showQuizId", "Quiz ID"],
                       ] as const
                     ).map(([key, label]) => (
                       <label key={key} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-card-hover/40 px-3 py-2 text-xs text-text-primary transition-colors hover:border-border-hover">

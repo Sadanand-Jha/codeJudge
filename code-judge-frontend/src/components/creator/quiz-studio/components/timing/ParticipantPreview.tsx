@@ -105,25 +105,6 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
           </>
         )}
       </div>
-
-      <p className="mt-4 text-[11px] text-text-secondary leading-relaxed">
-        {mode === "schedule" && schedule.startDate ? (
-          <>
-            Participants can start their attempt during the quiz window. Each
-            participant gets {participantDuration} minutes once they begin.
-          </>
-        ) : manual.status === "live" ? (
-          <>
-            The quiz is currently live. Each participant gets{" "}
-            {participantDuration} minutes once they begin their attempt.
-          </>
-        ) : (
-          <>
-            Once you start the quiz, participants will be able to begin their
-            attempts. Each participant gets {participantDuration} minutes.
-          </>
-        )}
-      </p>
     </div>
   );
 }

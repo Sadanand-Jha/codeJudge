@@ -563,7 +563,6 @@ function buildHeader(input: PaperInput, margin: number, width: number, first: bo
   if (hdr.showDuration && meta.timeLimit) bits.push(`Duration: ${meta.timeLimit}`);
   if (hdr.showDifficulty && meta.difficulty) bits.push(`Difficulty: ${toPlainText(meta.difficulty)}`);
   if (hdr.showVisibility && meta.visibility) bits.push(`Visibility: ${toPlainText(meta.visibility)}`);
-  if (hdr.showQuizId) bits.push(`Quiz ID: ${meta.quizId ?? "—"}`);
 
   if (bits.length) {
     line(bits.join("   "), "normal", 9, "left", 1.3, 1.5);
@@ -610,16 +609,15 @@ function footerEls(
   const css = "Helvetica, Arial, sans-serif";
   const sizePt = 8;
 
-  // "PDF created by QuizSupport" is always required. The optional date/time,
-  // quiz ID and page number are gated by the footer toggle and their own flags.
+  // "PDF created by QuizSupport" is always required. The optional date/time
+  // and page number are gated by the footer toggle and their own flags.
   const extras = cfg.footer.enabled;
   const right = extras && cfg.footer.showPageNumber ? `Page ${pageIndex + 1} of ${total}` : "";
   const rightW = right ? textWidthMm(base, "normal", sizePt, right) : 0;
   const available = pageW - margin * 2 - rightW - 6;
 
-  const bits = ["PDF created by QuizSupport"];
+  const bits = ["PDF created by quizsupport.com"];
   if (extras && cfg.footer.showDateTime) bits.push(`${date} ${time}`);
-  if (extras && cfg.footer.showQuizId) bits.push(`Quiz ID: ${input.meta.quizId ?? "—"}`);
   const left = bits.join(" • ");
   if (textWidthMm(base, "normal", sizePt, left) > available) {
     let trimmed = bits[0];

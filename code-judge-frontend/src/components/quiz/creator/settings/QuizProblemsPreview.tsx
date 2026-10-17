@@ -21,9 +21,6 @@ import {
   Italic,
   Underline,
   Code,
-  Link as LinkIcon,
-  Table,
-  Sigma,
   Paperclip,
   X,
   Sparkles,
@@ -622,10 +619,6 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
                       <ToolbarBtn icon={Underline} label="Underline" />
                       <div className="w-px h-4 bg-zinc-200 mx-1" />
                       <ToolbarBtn icon={Code} label="Inline code" />
-                      <ToolbarBtn icon={Sigma} label="Math" />
-                      <ToolbarBtn icon={LinkIcon} label="Link" />
-                      <ToolbarBtn icon={ImageIcon} label="Image" onClick={() => fileInputRef.current?.click()} />
-                      <ToolbarBtn icon={Table} label="Table" />
                       <ToolbarBtn icon={Code} label="Code block" />
                       <ToolbarBtn icon={Paperclip} label="Attachment" />
                     </motion.div>
@@ -671,6 +664,21 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
               <span>
                 Time <span className="font-semibold text-zinc-900">{current.expectedTime} min</span>
               </span>
+              <button
+                onClick={handleSyncQuestions}
+                disabled={syncing || isSynced || lockSync}
+                title={
+                  lockSync
+                    ? "Quiz is live — saving is locked"
+                    : isSynced
+                      ? "All questions are saved"
+                      : "Save questions to the server"
+                }
+                className="inline-flex min-h-12 w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-600 px-6 text-sm font-bold text-white shadow-[0_8px_24px_rgba(236,72,153,0.35)] transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:brightness-100 sm:ml-auto sm:w-auto"
+              >
+                {syncing ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Save className="h-4 w-4 shrink-0" />}
+                {syncing ? "Saving…" : "Save Question"}
+              </button>
             </div>
 
             {isChoiceType && (

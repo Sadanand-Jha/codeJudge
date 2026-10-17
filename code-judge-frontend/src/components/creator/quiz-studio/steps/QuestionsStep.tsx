@@ -41,23 +41,6 @@ function hashState(questions: CreatorQuestion[], info: { title: string; shortDes
   return JSON.stringify({ questions, title: info.title, shortDescription: info.shortDescription, fullDescription: info.fullDescription, subject: info.subject, difficulty: info.difficulty, duration: info.duration, passingMarks: info.passingMarks, tags: info.tags });
 }
 
-/** Big per-problem save button — one for the one visible problem. Disabled
- *  until that problem has unsaved changes; saving writes it to the database. */
-function BigSaveButton({ disabled, saving, onClick }: { disabled: boolean; saving: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || saving}
-      title={disabled ? "No unsaved changes in this problem" : "Save this problem to the database"}
-      className="mt-3 inline-flex min-h-14 w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 text-[15px] font-bold text-white shadow-[0_8px_24px_rgba(236,72,153,0.35)] transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:brightness-100"
-    >
-      <Save className="h-5 w-5 shrink-0" />
-      {saving ? "Saving…" : "Save Question"}
-    </button>
-  );
-}
-
 export function QuestionsStep() {
   const { state, addQuestion, importQuestionsAndSave, saveToServer, saveProgress, setActiveQuestion, questionsLoading } = useStudio();
   const [aiOpen, setAiOpen] = useState(false);
@@ -75,38 +58,6 @@ export function QuestionsStep() {
 
   const snapshotRef = useRef(hashState(state.questions, state.info));
   const [hasChanges, setHasChanges] = useState(false);
-
-  // Per-problem save: hash of each question at its last successful save.
-  // The big Save button stays disabled until the visible problem changes.
-  const [savedQHashes, setSavedQHashes] = useState<Record<string, string>>({});
-  const [savingQ, setSavingQ] = useState(false);
-  const activeQ = state.questions.find((q) => q.id === state.activeQuestionId) ?? null;
-  const activeHash = activeQ
-    ? JSON.stringify({ ...activeQ, serverId: undefined, createdAt: undefined, updatedAt: undefined })
-    : "";
-  const isQDirty = !!activeQ && savedQHashes[activeQ.id] !== activeHash;
-
-  const hashQ = (q: CreatorQuestion) =>
-    JSON.stringify({ ...q, serverId: undefined, createdAt: undefined, updatedAt: undefined });
-
-  const handleSaveQuestion = useCallback(async () => {
-    if (!activeQ || savingQ) return;
-    setSavingQ(true);
-    try {
-      await saveToServer();
-      // Re-baseline every problem — a fresh Add starts dirty, a fresh save turns it off.
-      const baseline: Record<string, string> = {};
-      for (const q of state.questions) baseline[q.id] = hashQ(q);
-      setSavedQHashes(baseline);
-      toast.success({ title: "Question saved", description: "This problem has been saved to the database." });
-    } catch (err) {
-      if (!isQuestionValidationError(err)) {
-        toast.error({ title: "Save failed", description: getApiErrorMessage(err, "Something went wrong.") });
-      }
-    } finally {
-      setSavingQ(false);
-    }
-  }, [activeQ, savingQ, saveToServer, state.questions]);
 
   const openPdfModal = useCallback(async () => {
     const code = state.info.code || pdfCode;
@@ -302,9 +253,6 @@ export function QuestionsStep() {
           ) : (
             <MobileQuestionEditor onOpenSettings={() => setMobileSettingsOpen(true)} />
           )}
-          {activeQ && (
-            <BigSaveButton disabled={!isQDirty} saving={savingQ} onClick={handleSaveQuestion} />
-          )}
         </div>
 
         {/* Mobile bottom action bar — primary actions only */}
@@ -365,7 +313,7 @@ export function QuestionsStep() {
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"}
           `}
         >
-          <QuestionList onAiGenerate={() => setAiOpen(true)} onDownloadPdf={openPdfModal} onSave={handleSave} saving={saving} hasChanges={hasChanges} saveProgress={saveProgress} onToggleSidebar={() => setSidebarOpen(false)} />
+          <QuestionList onAiGenerate={() => setAiOpen(true)} onDownloadPdf={openPdfModal} onSave={handleSave} saving={saving} saveProgress={saveProgress} onToggleSidebar={() => setSidebarOpen(false)} />
         </aside>
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden bg-card rounded-xl border border-border">
@@ -422,14 +370,7 @@ export function QuestionsStep() {
               </div>
             </div>
           ) : (
-            <>
-              <QuestionEditor />
-              {activeQ && (
-                <div className="shrink-0 px-1 pb-1">
-                  <BigSaveButton disabled={!isQDirty} saving={savingQ} onClick={handleSaveQuestion} />
-                </div>
-              )}
-            </>
+            <QuestionEditor />
           )}
         </main>
 
@@ -468,6 +409,7 @@ export function QuestionsStep() {
             open={pdfModalOpen}
             onClose={() => setPdfModalOpen(false)}
             questions={state.questions}
+            quizName={state.info.title}
             generating={generatingPdf}
             onGenerate={handleDownloadPdf}
           />

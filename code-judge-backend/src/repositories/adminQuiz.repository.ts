@@ -12,7 +12,7 @@ export class AdminQuizRepository {
         q.id, q.name, q.code, q.createdby, q.starttime, q.endtime,
         q.subject_id, q.duration, q.total_marks, q.passing_marks, q.audience_mode,
         q.shuffle_questions, q.shuffle_options, q.show_results_immediately,
-        q.negative_marking, q.leaderboard,
+        q.negative_marking, q.leaderboard, q.registration_fields,
         qs.name AS status, q.created_at,
         qd.heading AS difficulty_name
       FROM quiz q
@@ -30,7 +30,7 @@ export class AdminQuizRepository {
         q.id, q.name, q.code, q.createdby, q.starttime, q.endtime,
         q.subject_id, q.duration, q.total_marks, q.passing_marks, q.audience_mode,
         q.shuffle_questions, q.shuffle_options, q.show_results_immediately,
-        q.negative_marking, q.leaderboard,
+        q.negative_marking, q.leaderboard, q.registration_fields,
         qs.name AS status, q.created_at,
         qd.heading AS difficulty_name
       FROM quiz q
@@ -159,7 +159,7 @@ export class AdminQuizRepository {
     duration?: number; totalMarks?: number; passingMarks?: number;
     shuffleQuestions?: boolean; shuffleOptions?: boolean;
     showResultsImmediately?: boolean; negativeMarking?: boolean;
-    leaderboard?: boolean; status?: string;
+    leaderboard?: boolean; status?: string; registrationFields?: string[];
   }): Promise<any> {
     let statusId: number | null = null;
     if (data.status) {
@@ -174,8 +174,9 @@ export class AdminQuizRepository {
         name, code, createdby, starttime, visibility, audience_mode, difficulty,
         subject_id, exam_cat, duration, total_marks, passing_marks,
         shuffle_questions, shuffle_options, show_results_immediately,
-        negative_marking, leaderboard, quiz_status, created_at, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+        negative_marking, leaderboard, quiz_status, registration_fields,
+        created_at, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
       RETURNING *
     `;
     const result = await pool.query(query, [
@@ -185,6 +186,7 @@ export class AdminQuizRepository {
       data.passingMarks || 0, data.shuffleQuestions ?? true, data.shuffleOptions ?? true,
       data.showResultsImmediately || false, data.negativeMarking || false,
       data.leaderboard !== false, statusId,
+      data.registrationFields ? JSON.stringify(data.registrationFields) : null,
     ]);
     return result.rows[0];
   }
@@ -208,7 +210,7 @@ export class AdminQuizRepository {
       "name", "starttime", "endtime", "visibility", "audience_mode", "difficulty",
       "subject_id", "exam_cat", "duration", "total_marks", "passing_marks",
       "shuffle_questions", "shuffle_options", "show_results_immediately",
-      "negative_marking", "leaderboard", "quiz_status",
+      "negative_marking", "leaderboard", "quiz_status", "registration_fields",
     ];
     const fieldKeyMap: Record<string, string> = {
       status: "quiz_status", subjectId: "subject_id", examId: "exam_cat",
@@ -216,14 +218,14 @@ export class AdminQuizRepository {
       shuffleQuestions: "shuffle_questions", shuffleOptions: "shuffle_options",
       showResultsImmediately: "show_results_immediately", negativeMarking: "negative_marking",
       passingMarks: "passing_marks", passingPercentage: "passing_marks",
-      audienceMode: "audience_mode",
+      audienceMode: "audience_mode", registrationFields: "registration_fields",
     };
 
     for (const field of updateableFields) {
       const camelKey = Object.keys(fieldKeyMap).find((k) => fieldKeyMap[k] === field);
       const raw = data[field] !== undefined ? data[field] : (camelKey ? data[camelKey] : undefined);
       if (raw !== undefined) {
-        const val = raw === null ? null : raw;
+        const val = raw === null ? null : field === "registration_fields" ? JSON.stringify(raw) : raw;
         paramCount++;
         fields.push(`${field} = $${paramCount}`);
         values.push(val);
@@ -266,12 +268,13 @@ export class AdminQuizRepository {
       const newQuiz = await client.query(
         `INSERT INTO quiz (name, code, createdby, starttime, endtime, visibility, difficulty,
          total_marks, passing_marks, shuffle_questions, shuffle_options, show_results_immediately,
-         negative_marking, leaderboard, quiz_status, created_at, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING *`,
+         negative_marking, leaderboard, quiz_status, registration_fields, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) RETURNING *`,
         [newName, newCode, createdBy, original.starttime, original.endtime,
          original.visibility, original.difficulty, original.total_marks, original.passing_marks,
          original.shuffle_questions, original.shuffle_options, original.show_results_immediately,
-         original.negative_marking, original.leaderboard, draftStatusId]
+         original.negative_marking, original.leaderboard, draftStatusId,
+         original.registration_fields ? JSON.stringify(original.registration_fields) : null]
       );
       const newQuizId = newQuiz.rows[0].id;
 

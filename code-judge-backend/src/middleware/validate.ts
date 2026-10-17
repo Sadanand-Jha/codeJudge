@@ -153,6 +153,10 @@ export const quizSchema = z.object({
   negativeMarking: z.boolean().optional(),
   leaderboard: z.boolean().optional(),
   status: z.enum(["draft", "scheduled", "live", "ended"]).optional(),
+  registrationFields: z
+    .array(z.string().trim().min(1, "Registration field name cannot be empty").max(200, "Registration field name must be at most 200 characters"))
+    .max(100, "At most 100 registration fields are allowed")
+    .optional(),
 });
 
 export const quizUpdateSchema = quizSchema.omit({ code: true }).strict();
@@ -184,6 +188,17 @@ export const joinQuizSchema = z.object({
 export const quizRegistrationSchema = z.object({
   quizId: z.number().int().positive(),
   rollno: z.string().trim().max(50).optional(),
+});
+
+/**
+ * Schema for starting a quiz attempt. Registration values are the
+ * creator-defined form answers, keyed by field name.
+ */
+export const startQuizAttemptSchema = z.object({
+  registrationData: z
+    .record(z.string().min(1).max(200), z.string().trim().max(500, "Registration value must be at most 500 characters"))
+    .refine((data) => Object.keys(data).length <= 100, "Too many registration fields")
+    .optional(),
 });
 
 /** One immutable 1–5 star rating per learner and quiz. */

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, AlertTriangle, Clock, Maximize2, Radio, Rocket, ShieldAlert, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowLeft, ClipboardList, Clock, Maximize2, Radio, Rocket, ShieldAlert, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { reportViolation } from "@/services/quiz";
@@ -31,8 +31,9 @@ interface ExamModeShellProps {
   isLive?: boolean;
   /** Attempt id — when provided, every violation is reported to the backend. */
   attemptId?: string | null;
-  /** Called (after user gesture) when exam mode is entered. */
-  onEnterExam?: () => boolean | void | Promise<boolean | void>;
+  /** Called (after user gesture) when exam mode is entered. Receives the
+   * registration form values when the quiz collects them. */
+  onEnterExam?: (registrationData?: Record<string, string>) => boolean | void | Promise<boolean | void>;
   onExitPreview: () => void;
   /** An access/start failure shown before Exam Mode is activated. */
   entryError?: string | null;
@@ -40,6 +41,9 @@ interface ExamModeShellProps {
   onTerminate?: (summary: ViolationSummary) => void;
   autoEnter?: boolean;
   fullWidth?: boolean;
+  /** Creator-defined field names. When non-empty, a registration form is
+   * shown after "Enter Exam Mode" and the attempt starts only on submit. */
+  registrationFields?: string[];
   children: React.ReactNode;
 }
 
@@ -56,10 +60,15 @@ export default function ExamModeShell({
   onTerminate,
   autoEnter = false,
   fullWidth = false,
+  registrationFields = [],
   children,
 }: ExamModeShellProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [examActive, setExamActive] = useState(false);
+  const [showRegistration, setShowRegistration] = useState(false);
+  const [registrationValues, setRegistrationValues] = useState<Record<string, string>>({});
+  const registrationComplete =
+    registrationFields.length > 0 && registrationFields.every((name) => registrationValues[name]?.trim());
   const [entering, setEntering] = useState(false);
   const [violations, setViolations] = useState(0);
   const [activeViolation, setActiveViolation] = useState<{ type: ViolationType; title: string; desc: string } | null>(null);
@@ -123,16 +132,17 @@ export default function ExamModeShell({
     [examActive, terminated, maxViolations, onTerminate]
   );
 
-  const enterExamMode = useCallback(async () => {
-    if (entering) return;
+  const enterExamMode = useCallback(async (registrationData?: Record<string, string>): Promise<boolean> => {
+    if (entering) return false;
     setEntering(true);
 
     try {
       // Access and attempt-limit checks must finish before the protected exam
       // UI is activated. Returning false keeps the student on this screen.
-      const canEnter = await onEnterExam?.();
-      if (canEnter === false) return;
+      const canEnter = await onEnterExam?.(registrationData);
+      if (canEnter === false) return false;
 
+      setShowRegistration(false);
       setExamActive(true);
       violationCountRef.current = 0;
       violationTypesRef.current = [];
@@ -153,10 +163,18 @@ export default function ExamModeShell({
           // If denied, the protected exam UI still remains usable.
         }
       }
+      return true;
     } finally {
       setEntering(false);
     }
   }, [entering, onEnterExam]);
+
+  const submitRegistration = useCallback(async () => {
+    if (!registrationComplete) return;
+    const data: Record<string, string> = {};
+    for (const name of registrationFields) data[name] = registrationValues[name].trim();
+    await enterExamMode(data);
+  }, [registrationComplete, registrationFields, registrationValues, enterExamMode]);
 
   const exitExamMode = useCallback(async () => {
     setExamActive(false);
@@ -301,6 +319,85 @@ export default function ExamModeShell({
     }
   }, [autoEnter, examActive, terminated, enterExamMode]);
 
+  // Registration gate — shown after "Enter Exam Mode" when the creator
+  // collects registration details. The attempt (and its timer) starts only
+  // once this form is submitted.
+  if (!examActive && showRegistration) {
+    return (
+      <div className="relative mx-auto max-w-3xl overflow-hidden p-3 sm:p-6">
+        <div className="relative overflow-hidden rounded-[28px] border border-pink-200/80 bg-white/90 p-4 shadow-[0_30px_90px_-50px_rgba(244,114,182,.7)] dark:border-violet-400/20 dark:bg-[#111624]/95 dark:shadow-[0_32px_95px_-48px_rgba(124,92,255,.6)] sm:p-8">
+          <div aria-hidden className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-400/10" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-pink-300/25 blur-3xl dark:bg-violet-500/15" />
+          <div className="mx-auto max-w-xl">
+            <div className="text-center">
+              <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 via-orange-400 to-amber-300 text-white shadow-[0_16px_34px_-16px_rgba(244,114,182,.9)] dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500 sm:h-16 sm:w-16">
+                <ClipboardList className="h-6 w-6 sm:h-7 sm:w-7" />
+              </div>
+              <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-pink-500 dark:text-violet-300">Registration required</p>
+              <h1 className="mt-1 text-xl font-black tracking-tight sm:text-2xl">Fill your details to begin</h1>
+              <p className="mt-1 truncate text-xs font-semibold text-text-muted">{quizName}</p>
+              <p className="mt-1.5 text-xs text-text-secondary sm:mt-2 sm:text-sm">Your timer starts only after you submit this form.</p>
+            </div>
+
+            <form
+              className="mt-5 space-y-3.5 sm:mt-6"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submitRegistration();
+              }}
+            >
+              {registrationFields.map((name) => (
+                <label key={name} className="block">
+                  <span className="mb-1 block text-[11px] font-semibold text-text-secondary sm:text-xs">
+                    {name} <span className="text-rose-500">*</span>
+                  </span>
+                  <input
+                    type="text"
+                    value={registrationValues[name] ?? ""}
+                    maxLength={500}
+                    autoComplete="off"
+                    placeholder={`Enter ${name.toLowerCase()}`}
+                    onChange={(e) =>
+                      setRegistrationValues((previous) => ({ ...previous, [name]: e.target.value }))
+                    }
+                    className="h-12 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none transition-colors focus:border-pink-500/60 dark:focus:border-violet-400/60"
+                  />
+                </label>
+              ))}
+
+              <div className="flex flex-col gap-2 pt-1.5 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => setShowRegistration(false)}
+                  disabled={entering}
+                  className="inline-flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-border px-5 text-sm font-semibold disabled:opacity-50"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={entering || !registrationComplete}
+                  className="inline-flex h-14 flex-[1.4] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500"
+                >
+                  {entering ? <QuizLoader className="h-4 w-4 text-white" /> : <Rocket className="h-4 w-4" />}
+                  {entering ? "Starting your attempt…" : "Start Exam"}
+                </button>
+              </div>
+              <p className="text-center text-[11px] text-text-muted">All fields are required to start.</p>
+            </form>
+
+            {entryError && (
+              <div className="mx-auto mt-3 flex max-w-md items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/[0.07] px-3.5 py-3 text-left text-xs leading-5 text-red-600 dark:text-red-300">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{entryError}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // If examActive, render as fullscreen overlay; otherwise show entry screen
   if (!examActive) {
     return (
@@ -333,7 +430,13 @@ export default function ExamModeShell({
 
             <div className="mt-4 flex flex-col gap-2 sm:mt-6 sm:flex-row sm:justify-center">
               <button
-                onClick={enterExamMode}
+                onClick={() => {
+                  if (registrationFields.length > 0) {
+                    setShowRegistration(true);
+                    return;
+                  }
+                  void enterExamMode();
+                }}
                 disabled={entering}
                 className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70 dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500 sm:w-auto sm:px-6"
               >

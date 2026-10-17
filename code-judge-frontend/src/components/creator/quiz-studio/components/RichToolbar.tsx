@@ -2,16 +2,12 @@
 
 import { useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/helpers";
-import { Bold, Italic, Underline, Strikethrough, Code2, Link2, Image as ImageIcon, Sigma, Table, Undo2, Redo2 } from "lucide-react";
+import { Bold, Italic, Underline, Strikethrough, Code2, Undo2, Redo2 } from "lucide-react";
 
 export function RichToolbar({ onCommand }: { onCommand?: () => void }) {
   const exec = (cmd: string, arg?: string) => {
     document.execCommand(cmd, false, arg);
     onCommand?.();
-  };
-  const insertImage = () => {
-    const val = window.prompt("Enter image URL");
-    if (val) exec("insertImage", val);
   };
   const Btn = ({ icon: Icon, title, onClick }: { icon: any; title: string; onClick?: () => void }) => (
     <button
@@ -36,11 +32,6 @@ export function RichToolbar({ onCommand }: { onCommand?: () => void }) {
       <Btn icon={Code2} title="Code" onClick={() => exec("insertHTML", "<code>" + window.getSelection()?.toString() + "</code>")} />
       <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("subscript"); }} title="Subscript" className="px-1 py-0.5 text-xs text-text-secondary hover:bg-card-hover hover:text-text-primary rounded shrink-0">x₂</button>
       <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("superscript"); }} title="Superscript" className="px-1 py-0.5 text-xs text-text-secondary hover:bg-card-hover hover:text-text-primary rounded shrink-0">x²</button>
-      <span className="mx-0.5 sm:mx-1 h-4 w-px shrink-0 bg-border" />
-      <Btn icon={Link2} title="Link" onClick={() => { const url = window.prompt("Enter URL"); if (url) exec("createLink", url); }} />
-      <Btn icon={ImageIcon} title="Image" onClick={insertImage} />
-      <Btn icon={Sigma} title="Math" onClick={() => exec("insertHTML", "<span class='math'>Σ</span>")} />
-      <Btn icon={Table} title="Table" onClick={() => exec("insertHTML", "<table class='border-collapse border border-zinc-300'><tr><td class='border border-zinc-300 px-3 py-1'></td><td class='border border-zinc-300 px-3 py-1'></td></tr><tr><td class='border border-zinc-300 px-3 py-1'></td><td class='border border-zinc-300 px-3 py-1'></td></tr></table>")} />
       <span className="mx-0.5 sm:mx-1 h-4 w-px shrink-0 bg-border" />
       <Btn icon={Undo2} title="Undo" onClick={() => exec("undo")} />
       <Btn icon={Redo2} title="Redo" onClick={() => exec("redo")} />

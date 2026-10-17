@@ -1,27 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowDown,
   ArrowUp,
-  Check,
   ChevronDown,
-  ChevronUp,
   Eye,
   GripVertical,
+  Loader2,
   Lock,
   Plus,
   ShieldCheck,
   Trash2,
   UserRound,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { useStudio } from "../StudioProvider";
+import { toast } from "@/lib/toast";
+import { useStudio, isQuestionValidationError } from "../StudioProvider";
 import {
-  REGISTRATION_FIELD_CATALOG,
-  getRegistrationFieldDef,
+  REGISTRATION_FIELD_NAME_MAX,
   type RegistrationFieldConfig,
 } from "../types";
 import { StudioStepHeader, StudioStepLayout } from "../primitives";
@@ -33,15 +31,28 @@ const inputCls =
   "w-full rounded-md border border-input-border bg-input-bg px-2.5 py-1.5 text-xs text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60";
 
 export function RegistrationStep() {
-  const { state, setState } = useStudio();
+  const { state, setState, saveToServer } = useStudio();
   const reg = state.registration;
   const fields = reg.fields;
 
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const addedKeys = useMemo(() => new Set(fields.map((f) => f.key)), [fields]);
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await saveToServer();
+      toast.success({ title: "Saved", description: "Your quiz has been saved." });
+    } catch (err) {
+      if (!isQuestionValidationError(err)) {
+        toast.error({ title: "Could not save", description: err instanceof Error ? err.message : "Something went wrong." });
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
 
   /* ── mutations ─────────────────────────────────────────── */
 
@@ -54,19 +65,10 @@ export function RegistrationStep() {
       registration: { ...s.registration, settings: { ...s.registration.settings, ...patch } },
     }));
 
-  const addField = (key: string) => {
-    if (addedKeys.has(key)) return;
-    const def = getRegistrationFieldDef(key);
-    if (!def) return;
-    const field: RegistrationFieldConfig = {
-      id: uid("rfld"),
-      key,
-      required: false,
-      options: def.options ? [...def.options] : undefined,
-    };
+  const addField = () => {
+    const field: RegistrationFieldConfig = { id: uid("rfld"), name: "" };
     mutateFields((prev) => [...prev, field]);
     setExpandedId(field.id);
-    setPickerOpen(false);
   };
 
   const removeField = (id: string) => {
@@ -186,58 +188,23 @@ export function RegistrationStep() {
                   {fields.length} field{fields.length !== 1 ? "s" : ""} configured · drag to reorder
                 </p>
               </div>
-              <div className="relative">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setPickerOpen(!pickerOpen)}
-                  aria-expanded={pickerOpen}
+                  onClick={() => void handleSave()}
+                  disabled={saving}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors duration-150 hover:bg-card-hover disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={addField}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 px-3 py-1.5 text-xs font-semibold text-pink-900 transition-colors duration-150 hover:bg-pink-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add Registration Field
-                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", pickerOpen && "rotate-180")} />
                 </button>
-
-                {/* Picker dropdown */}
-                {pickerOpen && (
-                  <>
-                    <div className="fixed inset-0 z-30" onClick={() => setPickerOpen(false)} />
-                    <div className="absolute right-0 z-40 mt-2 max-h-96 w-72 overflow-y-auto rounded-lg border border-border bg-card py-1 shadow-xl shadow-black/20">
-                      {REGISTRATION_FIELD_CATALOG.map((group) => (
-                        <div key={group.group}>
-                          <p className="sticky top-0 bg-card px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                            {group.group}
-                          </p>
-                          {group.fields.map((def) => {
-                            const added = addedKeys.has(def.key);
-                            return (
-                              <button
-                                key={def.key}
-                                type="button"
-                                disabled={added}
-                                onClick={() => addField(def.key)}
-                                className={cn(
-                                  "flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs transition-colors duration-150",
-                                  added
-                                    ? "cursor-not-allowed text-text-muted"
-                                    : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
-                                )}
-                              >
-                                <span className="truncate">{def.label}</span>
-                                {added ? (
-                                  <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                                    <Check className="h-3 w-3" /> Added
-                                  </span>
-                                ) : (
-                                  <Plus className="h-3 w-3 shrink-0 opacity-60" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
               </div>
             </div>
 
@@ -247,16 +214,13 @@ export function RegistrationStep() {
                 <div className="rounded-lg border border-dashed border-border px-4 py-10 text-center">
                   <p className="text-sm font-medium text-text-primary">No registration fields yet</p>
                   <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-text-secondary">
-                    Add fields like Roll Number, Branch or Year to collect the
-                    academic information you need.
+                    Type any field name you want — for example Roll Number,
+                    Branch or Team Name.
                   </p>
                 </div>
               ) : (
                 <ul className="space-y-2">
                   {fields.map((field, idx) => {
-                    const def = getRegistrationFieldDef(field.key);
-                    if (!def) return null;
-                    const fieldOptions = field.options ?? def.options ?? [];
                     const expanded = expandedId === field.id;
                     return (
                       <li
@@ -288,22 +252,10 @@ export function RegistrationStep() {
                             aria-expanded={expanded}
                           >
                             <span className="block truncate text-sm font-medium text-text-primary">
-                              {def.label}
+                              {field.name.trim() || "Untitled field"}
                             </span>
-                            <span className="text-[11px] text-text-muted">
-                              {def.inputType === "select" ? "Select" : "Text input"}
-                            </span>
+                            <span className="text-[11px] text-text-muted">Text input</span>
                           </button>
-                          <span
-                            className={cn(
-                              "shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
-                              field.required
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                : "bg-card-hover text-text-muted"
-                            )}
-                          >
-                            {field.required ? "Required" : "Optional"}
-                          </span>
                           <div className="flex shrink-0 items-center gap-0.5">
                             <IconBtn title="Move up" disabled={idx === 0} onClick={() => moveField(field.id, -1)}>
                               <ArrowUp className="h-3.5 w-3.5" />
@@ -331,129 +283,27 @@ export function RegistrationStep() {
 
                         {/* Configuration */}
                         {expanded && (
-                          <div className="space-y-4 border-t border-border px-3.5 py-3.5">
-                            {/* Required / Optional */}
-                            <div>
-                              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
-                                Completion
-                              </p>
-                              <div className="grid max-w-[220px] grid-cols-2 gap-1 rounded-lg border border-border p-1">
-                                <button
-                                  type="button"
-                                  onClick={() => updateField(field.id, { required: true })}
-                                  aria-pressed={field.required}
-                                  className={cn(
-                                    "rounded-md px-2 py-1.5 text-xs font-semibold transition-colors duration-150",
-                                    field.required
-                                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                                      : "text-text-secondary hover:text-text-primary"
-                                  )}
-                                >
-                                  Required
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => updateField(field.id, { required: false })}
-                                  aria-pressed={!field.required}
-                                  className={cn(
-                                    "rounded-md px-2 py-1.5 text-xs font-semibold transition-colors duration-150",
-                                    !field.required
-                                      ? "bg-card-hover text-text-primary"
-                                      : "text-text-secondary hover:text-text-primary"
-                                  )}
-                                >
-                                  Optional
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Options for selects */}
-                            {def.inputType === "select" && (
-                              <div>
-                                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
-                                  Options
-                                </p>
-                                <div className="space-y-1.5">
-                                  {fieldOptions.map((opt, i) => (
-                                    <div key={i} className="flex items-center gap-1.5">
-                                      <span className="w-4 text-center text-[10px] text-text-muted">{i + 1}</span>
-                                      <input
-                                        value={opt}
-                                        onChange={(e) => {
-                                          const options = [...fieldOptions];
-                                          options[i] = e.target.value;
-                                          updateField(field.id, { options });
-                                        }}
-                                        className={inputCls}
-                                      />
-                                      <IconBtn
-                                        title="Remove option"
-                                        danger
-                                        onClick={() =>
-                                          updateField(field.id, {
-                                            options: fieldOptions.filter((_, x) => x !== i),
-                                          })
-                                        }
-                                      >
-                                        <X className="h-3.5 w-3.5" />
-                                      </IconBtn>
-                                    </div>
-                                  ))}
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      updateField(field.id, {
-                                        options: [...fieldOptions, `Option ${fieldOptions.length + 1}`],
-                                      })
-                                    }
-                                    className="inline-flex items-center gap-1 rounded-md border border-dashed border-border px-2 py-1 text-[10px] font-medium text-text-secondary transition-colors duration-150 hover:border-pink-500/40 hover:text-text-primary"
-                                  >
-                                    <Plus className="h-3 w-3" /> Add option
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Validation for text inputs */}
-                            {def.inputType === "text" && (
-                              <div>
-                                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
-                                  Validation
-                                </p>
-                                <div className="grid max-w-[280px] grid-cols-2 gap-2">
-                                  <label className="block">
-                                    <span className="mb-1 block text-[10px] font-medium text-text-secondary">
-                                      Min length
-                                    </span>
-                                    <input
-                                      type="number"
-                                      value={field.minLength ?? ""}
-                                      onChange={(e) =>
-                                        updateField(field.id, {
-                                          minLength: e.target.value === "" ? undefined : Number(e.target.value),
-                                        })
-                                      }
-                                      className={inputCls}
-                                    />
-                                  </label>
-                                  <label className="block">
-                                    <span className="mb-1 block text-[10px] font-medium text-text-secondary">
-                                      Max length
-                                    </span>
-                                    <input
-                                      type="number"
-                                      value={field.maxLength ?? ""}
-                                      onChange={(e) =>
-                                        updateField(field.id, {
-                                          maxLength: e.target.value === "" ? undefined : Number(e.target.value),
-                                        })
-                                      }
-                                      className={inputCls}
-                                    />
-                                  </label>
-                                </div>
-                              </div>
-                            )}
+                          <div className="space-y-2 border-t border-border px-3.5 py-3.5">
+                            <label className="block max-w-sm">
+                              <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                                Field name
+                              </span>
+                              <input
+                                value={field.name}
+                                maxLength={REGISTRATION_FIELD_NAME_MAX}
+                                placeholder="e.g. Roll Number"
+                                onChange={(e) =>
+                                  updateField(field.id, {
+                                    name: e.target.value.slice(0, REGISTRATION_FIELD_NAME_MAX),
+                                  })
+                                }
+                                className={inputCls}
+                              />
+                            </label>
+                            <p className="text-[10px] text-text-muted">
+                              Participants will see this label on the registration
+                              form. Max {REGISTRATION_FIELD_NAME_MAX} characters.
+                            </p>
                           </div>
                         )}
                       </li>
@@ -464,7 +314,7 @@ export function RegistrationStep() {
             </div>
           </section>
 
-          {/* Advanced settings */}
+          {/* Advanced settings — commented out per request
           <section
             className={cn(
               "rounded-xl border border-border bg-card transition-opacity duration-150",
@@ -528,6 +378,7 @@ export function RegistrationStep() {
               </div>
             </div>
           </section>
+          */}
         </div>
 
         {/* ── Live Preview ── */}
@@ -560,37 +411,25 @@ export function RegistrationStep() {
                 </div>
 
                 {reg.settings.collectAdditionalInfo ? (
-                  fields.map((field) => {
-                    const def = getRegistrationFieldDef(field.key);
-                    if (!def) return null;
-                    return (
-                      <div key={field.id}>
-                        <label className="block text-xs font-medium text-text-primary">
-                          {def.label}
-                          {field.required && <span className="ml-0.5 text-rose-500">*</span>}
-                        </label>
-                        <div className="mt-1.5">
-                          {def.inputType === "select" ? (
-                            <select className={cn(inputCls, "py-2")} defaultValue="" disabled>
-                              <option value="" disabled>
-                                Select {def.label.toLowerCase()}
-                              </option>
-                              {(field.options ?? []).map((o) => (
-                                <option key={o}>{o}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <input
-                              type="text"
-                              placeholder={def.placeholder}
-                              className={cn(inputCls, "py-2")}
-                              readOnly
-                            />
-                          )}
-                        </div>
+                  fields.map((field) => (
+                    <div key={field.id}>
+                      <label className="block text-xs font-medium text-text-primary">
+                        {field.name.trim() || "Untitled field"}
+                      </label>
+                      <div className="mt-1.5">
+                        <input
+                          type="text"
+                          placeholder={
+                            field.name.trim()
+                              ? `Enter ${field.name.trim().toLowerCase()}`
+                              : "Enter value"
+                          }
+                          className={cn(inputCls, "py-2")}
+                          readOnly
+                        />
                       </div>
-                    );
-                  })
+                    </div>
+                  ))
                 ) : (
                   <p className="rounded-lg border border-dashed border-border px-3 py-3 text-center text-xs text-text-muted">
                     No additional details required — students register with just

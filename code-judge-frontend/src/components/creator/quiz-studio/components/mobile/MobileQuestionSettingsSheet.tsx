@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Clock, Hash, AlertTriangle } from "lucide-react";
 import { useStudio } from "../../StudioProvider";
+import { StudioSelect } from "../../primitives";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 
 interface Props {
@@ -115,24 +116,17 @@ export function MobileQuestionSettingsSheet({ open, onClose }: Props) {
                     </div>
                   </label>
 
-                  <label className="rounded-xl border border-zinc-200 bg-white p-3">
+                  <div className="rounded-xl border border-zinc-200 bg-white p-3">
                     <span className="text-xs font-medium text-zinc-500">Difficulty</span>
-                    <select
+                    <StudioSelect
+                      className="mt-1"
                       value={q.difficulty}
-                      onChange={(e) => update({ difficulty: e.target.value as any })}
-                      className="mt-1 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm font-semibold text-zinc-900 focus:border-pink-300 focus:outline-none"
-                    >
-                      {difficultyOptions.length === 0 ? (
-                        <option>Loading…</option>
-                      ) : (
-                        difficultyOptions.map((opt) => (
-                          <option key={opt.id} value={opt.heading}>
-                            {opt.heading}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </label>
+                      options={difficultyOptions.map((opt) => ({ value: opt.heading, label: opt.heading }))}
+                      onChange={(v) => update({ difficulty: v as "Easy" | "Medium" | "Hard" | "Expert" })}
+                      loading={difficultyOptions.length === 0}
+                      buttonClassName="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm font-semibold text-zinc-900 focus:border-pink-300"
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -63,7 +63,7 @@ export const DEFAULT_ADVANCED: AdvancedConfig = {
   autoSubmit: true,
 };
 
-export const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
+export const DURATION_PRESETS = [15, 30];
 export const SESSION_DURATION_PRESETS = [30, 60, 90, 120, 180, 240];
 
 export const LIFECYCLE_META: Record<

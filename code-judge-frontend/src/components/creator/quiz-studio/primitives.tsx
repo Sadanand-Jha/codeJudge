@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { ComponentType } from "react";
+import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import type { ComponentProps } from "react";
 
@@ -210,6 +212,99 @@ export function Textarea({
         className={cn(fieldCls, "py-2.5", props.className)}
       />
       {error && <p className="text-xs text-rose-500">{error}</p>}
+    </div>
+  );
+}
+
+export function StudioSelect({
+  value,
+  options,
+  onChange,
+  loading = false,
+  disabled = false,
+  className,
+  buttonClassName,
+  menuClassName,
+  align = "left",
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  loading?: boolean;
+  disabled?: boolean;
+  className?: string;
+  buttonClassName?: string;
+  menuClassName?: string;
+  align?: "left" | "right";
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className={cn("relative", className)}>
+      <button
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          "flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-text-primary transition-colors hover:border-border-hover focus:border-pink-300 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          buttonClassName
+        )}
+      >
+        <span className="truncate">{loading ? "Loading…" : value}</span>
+        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-text-muted transition-transform", open && "rotate-180")} />
+      </button>
+      {open && !loading && options.length > 0 && (
+        <div
+          role="listbox"
+          className={cn(
+            "absolute z-50 mt-1 max-h-60 overflow-y-auto rounded-xl border border-border bg-card py-1 shadow-xl",
+            align === "right" ? "right-0 min-w-full" : "left-0 w-full",
+            menuClassName
+          )}
+        >
+          {options.map((opt) => {
+            const active = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="option"
+                aria-selected={active}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center justify-between gap-2 whitespace-nowrap px-3 py-2 text-left text-xs transition-colors hover:bg-card-hover",
+                  active ? "bg-pink-50 font-semibold text-[#E91E63] dark:bg-pink-500/10" : "text-text-primary"
+                )}
+              >
+                {opt.label}
+                {active && <Check className="h-3.5 w-3.5 shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

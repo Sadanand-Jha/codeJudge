@@ -2,7 +2,7 @@
 // submissions, game config, collaboration, and result generation under /api/v1/user/quiz.
 import { Router } from "express";
 import { authenticate } from "../../../middleware/auth.ts";
-import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizRatingSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, submitQuizAttemptSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema, quizGameMechanicsSchema, reportViolationSchema } from "../../../middleware/validate.ts";
+import { validate, quizSchema, quizStatusSchema, quizRegistrationSchema, quizRatingSchema, quizProblemSchema, quizProblemOptionSchema, reorderQuizProblemsSchema, saveQuizResponseSchema, submitQuizAttemptSchema, cloneQuizSchema, joinQuizSchema, quizGameConfigSchema, quizGameMechanicsSchema, reportViolationSchema, startQuizAttemptSchema } from "../../../middleware/validate.ts";
 import {
   getAllQuizzes,
   getQuizById,
@@ -24,6 +24,7 @@ import {
   reorderQuizProblems,
   addQuizProblemOption,
   startQuizAttempt,
+  getAttemptRegistrationState,
   saveQuizResponse,
   heartbeatQuizAttempt,
   reportViolation,
@@ -179,7 +180,10 @@ router.post("/problems/:problemId/options", validate(quizProblemOptionSchema), a
 // ==================== QUIZ ATTEMPT ====================
 
 // POST /api/v1/user/quiz/:quizId/start — start a quiz attempt
-router.post("/:quizId/start", startQuizAttempt);
+router.post("/:quizId/start", validate(startQuizAttemptSchema), startQuizAttempt);
+
+// GET /api/v1/user/quiz/:quizId/attempt-registration — active attempt + stored registration values
+router.get("/:quizId/attempt-registration", getAttemptRegistrationState);
 
 // POST /api/v1/user/quiz/attempt/:attemptId/save — autosave answers
 router.post("/attempt/:attemptId/save", validate(saveQuizResponseSchema), saveQuizResponse);

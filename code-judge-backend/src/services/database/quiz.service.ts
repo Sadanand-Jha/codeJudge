@@ -97,6 +97,7 @@ export class QuizService {
     negativeMarking?: boolean;
     leaderboard?: boolean;
     status?: string;
+    registrationFields?: string[];
   }): Promise<any> {
     await assertQuizCreationAllowed(data.createdby);
     return this.repository.createQuiz(data);
@@ -184,6 +185,7 @@ export class QuizService {
     userId: number;
     quizId: number;
     totalQuestions: number;
+    registrationData?: Record<string, string>;
   }): Promise<any> {
     return this.repository.createQuizAttempt(data);
   }

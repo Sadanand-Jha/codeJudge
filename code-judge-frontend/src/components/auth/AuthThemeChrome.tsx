@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BrainCircuit, CheckCircle2, FileText, IceCreamCone, Layers3, LoaderCircle, Rocket, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
+import { BrainCircuit, CheckCircle2, FileText, Layers3, LoaderCircle, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
@@ -272,25 +272,10 @@ function RegisterAIShowcase() {
   );
 }
 
-export function AuthThemeControls({ fantasyDesktop = false }: { fantasyDesktop?: boolean }) {
-  const { theme } = useTheme();
-  const partyMode = theme === "light";
-
+export function AuthThemeControls() {
   return (
-    <div className={cn(
-      "fixed right-3 top-3 z-30 flex items-center gap-2 rounded-2xl border border-pink-200/80 bg-white/75 p-1.5 pl-3 shadow-[0_12px_34px_-22px_rgba(244,114,182,.7)] backdrop-blur-xl dark:border-violet-300/15 dark:bg-[#0D1222]/75 dark:shadow-[0_12px_36px_-22px_rgba(124,92,255,.8)] sm:right-5 sm:top-5",
-      fantasyDesktop && "lg:border-amber-300/20 lg:bg-[#171315]/80 lg:shadow-[0_12px_34px_-18px_rgba(0,0,0,.7)] dark:lg:border-amber-300/20 dark:lg:bg-[#171315]/80"
-    )}>
-      <span className={cn("hidden items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.13em] min-[420px]:inline-flex", partyMode ? "text-pink-600" : "text-violet-300", fantasyDesktop && "lg:hidden")}>
-        {partyMode ? <IceCreamCone className="h-3.5 w-3.5" /> : <Rocket className="h-3.5 w-3.5" />}
-        {partyMode ? "Party mode" : "Space mode"}
-      </span>
-      {fantasyDesktop && (
-        <span className="hidden items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-amber-200/80 lg:inline-flex">
-          <ShieldCheck className="h-3.5 w-3.5" /> Realm mode
-        </span>
-      )}
-      <ThemeToggle className={cn(partyMode ? "border-pink-200 bg-pink-50" : "border-violet-300/15 bg-white/[0.04]", fantasyDesktop && "lg:border-amber-200/15 lg:bg-black/25")} />
+    <div className="fixed right-3 top-3 z-30 sm:right-5 sm:top-5">
+      <ThemeToggle variant="icon" />
     </div>
   );
 }

@@ -11,6 +11,7 @@ export function DurationPicker({
   label = "Duration",
   helperText,
   max = 480,
+  size = "md",
 }: {
   value: number;
   onChange: (v: number) => void;
@@ -18,6 +19,7 @@ export function DurationPicker({
   label?: string;
   helperText?: string;
   max?: number;
+  size?: "md" | "lg";
 }) {
   const isPresetMatch = presets.includes(value);
   const [showCustom, setShowCustom] = useState(!isPresetMatch);
@@ -25,12 +27,32 @@ export function DurationPicker({
     isPresetMatch ? "" : String(value)
   );
 
+  const chipClass = (active: boolean) =>
+    cn(
+      "border transition-colors",
+      size === "lg"
+        ? "rounded-xl px-7 py-3.5 text-base font-semibold"
+        : "rounded-lg px-3 py-1.5 text-xs font-medium",
+      active
+        ? size === "lg"
+          ? "border-transparent bg-gradient-to-r from-pink-500 to-violet-600 text-white shadow-[0_8px_24px_rgba(236,72,153,0.35)]"
+          : "border-pink-500/40 bg-pink-500/10 text-pink-600 dark:text-pink-400"
+        : size === "lg"
+          ? "border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 dark:border-pink-500/30 dark:bg-pink-500/10 dark:text-pink-300 dark:hover:bg-pink-500/20"
+          : "border-border bg-card text-text-secondary hover:bg-card-hover"
+    );
+
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-medium text-text-secondary">
+      <label
+        className={cn(
+          "block text-text-secondary",
+          size === "lg" ? "text-sm font-semibold" : "text-xs font-medium"
+        )}
+      >
         {label}
       </label>
-      <div className="flex flex-wrap gap-1.5">
+      <div className={cn("flex flex-wrap", size === "lg" ? "gap-2" : "gap-1.5")}>
         {presets.map((min) => (
           <button
             key={min}
@@ -39,12 +61,7 @@ export function DurationPicker({
               setShowCustom(false);
               onChange(min);
             }}
-            className={cn(
-              "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-              value === min && !showCustom
-                ? "border-pink-500/40 bg-pink-500/10 text-pink-600 dark:text-pink-400"
-                : "border-border bg-card text-text-secondary hover:bg-card-hover"
-            )}
+            className={chipClass(value === min && !showCustom)}
           >
             {min} min
           </button>
@@ -52,12 +69,7 @@ export function DurationPicker({
         <button
           type="button"
           onClick={() => setShowCustom((prev) => !prev)}
-          className={cn(
-            "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-            showCustom
-              ? "border-pink-500/40 bg-pink-500/10 text-pink-600 dark:text-pink-400"
-              : "border-border bg-card text-text-secondary hover:bg-card-hover"
-          )}
+          className={chipClass(showCustom)}
         >
           Custom
         </button>
@@ -69,10 +81,16 @@ export function DurationPicker({
             min={1}
             max={max}
             value={customVal}
+            placeholder={`1–${max}`}
             onChange={(e) => {
-              setCustomVal(e.target.value);
-              const n = parseInt(e.target.value, 10);
-              if (n > 0 && n <= max) onChange(n);
+              const raw = e.target.value.replace(/[^0-9]/g, "");
+              if (raw === "") {
+                setCustomVal("");
+                return;
+              }
+              const n = Math.min(max, Math.max(1, parseInt(raw, 10)));
+              setCustomVal(String(n));
+              onChange(n);
             }}
             className="h-9 w-24 rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary outline-none focus:border-pink-500/60"
           />

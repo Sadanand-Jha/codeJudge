@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../../StudioProvider";
+import { StudioSelect } from "../../primitives";
 import { EditableContent, RichToolbar } from "../RichToolbar";
 import type { CreatorQuestion, CreatorOption, CreatorQuestionType } from "../../types";
 import { useQuizReferenceStore } from "@/store/quizReferenceStore";
@@ -421,19 +422,16 @@ export function MobileQuestionEditor({
                       <span className="text-xs text-zinc-500">min</span>
                     </div>
                   </label>
-                  <label className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
                     <span className="text-xs font-medium text-zinc-500">Difficulty</span>
-                    <select
+                    <StudioSelect
+                      className="mt-1"
                       value={q.difficulty}
-                      onChange={(e) => update({ difficulty: e.target.value as any })}
-                      className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold focus:border-pink-300 focus:outline-none"
-                    >
-                      <option value="Easy">Easy</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Hard">Hard</option>
-                      <option value="Expert">Expert</option>
-                    </select>
-                  </label>
+                      options={["Easy", "Medium", "Hard", "Expert"].map((d) => ({ value: d, label: d }))}
+                      onChange={(v) => update({ difficulty: v as "Easy" | "Medium" | "Hard" | "Expert" })}
+                      buttonClassName="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold focus:border-pink-300"
+                    />
+                  </div>
                 </div>
                 {onOpenSettings && (
                   <button

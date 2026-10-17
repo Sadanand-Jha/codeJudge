@@ -6,6 +6,7 @@ import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, Fil
 import { AnimatePresence, motion } from "framer-motion";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
 import {
+  getAttemptRegistrationState,
   getQuizByCode,
   heartbeatQuizAttempt,
   saveQuizResponse,
@@ -127,6 +128,24 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     load();
     return () => { cancelled = true; };
   }, [code]);
+
+  // A student who already has an active attempt (refresh/resume) has already
+  // submitted the registration form — skip it and let the server resume.
+  const [skipRegistration, setSkipRegistration] = useState(false);
+  useEffect(() => {
+    if (!quiz) return;
+    if ((quiz.registration_fields ?? []).length === 0) return;
+    let cancelled = false;
+    void getAttemptRegistrationState(String(quiz.id))
+      .then((state) => {
+        if (!cancelled && state.hasActiveAttempt) setSkipRegistration(true);
+      })
+      .catch(() => {
+        // Non-critical: the form simply shows and the server ignores
+        // duplicate values when resuming.
+      });
+    return () => { cancelled = true; };
+  }, [quiz]);
 
   const submit = useCallback(async (proctor?: { violations?: number; flagged?: boolean; flagReason?: string }) => {
     const id = attemptId;
@@ -263,14 +282,16 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
   const answered = Object.keys(answers).length;
   const progress = questions.length ? ((index + 1) / questions.length) * 100 : 0;
 
-  // Starts the backend attempt when the student enters exam mode.
-  const handleEnterExam = useCallback(async (): Promise<boolean> => {
+  // Starts the backend attempt when the student enters exam mode. The
+  // registration values (when the quiz collects them) travel with the start
+  // call so the attempt — and its timer — begins only after the form submit.
+  const handleEnterExam = useCallback(async (registrationData?: Record<string, string>): Promise<boolean> => {
     if (!quiz || starting) return false;
     if (attemptId) return true;
     setStarting(true);
     setError(null);
     try {
-      const started = await startQuizAttempt(String(quiz.id));
+      const started = await startQuizAttempt(String(quiz.id), registrationData);
       const id = started.attempt.id as number;
       setAttemptId(id);
       // Shuffle only the student attempt view. A deterministic attempt-based
@@ -359,6 +380,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       onExitPreview={() => router.replace("/quiz")}
       entryError={error}
       onTerminate={handleTerminate}
+      registrationFields={skipRegistration ? [] : quiz.registration_fields ?? []}
     >
       {submitting && <SubmissionProgressOverlay complete={submissionComplete} soundEnabled={soundEnabled} onSound={playQuizSound} onHome={handleGoHome} />}
       {starting || (!attemptId && !error) ? (

@@ -87,6 +87,8 @@ export interface CreateQuizPayload {
   registrationEnabled?: boolean;
   registrationStart?: string;
   registrationEnd?: string;
+  /** Creator-defined registration field names (JSON array of strings). */
+  registrationFields?: string[];
   emailResults?: boolean;
   leaderboard?: boolean;
   leaderboardShowRank?: boolean;
@@ -235,6 +237,8 @@ export interface QuizBasic {
   show_results_immediately: boolean | null;
   negative_marking: boolean | null;
   leaderboard: boolean | null;
+  /** Creator-defined registration field names (JSON array of strings). */
+  registration_fields?: string[] | null;
   status: string | null;
   created_at: string | null;
   updated_at: string | null;
@@ -503,6 +507,7 @@ export async function updateQuiz(quizId: string, data: Partial<{
   showResultsImmediately: boolean;
   negativeMarking: boolean;
   leaderboard: boolean;
+  registrationFields: string[];
 }>): Promise<void> {
   await apiClient.put(`/v1/admin/quiz/${quizId}`, data);
 }
@@ -704,8 +709,27 @@ export interface StartQuizResponse {
  * Start a quiz attempt
  * POST /api/v1/user/quiz/:quizId/start
  */
-export async function startQuizAttempt(quizId: string): Promise<StartQuizResponse> {
-  const response = await apiClient.post<StartQuizResponse>(`/v1/user/quiz/${quizId}/start`, {});
+export async function startQuizAttempt(
+  quizId: string,
+  registrationData?: Record<string, string>
+): Promise<StartQuizResponse> {
+  const response = await apiClient.post<StartQuizResponse>(`/v1/user/quiz/${quizId}/start`, {
+    registrationData,
+  });
+  return response.data;
+}
+
+export interface AttemptRegistrationState {
+  hasActiveAttempt: boolean;
+  registrationData: Record<string, string> | null;
+}
+
+/**
+ * Active attempt + stored registration values for the signed-in student.
+ * GET /api/v1/user/quiz/:quizId/attempt-registration
+ */
+export async function getAttemptRegistrationState(quizId: string): Promise<AttemptRegistrationState> {
+  const response = await apiClient.get<AttemptRegistrationState>(`/v1/user/quiz/${quizId}/attempt-registration`);
   return response.data;
 }
 

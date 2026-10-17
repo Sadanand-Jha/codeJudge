@@ -23,72 +23,20 @@ export type StudioStepId =
   | "publish";
 
 // ─────────────────────────────────────────
-// Registration — platform-controlled field catalog.
-// Creators may ONLY configure these predefined fields. Identity and contact
-// information (name, email, phone, password, government IDs, address) are
-// platform-managed and are intentionally NOT part of this catalog.
+// Registration — creator-defined fields.
+// The creator types any field name they want (free-form, max 200 characters).
+// Identity and contact information (name, email, phone, password, government
+// IDs, address) are platform-managed and are collected automatically.
 // ─────────────────────────────────────────
 
-export interface RegistrationFieldDef {
-  key: string;
-  label: string;
-  inputType: "text" | "select";
-  placeholder?: string;
-  /** Fixed starting options for select fields (creator-editable copy). */
-  options?: string[];
-}
+/** Maximum length of a creator-defined registration field name. */
+export const REGISTRATION_FIELD_NAME_MAX = 200;
 
-export const REGISTRATION_FIELD_CATALOG: Array<{
-  group: "Academic / Identity" | "Assessment / Event";
-  fields: RegistrationFieldDef[];
-}> = [
-  {
-    group: "Academic / Identity",
-    fields: [
-      { key: "roll_number", label: "Roll Number", inputType: "text", placeholder: "Enter your roll number" },
-      { key: "enrollment_number", label: "Enrollment Number", inputType: "text", placeholder: "Enter enrollment number" },
-      { key: "branch", label: "Branch", inputType: "select", options: ["CSE", "ECE", "EEE", "ME", "CE", "IT", "Other"] },
-      { key: "course", label: "Course / Program", inputType: "select", options: ["B.Tech", "M.Tech", "B.Sc", "M.Sc", "BCA", "MCA", "Other"] },
-      { key: "year", label: "Year", inputType: "select", options: ["1st Year", "2nd Year", "3rd Year", "4th Year"] },
-      { key: "semester", label: "Semester", inputType: "select", options: ["Semester 1", "Semester 2", "Semester 3", "Semester 4", "Semester 5", "Semester 6", "Semester 7", "Semester 8"] },
-      { key: "section", label: "Section", inputType: "select", options: ["A", "B", "C", "D"] },
-      { key: "batch", label: "Batch", inputType: "text", placeholder: "e.g. 2022 – 2026" },
-      { key: "college", label: "College / Institution", inputType: "text", placeholder: "Select or enter college" },
-      { key: "campus", label: "Campus", inputType: "text", placeholder: "Enter campus" },
-    ],
-  },
-  {
-    group: "Assessment / Event",
-    fields: [
-      { key: "candidate_id", label: "Candidate ID", inputType: "text", placeholder: "Enter candidate ID" },
-      { key: "registration_id", label: "Registration ID", inputType: "text", placeholder: "Enter registration ID" },
-      { key: "team_name", label: "Team Name", inputType: "text", placeholder: "Enter team name" },
-      { key: "group", label: "Group", inputType: "text", placeholder: "Enter group" },
-      { key: "exam_center", label: "Exam Center", inputType: "text", placeholder: "Enter exam center" },
-      { key: "lab_section", label: "Lab / Section", inputType: "text", placeholder: "Enter lab / section" },
-    ],
-  },
-];
-
-export function getRegistrationFieldDef(key: string): RegistrationFieldDef | undefined {
-  for (const g of REGISTRATION_FIELD_CATALOG) {
-    const f = g.fields.find((x) => x.key === key);
-    if (f) return f;
-  }
-  return undefined;
-}
-
-/** A creator-configured instance of a catalog field. */
+/** A creator-defined registration field. */
 export interface RegistrationFieldConfig {
   id: string;
-  /** Catalog key — immutable after creation. */
-  key: string;
-  required: boolean;
-  /** Editable copy of the select options. */
-  options?: string[];
-  /** Text validation. */
-  minLength?: number;
-  maxLength?: number;
+  /** Field name shown to participants, e.g. "Roll Number". */
+  name: string;
 }
 
 export interface RegistrationFormSettings {
@@ -263,10 +211,10 @@ export const DEFAULT_REGISTRATION: {
 } = {
   settings: { ...DEFAULT_REGISTRATION_SETTINGS },
   fields: [
-    { id: "rfld_roll", key: "roll_number", required: true },
-    { id: "rfld_branch", key: "branch", required: true, options: ["CSE", "ECE", "EEE", "ME", "CE", "IT", "Other"] },
-    { id: "rfld_year", key: "year", required: true, options: ["1st Year", "2nd Year", "3rd Year", "4th Year"] },
-    { id: "rfld_section", key: "section", required: false, options: ["A", "B", "C", "D"] },
+    { id: "rfld_roll", name: "Roll Number" },
+    { id: "rfld_branch", name: "Branch" },
+    { id: "rfld_year", name: "Year" },
+    { id: "rfld_section", name: "Section" },
   ],
 };
 
@@ -311,7 +259,8 @@ export const STEPS: Array<{ id: StudioStepId; label: string }> = [
   { id: "audience", label: "Audience" },
   { id: "registration", label: "Registration" },
   { id: "pricing", label: "Pricing" },
-  { id: "branding", label: "Branding" },
+  // DISCONNECTED (branding removed from quiz creation):
+  // { id: "branding", label: "Branding" },
   { id: "review", label: "Review" },
   { id: "publish", label: "Publish" },
 ];

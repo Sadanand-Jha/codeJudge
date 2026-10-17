@@ -55,7 +55,6 @@ export interface PdfHeaderConfig {
   showDuration: boolean;
   showDifficulty: boolean;
   showVisibility: boolean;
-  showQuizId: boolean;
 }
 
 export interface PdfStudentDetailsConfig {
@@ -73,7 +72,6 @@ export interface PdfGenerationConfig {
 
 export interface PdfFooterConfig {
   enabled: boolean;
-  showQuizId: boolean;
   showDateTime: boolean;
   showPageNumber: boolean;
 }
@@ -135,7 +133,6 @@ export const PDF_DEFAULTS: PdfConfig = {
     showDuration: true,
     showDifficulty: true,
     showVisibility: true,
-    showQuizId: true,
   },
   studentDetails: {
     enabled: false,
@@ -150,7 +147,6 @@ export const PDF_DEFAULTS: PdfConfig = {
   },
   footer: {
     enabled: true,
-    showQuizId: true,
     showDateTime: true,
     showPageNumber: true,
   },

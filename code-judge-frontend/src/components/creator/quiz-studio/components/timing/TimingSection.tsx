@@ -34,7 +34,7 @@ function combineDateTime(date: string, time: string, fallbackTime: string) {
 }
 
 export function TimingSection() {
-  const { state, updateInfo } = useStudio();
+  const { state, updateInfo, setHelpExtra } = useStudio();
   const quizId = state.serverQuizId ?? undefined;
 
   const [mode, setMode] = useState<TimingMode>("manual");
@@ -176,20 +176,71 @@ export function TimingSection() {
     }
   };
 
-  const timingState: TimingState = {
-    mode,
-    schedule,
-    manual,
-    participantDuration,
-    advanced,
-    validationErrors,
-  };
+  useEffect(() => {
+    const helpState: TimingState = {
+      mode,
+      schedule,
+      manual,
+      participantDuration,
+      advanced,
+      validationErrors,
+    };
+    setHelpExtra(
+      <div className="space-y-4">
+        <div>
+          <p className="text-[11px] font-semibold text-text-primary">
+            Quiz session
+          </p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-text-secondary">
+            The quiz session represents the period during which participants can
+            start the assessment. Participants may start during this window.
+            Their individual attempt timer is separate.
+          </p>
+          {mode === "schedule" && schedule.startDate && schedule.startTime ? (
+            <div className="mt-2 flex items-center gap-2 text-xs">
+              <span className="font-semibold text-text-primary">
+                {formatTime12(schedule.startTime)}
+              </span>
+              <ArrowRight className="h-3 w-3 text-text-muted" />
+              {schedule.endDate ? (
+                <span className="font-semibold text-text-primary">
+                  {formatTime12(schedule.endTime || "23:59")}
+                </span>
+              ) : (
+                <span className="text-text-muted">Manual end</span>
+              )}
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-text-muted italic">
+              Will be determined when you start the quiz.
+            </p>
+          )}
+        </div>
+        <div>
+          <p className="text-[11px] font-semibold text-text-primary">
+            Participant attempts
+          </p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-text-secondary">
+            {mode === "schedule" && schedule.startDate
+              ? `Participants can start their attempt during the quiz window. Each participant gets ${participantDuration} minutes once they begin.`
+              : manual.status === "live"
+                ? `The quiz is currently live. Each participant gets ${participantDuration} minutes once they begin their attempt.`
+                : `Once you start the quiz, participants will be able to begin their attempts. Each participant gets ${participantDuration} minutes.`}
+          </p>
+        </div>
+        <ParticipantPreview state={helpState} />
+        <TimingSummary state={helpState} />
+        <AdvancedTiming advanced={advanced} onChange={handleAdvancedChange} />
+      </div>
+    );
+    return () => setHelpExtra(null);
+  }, [mode, schedule, manual, participantDuration, advanced, validationErrors, handleAdvancedChange, setHelpExtra]);
 
   const isQuizActive = manual.status === "live";
 
   return (
     <div className="mx-auto w-full max-w-none min-w-0 overflow-x-hidden">
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[1.65fr_0.95fr] lg:items-start min-w-0">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 min-w-0">
         {/* LEFT — main flow */}
         <div className="min-w-0 space-y-4 sm:space-y-6 overflow-hidden">
           {/* Start mode selection */}
@@ -278,6 +329,8 @@ export function TimingSection() {
               }}
               presets={DURATION_PRESETS}
               label="Time limit"
+              max={45}
+              size="lg"
             />
           </motion.div>
 
@@ -291,54 +344,6 @@ export function TimingSection() {
             </div>
           )}
         </div>
-
-        {/* RIGHT — sticky rail */}
-        <aside className="hidden min-w-0 space-y-4 lg:sticky lg:top-[72px] lg:block">
-          {/* Quiz session explanation */}
-          <motion.div
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="rounded-xl border border-border bg-card p-5"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-                Quiz Session
-              </h4>
-            </div>
-            <p className="text-xs text-text-secondary leading-relaxed mb-2">
-              The quiz session represents the period during which participants can
-              start the assessment.
-            </p>
-            {mode === "schedule" && schedule.startDate && schedule.startTime ? (
-              <div className="flex items-center gap-2 text-xs">
-                <span className="font-semibold text-text-primary">
-                  {formatTime12(schedule.startTime)}
-                </span>
-                <ArrowRight className="h-3 w-3 text-text-muted" />
-                {schedule.endDate ? (
-                  <span className="font-semibold text-text-primary">
-                    {formatTime12(schedule.endTime || "23:59")}
-                  </span>
-                ) : (
-                  <span className="text-text-muted">Manual end</span>
-                )}
-              </div>
-            ) : (
-              <p className="text-xs text-text-muted italic">
-                Will be determined when you start the quiz.
-              </p>
-            )}
-            <p className="mt-2 text-[11px] text-text-secondary">
-              Participants may start during this window. Their individual attempt
-              timer is separate.
-            </p>
-          </motion.div>
-
-          <ParticipantPreview state={timingState} />
-          <TimingSummary state={timingState} />
-          <AdvancedTiming advanced={advanced} onChange={handleAdvancedChange} />
-        </aside>
       </div>
 
       {/* Mode lock modal */}
