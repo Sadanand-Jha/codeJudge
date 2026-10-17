@@ -135,7 +135,7 @@ export function GameMechanicsPage() {
             return (
               <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Eye className="h-4 w-4 text-[#E91E63]" />
+                  <Eye className="h-4 w-4 text-[var(--qs-brand)]" />
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-text-muted">Per-Question Mechanics Preview</h4>
                 </div>
                 <p className="text-xs text-text-muted mb-4">How each enabled mechanic applies to your question types at runtime.</p>
@@ -191,8 +191,8 @@ export function GameMechanicsPage() {
             </div>
             <div className="p-4 space-y-3">
               <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
-                <span className="text-sm text-text-primary flex items-center gap-1.5"><Gamepad2 className="h-4 w-4 text-[#E91E63]" /> Lifelines enabled</span>
-                <span className="text-sm font-bold text-[#E91E63]">{lifelineCount}</span>
+                <span className="text-sm text-text-primary flex items-center gap-1.5"><Gamepad2 className="h-4 w-4 text-[var(--qs-brand)]" /> Lifelines enabled</span>
+                <span className="text-sm font-bold text-[var(--qs-brand)]">{lifelineCount}</span>
               </div>
               <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
                 <span className="text-sm text-text-primary flex items-center gap-1.5"><Trophy className="h-4 w-4 text-amber-500" /> Power-Ups enabled</span>
@@ -212,11 +212,11 @@ export function GameMechanicsPage() {
               </div>
 
               {summary.length > 0 ? (
-                <div className="rounded-xl bg-[#E91E63]/[0.06] border border-[#E91E63]/20 p-3">
-                  <p className="text-xs font-semibold text-[#E91E63]">Active powers</p>
+                <div className="rounded-xl bg-[var(--qs-brand)]/[0.06] border border-[var(--qs-brand)]/20 p-3">
+                  <p className="text-xs font-semibold text-[var(--qs-brand)]">Active powers</p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {summary.map((s) => (
-                      <span key={s} className="rounded-full bg-white dark:bg-card border border-[#E91E63]/20 px-2 py-0.5 text-[11px] font-medium text-[#E91E63]">{s}</span>
+                      <span key={s} className="rounded-full bg-white dark:bg-card border border-[var(--qs-brand)]/20 px-2 py-0.5 text-[11px] font-medium text-[var(--qs-brand)]">{s}</span>
                     ))}
                   </div>
                 </div>

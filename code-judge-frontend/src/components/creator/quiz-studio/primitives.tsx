@@ -295,7 +295,7 @@ export function StudioSelect({
                 }}
                 className={cn(
                   "flex w-full items-center justify-between gap-2 whitespace-nowrap px-3 py-2 text-left text-xs transition-colors hover:bg-card-hover",
-                  active ? "bg-pink-50 font-semibold text-[#E91E63] dark:bg-pink-500/10" : "text-text-primary"
+                  active ? "bg-pink-50 font-semibold text-[var(--qs-brand)] dark:bg-pink-500/10" : "text-text-primary"
                 )}
               >
                 {opt.label}

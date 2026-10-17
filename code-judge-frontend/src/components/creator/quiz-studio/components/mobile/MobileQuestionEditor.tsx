@@ -190,7 +190,7 @@ export function MobileQuestionEditor({
                       if (t !== q.type) update({ type: t } as any);
                       setShowType(false);
                     }}
-                    className={cn("flex w-full items-center justify-between px-3 py-3 text-left text-sm hover:bg-zinc-50", t === q.type && "bg-pink-50 text-[#E91E63]")}
+                    className={cn("flex w-full items-center justify-between px-3 py-3 text-left text-sm hover:bg-zinc-50", t === q.type && "bg-pink-50 text-[var(--qs-brand)]")}
                   >
                     <span className="text-xs font-medium">{TYPE_LABEL[t]}</span>
                     {t === q.type && <Check className="h-4 w-4" />}
@@ -339,7 +339,7 @@ export function MobileQuestionEditor({
             <button
               onClick={addOption}
               disabled={q.options.length >= 6}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-200 bg-pink-50 py-3 text-sm font-semibold text-[#E91E63] disabled:opacity-40"
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-200 bg-pink-50 py-3 text-sm font-semibold text-[var(--qs-brand)] disabled:opacity-40"
             >
               <Plus className="h-4 w-4" /> Add option
             </button>
@@ -471,7 +471,7 @@ export function MobileQuestionEditor({
                     <button
                       key={t}
                       onClick={() => setAfterTab(t)}
-                      className={cn("flex-1 rounded-lg px-3 py-2 text-xs font-semibold capitalize", afterTab === t ? "bg-[#E91E63] text-white" : "text-zinc-600")}
+                      className={cn("flex-1 rounded-lg px-3 py-2 text-xs font-semibold capitalize", afterTab === t ? "bg-[var(--qs-brand)] text-white" : "text-zinc-600")}
                     >
                       {t}
                     </button>

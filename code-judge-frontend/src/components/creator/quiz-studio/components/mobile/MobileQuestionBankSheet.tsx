@@ -86,7 +86,7 @@ export function MobileQuestionBankSheet({ open, onClose, onAiGenerate }: Props) 
                   onClick={() => {
                     addQuestion();
                   }}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-500/40 bg-pink-500/[0.08] py-3 text-sm font-semibold text-[#E91E63] dark:text-pink-400"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-500/40 bg-pink-500/[0.08] py-3 text-sm font-semibold text-[var(--qs-brand)] dark:text-pink-400"
                 >
                   <Plus className="h-4 w-4" /> Add
                 </button>
@@ -148,7 +148,7 @@ export function MobileQuestionBankSheet({ open, onClose, onAiGenerate }: Props) 
                       <span
                         className={cn(
                           "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold",
-                          active ? "bg-[#E91E63] text-white" : "bg-white/[0.06] text-text-secondary"
+                          active ? "bg-[var(--qs-brand)] text-white" : "bg-white/[0.06] text-text-secondary"
                         )}
                       >
                         {String(realIdx + 1).padStart(2, "0")}

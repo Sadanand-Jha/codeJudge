@@ -32,7 +32,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { SecureLogo } from "@/components/common/SecureLogo";
 import { useAuthStore } from "@/store/authStore";
 import { FOCUS_MODE_ENABLED } from "@/config/focusMode";
 
@@ -193,7 +192,6 @@ function NavRow({
     : pathname === item.href || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;
   const isAiStudio = item.href === "/creator/ai-studio";
-  const isPurple = item.color === "purple";
   return (
     <Link
       href={item.href}
@@ -201,22 +199,17 @@ function NavRow({
       aria-label={showLabels ? undefined : item.label}
       title={showLabels ? undefined : item.label}
       className={cn(
-        "group relative flex w-full items-center gap-2.5 rounded-lg py-2 text-[13px] font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+        "group relative flex w-full items-center gap-2.5 rounded-lg py-2 text-[13px] font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40",
         showLabels ? "px-3" : "justify-center px-0",
         isAiStudio
           ? "ai-studio-btn"
-          : isActive ? "text-text-primary" : "text-text-secondary hover:bg-white/[0.04] hover:text-text-primary dark:hover:bg-ai-hover"
+          : isActive ? "text-[var(--qs-ink)]" : "text-[var(--qs-muted)] hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
       )}
     >
       {isActive && !isAiStudio && (
         <motion.span
           layoutId="creatorSidebarActive"
-          className={cn(
-            "absolute inset-0 rounded-lg border",
-            isPurple
-              ? "border-violet-500/20 bg-violet-500/[0.08] dark:border-ai-accent/20 dark:bg-ai-accent-soft"
-              : "border-pink-500/20 bg-pink-500/[0.08] dark:border-ai-accent/20 dark:bg-ai-accent-soft"
-          )}
+          className="absolute inset-0 rounded-lg border-2 border-[var(--qs-brand)]/25 bg-[var(--qs-brand)]/10"
           transition={{ type: "spring", stiffness: 500, damping: 35 }}
         />
       )}
@@ -229,10 +222,8 @@ function NavRow({
           className={cn(
             "relative z-10 h-[18px] w-[18px] shrink-0 transition-colors",
             isActive
-              ? isPurple
-                ? "text-violet-600 dark:text-ai-accent"
-                : "text-pink-500 dark:text-ai-accent"
-              : "text-text-muted group-hover:text-text-primary"
+              ? "text-[var(--qs-brand)]"
+              : "text-[var(--qs-muted)] group-hover:text-[var(--qs-ink)]"
           )}
         />
       )}
@@ -261,23 +252,23 @@ export function CreatorSidebar({
   return (
     <div className="flex h-full w-full flex-col">
       {/* Creator identity header */}
-      <div className="border-b border-border px-4 py-3">
+      <div className="border-b-2 border-[var(--qs-line)] px-4 py-3">
         <Link
           href={FOCUS_MODE_ENABLED ? "/creator/quizzes" : "/creator/profile"}
           onClick={onNavigate}
-          className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-pink-500/30 hover:bg-white/[0.03]"
+          className="flex items-center gap-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 transition-colors hover:border-[var(--qs-brand)]/45"
         >
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-violet-600 text-sm font-bold text-white">
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--qs-brand)] text-sm font-bold text-white">
             {avatarInitial}
             {isVerified && (
-              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-card">
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--qs-ok)] ring-2 ring-[var(--qs-surface)]">
                 <BadgeCheck className="h-2.5 w-2.5 text-white" />
               </span>
             )}
           </div>
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-[13px] font-bold text-text-primary">{displayName}</p>
-            <p className="truncate text-[10px] font-medium text-emerald-500">Verified Creator</p>
+            <p className="truncate text-[13px] font-bold text-[var(--qs-ink)]">{displayName}</p>
+            <p className="truncate text-[10px] font-medium text-[var(--qs-ok)]">Verified Creator</p>
           </div>
         </Link>
       </div>
@@ -286,7 +277,7 @@ export function CreatorSidebar({
       <nav className="flex-1 overflow-y-auto hide-scrollbar px-3 py-4">
         {CREATOR_NAV.map((group, gi) => (
           <div key={group.label} className={cn(gi > 0 && "mt-6")}>
-            <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-text-muted">
+            <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--qs-muted)]">
               {group.label}
             </p>
             <div className="space-y-0.5">
@@ -305,7 +296,7 @@ export function CreatorSidebar({
       </nav>
 
       {/* Bottom */}
-      <div className="shrink-0 border-t border-border p-3">
+      <div className="shrink-0 border-t-2 border-[var(--qs-line)] p-3">
         {BOTTOM_NAV.length > 0 && (
           <div className="space-y-0.5">
             {BOTTOM_NAV.map((item) => (
@@ -313,9 +304,9 @@ export function CreatorSidebar({
                 key={item.label}
                 href={item.href}
                 onClick={onNavigate}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-text-secondary transition-colors hover:bg-white/[0.04] hover:text-text-primary"
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
               >
-                <item.icon className="h-4 w-4 text-text-muted" />
+                <item.icon className="h-4 w-4 text-[var(--qs-muted)]" />
                 {item.label}
               </Link>
             ))}
@@ -323,11 +314,11 @@ export function CreatorSidebar({
         )}
         {/* Back to Student Mode — mobile only, at last of sidebar */}
         {mobile && (
-          <div className="mt-3 border-t border-border pt-3">
+          <div className="mt-3 border-t-2 border-[var(--qs-line)] pt-3">
             <Link
               href="/quiz"
               onClick={onNavigate}
-              className="flex cursor-pointer items-center gap-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 py-2.5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
+              className="flex cursor-pointer items-center gap-2.5 rounded-xl border-2 border-[var(--qs-ink)]/80 bg-[var(--qs-brand)] px-3 py-2.5 text-[13px] font-bold text-white shadow-[3px_3px_0_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_0_var(--qs-sun)]"
             >
               <ArrowLeft className="h-4 w-4 text-white" />
               Back to Student Mode

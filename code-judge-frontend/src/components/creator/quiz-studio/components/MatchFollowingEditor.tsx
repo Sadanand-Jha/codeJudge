@@ -100,7 +100,7 @@ function Toggle({
       className={cn(
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors duration-200",
         enabled
-          ? "bg-[#E91E63] border-[#E91E63]"
+          ? "bg-[var(--qs-brand)] border-[var(--qs-brand)]"
           : "bg-card border-border"
       )}
     >
@@ -317,8 +317,8 @@ export function MatchFollowingEditor() {
       <div className="shrink-0 border-b border-border bg-card px-3 py-3 sm:px-6 w-full max-w-full min-w-0 overflow-hidden">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E91E63]/10 border border-[#E91E63]/20">
-              <Layers className="h-4 w-4 text-[#E91E63]" />
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--qs-brand)]/10 border border-[var(--qs-brand)]/20">
+              <Layers className="h-4 w-4 text-[var(--qs-brand)]" />
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5">
@@ -352,13 +352,13 @@ export function MatchFollowingEditor() {
                         onClick={() => requestTypeChange(t)}
                         className={cn("flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-card-hover", active && "bg-pink-50 dark:bg-pink-500/10")}
                       >
-                        <Icon className={cn("h-4 w-4 mt-0.5", active ? "text-[#E91E63]" : "text-text-muted")} />
+                        <Icon className={cn("h-4 w-4 mt-0.5", active ? "text-[var(--qs-brand)]" : "text-text-muted")} />
                         <div>
-                          <p className={cn("text-xs font-medium", active ? "text-[#E91E63]" : "text-text-primary")}>
+                          <p className={cn("text-xs font-medium", active ? "text-[var(--qs-brand)]" : "text-text-primary")}>
                             {TYPE_SHORT[t]} — {TYPE_DESC[t]}
                           </p>
                         </div>
-                        {active && <Check className="ml-auto h-4 w-4 text-[#E91E63]" />}
+                        {active && <Check className="ml-auto h-4 w-4 text-[var(--qs-brand)]" />}
                       </button>
                     );
                   })}
@@ -418,7 +418,7 @@ export function MatchFollowingEditor() {
             {/* workspace header */}
             <div className="flex flex-col gap-2 border-b border-border px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
               <div className="flex min-w-0 items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#E91E63]" />
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
                 <h2 className="min-w-0 break-words text-sm font-semibold text-text-primary">Matching workspace</h2>
                 <span className="shrink-0 rounded-full bg-card-hover border border-border px-2 py-0.5 text-[11px] font-medium text-text-secondary">{pairCount} pairs</span>
               </div>
@@ -426,7 +426,7 @@ export function MatchFollowingEditor() {
                 <span className="hidden sm:inline text-xs text-text-muted">Line-wise pairs · Students see Column B shuffled</span>
                 <button
                   onClick={() => setShowCreatorHelp(!showCreatorHelp)}
-                  className={cn("inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium", showCreatorHelp ? "border-[#E91E63]/30 bg-[#E91E63]/10 text-[#E91E63]" : "border-border bg-card text-text-muted hover:bg-card-hover")}
+                  className={cn("inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium", showCreatorHelp ? "border-[var(--qs-brand)]/30 bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]" : "border-border bg-card text-text-muted hover:bg-card-hover")}
                 >
                   <HelpCircle className="h-3 w-3" /> {showCreatorHelp ? "Hide help" : "How to?"}
                 </button>
@@ -440,11 +440,11 @@ export function MatchFollowingEditor() {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden border-b border-border bg-[#E91E63]/[0.04]"
+                  className="overflow-hidden border-b border-border bg-[var(--qs-brand)]/[0.04]"
                 >
                   <div className="w-full max-w-full min-w-0 overflow-hidden px-3 py-3 sm:px-5">
                     <div className="flex w-full max-w-full min-w-0 items-start gap-2 sm:gap-3 overflow-hidden">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#E91E63] text-white">
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--qs-brand)] text-white">
                         <Info className="h-3.5 w-3.5" />
                       </span>
                       <div className="min-w-0 flex-1 overflow-hidden">
@@ -452,13 +452,13 @@ export function MatchFollowingEditor() {
                         <p className="mt-0.5 break-words text-[11px] leading-relaxed text-text-muted">Creator: type Column A and Column B on the <b className="text-text-primary">same line</b>. That line is the correct answer. Students will see Column B in <b className="text-text-primary">random order</b> and must recreate the lines.</p>
                         <div className="mt-3 grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
                           <div className="rounded-xl border border-border bg-card px-3 py-2.5">
-                            <p className="flex items-center gap-1.5 text-[11px] font-bold text-text-primary"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E91E63] text-white text-[11px]">1</span> Add line-wise</p>
+                            <p className="flex items-center gap-1.5 text-[11px] font-bold text-text-primary"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--qs-brand)] text-white text-[11px]">1</span> Add line-wise</p>
                             <p className="mt-1 text-[11px] leading-relaxed text-text-muted">Row <b className="text-text-primary">01</b>: type <b className="text-text-primary">A1</b> and its correct <b className="text-text-primary">B1</b> on the same line. Row 02: A2 ↔ B2, etc. Use <Plus className="inline h-3 w-3" /> Add Pair or add per column.</p>
                           </div>
-                          <div className="rounded-xl border border-[#E91E63]/30 bg-[#E91E63]/10 px-3 py-2.5">
-                            <p className="flex items-center gap-1.5 text-[11px] font-bold text-[#E91E63]"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#E91E63] text-white text-[11px]">2</span> Correct = front <ArrowRight className="h-3 w-3" /></p>
+                          <div className="rounded-xl border border-[var(--qs-brand)]/30 bg-[var(--qs-brand)]/10 px-3 py-2.5">
+                            <p className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--qs-brand)]"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--qs-brand)] text-white text-[11px]">2</span> Correct = front <ArrowRight className="h-3 w-3" /></p>
                             <p className="mt-1 text-[11px] leading-relaxed text-text-muted">
-                              Example: A: <b>France</b> front-of <b>Paris</b>, A: <b>Japan</b> front-of <b>Tokyo</b>. No extra click needed — same line <span className="text-[#E91E63] font-medium">is the answer</span>. Mapping below just mirrors the lines.
+                              Example: A: <b>France</b> front-of <b>Paris</b>, A: <b>Japan</b> front-of <b>Tokyo</b>. No extra click needed — same line <span className="text-[var(--qs-brand)] font-medium">is the answer</span>. Mapping below just mirrors the lines.
                             </p>
                           </div>
                           <div className="rounded-xl border border-border bg-card px-3 py-2.5">
@@ -484,7 +484,7 @@ export function MatchFollowingEditor() {
                 </div>
                 <h3 className="break-words text-sm font-semibold text-text-primary">Build your matching pairs</h3>
                 <p className="max-w-sm break-words text-xs leading-relaxed text-text-muted">Add items to both columns and connect each item with its correct match.</p>
-                <button onClick={addPair} className="mt-1 inline-flex items-center gap-1.5 rounded-xl bg-[#E91E63] px-4 py-2 text-xs font-semibold text-white hover:bg-[#D81B60]">
+                <button onClick={addPair} className="mt-1 inline-flex items-center gap-1.5 rounded-xl bg-[var(--qs-brand)] px-4 py-2 text-xs font-semibold text-white hover:bg-[#5a2fd8]">
                   <Plus className="h-3.5 w-3.5" /> Add First Pair
                 </button>
               </div>
@@ -511,13 +511,13 @@ export function MatchFollowingEditor() {
                           onClick={() => setSelectedLeftId(item.id)}
                           className={cn(
                             "group flex items-center gap-2 rounded-xl border px-2.5 py-2.5 transition-all duration-200 cursor-pointer",
-                            isSelected ? "border-[#E91E63]/30 bg-[#E91E63]/[0.06] shadow-[0_0_0_2px_rgba(233,30,99,0.08)]" : "border-border bg-card hover:border-border"
+                            isSelected ? "border-[var(--qs-brand)]/30 bg-[var(--qs-brand)]/[0.06] shadow-[0_0_0_2px_rgba(106,61,240,0.08)]" : "border-border bg-card hover:border-border"
                           )}
                         >
                           <span className="flex items-center text-text-muted">
                             <GripVertical className="h-3.5 w-3.5 opacity-30" />
                           </span>
-                          <span className={cn("flex h-6 min-w-7 items-center justify-center rounded-lg border text-[11px] font-bold tabular-nums", isSelected ? "border-[#E91E63] bg-[#E91E63] text-white animate-pulse" : "border-border bg-card-hover text-text-primary")}>
+                          <span className={cn("flex h-6 min-w-7 items-center justify-center rounded-lg border text-[11px] font-bold tabular-nums", isSelected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-white animate-pulse" : "border-border bg-card-hover text-text-primary")}>
                             {pad(idx)}
                           </span>
                           <input
@@ -544,9 +544,9 @@ export function MatchFollowingEditor() {
                             </button>
                           </div>
                           {/* arrow indicator — same row maps to Column B */}
-                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[#E91E63]/40" />
+                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]/40" />
                           {/* connection dot - no green, just pink when selected else neutral */}
-                          <span className={cn("h-2 w-2 shrink-0 rounded-full transition-all", isSelected ? "bg-[#E91E63]/60" : "bg-border")} />
+                          <span className={cn("h-2 w-2 shrink-0 rounded-full transition-all", isSelected ? "bg-[var(--qs-brand)]/60" : "bg-border")} />
                         </div>
                       );
                     })}
@@ -554,13 +554,13 @@ export function MatchFollowingEditor() {
                   <button
                     onClick={addLeft}
                     disabled={left.length >= 10}
-                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-300 dark:border-pink-400/30 bg-pink-50/50 dark:bg-pink-500/10 py-2 text-xs font-medium text-[#E91E63] hover:bg-pink-50 dark:hover:bg-pink-500/15 disabled:opacity-40"
+                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-300 dark:border-pink-400/30 bg-pink-50/50 dark:bg-pink-500/10 py-2 text-xs font-medium text-[var(--qs-brand)] hover:bg-pink-50 dark:hover:bg-pink-500/15 disabled:opacity-40"
                   >
                     <Plus className="h-3.5 w-3.5" /> Add Item
                   </button>
                   <AnimatePresence>
                     {selectedLeftId ? (
-                      <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="mt-2 flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-[#E91E63]">
+                      <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="mt-2 flex items-center justify-center gap-1.5 text-center text-[11px] font-medium text-[var(--qs-brand)]">
                         <MousePointer2 className="h-3 w-3" /> Row selected — correct answer is Column B on the same line
                       </motion.p>
                     ) : (
@@ -591,7 +591,7 @@ export function MatchFollowingEditor() {
                           }}
                           className={cn(
                             "group flex items-center gap-2 rounded-xl border px-2.5 py-2.5 transition-all duration-200 cursor-pointer",
-                            isDropHover ? "border-[#E91E63] bg-[#E91E63]/10 scale-[1.01] shadow-[0_0_0_3px_rgba(233,30,99,0.12)]" : "border-border bg-card hover:border-border"
+                            isDropHover ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/10 scale-[1.01] shadow-[0_0_0_3px_rgba(106,61,240,0.12)]" : "border-border bg-card hover:border-border"
                           )}
                         >
                           <span className="flex items-center text-text-muted">
@@ -630,7 +630,7 @@ export function MatchFollowingEditor() {
                   <button
                     onClick={addRight}
                     disabled={right.length >= 10}
-                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-300 dark:border-pink-400/30 bg-pink-50/50 dark:bg-pink-500/10 py-2 text-xs font-medium text-[#E91E63] hover:bg-pink-50 disabled:opacity-40"
+                    className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-300 dark:border-pink-400/30 bg-pink-50/50 dark:bg-pink-500/10 py-2 text-xs font-medium text-[var(--qs-brand)] hover:bg-pink-50 disabled:opacity-40"
                   >
                     <Plus className="h-3.5 w-3.5" /> Add Match
                   </button>
@@ -642,7 +642,7 @@ export function MatchFollowingEditor() {
           {/* Preview button prominent */}
           <button
             onClick={() => setPreviewOpen(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#E91E63] px-6 py-3.5 text-sm font-semibold text-white hover:bg-[#D81B60] shadow-[0_4px_16px_rgba(233,30,99,0.25)] transition-colors"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--qs-brand)] px-6 py-3.5 text-sm font-semibold text-white hover:bg-[#5a2fd8] shadow-[0_4px_16px_rgba(106,61,240,0.25)] transition-colors"
           >
             <Eye className="h-4 w-4" /> Preview Question
           </button>
@@ -736,7 +736,7 @@ export function MatchFollowingEditor() {
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           onClick={() => update({ interactionMode: "click" as any })}
-                          className="rounded-xl border px-4 py-2 text-xs font-medium border-[#E91E63] bg-[#E91E63] text-white"
+                          className="rounded-xl border px-4 py-2 text-xs font-medium border-[var(--qs-brand)] bg-[var(--qs-brand)] text-white"
                         >
                           Tap to pair
                         </button>
@@ -793,13 +793,13 @@ export function MatchFollowingEditor() {
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold text-text-primary">Change question type?</h3>
                 <p className="mt-1 text-xs leading-relaxed text-text-muted">
-                  You have written data for <span className="font-semibold text-text-primary">Match</span>. Switching to <span className="font-semibold text-[#E91E63]">{pendingType?.replace("_", " ")}</span> will remove existing matching pairs / correct answer. <span className="font-medium">Kyoki phir options type etc mei dikkat ho jayega.</span>
+                  You have written data for <span className="font-semibold text-text-primary">Match</span>. Switching to <span className="font-semibold text-[var(--qs-brand)]">{pendingType?.replace("_", " ")}</span> will remove existing matching pairs / correct answer. <span className="font-medium">Kyoki phir options type etc mei dikkat ho jayega.</span>
                 </p>
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" onClick={() => setPendingType(null)} className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium hover:bg-card-hover">Cancel</button>
-              <button type="button" onClick={() => doSwitchType(pendingType)} className="rounded-lg bg-[#E91E63] px-4 py-2 text-xs font-semibold text-white hover:bg-[#D81B60]">Continue, remove data</button>
+              <button type="button" onClick={() => doSwitchType(pendingType)} className="rounded-lg bg-[var(--qs-brand)] px-4 py-2 text-xs font-semibold text-white hover:bg-[#5a2fd8]">Continue, remove data</button>
             </div>
           </div>
         </div>

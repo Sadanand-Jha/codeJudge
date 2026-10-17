@@ -35,7 +35,7 @@ export function Money({
   compact?: boolean;
 }) {
   return (
-    <span className={cn("font-semibold tabular-nums text-text-primary", className)}>
+    <span className={cn("font-semibold tabular-nums text-[var(--qs-ink)]", className)}>
       {compact ? formatINRCompact(value) : formatINR(value)}
     </span>
   );
@@ -55,15 +55,15 @@ interface BillButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const buttonStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-[#EC4899] text-white font-semibold shadow-[0_2px_8px_rgba(236,72,153,0.18)] hover:bg-[#DB2777] hover:shadow-[0_4px_14px_rgba(236,72,153,0.25)]",
+    "bg-[var(--qs-brand)] text-[var(--qs-on-brand)] font-bold hover:brightness-110 shadow-[0_2px_10px_rgba(106,61,240,0.22)]",
   ghost:
-    "border border-border bg-card text-text-primary font-semibold hover:border-[#EC4899]/30 hover:text-[#EC4899] dark:hover:border-ai-accent/40 dark:hover:text-ai-accent",
+    "border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] font-semibold hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]",
   outline:
-    "border border-[#EC4899]/30 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-[#DB2777] dark:text-[#F9A8D4] font-semibold hover:bg-[#FCE7F3] dark:hover:bg-[#EC4899]/15 hover:border-[#EC4899]/40",
+    "border border-[var(--qs-brand)]/30 bg-[var(--qs-brand)]/[0.07] text-[var(--qs-brand)] font-semibold hover:bg-[var(--qs-brand)]/15 hover:border-[var(--qs-brand)]/45",
   danger:
-    "border border-danger/20 bg-danger/[0.06] text-danger font-semibold hover:bg-danger/10",
+    "border border-[var(--qs-bad)]/25 bg-[var(--qs-bad)]/[0.07] text-[var(--qs-bad)] font-semibold hover:bg-[var(--qs-bad)]/15",
   subtle:
-    "bg-transparent text-text-secondary font-medium hover:bg-[#FDF2F8] dark:hover:bg-white/[0.04] hover:text-text-primary",
+    "bg-transparent text-[var(--qs-muted)] font-medium hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]",
 };
 
 export function BillButton({
@@ -77,7 +77,7 @@ export function BillButton({
   ...rest
 }: BillButtonProps) {
   const cls = cn(
-    "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[13px] transition-all duration-200 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100",
+    "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[13px] transition-all duration-200 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100",
     buttonStyles[variant],
     className
   );
@@ -124,9 +124,9 @@ export function IconButton({
       title={label}
       onClick={onClick}
       className={cn(
-        "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-text-secondary transition-all duration-150",
-        "hover:border-border-hover hover:text-text-primary focus-visible:ring-2 focus-visible:ring-accent/40 outline-none",
-        active && "border-pink-500/40 text-pink-500 dark:border-ai-accent/40 dark:text-ai-accent",
+        "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-all duration-150",
+        "hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 outline-none",
+        active && "border-[var(--qs-brand)]/40 text-[var(--qs-brand)]",
         className
       )}
     >
@@ -152,14 +152,14 @@ export function DeltaPill({
   const positive = invert ? pct <= 0 : pct >= 0;
   const toneClass =
     tone === "neutral"
-      ? "text-text-secondary bg-white/[0.04] border-border"
+      ? "text-[var(--qs-muted)] bg-[var(--qs-line)]/30 border-[var(--qs-line)]"
       : tone === "good"
-        ? "text-emerald-600 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/25"
+        ? "text-[var(--qs-ok)] bg-[var(--qs-okbg)] border-[var(--qs-ok)]/30"
         : tone === "bad"
-          ? "text-rose-600 dark:text-rose-300 bg-rose-500/10 border-rose-500/25"
+          ? "text-[var(--qs-bad)] bg-[var(--qs-badbg)] border-[var(--qs-bad)]/30"
           : positive
-            ? "text-emerald-600 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/25"
-            : "text-rose-600 dark:text-rose-300 bg-rose-500/10 border-rose-500/25";
+            ? "text-[var(--qs-ok)] bg-[var(--qs-okbg)] border-[var(--qs-ok)]/30"
+            : "text-[var(--qs-bad)] bg-[var(--qs-badbg)] border-[var(--qs-bad)]/30";
 
   return (
     <span
@@ -202,15 +202,15 @@ export function Panel({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-border bg-card shadow-[0_1px_3px_rgba(17,24,39,0.04),0_4px_12px_rgba(17,24,39,0.03)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.25)] transition-colors duration-200 hover:border-border",
+        "rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_6px_18px_rgba(26,18,64,0.05)] transition-colors duration-200 hover:border-[var(--qs-line)]",
         className
       )}
     >
       {(title || action) && (
         <div className="flex flex-col items-start justify-between gap-3 px-4 pt-4 sm:flex-row sm:px-5 sm:pt-5">
           <div className="min-w-0">
-            {title && <h3 className="text-sm font-semibold text-text-primary">{title}</h3>}
-            {subtitle && <p className="mt-0.5 text-xs text-text-secondary">{subtitle}</p>}
+            {title && <h3 className="text-sm font-bold text-[var(--qs-ink)]">{title}</h3>}
+            {subtitle && <p className="mt-0.5 text-xs text-[var(--qs-muted)]">{subtitle}</p>}
           </div>
           {action && <div className="w-full min-w-0 sm:w-auto">{action}</div>}
         </div>
@@ -226,11 +226,11 @@ export function Panel({
     StatCard — premium white+pink, subtle accents
     ============================================================ */
 const ACCENT_DOT: Record<string, string> = {
-  primary: "bg-[#EC4899]",
-  success: "bg-[#DB2777]",
-  warning: "bg-[#EC4899]",
-  gold: "bg-[#EC4899]",
-  info: "bg-[#DB2777]",
+  primary: "bg-[var(--qs-brand)]",
+  success: "bg-[var(--qs-ok)]",
+  warning: "bg-[var(--qs-sun)]",
+  gold: "bg-[var(--qs-sun)]",
+  info: "bg-[var(--qs-brand)]",
 };
 
 export function StatCard({
@@ -255,23 +255,23 @@ export function StatCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="group relative overflow-hidden rounded-2xl border border-border bg-card p-3.5 sm:p-5 shadow-[0_1px_3px_rgba(17,24,39,0.04),0_4px_12px_rgba(17,24,39,0.03)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.25)] transition-all duration-200 hover:border-[#EC4899]/15 hover:shadow-[0_4px_16px_rgba(17,24,39,0.06)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
+      className="group relative overflow-hidden rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 sm:p-5 shadow-[0_6px_18px_rgba(26,18,64,0.05)] transition-all duration-200 hover:border-[var(--qs-brand)]/30"
     >
       <span className={cn("absolute left-0 top-0 h-full w-[3px] rounded-full", ACCENT_DOT[accent])} />
       <div className="flex items-center justify-between">
-        <p className="min-w-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-text-muted sm:text-[11px] sm:tracking-widest">{label}</p>
+        <p className="min-w-0 text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--qs-muted)] sm:text-[11px] sm:tracking-widest">{label}</p>
         {icon && (
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-[#FCE7F3] dark:border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-text-muted group-hover:text-[#EC4899] transition-colors sm:h-7 sm:w-7">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-[var(--qs-line)] bg-[var(--qs-brand)]/[0.07] text-[var(--qs-muted)] group-hover:text-[var(--qs-brand)] transition-colors sm:h-7 sm:w-7">
             {icon}
           </div>
         )}
       </div>
-      <p className="mt-2.5 text-xl font-extrabold leading-none tracking-tight text-text-primary tabular-nums sm:text-[26px]">
+      <p className="mt-2.5 text-xl font-extrabold leading-none tracking-tight text-[var(--qs-ink)] tabular-nums sm:text-[26px]">
         {display ?? formatINR(value)}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {typeof delta === "number" && <DeltaPill pct={delta} />}
-        {hint && <span className="text-[10px] font-medium leading-4 text-text-muted sm:text-[11px]">{hint}</span>}
+        {hint && <span className="text-[10px] font-medium leading-4 text-[var(--qs-muted)] sm:text-[11px]">{hint}</span>}
       </div>
     </motion.div>
   );
@@ -283,13 +283,13 @@ export function StatCard({
 export type StatusTone = "emerald" | "amber" | "rose" | "violet" | "sky" | "slate" | "pink";
 
 export const STATUS_TONES: Record<StatusTone, string> = {
-  emerald: "border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/10",
-  amber: "border-amber-500/20 bg-amber-500/[0.08] text-amber-700 dark:text-amber-300 dark:bg-amber-500/10",
-  rose: "border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/12 text-[#DB2777] dark:text-[#F9A8D4]",
-  violet: "border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-[#EC4899] dark:text-[#F9A8D4]",
-  sky: "border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-[#EC4899] dark:text-[#F9A8D4]",
-  slate: "border-border bg-muted dark:bg-white/[0.04] text-text-muted",
-  pink: "border-[#EC4899]/20 bg-[#FDF2F8] dark:bg-[#EC4899]/10 text-[#EC4899] dark:text-[#F9A8D4]",
+  emerald: "border-[var(--qs-ok)]/25 bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
+  amber: "border-[var(--qs-sun)]/60 bg-[var(--qs-sun)]/25 text-[var(--qs-ink)]",
+  rose: "border-[var(--qs-brand)]/25 bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]",
+  violet: "border-[var(--qs-brand)]/25 bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]",
+  sky: "border-[var(--qs-brand)]/25 bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]",
+  slate: "border-[var(--qs-line)] bg-[var(--qs-line)]/30 text-[var(--qs-muted)]",
+  pink: "border-[var(--qs-brand)]/25 bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]",
 };
 
 export function StatusBadge({ label, tone = "slate", dot, className }: { label: string; tone?: StatusTone; dot?: boolean; className?: string }) {
@@ -337,22 +337,22 @@ export function SegmentedControl<T extends string>({
 }) {
   const layoutId = useId();
   return (
-    <div className={cn("flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-muted p-0.5 hide-scrollbar dark:bg-white/[0.04] sm:inline-flex", className)}>
+    <div className={cn("flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-[var(--qs-line)] bg-[var(--qs-line)]/30 p-0.5 hide-scrollbar sm:inline-flex", className)}>
       {options.map((opt) => (
         <button
           key={opt.id}
           type="button"
           onClick={() => onChange(opt.id)}
           className={cn(
-            "relative shrink-0 rounded-lg font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[#EC4899]/20",
+            "relative shrink-0 rounded-lg font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/25",
             size === "sm" ? "px-2.5 py-1 text-[11px]" : "px-3.5 py-1.5 text-xs",
-            value === opt.id ? "text-text-primary" : "text-text-muted hover:text-[#EC4899]"
+            value === opt.id ? "text-[var(--qs-ink)]" : "text-[var(--qs-muted)] hover:text-[var(--qs-brand)]"
           )}
         >
           {value === opt.id && (
             <motion.span
               layoutId={layoutId}
-              className="absolute inset-0 rounded-lg bg-card shadow-[0_1px_2px_rgba(17,24,39,0.06)] ring-1 ring-border"
+              className="absolute inset-0 rounded-lg bg-[var(--qs-surface)] shadow-[0_1px_2px_rgba(26,18,64,0.08)] ring-1 ring-[var(--qs-line)]"
               transition={{ type: "spring", stiffness: 500, damping: 35 }}
             />
           )}
@@ -408,11 +408,11 @@ export function DateRangePicker({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-9 items-center gap-2 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover"
+        className="inline-flex h-9 items-center gap-2 rounded-xl border border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-semibold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]/40"
       >
-        <CalendarDays className="h-3.5 w-3.5 text-text-secondary" />
+        <CalendarDays className="h-3.5 w-3.5 text-[var(--qs-muted)]" />
         {current?.label ?? "Select range"}
-        <ChevronDown className="h-3.5 w-3.5 text-text-secondary" />
+        <ChevronDown className="h-3.5 w-3.5 text-[var(--qs-muted)]" />
       </button>
       <AnimatePresence>
         {open && (
@@ -421,7 +421,7 @@ export function DateRangePicker({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 z-50 mt-2 w-64 rounded-2xl border border-border bg-card p-2 shadow-2xl"
+            className="absolute right-0 z-50 mt-2 w-64 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2 shadow-[0_16px_40px_rgba(26,18,64,0.16)]"
           >
             {DATE_PRESETS.map((p) => (
               <button
@@ -434,8 +434,8 @@ export function DateRangePicker({
                 className={cn(
                   "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[13px] transition-colors",
                   value === p.id
-                    ? "bg-accent/15 font-semibold text-accent"
-                    : "text-text-secondary hover:bg-white/[0.04] hover:text-text-primary"
+                    ? "bg-[var(--qs-brand)]/10 font-semibold text-[var(--qs-brand)]"
+                    : "text-[var(--qs-muted)] hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
                 )}
               >
                 {p.label}
@@ -445,13 +445,13 @@ export function DateRangePicker({
                       type="date"
                       value={from}
                       onChange={(e) => setFrom(e.target.value)}
-                      className="w-[104px] rounded-md border border-border bg-input-bg px-1.5 py-0.5 text-[11px] text-text-primary"
+                      className="w-[104px] rounded-md border border-[var(--qs-line)] bg-[var(--qs-surface)] px-1.5 py-0.5 text-[11px] text-[var(--qs-ink)]"
                     />
                     <input
                       type="date"
                       value={to}
                       onChange={(e) => setTo(e.target.value)}
-                      className="w-[104px] rounded-md border border-border bg-input-bg px-1.5 py-0.5 text-[11px] text-text-primary"
+                      className="w-[104px] rounded-md border border-[var(--qs-line)] bg-[var(--qs-surface)] px-1.5 py-0.5 text-[11px] text-[var(--qs-ink)]"
                     />
                   </div>
                 )}
@@ -473,7 +473,7 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function StatCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-border bg-card p-3.5 sm:p-5">
+    <div className="rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 sm:p-5">
       <Skeleton className="h-3 w-24" />
       <Skeleton className="mt-3 h-7 w-32" />
       <Skeleton className="mt-3 h-4 w-28" />
@@ -483,7 +483,7 @@ export function StatCardSkeleton() {
 
 export function PanelSkeleton({ title }: { title?: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5">
       {title && <Skeleton className="h-4 w-40" />}
       <Skeleton className="mt-4 h-48 w-full" />
       <div className="mt-4 space-y-2">
@@ -503,7 +503,7 @@ export function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: nu
         ))}
       </div>
       {Array.from({ length: rows }).map((_, r) => (
-        <div key={r} className="flex items-center gap-4 rounded-xl border border-border/60 p-3">
+        <div key={r} className="flex items-center gap-4 rounded-xl border border-[var(--qs-line)]/60 p-3">
           {Array.from({ length: cols }).map((_, c) => (
             <Skeleton key={c} className={cn("h-3.5 flex-1", c === 0 && "max-w-[40%]")} />
           ))}
@@ -528,12 +528,12 @@ export function EmptyState({
   icon?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-white/[0.03] text-text-muted">
+    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] px-6 py-16 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--qs-line)] bg-[var(--qs-brand)]/[0.07] text-[var(--qs-muted)]">
         {icon ?? <Inbox className="h-6 w-6" />}
       </div>
-      <h3 className="mt-4 text-[15px] font-semibold text-text-primary">{title}</h3>
-      <p className="mt-1.5 max-w-sm text-[13px] text-text-secondary">{description}</p>
+      <h3 className="mt-4 text-[15px] font-bold text-[var(--qs-ink)]">{title}</h3>
+      <p className="mt-1.5 max-w-sm text-[13px] text-[var(--qs-muted)]">{description}</p>
       {action && <div className="mt-6">{action}</div>}
     </div>
   );
@@ -544,19 +544,19 @@ export function EmptyState({
    ============================================================ */
 export function ErrorState({ onRetry, message }: { onRetry?: () => void; message?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-danger/20 bg-danger/[0.03] px-6 py-16 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-danger/20 bg-danger/10 text-danger">
+    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-[var(--qs-bad)]/20 bg-[var(--qs-bad)]/[0.04] px-6 py-16 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--qs-bad)]/20 bg-[var(--qs-bad)]/10 text-[var(--qs-bad)]">
         <X className="h-6 w-6" />
       </div>
-      <h3 className="mt-4 text-[15px] font-semibold text-text-primary">We couldn&apos;t load your financial data.</h3>
-      <p className="mt-1.5 max-w-sm text-[13px] text-text-secondary">
+      <h3 className="mt-4 text-[15px] font-bold text-[var(--qs-ink)]">We couldn&apos;t load your financial data.</h3>
+      <p className="mt-1.5 max-w-sm text-[13px] text-[var(--qs-muted)]">
         {message ?? "Something went wrong on our side. Please try again in a moment."}
       </p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="mt-6 inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-semibold text-text-primary transition-all hover:border-pink-500/30 hover:text-pink-500 dark:hover:border-ai-accent/40 dark:hover:text-ai-accent"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl border border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-semibold text-[var(--qs-ink)] transition-all hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]"
         >
           <RotateCcw className="h-3.5 w-3.5" />
           Retry
@@ -584,10 +584,10 @@ export function PageHeader({
     <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-start sm:gap-4">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2.5">
-          <h1 className="text-[22px] font-extrabold tracking-tight text-text-primary sm:text-2xl">{title}</h1>
+          <h1 className="qs-display text-[22px] text-[var(--qs-ink)] sm:text-2xl">{title}</h1>
           {badge}
         </div>
-        {subtitle && <p className="mt-1 text-[13px] text-text-secondary">{subtitle}</p>}
+        {subtitle && <p className="mt-1 text-[13px] text-[var(--qs-muted)]">{subtitle}</p>}
       </div>
       {actions && <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
     </div>
@@ -599,7 +599,7 @@ export function PageHeader({
    ============================================================ */
 export function SecureNote({ text }: { text: string }) {
   return (
-    <div className="inline-flex items-center gap-1.5 text-[11px] text-text-muted">
+    <div className="inline-flex items-center gap-1.5 text-[11px] text-[var(--qs-muted)]">
       <Lock className="h-3 w-3" />
       {text}
     </div>

@@ -611,7 +611,7 @@ function AllStudentsPanel({
                 setSaving(false);
               }
             }}
-            className="rounded-lg sm:rounded-md bg-[#E91E63] sm:bg-pink-500 px-2 py-2 sm:px-2.5 sm:py-1 text-xs sm:text-[11px] font-bold sm:font-medium text-white transition-colors duration-150 hover:bg-[#D81B60] sm:hover:bg-pink-600 disabled:opacity-40"
+            className="rounded-lg sm:rounded-md bg-[var(--qs-brand)] sm:bg-pink-500 px-2 py-2 sm:px-2.5 sm:py-1 text-xs sm:text-[11px] font-bold sm:font-medium text-white transition-colors duration-150 hover:bg-[#5a2fd8] sm:hover:bg-pink-600 disabled:opacity-40"
           >
             {saving ? "Saving…" : "Save"}
           </button>

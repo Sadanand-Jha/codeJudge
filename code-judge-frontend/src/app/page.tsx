@@ -99,7 +99,7 @@ export default function HomePage() {
         <div className="qs-wrap">
           <div className="qs-cta">
             <h2 className="max-w-[14em] text-[clamp(30px,4vw,44px)]">
-              Your first quiz takes about five minutes.
+              Your first quiz takes about two minutes.
             </h2>
             <Link href="/creator/quizzes/create" className="qs-btn">
               Create a quiz

@@ -167,7 +167,7 @@ function Tiles({
           )}
         >
           <span
-            className="grid h-[38px] w-[38px] place-items-center rounded-[10px] text-sm font-extrabold text-white"
+            className="grid h-[38px] w-[38px] place-items-center rounded-[10px] text-sm font-extrabold text-[var(--qs-on-brand)]"
             style={{ background: app.c }}
             aria-hidden="true"
           >

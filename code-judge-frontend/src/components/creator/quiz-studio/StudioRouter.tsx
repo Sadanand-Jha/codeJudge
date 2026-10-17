@@ -84,7 +84,7 @@ function StudioShellWithRouter({ onDashboard }: { onDashboard: () => void }) {
           <p className="max-w-sm text-sm text-text-muted">{loadError}</p>
           <button
             onClick={onDashboard}
-            className="mt-2 rounded-lg bg-[#E91E63] px-4 py-2 text-xs font-semibold text-white hover:bg-[#D81B60]"
+            className="mt-2 rounded-lg bg-[var(--qs-brand)] px-4 py-2 text-xs font-semibold text-white hover:bg-[#5a2fd8]"
           >
             Back to Quizzes
           </button>

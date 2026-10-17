@@ -113,7 +113,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                 <Clock className="h-3.5 w-3.5 text-[#F59E0B]" />
                 <span className="font-mono text-xs font-semibold text-text-primary">10:00</span>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-md bg-[#EC4899]/10 px-1.5 py-1 text-[10px] font-bold text-[#EC4899] sm:px-2">
+              <span className="inline-flex items-center gap-1 rounded-md bg-[#8d68ff]/10 px-1.5 py-1 text-[10px] font-bold text-[#8d68ff] sm:px-2">
                 <Eye className="h-3 w-3" /> PREVIEW
               </span>
               <button onClick={onClose} aria-label="Close preview" className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary">
@@ -123,7 +123,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
           </div>
           {/* Progress bar */}
           <div className="h-1 bg-border">
-            <motion.div className="h-full bg-[#EC4899]" animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
+            <motion.div className="h-full bg-[#8d68ff]" animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
           </div>
         </div>
 
@@ -141,7 +141,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
               <div className="flex flex-col gap-3 sm:gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium text-text-muted">Q{currentIdx + 1}</span>
-                  <span className="rounded-full bg-[#EC4899]/10 px-2 py-0.5 text-[10px] font-medium text-[#EC4899]">
+                  <span className="rounded-full bg-[#8d68ff]/10 px-2 py-0.5 text-[10px] font-medium text-[#8d68ff]">
                     {q.marks} pts
                   </span>
                   <span className={cn(
@@ -185,10 +185,10 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                           labelBorder = "border-red-500";
                         }
                       } else if (isSelected) {
-                        borderColor = "border-[#EC4899]";
-                        bgColor = "bg-[#EC4899]/10";
-                        labelColor = "text-[#EC4899]";
-                        labelBorder = "border-[#EC4899]";
+                        borderColor = "border-[#8d68ff]";
+                        bgColor = "bg-[#8d68ff]/10";
+                        labelColor = "text-[#8d68ff]";
+                        labelBorder = "border-[#8d68ff]";
                       }
 
                       return (
@@ -322,9 +322,9 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                   onClick={() => setCurrentIdx(i)}
                   className={cn(
                     "h-2 w-2 shrink-0 rounded-full transition-all",
-                    i === currentIdx ? "w-5 bg-[#EC4899]" :
+                    i === currentIdx ? "w-5 bg-[#8d68ff]" :
                     answered[i] ? (selected[i] === getCorrectIdx(questions[i]) ? "bg-emerald-500" : "bg-red-500") :
-                    selected[i] !== undefined ? "bg-[#EC4899]/40" :
+                    selected[i] !== undefined ? "bg-[#8d68ff]/40" :
                     "bg-border"
                   )}
                 />
@@ -338,7 +338,7 @@ export function StudentPreviewModal({ open, onClose, questions, quizTitle }: Stu
                 }
               }}
               disabled={currentIdx === total - 1}
-              className="flex h-10 shrink-0 items-center gap-1 rounded-xl bg-[#EC4899] px-4 text-xs font-semibold text-white transition-colors hover:bg-[#D81B60] disabled:cursor-not-allowed disabled:bg-card-hover disabled:text-text-muted sm:py-2"
+              className="flex h-10 shrink-0 items-center gap-1 rounded-xl bg-[#8d68ff] px-4 text-xs font-semibold text-white transition-colors hover:bg-[#5a2fd8] disabled:cursor-not-allowed disabled:bg-card-hover disabled:text-text-muted sm:py-2"
             >
               Next <ChevronRight className="h-3.5 w-3.5" />
             </button>

@@ -339,21 +339,8 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             showLabels ? "w-full" : "ml-auto w-[3.75rem]"
           )}
         >
-        {/* Logo */}
-        <div className={cn("shrink-0 py-4 flex items-center", showLabels ? "px-6 justify-start" : "px-0 justify-center")}>
-          <Link href={homeHref} className="flex items-center gap-2.5" aria-label="QuizSupport home">
-            {showLabels ? (
-              /* Sidebar khulne pe — combined logo (mascot + wordmark) single image. */
-              <SecureLogo size={34} variant="full" />
-            ) : (
-              /* Collapsed 60px rail — sirf bubble mark */
-              <SecureLogo size={38} variant="mark" />
-            )}
-          </Link>
-        </div>
-
         {/* Navigation */}
-        <nav className={cn("flex-1 overflow-y-auto", showLabels ? "px-2.5 py-3 space-y-1" : "px-0 py-3 space-y-1")}>
+        <nav className={cn("flex-1 overflow-y-auto", showLabels ? "px-2.5 py-3 space-y-1" : "px-0 pt-2 pb-3 space-y-1")}>
           {visibleNavGroups.map((group, groupIndex) => (
             <div key={group.label} className="space-y-1">
               {groupIndex > 0 && (
@@ -460,9 +447,9 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             {/* Back — internal pages only; never inside the quiz flow */}
             <BackButton />
 
-            {/* Brand logo — always visible (the project sidebar hides in the quiz workspace).
-                Mobile shows the icon-only mark; the full wordmark is too wide and
-                overlaps the header actions on small screens. */}
+            {/* Brand logo — sidebar no longer carries a logo, so the topbar shows it
+                on every size. Mobile shows the icon-only mark; the full wordmark is
+                too wide and overlaps the header actions on small screens. */}
             <Link href={homeHref} className="flex shrink-0 items-center gap-2" aria-label="QuizSupport home">
               <SecureLogo size={36} variant="mark" className="sm:hidden" />
               <SecureLogo size={48} variant="full" className="hidden sm:block" />

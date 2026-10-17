@@ -147,7 +147,7 @@ export function MobileQuestionSettingsSheet({ open, onClose }: Props) {
 
               <button
                 onClick={onClose}
-                className="flex w-full items-center justify-center rounded-xl bg-[#E91E63] py-3 text-sm font-bold text-white"
+                className="flex w-full items-center justify-center rounded-xl bg-[var(--qs-brand)] py-3 text-sm font-bold text-white"
               >
                 Done
               </button>

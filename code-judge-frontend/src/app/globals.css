@@ -578,7 +578,7 @@ body {
 }
 
 .ai-studio-btn {
-  background: #8b5cf6;
+  background: var(--qs-brand, #8b5cf6);
   color: white;
   border-radius: 0 !important;
   margin-left: -0.75rem !important;
@@ -1154,6 +1154,8 @@ button.cf-btn:hover {
 [data-theme="light"] .bg-gradient-to-b.text-white,
 [data-theme="light"] .bg-emerald-500.text-white,
 [data-theme="light"] .bg-emerald-600.text-white,
+[data-theme="light"] .bg-green-500.text-white,
+[data-theme="light"] .bg-green-600.text-white,
 [data-theme="light"] .bg-violet-500.text-white,
 [data-theme="light"] .bg-violet-600.text-white,
 [data-theme="light"] .bg-rose-500.text-white,
@@ -1186,6 +1188,8 @@ button.cf-btn:hover {
 [data-theme="light"] .bg-stone-900.text-white,
 [data-theme="light"] .bg-emerald-500 .text-white,
 [data-theme="light"] .bg-emerald-600 .text-white,
+[data-theme="light"] .bg-green-500 .text-white,
+[data-theme="light"] .bg-green-600 .text-white,
 [data-theme="light"] .bg-violet-500 .text-white,
 [data-theme="light"] .bg-violet-600 .text-white,
 [data-theme="light"] .bg-rose-500 .text-white,
@@ -1231,7 +1235,19 @@ button.cf-btn:hover {
 [data-theme="light"] .bg-warning .text-white,
 [data-theme="light"] .bg-gradient-to-r .text-white,
 [data-theme="light"] .bg-gradient-to-br .text-white,
-[data-theme="light"] .bg-gradient-to-b .text-white {
+[data-theme="light"] .bg-gradient-to-b .text-white,
+[data-theme="light"] .bg-profile-accent.text-white,
+[data-theme="light"] .bg-profile-accent .text-white,
+[data-theme="light"] .bg-text-primary.text-white,
+[data-theme="light"] .bg-text-primary .text-white,
+[data-theme="light"] .bg-slate-400.text-white,
+[data-theme="light"] .bg-slate-400 .text-white,
+[data-theme="light"] .bg-\[var\(--qs-brand\)\].text-white,
+[data-theme="light"] .bg-\[var\(--qs-brand\)\] .text-white,
+[data-theme="light"] .bg-\[var\(--qs-ok\)\].text-white,
+[data-theme="light"] .bg-\[var\(--qs-ok\)\] .text-white,
+[data-theme="light"] .bg-\[var\(--qs-bad\)\].text-white,
+[data-theme="light"] .bg-\[var\(--qs-bad\)\] .text-white {
   color: #FFFFFF !important;
 }
 
@@ -1268,6 +1284,7 @@ button.cf-btn:hover {
 [data-theme="light"] .hover\:bg-white\/\[0\.06\]:hover { background-color: #E5E7EB !important; }
 [data-theme="light"] .hover\:bg-white\/\[0\.08\]:hover { background-color: #E5E7EB !important; }
 [data-theme="light"] .hover\:text-white:hover { color: #111827 !important; }
+[data-theme="light"] .hover\:bg-red-600.hover\:text-white:hover { color: #FFFFFF !important; }
 [data-theme="light"] .hover\:border-white\/\[0\.12\]:hover { border-color: #D1D5DB !important; }
 [data-theme="light"] .hover\:border-white\/\[0\.15\]:hover { border-color: #D1D5DB !important; }
 [data-theme="light"] .hover\:bg-\[\#1F2937\]:hover { background-color: #F3F4F6 !important; }
@@ -4040,26 +4057,8 @@ svg {
     rgba(255, 255, 255, 0.018);
 }
 
-/* Creator workspace: subtle depth on large screens, intentionally calm on mobile. */
-.creator-workspace {
-  background:
-    radial-gradient(circle at 82% 4%, rgba(139, 92, 246, 0.055), transparent 24rem),
-    radial-gradient(circle at 28% 96%, rgba(236, 72, 153, 0.04), transparent 27rem),
-    var(--background);
-}
-
-[data-theme="dark"] .creator-workspace {
-  background:
-    radial-gradient(circle at 82% 4%, rgba(139, 92, 246, 0.07), transparent 26rem),
-    radial-gradient(circle at 28% 96%, rgba(236, 72, 153, 0.045), transparent 28rem),
-    var(--background);
-}
-
+/* Creator workspace: calm on mobile. */
 @media (max-width: 639px) {
-  .creator-workspace {
-    background: var(--background);
-  }
-
   .creator-mobile-calm .creator-desktop-flourish {
     display: none !important;
   }
@@ -5005,6 +5004,56 @@ textarea {
   --qs-poly-5: #4b2a7b;
 }
 
+/* ============================================
+   Creator Studio theme bridge
+   The quiz-studio flow (steps, editors, sheets)
+   predates the qs redesign and still uses the
+   legacy theme tokens plus a pink accent ramp.
+   Remapping both here recolors every internal
+   page without touching thousands of lines.
+   Portaled overlays opt in with data-studio.
+   ============================================ */
+[data-studio="true"] {
+  --background: #f7f5ff;
+  --foreground: #1a1240;
+  --card: #ffffff;
+  --card-foreground: #1a1240;
+  --card-hover: #f3efff;
+  --popover: #ffffff;
+  --popover-foreground: #1a1240;
+  --border: #e0dbf5;
+  --border-hover: #cdc4ec;
+  --input: #f3efff;
+  --input-bg: #ffffff;
+  --input-border: #e0dbf5;
+  --input-focus-ring: rgba(106, 61, 240, 0.12);
+  --ring: #6a3df0;
+  --muted: #f3efff;
+  --muted-foreground: #5c5679;
+  --text-primary: #1a1240;
+  --text-secondary: #5c5679;
+  --text-muted: #8b84a8;
+  --primary: #6a3df0;
+  --primary-foreground: #ffffff;
+  --accent: #6a3df0;
+  --accent-foreground: #ffffff;
+  --success: #13795b;
+  --warning: #b45309;
+  --danger: #c2303a;
+
+  /* Pink accent ramp → qs brand ramp */
+  --color-pink-50: #f2edff;
+  --color-pink-100: #e8e0ff;
+  --color-pink-200: #d7c9ff;
+  --color-pink-300: #bfa8ff;
+  --color-pink-400: #9c7bff;
+  --color-pink-500: #6a3df0;
+  --color-pink-600: #5a2fd8;
+  --color-pink-700: #4b26b4;
+  --color-pink-800: #3d1f92;
+  --color-pink-900: #2a1566;
+}
+
 @layer components {
   .qs-ui h1,
   .qs-ui h2,
@@ -5327,5 +5376,26 @@ textarea {
     .qs-bar > b {
       transition: none;
     }
+  }
+}
+
+/* ============================================
+   Mobile quiet mode
+   Phones and touch devices get no CSS motion at all.
+   JS-driven framer animations are gated separately in
+   src/components/providers/MotionGate.tsx. Loader
+   spinners stay so progress feedback still reads.
+   ============================================ */
+@media (max-width: 640px), (pointer: coarse) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite !important;
   }
 }

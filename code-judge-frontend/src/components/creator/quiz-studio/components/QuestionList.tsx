@@ -109,7 +109,7 @@ export function QuestionList({
         </div>
         <button
           onClick={() => addQuestion()}
-          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-200 dark:border-pink-400/30 bg-pink-50 dark:bg-pink-500/10 py-2 text-xs font-medium text-[#E91E63] hover:bg-pink-100 dark:hover:bg-pink-500/20"
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-200 dark:border-pink-400/30 bg-pink-50 dark:bg-pink-500/10 py-2 text-xs font-medium text-[var(--qs-brand)] hover:bg-pink-100 dark:hover:bg-pink-500/20"
         >
           + Add Question
         </button>
@@ -137,7 +137,7 @@ export function QuestionList({
                   className={cn(
                     "group relative flex h-[64px] cursor-pointer flex-col justify-center rounded-xl border px-3 py-2 transition-colors",
                     active
-                      ? "border-pink-200 dark:border-pink-500/20 bg-pink-50/60 dark:bg-pink-500/10 border-l-[3px] border-l-[#E91E63] shadow-sm"
+                      ? "border-pink-200 dark:border-pink-500/20 bg-pink-50/60 dark:bg-pink-500/10 border-l-[3px] border-l-[var(--qs-brand)] shadow-sm"
                       : "border-border bg-card hover:border-border hover:bg-card-hover"
                   )}
                 >
@@ -162,7 +162,7 @@ export function QuestionList({
                     >
                       <GripVertical className="h-3.5 w-3.5" />
                     </button>
-                    <span className={cn("text-[11px] font-bold tabular-nums mt-0.5", active ? "text-[#E91E63]" : "text-text-muted")}>
+                    <span className={cn("text-[11px] font-bold tabular-nums mt-0.5", active ? "text-[var(--qs-brand)]" : "text-text-muted")}>
                       {String(realIdx + 1).padStart(2, "0")}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -228,7 +228,7 @@ export function QuestionList({
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={onAiGenerate}
-            className="section-ai-cta flex items-center justify-center gap-1 rounded-lg border border-pink-200 dark:border-pink-400/30 bg-card py-2 text-xs font-medium text-[#E91E63] hover:bg-pink-50 dark:hover:bg-pink-500/10"
+            className="section-ai-cta flex items-center justify-center gap-1 rounded-lg border border-pink-200 dark:border-pink-400/30 bg-card py-2 text-xs font-medium text-[var(--qs-brand)] hover:bg-pink-50 dark:hover:bg-pink-500/10"
           >
             <Sparkles className="h-3.5 w-3.5" /> <AiStreamText text="AI Generate" />
           </button>

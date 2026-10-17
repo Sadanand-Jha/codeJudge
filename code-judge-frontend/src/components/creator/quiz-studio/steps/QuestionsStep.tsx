@@ -169,7 +169,7 @@ export function QuestionsStep() {
           >
             <ListChecks className="h-4 w-4 shrink-0 text-zinc-500" />
             <span className="truncate">Questions</span>
-            <span className="shrink-0 rounded-full bg-[#E91E63] px-1.5 py-0.5 text-[10px] font-bold text-white">{state.questions.length}</span>
+            <span className="shrink-0 rounded-full bg-[var(--qs-brand)] px-1.5 py-0.5 text-[10px] font-bold text-white">{state.questions.length}</span>
           </button>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <span className="hidden sm:inline text-xs font-medium text-zinc-500">
@@ -215,7 +215,7 @@ export function QuestionsStep() {
                   if (activeIdx < state.questions.length - 1) setActiveQuestion(state.questions[activeIdx + 1].id);
                 }}
                 disabled={activeIdx >= state.questions.length - 1}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[#E91E63] disabled:opacity-40"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[var(--qs-brand)] disabled:opacity-40"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -243,7 +243,7 @@ export function QuestionsStep() {
                 <button
                   type="button"
                   onClick={() => addQuestion()}
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#E91E63] px-5 py-3 text-sm font-bold text-white"
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[var(--qs-brand)] px-5 py-3 text-sm font-bold text-white"
                 >
                   <Plus className="h-4 w-4" /> Create Question
                 </button>
@@ -362,7 +362,7 @@ export function QuestionsStep() {
                 <button
                   type="button"
                   onClick={() => addQuestion()}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#E91E63] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#D81B60]"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--qs-brand)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#5a2fd8]"
                 >
                   <Plus className="h-4 w-4" /> Create Question
                 </button>

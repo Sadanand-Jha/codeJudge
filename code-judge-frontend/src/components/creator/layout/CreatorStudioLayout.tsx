@@ -33,8 +33,8 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   if (!hasHydrated) {
     return (
       <AppLayout>
-        <div className="flex min-h-screen items-center justify-center bg-background">
-          <Loader2 className="h-6 w-6 animate-spin text-accent" />
+        <div className="qs-ui flex min-h-screen items-center justify-center bg-[var(--qs-bg)]">
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--qs-brand)]" />
         </div>
       </AppLayout>
     );
@@ -43,8 +43,8 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
   if (!isAuthenticated) {
     return (
       <AppLayout>
-        <div className="flex min-h-screen items-center justify-center bg-background">
-          <Loader2 className="h-6 w-6 animate-spin text-accent" />
+        <div className="qs-ui flex min-h-screen items-center justify-center bg-[var(--qs-bg)]">
+          <Loader2 className="h-6 w-6 animate-spin text-[var(--qs-brand)]" />
         </div>
       </AppLayout>
     );
@@ -71,7 +71,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
 
   return (
     <AppLayout header={<CreatorNavbar onMobileMenuToggle={() => setDrawerOpen(true)} />}>
-      <div className="creator-workspace creator-mobile-calm flex flex-1 min-h-0 bg-background">
+      <div className="qs-ui creator-mobile-calm flex min-h-0 flex-1 bg-[var(--qs-bg)]">
         {/* Mobile drawer overlay */}
         <AnimatePresence>
           {drawerOpen && (
@@ -79,7 +79,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-[70] bg-[#1a1240]/50 backdrop-blur-sm"
               onClick={() => setDrawerOpen(false)}
             />
           )}
@@ -93,13 +93,13 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
               animate={{ x: 0 }}
               exit={{ x: -320 }}
               transition={{ type: "spring", stiffness: 380, damping: 34 }}
-              className="fixed inset-y-0 left-0 z-[80] w-[min(264px,calc(100vw-2rem))] border-r border-border bg-card shadow-2xl lg:hidden"
+              className="fixed inset-y-0 left-0 z-[80] w-[min(264px,calc(100vw-2rem))] border-r-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-2xl"
             >
               <button
                 type="button"
                 aria-label="Close menu"
                 onClick={() => setDrawerOpen(false)}
-                className="absolute right-3 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary hover:bg-white/[0.06]"
+                className="absolute right-3 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -107,11 +107,6 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
             </motion.aside>
           )}
         </AnimatePresence>
-
-        {/* Creator Studio Sidebar */}
-        <aside data-sidebar="true" className="hidden w-60 shrink-0 border-r border-border bg-card lg:block">
-          <CreatorSidebar pathname={pathname} />
-        </aside>
 
         {/* Main content */}
         <div data-studio="true" className="flex-1 flex min-h-0 min-w-0">

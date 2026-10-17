@@ -99,11 +99,11 @@ const STATUS_META: Record<QuizStatus, { label: string; tone: StatusTone }> = {
   completed: { label: "Completed", tone: "sky" },
 };
 
-const STATUS_ACCENT: Record<QuizStatus, { bar: string; avatar: string; tint: string }> = {
-  live: { bar: "from-emerald-400 to-teal-500", avatar: "from-emerald-400 to-teal-600", tint: "from-emerald-500/[0.08]" },
-  draft: { bar: "from-violet-400 to-purple-600", avatar: "from-violet-500 to-purple-600", tint: "from-violet-500/[0.07]" },
-  scheduled: { bar: "from-pink-500 to-rose-500", avatar: "from-pink-500 to-rose-600", tint: "from-pink-500/[0.08]" },
-  completed: { bar: "from-sky-400 to-blue-600", avatar: "from-sky-400 to-blue-600", tint: "from-sky-500/[0.08]" },
+const STATUS_ACCENT: Record<QuizStatus, { bar: string; avatar: string }> = {
+  live: { bar: "bg-[var(--qs-ok)]", avatar: "bg-[var(--qs-ok)] text-white" },
+  draft: { bar: "bg-[var(--qs-brand)]", avatar: "bg-[var(--qs-brand)] text-white" },
+  scheduled: { bar: "bg-[var(--qs-sun)]", avatar: "bg-[var(--qs-sun)] text-[var(--qs-ink)]" },
+  completed: { bar: "bg-[var(--qs-brand)]/40", avatar: "bg-[var(--qs-brand)]/12 text-[var(--qs-brand)]" },
 };
 
 export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
@@ -192,29 +192,28 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
         }
       />
 
-      <section className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-purple-500 to-fuchsia-500 p-5 text-white shadow-[0_20px_50px_-20px_rgba(139,92,246,.6)] transition-transform duration-200 hover:-translate-y-0.5 sm:flex-row sm:items-center">
-        <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-white/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 right-10 h-48 w-48 rounded-full bg-cyan-300/30 blur-3xl" />
+      <section className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-[6px_6px_0_0_var(--qs-sun)] transition-transform duration-200 hover:-translate-y-0.5 sm:flex-row sm:items-center">
+        <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-[var(--qs-brand)]/10 blur-3xl" />
         <div className="relative min-w-0 flex-1">
           <div className="flex items-center gap-3">
-            <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-violet-600 shadow-lg">
+            <span className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]">
               <WandSparkles className="h-6 w-6" strokeWidth={2.2} />
             </span>
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <h2 className="text-lg font-black tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.25)]"><AiStreamText text="Build your next quiz with AI" /></h2>
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/25 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white backdrop-blur-sm">
+              <h2 className="qs-display text-lg text-[var(--qs-ink)]"><AiStreamText text="Build your next quiz with AI" /></h2>
+              <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-brand)]/25 bg-[var(--qs-brand)]/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--qs-brand)]">
                 <Sparkles className="h-3 w-3" />
                 AI service
               </span>
             </div>
           </div>
-          <p className="mt-2.5 text-[13px] font-medium leading-6 text-white">
+          <p className="mt-2.5 text-[13px] font-medium leading-6 text-[var(--qs-muted)]">
             <AiStreamText text="Upload a problem list and generate a complete, review-ready quiz in minutes." />
           </p>
         </div>
         <Link
           href="/creator/quizzes/ai-generate"
-          className="relative inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-white px-5 text-[13px] font-black text-violet-600 shadow-xl transition-transform group-hover:scale-[1.02]"
+          className="relative inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[var(--qs-brand)] px-5 text-[13px] font-black text-[var(--qs-on-brand)] shadow-[0_10px_24px_-10px_rgba(106,61,240,0.6)] transition-transform group-hover:scale-[1.02]"
         >
           <Sparkles className="h-4 w-4" />
           Generate with AI
@@ -252,15 +251,15 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
 
       {status === "ready" && data && (
         <>
-          <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-2.5 shadow-[0_1px_2px_rgba(17,24,39,0.03)] xl:flex-row xl:items-center">
+          <div className="flex flex-col gap-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 shadow-[0_2px_8px_rgba(26,18,64,0.04)] xl:flex-row xl:items-center">
             <label className="relative block shrink-0 xl:w-64">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
               <input
                 type="search"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search quizzes..."
-                className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-xs font-medium text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-[#EC4899]/40 focus:ring-2 focus:ring-[#EC4899]/10"
+                className="h-9 w-full rounded-lg border border-[var(--qs-line)] bg-[var(--qs-bg)] pl-9 pr-3 text-xs font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]/45 focus:ring-2 focus:ring-[var(--qs-brand)]/10"
               />
             </label>
 
@@ -275,15 +274,15 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                     className={cn(
                       "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors",
                       active
-                        ? "border-[#EC4899]/20 bg-[#FDF2F8] text-[#BE185D] dark:bg-[#EC4899]/10 dark:text-[#F9A8D4]"
-                        : "border-transparent text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                        ? "border-[var(--qs-brand)]/25 bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]"
+                        : "border-transparent text-[var(--qs-muted)] hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
                     )}
                   >
                     {tab.label}
                     <span
                       className={cn(
                         "min-w-4 rounded px-1 py-0.5 text-center text-[10px] tabular-nums",
-                        active ? "bg-[#EC4899]/10 text-[#BE185D] dark:text-[#F9A8D4]" : "bg-background text-text-muted"
+                        active ? "bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]" : "bg-[var(--qs-bg)] text-[var(--qs-muted)]"
                       )}
                     >
                       {counts[tab.id]}
@@ -292,33 +291,33 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                 );
               })}
             </div>
-            <span className="px-1 text-[11px] font-medium text-text-muted xl:ml-auto xl:shrink-0">
+            <span className="px-1 text-[11px] font-medium text-[var(--qs-muted)] xl:ml-auto xl:shrink-0">
               {filtered.length} {filtered.length === 1 ? "quiz" : "quizzes"}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border/60 shadow-[0_1px_2px_rgba(17,24,39,0.03)] lg:grid-cols-4">
-            <SummaryMetric label="Total quizzes" value={String(data.length)} hint="All quizzes" icon={ClipboardList} chip="from-violet-500 to-purple-600 shadow-violet-500/30" />
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-line)] lg:grid-cols-4">
+            <SummaryMetric label="Total quizzes" value={String(data.length)} hint="All quizzes" icon={ClipboardList} chip="bg-[var(--qs-brand)] text-white" />
             <SummaryMetric
               label="Live now"
               value={String(stats.live)}
               hint="Accepting attempts"
               icon={Radio}
-              chip="from-emerald-400 to-teal-600 shadow-emerald-500/30"
+              chip="bg-[var(--qs-ok)] text-white"
             />
             <SummaryMetric
               label="Completion"
               value={stats.completion === null ? "—" : `${stats.completion.toFixed(0)}%`}
               hint={stats.completion === null ? "No attempts yet" : "Across attempts"}
               icon={BarChart3}
-              chip="from-amber-400 to-orange-600 shadow-amber-500/30"
+              chip="bg-[var(--qs-sun)] text-[var(--qs-ink)]"
             />
             <SummaryMetric
               label="Avg rating"
               value={stats.rating === null ? "—" : stats.rating.toFixed(1)}
               hint={stats.rating === null ? "No ratings yet" : "Student rating / 5"}
               icon={Star}
-              chip="from-pink-500 to-rose-600 shadow-pink-500/30"
+              chip="bg-[var(--qs-brand)] text-white"
             />
           </div>
 
@@ -352,26 +351,26 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
 
       {deleteTarget && (
         <div
-          className="fixed inset-0 z-80 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-80 flex items-center justify-center bg-[#1a1240]/55 p-4 backdrop-blur-sm"
           onClick={() => !deleting && setDeleteTarget(null)}
         >
           <div
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-sm overflow-hidden rounded-xl border border-border bg-card shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+            className="w-full max-w-sm overflow-hidden rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_24px_80px_rgba(26,18,64,0.35)]"
           >
-            <div className="border-b border-border px-6 py-5">
+            <div className="border-b-2 border-[var(--qs-line)] px-6 py-5">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--qs-bad)]/10 text-[var(--qs-bad)]">
                   <Trash2 className="h-5 w-5" />
                 </span>
                 <div>
-                  <h3 className="text-base font-semibold text-text-primary">Delete this quiz?</h3>
-                  <p className="mt-0.5 text-xs text-text-secondary">This action cannot be undone.</p>
+                  <h3 className="text-base font-bold text-[var(--qs-ink)]">Delete this quiz?</h3>
+                  <p className="mt-0.5 text-xs text-[var(--qs-muted)]">This action cannot be undone.</p>
                 </div>
               </div>
             </div>
             <div className="px-6 py-4">
-              <dl className="divide-y divide-border rounded-lg border border-border">
+              <dl className="divide-y divide-[var(--qs-line)] rounded-lg border border-[var(--qs-line)]">
                 {[
                   { label: "Quiz", value: deleteTarget.title || "Untitled Quiz" },
                   {
@@ -379,7 +378,7 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                     value: (
                       <MaskedCopyCode
                         quizId={deleteTarget.id}
-                        className="inline-flex h-7 items-center gap-2 rounded-md border border-transparent px-0 py-0 text-left font-mono text-[11px] font-medium text-text-muted transition-colors hover:text-[#EC4899]"
+                        className="inline-flex h-7 items-center gap-2 rounded-md border border-transparent px-0 py-0 text-left font-mono text-[11px] font-medium text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-brand)]"
                       />
                     ),
                   },
@@ -388,18 +387,18 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                   { label: "Status", value: STATUS_META[deleteTarget.status].label },
                 ].map((row) => (
                   <div key={row.label} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
-                    <dt className="text-text-secondary">{row.label}</dt>
-                    <dd className="max-w-[60%] truncate font-medium text-text-primary">{row.value}</dd>
+                    <dt className="text-[var(--qs-muted)]">{row.label}</dt>
+                    <dd className="max-w-[60%] truncate font-medium text-[var(--qs-ink)]">{row.value}</dd>
                   </div>
                 ))}
               </dl>
             </div>
-            <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+            <div className="flex items-center justify-end gap-2 border-t-2 border-[var(--qs-line)] px-6 py-4">
               <button
                 type="button"
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
-                className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-card-hover disabled:opacity-60"
+                className="rounded-lg border border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-medium text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-line)]/40 disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -407,11 +406,11 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm font-semibold text-danger transition-colors hover:bg-danger/20 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--qs-bad)]/40 bg-[var(--qs-bad)]/10 px-4 py-2 text-sm font-semibold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)]/20 disabled:opacity-60"
               >
                 {deleting ? (
                   <>
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-danger border-t-transparent" />
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--qs-bad)] border-t-transparent" />
                     Deleting…
                   </>
                 ) : (
@@ -452,13 +451,13 @@ function QuizCardItem({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.025, 0.18), duration: 0.25 }}
-      className="relative flex min-h-[224px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_3px_rgba(17,24,39,0.04)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[#EC4899]/25 hover:shadow-[0_14px_32px_-12px_rgba(236,72,153,0.25)]"
+      className="relative flex min-h-[224px] flex-col overflow-hidden rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_2px_8px_rgba(26,18,64,0.04)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--qs-brand)]/35 hover:shadow-[0_14px_32px_-14px_rgba(106,61,240,0.35)]"
     >
-      <div className={cn("h-1.5 w-full shrink-0 bg-gradient-to-r", accent.bar)} />
-      <div className={cn("bg-gradient-to-b to-transparent", accent.tint)}>
+      <div className={cn("h-1.5 w-full shrink-0", accent.bar)} />
+      <div>
       <div className="px-4 pt-4 sm:px-5">
         <div className="flex items-center gap-3">
-          <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-base font-black text-white shadow-lg", accent.avatar)}>
+          <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl text-base font-black", accent.avatar)}>
             {(quiz.title || "?").charAt(0).toUpperCase()}
           </span>
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
@@ -469,14 +468,14 @@ function QuizCardItem({
                 onClick={onToggleMenu}
                 aria-label={`More actions for ${quiz.title}`}
                 aria-expanded={menuOpen}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
+                className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
               >
                 <MoreHorizontal className="h-4 w-4" />
               </button>
               {menuOpen && (
                 <>
                   <button type="button" aria-label="Close actions menu" className="fixed inset-0 z-20 cursor-default" onClick={onCloseMenu} />
-                  <div className="absolute right-0 top-9 z-30 w-40 overflow-hidden rounded-lg border border-border bg-card p-1.5 shadow-[0_12px_30px_rgba(17,24,39,0.14)]">
+                  <div className="absolute right-0 top-9 z-30 w-40 overflow-hidden rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1.5 shadow-[0_12px_30px_rgba(26,18,64,0.16)]">
                     <MenuAction
                       icon={Copy}
                       label="Duplicate"
@@ -486,7 +485,7 @@ function QuizCardItem({
                       }}
                     />
                     <MenuAction icon={ClipboardList} label="Responses" onClick={() => onGoTo("responses")} />
-                    <div className="my-1 border-t border-border" />
+                    <div className="my-1 border-t border-[var(--qs-line)]" />
                     <MenuAction icon={Trash2} label="Delete" danger onClick={onDelete} />
                   </div>
                 </>
@@ -494,39 +493,39 @@ function QuizCardItem({
             </div>
           </div>
         </div>
-        <h3 className="mt-3 break-words text-base font-bold leading-snug tracking-tight text-text-primary" title={quiz.title}>
+        <h3 className="mt-3 break-words text-base font-bold leading-snug tracking-tight text-[var(--qs-ink)]" title={quiz.title}>
           {quiz.title}
         </h3>
         <div className="mt-1.5 flex min-w-0 items-center gap-2">
-          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-text-muted">Quiz code</span>
+          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--qs-muted)]">Quiz code</span>
           <MaskedCopyCode
             quizId={quiz.id}
-            className="inline-flex min-w-0 items-center gap-2 rounded-md px-1 py-0.5 text-left text-[11px] font-medium transition-colors hover:bg-[#FDF2F8] hover:text-[#EC4899] dark:hover:bg-[#EC4899]/10"
+            className="inline-flex min-w-0 items-center gap-2 rounded-md px-1 py-0.5 text-left text-[11px] font-medium transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-brand)]"
           />
         </div>
       </div>
 
       {quiz.questions === 0 ? (
-        <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-pink-500/20 bg-pink-500/[0.06] px-3 py-2.5 sm:mx-5">
+        <div className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-[var(--qs-brand)]/25 bg-[var(--qs-brand)]/[0.06] px-3 py-2.5 sm:mx-5">
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-text-primary">Quiz has no questions yet.</p>
-            <p className="mt-0.5 text-[11px] text-text-muted">Finish setup before publishing.</p>
+            <p className="text-xs font-semibold text-[var(--qs-ink)]">Quiz has no questions yet.</p>
+            <p className="mt-0.5 text-[11px] text-[var(--qs-muted)]">Finish setup before publishing.</p>
           </div>
           <button
             type="button"
             onClick={() => onGoTo("edit")}
-            className="shrink-0 rounded-lg bg-pink-500 px-3 py-1.5 text-xs font-bold text-white shadow-md shadow-pink-500/25 transition hover:brightness-110"
+            className="shrink-0 rounded-lg bg-[var(--qs-brand)] px-3 py-1.5 text-xs font-bold text-[var(--qs-on-brand)] shadow-md transition hover:brightness-110"
           >
             Add questions
           </button>
         </div>
       ) : (
         <div className="mx-4 mt-4 flex flex-wrap items-center gap-2 sm:mx-5">
-          <MetaItem icon={HelpCircle} iconClass="text-violet-500" text={`${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}`} />
-          {quiz.durationMin > 0 && <MetaItem icon={Timer} iconClass="text-amber-500" text={`${quiz.durationMin} min`} />}
+          <MetaItem icon={HelpCircle} iconClass="text-[var(--qs-brand)]" text={`${quiz.questions} ${quiz.questions === 1 ? "question" : "questions"}`} />
+          {quiz.durationMin > 0 && <MetaItem icon={Timer} iconClass="text-[var(--qs-muted)]" text={`${quiz.durationMin} min`} />}
           <MetaItem
             icon={Users}
-            iconClass="text-cyan-500"
+            iconClass="text-[var(--qs-ok)]"
             text={hasAttempts ? `${quiz.attempts.toLocaleString("en-IN")} attempts` : "No attempts yet"}
           />
         </div>
@@ -537,7 +536,7 @@ function QuizCardItem({
       </div>
       </div>
 
-      <div className="mx-4 mb-4 mt-3 flex items-center gap-1.5 border-t border-border pt-3 sm:mx-5">
+      <div className="mx-4 mb-4 mt-3 flex items-center gap-1.5 border-t border-[var(--qs-line)] pt-3 sm:mx-5">
         <CardAction icon={Pencil} label="Edit" primary onClick={() => onGoTo("edit")} />
         <CardAction icon={Eye} label="Preview" onClick={() => onGoTo("preview")} />
         <CardAction icon={BarChart3} label="Analytics" onClick={() => onGoTo("analytics")} />
@@ -555,23 +554,23 @@ function SummaryMetric({ label, value, hint, icon: Icon, chip, className }: {
   className?: string;
 }) {
   return (
-    <div className={cn("min-h-[96px] bg-card px-4 py-3.5 sm:px-5", className)}>
-      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.11em] text-text-muted">
-        <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-gradient-to-br text-white shadow-md", chip)}>
+    <div className={cn("min-h-[96px] bg-[var(--qs-surface)] px-4 py-3.5 sm:px-5", className)}>
+      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.11em] text-[var(--qs-muted)]">
+        <span className={cn("grid h-6 w-6 shrink-0 place-items-center rounded-lg", chip)}>
           <Icon className="h-3.5 w-3.5" strokeWidth={2.2} />
         </span>
         {label}
       </div>
-      <p className="mt-1.5 text-2xl font-black tracking-tight tabular-nums text-text-primary">{value}</p>
-      <p className="mt-0.5 truncate text-[11px] text-text-muted">{hint}</p>
+      <p className="mt-1.5 text-2xl font-black tracking-tight tabular-nums text-[var(--qs-ink)]">{value}</p>
+      <p className="mt-0.5 truncate text-[11px] text-[var(--qs-muted)]">{hint}</p>
     </div>
   );
 }
 
 function MetaItem({ icon: Icon, iconClass, text }: { icon: typeof HelpCircle; iconClass?: string; text: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border/70 bg-white/[0.03] px-2 py-1 text-[11px] font-semibold text-text-secondary">
-      <Icon className={cn("h-3.5 w-3.5", iconClass ?? "text-text-muted")} />
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--qs-line)] bg-[var(--qs-line)]/30 px-2 py-1 text-[11px] font-semibold text-[var(--qs-muted)]">
+      <Icon className={cn("h-3.5 w-3.5", iconClass ?? "text-[var(--qs-muted)]")} />
       {text}
     </span>
   );
@@ -585,8 +584,8 @@ function CardAction({ icon: Icon, label, onClick, primary }: { icon: typeof Penc
       className={cn(
         "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors",
         primary
-          ? "bg-pink-500/10 text-pink-600 hover:bg-pink-500/20 dark:text-pink-300"
-          : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+          ? "bg-[var(--qs-brand)]/10 text-[var(--qs-brand)] hover:bg-[var(--qs-brand)]/20"
+          : "text-[var(--qs-muted)] hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
       )}
     >
       <Icon className="h-3.5 w-3.5" />
@@ -607,7 +606,7 @@ function MenuAction({ icon: Icon, label, onClick, danger }: {
       onClick={onClick}
       className={cn(
         "flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs font-medium transition-colors",
-        danger ? "text-danger hover:bg-danger/10" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+        danger ? "text-[var(--qs-bad)] hover:bg-[var(--qs-bad)]/10" : "text-[var(--qs-muted)] hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
       )}
     >
       <Icon className="h-3.5 w-3.5" />
@@ -617,12 +616,12 @@ function MenuAction({ icon: Icon, label, onClick, danger }: {
 }
 
 function Stars({ rating, ratingCount }: { rating: number; ratingCount: number }) {
-  if (rating <= 0) return <span className="text-[11px] font-medium text-text-muted">No ratings yet</span>;
+  if (rating <= 0) return <span className="text-[11px] font-medium text-[var(--qs-muted)]">No ratings yet</span>;
   return (
     <span className="inline-flex items-center gap-1 text-xs">
-      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-      <span className="font-semibold tabular-nums text-text-primary">{rating.toFixed(1)}</span>
-      <span className="text-text-muted">
+      <Star className="h-3.5 w-3.5 fill-[var(--qs-sun)] text-[var(--qs-sun)]" />
+      <span className="font-semibold tabular-nums text-[var(--qs-ink)]">{rating.toFixed(1)}</span>
+      <span className="text-[var(--qs-muted)]">
         from {ratingCount.toLocaleString("en-IN")} {ratingCount === 1 ? "rating" : "ratings"}
       </span>
     </span>
@@ -631,7 +630,7 @@ function Stars({ rating, ratingCount }: { rating: number; ratingCount: number })
 
 function ToolbarSkeleton() {
   return (
-    <div className="flex gap-3 rounded-xl border border-border bg-card p-2.5">
+    <div className="flex gap-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5">
       <Skeleton className="h-9 w-64" />
       <Skeleton className="h-9 flex-1" />
     </div>
@@ -640,9 +639,9 @@ function ToolbarSkeleton() {
 
 function StatsSkeleton() {
   return (
-    <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-card lg:grid-cols-4">
+    <div className="grid grid-cols-2 overflow-hidden rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] lg:grid-cols-4">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="min-h-[96px] border-border p-4 odd:border-r lg:border-r lg:last:border-r-0">
+        <div key={index} className="min-h-[96px] border-[var(--qs-line)] p-4 odd:border-r lg:border-r lg:last:border-r-0">
           <Skeleton className="h-3 w-24" />
           <Skeleton className="mt-2 h-6 w-12" />
           <Skeleton className="mt-2 h-3 w-20" />
@@ -654,7 +653,7 @@ function StatsSkeleton() {
 
 function QuizCardSkeleton() {
   return (
-    <div className="min-h-[224px] rounded-xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(17,24,39,0.04)] sm:p-5">
+    <div className="min-h-[224px] rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 shadow-[0_2px_8px_rgba(26,18,64,0.04)] sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <Skeleton className="h-4 w-3/4" />
@@ -664,7 +663,7 @@ function QuizCardSkeleton() {
       </div>
       <Skeleton className="mt-5 h-11 w-full" />
       <Skeleton className="mt-4 h-3 w-full" />
-      <div className="mt-5 flex gap-2 border-t border-border pt-3">
+      <div className="mt-5 flex gap-2 border-t border-[var(--qs-line)] pt-3">
         <Skeleton className="h-7 w-16" />
         <Skeleton className="h-7 w-20" />
         <Skeleton className="h-7 w-20" />

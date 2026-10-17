@@ -12,15 +12,15 @@ import { useQuizReferenceStore } from "@/store/quizReferenceStore";
 import { useAuthStore } from "@/store/authStore";
 
 /** Brand + surface tokens taken from the "Create Quiz — Redesign" spec. */
-const BRAND = "#D10F4D";
-const CARD_BORDER = "#EDE6EA";
-const INPUT_BORDER = "#DDD2D8";
-const INPUT_BG = "#FBF8F9";
-const SEGMENT_BG = "#F5EFF2";
-const TEXT_PRIMARY = "#1B1620";
-const TEXT_SECONDARY = "#5E5463";
-const TEXT_MUTED = "#6B6170";
-const PLACEHOLDER = "#8A7F90";
+const BRAND = "var(--qs-brand)";
+const CARD_BORDER = "#e0dbf5";
+const INPUT_BORDER = "#e0dbf5";
+const INPUT_BG = "#ffffff";
+const SEGMENT_BG = "#f3efff";
+const TEXT_PRIMARY = "#1a1240";
+const TEXT_SECONDARY = "#5c5679";
+const TEXT_MUTED = "#8b84a8";
+const PLACEHOLDER = "#8b84a8";
 
 const CREATE_CHOICES = [
   {
@@ -29,8 +29,8 @@ const CREATE_CHOICES = [
     icon: Sparkles,
     desc: "Give a topic, AI will draft the questions.",
     meta: "AI ASSISTED",
-    iconBg: "#F3EEF6",
-    iconStroke: "#5B3F8C",
+    iconBg: "#f2edff",
+    iconStroke: "#4b26b4",
   },
   {
     id: "scratch",
@@ -38,8 +38,8 @@ const CREATE_CHOICES = [
     icon: FileText,
     desc: "Build manually on an empty canvas, full control.",
     meta: "FULL CONTROL",
-    iconBg: "#F3EEF6",
-    iconStroke: "#5B3F8C",
+    iconBg: "#f2edff",
+    iconStroke: "#4b26b4",
   },
 ] as const;
 
@@ -165,7 +165,7 @@ export function SetupStep() {
                   onChange={(e) => updateInfo({ title: e.target.value.slice(0, 100) })}
                   maxLength={100}
                   placeholder="e.g. JEE Main 2026 Mock Test 01"
-                  className="h-12 w-full rounded-xl border px-4 text-[15px] outline-none transition-colors focus:border-[#D10F4D] focus:ring-2 focus:ring-[#D10F4D]/15"
+                  className="h-12 w-full rounded-xl border px-4 text-[15px] outline-none transition-colors focus:border-[var(--qs-brand)] focus:ring-2 focus:ring-[var(--qs-brand)]/15"
                   style={{ borderColor: INPUT_BORDER, backgroundColor: INPUT_BG, color: TEXT_PRIMARY }}
                 />
               </div>
@@ -244,7 +244,7 @@ export function SetupStep() {
                   rows={3}
                   maxLength={250}
                   placeholder="A concise summary shown in listings."
-                  className="w-full resize-y rounded-xl border px-4 py-3 text-[15px] leading-relaxed outline-none transition-colors focus:border-[#D10F4D] focus:ring-2 focus:ring-[#D10F4D]/15"
+                  className="w-full resize-y rounded-xl border px-4 py-3 text-[15px] leading-relaxed outline-none transition-colors focus:border-[var(--qs-brand)] focus:ring-2 focus:ring-[var(--qs-brand)]/15"
                   style={{ borderColor: INPUT_BORDER, backgroundColor: INPUT_BG, color: TEXT_PRIMARY }}
                 />
               </div>
@@ -276,7 +276,7 @@ export function SetupStep() {
             </div>
 
             {/* Header band with rating + avatar, like the join screen */}
-            <div className="relative border-b border-[#E4E7EC]/70 bg-gradient-to-br from-violet-500/[0.13] via-transparent to-cyan-400/[0.08] px-4 py-3 dark:border-white/[0.07]">
+            <div className="relative border-b border-[var(--qs-line)]/70 bg-gradient-to-br from-violet-500/[0.13] via-transparent to-cyan-400/[0.08] px-4 py-3 dark:border-white/[0.07]">
               <div className="mb-2.5 flex justify-center">
                 <span className="inline-flex items-center gap-0.5" role="img" aria-label="Rated 4.8 out of 5">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -330,7 +330,7 @@ export function SetupStep() {
               ].map(({ icon: Icon, label, value, color }) => (
                 <div
                   key={label}
-                  className="flex items-center gap-2 rounded-2xl border border-[#E4E7EC]/80 bg-white/55 p-2.5 dark:border-white/[0.07] dark:bg-white/[0.025]"
+                  className="flex items-center gap-2 rounded-2xl border border-[var(--qs-line)]/80 bg-white/55 p-2.5 dark:border-white/[0.07] dark:bg-white/[0.025]"
                 >
                   <span
                     className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border"
@@ -381,7 +381,7 @@ export function SetupStep() {
           {/* Tip */}
           <div
             className="rounded-2xl p-4 text-sm leading-relaxed sm:p-5"
-            style={{ backgroundColor: SEGMENT_BG, color: "#4A4050" }}
+            style={{ backgroundColor: SEGMENT_BG, color: "#2a1566" }}
           >
             <strong style={{ color: TEXT_PRIMARY }}>Tip:</strong> Include the exam and year in the title,
             like &quot;NEET 2026 Biology Mock 03&quot;, so students can search easily.
@@ -416,10 +416,10 @@ function ChoiceCard({
       className={cn(
         "relative flex items-start gap-4 rounded-2xl p-5 text-left transition-all",
         selected
-          ? "border-2 bg-[#FDF1F5] dark:bg-[#D10F4D]/10"
-          : "border bg-white hover:border-[#D10F4D]/40 dark:bg-card"
+          ? "border-2 bg-[#f2edff] dark:bg-[var(--qs-brand)]/10"
+          : "border bg-white hover:border-[var(--qs-brand)]/40 dark:bg-card"
       )}
-      style={{ borderColor: selected ? BRAND : "#E4DAE0", color: TEXT_PRIMARY }}
+      style={{ borderColor: selected ? BRAND : "#e0dbf5", color: TEXT_PRIMARY }}
     >
       <span
         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"

@@ -277,7 +277,7 @@ export function StudioHeader() {
           <div className="hidden items-center gap-2 lg:flex shrink-0">
             <span className="font-['Inter'] text-xs font-medium text-text-secondary whitespace-nowrap">{topCounter}</span>
             <div className="h-1.5 w-16 xl:w-20 overflow-hidden rounded-full bg-border">
-              <div className="h-full bg-[#E91E63] rounded-full transition-all" style={{ width: `${Math.max(8, Math.min(100, progress))}%` }} />
+              <div className="h-full bg-[var(--qs-brand)] rounded-full transition-all" style={{ width: `${Math.max(8, Math.min(100, progress))}%` }} />
             </div>
           </div>
         )}
@@ -309,7 +309,7 @@ export function StudioHeader() {
               }
             }}
             disabled={continuing}
-            className="inline-flex h-9 min-w-0 flex-[1.25] items-center justify-center gap-1 rounded-lg bg-[#E91E63] px-3 text-xs font-bold text-white shadow-sm disabled:opacity-60 sm:rounded-xl sm:px-4"
+            className="inline-flex h-9 min-w-0 flex-[1.25] items-center justify-center gap-1 rounded-lg bg-[var(--qs-brand)] px-3 text-xs font-bold text-white shadow-sm disabled:opacity-60 sm:rounded-xl sm:px-4"
           >
             {continuing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <>Continue</>}
           </button>
@@ -326,7 +326,7 @@ export function StudioHeader() {
             }
           }}
           disabled={continuing}
-          className="hidden lg:inline-flex h-8 items-center gap-1 rounded-lg bg-[#E91E63] px-4 text-xs font-semibold text-white hover:bg-[#D81B60] shadow-sm disabled:opacity-60"
+          className="hidden lg:inline-flex h-8 items-center gap-1 rounded-lg bg-[var(--qs-brand)] px-4 text-xs font-semibold text-white hover:bg-[#5a2fd8] shadow-sm disabled:opacity-60"
         >
           {continuing ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : <>Continue <span>→</span></>}
         </button>
@@ -375,8 +375,8 @@ export function StudioStepper() {
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-border">
-            <div className="h-full rounded-full bg-[#E91E63] transition-all lg:hidden" style={{ width: `${mobileProgress}%` }} />
-            <div className="hidden h-full rounded-full bg-[#E91E63] transition-all lg:block" style={{ width: `${progress}%` }} />
+            <div className="h-full rounded-full bg-[var(--qs-brand)] transition-all lg:hidden" style={{ width: `${mobileProgress}%` }} />
+            <div className="hidden h-full rounded-full bg-[var(--qs-brand)] transition-all lg:block" style={{ width: `${progress}%` }} />
           </div>
         </div>
         <div ref={stepMenuRef} className="relative shrink-0">
@@ -572,7 +572,7 @@ export function StudioFooter() {
                 if (idx < state.questions.length - 1) setActiveQuestion(state.questions[idx + 1].id);
               }}
               disabled={activeIdx >= state.questions.length}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-[#E91E63] hover:bg-card-hover disabled:opacity-40"
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-[var(--qs-brand)] hover:bg-card-hover disabled:opacity-40"
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
@@ -615,7 +615,7 @@ export function StudioFooter() {
             disabled={!canContinue() || continuing}
             className={cn(
               "inline-flex h-8 items-center justify-center gap-1 rounded-lg px-5 text-xs font-semibold",
-              canContinue() && !continuing ? "bg-[#E91E63] text-white hover:bg-[#D81B60]" : "bg-card-hover text-text-muted cursor-not-allowed"
+              canContinue() && !continuing ? "bg-[var(--qs-brand)] text-white hover:bg-[#5a2fd8]" : "bg-card-hover text-text-muted cursor-not-allowed"
             )}
           >
             {continuing ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</> : <>Continue <span>→</span></>}

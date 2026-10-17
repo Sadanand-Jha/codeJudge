@@ -218,13 +218,13 @@ export function QuestionEditor() {
                         onClick={handlePick}
                         className={cn("flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-card-hover", active && "bg-pink-50 dark:bg-pink-500/10")}
                       >
-                        <Icon className={cn("h-4 w-4 mt-0.5", active ? "text-[#E91E63]" : "text-text-muted")} />
+                        <Icon className={cn("h-4 w-4 mt-0.5", active ? "text-[var(--qs-brand)]" : "text-text-muted")} />
                         <div>
-                          <p className={cn("text-xs font-medium", active ? "text-[#E91E63]" : "text-text-primary")}>
+                          <p className={cn("text-xs font-medium", active ? "text-[var(--qs-brand)]" : "text-text-primary")}>
                             {TYPE_SHORT[t]} — {TYPE_DESC[t]}
                           </p>
                         </div>
-                        {active && <Check className="ml-auto h-4 w-4 text-[#E91E63]" />}
+                        {active && <Check className="ml-auto h-4 w-4 text-[var(--qs-brand)]" />}
                       </button>
                     );
                   })}
@@ -272,10 +272,10 @@ export function QuestionEditor() {
                         className={cn("flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-card-hover", active && "bg-pink-50 dark:bg-pink-500/10")}
                       >
                         <span className={cn("h-2.5 w-2.5 rounded-full", opt.heading === "Easy" ? "bg-emerald-500" : opt.heading === "Medium" ? "bg-amber-500" : opt.heading === "Hard" ? "bg-orange-500" : "bg-rose-500")} />
-                        <span className={cn("text-xs font-medium", active ? "text-[#E91E63]" : "text-text-primary")}>
+                        <span className={cn("text-xs font-medium", active ? "text-[var(--qs-brand)]" : "text-text-primary")}>
                           {opt.heading}
                         </span>
-                        {active && <Check className="ml-auto h-4 w-4 text-[#E91E63]" />}
+                        {active && <Check className="ml-auto h-4 w-4 text-[var(--qs-brand)]" />}
                       </button>
                     );
                   })
@@ -429,7 +429,7 @@ export function QuestionEditor() {
                   <button
                     onClick={addOption}
                     disabled={q.options.length >= 6}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-300 dark:border-pink-400/30 bg-pink-50/50 dark:bg-pink-500/10 py-2.5 text-xs font-medium text-[#E91E63] hover:bg-pink-50 dark:hover:bg-pink-500/15 disabled:opacity-40"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-300 dark:border-pink-400/30 bg-pink-50/50 dark:bg-pink-500/10 py-2.5 text-xs font-medium text-[var(--qs-brand)] hover:bg-pink-50 dark:hover:bg-pink-500/15 disabled:opacity-40"
                   >
                     + Add option
                   </button>
@@ -510,13 +510,13 @@ export function QuestionEditor() {
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold text-text-primary">Change question type?</h3>
                 <p className="mt-1 text-xs leading-relaxed text-text-muted">
-                  You have written data for <span className="font-semibold text-text-primary">{q.type === "single_choice" ? "MCQ" : (q.type as string).replace("_", " ")}</span>. Switching to <span className="font-semibold text-[#E91E63]">{pendingType === "single_choice" ? "MCQ" : (pendingType as string)?.replace("_", " ")}</span> will remove existing options / matching pairs / correct answer. <span className="font-medium">Kyoki phir options type etc mei dikkat ho jayega.</span> This cannot be undone.
+                  You have written data for <span className="font-semibold text-text-primary">{q.type === "single_choice" ? "MCQ" : (q.type as string).replace("_", " ")}</span>. Switching to <span className="font-semibold text-[var(--qs-brand)]">{pendingType === "single_choice" ? "MCQ" : (pendingType as string)?.replace("_", " ")}</span> will remove existing options / matching pairs / correct answer. <span className="font-medium">Kyoki phir options type etc mei dikkat ho jayega.</span> This cannot be undone.
                 </p>
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" onClick={() => setPendingType(null)} className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium text-text-primary hover:bg-card-hover">Cancel</button>
-              <button type="button" onClick={() => { doSwitchType(pendingType); setPendingType(null); }} className="rounded-lg bg-[#E91E63] px-4 py-2 text-xs font-semibold text-white hover:bg-[#D81B60]">Continue, remove data</button>
+              <button type="button" onClick={() => { doSwitchType(pendingType); setPendingType(null); }} className="rounded-lg bg-[var(--qs-brand)] px-4 py-2 text-xs font-semibold text-white hover:bg-[#5a2fd8]">Continue, remove data</button>
             </div>
           </div>
         </div>

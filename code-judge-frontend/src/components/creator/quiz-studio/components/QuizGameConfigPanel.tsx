@@ -17,7 +17,7 @@ function Toggle({ enabled, onToggle, disabled }: { enabled: boolean; onToggle: (
       className={cn(
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
         disabled ? "opacity-40 cursor-not-allowed" : "",
-        enabled ? "bg-[#E91E63] border-[#E91E63]" : "bg-card border-border"
+        enabled ? "bg-[var(--qs-brand)] border-[var(--qs-brand)]" : "bg-card border-border"
       )}
     >
       <span className={cn("inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform", enabled ? "translate-x-4" : "translate-x-0.5")} />
@@ -34,7 +34,7 @@ export function QuizGameConfigPanel({ quizId }: { quizId: string | number }) {
   if (loading && !draft) {
     return (
       <div className="rounded-2xl border border-border bg-card p-6 flex items-center gap-3">
-        <Loader2 className="h-5 w-5 animate-spin text-[#E91E63]" />
+        <Loader2 className="h-5 w-5 animate-spin text-[var(--qs-brand)]" />
         <p className="text-sm text-text-muted">Loading game configuration…</p>
       </div>
     );
@@ -80,7 +80,7 @@ export function QuizGameConfigPanel({ quizId }: { quizId: string | number }) {
     <div className="rounded-2xl border border-border bg-background overflow-hidden">
       <div className="border-b border-border bg-card px-4 py-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E91E63] text-white shadow-[0_4px_12px_rgba(233,30,99,0.25)]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--qs-brand)] text-white shadow-[0_4px_12px_rgba(106,61,240,0.25)]">
             <Gamepad2 className="h-5 w-5" />
           </span>
           <div>
@@ -96,7 +96,7 @@ export function QuizGameConfigPanel({ quizId }: { quizId: string | number }) {
             <button
               onClick={handleSave}
               disabled={saving || loading}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-[#E91E63] px-4 py-2 text-xs font-semibold text-white hover:bg-[#D81B60] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--qs-brand)] px-4 py-2 text-xs font-semibold text-white hover:bg-[#5a2fd8] disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} {saving ? "Saving…" : "Save"}
             </button>
@@ -144,7 +144,7 @@ export function QuizGameConfigPanel({ quizId }: { quizId: string | number }) {
                 value={draft.movementSpeed}
                 onChange={(e) => patch({ movementSpeed: Math.max(1, Number(e.target.value) || 1) })}
                 disabled={saving || !draft.movementEnabled}
-                className="h-8 w-20 rounded-lg border border-border bg-background px-3 text-sm text-center focus:outline-none focus:border-[#E91E63]/40 disabled:opacity-40"
+                className="h-8 w-20 rounded-lg border border-border bg-background px-3 text-sm text-center focus:outline-none focus:border-[var(--qs-brand)]/40 disabled:opacity-40"
               />
               <span className="text-xs text-text-muted"> (1–20, default 5)</span>
             </div>
@@ -164,7 +164,7 @@ export function QuizGameConfigPanel({ quizId }: { quizId: string | number }) {
                 value={draft.lives}
                 onChange={(e) => patch({ lives: Math.max(0, Number(e.target.value) || 0) })}
                 disabled={saving}
-                className="h-8 w-20 rounded-lg border border-border bg-background px-2 text-sm text-center focus:outline-none focus:border-[#E91E63]/40"
+                className="h-8 w-20 rounded-lg border border-border bg-background px-2 text-sm text-center focus:outline-none focus:border-[var(--qs-brand)]/40"
               />
             </div>
             <p className="text-[11px] text-text-muted">Displayed as hearts. 0 = no lives system.</p>
@@ -191,7 +191,7 @@ export function QuizGameConfigPanel({ quizId }: { quizId: string | number }) {
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#E91E63] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#D81B60] disabled:opacity-50"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--qs-brand)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#5a2fd8] disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {saving ? "Saving…" : "Save configuration"}
           </button>

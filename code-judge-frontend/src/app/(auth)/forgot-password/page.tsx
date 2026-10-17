@@ -14,6 +14,7 @@ import {
 } from "@/lib/validators";
 import AuthBackground from "@/components/auth/AuthBackground";
 import { AuthBrandMark, AuthLoader, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
+import { OtpInput } from "@/components/auth/OtpInput";
 
 const AUTH_PRIMARY_BUTTON = "group flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] transition-all hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40";
 
@@ -281,23 +282,28 @@ export default function ForgotPasswordPage() {
           {/* Step 2: OTP */}
           {step === "verify" && (
             <form className="space-y-5" onSubmit={handleVerifyOtp}>
+              <div className="text-center">
+                <div className="mx-auto mb-3 flex justify-center">
+                  <img src="/logos/mark.png" alt="QuizSupport" width={52} height={48} className="h-12 w-auto object-contain" />
+                </div>
+                <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--qs-brand)]">
+                  <Mail className="h-3 w-3" /> Check your email
+                </span>
+                <p className="mt-2.5 text-xs leading-5 text-[var(--qs-muted)]">
+                  We sent a 6-digit code to<br />
+                  <span className="font-bold text-[var(--qs-ink)]">{email.value}</span>
+                </p>
+              </div>
               <div>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
+                <OtpInput
                   value={otp.value}
-                  onChange={(e) =>
-                    setOtp({ value: e.target.value.replace(/\D/g, ""), error: null, touched: true })
+                  onChange={(next) =>
+                    setOtp({ value: next.replace(/\D/g, "").slice(0, 6), error: null, touched: true })
                   }
-                  onBlur={() =>
-                    setOtp((prev) => ({ ...prev, error: validateOtp(prev.value) }))
-                  }
-                  className={`qs-input h-14 w-full text-center text-lg ${otp.touched && otp.error ? "border-[var(--qs-bad)]" : ""}`}
-                  placeholder="------"
+                  error={!!(otp.touched && otp.error)}
                 />
                 {otp.touched && otp.error && (
-                  <p className="mt-2 text-xs text-[var(--qs-bad)]">{otp.error}</p>
+                  <p className="mt-2 text-center text-xs text-[var(--qs-bad)]">{otp.error}</p>
                 )}
               </div>
               <button

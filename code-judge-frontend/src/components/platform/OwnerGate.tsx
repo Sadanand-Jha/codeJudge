@@ -145,8 +145,8 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
       <div className="relative w-full max-w-[390px]">
       <div className="pf-card rounded-[14px] border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(0,0,0,.35)]">
         <div className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-[9px] border border-[var(--border)] bg-[var(--platform-soft)]"><ShieldCheck size={15} className="text-[#EC4899]" /></span>
-          <span className="text-[11px] font-semibold tracking-widest text-[var(--text-secondary)]">CODEJUDGE / PLATFORM</span>
+          <img src="/logos/mark.png" alt="QuizSupport" width={32} height={30} className="h-8 w-auto rounded-[9px] border border-[var(--border)] object-contain" />
+          <span className="text-[11px] font-semibold tracking-widest text-[var(--text-secondary)]">QUIZSUPPORT / PLATFORM</span>
         </div>
         <h1 className="mt-5 text-[22px] font-semibold tracking-[-0.025em] text-[var(--text-primary)]">Owner sign in</h1>
         <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-secondary)]">

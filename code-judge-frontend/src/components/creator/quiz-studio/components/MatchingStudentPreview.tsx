@@ -140,7 +140,7 @@ export function MatchingStudentPreview({
         <div className="shrink-0 border-b border-border bg-background px-4 py-3 sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="inline-flex items-center gap-1.5 rounded-full bg-[#E91E63]/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-[#E91E63]">
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-[var(--qs-brand)]/10 px-2 py-0.5 text-[10px] font-bold tracking-wide text-[var(--qs-brand)]">
                 <Eye className="h-3 w-3" /> STUDENT PREVIEW
               </p>
               <h2 className="mt-1 text-sm font-semibold text-text-primary">Match the following</h2>
@@ -170,11 +170,11 @@ export function MatchingStudentPreview({
           <div className="mb-4 rounded-2xl border border-border bg-background px-3 py-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
-                <span className={cn("inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold border transition-colors", !selectedLeft ? "bg-[#E91E63] text-white border-[#E91E63] shadow-[0_0_0_4px_rgba(233,30,99,0.14)]" : "bg-card border-border text-text-muted")}>1</span>
-                <span className={cn("text-xs font-medium", !selectedLeft ? "text-[#E91E63]" : "text-text-muted")}>Click an item on the left</span>
+                <span className={cn("inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold border transition-colors", !selectedLeft ? "bg-[var(--qs-brand)] text-white border-[var(--qs-brand)] shadow-[0_0_0_4px_rgba(106,61,240,0.14)]" : "bg-card border-border text-text-muted")}>1</span>
+                <span className={cn("text-xs font-medium", !selectedLeft ? "text-[var(--qs-brand)]" : "text-text-muted")}>Click an item on the left</span>
                 <ArrowRight className="h-3 w-3 text-text-muted hidden sm:block" />
-                <span className={cn("inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold border transition-colors", selectedLeft ? "bg-[#E91E63] text-white border-[#E91E63] shadow-[0_0_0_4px_rgba(233,30,99,0.14)] animate-pulse" : "bg-card border-border text-text-muted")}>2</span>
-                <span className={cn("text-xs font-medium", selectedLeft ? "text-[#E91E63]" : "text-text-muted")}>Click its match on the right</span>
+                <span className={cn("inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold border transition-colors", selectedLeft ? "bg-[var(--qs-brand)] text-white border-[var(--qs-brand)] shadow-[0_0_0_4px_rgba(106,61,240,0.14)] animate-pulse" : "bg-card border-border text-text-muted")}>2</span>
+                <span className={cn("text-xs font-medium", selectedLeft ? "text-[var(--qs-brand)]" : "text-text-muted")}>Click its match on the right</span>
               </div>
               <span className="inline-flex items-center gap-1.5 text-[11px] text-text-muted">
                 <><MousePointer2 className="h-3 w-3" /> tap to pair</>
@@ -182,11 +182,11 @@ export function MatchingStudentPreview({
             </div>
             <AnimatePresence mode="wait">
               {!selectedLeft ? (
-                <motion.p key="step1" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="mt-2 text-center text-xs font-medium text-[#E91E63]">
+                <motion.p key="step1" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="mt-2 text-center text-xs font-medium text-[var(--qs-brand)]">
                   👆 Start — click any pink-highlighted item in Column A
                 </motion.p>
               ) : (
-                <motion.p key="step2" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="mt-2 text-center text-xs font-medium text-[#E91E63]">
+                <motion.p key="step2" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="mt-2 text-center text-xs font-medium text-[var(--qs-brand)]">
                   Now tap its match in Column B on the same line
                 </motion.p>
               )}
@@ -198,7 +198,7 @@ export function MatchingStudentPreview({
             <div>
               <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                 Column A · Items
-                {!selectedLeft && <span className="rounded-full bg-[#E91E63]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#E91E63] animate-pulse">tap one</span>}
+                {!selectedLeft && <span className="rounded-full bg-[var(--qs-brand)]/10 px-1.5 py-0.5 text-[10px] font-bold text-[var(--qs-brand)] animate-pulse">tap one</span>}
               </p>
               <div className="space-y-2">
                 {left.map((item, idx) => {
@@ -216,10 +216,10 @@ export function MatchingStudentPreview({
                       className={cn(
                         "group relative flex items-center gap-2 rounded-xl border px-3 py-3 cursor-pointer transition-all duration-150",
                         showJustGreen && "border-blue-400 bg-blue-500/10 scale-[1.02]",
-                        !showJustGreen && isSelected ? "border-[#E91E63] bg-[#E91E63]/10 shadow-[0_0_0_3px_rgba(233,30,99,0.12)] scale-[1.01]" : showGreen ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/60 dark:bg-blue-500/10" : !selectedLeft ? "border-[#E91E63]/30 bg-background hover:border-[#E91E63]/50 shadow-[0_0_0_2px_rgba(233,30,99,0.06)]" : "border-border bg-background hover:border-[#E91E63]/30 hover:bg-[#E91E63]/[0.03]"
+                        !showJustGreen && isSelected ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/10 shadow-[0_0_0_3px_rgba(106,61,240,0.12)] scale-[1.01]" : showGreen ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/60 dark:bg-blue-500/10" : !selectedLeft ? "border-[var(--qs-brand)]/30 bg-background hover:border-[var(--qs-brand)]/50 shadow-[0_0_0_2px_rgba(106,61,240,0.06)]" : "border-border bg-background hover:border-[var(--qs-brand)]/30 hover:bg-[var(--qs-brand)]/[0.03]"
                       )}
                     >
-                      <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[11px] font-bold", isSelected ? "bg-[#E91E63] text-white border-[#E91E63]" : "bg-card-hover border-border text-text-primary")}>
+                      <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[11px] font-bold", isSelected ? "bg-[var(--qs-brand)] text-white border-[var(--qs-brand)]" : "bg-card-hover border-border text-text-primary")}>
                         {String(idx + 1).padStart(2, "0")}
                       </span>
                       <span className="flex-1 text-sm font-medium text-text-primary" dangerouslySetInnerHTML={{ __html: item.content }} />
@@ -231,8 +231,8 @@ export function MatchingStudentPreview({
                       {isPaired && !isJustPaired && <span className={cn("h-2 w-2 shrink-0 rounded-full", showGreen ? "bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.6)]" : "bg-border")} />}
                       {isJustPaired && showJustGreen && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white"><Check className="h-3 w-3" /></span>}
                       {isJustPaired && !showJustGreen && <span className="h-2 w-2 shrink-0 rounded-full bg-border" />}
-                      {!isPaired && isSelected && <span className="h-2 w-2 shrink-0 rounded-full bg-[#E91E63] animate-pulse" />}
-                      {!isPaired && !selectedLeft && !isSelected && <span className="h-2 w-2 shrink-0 rounded-full bg-[#E91E63]/40 animate-pulse" />}
+                      {!isPaired && isSelected && <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--qs-brand)] animate-pulse" />}
+                      {!isPaired && !selectedLeft && !isSelected && <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--qs-brand)]/40 animate-pulse" />}
                       <GripVertical className="hidden sm:block h-3.5 w-3.5 text-text-muted opacity-0 group-hover:opacity-100" />
                     </div>
                   );
@@ -244,7 +244,7 @@ export function MatchingStudentPreview({
             <div>
               <p className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                 Column B · Matches
-                {selectedLeft && <span className="rounded-full bg-[#E91E63] px-1.5 py-0.5 text-[10px] font-bold text-white animate-pulse">choose one</span>}
+                {selectedLeft && <span className="rounded-full bg-[var(--qs-brand)] px-1.5 py-0.5 text-[10px] font-bold text-white animate-pulse">choose one</span>}
               </p>
               <div className="space-y-2">
                 {right.map((item, idx) => {
@@ -262,10 +262,10 @@ export function MatchingStudentPreview({
                         "group flex items-center gap-2 rounded-xl border px-3 py-3 cursor-pointer transition-all duration-150",
                         showJustGreen ? "border-blue-400 bg-blue-500/10 scale-[1.02]" :
                         showGreen ? "border-blue-200 dark:border-blue-500/30 bg-blue-50/60 dark:bg-blue-500/10" :
-                        isSelectable ? "border-[#E91E63] bg-[#E91E63]/[0.05] shadow-[0_0_0_3px_rgba(233,30,99,0.10)] animate-pulse" : "border-border bg-background hover:border-[#E91E63]/30"
+                        isSelectable ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/[0.05] shadow-[0_0_0_3px_rgba(106,61,240,0.10)] animate-pulse" : "border-border bg-background hover:border-[var(--qs-brand)]/30"
                       )}
                     >
-                      <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[11px] font-bold", isSelectable ? "bg-[#E91E63] text-white border-[#E91E63]" : "bg-card-hover border-border text-text-primary")}>
+                      <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[11px] font-bold", isSelectable ? "bg-[var(--qs-brand)] text-white border-[var(--qs-brand)]" : "bg-card-hover border-border text-text-primary")}>
                         {ALPHA[rightOrig.findIndex((r) => r.id === item.id)] ?? String(idx + 1)}
                       </span>
                       <span className="flex-1 text-sm text-text-primary" dangerouslySetInnerHTML={{ __html: item.content }} />
@@ -273,7 +273,7 @@ export function MatchingStudentPreview({
                       {isPaired && !isJustTarget && !showGreen && <span className="h-2 w-2 rounded-full bg-border" />}
                       {showJustGreen && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white"><Check className="h-3 w-3" /></span>}
                       {isJustTarget && !showJustGreen && <span className="h-2 w-2 rounded-full bg-border" />}
-                      <span className={cn("h-2 w-2 shrink-0 rounded-full", showGreen ? "bg-blue-500" : isSelectable ? "bg-[#E91E63]" : "bg-border")} />
+                      <span className={cn("h-2 w-2 shrink-0 rounded-full", showGreen ? "bg-blue-500" : isSelectable ? "bg-[var(--qs-brand)]" : "bg-border")} />
                     </div>
                   );
                 })}
@@ -282,7 +282,7 @@ export function MatchingStudentPreview({
           </div>
 
           {/* Status banner — green only when all correct */}
-          <div className={cn("mt-6 rounded-xl border px-4 py-3 text-center", allCorrect ? "border-blue-200 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10" : "border-dashed border-[#E91E63]/20 bg-[#E91E63]/[0.03]")}>
+          <div className={cn("mt-6 rounded-xl border px-4 py-3 text-center", allCorrect ? "border-blue-200 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/10" : "border-dashed border-[var(--qs-brand)]/20 bg-[var(--qs-brand)]/[0.03]")}>
             <p className="text-xs text-text-muted">
               {allCorrect ? (
                 <span className="inline-flex items-center gap-1.5 font-medium text-blue-600 dark:text-blue-400">
@@ -310,7 +310,7 @@ export function MatchingStudentPreview({
             <span className="hidden sm:inline text-xs text-text-muted">{pairCount < total ? "Keep matching…" : "Ready to submit"}</span>
             <button
               onClick={onClose}
-              className={cn("rounded-xl px-5 py-2 text-xs font-semibold", pairCount === total ? "bg-[#E91E63] text-white hover:bg-[#D81B60]" : "bg-card-hover text-text-muted")}
+              className={cn("rounded-xl px-5 py-2 text-xs font-semibold", pairCount === total ? "bg-[var(--qs-brand)] text-white hover:bg-[#5a2fd8]" : "bg-card-hover text-text-muted")}
             >
               Done
             </button>

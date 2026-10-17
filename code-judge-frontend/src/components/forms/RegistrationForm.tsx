@@ -19,6 +19,7 @@ import {
 } from "@/lib/validators";
 import AuthBackground from "@/components/auth/AuthBackground";
 import { AuthBrandMark, AuthLoader, AuthShowcasePanel, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
+import { OtpInput } from "@/components/auth/OtpInput";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
 
@@ -501,19 +502,26 @@ export default function RegistrationForm() {
           {/* Step 2: OTP */}
           {step === "verify" && (
             <form className="space-y-5" onSubmit={handleVerifyOtp}>
+              <div className="text-center">
+                <div className="mx-auto mb-3 flex justify-center">
+                  <Image src="/logos/mark.png" alt="QuizSupport" width={52} height={48} className="h-12 w-auto object-contain" priority />
+                </div>
+                <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--qs-brand)]">
+                  <Mail className="h-3 w-3" /> Check your email
+                </span>
+                <p className="mt-2.5 text-xs leading-5 text-[var(--qs-muted)]">
+                  We sent a 6-digit code to<br />
+                  <span className="font-bold text-[var(--qs-ink)]">{form.email.value}</span>
+                </p>
+              </div>
               <div>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
+                <OtpInput
                   value={form.otp.value}
-                  onChange={(e) => updateField("otp", e.target.value.replace(/\D/g, ""))}
-                  onBlur={() => validateOtpField(form.otp.value)}
-                  className={`qs-input h-14 w-full text-center text-lg ${form.otp.touched && form.otp.error ? "border-[var(--qs-bad)]" : ""}`}
-                  placeholder="------"
+                  onChange={(next) => updateField("otp", next.replace(/\D/g, "").slice(0, 6))}
+                  error={!!(form.otp.touched && form.otp.error)}
                 />
                 {form.otp.touched && form.otp.error && (
-                  <p className="mt-2 text-xs text-[var(--qs-bad)]">{form.otp.error}</p>
+                  <p className="mt-2 text-center text-xs text-[var(--qs-bad)]">{form.otp.error}</p>
                 )}
               </div>
               <button

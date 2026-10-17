@@ -41,15 +41,15 @@ function ProfileMenu() {
         onClick={() => setOpen((value) => !value)}
         aria-label="Open creator profile menu"
         aria-expanded={open}
-        className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.04]"
+        className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-[var(--qs-line)]/40"
       >
         <img
           src={avatar?.url || DEFAULT_AVATAR_URL}
           alt={displayName}
           className="h-7 w-7 rounded-full object-cover"
         />
-        <span className="hidden max-w-32 truncate text-xs font-semibold text-text-primary sm:block">{displayName}</span>
-        <ChevronDown className={cn("hidden h-3 w-3 text-text-muted transition-transform sm:block", open && "rotate-180")} />
+        <span className="hidden max-w-32 truncate text-xs font-semibold text-[var(--qs-ink)] sm:block">{displayName}</span>
+        <ChevronDown className={cn("hidden h-3 w-3 text-[var(--qs-muted)] transition-transform sm:block", open && "rotate-180")} />
       </button>
 
       <AnimatePresence>
@@ -59,11 +59,11 @@ function ProfileMenu() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full z-50 mt-1.5 w-52 rounded-xl border border-border bg-card p-1.5 shadow-xl"
+            className="absolute right-0 top-full z-50 mt-1.5 w-52 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1.5 shadow-[0_14px_36px_rgba(26,18,64,0.18)]"
           >
-            <div className="border-b border-border px-3 py-2">
-              <p className="truncate text-xs font-semibold text-text-primary">{displayName}</p>
-              {user?.email && <p className="mt-0.5 truncate text-[10px] text-text-muted">{user.email}</p>}
+            <div className="border-b-2 border-[var(--qs-line)] px-3 py-2">
+              <p className="truncate text-xs font-semibold text-[var(--qs-ink)]">{displayName}</p>
+              {user?.email && <p className="mt-0.5 truncate text-[10px] text-[var(--qs-muted)]">{user.email}</p>}
             </div>
             <div className="pt-1">
               {menuItems.map((item) => (
@@ -71,7 +71,7 @@ function ProfileMenu() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className="flex items-center rounded-lg px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-white/[0.04] hover:text-text-primary"
+                  className="flex items-center rounded-lg px-3 py-2 text-xs font-medium text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
                 >
                   {item.label}
                 </Link>
@@ -87,14 +87,14 @@ function ProfileMenu() {
 export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void }) {
   const creditBalance = useAICreditsStore((s) => s.balance.totalRemaining);
   return (
-    <header className="sticky top-0 z-30 flex h-14 min-w-0 w-full max-w-full items-center gap-2 border-b border-border bg-card/80 px-2.5 backdrop-blur-xl sm:px-4">
+    <header className="qs-ui sticky top-0 z-30 flex h-14 min-w-0 w-full max-w-full items-center gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)]/85 px-2.5 backdrop-blur-xl sm:px-4">
       <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-none sm:shrink-0">
         {onMobileMenuToggle && (
           <button
             type="button"
             onClick={onMobileMenuToggle}
             aria-label="Open Studio navigation"
-            className="-ml-1 shrink-0 rounded-lg p-2 text-text-secondary hover:bg-white/[0.04] lg:hidden"
+            className="-ml-1 shrink-0 rounded-lg p-2 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -115,7 +115,7 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
           href="/creator/billing/credits"
           title="Buy AI credits"
           aria-label={`${creditBalance} AI credits left. Buy more.`}
-          className="mr-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-xs font-bold tabular-nums text-amber-600 transition-colors hover:bg-amber-500/20 dark:text-amber-300"
+          className="mr-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-full border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/25 px-2.5 py-1.5 text-xs font-bold tabular-nums text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-sun)]/45"
         >
           <Coins className="h-3.5 w-3.5" />
           {creditBalance}
