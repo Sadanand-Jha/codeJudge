@@ -53,77 +53,76 @@ export function AiQuizGenerator() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background">
-      {/* Stepper */}
-      <div className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-xl">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[var(--qs-bg)]">
+      <div className="sticky top-0 z-30 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)]/95 backdrop-blur-xl">
         <div className="mx-auto max-w-3xl px-4 py-3 sm:px-6">
           <div className="sm:hidden">
             <div className="mb-2 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-500 text-[11px] font-bold text-white">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[var(--qs-brand)] text-[11px] font-extrabold text-[var(--qs-on-brand)]">
                   {currentIndex + 1}
                 </span>
-                <span className="truncate text-sm font-semibold text-text-primary">
+                <span className="truncate text-sm font-extrabold text-[var(--qs-ink)]">
                   {STEPS[currentIndex].label}
                 </span>
               </div>
-              <span className="shrink-0 text-xs font-medium text-text-secondary">
+              <span className="shrink-0 text-xs font-semibold text-[var(--qs-muted)]">
                 Step {currentIndex + 1} of {STEPS.length}
               </span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-card-hover">
+            <div className="h-1.5 overflow-hidden rounded-full bg-[var(--qs-line)]">
               <div
-                className="h-full rounded-full bg-violet-500 transition-[width] duration-300"
+                className="h-full rounded-full bg-[var(--qs-brand)] transition-[width] duration-300"
                 style={{ width: `${((currentIndex + 1) / STEPS.length) * 100}%` }}
               />
             </div>
           </div>
 
           <div className="hidden items-center justify-between sm:flex">
-          {STEPS.map((s, i) => {
-            const isActive = s.id === step;
-            const isDone = i < currentIndex;
-            const isClickable = i < currentIndex;
+            {STEPS.map((s, i) => {
+              const isActive = s.id === step;
+              const isDone = i < currentIndex;
+              const isClickable = i < currentIndex;
 
-            return (
-              <div key={s.id} className="flex flex-1 items-center last:flex-none">
-                {i > 0 && (
-                  <div
-                    className={cn(
-                      "mx-2 h-px flex-1",
-                      i <= currentIndex ? "bg-violet-500" : "bg-border"
-                    )}
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => isClickable && setStep(s.id)}
-                  disabled={!isClickable}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
-                    isActive && "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-                    isDone && !isActive && "text-emerald-600 dark:text-emerald-400",
-                    !isActive && !isDone && "text-text-muted",
-                    isClickable && "cursor-pointer hover:bg-white/[0.04]"
+              return (
+                <div key={s.id} className="flex flex-1 items-center last:flex-none">
+                  {i > 0 && (
+                    <div
+                      className={cn(
+                        "mx-2 h-0.5 flex-1 rounded-full",
+                        i <= currentIndex ? "bg-[var(--qs-brand)]" : "bg-[var(--qs-line)]"
+                      )}
+                    />
                   )}
-                >
-                  <span
+                  <button
+                    type="button"
+                    onClick={() => isClickable && setStep(s.id)}
+                    disabled={!isClickable}
                     className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-                      isActive
-                        ? "bg-violet-500 text-white"
-                        : isDone
-                        ? "bg-emerald-500 text-white"
-                        : "bg-white/[0.06] text-text-muted"
+                      "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors",
+                      isActive && "bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]",
+                      isDone && !isActive && "text-[var(--qs-ok)]",
+                      !isActive && !isDone && "text-[var(--qs-muted)]",
+                      isClickable && "cursor-pointer hover:bg-[var(--qs-line)]/40"
                     )}
                   >
-                    {isDone ? <Check className="h-3 w-3" /> : i + 1}
-                  </span>
-                  <span>{s.label}</span>
-                </button>
-              </div>
-            );
-          })}
+                    <span
+                      className={cn(
+                        "grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-extrabold",
+                        isActive
+                          ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                          : isDone
+                            ? "bg-[var(--qs-ok)] text-white"
+                            : "border-2 border-[var(--qs-line)] text-[var(--qs-muted)]"
+                      )}
+                    >
+                      {isDone ? <Check className="h-3 w-3" /> : i + 1}
+                    </span>
+                    <span>{s.label}</span>
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -132,7 +131,7 @@ export function AiQuizGenerator() {
             <button
               type="button"
               onClick={goBack}
-              className="flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary"
+              className="inline-flex items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-bold text-[var(--qs-ink)] transition hover:border-[var(--qs-brand)]"
             >
               <ArrowLeft className="h-3 w-3" />
               Back
@@ -141,7 +140,6 @@ export function AiQuizGenerator() {
         )}
       </div>
 
-      {/* Content */}
       <div className="px-4 sm:px-6 lg:px-8">
         <AnimatePresence mode="wait">
           <motion.div

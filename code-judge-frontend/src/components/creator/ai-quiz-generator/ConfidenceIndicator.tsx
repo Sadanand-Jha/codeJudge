@@ -7,17 +7,17 @@ const config = {
   high: {
     label: "High confidence",
     icon: Check,
-    cls: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+    cls: "text-[var(--qs-ok)] bg-[var(--qs-ok)]/10 border-[var(--qs-ok)]/25",
   },
   medium: {
     label: "Medium confidence — review recommended",
     icon: AlertTriangle,
-    cls: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20",
+    cls: "text-[#a85d00] bg-[#a85d00]/10 border-[#a85d00]/25",
   },
   low: {
     label: "Low confidence — needs review",
     icon: HelpCircle,
-    cls: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20",
+    cls: "text-[var(--qs-bad)] bg-[var(--qs-bad)]/10 border-[var(--qs-bad)]/25",
   },
 };
 
@@ -33,7 +33,7 @@ export function ConfidenceIndicator({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium",
+        "inline-flex items-center gap-1 rounded-full border-2 px-2 py-0.5 text-[10px] font-bold",
         c.cls,
         className
       )}

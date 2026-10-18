@@ -451,7 +451,7 @@ function QuizCardItem({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.025, 0.18), duration: 0.25 }}
-      className="relative flex min-h-[224px] flex-col overflow-hidden rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_2px_8px_rgba(26,18,64,0.04)] transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-[var(--qs-brand)]/35 hover:shadow-[0_14px_32px_-14px_rgba(106,61,240,0.35)]"
+      className="relative flex min-h-[224px] flex-col overflow-hidden rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_2px_8px_rgba(26,18,64,0.04)] transition-[border-color,box-shadow] duration-200 hover:border-[var(--qs-brand)]/35 hover:shadow-[0_14px_32px_-14px_rgba(106,61,240,0.35)]"
     >
       <div className={cn("h-1.5 w-full shrink-0", accent.bar)} />
       <div>
@@ -484,7 +484,6 @@ function QuizCardItem({
                         toast.success({ title: "Duplicate", description: "Use Edit → Clone from quiz settings." });
                       }}
                     />
-                    <MenuAction icon={ClipboardList} label="Responses" onClick={() => onGoTo("responses")} />
                     <div className="my-1 border-t border-[var(--qs-line)]" />
                     <MenuAction icon={Trash2} label="Delete" danger onClick={onDelete} />
                   </div>
@@ -536,10 +535,11 @@ function QuizCardItem({
       </div>
       </div>
 
-      <div className="mx-4 mb-4 mt-3 flex items-center gap-1.5 border-t border-[var(--qs-line)] pt-3 sm:mx-5">
+      <div className="mx-4 mb-4 mt-3 flex flex-wrap items-center gap-1.5 border-t border-[var(--qs-line)] pt-3 sm:mx-5">
         <CardAction icon={Pencil} label="Edit" primary onClick={() => onGoTo("edit")} />
         <CardAction icon={Eye} label="Preview" onClick={() => onGoTo("preview")} />
         <CardAction icon={BarChart3} label="Analytics" onClick={() => onGoTo("analytics")} />
+        <CardAction icon={ClipboardList} label="Responses" onClick={() => onGoTo("responses")} />
       </div>
     </motion.article>
   );

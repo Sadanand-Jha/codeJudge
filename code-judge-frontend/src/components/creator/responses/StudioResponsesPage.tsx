@@ -3,18 +3,12 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Download, Mail, Square, Search, ChevronDown, X, Users,
-  CheckCircle2, Clock, AlertTriangle, XCircle, Trophy, BarChart3,
-  Eye, Pause, RotateCcw, ExternalLink, Crown, Medal,
-  ChevronRight, Filter, ArrowUpDown, MoreVertical, FileDown,
-  Timer, TrendingUp, TrendingDown, Minus, Circle, RefreshCw,
+  ArrowLeft, Download, Mail, Square, Search, X, RefreshCw,
+  MoreVertical, Pause, RotateCcw, Timer, TrendingUp, TrendingDown,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
-} from "recharts";
 import Link from "next/link";
+import { useToast } from "@/hooks/useToast";
 import {
   getQuizResponses,
   getStudentResponseDetail,
@@ -43,6 +37,7 @@ interface Student {
   timeTakenSec: number | null;
   timeTaken: string | null;
   submittedAt: string | null;
+  completedAt: string | null;
   lastActivityAt: string | null;
   avatar: string;
   avatarUrl: string | null;
@@ -51,19 +46,26 @@ interface Student {
   totalQuestions: number | null;
 }
 
-const STATUS_CONFIG: Record<StudentStatus, { label: string; color: string; bg: string; dot: string }> = {
-  SUBMITTED:    { label: "Submitted",    color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20", dot: "bg-emerald-400" },
-  IN_PROGRESS:  { label: "In Progress",  color: "text-blue-400",    bg: "bg-blue-500/10 border-blue-500/20",    dot: "bg-blue-400" },
-  NOT_STARTED:  { label: "Not Started",  color: "text-amber-400",   bg: "bg-amber-500/10 border-amber-500/20",   dot: "bg-amber-400" },
-  TIMED_OUT:    { label: "Auto Submitted", color: "text-red-400",   bg: "bg-red-500/10 border-red-500/20",     dot: "bg-red-400" },
+const STATUS_CONFIG: Record<StudentStatus, { label: string; text: string }> = {
+  SUBMITTED:    { label: "Submitted",      text: "text-[var(--qs-ok)]" },
+  IN_PROGRESS:  { label: "In Progress",    text: "text-[#2457d6]" },
+  NOT_STARTED:  { label: "Not Started",    text: "text-[#a85d00]" },
+  TIMED_OUT:    { label: "Auto Submitted", text: "text-[var(--qs-bad)]" },
 };
 
-const PIE_COLORS: Record<string, string> = {
-  Submitted: "#22C55E",
-  "In Progress": "#3B82F6",
-  "Not Started": "#EAB308",
-  "Auto Submitted": "#EF4444",
+const STATUS_COLORS: Record<StudentStatus, string> = {
+  SUBMITTED:   "var(--qs-ok)",
+  IN_PROGRESS: "#2457d6",
+  NOT_STARTED: "#a85d00",
+  TIMED_OUT:   "var(--qs-bad)",
 };
+
+const FILTERS = ["ALL", "SUBMITTED", "IN_PROGRESS", "NOT_STARTED", "TIMED_OUT"] as const;
+
+const SORT_LABELS = ["Marks (high to low)", "Fastest first", "Latest first"] as const;
+
+const DONUT_R = 54;
+const DONUT_C = 2 * Math.PI * DONUT_R;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -76,6 +78,12 @@ function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
+}
+
+function nameHue(name: string): number {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+  return h;
 }
 
 function toNumber(v: number | string | null | undefined): number | null {
@@ -153,6 +161,7 @@ function mapStudent(row: QuizResponseStudent, totalMarks: number): Student {
     timeTakenSec,
     timeTaken: formatTaken(timeTakenSec),
     submittedAt: formatDateTime(row.completed_at),
+    completedAt: row.completed_at,
     lastActivityAt: row.last_activity,
     avatar: initials(name),
     avatarUrl: row.avatar_url,
@@ -165,32 +174,40 @@ function mapStudent(row: QuizResponseStudent, totalMarks: number): Student {
 function StatusBadge({ status }: { status: StudentStatus }) {
   const cfg = STATUS_CONFIG[status];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide", cfg.bg, cfg.color)}>
-      <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
+    <span className={cn("inline-block rounded-full border-2 border-current px-[11px] py-px text-xs font-extrabold uppercase tracking-[0.05em]", cfg.text)}>
       {cfg.label}
     </span>
   );
 }
 
 function RankBadge({ rank }: { rank: number | null }) {
-  if (rank === null) return <span className="grid h-7 w-7 place-items-center text-xs font-semibold text-text-muted">—</span>;
-  if (rank === 1) return <span className="flex items-center justify-center w-6 h-6"><Crown className="h-4 w-4 text-amber-400" /></span>;
-  if (rank === 2) return <span className="flex items-center justify-center w-6 h-6"><Medal className="h-4 w-4 text-gray-300" /></span>;
-  if (rank === 3) return <span className="flex items-center justify-center w-6 h-6"><Medal className="h-4 w-4 text-amber-600" /></span>;
-  return <span className="text-xs font-semibold text-text-muted w-6 text-center">{rank}</span>;
+  if (rank === null) return <span className="grid h-[30px] w-[30px] place-items-center text-xs font-bold text-[var(--qs-muted)]">—</span>;
+  const podium =
+    rank === 1 ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]"
+    : rank === 2 ? "border-[var(--qs-ink)] bg-[#D8DCE6] text-[#1A1240]"
+    : rank === 3 ? "border-[var(--qs-ink)] bg-[#E8B27E] text-[#1A1240]"
+    : "border-[var(--qs-line)] text-[var(--qs-ink)]";
+  return (
+    <span className={cn("grid h-[30px] w-[30px] place-items-center rounded-full border-2 text-sm font-extrabold", podium)}>
+      {rank}
+    </span>
+  );
 }
 
 function StudentAvatar({ student, size = "sm" }: { student: Student; size?: "sm" | "lg" }) {
   return (
-    <div className={cn(
-      "relative shrink-0 overflow-hidden bg-pink-500/10 font-bold text-pink-500 ring-1 ring-pink-500/10",
-      size === "lg" ? "h-14 w-14 rounded-2xl text-lg" : "h-9 w-9 rounded-xl text-[10px]"
-    )}>
+    <div
+      className={cn(
+        "relative grid shrink-0 place-items-center overflow-hidden rounded-full border-2 border-[var(--qs-ink)] font-extrabold text-white",
+        size === "lg" ? "h-14 w-14 text-lg" : "h-[38px] w-[38px] text-[13px]"
+      )}
+      style={student.avatarUrl ? undefined : { background: `hsl(${nameHue(student.name)} 55% 42%)` }}
+    >
       {student.avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- avatar URLs are user-configured and may be remote
         <img src={student.avatarUrl} alt={`${student.name} avatar`} className="h-full w-full object-cover" />
       ) : (
-        <span className="grid h-full w-full place-items-center">{student.avatar}</span>
+        student.avatar
       )}
     </div>
   );
@@ -199,22 +216,27 @@ function StudentAvatar({ student, size = "sm" }: { student: Student; size?: "sm"
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function StudioResponsesPage({ quizId }: { quizId: string }) {
+  const toast = useToast();
   const [students, setStudents] = useState<Student[]>([]);
   const [quizName, setQuizName] = useState("Responses");
   const [totalMarks, setTotalMarks] = useState(0);
   const [summary, setSummary] = useState({ total: 0, submitted: 0, notSubmitted: 0, avg: 0, highest: 0, lowest: null as number | null });
   const [timeStats, setTimeStats] = useState<{ avg: number | null; fastest: number | null; slowest: number | null }>({ avg: null, fastest: null, slowest: null });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<StudentStatus | "ALL">("ALL");
+  const [sortMode, setSortMode] = useState(0);
   const [detailPanel, setDetailPanel] = useState<Student | null>(null);
   const [detailReview, setDetailReview] = useState<StudentResponseDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [pauseOpen, setPauseOpen] = useState(false);
   const [restartOpen, setRestartOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
+  const [liveMenuOpen, setLiveMenuOpen] = useState(false);
+  const [actionMenu, setActionMenu] = useState<{ student: Student; top: number; right: number } | null>(null);
   const [presenceNow, setPresenceNow] = useState(() => Date.now());
   const firstResponsesLoadRef = useRef(true);
 
@@ -222,8 +244,6 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     if (firstResponsesLoadRef.current) setLoading(true);
     setError(null);
     try {
-      // Route param is usually the numeric id, but may be the quiz code
-      // (e.g. /creator/quizzes/<code>/responses) — resolve it first.
       let numericId = quizId;
       if (!/^\d+$/.test(quizId)) {
         const byCode = await getQuizByCode(quizId);
@@ -238,6 +258,17 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
       setQuizName(resp.quiz?.name || "Responses");
       setTotalMarks(marks);
       const attempts = (resp.students || []).map((row) => mapStudent(row, marks));
+      if (attempts.some((s) => s.rank === null && s.marks !== null)) {
+        const ranked = attempts
+          .filter((s) => s.marks !== null)
+          .sort((a, b) =>
+            (b.marks ?? 0) - (a.marks ?? 0) ||
+            (a.timeTakenSec ?? Infinity) - (b.timeTakenSec ?? Infinity)
+          );
+        ranked.forEach((s, i) => {
+          if (s.rank === null) s.rank = i + 1;
+        });
+      }
       setStudents(attempts);
       const scored = attempts.filter((student) => student.marks !== null);
       setSummary({
@@ -258,7 +289,6 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
       if (fromAnalytics.avg !== null || fromAnalytics.fastest !== null || fromAnalytics.slowest !== null) {
         setTimeStats(fromAnalytics);
       } else {
-        // Fallback: derive from student time_taken values
         const secs = (resp.students || [])
           .map((r) => toNumber(r.time_taken))
           .filter((n): n is number => n !== null);
@@ -279,17 +309,45 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   }, [quizId]);
 
   useEffect(() => {
-    void load();
-    const interval = window.setInterval(() => void load(), 30_000);
-    return () => window.clearInterval(interval);
+    let disposed = false;
+    const tick = () => {
+      if (!disposed) void load();
+    };
+    void Promise.resolve().then(tick);
+    const interval = window.setInterval(tick, 30_000);
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+    };
   }, [load]);
 
-  // Let stale attempts disappear from "Live Now" without requiring a manual
-  // creator refresh. The server heartbeat itself remains the source of truth.
   useEffect(() => {
     const interval = window.setInterval(() => setPresenceNow(Date.now()), 15_000);
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!actionMenu) return;
+    const close = () => setActionMenu(null);
+    document.addEventListener("click", close);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      document.removeEventListener("click", close);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [actionMenu]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await load();
+      toast.success({ title: "Refreshed", description: "Latest responses loaded." });
+    } finally {
+      setRefreshing(false);
+    }
+  }, [load, toast]);
 
   const openDetail = useCallback(async (s: Student) => {
     setDetailPanel(s);
@@ -307,37 +365,71 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     }
   }, [quizId]);
 
+  const openActionMenu = useCallback((e: React.MouseEvent, student: Student) => {
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setActionMenu({ student, top: rect.bottom + 8, right: window.innerWidth - rect.right });
+  }, []);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<StudentStatus | "ALL", number> = {
+      ALL: students.length, SUBMITTED: 0, IN_PROGRESS: 0, NOT_STARTED: 0, TIMED_OUT: 0,
+    };
+    students.forEach((s) => { counts[s.status] += 1; });
+    return counts;
+  }, [students]);
+
   const filtered = useMemo(() => {
     let list = students;
-    if (filter !== "ALL") list = list.filter(s => s.status === filter);
+    if (filter !== "ALL") list = list.filter((s) => s.status === filter);
     if (search) {
       const q = search.toLowerCase();
-      list = list.filter(s =>
-        s.name.toLowerCase().includes(q) ||
-        s.rollNo.toLowerCase().includes(q)
-      );
+      list = list.filter((s) => s.name.toLowerCase().includes(q) || s.rollNo.toLowerCase().includes(q));
     }
-    return list;
-  }, [students, filter, search]);
+    const sorted = [...list];
+    const time = (s: Student) => (s.completedAt ? Date.parse(s.completedAt) : s.lastActivityAt ? Date.parse(s.lastActivityAt) : 0) || 0;
+    if (sortMode === 0) {
+      sorted.sort((a, b) => (b.marks ?? -Infinity) - (a.marks ?? -Infinity) || (a.timeTakenSec ?? Infinity) - (b.timeTakenSec ?? Infinity));
+    } else if (sortMode === 1) {
+      sorted.sort((a, b) => (a.timeTakenSec ?? Infinity) - (b.timeTakenSec ?? Infinity));
+    } else {
+      sorted.sort((a, b) => time(b) - time(a));
+    }
+    return sorted;
+  }, [students, filter, search, sortMode]);
 
   const liveStudents = useMemo(() => students.filter((student) => isLiveAttempt(student, presenceNow)), [students, presenceNow]);
-  const inProgressCount = useMemo(() => students.filter(s => s.status === "IN_PROGRESS").length, [students]);
-  const timedOutCount = useMemo(() => students.filter(s => s.status === "TIMED_OUT").length, [students]);
+  const inProgressCount = useMemo(() => students.filter((s) => s.status === "IN_PROGRESS").length, [students]);
+  const timedOutCount = useMemo(() => students.filter((s) => s.status === "TIMED_OUT").length, [students]);
   const notStartedCount = useMemo(() => students.filter((student) => student.status === "NOT_STARTED").length, [students]);
 
   const submissionData = useMemo(() => ([
-    { name: "Submitted", value: summary.submitted, color: PIE_COLORS.Submitted },
-    { name: "In Progress", value: inProgressCount, color: PIE_COLORS["In Progress"] },
-    { name: "Not Started", value: notStartedCount, color: PIE_COLORS["Not Started"] },
-    { name: "Auto Submitted", value: timedOutCount, color: PIE_COLORS["Auto Submitted"] },
+    { name: "Submitted", value: summary.submitted, color: STATUS_COLORS.SUBMITTED },
+    { name: "In Progress", value: inProgressCount, color: STATUS_COLORS.IN_PROGRESS },
+    { name: "Not Started", value: notStartedCount, color: STATUS_COLORS.NOT_STARTED },
+    { name: "Auto Submitted", value: timedOutCount, color: STATUS_COLORS.TIMED_OUT },
   ]), [summary, inProgressCount, notStartedCount, timedOutCount]);
+
+  const donutSegments = useMemo(() => {
+    const total = Math.max(students.length, 1);
+    let off = 0;
+    return submissionData
+      .filter((d) => d.value > 0)
+      .map((d) => {
+        const len = (d.value / total) * DONUT_C;
+        const dash = Math.max(len - 3, 2);
+        const seg = { name: d.name, color: d.color, dash: `${dash} ${DONUT_C - dash}`, offset: -off };
+        off += len;
+        return seg;
+      });
+  }, [submissionData, students.length]);
 
   const scoreData = useMemo(() => {
     const BUCKETS = 5;
     const max = totalMarks > 0 ? totalMarks : 100;
     const size = max / BUCKETS;
     const counts = new Array(BUCKETS).fill(0);
-    students.forEach(s => {
+    students.forEach((s) => {
       if (s.marks === null) return;
       const idx = Math.min(BUCKETS - 1, Math.floor(s.marks / size));
       counts[idx] += 1;
@@ -349,369 +441,475 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     });
   }, [students, totalMarks]);
 
+  const maxBucket = useMemo(() => Math.max(...scoreData.map((s) => s.count), 1), [scoreData]);
+
   const timeCards = useMemo(() => ([
-    { label: "Average", value: timeStats.avg !== null ? formatTaken(timeStats.avg) ?? "—" : "—", icon: Timer, accent: "bg-violet-500 text-white", sub: "Typical completion" },
-    { label: "Fastest", value: timeStats.fastest !== null ? formatTaken(timeStats.fastest) ?? "—" : "—", icon: TrendingUp, accent: "bg-emerald-500 text-white", sub: "Best performer" },
-    { label: "Slowest", value: timeStats.slowest !== null ? formatTaken(timeStats.slowest) ?? "—" : "—", icon: TrendingDown, accent: "bg-rose-500 text-white", sub: "Needs attention" },
+    { label: "Average", value: timeStats.avg !== null ? formatTaken(timeStats.avg) ?? "—" : "—", icon: Timer, accent: "bg-[var(--qs-brand)]", sub: "Typical completion" },
+    { label: "Fastest", value: timeStats.fastest !== null ? formatTaken(timeStats.fastest) ?? "—" : "—", icon: TrendingUp, accent: "bg-[var(--qs-ok)]", sub: "Best performer" },
+    { label: "Slowest", value: timeStats.slowest !== null ? formatTaken(timeStats.slowest) ?? "—" : "—", icon: TrendingDown, accent: "bg-[var(--qs-bad)]", sub: "Needs attention" },
   ]), [timeStats]);
 
+  const exportCsv = useCallback(() => {
+    const header = ["Rank", "Student", "Attempt", "Roll no.", "Status", "Marks", "Total", "%", "Time taken", "Submitted at"];
+    const rows = filtered.map((s) => [
+      s.rank ?? "", s.name, s.attemptNumber ?? "", s.rollNo, STATUS_CONFIG[s.status].label,
+      s.marks ?? "", s.total, s.percentage !== null ? Math.round(s.percentage) : "", s.timeTaken ?? "", s.submittedAt ?? "",
+    ]);
+    const csv = [header, ...rows]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${quizName.replace(/[^\w-]+/g, "_")}_responses.csv`;
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    toast.success({ title: "Exported", description: `${filtered.length} rows downloaded as CSV.` });
+  }, [filtered, quizName, toast]);
+
+  const kpis = [
+    { label: "Total students", value: summary.total, sub: "registered", color: "var(--qs-brand)" },
+    { label: "Submitted", value: summary.submitted, sub: "completed", color: "var(--qs-ok)" },
+    { label: "In progress", value: inProgressCount, sub: "currently taking", color: "#2457d6" },
+    { label: "Not started", value: notStartedCount, sub: "waiting", color: "#a85d00" },
+    { label: "Auto submitted", value: timedOutCount, sub: "time expired", color: "var(--qs-bad)" },
+    { label: "Avg score", value: summary.avg.toFixed(1), sub: `/ ${totalMarks}`, color: "#1A1240", hi: true },
+    { label: "Highest", value: summary.highest, sub: "score", color: "var(--qs-ok)" },
+    { label: "Lowest", value: summary.lowest ?? "—", sub: "score", color: "var(--qs-bad)" },
+  ];
+
+  const topBtn = "inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* ── Top Header ─────────────────────────────────────────────── */}
-      <header className="border-b border-border bg-background">
-        <div className="mx-auto flex min-h-16 max-w-[1600px] flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link href="/creator/quizzes" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card hover:bg-card-hover transition-colors">
-              <ArrowLeft className="h-4 w-4 text-text-secondary" />
+    <div className="min-h-full bg-[var(--qs-bg)]">
+      <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+
+        {/* ── Top ───────────────────────────────────────────────────── */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <Link
+              href="/creator/quizzes"
+              aria-label="Back"
+              className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] transition-colors hover:border-[var(--qs-brand)]"
+            >
+              <ArrowLeft className="h-4.5 w-4.5 text-[var(--qs-ink)]" />
             </Link>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="text-sm font-bold text-text-primary">Responses</h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-[28px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">Responses</h1>
                 {liveStudents.length > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    LIVE
+                  <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-ok)]/40 bg-[var(--qs-ok)]/10 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ok)]">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--qs-ok)]" />
+                    Live
                   </span>
                 )}
               </div>
-              <p className="truncate text-[11px] text-text-muted">{quizName}</p>
+              <p className="mt-0.5 truncate text-[var(--qs-muted)]">{quizName}</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <button onClick={load} title="Refresh" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 text-xs font-semibold text-text-secondary hover:bg-card-hover transition-colors sm:px-3">
-              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-              <span className="hidden lg:inline">Refresh</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => void handleRefresh()} className={topBtn}>
+              <RefreshCw className={cn("h-4 w-4", (refreshing || loading) && "animate-spin")} />
+              Refresh
             </button>
-            <button title="Download Results" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 text-xs font-semibold text-text-secondary hover:bg-card-hover transition-colors sm:px-3">
-              <Download className="h-3.5 w-3.5" />
-              <span className="hidden lg:inline">Download Results</span>
+            <button type="button" onClick={() => toast.info({ title: "Coming soon", description: "Downloading results is not available yet." })} className={topBtn}>
+              <Download className="h-4 w-4" />
+              Download Results
             </button>
-            <button title="Send on Email" className="hidden items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2 text-xs font-semibold text-text-secondary hover:bg-card-hover transition-colors sm:inline-flex sm:px-3">
-              <Mail className="h-3.5 w-3.5" />
-              <span className="hidden lg:inline">Send on Email</span>
+            <button type="button" onClick={() => toast.info({ title: "Coming soon", description: "Emailing results is not available yet." })} className={topBtn}>
+              <Mail className="h-4 w-4" />
+              Send on Email
             </button>
-            <button onClick={() => setEndOpen(true)} title="End Quiz" className="inline-flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 px-2.5 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/20 transition-colors sm:px-3">
-              <Square className="h-3.5 w-3.5" />
-              <span className="hidden lg:inline">End Quiz</span>
+            <button
+              type="button"
+              onClick={() => setEndOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-bad)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)] hover:text-white"
+            >
+              <Square className="h-4 w-4" />
+              End Quiz
             </button>
           </div>
         </div>
-      </header>
-
-      <main className="mx-auto max-w-[1600px] px-4 py-6 space-y-6 sm:px-6">
 
         {error && (
-          <div className="flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/[0.04] px-4 py-3">
-            <p className="text-xs font-medium text-red-400">{error}</p>
-            <button onClick={load} className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 px-3 py-1.5 text-[11px] font-bold text-red-400 hover:bg-red-500/10 transition-colors">
+          <div className="mb-6 flex items-center justify-between gap-3 rounded-[16px] border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-bad)]/[0.04] px-4 py-3">
+            <p className="text-xs font-bold text-[var(--qs-bad)]">{error}</p>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-bad)]/40 px-3 py-1.5 text-[11px] font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bad)] hover:text-white"
+            >
               <RefreshCw className="h-3 w-3" />
               Retry
             </button>
           </div>
         )}
 
-        {/* ── KPI Cards ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+        {/* ── Stat tiles ────────────────────────────────────────────── */}
+        <div className="mb-5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
           {loading ? (
             Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-border bg-card p-3">
-                <div className="app-skeleton h-3 w-16 rounded" />
-                <div className="app-skeleton mt-2 h-6 w-12 rounded" />
+              <div key={i} className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
+                <div className="app-skeleton h-3 w-20 rounded" />
+                <div className="app-skeleton mt-3 h-7 w-14 rounded" />
               </div>
             ))
           ) : (
-            ([
-              { icon: Users, label: "Total Students", value: summary.total, sub: "registered", accent: "text-pink-400" },
-              { icon: CheckCircle2, label: "Submitted", value: summary.submitted, sub: "completed", accent: "text-emerald-400" },
-              { icon: Clock, label: "In Progress", value: inProgressCount, sub: "currently taking", accent: "text-blue-400" },
-              { icon: AlertTriangle, label: "Not Started", value: notStartedCount, sub: "waiting", accent: "text-amber-400" },
-              { icon: XCircle, label: "Auto Submitted", value: timedOutCount, sub: "time expired", accent: "text-red-400" },
-              { icon: BarChart3, label: "Avg Score", value: summary.avg.toFixed(1), sub: `/ ${totalMarks}`, accent: "text-purple-400" },
-              { icon: TrendingUp, label: "Highest", value: summary.highest, sub: "score", accent: "text-emerald-400" },
-              { icon: TrendingDown, label: "Lowest", value: summary.lowest ?? "—", sub: "score", accent: "text-rose-400" },
-            ]).map((kpi) => (
-              <div key={kpi.label} className="rounded-xl border border-border bg-card p-3 flex flex-col gap-1">
-                <div className="flex items-center gap-1.5">
-                  <kpi.icon className={cn("h-3.5 w-3.5", kpi.accent)} />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">{kpi.label}</span>
-                </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-xl font-extrabold text-text-primary">{kpi.value}</span>
-                  {kpi.sub && <span className="text-[10px] text-text-muted">{kpi.sub}</span>}
-                </div>
+            kpis.map((kpi) => (
+              <div
+                key={kpi.label}
+                className={cn(
+                  "rounded-[18px] border-2 p-4 sm:px-[18px]",
+                  kpi.hi ? "border-[var(--qs-ink)] bg-[var(--qs-sun)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+                )}
+              >
+                <small className={cn(
+                  "flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.08em]",
+                  kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]"
+                )}>
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: kpi.color }} />
+                  {kpi.label}
+                </small>
+                <b className={cn("mt-2 block text-[32px] font-extrabold leading-[1.1] sm:text-[36px]", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-ink)]")}>
+                  {kpi.value}
+                  <span className={cn("ml-1 text-sm font-medium", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]")}>{kpi.sub}</span>
+                </b>
               </div>
             ))
           )}
         </div>
 
-        {/* ── Live Control Bar ──────────────────────────────────────── */}
+        {/* ── Live Now ──────────────────────────────────────────────── */}
         {liveStudents.length > 0 && (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Live Now</span>
-                <span className="text-[11px] text-text-muted">{liveStudents.length} student{liveStudents.length !== 1 ? "s" : ""} currently taking this quiz</span>
+          <div className="mb-6 rounded-[18px] border-2 border-[var(--qs-ok)]/40 bg-[var(--qs-ok)]/[0.05] p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[var(--qs-ok)] animate-pulse" />
+                <span className="text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ok)]">Live Now</span>
+                <span className="text-[11px] font-medium text-[var(--qs-muted)]">
+                  {liveStudents.length} student{liveStudents.length !== 1 ? "s" : ""} currently taking this quiz
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => setEndOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-rose-600 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setEndOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-bad)] bg-[var(--qs-bad)] px-3.5 py-2 text-xs font-extrabold text-white transition-colors hover:brightness-110"
+                >
                   <Square className="h-3.5 w-3.5" />
                   End Quiz
                 </button>
-                <div className="relative" id="live-more-menu">
+                <div className="relative">
                   <button
-                    onClick={() => {
-                      const m = document.getElementById("live-more-dropdown");
-                      if (m) m.classList.toggle("hidden");
-                    }}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-text-muted hover:bg-card-hover hover:text-text-primary transition-colors"
+                    type="button"
+                    onClick={() => setLiveMenuOpen((open) => !open)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
                     aria-label="More actions"
                   >
                     <MoreVertical className="h-3.5 w-3.5" />
                   </button>
-                  <div id="live-more-dropdown" className="hidden absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-card p-1 shadow-xl">
-                    <button onClick={() => { document.getElementById("live-more-dropdown")?.classList.add("hidden"); setPauseOpen(true); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors">
-                      <Pause className="h-3.5 w-3.5" /> Pause
-                    </button>
-                    <button onClick={() => { document.getElementById("live-more-dropdown")?.classList.add("hidden"); setRestartOpen(true); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-text-secondary hover:bg-card-hover hover:text-text-primary transition-colors">
-                      <RotateCcw className="h-3.5 w-3.5" /> Restart
-                    </button>
-                  </div>
+                  {liveMenuOpen && (
+                    <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]">
+                      <button
+                        type="button"
+                        onClick={() => { setLiveMenuOpen(false); setPauseOpen(true); }}
+                        className="flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left text-xs font-bold text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-bg)]"
+                      >
+                        <Pause className="h-3.5 w-3.5" /> Pause
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setLiveMenuOpen(false); setRestartOpen(true); }}
+                        className="flex w-full items-center gap-2 rounded-[8px] px-3 py-2 text-left text-xs font-bold text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-bg)]"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" /> Restart
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-4 overflow-x-auto">
-              {liveStudents.map(s => (
-                <div key={s.id} onClick={() => openDetail(s)} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 min-w-[200px] cursor-pointer hover:border-blue-500/30 transition-colors">
+            <div className="flex items-center gap-4 overflow-x-auto pb-1">
+              {liveStudents.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => openDetail(s)}
+                  className="flex min-w-[200px] items-center gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-left transition-colors hover:border-[var(--qs-brand)]"
+                >
                   <StudentAvatar student={s} />
-                  <div>
-                    <p className="text-xs font-semibold text-text-primary">{s.name}</p>
-                    <p className="text-[10px] text-text-muted">{s.timeTaken ? `Elapsed ${s.timeTaken}` : "Just started"}</p>
-                  </div>
-                </div>
+                  <span className="min-w-0">
+                    <span className="block truncate text-xs font-extrabold text-[var(--qs-ink)]">{s.name}</span>
+                    <span className="block text-[10px] font-medium text-[var(--qs-muted)]">{s.timeTaken ? `Elapsed ${s.timeTaken}` : "Just started"}</span>
+                  </span>
+                </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* ── Filter Bar ────────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="relative w-full sm:max-w-xs sm:flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted" />
+        {/* ── Analytics panels ──────────────────────────────────────── */}
+        <div className="mb-7 grid grid-cols-1 gap-[18px] lg:grid-cols-3">
+          <section className="rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-[22px]">
+            <header className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[19px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[21px]">Score Distribution</h2>
+                <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">{summary.submitted} submissions across all ranges</p>
+              </div>
+              <span className="shrink-0 rounded-full bg-[var(--qs-sun)] px-3 py-1 text-xs font-extrabold text-[#1A1240]">
+                Detailed stats →
+              </span>
+            </header>
+            <div className="flex h-[200px] items-end gap-3 border-b-2 border-[var(--qs-ink)]">
+              {scoreData.map((s) => (
+                <div key={s.range} className="group flex h-full flex-1 flex-col items-center justify-end">
+                  <em className="mb-1 text-[13px] font-extrabold not-italic text-[var(--qs-ink)]">{s.count}</em>
+                  <div
+                    className={cn(
+                      "w-full rounded-t-[10px] border-2 border-b-0 border-[var(--qs-ink)] transition-[filter] group-hover:brightness-110",
+                      s.count === maxBucket && s.count > 0 ? "bg-[var(--qs-sun)]" : "bg-[var(--qs-brand)]"
+                    )}
+                    style={{ height: s.count === 0 ? "4px" : `calc(${(s.count / maxBucket) * 84}%)` }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-1.5 flex gap-3 text-xs font-bold text-[var(--qs-muted)]">
+              {scoreData.map((s) => (
+                <span key={s.range} className="flex-1 text-center">{s.range}</span>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-[22px]">
+            <header className="mb-4">
+              <h2 className="text-[19px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[21px]">Submission Status</h2>
+              <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">Breakdown of {students.length} student attempt records</p>
+            </header>
+            <div className="flex min-h-[200px] flex-wrap items-center justify-center gap-5 sm:gap-[22px]">
+              <svg viewBox="0 0 150 150" role="img" aria-label="Submission status" className="h-[150px] w-[150px] shrink-0">
+                <circle cx="75" cy="75" r={DONUT_R} fill="none" stroke="var(--qs-line)" strokeWidth="20" />
+                {donutSegments.map((seg) => (
+                  <circle
+                    key={seg.name}
+                    cx="75"
+                    cy="75"
+                    r={DONUT_R}
+                    fill="none"
+                    stroke={seg.color}
+                    strokeWidth="20"
+                    strokeDasharray={seg.dash}
+                    strokeDashoffset={seg.offset}
+                    transform="rotate(-90 75 75)"
+                  />
+                ))}
+                <text x="75" y="76" textAnchor="middle" fontWeight="800" fontSize="30" fill="var(--qs-ink)">{students.length}</text>
+                <text x="75" y="94" textAnchor="middle" fontSize="9" fontWeight="800" letterSpacing="1.5" fill="var(--qs-muted)">RECORDS</text>
+              </svg>
+              <ul className="grid min-w-[150px] flex-1 gap-2.5">
+                {submissionData.map((d) => (
+                  <li key={d.name} className="flex items-center gap-2.5 text-sm font-medium text-[var(--qs-ink)]">
+                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: d.color }} />
+                    <span className="min-w-0 truncate">{d.name}</span>
+                    <b className="ml-auto font-extrabold tabular-nums">{d.value}</b>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section className="rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-[22px]">
+            <header className="mb-4">
+              <h2 className="text-[19px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[21px]">Time Taken</h2>
+              <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">Duration insights</p>
+            </header>
+            <div className="flex flex-col gap-3">
+              {timeCards.map((t) => (
+                <div key={t.label} className="flex items-center gap-3.5 rounded-[16px] border-2 border-[var(--qs-line)] p-3">
+                  <i className={cn("grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] not-italic text-white", t.accent)}>
+                    <t.icon className="h-4.5 w-4.5" />
+                  </i>
+                  <div className="min-w-0 flex-1">
+                    <strong className="block text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]">{t.label}</strong>
+                    <small className="block text-[13px] text-[var(--qs-muted)]">{t.sub}</small>
+                  </div>
+                  <output className="shrink-0 text-[20px] font-extrabold tracking-tight text-[var(--qs-ink)] tabular-nums sm:text-[22px]">{t.value}</output>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* ── Filter bar ────────────────────────────────────────────── */}
+        <div className="mb-5 flex flex-wrap items-center gap-2.5">
+          <div className="relative min-w-[220px] flex-[0_1_290px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
             <input
               value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search by roll number, name or email..."
-              className="h-9 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-xs text-text-primary placeholder-text-muted outline-none focus:border-pink-500/40 focus:ring-1 focus:ring-pink-500/10"
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search name or roll no…"
+              aria-label="Search students"
+              className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
             />
           </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {(["ALL", "SUBMITTED", "IN_PROGRESS", "NOT_STARTED", "TIMED_OUT"] as const).map(f => {
-              const cfg = f === "ALL" ? { label: "All", color: "text-text-primary", bg: "bg-card border-border" } : STATUS_CONFIG[f];
+          <div className="flex flex-1 flex-wrap items-center gap-2">
+            {FILTERS.map((f) => {
               const active = filter === f;
+              const label = f === "ALL" ? "All" : STATUS_CONFIG[f].label;
               return (
                 <button
                   key={f}
+                  type="button"
+                  aria-pressed={active}
                   onClick={() => setFilter(f)}
                   className={cn(
-                    "rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wide transition-all",
-                    active ? cn(cfg.bg, cfg.color) : "border-border bg-card text-text-muted hover:bg-card-hover"
+                    "rounded-full border-2 px-[13px] py-1.5 text-xs font-extrabold uppercase tracking-[0.06em] transition-colors",
+                    active
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
                   )}
                 >
-                  {cfg.label}
+                  {label}
+                  <i className={cn("ml-1.5 not-italic", active ? "opacity-70" : "text-[var(--qs-muted)]")}>{statusCounts[f]}</i>
                 </button>
               );
             })}
           </div>
-          <div className="flex items-center gap-2 ml-auto">
-            <button className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-text-secondary hover:bg-card-hover transition-colors">
-              <FileDown className="h-3 w-3" />
-              Export
-            </button>
-            <button className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-text-secondary hover:bg-card-hover transition-colors">
-              <ArrowUpDown className="h-3 w-3" />
-              Sort
-            </button>
-          </div>
+          <button type="button" onClick={exportCsv} className={topBtn}>
+            Export
+          </button>
+          <button
+            type="button"
+            onClick={() => setSortMode((m) => (m + 1) % SORT_LABELS.length)}
+            className={topBtn}
+          >
+            Sort: {SORT_LABELS[sortMode]}
+          </button>
         </div>
 
-        {/* ── Analytics Row ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Score Distribution */}
-          <div className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-bold tracking-tight text-text-primary">Score Distribution</h3>
-                <p className="mt-1 text-xs text-text-muted">{summary.submitted} submissions across all ranges</p>
-              </div>
-              <span className="shrink-0 rounded-full bg-pink-500/10 px-2.5 py-1 text-[11px] font-bold text-pink-500">Detailed stats →</span>
-            </div>
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={scoreData} barSize={48} barCategoryGap="18%">
-                  <XAxis dataKey="range" tick={{ fontSize: 11, fill: "#6B7280" }} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis hide domain={[0, "auto"]} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{ background: "#1A1F2E", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, fontSize: 11 }}
-                    cursor={{ fill: "rgba(236,72,153,0.06)" }}
-                  />
-                  <Bar dataKey="count" radius={[10, 10, 0, 0]} label={{ position: "top", fill: "#9CA3AF", fontSize: 11, fontWeight: 800, dy: -8 }}>
-                    {scoreData.map((_, i) => (
-                      <Cell key={i} fill="#EC4899" />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Submission Status */}
-          <div className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <h3 className="text-sm font-bold tracking-tight text-text-primary">Submission Status</h3>
-            <p className="mt-1 text-xs text-text-muted">Breakdown of {students.length} student attempt records</p>
-            <div className="mt-5 flex flex-1 items-center gap-7">
-              <div className="relative h-[148px] w-[148px] shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={submissionData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={46}
-                      outerRadius={68}
-                      paddingAngle={3}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {submissionData.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} stroke="rgba(0,0,0,0.08)" strokeWidth={1.5} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[24px] font-extrabold leading-none tracking-tight text-text-primary">{students.length}</span>
-                  <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-text-muted">Records</span>
-                </div>
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col justify-center">
-                {submissionData.map(d => (
-                  <div key={d.name} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full shadow-sm ring-1 ring-white/10" style={{ background: d.color }} />
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-none text-text-secondary">{d.name}</span>
-                    <span className="text-[13px] font-extrabold leading-none text-text-primary tabular-nums">{d.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Time Taken */}
-          <div className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <h3 className="text-sm font-bold tracking-tight text-text-primary">Time Taken</h3>
-            <p className="mt-1 text-xs text-text-muted">Duration insights</p>
-            <div className="mt-5 flex flex-1 flex-col gap-3">
-              {timeCards.map(t => (
-                <div key={t.label} className="flex items-center gap-3.5 rounded-xl border border-border/60 bg-gradient-to-br from-card-hover/70 to-card-hover/30 px-4 py-3.5 transition-colors hover:border-pink-500/20">
-                  <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm", t.accent)}>
-                    <t.icon className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">{t.label}</p>
-                    <p className="text-[11px] leading-none text-text-muted">{t.sub}</p>
-                  </div>
-                  <p className="text-sm font-extrabold tracking-tight text-text-primary tabular-nums">{t.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Student Response Table ────────────────────────────────── */}
-        <div className="rounded-xl border border-border bg-card">
-          <div className="border-b border-border px-5 py-4">
-            <h3 className="text-sm font-bold text-text-primary">Student Responses</h3>
-            <p className="text-[11px] text-text-muted mt-0.5">Monitor every student&apos;s quiz activity and performance in real time.</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] table-fixed text-left">
-              <colgroup>
-                <col className="w-[68px]" />
-                <col className="w-[220px]" />
-                <col className="w-[88px]" />
-                <col className="w-[120px]" />
-                <col className="w-[120px]" />
-                <col className="w-[76px]" />
-                <col className="w-[72px]" />
-                <col className="w-[72px]" />
-                <col className="w-[104px]" />
-                <col className="w-[132px]" />
-                <col className="w-[64px]" />
-              </colgroup>
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-text-muted">Rank</th>
-                  {["Student", "Attempt", "Roll No.", "Status", "Marks", "Total", "%", "Time Taken", "Submitted At", "Actions"].map(h => (
-                    <th key={h} className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-text-muted whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="border-b border-border/50">
-                      <td colSpan={11} className="px-4 py-3">
-                        <div className="app-skeleton h-5 rounded" />
-                      </td>
-                    </tr>
-                  ))
-                ) : filtered.length === 0 ? (
+        {/* ── Student Responses ─────────────────────────────────────── */}
+        <div className="relative mb-4 mr-4">
+          <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
+          <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
+            <header className="px-4 pb-4 pt-5 sm:px-[26px]">
+              <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">Student Responses</h2>
+              <p className="mt-0.5 text-sm text-[var(--qs-muted)]">Monitor every student&apos;s quiz activity and performance in real time.</p>
+            </header>
+            <div className="overflow-x-auto border-t-2 border-[var(--qs-line)]">
+              <table className="w-full min-w-[900px] border-collapse text-left">
+                <thead>
                   <tr>
-                    <td colSpan={11} className="px-4 py-10 text-center">
-                      <p className="text-sm font-semibold text-text-secondary">
-                        {students.length === 0 ? "No responses yet — students haven't been registered or attempted this quiz." : "No students match your search/filter."}
-                      </p>
-                    </td>
+                    {["Rank", "Student", "Attempt", "Roll no.", "Status", "Marks", "%", "Time taken", "Submitted at", "Actions"].map((h) => (
+                      <th key={h} className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{h}</th>
+                    ))}
                   </tr>
-                ) : (
-                  filtered.map((s) => (
-                    <tr
-                      key={s.id}
-                      onClick={() => openDetail(s)}
-                      className="h-[68px] border-b border-border/50 align-middle hover:bg-card-hover/50 cursor-pointer transition-colors"
-                    >
-                      <td className="px-3 py-3 text-center"><div className="flex justify-center"><RankBadge rank={s.rank} /></div></td>
-                      <td className="px-4 py-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <StudentAvatar student={s} />
-                          <div className="min-w-0">
-                            <span className="block truncate text-xs font-semibold text-text-primary">{s.name}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-xs font-bold text-text-secondary">{s.attemptNumber ? `#${s.attemptNumber}` : "—"}</td>
-                      <td className="px-4 py-3 truncate text-xs font-mono text-text-secondary">{s.rollNo}</td>
-                      <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
-                      <td className="px-4 py-3 text-xs font-bold text-text-primary">{s.marks !== null ? s.marks : "—"}</td>
-                      <td className="px-4 py-3 text-xs text-text-muted">{s.total}</td>
-                      <td className="px-4 py-3 text-xs font-semibold text-text-primary">{s.percentage !== null ? `${Math.round(s.percentage)}%` : "—"}</td>
-                      <td className="px-4 py-3 text-xs text-text-secondary">{s.timeTaken ?? "—"}</td>
-                      <td className="px-4 py-3 text-[11px] text-text-muted">{s.submittedAt ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <button onClick={(e) => { e.stopPropagation(); openDetail(s); }} className="rounded p-1 hover:bg-card-hover transition-colors">
-                          <MoreVertical className="h-3.5 w-3.5 text-text-muted" />
-                        </button>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i}>
+                        <td colSpan={10} className="border-t-2 border-[var(--qs-line)]/60 px-3 py-3">
+                          <div className="app-skeleton h-8 rounded" />
+                        </td>
+                      </tr>
+                    ))
+                  ) : filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
+                        {students.length === 0 ? "No responses yet — students haven't been registered or attempted this quiz." : "No records match this filter."}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filtered.map((s) => (
+                      <tr
+                        key={s.id}
+                        onClick={() => openDetail(s)}
+                        className="cursor-pointer border-t-2 border-[var(--qs-line)]/60 transition-colors hover:bg-[var(--qs-bg)]"
+                      >
+                        <td className="px-3 py-3"><RankBadge rank={s.rank} /></td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-3">
+                            <StudentAvatar student={s} />
+                            <span className="max-w-[180px] truncate font-bold text-[var(--qs-ink)]">{s.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 font-bold text-[var(--qs-ink)]">{s.attemptNumber ? `#${s.attemptNumber}` : "—"}</td>
+                        <td className="px-3 py-3 text-[var(--qs-muted)]">{s.rollNo}</td>
+                        <td className="px-3 py-3"><StatusBadge status={s.status} /></td>
+                        <td className="px-3 py-3 font-bold text-[var(--qs-ink)]">
+                          {s.marks !== null ? s.marks : "—"}
+                          <span className="font-medium text-[var(--qs-muted)]"> / {s.total}</span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2.5 font-extrabold text-[var(--qs-ink)]">
+                            {s.percentage !== null ? `${Math.round(s.percentage)}%` : "—"}
+                            <span className="h-1.5 w-[54px] overflow-hidden rounded-full bg-[var(--qs-line)]">
+                              <i
+                                className="block h-full rounded-full bg-[var(--qs-brand)]"
+                                style={{ width: `${Math.min(100, Math.max(0, s.percentage ?? 0))}%` }}
+                              />
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-[var(--qs-ink)]">{s.timeTaken ?? "—"}</td>
+                        <td className="px-3 py-3 text-[var(--qs-muted)]">{s.submittedAt ?? "—"}</td>
+                        <td className="px-3 py-3">
+                          <button
+                            type="button"
+                            aria-label={`Actions for ${s.name}`}
+                            onClick={(e) => openActionMenu(e, s)}
+                            className="grid h-[34px] w-[34px] place-items-center rounded-[10px] text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-line)]"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="border-t-2 border-[var(--qs-line)] px-4 py-3.5 text-sm font-medium text-[var(--qs-muted)] sm:px-[26px]">
+              Showing {filtered.length} of {students.length} records
+            </div>
           </div>
         </div>
-      </main>
+      </div>
 
-      {/* ── Student Detail Panel ────────────────────────────────────── */}
+      {/* ── Row action menu ───────────────────────────────────────────── */}
+      {actionMenu && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{ top: actionMenu.top, right: actionMenu.right }}
+          className="fixed z-50 min-w-[170px] rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]"
+        >
+          <button
+            type="button"
+            onClick={() => { setActionMenu(null); void openDetail(actionMenu.student); }}
+            className="block w-full rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-bg)]"
+          >
+            View attempt
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActionMenu(null); toast.info({ title: "Coming soon", description: "Re-opening attempts is not available yet." }); }}
+            className="block w-full rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-bg)]"
+          >
+            Re-open attempt
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActionMenu(null); toast.info({ title: "Coming soon", description: "Deleting attempts is not available yet." }); }}
+            className="block w-full rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-bg)]"
+          >
+            Delete attempt
+          </button>
+        </div>
+      )}
+
+      {/* ── Student Detail Panel ──────────────────────────────────────── */}
       <AnimatePresence>
         {detailPanel && (
           <>
@@ -719,7 +917,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-[#1A1240]/55 backdrop-blur-sm"
               onClick={() => setDetailPanel(null)}
             />
             <motion.div
@@ -727,27 +925,29 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 z-50 h-full w-full max-w-md border-l border-border bg-card shadow-2xl overflow-y-auto"
+              className="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto border-l-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-2xl"
             >
-              <div className="flex items-center justify-between border-b border-border px-5 py-4 sticky top-0 bg-card z-10">
-                <h3 className="text-sm font-bold text-text-primary">Student Details</h3>
-                <button onClick={() => setDetailPanel(null)} className="rounded-lg p-1.5 hover:bg-card-hover transition-colors">
-                  <X className="h-4 w-4 text-text-muted" />
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 py-4">
+                <h3 className="text-base font-extrabold text-[var(--qs-ink)]">Student Details</h3>
+                <button
+                  type="button"
+                  onClick={() => setDetailPanel(null)}
+                  className="grid h-8 w-8 place-items-center rounded-[10px] border-2 border-[var(--qs-line)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                >
+                  <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="p-5 space-y-5">
-                {/* Profile */}
+              <div className="space-y-5 p-5">
                 <div className="flex items-center gap-4">
                   <StudentAvatar student={detailPanel} size="lg" />
-                  <div>
-                    <h4 className="text-base font-bold text-text-primary">{detailPanel.name}</h4>
-                    <p className="text-xs text-text-muted">{detailPanel.rollNo}{detailPanel.attemptNumber ? ` · Attempt #${detailPanel.attemptNumber}` : ""}</p>
-                    <div className="mt-1"><StatusBadge status={detailPanel.status} /></div>
+                  <div className="min-w-0">
+                    <h4 className="truncate text-lg font-extrabold text-[var(--qs-ink)]">{detailPanel.name}</h4>
+                    <p className="text-xs font-medium text-[var(--qs-muted)]">{detailPanel.rollNo}{detailPanel.attemptNumber ? ` · Attempt #${detailPanel.attemptNumber}` : ""}</p>
+                    <div className="mt-1.5"><StatusBadge status={detailPanel.status} /></div>
                   </div>
                 </div>
 
-                {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { label: "Score", value: detailPanel.marks !== null ? `${detailPanel.marks} / ${detailPanel.total}` : "—" },
@@ -760,66 +960,65 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                       : detailPanel.questionsAnswered !== null && detailPanel.totalQuestions !== null
                         ? `${detailPanel.questionsAnswered} / ${detailPanel.totalQuestions}`
                         : "—" },
-                  ].map(s => (
-                    <div key={s.label} className="rounded-lg border border-border bg-background px-3 py-2">
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted">{s.label}</p>
-                      <p className="text-sm font-bold text-text-primary mt-0.5">{s.value}</p>
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
+                      <p className="text-[9px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{s.label}</p>
+                      <p className="mt-0.5 text-sm font-extrabold text-[var(--qs-ink)]">{s.value}</p>
                     </div>
                   ))}
                 </div>
 
-                {/* Question Progress */}
                 <div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-2">Question Progress</h4>
+                  <h4 className="mb-2 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Question Progress</h4>
                   {detailLoading ? (
                     <div className="space-y-2">
                       {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="app-skeleton h-14 rounded-lg" />
+                        <div key={i} className="app-skeleton h-14 rounded-[12px]" />
                       ))}
                     </div>
                   ) : detailPanel.attemptId === null ? (
-                    <p className="rounded-lg border border-border bg-background px-3 py-3 text-xs text-text-muted">
+                    <p className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-3 text-xs font-medium text-[var(--qs-muted)]">
                       {detailPanel.status === "NOT_STARTED" ? "This student hasn't started the quiz yet." : "Attempt details not available."}
                     </p>
                   ) : !detailReview ? (
-                    <p className="rounded-lg border border-border bg-background px-3 py-3 text-xs text-text-muted">
+                    <p className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-3 text-xs font-medium text-[var(--qs-muted)]">
                       Could not load question-wise details.
                     </p>
                   ) : detailReview.review.length === 0 ? (
-                    <p className="rounded-lg border border-border bg-background px-3 py-3 text-xs text-text-muted">
+                    <p className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-3 text-xs font-medium text-[var(--qs-muted)]">
                       No questions found for this attempt.
                     </p>
                   ) : (
                     <div className="space-y-2">
                       {detailReview.review.map((q) => (
-                        <div key={q.problem_id} className="rounded-lg border border-border bg-background px-3 py-2.5">
+                        <div key={q.problem_id} className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5">
                           <div className="flex items-center gap-2">
                             <span className={cn(
-                              "flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[10px] font-bold border",
-                              q.status === "correct" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-                              q.status === "wrong" && "bg-red-500/10 text-red-400 border-red-500/20",
-                              q.status === "unanswered" && "bg-card-hover text-text-muted border-border",
+                              "grid h-6 w-6 shrink-0 place-items-center rounded-[8px] border-2 text-[10px] font-extrabold",
+                              q.status === "correct" && "border-[var(--qs-ok)] bg-[var(--qs-ok)]/10 text-[var(--qs-ok)]",
+                              q.status === "wrong" && "border-[var(--qs-bad)] bg-[var(--qs-bad)]/10 text-[var(--qs-bad)]",
+                              q.status === "unanswered" && "border-[var(--qs-line)] bg-[var(--qs-line)]/40 text-[var(--qs-muted)]",
                             )}>
                               {q.status === "correct" ? "✓" : q.status === "wrong" ? "✕" : "—"}
                             </span>
-                            <p className="text-xs font-bold text-text-primary">Q{q.question_number}</p>
+                            <p className="text-xs font-extrabold text-[var(--qs-ink)]">Q{q.question_number}</p>
                             <span className={cn(
-                              "ml-auto rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide",
-                              q.status === "correct" && "bg-emerald-500/10 text-emerald-400",
-                              q.status === "wrong" && "bg-red-500/10 text-red-400",
-                              q.status === "unanswered" && "bg-card-hover text-text-muted",
+                              "ml-auto rounded-full border-2 border-current px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.05em]",
+                              q.status === "correct" && "text-[var(--qs-ok)]",
+                              q.status === "wrong" && "text-[var(--qs-bad)]",
+                              q.status === "unanswered" && "text-[var(--qs-muted)]",
                             )}>
                               {q.status === "unanswered" ? "Skipped" : q.status}
                             </span>
                           </div>
-                          <p className="mt-1.5 line-clamp-2 text-[11px] text-text-secondary">{q.problem_statement}</p>
+                          <p className="mt-1.5 line-clamp-2 text-[11px] text-[var(--qs-muted)]">{q.problem_statement}</p>
                           {(q.selected_statement || q.correct_answer) && (
                             <div className="mt-1.5 space-y-1 text-[11px]">
                               {q.selected_statement && (
-                                <p className="text-text-muted">Your answer: <span className="font-semibold text-text-secondary">{q.selected_statement}</span></p>
+                                <p className="text-[var(--qs-muted)]">Your answer: <span className="font-bold text-[var(--qs-ink)]">{q.selected_statement}</span></p>
                               )}
                               {q.status !== "correct" && q.correct_answer && (
-                                <p className="text-text-muted">Correct: <span className="font-semibold text-emerald-400">{q.correct_answer}</span></p>
+                                <p className="text-[var(--qs-muted)]">Correct: <span className="font-bold text-[var(--qs-ok)]">{q.correct_answer}</span></p>
                               )}
                             </div>
                           )}
@@ -834,7 +1033,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         )}
       </AnimatePresence>
 
-      {/* ── Pause Quiz Modal ─────────────────────────────────────────── */}
+      {/* ── Pause Quiz Modal ──────────────────────────────────────────── */}
       <AnimatePresence>
         {pauseOpen && (
           <>
@@ -842,7 +1041,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md"
+              className="fixed inset-0 z-[60] bg-[#1A1240]/55 backdrop-blur-sm"
               onClick={() => setPauseOpen(false)}
             />
             <motion.div
@@ -852,32 +1051,33 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               transition={{ type: "spring", stiffness: 380, damping: 28 }}
               className="fixed inset-0 z-[60] flex items-center justify-center p-4"
             >
-              <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card shadow-2xl overflow-hidden">
-                <div className="h-1 w-full bg-gradient-to-r from-amber-500 via-yellow-400 to-transparent" />
+              <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)]">
                 <div className="px-6 pb-6 pt-7 text-center">
-                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 text-white shadow-xl">
+                  <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
                     <Pause className="h-7 w-7" />
                   </div>
-                  <h3 className="text-lg font-extrabold text-text-primary">Pause this quiz?</h3>
-                  <p className="mt-2 text-[13px] text-text-secondary leading-relaxed">
+                  <h3 className="text-lg font-extrabold text-[var(--qs-ink)]">Pause this quiz?</h3>
+                  <p className="mt-2 text-[13px] leading-relaxed text-[var(--qs-muted)]">
                     Pausing the quiz will stop the timer for all active participants. They will not be able to continue until you resume.
                   </p>
-                  <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/[0.04] px-3 py-2">
-                    <p className="text-[11px] text-amber-500">
+                  <div className="mt-4 rounded-[12px] border-2 border-[#a85d00]/30 bg-[var(--qs-sun)]/25 px-3 py-2">
+                    <p className="text-[11px] font-bold text-[#a85d00]">
                       {liveStudents.length} student{liveStudents.length !== 1 ? "s" : ""} currently taking this quiz
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center justify-end gap-2.5 border-t border-border bg-card-hover/40 px-6 py-4">
+                <div className="flex items-center justify-end gap-2.5 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-6 py-4">
                   <button
+                    type="button"
                     onClick={() => setPauseOpen(false)}
-                    className="h-10 rounded-xl border border-border px-4 text-xs font-semibold text-text-secondary hover:bg-card-hover transition-colors"
+                    className="h-10 rounded-[12px] border-2 border-[var(--qs-line)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={() => { setPauseOpen(false); /* TODO: call pause API */ }}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 px-5 text-xs font-bold text-white shadow-lg shadow-amber-500/25 hover:brightness-110 transition-all"
+                    type="button"
+                    onClick={() => { setPauseOpen(false); }}
+                    className="inline-flex h-10 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-5 text-xs font-extrabold text-[#1A1240] shadow-[3px_3px_0_var(--qs-line)] transition hover:brightness-105"
                   >
                     <Pause className="h-3.5 w-3.5" />
                     Pause Quiz
@@ -889,7 +1089,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         )}
       </AnimatePresence>
 
-      {/* ── Restart Quiz Modal ───────────────────────────────────────── */}
+      {/* ── Restart Quiz Modal ────────────────────────────────────────── */}
       <AnimatePresence>
         {restartOpen && (
           <>
@@ -897,7 +1097,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md"
+              className="fixed inset-0 z-[60] bg-[#1A1240]/55 backdrop-blur-sm"
               onClick={() => setRestartOpen(false)}
             />
             <motion.div
@@ -907,27 +1107,28 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               transition={{ type: "spring", stiffness: 380, damping: 28 }}
               className="fixed inset-0 z-[60] flex items-center justify-center p-4"
             >
-              <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card shadow-2xl overflow-hidden">
-                <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-transparent" />
+              <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)]">
                 <div className="px-6 pb-6 pt-7 text-center">
-                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl">
+                  <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] text-white">
                     <RotateCcw className="h-7 w-7" />
                   </div>
-                  <h3 className="text-lg font-extrabold text-text-primary">Restart this quiz?</h3>
-                  <p className="mt-2 text-[13px] text-text-secondary leading-relaxed">
+                  <h3 className="text-lg font-extrabold text-[var(--qs-ink)]">Restart this quiz?</h3>
+                  <p className="mt-2 text-[13px] leading-relaxed text-[var(--qs-muted)]">
                     This will make the quiz live again. All participants will be able to start new attempts.
                   </p>
                 </div>
-                <div className="flex items-center justify-end gap-2.5 border-t border-border bg-card-hover/40 px-6 py-4">
+                <div className="flex items-center justify-end gap-2.5 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-6 py-4">
                   <button
+                    type="button"
                     onClick={() => setRestartOpen(false)}
-                    className="h-10 rounded-xl border border-border px-4 text-xs font-semibold text-text-secondary hover:bg-card-hover transition-colors"
+                    className="h-10 rounded-[12px] border-2 border-[var(--qs-line)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={() => { setRestartOpen(false); /* TODO: call restart API */ }}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-5 text-xs font-bold text-white shadow-lg shadow-emerald-500/25 hover:brightness-110 transition-all"
+                    type="button"
+                    onClick={() => { setRestartOpen(false); }}
+                    className="inline-flex h-10 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-5 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition hover:brightness-110"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     Restart Quiz
@@ -939,7 +1140,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
         )}
       </AnimatePresence>
 
-      {/* ── End Quiz Modal ───────────────────────────────────────────── */}
+      {/* ── End Quiz Modal ────────────────────────────────────────────── */}
       <AnimatePresence>
         {endOpen && (
           <>
@@ -947,7 +1148,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md"
+              className="fixed inset-0 z-[60] bg-[#1A1240]/55 backdrop-blur-sm"
               onClick={() => setEndOpen(false)}
             />
             <motion.div
@@ -957,32 +1158,33 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               transition={{ type: "spring", stiffness: 380, damping: 28 }}
               className="fixed inset-0 z-[60] flex items-center justify-center p-4"
             >
-              <div onClick={e => e.stopPropagation()} className="w-full max-w-sm rounded-3xl border border-border bg-card shadow-2xl overflow-hidden">
-                <div className="h-1 w-full bg-gradient-to-r from-rose-500 via-red-400 to-transparent" />
+              <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)]">
                 <div className="px-6 pb-6 pt-7 text-center">
-                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-xl">
+                  <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] text-white">
                     <Square className="h-7 w-7" />
                   </div>
-                  <h3 className="text-lg font-extrabold text-text-primary">End this quiz?</h3>
-                  <p className="mt-2 text-[13px] text-text-secondary leading-relaxed">
+                  <h3 className="text-lg font-extrabold text-[var(--qs-ink)]">End this quiz?</h3>
+                  <p className="mt-2 text-[13px] leading-relaxed text-[var(--qs-muted)]">
                     New participants will no longer be able to start the quiz. Participants who are already taking the quiz will follow the configured end behavior.
                   </p>
-                  <div className="mt-4 rounded-lg border border-rose-500/20 bg-rose-500/[0.04] px-3 py-2">
-                    <p className="text-[11px] text-rose-500">
+                  <div className="mt-4 rounded-[12px] border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-bad)]/[0.05] px-3 py-2">
+                    <p className="text-[11px] font-bold text-[var(--qs-bad)]">
                       {liveStudents.length} student{liveStudents.length !== 1 ? "s" : ""} currently active
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center justify-end gap-2.5 border-t border-border bg-card-hover/40 px-6 py-4">
+                <div className="flex items-center justify-end gap-2.5 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-6 py-4">
                   <button
+                    type="button"
                     onClick={() => setEndOpen(false)}
-                    className="h-10 rounded-xl border border-border px-4 text-xs font-semibold text-text-secondary hover:bg-card-hover transition-colors"
+                    className="h-10 rounded-[12px] border-2 border-[var(--qs-line)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={() => { setEndOpen(false); /* TODO: call end API */ }}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 px-5 text-xs font-bold text-white shadow-lg shadow-rose-500/25 hover:brightness-110 transition-all"
+                    type="button"
+                    onClick={() => { setEndOpen(false); }}
+                    className="inline-flex h-10 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] px-5 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition hover:brightness-110"
                   >
                     <Square className="h-3.5 w-3.5" />
                     End Quiz

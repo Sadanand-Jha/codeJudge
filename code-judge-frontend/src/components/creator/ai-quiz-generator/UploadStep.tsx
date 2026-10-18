@@ -122,30 +122,28 @@ export function UploadStep({
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/creator/quizzes/create"
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-card-hover hover:text-text-primary"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition hover:border-[var(--qs-brand)]"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Create Quiz
         </Link>
-        <span className="rounded-full bg-violet-500/10 px-2.5 py-1 text-[11px] font-semibold text-violet-600 dark:text-violet-300">
+        <span className="rounded-full border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)]/10 px-2.5 py-1 text-[11px] font-extrabold text-[var(--qs-brand)]">
           AI assisted
         </span>
       </div>
 
-      {/* Header */}
       <div className="text-center px-2">
-        <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-md shadow-violet-500/20 sm:h-12 sm:w-12">
-          <Sparkles className="h-5 w-5 text-white sm:h-6 sm:w-6" />
+        <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-sun)] shadow-[4px_4px_0_var(--qs-sun)] sm:h-14 sm:w-14">
+          <Sparkles className="h-6 w-6" />
         </div>
-        <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">
+        <h1 className="text-2xl font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-3xl">
           <AiStreamText text="Generate Quiz with AI" />
         </h1>
-        <p className="mx-auto mt-1.5 min-h-5 max-w-md text-sm leading-5 text-text-secondary sm:mt-2">
+        <p className="mx-auto mt-2 min-h-5 max-w-md text-sm leading-5 text-[var(--qs-muted)]">
           <AiStreamText text="Upload your problem list — we'll build the quiz configuration for you." />
         </p>
       </div>
 
-      {/* Upload area */}
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -155,15 +153,14 @@ export function UploadStep({
         onDrop={onDrop}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "relative min-h-[190px] cursor-pointer rounded-2xl border-2 border-dashed bg-card p-6 text-center transition-all duration-200 sm:min-h-[220px] sm:p-10",
-          (!file || file.valid) && "ai-upload-zone",
+          "relative min-h-[190px] cursor-pointer rounded-[24px] border-2 border-dashed bg-[var(--qs-surface)] p-6 text-center transition-all duration-200 sm:min-h-[220px] sm:p-10",
           dragging
-            ? "border-violet-500 bg-violet-500/[0.06]"
+            ? "border-[var(--qs-brand)] bg-[var(--qs-brand)]/[0.06]"
             : file?.valid
-            ? "border-emerald-500/30 bg-emerald-500/[0.03]"
-            : file && !file.valid
-            ? "border-rose-500/30 bg-rose-500/[0.03]"
-            : "border-border hover:border-violet-500/40 hover:bg-violet-500/[0.03]"
+              ? "border-[var(--qs-ok)]/60 bg-[var(--qs-ok)]/[0.05]"
+              : file && !file.valid
+                ? "border-[var(--qs-bad)]/60 bg-[var(--qs-bad)]/[0.04]"
+                : "border-[var(--qs-line)] hover:border-[var(--qs-brand)] hover:bg-[var(--qs-brand)]/[0.03]"
         )}
       >
         <input
@@ -176,13 +173,13 @@ export function UploadStep({
 
         {!file ? (
           <>
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-card text-text-muted">
+            <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-brand)]">
               <Upload className="h-6 w-6" />
             </div>
-            <p className="text-sm font-semibold text-text-primary">
+            <p className="text-[15px] font-extrabold text-[var(--qs-ink)]">
               Upload Problem List
             </p>
-            <p className="mt-1 text-xs text-text-secondary">
+            <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">
               PDF or DOCX · Maximum 5 pages
             </p>
             <button
@@ -191,7 +188,7 @@ export function UploadStep({
                 e.stopPropagation();
                 inputRef.current?.click();
               }}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-text-secondary transition-colors hover:border-violet-500/30 hover:text-text-primary"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-4 py-2 text-xs font-extrabold text-[var(--qs-ink)] shadow-[3px_3px_0_var(--qs-sun)] transition hover:bg-[var(--qs-brand)] hover:text-[var(--qs-on-brand)]"
             >
               <FileText className="h-3.5 w-3.5" />
               Browse Files
@@ -204,19 +201,19 @@ export function UploadStep({
         )}
       </div>
 
-      <details className="ai-color-card group overflow-hidden rounded-xl border border-border bg-card">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-text-primary marker:content-none sm:px-5">
+      <details className="group overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-sm font-extrabold text-[var(--qs-ink)] marker:content-none sm:px-5">
           <span>What will be generated?</span>
-          <ChevronDown className="h-4 w-4 shrink-0 text-text-muted transition-transform group-open:rotate-180" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-[var(--qs-muted)] transition-transform group-open:rotate-180" />
         </summary>
-        <div className="border-t border-border px-4 py-4 sm:px-5">
-          <p className="mb-3 text-xs leading-5 text-text-secondary">
+        <div className="border-t-2 border-[var(--qs-line)] px-4 py-4 sm:px-5">
+          <p className="mb-3 text-xs leading-5 text-[var(--qs-muted)]">
             You can review and edit every suggestion before the quiz is created.
           </p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {WHAT_AI_GENERATES.map((item) => (
-              <div key={item} className="flex min-w-0 items-center gap-2 rounded-lg bg-card-hover/60 px-2.5 py-2 text-[11px] font-medium text-text-secondary">
-                <FileCheck className="h-3.5 w-3.5 shrink-0 text-violet-500" />
+              <div key={item} className="flex min-w-0 items-center gap-2 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-2 text-[11px] font-bold text-[var(--qs-ink)]">
+                <FileCheck className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
                 <span className="min-w-0 break-words">{item}</span>
               </div>
             ))}

@@ -5,15 +5,15 @@ import { cn } from "@/lib/helpers";
 import type { DetectedProblem } from "./types";
 
 const difficultyColor = {
-  Easy: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
-  Medium: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
-  Hard: "text-rose-600 dark:text-rose-400 bg-rose-500/10",
+  Easy: "text-[var(--qs-ok)] bg-[var(--qs-ok)]/10",
+  Medium: "text-[#a85d00] bg-[#a85d00]/10",
+  Hard: "text-[var(--qs-bad)] bg-[var(--qs-bad)]/10",
 };
 
 const confidenceIcon = {
-  high: { icon: Check, cls: "text-emerald-500" },
-  medium: { icon: AlertTriangle, cls: "text-amber-500" },
-  low: { icon: HelpCircle, cls: "text-rose-500" },
+  high: { icon: Check, cls: "text-[var(--qs-ok)]" },
+  medium: { icon: AlertTriangle, cls: "text-[#a85d00]" },
+  low: { icon: HelpCircle, cls: "text-[var(--qs-bad)]" },
 };
 
 export function ProblemTable({
@@ -27,17 +27,17 @@ export function ProblemTable({
   onEdit: (id: string, title: string) => void;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border">
+    <div className="overflow-x-auto rounded-[16px] border-2 border-[var(--qs-line)]">
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead>
-          <tr className="border-b border-border bg-white/[0.02] dark:bg-white/[0.01]">
-            <th className="w-10 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted" />
-            <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted">#</th>
-            <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Problem</th>
-            <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Topic</th>
-            <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Difficulty</th>
-            <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Confidence</th>
-            <th className="w-20 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted" />
+          <tr className="border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)]">
+            <th className="w-10 px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]" />
+            <th className="px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">#</th>
+            <th className="px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Problem</th>
+            <th className="px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Topic</th>
+            <th className="px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Difficulty</th>
+            <th className="px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Confidence</th>
+            <th className="w-20 px-3 py-2.5" />
           </tr>
         </thead>
         <tbody>
@@ -47,28 +47,28 @@ export function ProblemTable({
             return (
               <tr
                 key={p.id}
-                className="group border-b border-border/50 transition-colors hover:bg-white/[0.02]"
+                className="group border-b-2 border-[var(--qs-line)]/60 transition-colors last:border-b-0 hover:bg-[var(--qs-bg)]/70"
               >
                 <td className="px-3 py-2.5">
                   <button
                     type="button"
-                    className="cursor-grab text-text-muted opacity-0 transition-opacity hover:text-text-secondary group-hover:opacity-100"
+                    className="cursor-grab text-[var(--qs-muted)] opacity-0 transition-opacity hover:text-[var(--qs-ink)] group-hover:opacity-100"
                     title="Drag to reorder"
                   >
                     <GripVertical className="h-4 w-4" />
                   </button>
                 </td>
-                <td className="px-3 py-2.5 text-xs font-mono text-text-muted">{String(p.number).padStart(2, "0")}</td>
+                <td className="px-3 py-2.5 font-mono text-xs tabular-nums text-[var(--qs-muted)]">{String(p.number).padStart(2, "0")}</td>
                 <td className="px-3 py-2.5">
-                  <span className="font-medium text-text-primary">{p.title}</span>
+                  <span className="font-bold text-[var(--qs-ink)]">{p.title}</span>
                 </td>
                 <td className="px-3 py-2.5">
-                  <span className="rounded-md border border-border bg-white/[0.03] px-1.5 py-0.5 text-[11px] font-medium text-text-secondary">
+                  <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-0.5 text-[11px] font-bold text-[var(--qs-muted)]">
                     {p.topic}
                   </span>
                 </td>
                 <td className="px-3 py-2.5">
-                  <span className={cn("rounded-md px-1.5 py-0.5 text-[11px] font-semibold", difficultyColor[p.difficulty])}>
+                  <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-extrabold", difficultyColor[p.difficulty])}>
                     {p.difficulty}
                   </span>
                 </td>
@@ -80,14 +80,14 @@ export function ProblemTable({
                     <button
                       type="button"
                       onClick={() => onEdit(p.id, p.title)}
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
+                      className="grid h-6 w-6 shrink-0 place-items-center rounded-[8px] text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/50 hover:text-[var(--qs-ink)]"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
                     <button
                       type="button"
                       onClick={() => onRemove(p.id)}
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-rose-500/10 hover:text-rose-500"
+                      className="grid h-6 w-6 shrink-0 place-items-center rounded-[8px] text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-bad)]/10 hover:text-[var(--qs-bad)]"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

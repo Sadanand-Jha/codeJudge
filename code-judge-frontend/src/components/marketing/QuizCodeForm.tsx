@@ -31,7 +31,7 @@ export default function QuizCodeForm({ className, ctaLabel = "Join quiz" }: Quiz
       setMessage({ text: `Quiz codes are 16 letters — you have ${code.length} so far.`, tone: "bad" });
       return;
     }
-    setMessage({ text: `Looking for quiz ${formatQuizCode(code)}…`, tone: "muted" });
+    // setMessage({ text: `Looking for quiz ${formatQuizCode(code)}…`, tone: "muted" });
     router.push(`/quiz/join?code=${code}`);
   };
 

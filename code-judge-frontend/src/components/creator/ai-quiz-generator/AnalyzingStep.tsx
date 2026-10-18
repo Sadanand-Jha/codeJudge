@@ -36,37 +36,35 @@ export function AnalyzingStep({
 
   return (
     <div className="mx-auto max-w-lg space-y-6 py-6 pb-12 sm:space-y-8 sm:py-10">
-      {/* Header */}
       <div className="text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-md shadow-violet-500/20 sm:mb-4 sm:h-14 sm:w-14">
-          <Sparkles className="h-6 w-6 text-white sm:h-7 sm:w-7" />
+        <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-sun)] shadow-[4px_4px_0_var(--qs-sun)] sm:mb-4">
+          <Sparkles className="h-6 w-6" />
         </div>
-        <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">
+        <h1 className="text-2xl font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-3xl">
           Creating your quiz
         </h1>
-        <p className="mt-2 text-sm leading-5 text-text-secondary">
+        <p className="mt-2 text-sm leading-5 text-[var(--qs-muted)]">
           Please wait a moment.
         </p>
       </div>
 
-      {/* Progress bar */}
       <div className="space-y-2">
-        <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="h-2 overflow-hidden rounded-full bg-[var(--qs-line)]">
           <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-500"
+            className="h-full rounded-full bg-[var(--qs-brand)]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.4, ease: "easeOut" }}
           />
         </div>
-        <p className="text-right text-[11px] text-text-muted">
+        <p className="text-right text-[11px] font-bold tabular-nums text-[var(--qs-muted)]">
           {Math.round(progress)}% complete
         </p>
       </div>
 
-      <div className="rounded-xl border border-border bg-card px-4 py-5 text-center">
-        <p className="text-sm font-medium text-text-primary">Generating questions…</p>
-        <p className="mt-1 text-xs text-text-muted">Your quiz will be ready shortly.</p>
+      <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-5 text-center">
+        <p className="text-sm font-extrabold text-[var(--qs-ink)]">Generating questions…</p>
+        <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">Your quiz will be ready shortly.</p>
       </div>
     </div>
   );
