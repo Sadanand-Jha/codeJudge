@@ -4713,7 +4713,7 @@ svg {
 [data-placeholder]:empty::before,
 [data-placeholder]:empty > br:last-child::before {
   content: attr(data-placeholder);
-  color: #9ca3af;
+  color: #8b84a8;
   pointer-events: none;
 }
 

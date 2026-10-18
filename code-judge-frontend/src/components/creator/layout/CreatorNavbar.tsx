@@ -103,7 +103,7 @@ export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuTogg
         )}
         {/* Brand — full wordmark on desktop; icon-only mark on mobile so it
             doesn't overlap the credits/workspace/profile actions. */}
-        <Link href="/creator/quizzes" className="flex shrink-0 items-center" aria-label="QuizSupport Creator Studio home">
+        <Link href="/creator" className="flex shrink-0 items-center" aria-label="QuizSupport Creator Studio home">
           <SecureLogo size={30} variant="mark" className="sm:hidden" />
           <SecureLogo size={40} variant="full" className="hidden sm:block" />
         </Link>

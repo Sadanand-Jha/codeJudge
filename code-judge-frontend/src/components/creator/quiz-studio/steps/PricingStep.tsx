@@ -37,10 +37,10 @@ export function PricingStep() {
       >
         <label
           className={cn(
-            "flex min-h-24 flex-col justify-center gap-1 rounded-2xl border bg-card p-4 text-left transition-all sm:p-5",
+            "flex min-h-24 cursor-pointer flex-col justify-center gap-1 rounded-[18px] border-2 p-4 text-left transition-colors sm:p-5",
             p.mode === "free"
-              ? "border-emerald-500/40 bg-emerald-500/5"
-              : "border-border hover:border-border-hover"
+              ? "border-[var(--qs-ink)] bg-[var(--qs-okbg)]"
+              : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
           )}
         >
           <input
@@ -52,19 +52,27 @@ export function PricingStep() {
               updateBranding({});
             }}
           />
-          <span className="text-base font-semibold text-emerald-600 dark:text-emerald-300">FREE</span>
+          <span className="flex items-center gap-2 text-base font-extrabold text-[var(--qs-ok)]">
+            <span
+              className={cn(
+                "flex h-5 w-5 items-center justify-center rounded-full border-2",
+                p.mode === "free" ? "border-[var(--qs-ok)] bg-[var(--qs-ok)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+              )}
+            >
+              {p.mode === "free" && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+            </span>
+            FREE
+          </span>
         </label>
         <div
           className={cn(
-            "flex min-h-24 flex-col justify-center gap-1 rounded-2xl border bg-card p-4 text-left opacity-60 sm:p-5",
-            p.mode === "paid"
-              ? "border-pink-500/40 bg-pink-500/5 dark:border-pink-400/70 dark:bg-pink-500/10"
-              : "border-border"
+            "flex min-h-24 flex-col justify-center gap-1 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 text-left opacity-60 sm:p-5",
+            p.mode === "paid" && "opacity-100"
           )}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-base font-semibold text-pink-600 dark:text-pink-400">PAID</span>
-            <span className="rounded-full border border-border bg-card-hover px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-text-muted">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-base font-extrabold text-[var(--qs-brand)]">PAID</span>
+            <span className="rounded-full border-2 border-[var(--qs-line)] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
               Coming soon
             </span>
           </div>
@@ -72,37 +80,37 @@ export function PricingStep() {
       </motion.div>
 
       {p.mode === "paid" && (
-        <div className="rounded-xl border border-border bg-card p-5 space-y-5">
+        <div className="space-y-5 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase text-text-secondary">
+              <label className="block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
                 Your Price (₹)
               </label>
               <div className="relative">
-                <IndianRupee className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <IndianRupee className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
                 <input
                   type="number"
                   min={0}
                   value={p.price || ""}
                   onChange={(e) => updatePricing({ price: Number(e.target.value) })}
                   placeholder="199"
-                  className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary"
+                  className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-3.5 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                 />
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold uppercase text-text-secondary">
+              <label className="block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
                 Original / MRP (₹)
               </label>
               <div className="relative">
-                <IndianRupee className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <IndianRupee className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
                 <input
                   type="number"
                   min={0}
                   value={p.originalPrice || ""}
                   onChange={(e) => updatePricing({ originalPrice: Number(e.target.value) })}
                   placeholder="249"
-                  className="h-10 w-full rounded-lg border border-input-border bg-input-bg pl-10 pr-3.5 text-sm text-text-primary"
+                  className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-3.5 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                 />
               </div>
             </div>
@@ -110,30 +118,30 @@ export function PricingStep() {
 
           <div
             className={cn(
-              "rounded-xl bg-emerald-500/8 px-4 py-3 text-xs font-semibold text-emerald-600 dark:text-emerald-300",
+              "rounded-[12px] border-2 border-[var(--qs-ok)]/40 bg-[var(--qs-okbg)] px-4 py-3 text-xs font-bold text-[var(--qs-ok)]",
               !(p.originalPrice > p.price && p.price > 0) && "hidden"
             )}
           >
             Students will see ₹{p.price} with{" "}
-            <span className="font-semibold">
+            <span className="font-extrabold">
               {Math.round((1 - p.price / p.originalPrice) * 100)}% OFF
             </span>{" "}
             against ₹{p.originalPrice}.
           </div>
 
-          <div className="rounded-xl border border-border bg-card-hover/40 p-4">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+          <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4">
+            <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
               Payout Estimate
             </p>
             <div className="grid grid-cols-3 gap-2 text-center">
               {breakdown.map((b) => (
-                <div key={b.label} className="rounded-lg border border-border p-2.5">
-                  <p className="text-[10px] text-text-secondary">{b.label}</p>
-                  <p className="text-lg font-bold text-text-primary">{b.value}</p>
+                <div key={b.label} className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5">
+                  <p className="text-[10px] font-bold text-[var(--qs-muted)]">{b.label}</p>
+                  <p className="text-lg font-extrabold tabular-nums text-[var(--qs-ink)]">{b.value}</p>
                 </div>
               ))}
             </div>
-            <p className="mt-2 text-[10px] text-text-secondary">
+            <p className="mt-2 text-[10px] font-medium text-[var(--qs-muted)]">
               Platform fee (10%) and creator earnings update live as you change the
               price. Actual fees depend on the payment provider configured in
               Creator payout settings.
@@ -142,18 +150,18 @@ export function PricingStep() {
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-card p-5 space-y-3">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-text-secondary">
+      <div className="space-y-3 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5">
+        <div className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
           <PiggyBank className="h-4 w-4" /> Payment history & payout account
         </div>
-        <p className="text-xs text-text-secondary">
+        <p className="text-xs font-medium text-[var(--qs-muted)]">
           Bank details, tax information, and payout schedule live under{" "}
-          <span className="text-text-primary">Creator Studio → Billing → Payment Settings</span>.
+          <span className="font-bold text-[var(--qs-ink)]">Creator Studio → Billing → Payment Settings</span>.
           They are never part of the student-facing quiz.
         </p>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-text-secondary">This month: ₹0 earned</span>
-          <TrendingUp className="h-3.5 w-3.5 text-text-muted" />
+          <span className="text-xs font-bold text-[var(--qs-muted)]">This month: ₹0 earned</span>
+          <TrendingUp className="h-3.5 w-3.5 text-[var(--qs-muted)]" />
         </div>
       </div>
     </StudioStepLayout>

@@ -19,12 +19,12 @@ export function BrandingStep() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.1 }}
-        className="flex min-h-72 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-12 text-center"
+        className="flex min-h-72 flex-col items-center justify-center rounded-[22px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] px-6 py-12 text-center"
       >
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border bg-card text-text-muted">
+        <div className="flex h-12 w-12 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]">
           <Palette className="h-6 w-6" />
         </div>
-        <p className="mt-4 text-sm font-semibold text-text-primary">
+        <p className="mt-4 text-sm font-bold text-[var(--qs-muted)]">
           Branding is coming soon
         </p>
       </motion.div>

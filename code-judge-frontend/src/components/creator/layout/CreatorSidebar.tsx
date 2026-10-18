@@ -21,6 +21,7 @@ import {
   NotebookPen,
   FolderKanban,
   GraduationCap,
+  LayoutDashboard,
   ListChecks,
   Boxes,
   BadgeCheck,
@@ -46,9 +47,14 @@ export interface CreatorNavItem {
 
 const _FULL_CREATOR_NAV: Array<{ label: string; items: CreatorNavItem[] }> = [
   {
+    label: "Overview",
+    items: [
+      { label: "Dashboard", href: "/creator", icon: LayoutDashboard, exact: true },
+    ],
+  },
+  {
     label: "Quizzes",
     items: [
-      { label: "Create New", href: "/creator/create", icon: Sparkles, exact: true },
       { label: "All Quizzes", href: "/creator/quizzes", icon: ListChecks, match: (p) => p === "/creator/quizzes" || (p.startsWith("/creator/quizzes/") && !p.startsWith("/creator/quizzes/create") && !p.startsWith("/creator/quizzes/ai-generate")) },
       { label: "Create Quiz", href: "/creator/quizzes/create", icon: FilePlus2, match: (p) => p === "/creator/quizzes/create" || p === "/creator/quizzes/ai-generate" },
       { label: "Tests", href: "/creator/tests", icon: ClipboardList, match: (p) => p === "/creator/tests" || (p.startsWith("/creator/tests/") && !p.startsWith("/creator/tests/create")), color: "purple" },
@@ -145,9 +151,10 @@ const FOCUS_CREATOR_ALLOWED = new Set([
   "/creator/billing/transactions",
 ]);
 
-// Exact billing overview route (prefix matching would also unlock the
-// hidden selling pages, so this stays exact-only).
+// Exact-only routes: prefix matching on "/creator" would unlock every studio
+// page, and "/creator/billing" would unlock the hidden selling pages.
 const FOCUS_CREATOR_EXACT = new Set([
+  "/creator",
   "/creator/billing",
 ]);
 

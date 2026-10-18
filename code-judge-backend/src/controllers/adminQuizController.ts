@@ -1279,7 +1279,7 @@ export const getCreatorProfileOverview = async (req: Request, res: Response) => 
       pool.query(
         `SELECT COUNT(*)::int AS total,
                 COUNT(*) FILTER (WHERE a.status = 'completed')::int AS completed
-         FROM quiz_attempts a
+         FROM quiz_attempt a
          JOIN quiz q ON q.id = a.quiz_id
          WHERE q.createdby = $1 AND q.deleted_at IS NULL AND a.user_id <> $1`,
         [userId]
@@ -1287,7 +1287,7 @@ export const getCreatorProfileOverview = async (req: Request, res: Response) => 
       pool.query(
         `SELECT COUNT(DISTINCT a.user_id)::int AS total,
                 COUNT(DISTINCT a.user_id) FILTER (WHERE a.created_at >= NOW() - INTERVAL '30 days')::int AS recent_active
-         FROM quiz_attempts a
+         FROM quiz_attempt a
          JOIN quiz q ON q.id = a.quiz_id
          WHERE q.createdby = $1 AND q.deleted_at IS NULL AND a.user_id <> $1`,
         [userId]
@@ -1299,7 +1299,7 @@ export const getCreatorProfileOverview = async (req: Request, res: Response) => 
                 u.username AS "username",
                 a.score, a.percentage, a.status,
                 COALESCE(a.completed_at, a.created_at) AS "attemptedAt"
-         FROM quiz_attempts a
+         FROM quiz_attempt a
          JOIN quiz q ON q.id = a.quiz_id
          LEFT JOIN users u ON u.id = a.user_id
          WHERE q.createdby = $1 AND q.deleted_at IS NULL AND a.user_id <> $1

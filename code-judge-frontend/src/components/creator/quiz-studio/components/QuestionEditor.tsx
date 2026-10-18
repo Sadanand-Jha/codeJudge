@@ -138,7 +138,7 @@ export function QuestionEditor() {
   if (!q) {
     return (
       <div className="flex flex-1 items-center justify-center p-6">
-        <p className="text-sm text-text-muted">Select a question to start editing.</p>
+        <p className="text-sm font-medium text-[var(--qs-muted)]">Select a question to start editing.</p>
       </div>
     );
   }
@@ -194,20 +194,20 @@ export function QuestionEditor() {
   }
 
   return (
-    <div className="flex flex-1 flex-col min-h-0 bg-card">
-      <div className="shrink-0 border-b border-border bg-card px-3 sm:px-6 py-3">
+    <div className="flex flex-1 flex-col min-h-0 bg-[var(--qs-surface)]">
+      <div className="shrink-0 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 sm:px-6 py-3">
         <div className="flex items-center justify-between gap-2 sm:gap-3 min-w-0">
-          <h2 className="text-[14px] sm:text-[15px] font-bold text-text-primary shrink-0">Question {String(activeIdx + 1).padStart(2, "0")}</h2>
+          <h2 className="text-[15px] sm:text-[16px] font-extrabold text-[var(--qs-ink)] shrink-0">Question {String(activeIdx + 1).padStart(2, "0")}</h2>
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <div className="relative">
               <button
                 onClick={() => setShowType(!showType)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-primary hover:bg-card-hover"
+                className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
               >
-                {TYPE_SHORT[q.type]} <ChevronDown className="h-3 w-3 text-text-muted" />
+                {TYPE_SHORT[q.type]} <ChevronDown className="h-3 w-3 text-[var(--qs-muted)]" />
               </button>
               {showType && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+                <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[4px_4px_0_var(--qs-sun)]">
                   {SELECTABLE_TYPES.map((t) => {
                     const Icon = TYPE_ICON[t];
                     const active = t === q.type;
@@ -216,11 +216,11 @@ export function QuestionEditor() {
                       <button
                         key={t}
                         onClick={handlePick}
-                        className={cn("flex w-full items-start gap-3 px-3 py-2.5 text-left hover:bg-card-hover", active && "bg-pink-50 dark:bg-pink-500/10")}
+                        className={cn("flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--qs-poly-1)]", active && "bg-[var(--qs-poly-1)]")}
                       >
-                        <Icon className={cn("h-4 w-4 mt-0.5", active ? "text-[var(--qs-brand)]" : "text-text-muted")} />
+                        <Icon className={cn("h-4 w-4 mt-0.5", active ? "text-[var(--qs-brand)]" : "text-[var(--qs-muted)]")} />
                         <div>
-                          <p className={cn("text-xs font-medium", active ? "text-[var(--qs-brand)]" : "text-text-primary")}>
+                          <p className={cn("text-xs font-bold", active ? "text-[var(--qs-brand)]" : "text-[var(--qs-ink)]")}>
                             {TYPE_SHORT[t]} — {TYPE_DESC[t]}
                           </p>
                         </div>
@@ -233,7 +233,7 @@ export function QuestionEditor() {
             </div>
             <button
               onClick={() => duplicateQuestion(q.id)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-muted hover:bg-card-hover"
+              className="flex h-7 w-7 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" />
@@ -242,23 +242,23 @@ export function QuestionEditor() {
             </button>
             <button
               onClick={() => removeQuestion(q.id)}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-muted hover:bg-card-hover hover:text-red-500"
+              className="flex h-7 w-7 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-bad)] hover:text-[var(--qs-bad)]"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
-        <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap items-stretch rounded-lg border border-border bg-card text-xs overflow-hidden divide-y divide-border sm:divide-y-0 sm:divide-x">
+        <div className="mt-3 grid grid-cols-2 sm:flex sm:flex-wrap items-stretch rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-xs overflow-hidden divide-y-2 divide-[var(--qs-line)] sm:divide-y-0 sm:divide-x-2">
           <div className="relative flex items-center gap-1.5 px-3 py-2">
-            <span className="text-text-muted">Difficulty</span>
-            <span className={cn("h-2 w-2 rounded-full", q.difficulty === "Easy" ? "bg-emerald-500" : q.difficulty === "Medium" ? "bg-amber-500" : q.difficulty === "Hard" ? "bg-orange-500" : "bg-rose-500")} />
-            <button onClick={() => setShowDiff(!showDiff)} className="inline-flex items-center gap-1 font-medium text-text-primary">
+            <span className="font-bold text-[var(--qs-muted)]">Difficulty</span>
+            <span className={cn("h-2 w-2 rounded-full", q.difficulty === "Easy" ? "bg-[var(--qs-ok)]" : q.difficulty === "Medium" ? "bg-[var(--qs-sun)]" : q.difficulty === "Hard" ? "bg-[#a85d00]" : "bg-[var(--qs-bad)]")} />
+            <button onClick={() => setShowDiff(!showDiff)} className="inline-flex items-center gap-1 font-bold text-[var(--qs-ink)]">
               {q.difficulty}
             </button>
             {showDiff && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+              <div className="absolute left-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[4px_4px_0_var(--qs-sun)]">
                 {difficultyOptions.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-text-muted">Loading…</div>
+                  <div className="px-3 py-2 text-xs font-medium text-[var(--qs-muted)]">Loading…</div>
                 ) : (
                   difficultyOptions.map((opt) => {
                     const active = q.difficulty === opt.heading;
@@ -269,10 +269,10 @@ export function QuestionEditor() {
                           update({ difficulty: opt.heading, difficultyId: opt.id } as any);
                           setShowDiff(false);
                         }}
-                        className={cn("flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-card-hover", active && "bg-pink-50 dark:bg-pink-500/10")}
+                        className={cn("flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-[var(--qs-poly-1)]", active && "bg-[var(--qs-poly-1)]")}
                       >
-                        <span className={cn("h-2.5 w-2.5 rounded-full", opt.heading === "Easy" ? "bg-emerald-500" : opt.heading === "Medium" ? "bg-amber-500" : opt.heading === "Hard" ? "bg-orange-500" : "bg-rose-500")} />
-                        <span className={cn("text-xs font-medium", active ? "text-[var(--qs-brand)]" : "text-text-primary")}>
+                        <span className={cn("h-2.5 w-2.5 rounded-full", opt.heading === "Easy" ? "bg-[var(--qs-ok)]" : opt.heading === "Medium" ? "bg-[var(--qs-sun)]" : opt.heading === "Hard" ? "bg-[#a85d00]" : "bg-[var(--qs-bad)]")} />
+                        <span className={cn("text-xs font-bold", active ? "text-[var(--qs-brand)]" : "text-[var(--qs-ink)]")}>
                           {opt.heading}
                         </span>
                         {active && <Check className="ml-auto h-4 w-4 text-[var(--qs-brand)]" />}
@@ -284,7 +284,7 @@ export function QuestionEditor() {
             )}
           </div>
           <div className="flex items-center gap-1.5 px-3 py-2">
-            <span className="text-text-muted">Marks</span>
+            <span className="font-bold text-[var(--qs-muted)]">Marks</span>
             <input
               type="text"
               inputMode="numeric"
@@ -293,11 +293,11 @@ export function QuestionEditor() {
                 const v = e.target.value.replace(/[^0-9.]/g, "");
                 update({ marks: v === "" ? 0 : Math.max(0, Number(v) || 0) });
               }}
-              className="w-12 bg-transparent text-xs font-medium text-text-primary focus:outline-none"
+              className="w-12 bg-transparent text-xs font-bold text-[var(--qs-ink)] focus:outline-none"
             />
           </div>
           <div className="flex items-center gap-1.5 px-3 py-2">
-            <span className="text-text-muted">Negative</span>
+            <span className="font-bold text-[var(--qs-muted)]">Negative</span>
             <input
               type="text"
               inputMode="decimal"
@@ -306,11 +306,11 @@ export function QuestionEditor() {
                 const v = e.target.value.replace(/[^0-9.]/g, "");
                 update({ negativeMarks: v === "" ? 0 : Math.max(0, Number(v) || 0) });
               }}
-              className="w-12 bg-transparent text-xs font-medium text-text-primary focus:outline-none"
+              className="w-12 bg-transparent text-xs font-bold text-[var(--qs-ink)] focus:outline-none"
             />
           </div>
           <div className="flex items-center gap-1.5 px-3 py-2">
-            <span className="text-text-muted">Time</span>
+            <span className="font-bold text-[var(--qs-muted)]">Time</span>
             <input
               type="text"
               inputMode="numeric"
@@ -319,9 +319,9 @@ export function QuestionEditor() {
                 const v = e.target.value.replace(/[^0-9]/g, "");
                 update({ expectedTime: v === "" ? 0 : Math.max(0, Number(v) || 0) });
               }}
-              className="w-12 bg-transparent text-xs font-medium text-text-primary focus:outline-none"
+              className="w-12 bg-transparent text-xs font-bold text-[var(--qs-ink)] focus:outline-none"
             />
-            <span className="text-xs text-text-muted">min</span>
+            <span className="text-xs font-medium text-[var(--qs-muted)]">min</span>
           </div>
         </div>
         {(showType || showDiff) && <div className="fixed inset-0 z-40" onClick={() => { setShowType(false); setShowDiff(false); }} />}
@@ -330,8 +330,8 @@ export function QuestionEditor() {
       <div className="p-3 sm:p-6">
         <div className="mx-auto w-full max-w-[720px] space-y-4 sm:space-y-6 min-w-0">
           <div>
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-text-muted">Question</label>
-            <div className="overflow-hidden rounded-2xl border border-border bg-card">
+            <label className="mb-2 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Question</label>
+            <div className="overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
               <RichToolbar />
               <EditableContent
                 value={q.title}
@@ -345,8 +345,8 @@ export function QuestionEditor() {
           {isMcq ? (
             <div>
               <div className="flex items-center justify-between">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Answer Options</h3>
-                <span className="text-xs text-text-muted">
+                <h3 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Answer Options</h3>
+                <span className="text-xs font-medium text-[var(--qs-muted)]">
                   {q.type === "single_choice" ? "Single answer" : q.type === "multiple_choice" ? "Multiple answers" : "True / False"}
                 </span>
               </div>
@@ -358,17 +358,17 @@ export function QuestionEditor() {
                         key={o.id}
                         onClick={() => setCorrect(o.id)}
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-xl border px-3 py-3",
-                          o.isCorrect ? "border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-border bg-card hover:border-border"
+                          "flex w-full items-center gap-3 rounded-[14px] border-2 px-3 py-3 transition-colors",
+                          o.isCorrect ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
                         )}
                       >
-                        <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card")}>
+                        <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2", o.isCorrect ? "border-[var(--qs-ok)] bg-[var(--qs-ok)] text-white" : "border-[var(--qs-line)] bg-[var(--qs-surface)]")}>
                           {o.isCorrect && <Check className="h-3.5 w-3.5" />}
                         </span>
-                        <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card-hover text-text-primary")}>
+                        <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border-2 text-xs font-extrabold", o.isCorrect ? "border-[var(--qs-ok)] bg-[var(--qs-ok)] text-white" : "border-[var(--qs-line)] bg-[var(--qs-poly-1)] text-[var(--qs-ink)]")}>
                           {o.label}
                         </span>
-                        <span className="text-sm text-text-primary">{o.content}</span>
+                        <span className="text-sm font-semibold text-[var(--qs-ink)]">{o.content}</span>
                       </button>
                     );
                   }
@@ -383,8 +383,8 @@ export function QuestionEditor() {
                         setDraggedOpt(null);
                       }}
                       className={cn(
-                        "flex items-start gap-3 rounded-xl border px-3 py-3",
-                        o.isCorrect ? "border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-border bg-card hover:border-border"
+                        "flex items-start gap-3 rounded-[14px] border-2 px-3 py-3 transition-colors",
+                        o.isCorrect ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
                       )}
                     >
                       <button
@@ -394,13 +394,13 @@ export function QuestionEditor() {
                           else update({ options: q.options.map((x) => (x.id === o.id ? { ...x, isCorrect: !x.isCorrect } : x)) });
                         }}
                         className={cn(
-                          "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2",
-                          o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card"
+                          "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                          o.isCorrect ? "border-[var(--qs-ok)] bg-[var(--qs-ok)] text-white" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
                         )}
                       >
                         {o.isCorrect && <Check className="h-3.5 w-3.5" />}
                       </button>
-                      <span className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold", o.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card-hover text-text-primary")}>
+                      <span className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border-2 text-xs font-extrabold", o.isCorrect ? "border-[var(--qs-ok)] bg-[var(--qs-ok)] text-white" : "border-[var(--qs-line)] bg-[var(--qs-poly-1)] text-[var(--qs-ink)]")}>
                         {o.label}
                       </span>
                       <textarea
@@ -409,17 +409,17 @@ export function QuestionEditor() {
                         placeholder={`Option ${o.label}`}
                         maxLength={250}
                         rows={Math.max(1, Math.ceil(Math.max(o.content.length, 1) / 48))}
-                        className="min-h-7 min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-1 text-sm leading-5 text-text-primary placeholder:text-text-muted focus:outline-none"
+                        className="min-h-7 min-w-0 flex-1 resize-none overflow-hidden bg-transparent py-1 text-sm font-medium leading-5 text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] focus:outline-none"
                       />
                       <div className="mt-0.5 flex shrink-0 items-center gap-0.5 sm:flex">
-                        <button onClick={() => removeOption(o.id)} className="rounded p-1.5 text-text-muted hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600">
+                        <button onClick={() => removeOption(o.id)} className="rounded-[8px] p-1.5 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-badbg)] hover:text-[var(--qs-bad)]">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
-                        <span className="cursor-grab p-1.5 text-text-muted">
+                        <span className="cursor-grab p-1.5 text-[var(--qs-muted)]">
                           <GripVertical className="h-3.5 w-3.5" />
                         </span>
                       </div>
-                      {o.imageUrl && <img src={o.imageUrl} alt="" className="h-8 w-8 rounded object-cover border" />}
+                      {o.imageUrl && <img src={o.imageUrl} alt="" className="h-8 w-8 rounded-[8px] border-2 border-[var(--qs-line)] object-cover" />}
                     </div>
                   );
                 })}
@@ -429,7 +429,7 @@ export function QuestionEditor() {
                   <button
                     onClick={addOption}
                     disabled={q.options.length >= 6}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-300 dark:border-pink-400/30 bg-pink-50/50 dark:bg-pink-500/10 py-2.5 text-xs font-medium text-[var(--qs-brand)] hover:bg-pink-50 dark:hover:bg-pink-500/15 disabled:opacity-40"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-[12px] border-2 border-dashed border-[var(--qs-brand)]/50 bg-[var(--qs-bg)] py-2.5 text-xs font-bold text-[var(--qs-brand)] transition-colors hover:bg-[var(--qs-poly-1)] disabled:opacity-40"
                   >
                     + Add option
                   </button>
@@ -438,28 +438,28 @@ export function QuestionEditor() {
             </div>
           ) : (
             <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-text-muted">Correct Answer</label>
+              <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Correct Answer</label>
               <input
                 value={String(q.correctAnswer ?? "")}
                 onChange={(e) => update({ correctAnswer: e.target.value as any })}
                 placeholder="Enter the correct answer"
-                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:border-border focus:outline-none"
+                className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
               />
             </div>
           )}
 
-          <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            <button onClick={() => setShowAfter(!showAfter)} className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-card-hover">
-              <span className="text-xs font-medium text-text-primary">After Answer <span className="text-text-muted">(Explanation, Hint, Solution)</span></span>
-              {showAfter ? <ChevronUp className="h-4 w-4 text-text-muted" /> : <ChevronDown className="h-4 w-4 text-text-muted" />}
+          <div className="overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+            <button onClick={() => setShowAfter(!showAfter)} className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-[var(--qs-poly-1)]">
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]">After Answer <span className="text-[var(--qs-muted)]">(Explanation, Hint, Solution)</span></span>
+              {showAfter ? <ChevronUp className="h-4 w-4 text-[var(--qs-muted)]" /> : <ChevronDown className="h-4 w-4 text-[var(--qs-muted)]" />}
             </button>
             <AnimatePresence initial={false}>
               {showAfter && (
                 <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
-                  <div className="border-t border-border">
-                    <div className="flex gap-1 border-b border-border p-2">
+                  <div className="border-t-2 border-[var(--qs-line)]">
+                    <div className="flex gap-1 border-b-2 border-[var(--qs-line)] p-2">
                       {(["explanation", "hint", "solution"] as const).map((t) => (
-                        <button key={t} onClick={() => setAfterTab(t)} className={cn("rounded-lg px-3 py-1.5 text-xs font-medium capitalize", afterTab === t ? "bg-pink-500 font-bold text-background" : "text-text-secondary hover:bg-card-hover")}>
+                        <button key={t} onClick={() => setAfterTab(t)} className={cn("rounded-[10px] border-2 px-3 py-1.5 text-xs font-bold capitalize transition-colors", afterTab === t ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]" : "border-transparent text-[var(--qs-muted)] hover:bg-[var(--qs-poly-1)] hover:text-[var(--qs-ink)]")}>
                           {t}
                         </button>
                       ))}
@@ -471,7 +471,7 @@ export function QuestionEditor() {
                           onChange={(e) => update({ explanation: e.target.value })}
                           placeholder="Explain why the correct answer is right."
                           rows={3}
-                          className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:border-border"
+                          className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                         />
                       )}
                       {afterTab === "hint" && (
@@ -480,7 +480,7 @@ export function QuestionEditor() {
                           onChange={(e) => update({ hint: e.target.value })}
                           placeholder="Optional hint"
                           rows={3}
-                          className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:border-border"
+                          className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                         />
                       )}
                       {afterTab === "solution" && (
@@ -489,7 +489,7 @@ export function QuestionEditor() {
                           onChange={(e) => update({ solution: e.target.value })}
                           placeholder="Step-by-step solution"
                           rows={3}
-                          className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:border-border"
+                          className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                         />
                       )}
                     </div>
@@ -501,22 +501,22 @@ export function QuestionEditor() {
         </div>
       </div>
       {pendingType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setPendingType(null)}>
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a1240]/60 p-4" onClick={() => setPendingType(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6 shadow-[8px_8px_0_var(--qs-sun)]">
             <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/20">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border-2 border-[#a85d00]/40 bg-[#fff3d6]">
+                <AlertTriangle className="h-5 w-5 text-[#a85d00]" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-text-primary">Change question type?</h3>
-                <p className="mt-1 text-xs leading-relaxed text-text-muted">
-                  You have written data for <span className="font-semibold text-text-primary">{q.type === "single_choice" ? "MCQ" : (q.type as string).replace("_", " ")}</span>. Switching to <span className="font-semibold text-[var(--qs-brand)]">{pendingType === "single_choice" ? "MCQ" : (pendingType as string)?.replace("_", " ")}</span> will remove existing options / matching pairs / correct answer. <span className="font-medium">Kyoki phir options type etc mei dikkat ho jayega.</span> This cannot be undone.
+                <h3 className="text-sm font-extrabold text-[var(--qs-ink)]">Change question type?</h3>
+                <p className="mt-1 text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
+                  You have written data for <span className="font-bold text-[var(--qs-ink)]">{q.type === "single_choice" ? "MCQ" : (q.type as string).replace("_", " ")}</span>. Switching to <span className="font-bold text-[var(--qs-brand)]">{pendingType === "single_choice" ? "MCQ" : (pendingType as string)?.replace("_", " ")}</span> will remove existing options / matching pairs / correct answer. <span className="font-bold">Kyoki phir options type etc mei dikkat ho jayega.</span> This cannot be undone.
                 </p>
               </div>
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={() => setPendingType(null)} className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-medium text-text-primary hover:bg-card-hover">Cancel</button>
-              <button type="button" onClick={() => { doSwitchType(pendingType); setPendingType(null); }} className="rounded-lg bg-[var(--qs-brand)] px-4 py-2 text-xs font-semibold text-white hover:bg-[#5a2fd8]">Continue, remove data</button>
+              <button type="button" onClick={() => setPendingType(null)} className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]">Cancel</button>
+              <button type="button" onClick={() => { doSwitchType(pendingType); setPendingType(null); }} className="rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] px-4 py-2 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none">Continue, remove data</button>
             </div>
           </div>
         </div>

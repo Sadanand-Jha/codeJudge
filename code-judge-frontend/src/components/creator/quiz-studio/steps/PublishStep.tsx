@@ -72,36 +72,36 @@ export function PublishStep({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="overflow-hidden rounded-2xl border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+      className="overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]"
     >
-        <div className="border-b border-border px-6 py-5">
-          <h2 className="text-base font-semibold text-text-primary">
+        <div className="border-b-2 border-[var(--qs-line)] px-6 py-5">
+          <h2 className="text-base font-extrabold text-[var(--qs-ink)]">
             Ready to publish?
           </h2>
         </div>
 
         <div className="px-6 py-5">
-          <div className="flex items-center gap-4 rounded-lg border border-border bg-background p-4">
+          <div className="flex items-center gap-4 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4">
             {state.branding.logoUrl ? (
-              <img src={state.branding.logoUrl} alt="thumb" className="h-14 w-20 rounded-md border border-border object-cover" />
+              <img src={state.branding.logoUrl} alt="thumb" className="h-14 w-20 rounded-[10px] border-2 border-[var(--qs-line)] object-cover" />
             ) : (
-              <div className="flex h-14 w-20 items-center justify-center rounded-md bg-card-hover text-[10px] font-medium uppercase tracking-wide text-text-muted">
+              <div className="flex h-14 w-20 items-center justify-center rounded-[10px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
                 No cover
               </div>
             )}
             <div className="min-w-0">
-              <p className="break-words text-sm font-semibold text-text-primary">{state.info.title || "Untitled Quiz"}</p>
-              <p className="mt-0.5 break-words text-xs text-text-secondary">
+              <p className="break-words text-sm font-extrabold text-[var(--qs-ink)]">{state.info.title || "Untitled Quiz"}</p>
+              <p className="mt-0.5 break-words text-xs font-medium text-[var(--qs-muted)]">
                 {state.info.shortDescription || "No description."}
               </p>
             </div>
           </div>
 
-          <dl className="mt-5 divide-y divide-border rounded-lg border border-border">
+          <dl className="mt-5 divide-y-2 divide-[var(--qs-line)] rounded-[14px] border-2 border-[var(--qs-line)]">
             {rows.map((r) => (
               <div key={r.label} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
-                <dt className="text-text-secondary">{r.label}</dt>
-                <dd className="font-medium text-text-primary">{r.value}</dd>
+                <dt className="font-bold text-[var(--qs-muted)]">{r.label}</dt>
+                <dd className="font-bold text-[var(--qs-ink)]">{r.value}</dd>
               </div>
             ))}
           </dl>
@@ -109,13 +109,13 @@ export function PublishStep({
           <div className="mt-6 flex items-center justify-end gap-2">
             <MaskedCopyCode
               code={state.info.code}
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-xs font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
+              className="inline-flex h-9 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-muted)] transition-colors duration-150 hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
             />
             <button
               type="button"
               onClick={() => setConfirmOpen(true)}
               disabled={saving}
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 text-pink-900 hover:bg-pink-100 px-4 py-2 text-sm font-semibold transition-colors duration-150 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25 disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:opacity-60"
             >
               {saving ? (
                 <>
@@ -134,22 +134,22 @@ export function PublishStep({
       {/* Publish confirmation */}
       {confirmOpen && (
         <div
-          className="fixed inset-0 z-80 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-80 flex items-center justify-center bg-[#1a1240]/60 p-4"
           onClick={() => !saving && setConfirmOpen(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md overflow-hidden rounded-xl border border-border bg-card shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+            className="w-full max-w-md overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[8px_8px_0_var(--qs-sun)]"
           >
             {/* Header */}
-            <div className="border-b border-border px-6 py-5">
+            <div className="border-b-2 border-[var(--qs-line)] px-6 py-5">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
                   <Send className="h-5 w-5" />
                 </span>
                 <div>
-                  <h3 className="text-base font-semibold text-text-primary">Start this quiz?</h3>
-                  <p className="mt-0.5 text-xs text-text-secondary">
+                  <h3 className="text-base font-extrabold text-[var(--qs-ink)]">Start this quiz?</h3>
+                  <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
                     This will make the quiz live immediately. Participants can start
                     attempting it as soon as you confirm.
                   </p>
@@ -159,7 +159,7 @@ export function PublishStep({
 
             {/* Summary */}
             <div className="px-6 py-5">
-              <dl className="divide-y divide-border rounded-lg border border-border">
+              <dl className="divide-y-2 divide-[var(--qs-line)] rounded-[14px] border-2 border-[var(--qs-line)]">
                 {[
                   { label: "Quiz", value: state.info.title || "Untitled Quiz" },
                   {
@@ -167,7 +167,7 @@ export function PublishStep({
                     value: (
                       <MaskedCopyCode
                         code={state.info.code}
-                        className="inline-flex h-7 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-[11px] font-medium text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
+                        className="inline-flex h-7 items-center gap-2 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[11px] font-bold text-[var(--qs-muted)] transition-colors duration-150 hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
                       />
                     ),
                   },
@@ -182,25 +182,25 @@ export function PublishStep({
                   },
                 ].map((r) => (
                   <div key={r.label} className="flex items-center justify-between px-3.5 py-2.5 text-xs">
-                    <dt className="text-text-secondary">{r.label}</dt>
-                <dd className="max-w-[65%] break-words text-right font-medium text-text-primary">{r.value}</dd>
+                    <dt className="font-bold text-[var(--qs-muted)]">{r.label}</dt>
+                <dd className="max-w-[65%] break-words text-right font-bold text-[var(--qs-ink)]">{r.value}</dd>
                   </div>
                 ))}
               </dl>
 
-              <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/[0.07] px-3.5 py-2.5 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+              <p className="mt-4 rounded-[12px] border-2 border-[#a85d00]/40 bg-[#fff3d6] px-3.5 py-2.5 text-xs font-medium leading-relaxed text-[#a85d00]">
                 Once students start attempting, questions and key settings become
                 locked. You can unpublish later if needed.
               </p>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+            <div className="flex items-center justify-end gap-2 border-t-2 border-[var(--qs-line)] px-6 py-4">
               <button
                 type="button"
                 onClick={() => setConfirmOpen(false)}
                 disabled={saving}
-                className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-colors duration-150 hover:bg-card-hover disabled:opacity-60"
+                className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)] disabled:opacity-60"
               >
                 Cancel
               </button>
@@ -208,7 +208,7 @@ export function PublishStep({
                 type="button"
                 onClick={handlePublish}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 px-4 py-2 text-sm font-semibold text-pink-900 transition-colors duration-150 hover:bg-pink-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 py-2 text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:opacity-60"
               >
                 {saving ? (
                   <>
@@ -237,45 +237,45 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
   };
 
   return (
-    <div className="flex flex-col bg-background">
+    <div className="flex flex-col">
     <div className="">
     <div className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center px-4 py-10 text-center">
       <div>
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
           <Check className="h-6 w-6" />
         </div>
-        <h2 className="mt-5 text-xl font-semibold text-text-primary">
+        <h2 className="mt-5 text-2xl font-extrabold text-[var(--qs-ink)]">
           Your quiz is live.
         </h2>
-        <p className="mt-2 text-sm text-text-secondary">
+        <p className="mt-2 text-sm font-medium text-[var(--qs-muted)]">
           Share this link with participants:
         </p>
-        <div className="mx-auto my-4 flex max-w-md items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2">
-          <code className="truncate text-xs text-text-primary">{link}</code>
+        <div className="mx-auto my-4 flex max-w-md items-center justify-between gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2">
+          <code className="truncate text-xs font-medium text-[var(--qs-ink)]">{link}</code>
           <button
             type="button"
             onClick={() => {
               navigator.clipboard.writeText(link);
               toast.success({ title: "Link copied" });
             }}
-            className="shrink-0 rounded-md p-1.5 text-text-secondary transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
+            className="shrink-0 rounded-[8px] p-1.5 text-[var(--qs-muted)] transition-colors duration-150 hover:bg-[var(--qs-poly-2)] hover:text-[var(--qs-ink)]"
             title="Copy link"
           >
             <Copy className="h-3.5 w-3.5" />
           </button>
         </div>
-        <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs text-text-secondary">
+        <div className="mt-3 flex flex-wrap justify-center gap-2 text-xs font-medium text-[var(--qs-muted)]">
           <span>{summary.questionCount} questions</span>
           <span>·</span>
           <span>{summary.totalMarks} marks</span>
           <span>·</span>
           <span>{state.info.duration} min</span>
         </div>
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center sm:flex-wrap">
           <button
             type="button"
             onClick={() => window.open(link, "_blank")}
-            className="rounded-lg border border-pink-500/40 bg-pink-50 text-pink-900 hover:bg-pink-100 px-4 py-2 text-sm font-semibold transition-colors duration-150 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
+            className="rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none"
           >
             Open Quiz
           </button>
@@ -285,14 +285,14 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
               navigator.clipboard.writeText(link);
               toast.success({ title: "Link copied" });
             }}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-colors duration-150 hover:bg-card-hover"
+            className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
           >
             Copy Link
           </button>
           <button
             type="button"
             onClick={editQuiz}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-colors duration-150 hover:bg-card-hover"
+            className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
           >
             Edit Quiz
           </button>
@@ -304,21 +304,21 @@ export function SuccessStep({ onDashboard }: { onDashboard: () => void }) {
               } catch {}
               window.location.assign("/creator/quizzes/create");
             }}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-colors duration-150 hover:bg-card-hover"
+            className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
           >
             Create New Quiz
           </button>
           <button
             type="button"
             onClick={onDashboard}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-text-primary transition-colors duration-150 hover:bg-card-hover"
+            className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)]"
           >
             Go to Dashboard
           </button>
           {state.serverQuizId && (
             <a
               href={`/creator/quizzes/${state.info.code}/responses`}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 text-pink-900 hover:bg-pink-100 px-4 py-2 text-sm font-semibold transition-colors duration-150 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
+              className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 py-2 text-sm font-extrabold text-[#1a1240] transition-transform duration-150 hover:-translate-y-px active:translate-y-0"
             >
               <BarChart3 className="h-4 w-4" /> View Responses
             </a>

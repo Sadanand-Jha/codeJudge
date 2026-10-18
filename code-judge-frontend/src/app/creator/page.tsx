@@ -1,6 +1,5 @@
-import { CreateHubPage } from "@/components/creator/create/CreateHubPage";
+import { CreatorDashboardPage } from "@/components/creator/dashboard/CreatorDashboardPage";
 
-// Temporary landing: creator studio opens on Create New for now.
 export default async function CreatorDashboardRoute() {
-  return <CreateHubPage />;
+  return <CreatorDashboardPage />;
 }

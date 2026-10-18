@@ -64,15 +64,15 @@ function ReviewGroup({
   color: "rose" | "amber" | "emerald";
 }) {
   const colorMap = {
-    rose: "text-rose-500",
-    amber: "text-amber-500",
-    emerald: "text-emerald-500",
+    rose: "text-[var(--qs-bad)]",
+    amber: "text-[#a85d00]",
+    emerald: "text-[var(--qs-ok)]",
   };
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
       <div className="flex items-center gap-2 mb-3">
         <Icon className={`h-4 w-4 ${colorMap[color]}`} />
-        <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
           {title} ({items.length})
         </span>
       </div>
@@ -83,30 +83,21 @@ function ReviewGroup({
             <div
               key={item.id}
               className={cn(
-              "flex items-start gap-2.5 rounded-xl border p-3",
+              "flex items-start gap-2.5 rounded-[14px] border-2 p-3",
               item.severity === "error"
-                ? "border-rose-500/20 bg-rose-500/5"
+                ? "border-[var(--qs-bad)]/40 bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
                 : item.severity === "warning"
-                ? "border-amber-500/20 bg-amber-500/5"
-                : "border-emerald-500/20 bg-emerald-500/5"
+                ? "border-[#a85d00]/40 bg-[#fff3d6] text-[#a85d00]"
+                : "border-[var(--qs-ok)]/40 bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
               )}
             >
-            <ItemIcon className={cn("mt-0.5 h-4 w-4 shrink-0", item.severity === "error" ? "text-rose-500" : item.severity === "warning" ? "text-amber-500" : "text-emerald-500")} />
+            <ItemIcon className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="min-w-0 flex-1">
-              <p
-                className={cn(
-                  "text-xs font-semibold",
-                  item.severity === "error"
-                    ? "text-rose-500"
-                    : item.severity === "warning"
-                    ? "text-amber-500"
-                    : "text-emerald-500"
-                )}
-              >
+              <p className="text-xs font-bold">
                 {item.label}
               </p>
               {item.detail && (
-                <p className="mt-0.5 text-[10px] text-text-secondary">
+                <p className="mt-0.5 text-[10px] font-medium opacity-80">
                   {item.detail}
                 </p>
               )}
@@ -115,7 +106,7 @@ function ReviewGroup({
               <button
                 type="button"
                 onClick={item.fix}
-                className="shrink-0 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                className="shrink-0 rounded-[10px] border-2 border-current px-3 py-1.5 text-[11px] font-extrabold transition-colors hover:opacity-80"
               >
                 Fix
               </button>

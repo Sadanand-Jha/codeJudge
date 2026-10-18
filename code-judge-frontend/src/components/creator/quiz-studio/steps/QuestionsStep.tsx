@@ -162,30 +162,30 @@ export function QuestionsStep() {
       {/* ========== MOBILE VIEW (simplified, 360-430, no gamification, bottom sheets) ========== */}
       <div className="xl:hidden flex w-full max-w-full min-w-0 flex-col gap-3 overflow-x-hidden">
         {/* Compact info strip */}
-        <div className="flex w-full max-w-full min-w-0 items-center justify-between gap-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white px-2 sm:px-3 py-2.5 shadow-sm">
+        <div className="flex w-full max-w-full min-w-0 items-center justify-between gap-2 overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 sm:px-3 py-2.5">
           <button
             onClick={() => setMobileBankOpen(true)}
-            className="flex min-w-0 shrink items-center gap-1.5 sm:gap-2 rounded-xl border border-zinc-200 bg-white px-2.5 sm:px-3 py-2 text-xs font-semibold text-zinc-700"
+            className="flex min-w-0 shrink items-center gap-1.5 sm:gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:px-3 py-2 text-xs font-bold text-[var(--qs-ink)]"
           >
-            <ListChecks className="h-4 w-4 shrink-0 text-zinc-500" />
+            <ListChecks className="h-4 w-4 shrink-0 text-[var(--qs-muted)]" />
             <span className="truncate">Questions</span>
-            <span className="shrink-0 rounded-full bg-[var(--qs-brand)] px-1.5 py-0.5 text-[10px] font-bold text-white">{state.questions.length}</span>
+            <span className="shrink-0 rounded-full border-2 border-[var(--qs-brand)]/30 bg-[var(--qs-poly-1)] px-1.5 py-0.5 text-[10px] font-extrabold text-[var(--qs-brand)]">{state.questions.length}</span>
           </button>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <span className="hidden sm:inline text-xs font-medium text-zinc-500">
+            <span className="hidden sm:inline text-xs font-medium text-[var(--qs-muted)]">
               {completed} / {state.questions.length} complete
             </span>
             <button
               type="button"
               onClick={() => setAiOpen(true)}
-              className="section-ai-cta flex shrink-0 items-center gap-1 rounded-xl border border-violet-200 bg-violet-50 px-2.5 sm:px-3 py-2 text-xs font-semibold text-violet-700"
+              className="flex shrink-0 items-center gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:px-3 py-2 text-xs font-bold text-[var(--qs-ink)]"
             >
-              <Sparkles className="h-3.5 w-3.5 shrink-0" />
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
               <span className="min-w-[62px] text-left"><AiStreamText text="AI Generate" /></span>
             </button>
             <button
               onClick={() => setMobileSettingsOpen(true)}
-              className="flex shrink-0 items-center gap-1 rounded-xl border border-zinc-200 bg-white px-2.5 sm:px-3 py-2 text-xs font-semibold text-zinc-700"
+              className="flex shrink-0 items-center gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:px-3 py-2 text-xs font-bold text-[var(--qs-ink)]"
             >
               <Settings2 className="h-3.5 w-3.5 shrink-0" />
               <span className="hidden xs:inline">Settings</span>
@@ -196,8 +196,8 @@ export function QuestionsStep() {
 
         {/* Question counter + prev/next for quick navigation */}
         {state.questions.length > 0 && state.activeQuestionId && (
-          <div className="flex w-full max-w-full min-w-0 items-center justify-between gap-2 overflow-hidden rounded-xl border border-zinc-200 bg-white px-2 sm:px-3 py-2 shadow-sm">
-            <span className="min-w-0 truncate text-xs font-medium text-zinc-600">
+          <div className="flex w-full max-w-full min-w-0 items-center justify-between gap-2 overflow-hidden rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 sm:px-3 py-2">
+            <span className="min-w-0 truncate text-xs font-medium text-[var(--qs-muted)]">
               Q {activeIdx + 1} of {state.questions.length}
             </span>
             <div className="flex shrink-0 items-center gap-1.5">
@@ -206,7 +206,7 @@ export function QuestionsStep() {
                   if (activeIdx > 0) setActiveQuestion(state.questions[activeIdx - 1].id);
                 }}
                 disabled={activeIdx <= 0}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 disabled:opacity-40"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -215,7 +215,7 @@ export function QuestionsStep() {
                   if (activeIdx < state.questions.length - 1) setActiveQuestion(state.questions[activeIdx + 1].id);
                 }}
                 disabled={activeIdx >= state.questions.length - 1}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[var(--qs-brand)] disabled:opacity-40"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-brand)] disabled:opacity-40"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -226,33 +226,33 @@ export function QuestionsStep() {
         {/* Main editor */}
         <div className="w-full max-w-full min-w-0 overflow-hidden">
           {questionsLoading && state.questions.length === 0 ? (
-            <div className="flex w-full max-w-full min-w-0 flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white px-4 py-10 text-center shadow-sm">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-300 border-t-transparent" />
-              <p className="text-sm font-medium text-zinc-500">Loading questions…</p>
+            <div className="flex w-full max-w-full min-w-0 flex-col items-center justify-center gap-3 overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-10 text-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--qs-line)] border-t-[var(--qs-brand)]" />
+              <p className="text-sm font-medium text-[var(--qs-muted)]">Loading questions…</p>
             </div>
           ) : state.questions.length === 0 || !state.activeQuestionId ? (
-            <div className="flex w-full max-w-full min-w-0 flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border border-zinc-200 bg-white px-4 py-10 text-center shadow-sm">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-50 border border-zinc-200">
-                <ListChecks className="h-7 w-7 text-zinc-500" />
+            <div className="flex w-full max-w-full min-w-0 flex-col items-center justify-center gap-4 overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-10 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)]">
+                <ListChecks className="h-7 w-7 text-[var(--qs-brand)]" />
               </div>
-              <h3 className="text-base font-bold text-zinc-900 break-words">Build your first question</h3>
-              <p className="min-h-5 max-w-[260px] text-sm leading-relaxed text-zinc-500 break-words">
+              <h3 className="text-base font-extrabold text-[var(--qs-ink)] break-words">Build your first question</h3>
+              <p className="min-h-5 max-w-[260px] text-sm font-medium leading-relaxed text-[var(--qs-muted)] break-words">
                 <AiStreamText text="Create a question manually or let AI generate one." />
               </p>
               <div className="flex w-full max-w-full min-w-0 flex-col gap-2 mt-2">
                 <button
                   type="button"
                   onClick={() => addQuestion()}
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-[var(--qs-brand)] px-5 py-3 text-sm font-bold text-white"
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 py-3 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform active:translate-y-0 active:shadow-none"
                 >
                   <Plus className="h-4 w-4" /> Create Question
                 </button>
                 <button
                   type="button"
                   onClick={() => setAiOpen(true)}
-                  className="section-ai-cta inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700"
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 py-3 text-sm font-bold text-[var(--qs-ink)]"
                 >
-                  <Sparkles className="h-4 w-4 text-pink-600" /> <AiStreamText text="Generate with AI" />
+                  <Sparkles className="h-4 w-4 text-[var(--qs-brand)]" /> <AiStreamText text="Generate with AI" />
                 </button>
               </div>
             </div>
@@ -263,11 +263,11 @@ export function QuestionsStep() {
 
         {/* Mobile bottom action bar — primary actions only */}
         {state.activeQuestionId && (
-          <div className="mt-2 flex w-full max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-2 shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
+          <div className="mt-2 flex w-full max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2">
             <button
               onClick={handleSave}
               disabled={!hasChanges || saving}
-              className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white py-3 text-sm font-semibold text-zinc-700 disabled:opacity-40"
+              className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-3 text-sm font-bold text-[var(--qs-ink)] disabled:opacity-40"
             >
               <Save className="h-4 w-4 shrink-0" />
               <span className="truncate">{saving ? "Saving..." : "Save"}</span>
@@ -276,14 +276,14 @@ export function QuestionsStep() {
               type="button"
               onClick={() => setAiOpen(true)}
               title="AI Generate"
-              className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700"
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 text-sm font-bold text-[var(--qs-ink)]"
             >
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-4 w-4 text-[var(--qs-brand)]" />
               AI
             </button>
             <button
               onClick={() => setStudentPreviewOpen(true)}
-              className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-700"
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 text-sm font-bold text-[var(--qs-ink)]"
             >
               <Eye className="h-4 w-4" />
               Preview
@@ -308,38 +308,38 @@ export function QuestionsStep() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="hidden xl:flex min-h-0 flex-col gap-3 bg-background xl:flex-1 xl:min-h-0 xl:flex-row xl:overflow-hidden min-w-0"
+        className="hidden xl:flex min-h-0 flex-col gap-3 xl:flex-1 xl:min-h-0 xl:flex-row xl:overflow-hidden min-w-0"
       >
-        {sidebarOpen && <div className="fixed inset-0 z-40 xl:hidden bg-black/20" onClick={() => setSidebarOpen(false)} />}
-        {rightOpen && <div className="fixed inset-0 z-40 xl:hidden bg-black/20" onClick={() => setRightOpen(false)} />}
+        {sidebarOpen && <div className="fixed inset-0 z-40 xl:hidden bg-[#1a1240]/40" onClick={() => setSidebarOpen(false)} />}
+        {rightOpen && <div className="fixed inset-0 z-40 xl:hidden bg-[#1a1240]/40" onClick={() => setRightOpen(false)} />}
 
         <aside
           className={`
-            fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] shrink-0 flex-col overflow-hidden border border-border bg-card rounded-xl transition-transform duration-200 xl:static xl:z-auto xl:flex xl:h-[calc(100dvh-13rem)] xl:max-h-full xl:min-h-0
+            fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] shrink-0 flex-col overflow-hidden transition-transform duration-200 xl:static xl:z-auto xl:flex xl:h-[calc(100dvh-13rem)] xl:max-h-full xl:min-h-0
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full xl:translate-x-0"}
           `}
         >
           <QuestionList onAiGenerate={() => setAiOpen(true)} onDownloadPdf={openPdfModal} onSave={handleSave} saving={saving} saveProgress={saveProgress} onToggleSidebar={() => setSidebarOpen(false)} />
         </aside>
 
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden bg-card rounded-xl border border-border">
-          <div className="flex items-center justify-between border-b border-border bg-background px-3 sm:px-4 py-2 xl:hidden gap-2">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+          <div className="flex items-center justify-between border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 sm:px-4 py-2 xl:hidden gap-2">
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-card-hover shrink-0"
+              className="inline-flex items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)] shrink-0"
             >
               <ListChecks className="h-3.5 w-3.5" />
               <span className="hidden xs:inline">Questions</span> ({state.questions.length})
             </button>
             <div className="flex items-center gap-2 min-w-0">
-              <span className="hidden sm:inline text-xs text-text-muted truncate">
+              <span className="hidden sm:inline text-xs font-medium text-[var(--qs-muted)] truncate">
                 {state.questions.length > 0 ? `${state.questions.filter((q) => q.title.trim()).length} / ${state.questions.length} complete` : ""}
               </span>
               <button
                 type="button"
                 onClick={() => setRightOpen(true)}
-                className="xl:hidden inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-card-hover shrink-0"
+                className="xl:hidden inline-flex items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)] shrink-0"
               >
                 Properties
               </button>
@@ -347,31 +347,31 @@ export function QuestionsStep() {
           </div>
 
           {questionsLoading && state.questions.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-10 text-center bg-background">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-pink-300 border-t-transparent" />
-              <p className="text-sm text-text-secondary">Loading questions…</p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-10 text-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--qs-line)] border-t-[var(--qs-brand)]" />
+              <p className="text-sm font-medium text-[var(--qs-muted)]">Loading questions…</p>
             </div>
           ) : state.questions.length === 0 || !state.activeQuestionId ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10 text-center bg-background">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-card border border-border shadow-sm">
-                <ListChecks className="h-6 w-6 text-text-secondary" />
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-10 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)]">
+                <ListChecks className="h-6 w-6 text-[var(--qs-brand)]" />
               </div>
-              <h3 className="text-[18px] font-semibold text-text-primary">Build your first question</h3>
-              <p className="min-h-5 max-w-sm text-sm leading-relaxed text-text-muted"><AiStreamText text="Create a question manually or let AI generate one from your content." /></p>
+              <h3 className="text-[19px] font-extrabold text-[var(--qs-ink)]">Build your first question</h3>
+              <p className="min-h-5 max-w-sm text-sm font-medium leading-relaxed text-[var(--qs-muted)]"><AiStreamText text="Create a question manually or let AI generate one from your content." /></p>
               <div className="flex flex-wrap justify-center gap-2 mt-2">
                 <button
                   type="button"
                   onClick={() => addQuestion()}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--qs-brand)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#5a2fd8]"
+                  className="inline-flex items-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 py-2.5 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none"
                 >
                   <Plus className="h-4 w-4" /> Create Question
                 </button>
                 <button
                   type="button"
                   onClick={() => setAiOpen(true)}
-                  className="section-ai-cta inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-text-primary hover:bg-card-hover"
+                  className="inline-flex items-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 py-2.5 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
                 >
-                  <Sparkles className="h-4 w-4 text-pink-600" /> <AiStreamText text="Generate with AI" />
+                  <Sparkles className="h-4 w-4 text-[var(--qs-brand)]" /> <AiStreamText text="Generate with AI" />
                 </button>
               </div>
             </div>
@@ -386,11 +386,11 @@ export function QuestionsStep() {
 
         {rightOpen && (
           <div className="fixed inset-0 z-50 xl:hidden flex justify-end">
-            <div className="absolute inset-0 bg-black/20" onClick={() => setRightOpen(false)} />
-            <div className="relative w-[340px] max-w-[92vw] h-full bg-card border-l border-border rounded-l-xl overflow-hidden flex flex-col shadow-2xl">
-              <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-                <span className="text-xs font-semibold">Properties</span>
-                <button onClick={() => setRightOpen(false)} className="rounded p-1.5 hover:bg-card-hover text-text-muted">✕</button>
+            <div className="absolute inset-0 bg-[#1a1240]/40" onClick={() => setRightOpen(false)} />
+            <div className="relative w-[340px] max-w-[92vw] h-full bg-[var(--qs-surface)] border-l-2 border-[var(--qs-line)] rounded-l-[22px] overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b-2 border-[var(--qs-line)]">
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Properties</span>
+                <button onClick={() => setRightOpen(false)} className="rounded-[8px] p-1.5 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-poly-1)] hover:text-[var(--qs-ink)]">✕</button>
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto">
                 <LiveRail onDownloadPdf={() => { setRightOpen(false); openPdfModal(); }} onStudentPreview={() => { setRightOpen(false); setStudentPreviewOpen(true); }} collapsed={false} onToggle={() => {}} />

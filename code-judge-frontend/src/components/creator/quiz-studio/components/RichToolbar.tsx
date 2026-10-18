@@ -17,22 +17,22 @@ export function RichToolbar({ onCommand }: { onCommand?: () => void }) {
         onClick?.();
       }}
       title={title}
-      className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-secondary hover:bg-card-hover hover:text-text-primary sm:h-7 sm:w-7"
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[8px] text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-poly-1)] hover:text-[var(--qs-ink)] sm:h-7 sm:w-7"
     >
       <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
     </button>
   );
   return (
-    <div className="flex w-full max-w-full min-w-0 flex-wrap items-center gap-0.5 overflow-hidden border-b border-border bg-card px-1 sm:px-2 py-1 sm:py-1.5">
+    <div className="flex w-full max-w-full min-w-0 flex-wrap items-center gap-0.5 overflow-hidden border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-1 sm:px-2 py-1 sm:py-1.5">
       <Btn icon={Bold} title="Bold" onClick={() => exec("bold")} />
       <Btn icon={Italic} title="Italic" onClick={() => exec("italic")} />
       <Btn icon={Underline} title="Underline" onClick={() => exec("underline")} />
       <Btn icon={Strikethrough} title="Strikethrough" onClick={() => exec("strikeThrough")} />
-      <span className="mx-1 h-4 w-px bg-border" />
+      <span className="mx-1 h-4 w-px bg-[var(--qs-line)]" />
       <Btn icon={Code2} title="Code" onClick={() => exec("insertHTML", "<code>" + window.getSelection()?.toString() + "</code>")} />
-      <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("subscript"); }} title="Subscript" className="px-1 py-0.5 text-xs text-text-secondary hover:bg-card-hover hover:text-text-primary rounded shrink-0">x₂</button>
-      <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("superscript"); }} title="Superscript" className="px-1 py-0.5 text-xs text-text-secondary hover:bg-card-hover hover:text-text-primary rounded shrink-0">x²</button>
-      <span className="mx-0.5 sm:mx-1 h-4 w-px shrink-0 bg-border" />
+      <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("subscript"); }} title="Subscript" className="px-1 py-0.5 text-xs text-[var(--qs-muted)] hover:bg-[var(--qs-poly-1)] hover:text-[var(--qs-ink)] rounded-[8px] shrink-0 transition-colors">x₂</button>
+      <button type="button" onMouseDown={(e) => { e.preventDefault(); exec("superscript"); }} title="Superscript" className="px-1 py-0.5 text-xs text-[var(--qs-muted)] hover:bg-[var(--qs-poly-1)] hover:text-[var(--qs-ink)] rounded-[8px] shrink-0 transition-colors">x²</button>
+      <span className="mx-0.5 sm:mx-1 h-4 w-px shrink-0 bg-[var(--qs-line)]" />
       <Btn icon={Undo2} title="Undo" onClick={() => exec("undo")} />
       <Btn icon={Redo2} title="Redo" onClick={() => exec("redo")} />
     </div>
@@ -78,7 +78,7 @@ export function EditableContent({
     <div
       ref={setRef}
       className={cn(
-        "w-full max-w-full min-w-0 resize-none border-0 bg-transparent px-3 py-3 text-[14px] sm:text-[15px] leading-relaxed text-text-primary placeholder:text-text-muted outline-none break-words overflow-x-hidden",
+        "w-full max-w-full min-w-0 resize-none border-0 bg-transparent px-3 py-3 text-[14px] sm:text-[15px] leading-relaxed text-[var(--qs-ink)] outline-none break-words overflow-x-hidden",
         minHeight
       )}
       data-placeholder={placeholder}

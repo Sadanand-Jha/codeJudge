@@ -147,14 +147,14 @@ export function RegistrationStep() {
           {/* Registration Fields */}
           <section
             className={cn(
-              "rounded-xl border border-border bg-card transition-opacity duration-150",
+              "rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] transition-opacity duration-150",
               !reg.settings.collectAdditionalInfo && "pointer-events-none opacity-50"
             )}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-[var(--qs-line)] px-5 py-3.5">
               <div>
-                <h3 className="text-sm font-semibold text-text-primary">Registration Fields</h3>
-                <p className="mt-0.5 text-xs text-text-secondary">
+                <h3 className="text-sm font-extrabold text-[var(--qs-ink)]">Registration Fields</h3>
+                <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
                   {fields.length} field{fields.length !== 1 ? "s" : ""} configured · drag to reorder
                 </p>
               </div>
@@ -163,7 +163,7 @@ export function RegistrationStep() {
                   type="button"
                   onClick={() => void handleSave()}
                   disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-text-primary transition-colors duration-150 hover:bg-card-hover disabled:pointer-events-none disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-bold text-[var(--qs-ink)] transition-colors duration-150 hover:border-[var(--qs-brand)] disabled:pointer-events-none disabled:opacity-50"
                 >
                   {saving ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : null}
                   Save
@@ -171,7 +171,7 @@ export function RegistrationStep() {
                 <button
                   type="button"
                   onClick={addField}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/40 bg-pink-50 px-3 py-1.5 text-xs font-semibold text-pink-900 transition-colors duration-150 hover:bg-pink-100 dark:border dark:border-pink-400/50 dark:bg-pink-500/15 dark:text-pink-200 dark:hover:bg-pink-500/25"
+                  className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 py-1.5 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add Registration Field
                 </button>
@@ -181,9 +181,9 @@ export function RegistrationStep() {
             {/* Field list */}
             <div className="px-5 py-4">
               {fields.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-border px-4 py-10 text-center">
-                  <p className="text-sm font-medium text-text-primary">No registration fields yet</p>
-                  <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-text-secondary">
+                <div className="rounded-[14px] border-2 border-dashed border-[var(--qs-line)] px-4 py-10 text-center">
+                  <p className="text-sm font-bold text-[var(--qs-ink)]">No registration fields yet</p>
+                  <p className="mx-auto mt-1 max-w-xs text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
                     Type any field name you want — for example Roll Number,
                     Branch or Team Name.
                   </p>
@@ -206,25 +206,25 @@ export function RegistrationStep() {
                           reorderDrop(field.id);
                         }}
                         className={cn(
-                          "rounded-lg border transition-colors duration-150",
+                          "rounded-[14px] border-2 transition-colors duration-150",
                           expanded
-                            ? "border-pink-500/40 bg-pink-500/[0.04] dark:border-pink-400/50 dark:bg-pink-500/[0.07]"
-                            : "border-border bg-background hover:border-border-hover"
+                            ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
+                            : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
                         )}
                       >
                         {/* Row */}
                         <div className="flex items-center gap-2.5 px-3 py-2.5">
-                          <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-text-muted" />
+                          <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-[var(--qs-muted)]" />
                           <button
                             type="button"
                             onClick={() => setExpandedId(expanded ? null : field.id)}
                             className="min-w-0 flex-1 text-left"
                             aria-expanded={expanded}
                           >
-                            <span className="block truncate text-sm font-medium text-text-primary">
+                            <span className="block truncate text-sm font-bold text-[var(--qs-ink)]">
                               {field.name.trim() || "Untitled field"}
                             </span>
-                            <span className="text-[11px] text-text-muted">Text input</span>
+                            <span className="text-[11px] font-medium text-[var(--qs-muted)]">Text input</span>
                           </button>
                           <div className="flex shrink-0 items-center gap-0.5">
                             <IconBtn title="Move up" disabled={idx === 0} onClick={() => moveField(field.id, -1)}>
@@ -243,7 +243,7 @@ export function RegistrationStep() {
                             <button
                               type="button"
                               onClick={() => setExpandedId(expanded ? null : field.id)}
-                              className="rounded p-1 text-text-muted transition-colors duration-150 hover:bg-card-hover hover:text-text-primary"
+                              className="rounded-[8px] p-1 text-[var(--qs-muted)] transition-colors duration-150 hover:bg-[var(--qs-poly-2)] hover:text-[var(--qs-ink)]"
                               aria-label={expanded ? "Collapse configuration" : "Configure field"}
                             >
                               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")} />
@@ -253,9 +253,9 @@ export function RegistrationStep() {
 
                         {/* Configuration */}
                         {expanded && (
-                          <div className="space-y-2 border-t border-border px-3.5 py-3.5">
+                          <div className="space-y-2 border-t-2 border-[var(--qs-line)] px-3.5 py-3.5">
                             <label className="block max-w-sm">
-                              <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                              <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
                                 Field name
                               </span>
                               <input
@@ -270,7 +270,7 @@ export function RegistrationStep() {
                                 className={inputCls}
                               />
                             </label>
-                            <p className="text-[10px] text-text-muted">
+                            <p className="text-[10px] font-medium text-[var(--qs-muted)]">
                               Participants will see this label on the registration
                               form. Max {REGISTRATION_FIELD_NAME_MAX} characters.
                             </p>
@@ -353,28 +353,28 @@ export function RegistrationStep() {
 
         {/* ── Live Preview ── */}
         <aside data-sidebar="true" className="xl:sticky xl:top-4 xl:self-start">
-          <section className="overflow-hidden rounded-xl border border-border bg-card">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <h3 className="text-sm font-semibold text-text-primary">Live Preview</h3>
-              <Eye className="h-4 w-4 text-text-muted" />
+          <section className="overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+            <div className="flex items-center justify-between border-b-2 border-[var(--qs-line)] px-4 py-3">
+              <h3 className="text-sm font-extrabold text-[var(--qs-ink)]">Live Preview</h3>
+              <Eye className="h-4 w-4 text-[var(--qs-muted)]" />
             </div>
             <div className="max-h-[70vh] overflow-y-auto p-5">
               {/* Mirrors the real student registration gate (ExamModeShell)
                   pixel-for-pixel so the creator sees exactly what is shown. */}
               <div className="text-center">
-                <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 via-orange-400 to-amber-300 text-white shadow-[0_16px_34px_-16px_rgba(244,114,182,.9)] dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500">
+                <div className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
                   <ClipboardList className="h-6 w-6" />
                 </div>
-                <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-pink-500 dark:text-violet-300">
+                <p className="mt-4 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--qs-brand)]">
                   Registration required
                 </p>
-                <h4 className="mt-1 text-xl font-black tracking-tight text-text-primary">
+                <h4 className="mt-1 text-xl font-extrabold tracking-tight text-[var(--qs-ink)]">
                   Fill your details to begin
                 </h4>
-                <p className="mt-1 truncate text-xs font-semibold text-text-muted">
+                <p className="mt-1 truncate text-xs font-bold text-[var(--qs-muted)]">
                   {state.info.title || "Untitled Quiz"}
                 </p>
-                <p className="mt-1.5 text-xs text-text-secondary">
+                <p className="mt-1.5 text-xs font-medium text-[var(--qs-muted)]">
                   Your timer starts only after you submit this form.
                 </p>
               </div>
@@ -383,8 +383,8 @@ export function RegistrationStep() {
                 <div className="mt-5 space-y-3.5">
                   {namedFields.map((name) => (
                     <label key={name} className="block">
-                      <span className="mb-1 block text-[11px] font-semibold text-text-secondary">
-                        {name} <span className="text-rose-500">*</span>
+                      <span className="mb-1 block text-[11px] font-bold text-[var(--qs-muted)]">
+                        {name} <span className="text-[var(--qs-bad)]">*</span>
                       </span>
                       <input
                         type="text"
@@ -392,25 +392,25 @@ export function RegistrationStep() {
                         maxLength={500}
                         autoComplete="off"
                         placeholder={`Enter ${name.toLowerCase()}`}
-                        className="h-12 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none"
+                        className="h-12 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-medium text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)]"
                       />
                     </label>
                   ))}
 
                   <div className="flex flex-col gap-2 pt-1.5 sm:flex-row">
-                    <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-border px-5 text-sm font-semibold text-text-primary sm:h-14 sm:w-auto sm:flex-1">
+                    <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 text-sm font-bold text-[var(--qs-ink)] sm:h-14 sm:w-auto sm:flex-1">
                       <ArrowLeft className="h-4 w-4" /> Back
                     </span>
-                    <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-orange-400 to-amber-400 px-5 text-sm font-bold text-white shadow-[0_12px_28px_-14px_rgba(244,114,182,.9)] dark:from-violet-500 dark:via-indigo-500 dark:to-cyan-500 sm:h-14 sm:w-auto sm:flex-[1.4]">
+                    <span className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-5 text-sm font-extrabold text-[#1a1240] sm:h-14 sm:w-auto sm:flex-[1.4]">
                       <Rocket className="h-4 w-4" /> Start Exam
                     </span>
                   </div>
-                  <p className="text-center text-[11px] text-text-muted">
+                  <p className="text-center text-[11px] font-medium text-[var(--qs-muted)]">
                     All fields are required to start.
                   </p>
                 </div>
               ) : (
-                <p className="mt-5 rounded-lg border border-dashed border-border px-3 py-3 text-center text-xs text-text-muted">
+                <p className="mt-5 rounded-[12px] border-2 border-dashed border-[var(--qs-line)] px-3 py-3 text-center text-xs font-medium text-[var(--qs-muted)]">
                   No fields configured — students enter the exam directly, without
                   a registration form.
                 </p>
@@ -444,8 +444,8 @@ function IconBtn({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "rounded p-1 text-text-muted transition-colors duration-150 hover:bg-card-hover",
-        danger ? "hover:text-rose-500" : "hover:text-text-primary",
+        "rounded-[8px] p-1 text-[var(--qs-muted)] transition-colors duration-150 hover:bg-[var(--qs-poly-2)]",
+        danger ? "hover:text-[var(--qs-bad)]" : "hover:text-[var(--qs-ink)]",
         disabled && "pointer-events-none opacity-30"
       )}
     >
