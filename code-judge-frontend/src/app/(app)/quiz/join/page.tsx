@@ -29,7 +29,7 @@ import { getQuizByCode, getQuizCrowdAvatars, getQuizRating, getCreatorStats, typ
 import { formatQuizCode, isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
-import StudentQuizShell, { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
+import StudentQuizShell, { QuizLoader, QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
 // DISCONNECTED: import { QuizWarpExperience } from "@/components/quiz/live/QuizWarpExperience";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import type { LiveParticipant } from "@/types/liveAssessment";
@@ -245,6 +245,12 @@ export default function JoinQuizPage() {
 
   const status = getQuizStatus();
 
+  // Access verification takes over the whole screen with the brand loader
+  // instead of a spinner inside the button.
+  if (loading) {
+    return <QuizStateScreen loading text="Verifying quiz access…" />;
+  }
+
   return (
     <>
     <StudentQuizShell
@@ -338,14 +344,10 @@ export default function JoinQuizPage() {
 
                   <button
                     onClick={handleLookup}
-                    disabled={!valid || loading}
+                    disabled={!valid}
                     className="qs-btn h-13 w-full px-4 text-sm disabled:cursor-not-allowed disabled:opacity-45"
                   >
-                    {loading ? (
-                      <><QuizLoader size={16} /> Verifying access…</>
-                    ) : (
-                      <>Verify &amp; continue <ChevronRight className="h-4 w-4" /></>
-                    )}
+                    Verify &amp; continue <ChevronRight className="h-4 w-4" />
                   </button>
 
                   <div className="flex items-center justify-center gap-4 pt-0.5 text-[9px] font-semibold text-[var(--qs-muted)]">

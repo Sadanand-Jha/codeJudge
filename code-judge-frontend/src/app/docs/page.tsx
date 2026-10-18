@@ -1,11 +1,14 @@
 import Link from "next/link";
-import { ArrowLeft, BookOpen, Code2, Terminal } from "lucide-react";
+import { ArrowLeft, BookOpen, Terminal } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import { buildPublicPageMetadata } from "@/lib/seo/site";
 
-export const metadata = {
+export const metadata = buildPublicPageMetadata({
   title: "Documentation",
-  description: "QuizSupport documentation and guides.",
-};
+  description:
+    "Guides for creating quizzes, sharing access codes, and tracking results on QuizSupport.",
+  path: "/docs",
+});
 
 export default function DocsPage() {
   return (
@@ -25,19 +28,19 @@ export default function DocsPage() {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <span className="text-[#7C3AED] mt-0.5">•</span>
-                Browse problems in the <Link href="/problems" className="text-[#7C3AED] hover:underline">Problemset</Link>
+                Create a quiz: write your questions, mark the correct answers, and publish
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-[#7C3AED] mt-0.5">•</span>
-                Submit solutions using the built-in editor
+                Share the quiz access code with your class or group
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-[#7C3AED] mt-0.5">•</span>
-                Track your progress on your profile
+                Join a quiz with its code and get instant results
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-[#7C3AED] mt-0.5">•</span>
-                Join contests to compete with others
+                Track scores and attempt history across devices
               </li>
             </ul>
           </div>

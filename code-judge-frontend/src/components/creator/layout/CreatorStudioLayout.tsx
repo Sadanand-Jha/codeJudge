@@ -7,7 +7,7 @@ import { X } from "lucide-react";
 import { CreatorSidebar } from "./CreatorSidebar";
 import CreatorNavbar from "./CreatorNavbar";
 import AppLayout from "@/components/layout/AppLayout";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "@/context/ThemeContext";
 
@@ -35,7 +35,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
     return (
       <AppLayout>
         <div className="qs-ui flex min-h-screen items-center justify-center bg-[var(--qs-bg)]">
-          <SecureLogo variant="mark" size={36} className="animate-pulse motion-reduce:animate-none" />
+          <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
         </div>
       </AppLayout>
     );
@@ -45,7 +45,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
     return (
       <AppLayout>
         <div className="qs-ui flex min-h-screen items-center justify-center bg-[var(--qs-bg)]">
-          <SecureLogo variant="mark" size={36} className="animate-pulse motion-reduce:animate-none" />
+          <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
         </div>
       </AppLayout>
     );

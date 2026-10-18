@@ -18,6 +18,7 @@ import { slideMove, wouldCollide } from "./world/CollisionSystem";
 import { useQuizGameConfig } from "@/hooks/useQuizGameConfig";
 import type { QuizGameConfig } from "@/services/quiz";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
+import { LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 
 interface Props {
   quizId: string;
@@ -599,7 +600,7 @@ export default function LiveCampus({ quizId, quizName, startsIn, totalCapacity=1
     return (
       <div className="relative w-full h-full flex items-center justify-center" style={{ background: isDark ? "#1b3a23" : "#BFE07A" }}>
         <div className="flex flex-col items-center gap-3">
-          <QuizLoader size={40} />
+          <QuizLoader size={LOADING_LOGO_SIZE} />
           <p className="text-sm text-text-muted">Loading game configuration…</p>
           <p className="text-xs text-text-muted">Quiz → QuizGameConfig → Live Game</p>
         </div>

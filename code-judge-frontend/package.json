@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx src/lib/__acceptance__/structuralEdits.test.ts"
+    "test": "tsx src/lib/__acceptance__/structuralEdits.test.ts && tsx src/lib/__acceptance__/seo.test.ts"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

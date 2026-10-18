@@ -6,31 +6,36 @@ import { Toaster } from "@/components/ui/toast";
 import { ThemeProvider } from "@/context/ThemeContext";
 import AuthHydrator from "@/components/providers/AuthHydrator";
 import { STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "@/utils/storageKeys";
+import {
+  SITE_URL,
+  SITE_NAME,
+  DEFAULT_DESCRIPTION,
+  buildSiteJsonLd,
+  serializeJsonLd,
+} from "@/lib/seo/site";
 
+// No site-wide `alternates.canonical` here: a canonical set on the root layout
+// is inherited by every route, which would point all pages at the homepage.
+// Public pages set their own canonical via buildPublicPageMetadata().
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.quizsupport.com"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "QuizSupport – Online Quiz Platform for Taking Quizzes & Tests",
-    template: "%s | QuizSupport",
+    default: `${SITE_NAME} – Online Quizzes for Students & Teachers`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "Take online quizzes and practice tests on QuizSupport. Test your knowledge, track your scores and get instant results on any device.",
-  alternates: { canonical: "/" },
+  description: DEFAULT_DESCRIPTION,
   robots: { index: true, follow: true },
   openGraph: {
     type: "website",
-    siteName: "QuizSupport",
-    title: "QuizSupport – Online Quiz Platform",
-    description:
-      "Take online quizzes and practice tests, track your scores and get instant results.",
-    url: "/",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} – Online Quizzes for Students & Teachers`,
+    description: DEFAULT_DESCRIPTION,
     images: ["/og-image.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "QuizSupport – Online Quiz Platform",
-    description:
-      "Take online quizzes and practice tests, track your scores and get instant results.",
+    title: `${SITE_NAME} – Online Quizzes for Students & Teachers`,
+    description: DEFAULT_DESCRIPTION,
     images: ["/og-image.png"],
   },
   icons: { icon: "/icon.png" },
@@ -177,28 +182,10 @@ export default function RootLayout({
             `,
           }}
         />
-        {/* Structured data: WebSite + Organization (no sameAs yet — add your
-            official social profile URLs once they exist). */}
+        {/* Structured data: WebSite + Organization (see src/lib/seo/site.ts). */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@graph": [
-                {
-                  "@type": "WebSite",
-                  name: "QuizSupport",
-                  url: "https://www.quizsupport.com/",
-                },
-                {
-                  "@type": "Organization",
-                  name: "QuizSupport",
-                  url: "https://www.quizsupport.com/",
-                  logo: "https://www.quizsupport.com/logo.png",
-                },
-              ],
-            }),
-          }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSiteJsonLd()) }}
         />
       </head>
       <body className={`${jakarta.className} ${bricolage.variable} ${dmSans.variable} min-h-screen bg-[var(--background)]`} suppressHydrationWarning>

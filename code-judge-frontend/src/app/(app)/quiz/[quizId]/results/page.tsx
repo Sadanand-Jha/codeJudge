@@ -7,7 +7,7 @@ import { ShieldCheck } from "lucide-react";
 import { useQuizRegistrationStore } from "@/store/quizRegistrationStore";
 import { getPreviousQuizzes, getQuizByCode } from "@/services/quiz";
 import { isValidQuizCode, normalizeQuizCode } from "@/utils/quizCode";
-import { QuizLoader, QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
+import { QuizStateScreen } from "@/components/quiz/live/StudentQuizShell";
 
 const LOOKUP_TIMEOUT_MS = 15000;
 
@@ -111,7 +111,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
   if (redirectTarget) {
     return (
       <ResultState
-        icon={<QuizLoader />}
+        loading
         text="Loading your verified result…"
         action={
           <Link href={redirectTarget} className="mt-5 inline-flex min-h-10 items-center justify-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-sm font-bold text-[var(--qs-ink)]">
@@ -157,13 +157,28 @@ export default function QuizResultsPage({ params }: { params: Promise<{ quizId: 
     );
   }
 
-  return <ResultState icon={<QuizLoader />} text="Loading your verified result…" />;
+  return <ResultState loading text="Loading your verified result…" />;
 }
 
-function ResultState({ icon, text, action }: { icon: React.ReactNode; text: string; action?: React.ReactNode }) {
+function ResultState({
+  icon,
+  text,
+  action,
+  loading = false,
+}: {
+  icon?: React.ReactNode;
+  text: string;
+  action?: React.ReactNode;
+  loading?: boolean;
+}) {
   return (
     <QuizStateScreen
-      icon={<div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]">{icon}</div>}
+      loading={loading}
+      icon={
+        icon ? (
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]">{icon}</div>
+        ) : undefined
+      }
       title="Opening your scorecard"
       text={text}
       action={action}

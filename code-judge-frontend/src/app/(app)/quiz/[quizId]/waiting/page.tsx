@@ -26,7 +26,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useToast } from "@/hooks/useToast";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { useAvatarHover } from "@/hooks/useAvatarHover";
@@ -98,8 +98,8 @@ export default function WaitingRoomPage() {
 
   if (loading) {
     return (
-      <div className="qs-ui min-h-screen flex items-center justify-center">
-        <QuizLoader />
+      <div className="qs-ui min-h-screen flex items-center justify-center bg-[var(--qs-bg)]">
+        <QuizLoader size={LOADING_LOGO_SIZE} />
       </div>
     );
   }

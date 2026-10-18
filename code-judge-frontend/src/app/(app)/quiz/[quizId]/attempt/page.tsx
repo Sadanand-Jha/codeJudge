@@ -4,7 +4,7 @@ import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, BrainCircuit, CheckCircle2, ChevronLeft, ChevronRight, FileCheck2, Home, PartyPopper, Send, ShieldCheck, Sparkles, Target, Volume2, VolumeX } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import ExamModeShell, { type ViolationSummary } from "@/components/quiz/exam/ExamModeShell";
 import {
   getAttemptRegistrationState,
@@ -681,7 +681,7 @@ function StatusScreen({ loading = false, text }: { loading?: boolean; text: stri
   if (loading) {
     return (
       <div className="qs-ui flex min-h-[70vh] items-center justify-center bg-[var(--qs-bg)] px-4">
-        <SecureLogo variant="mark" size={125} className="animate-pulse motion-reduce:animate-none" />
+        <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
       </div>
     );
   }

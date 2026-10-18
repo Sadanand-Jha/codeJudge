@@ -3,15 +3,15 @@ import Link from "next/link";
 import QuizCodeForm from "@/components/marketing/QuizCodeForm";
 import SampleQuizDemo from "@/components/marketing/SampleQuizDemo";
 import { SecureLogo } from "@/components/common/SecureLogo";
+import { buildPublicPageMetadata } from "@/lib/seo/site";
 
-export const metadata: Metadata = {
-  title: {
-    absolute: "QuizSupport – Make a quiz. Share a code. See results instantly.",
-  },
+export const metadata: Metadata = buildPublicPageMetadata({
+  title: "QuizSupport – Online Quizzes for Students & Teachers",
   description:
-    "Make a quiz in minutes, share it with an access code, and get instant results on any device. Join quizzes, track scores and practice for JEE, NEET, GATE, SSC, UPSC and Banking.",
-  alternates: { canonical: "https://www.quizsupport.com/" },
-};
+    "Create an online quiz in minutes, share its access code, and get instant results on any device. QuizSupport helps teachers and students practice, assess and track progress.",
+  path: "/",
+  absoluteTitle: true,
+});
 
 const STEPS = [
   {
@@ -114,6 +114,15 @@ export default function HomePage() {
           <nav className="flex flex-wrap gap-x-[22px] gap-y-2" aria-label="Footer">
             <Link href="/about" className="qs-link">
               About
+            </Link>
+            <Link href="/pricing" className="qs-link">
+              Pricing
+            </Link>
+            <Link href="/docs" className="qs-link">
+              Docs
+            </Link>
+            <Link href="/meet-the-developer" className="qs-link">
+              Meet the developer
             </Link>
             <Link href="/contact" className="qs-link">
               Contact

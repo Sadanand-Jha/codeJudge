@@ -33,7 +33,7 @@ import { logout } from "@/services/auth";
 import { toast } from "@/lib/toast";
 import { isQuizProblemsPath, isNestedQuizPath } from "@/lib/quizWorkspace";
 import { cn } from "@/lib/helpers";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { Sidebar } from "@/components/ui/Sidebar";
 import BackButton from "@/components/layout/BackButton";
 import { GuestModeProvider, useGuestMode } from "@/context/GuestModeContext";
@@ -165,6 +165,11 @@ function isFullscreenRoute(pathname: string): boolean {
   return pathname.includes("/waiting") || pathname.startsWith("/tests/attempt");
 }
 
+// Public pages whose children are fully static (server-rendered). Rendering
+// them while auth rehydrates keeps their content in the initial HTML for
+// crawlers; every other route waits for hydration before rendering children.
+const PUBLIC_SSR_ROUTES = new Set(["/about", "/docs"]);
+
 function AppLayoutContent({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -273,9 +278,12 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   // Wait for persisted auth to rehydrate so user details render on first paint
   // without a flash of the guest UI.
   if (!hasHydrated || isBlockedRoute) {
+    if (!isBlockedRoute && PUBLIC_SSR_ROUTES.has(pathname)) {
+      return <div className="min-h-dvh w-full min-w-0 bg-ai-bg">{children}</div>;
+    }
     return (
       <div className="min-h-dvh bg-background flex items-center justify-center">
-        <SecureLogo variant="mark" size={40} className="animate-pulse motion-reduce:animate-none" />
+        <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
       </div>
     );
   }

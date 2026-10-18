@@ -25,7 +25,7 @@ import {
   ChevronDown,
   BookOpen as BookOpenIcon,
 } from "lucide-react";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { getAdminQuizById, getQuizProblemsPublic, getQuizGameMechanics, type QuizGameMechanic } from "@/services/quiz";
 import type { QuizBasic, PublicQuizProblem } from "@/services/quiz";
@@ -230,7 +230,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
   if (loading) {
     return (
       <div className="flex h-[100dvh] w-full flex-col items-center justify-center bg-background">
-        <SecureLogo variant="mark" size={40} className="animate-pulse motion-reduce:animate-none" />
+        <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
         <p className="mt-3 text-sm text-text-muted">Loading quiz preview...</p>
       </div>
     );

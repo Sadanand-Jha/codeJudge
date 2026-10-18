@@ -54,6 +54,12 @@ export const FOCUS_ALLOWED_PREFIXES: string[] = [
   "/forgot-password",
   // Public product story
   "/meet-the-developer",
+  // Public marketing and legal pages (keep in sync with proxy.ts allowlist)
+  "/about",
+  "/contact",
+  "/privacy",
+  "/pricing",
+  "/docs",
 ];
 
 /**
@@ -63,6 +69,8 @@ export const FOCUS_ALLOWED_PREFIXES: string[] = [
 export const FOCUS_ALLOWED_EXACT: string[] = [
   "/",
   "/api",
+  "/robots.txt",
+  "/sitemap.xml",
 ];
 
 /**

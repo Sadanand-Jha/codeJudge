@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, PartyPopper } from "lucide-react";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import type { AiQuizConfig } from "./types";
 
 export function CreateStep({
@@ -60,9 +60,7 @@ export function CreateStep({
 
   return (
     <div className="mx-auto max-w-lg space-y-5 py-10 text-center sm:space-y-6 sm:py-12">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card shadow-lg shadow-violet-500/20">
-        <SecureLogo variant="mark" size={32} className="animate-pulse motion-reduce:animate-none" />
-      </div>
+      <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="mx-auto block animate-pulse motion-reduce:animate-none" />
       <h1 className="text-xl font-bold tracking-tight text-text-primary sm:text-2xl">
         Creating your quiz…
       </h1>

@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { buildPublicPageMetadata } from "@/lib/seo/site";
 
-export const metadata = {
+export const metadata = buildPublicPageMetadata({
   title: "Privacy Policy",
   description: "Read the QuizSupport privacy policy — how quiz scores and account data are handled.",
-  alternates: { canonical: "https://www.quizsupport.com/privacy" },
-};
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

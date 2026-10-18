@@ -44,6 +44,18 @@ const FOCUS_ALLOWED_PREFIXES = [
 
 const FOCUS_ALLOWED_EXACT = ["/", "/robots.txt", "/sitemap.xml"];
 
+// Authenticated workspaces and account-only screens: never index, even when
+// they are reachable through the focus-mode allowlist. Mirrors the `robots`
+// metadata exported by the (auth), quiz and creator layouts.
+const NOINDEX_NOFOLLOW_PREFIXES = ["/quiz", "/creator", "/platform"];
+const NOINDEX_FOLLOW_PREFIXES = ["/login", "/register", "/forgot-password"];
+
+function matchesPrefix(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}
+
 function isPathAllowed(pathname: string): boolean {
   if (!FOCUS_MODE_ENABLED) return true;
   const normalized = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
@@ -82,7 +94,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  const normalized = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  if (matchesPrefix(normalized, NOINDEX_NOFOLLOW_PREFIXES)) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  } else if (matchesPrefix(normalized, NOINDEX_FOLLOW_PREFIXES)) {
+    response.headers.set("X-Robots-Tag", "noindex, follow");
+  }
+  return response;
 }
 
 export const config = {

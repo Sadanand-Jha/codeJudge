@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { buildPublicPageMetadata } from "@/lib/seo/site";
 
-export const metadata = {
+export const metadata = buildPublicPageMetadata({
   title: "Contact",
   description: "Contact QuizSupport — get help with online quizzes and practice tests.",
-  alternates: { canonical: "https://www.quizsupport.com/contact" },
-};
+  path: "/contact",
+});
 
 export default function ContactPage() {
   return (

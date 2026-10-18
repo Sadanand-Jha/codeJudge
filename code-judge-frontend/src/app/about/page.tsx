@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { ArrowLeft, Code2, Trophy, Users, Sparkles } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
+import { buildPublicPageMetadata } from "@/lib/seo/site";
 
-export const metadata = {
-  title: "About",
-  description: "Learn about QuizSupport, the online quiz platform for taking quizzes and practice tests.",
-};
+export const metadata = buildPublicPageMetadata({
+  title: "About QuizSupport",
+  description:
+    "QuizSupport is an online quiz platform for creating quizzes, sharing them with an access code, and getting instant results on any device.",
+  path: "/about",
+});
 
 const features = [
-  { icon: Code2, title: "12,000+ Problems", desc: "From beginner to expert level challenges", color: "#7C3AED" },
-  { icon: Trophy, title: "Weekly Contests", desc: "Compete with coders worldwide", color: "#FBBF24" },
-  { icon: Users, title: "Active Community", desc: "10,000+ competitive programmers", color: "#3B82F6" },
-  { icon: Sparkles, title: "AI Powered", desc: "Get hints, feedback, and code reviews", color: "#22C55E" },
+  { icon: Code2, title: "Create a quiz in minutes", desc: "Write questions, mark the right answers, and publish", color: "#7C3AED" },
+  { icon: Users, title: "Share with an access code", desc: "Every quiz gets its own code to send anywhere", color: "#3B82F6" },
+  { icon: Trophy, title: "Instant results", desc: "Players see their score the moment they submit", color: "#FBBF24" },
+  { icon: Sparkles, title: "Track progress", desc: "Review attempts and scores across devices", color: "#22C55E" },
 ];
 
 export default function AboutPage() {

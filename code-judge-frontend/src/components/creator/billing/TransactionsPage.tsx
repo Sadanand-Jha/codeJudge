@@ -31,7 +31,7 @@ import { useToast } from "@/hooks/useToast";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { getPackValidityMonths } from "@/config/aiCredits";
 import { cn } from "@/lib/helpers";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useBillingData } from "./hooks";
 import { BillButton, EmptyState, ErrorState, PageHeader, StatCard, StatusBadge, formatINR, type StatusTone } from "./ui";
 
@@ -606,7 +606,7 @@ export function TransactionsPage({ demoState, onBuyCredits, onRetry, onDownloadR
 
       {state === "loading" && (
         <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Loading transactions">
-          <SecureLogo variant="mark" size={40} className="animate-pulse motion-reduce:animate-none" />
+          <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
         </div>
       )}
 

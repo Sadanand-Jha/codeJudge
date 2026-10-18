@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { WaitingRoomThemeProvider } from "@/context/WaitingRoomThemeContext";
 import { AnimatedCrowd } from "@/components/quiz/live/AnimatedCrowd";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
@@ -242,8 +242,13 @@ export function QuizStateScreen({
 }) {
   if (loading) {
     return (
-      <div className="qs-ui flex min-h-[calc(100dvh-3.5rem)] items-center justify-center bg-[var(--qs-bg)] px-4">
-        <SecureLogo variant="mark" size={125} className="animate-pulse motion-reduce:animate-none" />
+      <div
+        role="status"
+        className="qs-ui flex min-h-[calc(100dvh-3.5rem)] flex-col items-center justify-center gap-5 bg-[var(--qs-bg)] px-4 text-center"
+      >
+        <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
+        {text && <p className="max-w-sm text-sm leading-6 text-[var(--qs-muted)]">{text}</p>}
+        {action}
       </div>
     );
   }

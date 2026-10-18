@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useToast } from "@/hooks/useToast";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { getApiErrorMessage } from "@/lib/apiError";
@@ -256,7 +256,7 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
 
       {state === "loading" && (
         <div className="flex min-h-[50vh] items-center justify-center">
-          <SecureLogo variant="mark" size={40} className="animate-pulse motion-reduce:animate-none" />
+          <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
         </div>
       )}
       {state === "error" && <ErrorState onRetry={retry} message="Credit packs could not be loaded." />}

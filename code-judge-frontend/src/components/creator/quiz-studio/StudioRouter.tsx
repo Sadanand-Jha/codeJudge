@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { SecureLogo } from "@/components/common/SecureLogo";
+import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { StudioProvider, useStudio } from "./StudioProvider";
 import { StudioShell } from "./StudioShell";
 import { SetupStep } from "./steps/SetupStep";
@@ -55,10 +55,7 @@ function StudioShellWithRouter({ onDashboard }: { onDashboard: () => void }) {
     return (
       <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-background px-5">
         <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-7 text-center shadow-[0_18px_60px_rgba(17,24,39,0.08)] dark:shadow-[0_18px_60px_rgba(0,0,0,0.3)]">
-          <div className="relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-violet-500/15">
-            <SecureLogo variant="mark" size={40} className="animate-pulse motion-reduce:animate-none" />
-            <span className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-pink-500/10" />
-          </div>
+          <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="mx-auto block animate-pulse motion-reduce:animate-none" />
           <h2 className="mt-5 text-base font-bold text-text-primary">
             {loading ? "Loading quiz" : "Loading quiz questions"}
           </h2>

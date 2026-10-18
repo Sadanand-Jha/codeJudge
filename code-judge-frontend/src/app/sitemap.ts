@@ -2,16 +2,19 @@ import type { MetadataRoute } from "next";
 
 const BASE = "https://www.quizsupport.com";
 
-// Public, crawlable pages only — login, dashboard and private app routes
-// (/login, /register, /dashboard, /platform, /creator, /profile, …) are
-// intentionally excluded. /feed/* and /problems/* are excluded too because
-// focus-mode redirects them to /quiz (no open catalogue — quizzes are joined
-// by access code, and getAllQuizzes only returns the creator's own quizzes).
-const STATIC_PATHS = [
+/**
+ * Public, indexable pages only. Everything else is intentionally excluded:
+ * - /quiz and /quiz/join require an account and carry a noindex directive
+ *   (see src/app/(app)/quiz/layout.tsx)
+ * - /quiz/attempts holds private per-user history
+ * - /login, /register, /forgot-password are noindex (see src/app/(auth)/layout.tsx)
+ * - /creator, /platform and dashboard modules are authenticated workspaces
+ *
+ * No `lastModified` is emitted: the app has no trustworthy per-page
+ * modification timestamps, and fabricated dates are worse than none.
+ */
+const PUBLIC_PATHS = [
   "/",
-  "/quiz",
-  "/quiz/join",
-  "/quiz/attempts",
   "/about",
   "/contact",
   "/privacy",
@@ -21,10 +24,7 @@ const STATIC_PATHS = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return STATIC_PATHS.map((path) => ({
-    url: `${BASE}${path === "/" ? "" : path}`,
-    lastModified: new Date(),
-    changeFrequency: path === "/" ? "daily" : ("weekly" as const),
-    priority: path === "/" ? 1 : 0.7,
+  return PUBLIC_PATHS.map((path) => ({
+    url: path === "/" ? `${BASE}/` : `${BASE}${path}`,
   }));
 }

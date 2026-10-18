@@ -24,6 +24,10 @@ const STATIC_LOGO_FALLBACK: Record<LogoTheme, Record<SecureLogoVariant, string>>
   },
 };
 
+// Single source of truth for the full-screen loading logo size — every
+// page/viewport loading state renders the brand mark at this size.
+export const LOADING_LOGO_SIZE = 125;
+
 // Natural aspect ratios of the artwork (width / height) — keeps the box
 // exactly as wide as the logo, so neighbours never shift.
 const LOGO_ASPECT: Record<SecureLogoVariant, number> = {
