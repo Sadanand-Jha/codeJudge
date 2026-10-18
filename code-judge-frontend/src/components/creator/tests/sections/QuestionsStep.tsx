@@ -64,6 +64,35 @@ const OVERALL_OPTIONS = [
   },
 ] as const;
 
+function StepSection({
+  step,
+  title,
+  hint,
+  divided = true,
+  children,
+}: {
+  step: number;
+  title: string;
+  hint: string;
+  divided?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn("px-5 py-5 sm:px-6", divided && "border-t-2 border-[var(--qs-line)]")}>
+      <div className="mb-4 flex items-start gap-3">
+        <b className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--qs-ink)] text-sm font-extrabold text-[var(--qs-bg)]">
+          {step}
+        </b>
+        <div>
+          <h2 className="text-lg font-extrabold tracking-tight text-[var(--qs-ink)]">{title}</h2>
+          <p className="text-[13px] text-[var(--qs-muted)]">{hint}</p>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: QuestionsStepProps) {
   const toast = useToast();
   const abortRef = useRef<AbortController | null>(null);
@@ -169,50 +198,50 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
   return (
     <div className="space-y-4 pb-36 lg:pb-0">
       {/* Paper-level config */}
-      <div className="ai-color-card overflow-hidden rounded-xl border border-border bg-card">
-        <div className="ai-color-header flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2.5">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-violet-600 text-white">
-              <FileText className="h-4 w-4" />
+      <div className="qs-shadow mt-6 mb-6 mr-4">
+        <div className="overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-[var(--qs-brand)] px-5 py-4 text-[var(--qs-on-brand)] sm:px-6">
+            <div className="flex min-w-0 items-center gap-3.5">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-[var(--qs-sun)] text-[#1a1240]">
+                <FileText className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-xl font-extrabold">Question Paper</h2>
+                <p className="text-[13px] opacity-90">
+                  <AiStreamText text="AI will follow your section structure, marks and syllabus." />
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h3 className="text-[13px] font-extrabold text-text-primary">Question Paper</h3>
-              <p className="min-h-4 truncate text-[11px] text-text-muted">
-                <AiStreamText text="AI will follow your section structure, marks and syllabus." />
-              </p>
-            </div>
+            <span className="shrink-0 rounded-full bg-[var(--qs-bg)] px-2.5 py-0.5 text-[12px] font-extrabold tabular-nums text-[var(--qs-brand)]">
+              {scopeSummary}
+            </span>
           </div>
-          <span className="shrink-0 rounded-full border border-border bg-card-hover px-2.5 py-1 text-[11px] font-bold text-text-secondary tabular-nums">
-            {scopeSummary}
-          </span>
-        </div>
 
-        <div className="space-y-4 px-4 py-3">
-          <div>
-            <label className="mb-1.5 block text-xs font-bold text-text-primary">Paper title</label>
+          <StepSection step={1} title="Paper details" hint="Give the paper a title students will see" divided={false}>
             <input
               type="text"
               value={paperTitle}
               onChange={(e) => onPaperTitleChange(e.target.value)}
               disabled={status === "generating"}
               placeholder="e.g. Mid Semester Examination"
-              className="h-11 w-full rounded-xl border border-border bg-card px-3.5 text-[13px] text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-pink-500/50 disabled:opacity-50"
+              className="h-12 w-full max-w-xl rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-medium text-[var(--qs-ink)] outline-none transition placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] disabled:opacity-60"
             />
-          </div>
+          </StepSection>
 
-          <PaperScopeFilters
-            subjectId={subjectId}
-            chapterIds={chapterIds}
-            topicIds={topicIds}
-            onSubjectChange={setSubjectId}
-            onChapterIdsChange={setChapterIds}
-            onTopicIdsChange={setTopicIds}
-            disabled={status === "generating"}
-          />
+          <StepSection step={2} title="Question scope" hint="Choose the chapters and topics AI should draw from">
+            <PaperScopeFilters
+              subjectId={subjectId}
+              chapterIds={chapterIds}
+              topicIds={topicIds}
+              onSubjectChange={setSubjectId}
+              onChapterIdsChange={setChapterIds}
+              onTopicIdsChange={setTopicIds}
+              disabled={status === "generating"}
+            />
+          </StepSection>
 
-          <div>
-            <p className="mb-1.5 text-xs font-bold text-text-primary">Overall Difficulty</p>
-            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Overall difficulty">
+          <StepSection step={3} title="Overall difficulty" hint="Sets the tone of every question in the paper">
+            <div className="flex flex-wrap gap-2.5" role="radiogroup" aria-label="Overall difficulty">
               {OVERALL_OPTIONS.map((o) => {
                 const active = overall === o.id;
                 return (
@@ -224,10 +253,10 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
                     onClick={() => setOverall(o.id)}
                     disabled={status === "generating"}
                     className={cn(
-                      "inline-flex h-10 items-center gap-1.5 rounded-xl border px-4 text-[13px] font-bold transition-all disabled:opacity-50",
+                      "inline-flex h-11 items-center gap-1.5 rounded-[13px] border-2 px-4 text-sm font-bold transition-all disabled:opacity-50",
                       active
-                        ? "border-transparent bg-gradient-to-r from-pink-500 to-violet-600 text-white shadow-[0_4px_14px_rgba(236,72,153,0.3)]"
-                        : "border-border bg-card text-text-secondary hover:border-border-hover hover:text-text-primary"
+                        ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)]"
+                        : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
                     )}
                   >
                     {active && <Check className="h-3.5 w-3.5" />}
@@ -236,146 +265,150 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
                 );
               })}
             </div>
-            <p className="mt-1.5 text-[11px] text-text-muted">
+            <p className="mt-3 text-[13px] text-[var(--qs-muted)]">
               {OVERALL_OPTIONS.find((o) => o.id === overall)?.hint}
             </p>
-          </div>
+          </StepSection>
 
-          <div className="grid gap-3 md:grid-cols-[1fr_220px]">
-            <div>
-              <label className="mb-1.5 flex items-center justify-between gap-2 text-xs font-bold text-text-primary">
-                <span className="flex flex-wrap items-center gap-1.5">
-                  Your syllabus / instructions
-                  <span className="rounded-full bg-gradient-to-r from-pink-500/10 to-violet-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-violet-600 dark:text-violet-300">
-                    Recommended
-                  </span>
-                </span>
-                <span className="shrink-0 text-[10px] font-medium text-text-muted tabular-nums">{syllabus.length}/4000</span>
-              </label>
-              <textarea
-                value={syllabus}
-                onChange={(e) => setSyllabus(e.target.value)}
-                disabled={status === "generating"}
-                maxLength={4000}
-                rows={2}
-                placeholder="Paste the syllabus you actually taught — units, topics, exclusions and any special instructions…"
-                className={cn(
-                  "min-h-[76px] w-full resize-y rounded-xl border bg-card px-3.5 py-2.5 text-[13px] text-text-primary outline-none transition-all placeholder:text-text-muted focus:border-pink-500/50 disabled:opacity-50",
-                  syllabus.trim() ? "border-emerald-500/30" : "border-amber-400/45"
-                )}
-              />
-              <div className={cn(
-                "mt-1.5 flex items-start gap-1.5 rounded-lg px-2.5 py-2 text-[10px] leading-4",
-                syllabus.trim()
-                  ? "bg-emerald-500/[0.07] text-emerald-700 dark:text-emerald-300"
-                  : "bg-amber-500/[0.08] text-amber-700 dark:text-amber-300"
-              )}>
-                {syllabus.trim() ? <Check className="mt-0.5 h-3 w-3 shrink-0" /> : <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />}
-                <span>
-                  {syllabus.trim()
-                    ? "Great — this helps keep every question closely aligned with what you taught."
-                    : "For the most relevant paper, add your exact syllabus. Without it, AI has broader freedom and may include topics you did not teach."}
-                </span>
-              </div>
-            </div>
-
-            {status !== "done" && (
-              <div className="flex flex-col justify-end gap-1.5">
-                <button
-                  type="button"
-                  onClick={handleGenerate}
-                  disabled={status === "generating" || totalNeeded === 0 || !subjectId}
-                  className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-5 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
+          <StepSection step={4} title="Syllabus & generation" hint="Tell the AI exactly what you taught">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+              <div className="min-w-0 flex-1">
+                <label
+                  htmlFor="qp-syllabus"
+                  className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm font-bold text-[var(--qs-ink)]"
                 >
-                  {status === "generating" ? (
-                    <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" />
-                  ) : (
-                    <Sparkles className="h-3.5 w-3.5" />
-                  )}
-                  {status === "generating" ? "Generating paper…" : "Generate Question Paper"}
-                </button>
-                <p className="flex items-start gap-1 text-[9px] leading-3.5 text-text-muted">
-                  <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" />
-                  AI can make mistakes. Review the paper before publishing.
-                </p>
+                  <span className="flex items-center gap-2">
+                    Your syllabus / instructions
+                    <span className="rounded-full bg-[var(--qs-sun)] px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.06em] text-[#1a1240]">
+                      Recommended
+                    </span>
+                  </span>
+                  <span className="text-[12px] font-medium tabular-nums text-[var(--qs-muted)]">
+                    {syllabus.length}/4000
+                  </span>
+                </label>
+                <textarea
+                  id="qp-syllabus"
+                  value={syllabus}
+                  onChange={(e) => setSyllabus(e.target.value)}
+                  disabled={status === "generating"}
+                  maxLength={4000}
+                  rows={3}
+                  placeholder="Paste the syllabus you actually taught — units, topics, exclusions and any special instructions…"
+                  className="w-full resize-y rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3.5 py-3 text-sm text-[var(--qs-ink)] outline-none transition placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] disabled:opacity-60"
+                />
               </div>
-            )}
-          </div>
+
+              {status !== "done" && (
+                <div className="flex flex-col gap-2 lg:w-auto lg:self-center">
+                  <button
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={status === "generating" || totalNeeded === 0 || !subjectId}
+                    className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-6 py-4 text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none lg:w-auto"
+                  >
+                    {status === "generating" ? (
+                      <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    {status === "generating" ? "Generating paper…" : "Generate Question Paper"}
+                  </button>
+                  <p className="flex items-start justify-center gap-1 text-[11px] leading-4 text-[var(--qs-muted)]">
+                    <AlertCircle className="mt-px h-3 w-3 shrink-0" />
+                    AI can make mistakes. Review the paper before publishing.
+                  </p>
+                </div>
+              )}
+            </div>
+            <p
+              className={cn(
+                "mt-3 text-[13px] font-medium",
+                syllabus.trim() ? "text-[var(--qs-ok)]" : "text-[#a85d00]"
+              )}
+            >
+              {syllabus.trim()
+                ? "Great — this helps keep every question closely aligned with what you taught."
+                : "For the most relevant paper, add your exact syllabus. Without it, AI has broader freedom and may include topics you did not teach."}
+            </p>
+          </StepSection>
 
           {status === "generating" && (
-            <div className="relative overflow-hidden rounded-2xl border border-violet-400/25 bg-gradient-to-br from-pink-500/[0.08] via-violet-500/[0.06] to-cyan-400/[0.08] px-4 py-4 shadow-[0_12px_34px_rgba(139,92,246,0.10)]">
-              <motion.div
-                aria-hidden="true"
-                className="creator-desktop-flourish absolute -right-10 -top-12 h-32 w-32 rounded-full bg-pink-400/20 blur-3xl"
-                animate={{ scale: [0.9, 1.15, 0.9], opacity: [0.35, 0.7, 0.35] }}
-                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <motion.div
-                aria-hidden="true"
-                className="creator-desktop-flourish absolute -bottom-14 left-1/3 h-28 w-28 rounded-full bg-cyan-400/20 blur-3xl"
-                animate={{ x: [-12, 18, -12], opacity: [0.25, 0.6, 0.25] }}
-                transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
-              />
+            <div className="border-t-2 border-[var(--qs-line)] px-5 py-5 sm:px-6">
+              <div className="relative overflow-hidden rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-4">
+                <motion.div
+                  aria-hidden="true"
+                  className="creator-desktop-flourish absolute -right-10 -top-12 h-32 w-32 rounded-full bg-[var(--qs-sun)]/25 blur-3xl"
+                  animate={{ scale: [0.9, 1.15, 0.9], opacity: [0.35, 0.7, 0.35] }}
+                  transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                  aria-hidden="true"
+                  className="creator-desktop-flourish absolute -bottom-14 left-1/3 h-28 w-28 rounded-full bg-[var(--qs-brand)]/15 blur-3xl"
+                  animate={{ x: [-12, 18, -12], opacity: [0.25, 0.6, 0.25] }}
+                  transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
+                />
 
-              <div className="relative flex items-center gap-3">
-                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-[0_8px_22px_rgba(139,92,246,0.28)]">
-                  <motion.div
-                    animate={{ rotate: [0, 8, -8, 0], scale: [1, 1.08, 1] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <WandSparkles className="h-5 w-5" />
-                  </motion.div>
-                  <motion.span
-                    aria-hidden="true"
-                    className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-amber-300"
-                    animate={{ scale: [0.5, 1.25, 0.5], opacity: [0.4, 1, 0.4] }}
-                    transition={{ duration: 1.4, repeat: Infinity }}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-extrabold text-text-primary">Generating your question paper</p>
-                      <div aria-live="polite" className="mt-0.5 min-h-4 overflow-hidden text-[11px] text-text-secondary">
-                        <AnimatePresence mode="wait" initial={false}>
-                          <motion.p
-                            key={loadingMessageIndex}
-                            initial={{ opacity: 0, y: 3 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -3 }}
-                            transition={{ duration: 0.16 }}
-                          >
-                            {PAPER_LOADING_MESSAGES[loadingMessageIndex]}
-                          </motion.p>
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card/70 px-2.5 py-1 text-[10px] font-semibold text-text-secondary backdrop-blur-sm">
-                      <Clock3 className="h-3 w-3 text-violet-500" /> Usually 1–2 min
-                    </span>
-                  </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-card/80 shadow-inner">
+                <div className="relative flex items-center gap-3">
+                  <div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
                     <motion.div
-                      className="h-full w-2/5 rounded-full bg-gradient-to-r from-pink-500 via-violet-500 to-cyan-400 shadow-[0_0_14px_rgba(139,92,246,0.45)]"
-                      animate={{ x: ["-110%", "260%"] }}
-                      transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                      animate={{ rotate: [0, 8, -8, 0], scale: [1, 1.08, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <WandSparkles className="h-5 w-5" />
+                    </motion.div>
+                    <motion.span
+                      aria-hidden="true"
+                      className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[var(--qs-brand)]"
+                      animate={{ scale: [0.5, 1.25, 0.5], opacity: [0.4, 1, 0.4] }}
+                      transition={{ duration: 1.4, repeat: Infinity }}
                     />
                   </div>
-                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10px]">
-                    <span className="font-semibold text-violet-600 dark:text-violet-300">
-                      <span className="mr-1 inline-flex gap-0.5" aria-hidden="true">
-                        {[0, 1, 2].map((dot) => (
-                          <motion.span
-                            key={dot}
-                            className="h-1 w-1 rounded-full bg-current"
-                            animate={{ y: [0, -3, 0] }}
-                            transition={{ duration: 0.8, repeat: Infinity, delay: dot * 0.14 }}
-                          />
-                        ))}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-extrabold text-[var(--qs-ink)]">Generating your question paper</p>
+                        <div aria-live="polite" className="mt-0.5 min-h-4 overflow-hidden text-[12px] text-[var(--qs-muted)]">
+                          <AnimatePresence mode="wait" initial={false}>
+                            <motion.p
+                              key={loadingMessageIndex}
+                              initial={{ opacity: 0, y: 3 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -3 }}
+                              transition={{ duration: 0.16 }}
+                            >
+                              {PAPER_LOADING_MESSAGES[loadingMessageIndex]}
+                            </motion.p>
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-1 text-[11px] font-bold text-[var(--qs-ink)]">
+                        <Clock3 className="h-3 w-3 text-[var(--qs-brand)]" /> Usually 1–2 min
                       </span>
-                      Creating {totalNeeded} questions across {sections.length} sections
-                    </span>
-                    <span className="text-text-muted">Please keep this window open</span>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--qs-surface)]">
+                      <motion.div
+                        className="h-full w-2/5 rounded-full bg-[var(--qs-brand)]"
+                        animate={{ x: ["-110%", "260%"] }}
+                        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                      />
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                      <span className="font-bold text-[var(--qs-brand)]">
+                        <span className="mr-1 inline-flex gap-0.5" aria-hidden="true">
+                          {[0, 1, 2].map((dot) => (
+                            <motion.span
+                              key={dot}
+                              className="h-1 w-1 rounded-full bg-current"
+                              animate={{ y: [0, -3, 0] }}
+                              transition={{ duration: 0.8, repeat: Infinity, delay: dot * 0.14 }}
+                            />
+                          ))}
+                        </span>
+                        Creating {totalNeeded} questions across {sections.length} sections
+                      </span>
+                      <span className="text-[var(--qs-muted)]">Please keep this window open</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -383,9 +416,11 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
           )}
 
           {error && (
-            <div className="flex items-start gap-2.5 rounded-xl border border-rose-500/20 bg-rose-500/5 px-4 py-3">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
-              <p className="text-xs font-semibold text-rose-600 dark:text-rose-400">{error}</p>
+            <div className="border-t-2 border-[var(--qs-line)] px-5 py-5 sm:px-6">
+              <div className="flex items-start gap-2.5 rounded-[14px] border-2 border-[var(--qs-bad)]/25 bg-[var(--qs-badbg)] px-4 py-3">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-bad)]" />
+                <p className="text-[13px] font-semibold text-[var(--qs-bad)]">{error}</p>
+              </div>
             </div>
           )}
         </div>
