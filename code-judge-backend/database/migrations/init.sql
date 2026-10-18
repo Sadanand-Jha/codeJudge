@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS submissions (
 CREATE TABLE IF NOT EXISTS quiz (
     id SERIAL PRIMARY KEY,
     name VARCHAR NOT NULL,
-    code VARCHAR NOT NULL,
+    code VARCHAR NOT NULL CONSTRAINT uq_quiz_code UNIQUE,
     createdby INTEGER NOT NULL,
     starttime TIMESTAMP,
     endtime TIMESTAMP,

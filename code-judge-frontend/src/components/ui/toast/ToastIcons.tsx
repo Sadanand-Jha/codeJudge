@@ -8,6 +8,17 @@ interface ToastIconProps {
   className?: string;
 }
 
+export const toastTone: Record<
+  ToastType,
+  { solid: string; bubble: string; icon: string }
+> = {
+  success: { solid: "#13795b", bubble: "bg-[#13795b]", icon: "text-white" },
+  error: { solid: "#c2303a", bubble: "bg-[#c2303a]", icon: "text-white" },
+  warning: { solid: "#ffd23f", bubble: "bg-[#ffd23f]", icon: "text-[#1A1240]" },
+  info: { solid: "#6a3df0", bubble: "bg-[#6a3df0]", icon: "text-white" },
+  loading: { solid: "#6a3df0", bubble: "bg-[#6a3df0]", icon: "text-white" },
+};
+
 const iconMap: Record<ToastType, React.FC<React.SVGProps<SVGSVGElement>>> = {
   success: CheckCircle2,
   error: XCircle,
@@ -16,32 +27,17 @@ const iconMap: Record<ToastType, React.FC<React.SVGProps<SVGSVGElement>>> = {
   loading: Loader2,
 };
 
-const iconColorMap: Record<ToastType, string> = {
-  success: "text-[#22C55E]",
-  error: "text-[#EF4444]",
-  warning: "text-[#F59E0B]",
-  info: "text-[#3B82F6]",
-  loading: "text-[#7C3AED]",
-};
-
-const iconBgMap: Record<ToastType, string> = {
-  success: "bg-[#22C55E]/10",
-  error: "bg-[#EF4444]/10",
-  warning: "bg-[#F59E0B]/10",
-  info: "bg-[#3B82F6]/10",
-  loading: "bg-[#7C3AED]/10",
-};
-
 export function ToastIcon({ type, className = "" }: ToastIconProps) {
   const Icon = iconMap[type];
   const isSpinner = type === "loading";
+  const tone = toastTone[type];
 
   return (
     <div
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconBgMap[type]} ${className}`}
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-[12px] border-2 border-[#1A1240] ${tone.bubble} ${className}`}
     >
       <Icon
-        className={`h-[18px] w-[18px] ${iconColorMap[type]} ${isSpinner ? "animate-spin" : ""}`}
+        className={`h-[18px] w-[18px] ${tone.icon} ${isSpinner ? "animate-spin" : ""}`}
         strokeWidth={2.5}
       />
     </div>

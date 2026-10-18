@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../StudioProvider";
 import { StudioStepHeader, StudioStepLayout, SwitchField } from "../primitives";
 import { TimingSection } from "../components/timing";
+import { toast } from "@/lib/toast";
+import { updateQuiz } from "@/services/quiz";
+import { fetchMyRooms } from "@/services/rooms";
+import { getEligibleCount, useRoomStore } from "@/store/roomStore";
+import type { AccessMode } from "../types";
 
 const GROUPS: Array<{ id: string; label: string; fields: SettingField[]; comingSoon?: boolean; alwaysOn?: boolean }> = [
   {
@@ -58,6 +63,8 @@ export function SettingsStep() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start">
         <div className="min-w-0 space-y-4">
           <TimingSection />
+
+          <AccessCard />
 
           {GROUPS.map((g, i) => (
             <motion.div
@@ -245,5 +252,151 @@ function Field({ field }: { field: SettingField }) {
       checked={!!value}
       onChange={(v) => updateSettings({ [field.key]: v })}
     />
+  );
+}
+
+const ACCESS_MODES: Array<{ id: AccessMode; label: string; description: string }> = [
+  { id: "public", label: "Public", description: "Anyone can discover and attempt this quiz." },
+  { id: "private", label: "Private", description: "Only students with the quiz link can attempt." },
+  { id: "classroom", label: "Rooms", description: "Only students from the rooms you select can attempt." },
+];
+
+function AccessCard() {
+  const { state, updateAudience, saveAudienceParticipants, audienceDirty, goToStep } = useStudio();
+  const rooms = useRoomStore((s) => s.rooms);
+  const setRooms = useRoomStore((s) => s.setRooms);
+  const [saving, setSaving] = useState(false);
+
+  const audience = state.audience;
+  const mode = audience.mode;
+  const roomIds = useMemo(() => audience.roomIds ?? [], [audience.roomIds]);
+  const eligibleCount = useMemo(() => getEligibleCount(rooms, roomIds), [rooms, roomIds]);
+  const activeMode = ACCESS_MODES.find((m) => m.id === mode) ?? ACCESS_MODES[0];
+
+  useEffect(() => {
+    if (mode !== "classroom" || rooms.length > 0) return;
+    let cancelled = false;
+    fetchMyRooms()
+      .then((freshRooms) => {
+        if (!cancelled) setRooms(freshRooms);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, rooms.length, setRooms]);
+
+  const handleUpdateAccess = async () => {
+    if (saving) return;
+    if (!state.serverQuizId) {
+      toast.info({
+        title: "Quiz not saved yet",
+        description: "Save the quiz once — access updates apply to saved quizzes.",
+      });
+      return;
+    }
+    setSaving(true);
+    try {
+      if (mode === "classroom") {
+        await saveAudienceParticipants();
+        toast.success({
+          title: "Quiz access updated",
+          description:
+            eligibleCount > 0
+              ? `${eligibleCount} student${eligibleCount === 1 ? "" : "s"} from ${roomIds.length} room${roomIds.length === 1 ? "" : "s"} can attempt this quiz.`
+              : "Room access saved for this quiz.",
+        });
+      } else {
+        await updateQuiz(state.serverQuizId, { audienceMode: mode });
+        toast.success({
+          title: "Quiz access updated",
+          description:
+            mode === "public"
+              ? "Anyone can now discover and attempt this quiz."
+              : "Only students with the link can attempt this quiz.",
+        });
+      }
+    } catch (error) {
+      toast.error({
+        title: "Could not update access",
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold text-text-primary">Access</h3>
+          <p className="mt-0.5 text-xs leading-relaxed text-text-secondary">{activeMode.description}</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleUpdateAccess}
+          disabled={saving}
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-accent px-3.5 text-xs font-bold text-white shadow-[0_4px_14px_-2px_rgba(236,72,153,0.45)] transition-all duration-150 hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", saving && "animate-spin motion-reduce:animate-none")} />
+          {saving ? "Updating…" : "Update Access"}
+        </button>
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {ACCESS_MODES.map((m) => {
+          const active = mode === m.id;
+          return (
+            <button
+              key={m.id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => updateAudience({ mode: m.id })}
+              className={cn(
+                "flex min-h-12 flex-col justify-center gap-0.5 rounded-xl border p-3 text-left transition-all duration-150",
+                active
+                  ? "border-pink-500/40 bg-pink-500/[0.06] dark:border-pink-400/70 dark:bg-pink-500/10"
+                  : "border-border hover:border-border-hover dark:hover:border-white/25"
+              )}
+            >
+              <span className={cn("text-sm font-bold", active ? "text-pink-500" : "text-text-primary")}>
+                {m.label}
+              </span>
+              <span className="text-[10px] font-medium leading-snug text-text-muted">{m.description}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {mode === "classroom" && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-border px-3 py-2">
+          <span className="text-xs font-semibold text-text-secondary">
+            {roomIds.length > 0
+              ? `${roomIds.length} room${roomIds.length === 1 ? "" : "s"} · ${eligibleCount} student${eligibleCount === 1 ? "" : "s"} eligible`
+              : "No rooms selected yet."}
+          </span>
+          {roomIds.length > 0 ? (
+            audienceDirty ? (
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                Unsaved changes
+              </span>
+            ) : (
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                Saved
+              </span>
+            )
+          ) : (
+            <button
+              type="button"
+              onClick={() => goToStep("audience")}
+              className="text-xs font-bold text-pink-500 transition-colors duration-150 hover:text-pink-400"
+            >
+              Pick rooms →
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

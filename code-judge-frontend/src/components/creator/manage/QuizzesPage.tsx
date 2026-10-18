@@ -476,15 +476,6 @@ function QuizCardItem({
                 <>
                   <button type="button" aria-label="Close actions menu" className="fixed inset-0 z-20 cursor-default" onClick={onCloseMenu} />
                   <div className="absolute right-0 top-9 z-30 w-40 overflow-hidden rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1.5 shadow-[0_12px_30px_rgba(26,18,64,0.16)]">
-                    <MenuAction
-                      icon={Copy}
-                      label="Duplicate"
-                      onClick={() => {
-                        onCloseMenu();
-                        toast.success({ title: "Duplicate", description: "Use Edit → Clone from quiz settings." });
-                      }}
-                    />
-                    <div className="my-1 border-t border-[var(--qs-line)]" />
                     <MenuAction icon={Trash2} label="Delete" danger onClick={onDelete} />
                   </div>
                 </>

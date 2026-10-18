@@ -184,7 +184,7 @@ export async function openRazorpayCheckout(args: {
       currency: args.order.currency,
       name: "QuizSupport",
       description: args.itemName,
-      theme: { color: "#EC4899" },
+      theme: { color: "#6A3DF0" },
       prefill: args.prefill,
       notes: args.notes,
       handler: (response) =>

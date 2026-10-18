@@ -6,7 +6,7 @@ import { pool } from "../config/database.ts";
 import { AdminQuizService } from "../services/database/adminQuiz.service.ts";
 import { ResultGenerationService } from "../services/resultGeneration.service.ts";
 import { sendCollaboratorInviteEmail } from "../services/email.ts";
-import { isDatabaseUnavailableError } from "../utils/databaseError.ts";
+import { isDatabaseUnavailableError, isQuizCodeConflictError } from "../utils/databaseError.ts";
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { MAX_QUESTIONS_PER_QUIZ, QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
 import { sendEntitlementError } from "../services/entitlement.service.ts";
@@ -273,15 +273,6 @@ export const generateQuizCodeEndpoint = async (req: Request, res: Response) => {
 
 // ==================== QUIZ CRUD ====================
 
-const generateQuizCode = (): string => {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "";
-  for (let i = 0; i < 16; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
-};
-
 const resolveDifficultyId = async (difficulty: unknown): Promise<number | null> => {
   if (difficulty === undefined || difficulty === null) return null;
   if (typeof difficulty === "number") return difficulty;
@@ -301,7 +292,7 @@ export const createQuiz = async (req: Request, res: Response) => {
     }
 
     const body = req.body;
-    const code = body.code || generateQuizCode();
+    const code = body.code || (await quizService.generateUniqueCode());
     const visibilityId = typeof body.visibility === "number" ? body.visibility : null;
     const difficultyId = body.difficultyId
       ? Number(body.difficultyId)
@@ -347,6 +338,10 @@ export const createQuiz = async (req: Request, res: Response) => {
       res.status(429).json({ success: false, message: error.message, code: error.code });
       return;
     }
+    if (isQuizCodeConflictError(error)) {
+      res.status(409).json({ success: false, code: "QUIZ_CODE_TAKEN", message: "This quiz code is already in use. Please generate a new code." });
+      return;
+    }
     console.error("Error creating quiz:", error);
     res.status(500).json({ success: false, message: "Internal server error while creating quiz" });
   }
@@ -370,6 +365,10 @@ export const updateQuiz = async (req: Request, res: Response) => {
     const updatedQuiz = await quizService.updateQuiz(Number(quizId), req.body);
     res.status(200).json({ success: true, message: "Quiz updated successfully", data: updatedQuiz });
   } catch (error) {
+    if (isQuizCodeConflictError(error)) {
+      res.status(409).json({ success: false, code: "QUIZ_CODE_TAKEN", message: "This quiz code is already in use. Please generate a new code." });
+      return;
+    }
     console.error("Error updating quiz:", error);
     res.status(500).json({ success: false, message: "Internal server error while updating quiz" });
   }
@@ -431,6 +430,10 @@ export const cloneQuiz = async (req: Request, res: Response) => {
     if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizCreationLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
+    if (isQuizCodeConflictError(error)) {
+      res.status(409).json({ success: false, code: "QUIZ_CODE_TAKEN", message: "This quiz code is already in use. Please generate a new code." });
       return;
     }
     console.error("Error cloning quiz:", error);

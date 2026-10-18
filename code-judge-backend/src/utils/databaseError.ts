@@ -5,6 +5,17 @@ const RETRYABLE_DATABASE_CODES = new Set([
   "08000", "08001", "08003", "08004", "08006", "08007", "08P01", // connection exceptions
 ]);
 
+/** Unique-violation on the quiz code column (`uq_quiz_code`). */
+export function isQuizCodeConflictError(error: unknown): boolean {
+  const value = error as { code?: string; constraint?: string; detail?: string; message?: string } | null;
+  if (String(value?.code ?? "") !== "23505") return false;
+  const haystack = [value?.constraint, value?.detail, value?.message]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes("uq_quiz_code") || haystack.includes("(code)");
+}
+
 export function isDatabaseUnavailableError(error: unknown): boolean {
   const value = error as { code?: string; message?: string } | null;
   const code = String(value?.code ?? "");

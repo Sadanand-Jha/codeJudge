@@ -1,3 +1,4 @@
+import axios from "axios";
 import apiClient from "@/lib/axios";
 import { isValidQuizCode } from "@/utils/quizCode";
 import { QuizLeaderboardSettings } from "@/types/quiz";
@@ -474,6 +475,16 @@ export async function copyQuizCode(quizId: string): Promise<string> {
 export async function getQuizDifficultyOptions(): Promise<{ id: number; heading: string }[]> {
   const response = await apiClient.get("/v1/admin/quiz/difficulty-options");
   return response.data as { id: number; heading: string }[];
+}
+
+/**
+ * True when the backend rejected a quiz create/update/clone because the code
+ * is already taken (409 QUIZ_CODE_TAKEN from the uq_quiz_code constraint).
+ */
+export function isQuizCodeTakenError(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false;
+  const data = error.response?.data as { code?: string } | undefined;
+  return error.response?.status === 409 && data?.code === "QUIZ_CODE_TAKEN";
 }
 
 /**

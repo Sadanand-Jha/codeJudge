@@ -10,6 +10,7 @@ import { finalizeExpiredQuizAttempts, processQuizSubmission } from "../services/
 import { QuizCreationLimitError } from "../services/quizCreationLimits.ts";
 import { QuizQuestionLimitError } from "../services/quizQuestionLimits.ts";
 import { sendEntitlementError } from "../services/entitlement.service.ts";
+import { isQuizCodeConflictError } from "../utils/databaseError.ts";
 import {
   acquireQuizSubmissionRecoveryLock,
   deleteFallbackQuizSubmission,
@@ -330,14 +331,6 @@ export const generateQuizCodeEndpoint = async (req: Request, res: Response) => {
  * POST /api/v1/user/quiz
  * Create a new quiz from the creator settings form.
  */
-const generateQuizCode = (): string => {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "";
-  for (let i = 0; i < 16; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
-};
 
 /**
  * Resolve a difficulty value (numeric id or label like "Easy") to its
@@ -366,7 +359,7 @@ export const createQuiz = async (req: Request, res: Response) => {
       return;
     }
 
-    const code = body.code || generateQuizCode();
+    const code = body.code || (await quizService.generateUniqueCode());
     const visibilityId =
       typeof body.visibility === "number" ? body.visibility : null;
     const difficultyId = body.difficultyId
@@ -416,6 +409,14 @@ export const createQuiz = async (req: Request, res: Response) => {
     if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizCreationLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
+    if (isQuizCodeConflictError(error)) {
+      res.status(409).json({
+        success: false,
+        code: "QUIZ_CODE_TAKEN",
+        message: "This quiz code is already in use. Please generate a new code.",
+      });
       return;
     }
     console.error("Error creating quiz:", error);
@@ -503,6 +504,14 @@ export const updateQuiz = async (req: Request, res: Response) => {
       data: updatedQuiz,
     });
   } catch (error) {
+    if (isQuizCodeConflictError(error)) {
+      res.status(409).json({
+        success: false,
+        code: "QUIZ_CODE_TAKEN",
+        message: "This quiz code is already in use. Please generate a new code.",
+      });
+      return;
+    }
     console.error("Error updating quiz:", error);
     res.status(500).json({
       success: false,
@@ -614,6 +623,14 @@ export const cloneQuiz = async (req: Request, res: Response) => {
     if (sendEntitlementError(error, res)) return;
     if (error instanceof QuizCreationLimitError) {
       res.status(429).json({ success: false, message: error.message, code: error.code });
+      return;
+    }
+    if (isQuizCodeConflictError(error)) {
+      res.status(409).json({
+        success: false,
+        code: "QUIZ_CODE_TAKEN",
+        message: "This quiz code is already in use. Please generate a new code.",
+      });
       return;
     }
     console.error("Error cloning quiz:", error);

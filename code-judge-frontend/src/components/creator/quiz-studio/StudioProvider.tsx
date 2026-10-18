@@ -16,6 +16,7 @@ import { generateQuizCode } from "@/utils/quizCode";
 import { toast } from "@/lib/toast";
 import {
   createQuiz,
+  isQuizCodeTakenError,
   updateQuiz,
   updateQuizStatus,
   setQuizParticipants,
@@ -1201,6 +1202,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       };
 
       let quizId = state.serverQuizId || null;
+      let savedCode = state.info.code;
       if (quizId) {
         const currentSnapshot = JSON.stringify({
           title: state.info.title,
@@ -1245,7 +1247,16 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
           quizSnapshotRef.current = currentSnapshot;
         }
       } else {
-        const quiz = await createQuiz(payload);
+        let quiz: Awaited<ReturnType<typeof createQuiz>>;
+        try {
+          quiz = await createQuiz(payload);
+        } catch (err) {
+          if (!isQuizCodeTakenError(err)) throw err;
+          const freshCode = generateQuizCode();
+          savedCode = freshCode;
+          setState((s) => ({ ...s, info: { ...s.info, id: freshCode, code: freshCode } }));
+          quiz = await createQuiz({ ...payload, code: freshCode });
+        }
         quizId = String(quiz.id);
       }
 
@@ -1343,7 +1354,7 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
       }
 
       setState((s) => ({ ...s, serverQuizId: quizId }));
-      return { quizId, code: state.info.code };
+      return { quizId, code: savedCode };
     } finally {
       setSavingToServer(false);
       setSaveProgress(null);

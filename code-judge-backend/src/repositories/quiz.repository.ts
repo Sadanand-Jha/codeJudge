@@ -1432,7 +1432,7 @@ export class QuizRepository {
     } else {
       insights.push("No game events have been recorded yet — power-up analytics will appear once students use lifelines.");
     }
-    const completionPctNum = s.total_registrations > 0 ? (parseInt(s.completed_attempts || 0) / parseInt(s.total_registrations)) * 100 : 0;
+    const completionPctNum = totalAttemptsNum > 0 ? Math.min(100, (parseInt(s.completed_attempts || 0) / totalAttemptsNum) * 100) : 0;
     if(completionPctNum < 50 && totalAttemptsNum>5) insights.push(`Completion rate is low (${completionPctNum.toFixed(1)}%) — consider difficulty or duration.`);
 
     return {
@@ -1451,7 +1451,7 @@ export class QuizRepository {
         median_time: parseFloat(s.median_time)||0,
         fastest_time: s.fastest_time ? parseInt(s.fastest_time) : null,
         slowest_time: s.slowest_time ? parseInt(s.slowest_time) : null,
-        completion_rate: s.total_registrations > 0 ? ((parseInt(s.completed_attempts)/parseInt(s.total_registrations))*100).toFixed(2) : "0.00",
+        completion_rate: totalAttemptsNum > 0 ? Math.min(100, ((parseInt(s.completed_attempts)||0)/totalAttemptsNum)*100).toFixed(2) : "0.00",
         total_registrations: parseInt(s.total_registrations)||0,
         passed_count: parseInt(s.passed_count)||0,
         pass_rate: totalAttemptsNum>0 ? ((parseInt(s.passed_count)||0)/totalAttemptsNum*100).toFixed(1) : "0.0",
