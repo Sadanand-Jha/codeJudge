@@ -4,13 +4,13 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Check,
+  Clock,
   Globe,
   Link2,
   Mail,
   MapPin,
   Pencil,
   Phone,
-  ShieldCheck,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -85,13 +85,14 @@ export function CreatorProfilePage() {
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-violet-600 text-2xl font-bold text-white">
                   {profile.displayName.charAt(0)}
                 </div>
-                <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 ring-4 ring-card">
-                  <ShieldCheck className="h-3.5 w-3.5 text-white" />
-                </span>
               </div>
               <h3 className="mt-4 text-base font-bold text-text-primary">{form.displayName}</h3>
               <p className="text-xs font-medium text-pink-500 dark:text-ai-accent">@{profile.creatorUsername}</p>
-              <StatusBadge label="Verified Creator" tone="emerald" className="mt-2" />
+              {profile.verificationStatus === "verified" ? (
+                <StatusBadge label="Verified Creator" tone="emerald" className="mt-2" />
+              ) : (
+                <StatusBadge label="Verification pending" tone="amber" className="mt-2" />
+              )}
               <p className="mt-3 text-[13px] leading-relaxed text-text-secondary">{form.bio}</p>
               <div className="mt-4 grid w-full grid-cols-4 gap-2 border-t border-border pt-4">
                 {STATS.map((s) => (
@@ -108,10 +109,10 @@ export function CreatorProfilePage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-xl border border-border/60 bg-white/[0.02] px-3.5 py-3">
                 <div className="flex items-center gap-2.5">
-                  <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                  <p className="text-[13px] font-semibold text-text-primary">Verified</p>
+                  <Clock className="h-4 w-4 text-amber-500" />
+                  <p className="text-[13px] font-semibold text-text-primary">Verification pending</p>
                 </div>
-                <span className="text-[11px] text-text-secondary">12 Mar 2023</span>
+                <span className="text-[11px] text-text-secondary">In review</span>
               </div>
               <div className="flex items-center justify-between rounded-xl border border-border/60 bg-white/[0.02] px-3.5 py-3">
                 <div className="flex items-center gap-2.5">

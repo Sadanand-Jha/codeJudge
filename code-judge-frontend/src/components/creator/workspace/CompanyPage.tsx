@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Building2,
-  Check,
+  Clock,
   Globe,
   Mail,
   MapPin,
@@ -135,12 +135,12 @@ export function CompanyPage() {
           >
             <div className="flex items-center justify-between">
               <p className="text-[13px] font-semibold text-text-primary">Verification status</p>
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-300">
-                <Check className="h-3 w-3" />
-                Complete
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-300">
+                <Clock className="h-3 w-3" />
+                Pending
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-text-secondary">Identity, organization and payment verified.</p>
+            <p className="mt-1 text-[11px] text-text-secondary">Identity, organization and payment pending verification.</p>
           </Link>
         </div>
 

@@ -275,7 +275,7 @@ export function CreatorSidebar({
           </div>
           <div className="min-w-0 leading-tight">
             <p className="truncate text-[13px] font-bold text-[var(--qs-ink)]">{displayName}</p>
-            <p className="truncate text-[10px] font-medium text-[var(--qs-ok)]">Verified Creator</p>
+            <p className="truncate text-[10px] font-medium text-[var(--qs-warn)]">Verification pending</p>
           </div>
         </Link>
       </div>

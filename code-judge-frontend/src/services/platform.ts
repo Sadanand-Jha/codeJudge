@@ -252,6 +252,23 @@ export interface BankQuestionUpdate {
   topicId?: number | null;
 }
 
+export interface UserFeedbackItem {
+  id: number;
+  category: string;
+  message: string;
+  created_at: string;
+  user_id: number;
+  username: string | null;
+  email: string | null;
+}
+
+export interface UserFeedbackData {
+  total: number;
+  categories: { category: string; count: number }[];
+  items: UserFeedbackItem[];
+  unavailable?: boolean;
+}
+
 async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
   const key = `${path}?${new URLSearchParams(
     Object.entries(params ?? {}).map(([name, value]) => [name, String(value)])
@@ -273,6 +290,8 @@ export const platformApi = {
   session: () => get<{ authorized: true }>("/session"),
   overview: (range: PlatformRange, days?: number) => get<OverviewData>("/overview", days ? { range, days } : { range }),
   feedback: () => get<PlatformFeedbackData>("/feedback"),
+  userFeedback: (category?: string) =>
+    get<UserFeedbackData>("/user-feedback", category ? { category } : undefined),
   series: (range: PlatformRange, days?: number) => get<{ points: SeriesPoint[] | null; unavailable?: boolean }>("/series", days ? { range, days } : { range }),
   live: () => get<LiveData>("/live"),
   activity: (scope = "all", search = "", page = 1, limit = 20) =>

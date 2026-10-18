@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { BookOpen, Mail, ShieldCheck, type LucideIcon } from "lucide-react";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import FeedbackForm from "@/components/marketing/landing/FeedbackForm";
+import { SecureLogo } from "@/components/common/SecureLogo";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 export const metadata = buildPublicPageMetadata({
@@ -7,24 +11,121 @@ export const metadata = buildPublicPageMetadata({
   path: "/contact",
 });
 
+interface ContactCard {
+  icon: LucideIcon;
+  title: string;
+  cta: string;
+  href: string;
+  mail?: boolean;
+  body?: string;
+}
+
+const CARDS: ContactCard[] = [
+  {
+    icon: Mail,
+    title: "Email support",
+    cta: "Compose email",
+    href: "mailto:support@quizsupport.com",
+    mail: true,
+  },
+  {
+    icon: BookOpen,
+    title: "Help center",
+    body: "Guides for creating quizzes, sharing codes and tracking results.",
+    cta: "Open docs",
+    href: "/docs",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Privacy and data",
+    body: "What we store, who can see it and how to get it deleted.",
+    cta: "Read policy",
+    href: "/privacy",
+  },
+];
+
 export default function ContactPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="text-2xl font-bold tracking-tight">Contact QuizSupport</h1>
-      <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-        Need help joining a quiz, tracking your scores, or creating quizzes for
-        your classroom? Reach out to us and we will get back to you.
-      </p>
-      <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-        Email us at{" "}
-        <a href="mailto:support@quizsupport.com" className="underline underline-offset-4">
-          support@quizsupport.com
-        </a>
-        .
-      </p>
-      <Link href="/" className="mt-8 inline-block text-sm underline underline-offset-4">
-        Back to Home
-      </Link>
-    </main>
+    <div className="qs-ui qs-lp min-h-screen">
+      <nav aria-label="Main">
+        <div className="wrap">
+          <Link href="/" aria-label="QuizSupport home">
+            <SecureLogo size={42} variant="full" rounded={false} className="logo" />
+          </Link>
+          <div className="nl">
+            <Link href="/">Home</Link>
+            <ThemeToggle variant="icon" />
+            <Link href="/creator/quizzes/create" className="btn sm pri">
+              Create a quiz
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      <main id="top">
+        <header className="wrap pg-top">
+          <p className="eb">Contact &amp; feedback</p>
+          <h1>Send feedback to the team</h1>
+          <p className="pg-lead">
+            Found a bug, have an idea, or something in a quiz feels off? Sign in
+            and tell us — every message is read by the QuizSupport team.
+          </p>
+          <div className="pg-meta">
+            <span className="pl ok">Read by the team</span>
+            <span className="pl blue">Signed-in only</span>
+          </div>
+        </header>
+
+        <div className="wrap ct-layout">
+          <FeedbackForm />
+
+          <aside className="ct-side">
+            {CARDS.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div className="card ct-card" key={card.title}>
+                  <span className="ct-ico">
+                    <Icon size={18} />
+                  </span>
+                  <h3>{card.title}</h3>
+                  <p>
+                    {card.mail ? (
+                      <>
+                        Write to{" "}
+                        <a href="mailto:support@quizsupport.com">support@quizsupport.com</a> — every
+                        message lands with a human.
+                      </>
+                    ) : (
+                      card.body
+                    )}
+                  </p>
+                  {card.mail ? (
+                    <a className="btn sm pri" href={card.href}>
+                      {card.cta}
+                    </a>
+                  ) : (
+                    <Link className="btn sm" href={card.href}>
+                      {card.cta}
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
+          </aside>
+        </div>
+      </main>
+
+      <footer>
+        <div className="wrap">
+          <SecureLogo size={34} variant="full" rounded={false} className="logo" />
+          <div className="fl">
+            <Link href="/about">About</Link>
+            <Link href="/contact">Contact</Link>
+            <Link href="/privacy">Privacy Policy</Link>
+            <Link href="/quiz">Quizzes</Link>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

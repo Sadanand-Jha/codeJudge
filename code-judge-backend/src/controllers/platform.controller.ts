@@ -183,6 +183,50 @@ export const getFeedback = async (_req: Request, res: Response) => {
   res.json({ success: true, data: data ?? { responses: 0, averages: { quiz: null, questions: null, teacher: null, platform: null }, recent: [], unavailable: true } });
 };
 
+// ── User feedback (contact page submissions) ──────────────
+export const getUserFeedback = async (req: Request, res: Response) => {
+  const category =
+    typeof req.query.category === "string" && req.query.category.trim()
+      ? req.query.category.trim()
+      : null;
+  const rawLimit = Number(req.query.limit);
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(Math.trunc(rawLimit), 1), 200) : 100;
+
+  const data = await safe(async () => {
+    const categories = await pool
+      .query(
+        `SELECT category, COUNT(*)::int AS count
+           FROM user_feedback
+          GROUP BY category
+          ORDER BY count DESC, category ASC`
+      )
+      .then((result) => result.rows);
+    const items = await pool
+      .query(
+        `SELECT uf.id, uf.category, uf.message, uf.created_at,
+                u.id AS user_id, u.username, u.email
+           FROM user_feedback uf
+           JOIN users u ON u.id = uf.user_id
+          WHERE ($1::text IS NULL OR uf.category = $1)
+          ORDER BY uf.created_at DESC
+          LIMIT $2`,
+        [category, limit]
+      )
+      .then((result) => result.rows);
+    const total = num(
+      (
+        await one(
+          `SELECT COUNT(*)::int AS n FROM user_feedback WHERE ($1::text IS NULL OR category = $1)`,
+          [category]
+        )
+      )?.n
+    );
+    return { total, categories, items };
+  });
+
+  res.json({ success: true, data: data ?? { total: 0, categories: [], items: [], unavailable: true } });
+};
+
 // ── Time series ───────────────────────────────────────────
 export const getSeries = async (req: Request, res: Response) => {
   const { key, days } = parseRange(req.query);

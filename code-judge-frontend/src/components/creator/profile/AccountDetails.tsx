@@ -27,7 +27,7 @@ export function AccountDetails({
     { label: "Account type", value: profile.role || "Individual" },
     {
       label: "Account status",
-      value: `${profile.verified ? "Verified" : "Unverified"} · Active`,
+      value: `${profile.verificationStatus === "verified" ? "Verified" : "Verification pending"} · Active`,
     },
     formatDateTime(profile.createdAt) ? { label: "Registered", value: formatDateTime(profile.createdAt) } : null,
     formatDateTime(lastActive) ? { label: "Last active", value: formatDateTime(lastActive) } : null,

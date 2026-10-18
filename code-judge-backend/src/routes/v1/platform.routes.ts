@@ -6,7 +6,7 @@ import { requireOwner } from "../../middleware/requireOwner.ts";
 import {
   getOverview, getSeries, getLive, getActivity, getUsers, getQuizzes,
   getAi, getHealth, getJobs, getErrors, getSecurity, getAudit,
-  getStorage, getGrowth, search, getAlerts, getFeedback,
+  getStorage, getGrowth, search, getAlerts, getFeedback, getUserFeedback,
   getObservability, getRequestDetail,
 } from "../../controllers/platform.controller.ts";
 import {
@@ -70,6 +70,7 @@ router.get("/session", (_req, res) => {
 
 router.get("/overview", getOverview);
 router.get("/feedback", getFeedback);
+router.get("/user-feedback", getUserFeedback);
 router.get("/series", getSeries);
 router.get("/live", getLive);
 router.get("/activity", getActivity);

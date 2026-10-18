@@ -20,6 +20,7 @@ import aiRoutes from "./ai.routes.ts";
 import roomRoutes from "../room.routes.ts";
 import followRoutes from "../follow.routes.ts";
 import { listRooms } from "../../../controllers/room.controller.ts";
+import { submitFeedback } from "../../../controllers/feedback.controller.ts";
 
 
 const router = Router();
@@ -66,6 +67,11 @@ router.get("/users/:userId", authenticate, lookupUser);
 
 // ===================== ROOMS MY-ROOMS ALIAS (frontend expects /my-rooms) ==========
 router.get("/my-rooms", authenticate, listRooms);
+
+// ===================== FEEDBACK ======================
+// Signed-in users submit feedback from the contact page; the owner console
+// reads it from /api/v1/platform/user-feedback.
+router.post("/feedback", authenticate, submitFeedback);
 
 
 
