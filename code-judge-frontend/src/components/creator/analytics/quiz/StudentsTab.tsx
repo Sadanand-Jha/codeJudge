@@ -150,7 +150,92 @@ export function StudentsTab({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="space-y-2.5 md:hidden">
+        {rows.map((s) => {
+          const rank = ranks.get(s.attempt_id) ?? toNumber(s.rank);
+          const pct = clampPercent(s.percentage);
+          const c = toNumber(s.correct_answers);
+          const w = toNumber(s.wrong_answers);
+          const sk = toNumber(s.skipped_questions);
+          const acc = c + w + sk > 0 ? (c / (c + w + sk)) * 100 : 0;
+          const name = s.username ?? `User ${s.user_id}`;
+          const hue = nameHue(name);
+          const isOpen = openId === s.attempt_id;
+          const detail = cache[s.attempt_id];
+          return (
+            <div
+              key={s.attempt_id}
+              onClick={() => toggleRow(s)}
+              className="cursor-pointer rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-bg)]"
+            >
+              <div className="flex items-center gap-3">
+                <b className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-ink)] text-xs font-extrabold text-[var(--qs-surface)]">
+                  {rank > 0 ? rank : "—"}
+                </b>
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] text-xs font-extrabold"
+                  style={{ background: `hsl(${hue} 75% 88%)`, color: `hsl(${hue} 65% 28%)` }}
+                >
+                  {initialsOf(name)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <b className="block truncate text-sm font-bold text-[var(--qs-ink)]">{name}</b>
+                  <span className="text-xs font-semibold text-[var(--qs-muted)]">#{s.user_id}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleRow(s);
+                  }}
+                  aria-label={isOpen ? "Collapse answers" : "Expand answers"}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-line)] transition hover:border-[var(--qs-brand)]"
+                >
+                  <ChevronDown className={cn("h-4 w-4 text-[var(--qs-ink)] transition-transform", isOpen && "rotate-180")} />
+                </button>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <div className="flex items-center gap-2">
+                  <b className="text-sm font-extrabold text-[var(--qs-ink)]">
+                    {toNumber(s.score).toFixed(0)}
+                    {totalMarks > 0 ? ` / ${totalMarks}` : ""}
+                  </b>
+                  <div className="h-2.5 w-14 overflow-hidden rounded-full border-2 border-[var(--qs-ink)]">
+                    <i className="block h-full bg-[var(--qs-brand)]" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-[var(--qs-muted)]">
+                  Accuracy <b className="text-sm font-bold text-[var(--qs-ink)]">{acc.toFixed(1)}%</b>
+                </span>
+                <span className="text-xs font-semibold text-[var(--qs-muted)]">
+                  Correct <b className="text-sm font-bold text-[var(--qs-ink)]">{Math.round(c)}</b>
+                </span>
+                <span className="text-xs font-semibold text-[var(--qs-muted)]">
+                  Time <b className="text-sm font-bold text-[var(--qs-ink)]">{toNumber(s.time_taken) > 0 ? fmtSec(s.time_taken) : "—"}</b>
+                </span>
+                {s.status === "completed" ? (
+                  <OutlinePill tone="ok">Completed</OutlinePill>
+                ) : (
+                  <OutlinePill tone="warn">In progress</OutlinePill>
+                )}
+              </div>
+              {isOpen && (
+                <div className="mt-3 rounded-[16px] border-2 border-dashed border-[var(--qs-line)] p-4">
+                  {loadingId === s.attempt_id && !detail ? (
+                    <p className="text-sm font-semibold text-[var(--qs-muted)]">Loading answers…</p>
+                  ) : detail ? (
+                    <ReviewChips detail={detail} />
+                  ) : (
+                    <p className="text-sm font-semibold text-[var(--qs-muted)]">Answers could not be loaded.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full min-w-[920px] border-collapse">
           <thead>
             <tr className="border-b-2 border-[var(--qs-ink)] text-left text-xs font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)]">

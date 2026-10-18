@@ -13,7 +13,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import ScrollStory from "@/components/pricing/story/ScrollStory";
 import LightScrollStory from "@/components/pricing/story/light/LightScrollStory";
 import { useTheme } from "@/context/ThemeContext";
-import { PLAN_CREDIT_ALLOWANCES, CREDIT_PACKS, AI_CREDIT_COSTS } from "@/config/aiCredits";
+import { PLAN_CREDIT_ALLOWANCES, CREDIT_PURCHASE_PACKS, AI_CREDIT_COSTS } from "@/config/aiCredits";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 
 /* ============================================
@@ -1410,27 +1410,15 @@ function PricingPageContent() {
                     If you use all monthly credits, purchase additional packs
                   </p>
                   <div className="space-y-2">
-                    <div className="rounded-xl bg-card-hover p-3">
-                      <div className="text-[11px] font-semibold text-text-primary">Starter</div>
-                      <div className="mt-1 flex items-baseline justify-between">
-                        <span className="text-lg font-extrabold text-text-primary">250</span>
-                        <span className="text-[10px] text-text-muted">₹99</span>
+                    {CREDIT_PURCHASE_PACKS.map((pack) => (
+                      <div key={pack.id} className="rounded-xl bg-card-hover p-3">
+                        <div className="text-[11px] font-semibold text-text-primary">{pack.name}</div>
+                        <div className="mt-1 flex items-baseline justify-between">
+                          <span className="text-lg font-extrabold text-text-primary">{pack.credits}</span>
+                          <span className="text-[10px] text-text-muted">₹{pack.price}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="rounded-xl bg-card-hover p-3">
-                      <div className="text-[11px] font-semibold text-text-primary">Standard</div>
-                      <div className="mt-1 flex items-baseline justify-between">
-                        <span className="text-lg font-extrabold text-text-primary">1000</span>
-                        <span className="text-[10px] text-text-muted">₹299</span>
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-card-hover p-3">
-                      <div className="text-[11px] font-semibold text-text-primary">Power User</div>
-                      <div className="mt-1 flex items-baseline justify-between">
-                        <span className="text-lg font-extrabold text-text-primary">5000</span>
-                        <span className="text-[10px] text-text-muted">₹999</span>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                   <p className="mt-3 text-[10px] text-text-muted">Never expire while active</p>
                 </motion.div>
@@ -1765,8 +1753,8 @@ function PricingPageContent() {
                  </p>
                </motion.div>
 
-               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                 {CREDIT_PACKS.map((pack) => (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {CREDIT_PURCHASE_PACKS.map((pack) => (
                    <motion.div
                      key={pack.id}
                      initial={{ opacity: 0, y: 16 }}
@@ -1794,9 +1782,14 @@ function PricingPageContent() {
                        ₹{Math.round(pack.price / pack.credits * 100) / 100}/credit
                      </div>
 
-                     <button className="w-full rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2.5 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)]">
-                       Buy Pack
-                     </button>
+                      <button
+                        onClick={() => {
+                          window.location.href = `/creator/billing/credits?pack=${pack.id}`;
+                        }}
+                        className="w-full rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-4 py-2.5 text-[12px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)]"
+                      >
+                        {pack.cta}
+                      </button>
                    </motion.div>
                  ))}
                </div>

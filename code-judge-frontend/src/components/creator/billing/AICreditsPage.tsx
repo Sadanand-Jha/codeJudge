@@ -29,7 +29,14 @@ import {
   type PackOrderSummary,
 } from "@/services/aiCredits";
 
-export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) {
+export function AICreditsPage({
+  demoState,
+  initialPackId,
+}: {
+  demoState?: "empty" | "error";
+  /** Deep link from /pricing — opens the checkout for this pack. */
+  initialPackId?: string | null;
+}) {
   const toast = useToast();
   const balance = useAICreditsStore((s) => s.balance);
   const refreshCredits = useAICreditsStore((s) => s.refresh);
@@ -41,7 +48,11 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
   });
   const validityMonths = getCreditValidityMonths();
 
-  const [packId, setPackId] = useState<string | null>(null);
+  const [packId, setPackId] = useState<string | null>(() =>
+    initialPackId && getPurchasePacks().some((pack) => pack.id === initialPackId)
+      ? initialPackId
+      : null
+  );
   const [phase, setPhase] = useState<PurchasePhase>("summary");
   const [phaseError, setPhaseError] = useState<string | null>(null);
   const [processingNote, setProcessingNote] = useState("Creating your order…");

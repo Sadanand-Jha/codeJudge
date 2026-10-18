@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
@@ -9,6 +16,18 @@ export type QsSelectOption<T extends string | number> = {
   label: string;
   disabled?: boolean;
 };
+
+type MenuPosition = {
+  top?: number;
+  bottom?: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+  openUp: boolean;
+};
+
+const MIN_MENU_WIDTH = 180;
+const VIEWPORT_GAP = 8;
 
 export function QsSelect<T extends string | number>({
   value,
@@ -33,25 +52,58 @@ export function QsSelect<T extends string | number>({
 }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [position, setPosition] = useState<MenuPosition | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLUListElement | null>(null);
+
+  /* The menu renders in a portal with fixed positioning so ancestors with
+     overflow-hidden (rounded qs cards) can never clip it — the mobile bug. */
+  const measure = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    const width = Math.min(Math.max(rect.width, MIN_MENU_WIDTH), window.innerWidth - VIEWPORT_GAP * 2);
+    const left =
+      align === "right"
+        ? Math.max(VIEWPORT_GAP, Math.min(rect.right - width, window.innerWidth - width - VIEWPORT_GAP))
+        : Math.max(VIEWPORT_GAP, Math.min(rect.left, window.innerWidth - width - VIEWPORT_GAP));
+    const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_GAP * 2;
+    const spaceAbove = rect.top - VIEWPORT_GAP * 2;
+    const openUp = spaceBelow < 220 && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(140, Math.min(256, openUp ? spaceAbove : spaceBelow));
+    setPosition(
+      openUp
+        ? { bottom: window.innerHeight - rect.top + 6, left, width, maxHeight, openUp }
+        : { top: rect.bottom + 6, left, width, maxHeight, openUp }
+    );
+  }, [align]);
 
   useEffect(() => {
     if (!open) return;
     const handlePointer = (event: MouseEvent | TouchEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (wrapRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
+    const handleViewport = () => measure();
     document.addEventListener("mousedown", handlePointer);
     document.addEventListener("touchstart", handlePointer);
     document.addEventListener("keydown", handleKey);
+    window.addEventListener("resize", handleViewport);
+    window.addEventListener("scroll", handleViewport, true);
     return () => {
       document.removeEventListener("mousedown", handlePointer);
       document.removeEventListener("touchstart", handlePointer);
       document.removeEventListener("keydown", handleKey);
+      window.removeEventListener("resize", handleViewport);
+      window.removeEventListener("scroll", handleViewport, true);
     };
-  }, [open]);
+  }, [open, measure]);
 
   const selected = options.find((option) => option.value === value) ?? null;
 
@@ -60,6 +112,7 @@ export function QsSelect<T extends string | number>({
     if (!open) {
       const index = options.findIndex((option) => option.value === value);
       setActiveIndex(index >= 0 ? index : 0);
+      measure();
     }
     setOpen((prev) => !prev);
   };
@@ -101,6 +154,7 @@ export function QsSelect<T extends string | number>({
   return (
     <div ref={wrapRef} className="relative" onKeyDown={handleKeyDown}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={openMenu}
         disabled={disabled}
@@ -120,47 +174,56 @@ export function QsSelect<T extends string | number>({
         />
       </button>
 
-      {open && (
-        <ul
-          role="listbox"
-          aria-label={ariaLabel}
-          className={cn(
-            "absolute top-full z-40 mt-2 max-h-64 overflow-y-auto rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]",
-            align === "right" ? "right-0" : "left-0",
-            menuClassName ?? "w-full min-w-[200px]"
-          )}
-        >
-          {options.length === 0 ? (
-            <li className="px-3 py-4 text-center text-[13px] text-[var(--qs-muted)]">No options</li>
-          ) : (
-            options.map((option, index) => {
-              const isSelected = option.value === value;
-              return (
-                <li key={String(option.value)}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    disabled={option.disabled}
-                    onMouseEnter={() => setActiveIndex(index)}
-                    onClick={() => choose(index)}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-2 rounded-[10px] px-3 py-2 text-left text-sm transition-colors disabled:opacity-40",
-                      index === activeIndex && "bg-[var(--qs-bg)]",
-                      isSelected
-                        ? "font-extrabold text-[var(--qs-brand)]"
-                        : "font-medium text-[var(--qs-ink)]"
-                    )}
-                  >
-                    <span className="truncate">{option.label}</span>
-                    {isSelected && <Check className="h-4 w-4 shrink-0" />}
-                  </button>
-                </li>
-              );
-            })
-          )}
-        </ul>
-      )}
+      {open &&
+        position &&
+        createPortal(
+          <ul
+            ref={menuRef}
+            role="listbox"
+            aria-label={ariaLabel}
+            style={{
+              ...(position.openUp ? { bottom: position.bottom } : { top: position.top }),
+              left: position.left,
+              width: position.width,
+              maxHeight: position.maxHeight,
+            }}
+            className={cn(
+              "fixed z-[80] overflow-y-auto rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]",
+              menuClassName
+            )}
+          >
+            {options.length === 0 ? (
+              <li className="px-3 py-4 text-center text-[13px] text-[var(--qs-muted)]">No options</li>
+            ) : (
+              options.map((option, index) => {
+                const isSelected = option.value === value;
+                return (
+                  <li key={String(option.value)}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      disabled={option.disabled}
+                      onMouseEnter={() => setActiveIndex(index)}
+                      onClick={() => choose(index)}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-2 rounded-[10px] px-3 py-2 text-left text-sm transition-colors disabled:opacity-40",
+                        index === activeIndex && "bg-[var(--qs-bg)]",
+                        isSelected
+                          ? "font-extrabold text-[var(--qs-brand)]"
+                          : "font-medium text-[var(--qs-ink)]"
+                      )}
+                    >
+                      <span className="truncate">{option.label}</span>
+                      {isSelected && <Check className="h-4 w-4 shrink-0" />}
+                    </button>
+                  </li>
+                );
+              })
+            )}
+          </ul>,
+          document.body
+        )}
     </div>
   );
 }

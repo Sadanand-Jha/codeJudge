@@ -66,7 +66,48 @@ export function QuestionsTab({ questions }: { questions: QuestionStat[] }) {
       </div>
 
       <Panel title="Question analytics" subtitle="Every question, ranked by behaviour.">
-        <div className="overflow-x-auto">
+        <div className="md:hidden space-y-2.5">
+          {questions.map((q) => {
+            const acc = Math.min(100, Math.max(0, toNumber(q.accuracy)));
+            return (
+              <div key={q.id} className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <b className="text-sm font-extrabold text-[var(--qs-ink)]">Q{q.question_number}</b>
+                  <OutlinePill tone={difficultyTone(q.difficulty_name)}>{q.difficulty_name ?? "—"}</OutlinePill>
+                  <span className="text-xs font-medium text-[var(--qs-muted)]">{prettyType(q.problem_type)}</span>
+                </div>
+                <p className="mt-2 text-sm font-semibold text-[var(--qs-ink)]">{cleanStatement(q.problem_statement)}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[var(--qs-muted)]">
+                  <span>
+                    Attempts <b className="text-sm font-bold text-[var(--qs-ink)]">{Math.round(toNumber(q.total_responses))}</b>
+                  </span>
+                  <span>
+                    Correct <b className="text-sm font-bold text-[var(--qs-ink)]">{Math.round(toNumber(q.correct_responses))}</b>
+                  </span>
+                  <span>
+                    Incorrect <b className="text-sm font-bold text-[var(--qs-ink)]">{Math.round(toNumber(q.incorrect_responses))}</b>
+                  </span>
+                  <span>
+                    Skipped <b className="text-sm font-bold text-[var(--qs-ink)]">{Math.round(toNumber(q.skipped_count))}</b>
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <b className="text-sm font-extrabold text-[var(--qs-ink)]">{acc.toFixed(1)}%</b>
+                    <div className="h-2.5 w-20 overflow-hidden rounded-full border-2 border-[var(--qs-ink)]">
+                      <i className="block h-full bg-[var(--qs-brand)]" style={{ width: `${acc}%` }} />
+                    </div>
+                  </div>
+                  <span className="text-xs text-[var(--qs-muted)]">
+                    Avg time <b className="text-sm font-bold text-[var(--qs-ink)]">{fmtSec(toNumber(q.avg_time_ms) / 1000)}</b>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[980px] border-collapse">
             <thead>
               <tr className="border-b-2 border-[var(--qs-ink)] text-left text-xs font-extrabold uppercase tracking-[0.06em] text-[var(--qs-muted)]">

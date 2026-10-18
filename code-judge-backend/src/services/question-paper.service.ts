@@ -17,7 +17,20 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import mammoth from "mammoth";
-import { AlignmentType, Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
+import {
+  AlignmentType,
+  BorderStyle,
+  Document,
+  HeadingLevel,
+  Packer,
+  Paragraph,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+  WidthType,
+} from "docx";
+import * as cheerio from "cheerio";
 import { chatWithAI } from "./ai.service.js";
 import type { LiveUsage } from "./ai.service.js";
 import { pool as db } from "../config/database.js";
@@ -81,6 +94,7 @@ export interface GeneratePaperRequest {
 export interface PaperQuestion {
   num: number;
   question: string;
+  questionHtml?: string | null;
   difficulty: string;
   kind: string;
   marks: number;
@@ -823,7 +837,7 @@ export const generateQuestionPaper = async (
     : difficulty === "any" ? ["easy", "medium", "hard"] : [difficulty];
   const kindFilter = overall !== null ? "any" : kind;
   const bankResult = await db.query(
-    `SELECT qb.id AS num, qb.question_text AS question,
+    `SELECT qb.id AS num, qb.question_text AS question, qb.question_html AS html,
             lower(qd.name) AS difficulty, qc.name AS kind
      FROM subjective_question_bank qb
      JOIN question_difficulty qd ON qd.id = qb.difficulty_id
@@ -837,7 +851,11 @@ export const generateQuestionPaper = async (
     [subjectId, chapterIds, topicIds, allowedDiffs, kindFilter]
   );
   const bank = bankResult.rows.map((row) => ({
-    num: Number(row.num), question: String(row.question), difficulty: String(row.difficulty), kind: String(row.kind),
+    num: Number(row.num),
+    question: String(row.question),
+    html: row.html == null ? null : String(row.html),
+    difficulty: String(row.difficulty),
+    kind: String(row.kind),
   })) as BankQuestion[];
   // Bank shortfall plan: the bank may hold fewer questions than the paper
   // needs. Pre-allocate bank coverage per group in order (bank questions are
@@ -1029,6 +1047,7 @@ ${bankForPrompt}`;
           composed.push({
             num: 0,
             question: c.question,
+            questionHtml: null,
             difficulty: c.difficulty,
             kind: c.kind,
             marks: mpq,
@@ -1044,7 +1063,14 @@ ${bankForPrompt}`;
       const questions: PaperQuestion[] = [
         ...kept.map((n) => {
           const b = byNum.get(n)!;
-          return { num: b.num, question: b.question, difficulty: b.difficulty, kind: b.kind, marks: mpq };
+          return {
+            num: b.num,
+            question: b.question,
+            questionHtml: b.html ?? null,
+            difficulty: b.difficulty,
+            kind: b.kind,
+            marks: mpq,
+          };
         }),
         ...composed,
       ].map((question, index) => ({ ...question, num: index + 1 }));
@@ -1188,13 +1214,125 @@ const docxMeta = (v: unknown): string => {
   return Number.isFinite(n) ? String(n) : "0";
 };
 
+/* Same heuristic as the platform question bank: a space-aligned <pre> block
+   with a consistent column count is really a table. */
+const preTextToRows = (text: string): { header: boolean; cells: string[] }[] | null => {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length < 3) return null;
+  const rows = lines.map((line) => line.split(/\s{2,}|\t+/).map((cell) => cell.trim()).filter(Boolean));
+  const cols = rows[0].length;
+  if (cols < 2) return null;
+  if (!rows.every((row) => row.length === cols)) return null;
+  if (lines.some((line) => line.length > 80)) return null;
+  return rows.map((cells, index) => ({ header: index === 0, cells }));
+};
+
+type DocxQuestionBlock =
+  | { kind: "text"; text: string; mono?: boolean }
+  | { kind: "table"; rows: { header: boolean; cells: string[] }[] };
+
+/* Bank questions store sanitized HTML (tables, <pre> blocks, lists…); turn it
+   into ordered docx blocks so tables render as real Word tables. */
+const htmlToDocxBlocks = (html: string): DocxQuestionBlock[] => {
+  const $ = cheerio.load(`<div id="paper-q">${html}</div>`, null, false);
+  const root = $("#paper-q");
+  const replacements = new Map<string, DocxQuestionBlock>();
+  let marker = 0;
+
+  root.find("table").each((_index, element) => {
+    const key = `\u0001${marker++}\u0001`;
+    const rows: { header: boolean; cells: string[] }[] = [];
+    $(element)
+      .find("tr")
+      .each((_row, tr) => {
+        const $tr = $(tr);
+        const cells = $tr
+          .find("th, td")
+          .map((_cell, cell) => $(cell).text().replace(/\s+/g, " ").trim())
+          .get();
+        if (cells.length) rows.push({ header: $tr.find("th").length > 0, cells });
+      });
+    if (rows.length) replacements.set(key, { kind: "table", rows });
+    $(element).replaceWith(rows.length ? key : "");
+  });
+
+  root.find("pre").each((_index, element) => {
+    const key = `\u0001${marker++}\u0001`;
+    const text = $(element).text();
+    const rows = preTextToRows(text);
+    replacements.set(key, rows ? { kind: "table", rows } : { kind: "text", text, mono: true });
+    $(element).replaceWith(key);
+  });
+
+  root.find("br").replaceWith("\n");
+  root.find("td, th").each((_index, element) => {
+    $(element).append(" ");
+  });
+  root.find("p, div, blockquote, li, h1, h2, h3, h4").each((_index, element) => {
+    $(element).prepend("\n");
+    $(element).append("\n");
+  });
+
+  const blocks: DocxQuestionBlock[] = [];
+  const parts = root.text().split(/\u0001(\d+)\u0001/);
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) {
+      for (const line of parts[i]
+        .split("\n")
+        .map((l) => l.replace(/[ \t]+/g, " ").trim())
+        .filter(Boolean)) {
+        blocks.push({ kind: "text", text: line });
+      }
+    } else {
+      const block = replacements.get(`\u0001${parts[i]}\u0001`);
+      if (block) blocks.push(block);
+    }
+  }
+  return blocks;
+};
+
+const docxTable = (rows: { header: boolean; cells: string[] }[]): Table => {
+  const border = { style: BorderStyle.SINGLE, size: 4, color: "BBBBBB" };
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: border,
+      bottom: border,
+      left: border,
+      right: border,
+      insideHorizontal: border,
+      insideVertical: border,
+    },
+    rows: rows.map(
+      (row) =>
+        new TableRow({
+          tableHeader: row.header,
+          children: row.cells.map(
+            (cell) =>
+              new TableCell({
+                shading: row.header ? { fill: "F2F0FA" } : undefined,
+                children: [
+                  new Paragraph({
+                    children: [new TextRun({ text: cell, size: 22, bold: row.header })],
+                  }),
+                ],
+              })
+          ),
+        })
+    ),
+  });
+};
+
 /**
  * Build the same question paper as a Word (.docx) file.
  * Mirrors renderPaperHtml section-for-section; returns the file bytes.
  */
 export const renderPaperDocx = async (paper: QuestionPaper): Promise<Buffer> => {
   const title = docxText(paper.title) || "Question Paper";
-  const children: Paragraph[] = [
+  const children: (Paragraph | Table)[] = [
     new Paragraph({
       heading: HeadingLevel.TITLE,
       alignment: AlignmentType.CENTER,
@@ -1273,16 +1411,44 @@ export const renderPaperDocx = async (paper: QuestionPaper): Promise<Buffer> => 
       );
       for (const q of g.questions ?? []) {
         qNo++;
-        children.push(
-          new Paragraph({
-            spacing: { after: 120 },
-            children: [
-              new TextRun({ text: `Q${qNo}.  `, bold: true, size: 24 }),
-              new TextRun({ text: docxText(q.question), size: 24 }),
-              new TextRun({ text: `  [${docxMeta(q.marks)} mark${Number(q.marks) !== 1 ? "s" : ""}]`, bold: true, size: 24 }),
-            ],
-          })
-        );
+        const html = typeof q.questionHtml === "string" ? q.questionHtml.trim() : "";
+        const blocks: DocxQuestionBlock[] = html ? htmlToDocxBlocks(html) : [];
+        if (!blocks.length) blocks.push({ kind: "text", text: docxText(q.question) });
+
+        const marksText = `[${docxMeta(q.marks)} mark${Number(q.marks) !== 1 ? "s" : ""}]`;
+        let prefixDone = false;
+        if (blocks[0].kind === "table") {
+          children.push(
+            new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: `Q${qNo}.`, bold: true, size: 24 })] })
+          );
+          prefixDone = true;
+        }
+        blocks.forEach((block, index) => {
+          if (block.kind === "table") {
+            children.push(docxTable(block.rows));
+            return;
+          }
+          const isLast = index === blocks.length - 1;
+          const runs: TextRun[] = [];
+          if (!prefixDone) {
+            runs.push(new TextRun({ text: `Q${qNo}.  `, bold: true, size: 24 }));
+            prefixDone = true;
+          }
+          runs.push(
+            new TextRun({
+              text: docxText(block.text),
+              size: 24,
+              ...(block.mono ? { font: "Courier New", size: 20 } : {}),
+            })
+          );
+          if (isLast) runs.push(new TextRun({ text: `  ${marksText}`, bold: true, size: 24 }));
+          children.push(new Paragraph({ spacing: { after: 120 }, children: runs }));
+        });
+        if (blocks[blocks.length - 1].kind === "table") {
+          children.push(
+            new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: marksText, bold: true, size: 24 })] })
+          );
+        }
       }
     }
   }

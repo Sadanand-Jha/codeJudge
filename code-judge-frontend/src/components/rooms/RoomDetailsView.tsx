@@ -510,7 +510,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
 
         {/* Filter bar */}
         <div className="mb-5 flex flex-wrap items-center gap-2.5">
-          <div className="relative min-w-[220px] flex-[0_1_290px]">
+          <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:flex-[0_1_290px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
             <input
               value={query}
@@ -520,7 +520,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
             />
           </div>
-          <div className="flex flex-1 flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
             {FILTERS.map((f) => {
               const active = filter === f.id;
               return (
@@ -546,7 +546,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             value={sort}
             onChange={(e) => changeSort(e.target.value as StudentSort)}
             aria-label="Sort students"
-            className="shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)]"
+            className="w-full shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)] sm:w-auto"
           >
             <option value="default">Sort: Default Order</option>
             <option value="recent">Sort: Recently Added</option>
@@ -600,7 +600,77 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               </p>
             </header>
 
-            <div className="overflow-x-auto border-t-2 border-[var(--qs-line)]">
+            {/* Mobile cards */}
+            <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-4 md:hidden">
+              {room.students.length === 0 ? (
+                <p className="px-2 py-8 text-center text-sm font-medium text-[var(--qs-muted)]">
+                  No students yet — add students manually or import them from an Excel/CSV file.
+                </p>
+              ) : filteredStudents.length === 0 ? (
+                <p className="px-2 py-8 text-center text-sm font-medium text-[var(--qs-muted)]">
+                  No students match this search or filter.
+                </p>
+              ) : (
+                paginatedStudents.map((student) => {
+                  const issue = hasStudentIssue(student);
+                  return (
+                    <div
+                      key={student.id}
+                      onClick={() => setDetailsStudent(student)}
+                      className="cursor-pointer rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-bg)]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSelected(student.id);
+                          }}
+                          className={cn(
+                            "mt-2 grid h-4.5 w-4.5 shrink-0 place-items-center rounded border-2 transition-colors",
+                            selected.has(student.id)
+                              ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                              : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+                          )}
+                          aria-label={`Select ${student.name}`}
+                        >
+                          {selected.has(student.id) && <CheckSquare className="h-3 w-3" />}
+                        </button>
+                        {/* eslint-disable-next-line @next/next/no-img-element -- avatar URLs are user-configured and may be remote */}
+                        <img
+                          src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
+                          alt=""
+                          className="h-[38px] w-[38px] shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="flex min-w-0 items-center gap-1.5 font-bold text-[var(--qs-ink)]">
+                              <span className="truncate">{student.name}</span>
+                              {issue && <AlertTriangle className="h-3 w-3 shrink-0 text-[#a85d00]" />}
+                            </span>
+                            <span
+                              className={cn(
+                                "shrink-0 rounded-full border-2 border-current px-2 py-px text-[10px] font-extrabold uppercase tracking-[0.05em]",
+                                student.active ? "text-[var(--qs-ok)]" : "text-[#a85d00]"
+                              )}
+                            >
+                              {student.active ? "Active" : "Inactive"}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 truncate text-xs text-[var(--qs-muted)]">
+                            Roll {student.rollNumber} · @{(student.username ?? "").toLowerCase() || "—"}
+                          </p>
+                          <p className="mt-1 text-[11px] text-[var(--qs-muted)]">
+                            Added {student.addedAt ? timeAgo(student.addedAt) : "—"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="hidden overflow-x-auto border-t-2 border-[var(--qs-line)] md:block">
               <table className="w-full min-w-[820px] border-collapse text-left">
                 <thead>
                   <tr>

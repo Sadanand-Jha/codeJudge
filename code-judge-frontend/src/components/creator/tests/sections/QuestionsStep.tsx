@@ -20,6 +20,7 @@ import { sectionsToPaperPayload } from "./paperTypes";
 import type { Section } from "./types";
 import type { QuestionPaper } from "./paperTypes";
 import { PaperScopeFilters } from "./PaperScopeFilters";
+import { QuestionHtml } from "@/components/creator/questions/QuestionHtml";
 import { AiStreamText } from "@/components/ui";
 
 interface QuestionsStepProps {
@@ -476,7 +477,14 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
                               Q{qNo}.
                             </span>
                             <div className="min-w-0 flex-1">
-                              <p className="text-text-primary">{q.question}</p>
+                              {q.questionHtml?.trim() ? (
+                                <QuestionHtml
+                                  html={q.questionHtml}
+                                  className="text-[13px] font-normal leading-relaxed text-text-primary"
+                                />
+                              ) : (
+                                <p className="text-text-primary">{q.question}</p>
+                              )}
                               <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] capitalize text-text-muted">
                                 <span>{q.difficulty} · {q.kind}</span>
                               </p>

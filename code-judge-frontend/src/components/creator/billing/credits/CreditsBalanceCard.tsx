@@ -21,11 +21,11 @@ export function CreditsBalanceCard({
         <Sparkles className="h-7 w-7" strokeWidth={2.5} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-baseline gap-2">
-          <span className="text-[clamp(36px,6vw,56px)] font-black leading-none tabular-nums tracking-tight">
+        <p className="flex items-center gap-2">
+          <span className="text-[30px] font-black leading-none tabular-nums tracking-tight sm:text-[36px]">
             {balance}
           </span>
-          <span className="text-xl font-bold text-[var(--qs-muted)]">credits left</span>
+          <span className="text-base font-bold text-[var(--qs-muted)] sm:text-lg">credits left</span>
         </p>
         <p className="mt-1 text-sm font-medium text-[var(--qs-muted)]">
           Valid {validityMonths} months from purchase

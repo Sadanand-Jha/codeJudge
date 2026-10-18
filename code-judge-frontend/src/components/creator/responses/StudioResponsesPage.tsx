@@ -744,7 +744,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
 
         {/* ── Filter bar ────────────────────────────────────────────── */}
         <div className="mb-5 flex flex-wrap items-center gap-2.5">
-          <div className="relative min-w-[220px] flex-[0_1_290px]">
+          <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:flex-[0_1_290px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
             <input
               value={search}
@@ -754,7 +754,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
             />
           </div>
-          <div className="flex flex-1 flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
             {FILTERS.map((f) => {
               const active = filter === f;
               const label = f === "ALL" ? "All" : STATUS_CONFIG[f].label;
@@ -777,16 +777,18 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               );
             })}
           </div>
-          <button type="button" onClick={exportCsv} className={topBtn}>
-            Export
-          </button>
-          <button
-            type="button"
-            onClick={() => setSortMode((m) => (m + 1) % SORT_LABELS.length)}
-            className={topBtn}
-          >
-            Sort: {SORT_LABELS[sortMode]}
-          </button>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <button type="button" onClick={exportCsv} className={cn(topBtn, "flex-1 justify-center sm:flex-none")}>
+              Export
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode((m) => (m + 1) % SORT_LABELS.length)}
+              className={cn(topBtn, "flex-1 justify-center sm:flex-none")}
+            >
+              Sort: {SORT_LABELS[sortMode]}
+            </button>
+          </div>
         </div>
 
         {/* ── Student Responses ─────────────────────────────────────── */}
@@ -797,7 +799,70 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
               <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">Student Responses</h2>
               <p className="mt-0.5 text-sm text-[var(--qs-muted)]">Monitor every student&apos;s quiz activity and performance in real time.</p>
             </header>
-            <div className="overflow-x-auto border-t-2 border-[var(--qs-line)]">
+            {/* Mobile cards */}
+            <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-4 md:hidden">
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="app-skeleton h-[92px] rounded-[16px]" />
+                ))
+              ) : filtered.length === 0 ? (
+                <p className="px-2 py-8 text-center text-sm font-medium text-[var(--qs-muted)]">
+                  {students.length === 0 ? "No responses yet — students haven't been registered or attempted this quiz." : "No records match this filter."}
+                </p>
+              ) : (
+                filtered.map((s) => (
+                  <div
+                    key={s.id}
+                    onClick={() => openDetail(s)}
+                    className="cursor-pointer rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-bg)]"
+                  >
+                    <div className="flex items-start gap-3">
+                      <RankBadge rank={s.rank} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <StudentAvatar student={s} />
+                          <div className="min-w-0">
+                            <p className="truncate font-bold text-[var(--qs-ink)]">{s.name}</p>
+                            <p className="truncate text-[11px] text-[var(--qs-muted)]">
+                              {s.rollNo} · Attempt {s.attemptNumber ? `#${s.attemptNumber}` : "—"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <StatusBadge status={s.status} />
+                          <span className="text-xs font-bold text-[var(--qs-ink)]">
+                            {s.marks !== null ? s.marks : "—"}
+                            <span className="font-medium text-[var(--qs-muted)]"> / {s.total}</span>
+                          </span>
+                          <span className="flex items-center gap-1.5 text-xs font-extrabold text-[var(--qs-ink)]">
+                            {s.percentage !== null ? `${Math.round(s.percentage)}%` : "—"}
+                            <span className="h-1.5 w-[40px] overflow-hidden rounded-full bg-[var(--qs-line)]">
+                              <i
+                                className="block h-full rounded-full bg-[var(--qs-brand)]"
+                                style={{ width: `${Math.min(100, Math.max(0, s.percentage ?? 0))}%` }}
+                              />
+                            </span>
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-[11px] text-[var(--qs-muted)]">
+                          {s.timeTaken ?? "—"} · {s.submittedAt ?? "—"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label={`Actions for ${s.name}`}
+                        onClick={(e) => openActionMenu(e, s)}
+                        className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-line)]"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="hidden overflow-x-auto border-t-2 border-[var(--qs-line)] md:block">
               <table className="w-full min-w-[900px] border-collapse text-left">
                 <thead>
                   <tr>

@@ -87,7 +87,7 @@ function ProfileMenu() {
 export default function CreatorNavbar({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void }) {
   const creditBalance = useAICreditsStore((s) => s.balance.totalRemaining);
   return (
-    <header className="creator-topbar qs-ui sticky top-0 z-30 flex h-12 min-w-0 w-full max-w-full items-center gap-2 border-b border-ai-border bg-ai-sidebar px-2.5 sm:border-b-2 sm:border-[var(--qs-line)] sm:bg-[var(--qs-surface)]/85 sm:px-3.5 sm:backdrop-blur-xl">
+    <header className="creator-topbar qs-ui sticky top-0 z-30 flex h-[58px] min-w-0 w-full max-w-full items-center gap-2 border-b border-ai-border bg-ai-sidebar px-2.5 sm:border-b-2 sm:border-[var(--qs-line)] sm:bg-[var(--qs-surface)]/85 sm:px-3.5 sm:backdrop-blur-xl">
       <div className="flex min-w-0 flex-1 items-center gap-4 sm:flex-none sm:shrink-0 sm:gap-1">
         {onMobileMenuToggle && (
           <button

@@ -311,6 +311,8 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
 
   const waiting = phase === "waiting";
 
+  const QR_BOX = "h-[160px] w-[160px] sm:h-[200px] sm:w-[200px]";
+
   const qrFrame = (
     <div className="relative rounded-[20px] border-2 border-[var(--qs-ink)] bg-white p-2.5 shadow-[4px_4px_0_var(--qs-sun)]">
       <span aria-hidden="true" className="pointer-events-none absolute -left-[3px] -top-[3px] h-5 w-5 rounded-tl-[12px] border-l-4 border-t-4 border-[var(--qs-brand)]" />
@@ -320,7 +322,7 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
 
       {qr.status === "loading" ? (
         <div
-          className="grid h-[200px] w-[200px] place-items-center rounded-[12px] bg-[var(--qs-bg)]"
+          className={cn("grid place-items-center rounded-[12px] bg-[var(--qs-bg)]", QR_BOX)}
           role="status"
           aria-label="Generating QR code"
         >
@@ -330,9 +332,14 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
           </span>
         </div>
       ) : qr.status === "error" || !qr.url ? (
-        <div className="flex h-[200px] w-[200px] flex-col items-center justify-center gap-3 rounded-[12px] bg-[var(--qs-badbg)] px-5 text-center">
+        <div
+          className={cn(
+            "flex flex-col items-center justify-center gap-2.5 rounded-[12px] bg-[var(--qs-badbg)] px-4 text-center",
+            QR_BOX
+          )}
+        >
           <AlertCircle className="h-6 w-6 text-[var(--qs-bad)]" aria-hidden="true" />
-          <p className="text-[13px] font-bold leading-5 text-[var(--qs-bad)]">
+          <p className="text-[12px] font-bold leading-5 text-[var(--qs-bad)]">
             Could not generate the QR. Try the UPI ID option or retry.
           </p>
           <button
@@ -355,7 +362,7 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
             aria-label={`UPI payment QR code for ${amountLabel}`}
             width={200}
             height={200}
-            className={cn("h-[200px] w-[200px]", qrExpired && "opacity-30 blur-[3px]")}
+            className={cn(QR_BOX, qrExpired && "opacity-30 blur-[3px]")}
           />
           {qrExpired && !waiting && (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
@@ -409,34 +416,37 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
         </div>
       </div>
 
-      <div className="mt-4 flex flex-col items-center">{qrFrame}</div>
+      <div className="mt-4 flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-5 sm:text-left">
+        <div className="shrink-0">{qrFrame}</div>
+        <div className="w-full min-w-0 sm:flex-1">
+          <p className="text-[30px] font-black leading-none tracking-tight tabular-nums sm:text-[34px]">
+            {amountLabel}
+          </p>
+          <p className="mt-2 text-sm font-bold">
+            {packName}
+            {packCredits !== undefined && (
+              <span className="font-medium text-[var(--qs-muted)]"> · {packCredits} credits</span>
+            )}
+          </p>
 
-      <p className="mt-4 text-center text-[40px] font-black leading-none tracking-tight tabular-nums">
-        {amountLabel}
-      </p>
-      <p className="mt-2 text-center text-sm font-bold">
-        {packName}
-        {packCredits !== undefined && (
-          <span className="font-medium text-[var(--qs-muted)]"> · {packCredits} credits</span>
-        )}
-      </p>
+          <div className="mt-3 flex flex-wrap justify-center gap-1.5 sm:justify-start">
+            {UPI_APPS.map((app) => (
+              <span
+                key={app}
+                className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[11px] font-bold"
+              >
+                {app}
+              </span>
+            ))}
+          </div>
 
-      <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-        {UPI_APPS.map((app) => (
-          <span
-            key={app}
-            className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[11px] font-bold"
-          >
-            {app}
-          </span>
-        ))}
+          <p className="mt-3 text-xs leading-5 text-[var(--qs-muted)] [overflow-wrap:anywhere]">
+            Pay to {UPI_CONFIG.MERCHANT_NAME} · {UPI_CONFIG.MERCHANT_VPA}
+            <br />
+            Credits land in your balance the moment the payment succeeds.
+          </p>
+        </div>
       </div>
-
-      <p className="mt-3.5 text-center text-xs leading-5 text-[var(--qs-muted)]">
-        Pay to {UPI_CONFIG.MERCHANT_NAME} · {UPI_CONFIG.MERCHANT_VPA}
-        <br />
-        Credits land in your balance the moment the payment succeeds.
-      </p>
 
       {qr.status !== "error" && (
         <p className="sr-only" role="status" aria-live="polite">

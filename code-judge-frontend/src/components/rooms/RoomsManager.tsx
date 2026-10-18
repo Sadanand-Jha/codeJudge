@@ -350,7 +350,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
 
         {/* Filter bar */}
         <div className="mb-5 flex flex-wrap items-center gap-2.5">
-          <div className="relative min-w-[220px] flex-[0_1_290px]">
+          <div className="relative w-full sm:w-auto sm:min-w-[220px] sm:flex-[0_1_290px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
             <input
               value={query}
@@ -360,7 +360,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
               className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
             />
           </div>
-          <div className="flex flex-1 flex-wrap items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
             {FILTERS.map((f) => {
               const active = filter === f.id;
               return (
@@ -386,7 +386,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
             aria-label="Sort rooms"
-            className="shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)]"
+            className="w-full shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)] sm:w-auto"
           >
             {SORTS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -417,25 +417,71 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                   setCreateOpen(true);
                 }} />
               </div>
+            ) : filtered.length === 0 ? (
+              <div className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
+                No rooms match this search or filter.
+              </div>
             ) : (
-              <div className="overflow-x-auto border-t-2 border-[var(--qs-line)]">
-                <table className="w-full min-w-[820px] border-collapse text-left">
-                  <thead>
-                    <tr>
-                      {["Room", "Description", "Students", "Updated", "Status", "Actions"].map((h) => (
-                        <th key={h} className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.length === 0 ? (
+              <>
+                {/* Mobile cards */}
+                <div className="space-y-2.5 border-t-2 border-[var(--qs-line)] p-4 md:hidden">
+                  {filtered.map((room) => {
+                    const count = room.memberCount ?? room.students.length;
+                    return (
+                      <div
+                        key={room.id}
+                        onClick={() => router.push(`${basePath}/${room.id}`)}
+                        className="cursor-pointer rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 transition-colors active:bg-[var(--qs-bg)]"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                            <Users className="h-4 w-4" strokeWidth={2.5} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="truncate font-bold text-[var(--qs-ink)]">{room.name}</p>
+                              <span
+                                className={cn(
+                                  "shrink-0 rounded-full border-2 border-current px-2 py-px text-[10px] font-extrabold uppercase tracking-[0.05em]",
+                                  room.archived ? "text-[#a85d00]" : "text-[var(--qs-ok)]"
+                                )}
+                              >
+                                {room.archived ? "Archived" : "Active"}
+                              </span>
+                            </div>
+                            <p className="mt-0.5 truncate text-xs text-[var(--qs-muted)]">
+                              {room.description || "No description"}
+                            </p>
+                            <p className="mt-1.5 text-xs text-[var(--qs-muted)]">
+                              <b className="font-extrabold text-[var(--qs-ink)]">{count}</b> students · {timeAgo(room.updatedAt)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            aria-label={`Actions for ${room.name}`}
+                            onClick={(e) => openActionMenu(e, room.id, room.archived)}
+                            className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[10px] text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-line)]"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop table */}
+                <div className="hidden overflow-x-auto border-t-2 border-[var(--qs-line)] md:block">
+                  <table className="w-full min-w-[820px] border-collapse text-left">
+                    <thead>
                       <tr>
-                        <td colSpan={6} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
-                          No rooms match this search or filter.
-                        </td>
+                        {["Room", "Description", "Students", "Updated", "Status", "Actions"].map((h) => (
+                          <th key={h} className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{h}</th>
+                        ))}
                       </tr>
-                    ) : (
-                      filtered.map((room) => {
+                    </thead>
+                    <tbody>
+                      {filtered.map((room) => {
                         const count = room.memberCount ?? room.students.length;
                         return (
                           <tr
@@ -481,11 +527,11 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
                             </td>
                           </tr>
                         );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
 
             <div className="border-t-2 border-[var(--qs-line)] px-4 py-3.5 text-sm font-medium text-[var(--qs-muted)] sm:px-[26px]">

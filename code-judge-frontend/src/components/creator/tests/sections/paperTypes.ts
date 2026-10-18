@@ -3,6 +3,7 @@ import type { Section } from "./types";
 export interface PaperQuestion {
   num: number;
   question: string;
+  questionHtml?: string | null;
   difficulty: string;
   kind: string;
   marks: number;
