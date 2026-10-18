@@ -19,7 +19,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated) {
-      router.replace(user?.role?.toLowerCase() === "teacher" ? "/creator/quizzes" : "/quiz");
+      router.replace(user?.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz");
     }
   }, [hasHydrated, isAuthenticated, router, user?.role]);
 

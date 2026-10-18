@@ -58,9 +58,28 @@ export const FOCUS_ALLOWED_PREFIXES: string[] = [
   "/about",
   "/contact",
   "/privacy",
-  "/pricing",
   "/docs",
 ];
+
+/**
+ * Blocked pages that stay on the allowlist's outer edge: they are kept in the
+ * build for future use but redirect to the homepage (not the quiz hub) while
+ * focus mode is active. Legacy student modules keep the /quiz redirect.
+ * Keep in sync with proxy.ts.
+ */
+export const FOCUS_HOME_REDIRECT_PREFIXES: string[] = [
+  "/pricing",
+];
+
+/**
+ * True when a blocked pathname should send visitors to "/" instead of "/quiz".
+ */
+export function isHomeRedirectPath(pathname: string): boolean {
+  const normalized = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  return FOCUS_HOME_REDIRECT_PREFIXES.some(
+    (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`)
+  );
+}
 
 /**
  * Extra exact paths that should remain accessible (e.g. home).

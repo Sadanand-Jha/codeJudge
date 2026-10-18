@@ -5425,8 +5425,8 @@ textarea {
     color: inherit;
   }
 
-  .qs-lp button,
-  .qs-lp input,
+  .qs-lp button:not(:where(.qs-btn)),
+  .qs-lp input:not(:where(.qs-input)),
   .qs-lp select {
     font: inherit;
     color: inherit;
@@ -5942,10 +5942,55 @@ textarea {
   .qs-lp .rw div {
     flex: 1;
     min-width: 0;
+    overflow: hidden;
   }
 
   .qs-lp .rw b.n {
+    display: block;
     font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .qs-lp .rw .dot,
+  .qs-lp .rw .pro,
+  .qs-lp .rw > b:last-child {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .qs-lp .rw .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+  }
+
+  .qs-lp .rw .av img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .qs-lp .rw .pro {
+    display: inline-block;
+    padding: 1px 7px;
+    border: 2px solid var(--ink);
+    border-radius: 99px;
+    background: var(--sun);
+    color: #1a1240;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 640px) {
+    .qs-lp .rw b.n {
+      font-size: 14px;
+    }
   }
 
   .qs-lp .rk {

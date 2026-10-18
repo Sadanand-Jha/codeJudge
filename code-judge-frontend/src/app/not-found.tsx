@@ -6,12 +6,10 @@ import { Code2, Trophy, FileText, Lightbulb, MessageSquare, Home } from "lucide-
 
 export default function NotFound() {
   const pathname = usePathname() || "";
-  const isStudioContext =
-    pathname.startsWith("/creator") ||
-    pathname.startsWith("/quiz/") ||
-    pathname.includes("/quizzes/");
-  const homeHref = isStudioContext ? "/creator/quizzes" : "/";
-  const homeLabel = isStudioContext ? "Back to Quizzes" : "Back to Home";
+  const isCreatorContext = pathname.startsWith("/creator");
+  const isQuizContext = pathname.startsWith("/quiz/") || pathname.includes("/quizzes/");
+  const homeHref = isCreatorContext ? "/creator" : isQuizContext ? "/quiz" : "/";
+  const homeLabel = isCreatorContext ? "Back to Dashboard" : isQuizContext ? "Back to Quizzes" : "Back to Home";
   const links = [
     { icon: Code2, label: "Problemset", href: "/problems" },
     { icon: Trophy, label: "Contests", href: "/contests" },

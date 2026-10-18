@@ -17,19 +17,19 @@ function Card({
   sub?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-profile-border bg-profile-surface p-4 transition-colors hover:border-profile-text-muted/40">
+    <div className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 transition-colors hover:border-[var(--qs-brand)]">
       <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-profile-surface-elevated">
-          <Icon className="h-3.5 w-3.5 text-profile-text-muted" />
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]">
+          <Icon className="h-3.5 w-3.5" />
         </span>
-        <span className="truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-profile-text-muted">
+        <span className="truncate text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
           {label}
         </span>
       </div>
-      <p className="mt-2.5 truncate text-[26px] font-bold leading-none tracking-tight text-profile-text-primary">
+      <p className="qs-display mt-2.5 truncate text-[26px] font-extrabold leading-none tracking-tight text-[var(--qs-ink)]">
         {value}
       </p>
-      {sub ? <p className="mt-1.5 truncate text-[11px] text-profile-text-muted">{sub}</p> : null}
+      {sub ? <p className="mt-1.5 truncate text-[11px] text-[var(--qs-muted)]">{sub}</p> : null}
     </div>
   );
 }
@@ -60,10 +60,13 @@ export function OverviewStatsSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-hidden="true">
       {[0, 1, 2, 3].map((i) => (
-        <div key={i} className="animate-pulse rounded-2xl border border-profile-border bg-profile-surface p-4">
-          <div className="h-7 w-24 rounded-lg bg-profile-surface-elevated" />
-          <div className="mt-2.5 h-7 w-16 rounded-md bg-profile-surface-elevated" />
-          <div className="mt-1.5 h-3 w-28 rounded bg-profile-surface-elevated" />
+        <div
+          key={i}
+          className="animate-pulse rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4"
+        >
+          <div className="h-8 w-24 rounded-[10px] bg-[var(--qs-line)]/60" />
+          <div className="mt-2.5 h-7 w-16 rounded-md bg-[var(--qs-line)]/60" />
+          <div className="mt-1.5 h-3 w-28 rounded bg-[var(--qs-line)]/60" />
         </div>
       ))}
     </div>

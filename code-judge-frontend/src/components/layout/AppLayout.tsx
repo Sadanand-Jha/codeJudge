@@ -25,7 +25,7 @@ import {
   getActivePreparationModule,
   PREPARATION_BASE,
 } from "@/config/preparation";
-import { FOCUS_MODE_ENABLED, isPathAllowed } from "@/config/focusMode";
+import { FOCUS_MODE_ENABLED, isHomeRedirectPath, isPathAllowed } from "@/config/focusMode";
 import { useAuthStore } from "@/store/authStore";
 import { useUIStore } from "@/store/uiStore";
 import { useSavedAvatar } from "@/store/avatarStore";
@@ -182,7 +182,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
   const isStudentQuizRoute = pathname.startsWith("/quiz") && !isQuizWorkspace && pathname !== "/quiz/create";
   const isStudentPartyRoute = isStudentQuizRoute && theme === "light";
   const visibleNavGroups = navGroups;
-  const homeHref = isStudioRoute || isQuizWorkspace ? "/creator/quizzes" : FOCUS_MODE_ENABLED ? "/quiz" : "/";
+  const homeHref = isStudioRoute ? "/creator" : isQuizWorkspace ? "/creator/quizzes" : FOCUS_MODE_ENABLED ? "/quiz" : "/";
   const isBlockedRoute = FOCUS_MODE_ENABLED && !isPathAllowed(pathname);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -230,10 +230,13 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
   // Proxy enforcement handles direct requests. This client-side guard also
   // covers already-prefetched pages and stale deployments so a restricted
-  // student route can never render its content or full navigation.
+  // student route can never render its content or full navigation. Blocked
+  // marketing pages (e.g. /pricing) redirect home; legacy modules hit /quiz.
   useEffect(() => {
     if (!isBlockedRoute) return;
-    router.replace(`/quiz?blocked=${encodeURIComponent(pathname)}`);
+    router.replace(
+      isHomeRedirectPath(pathname) ? "/" : `/quiz?blocked=${encodeURIComponent(pathname)}`
+    );
   }, [isBlockedRoute, pathname, router]);
 
   const handleLogout = async () => {

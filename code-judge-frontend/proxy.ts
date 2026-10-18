@@ -38,9 +38,12 @@ const FOCUS_ALLOWED_PREFIXES = [
   "/about",
   "/contact",
   "/privacy",
-  "/pricing",
   "/docs",
 ];
+
+// Blocked pages kept in the build that redirect to the homepage instead of
+// the quiz hub. Mirrors FOCUS_HOME_REDIRECT_PREFIXES in src/config/focusMode.ts.
+const FOCUS_HOME_REDIRECT_PREFIXES = ["/pricing"];
 
 const FOCUS_ALLOWED_EXACT = ["/", "/robots.txt", "/sitemap.xml"];
 
@@ -86,9 +89,19 @@ export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (FOCUS_MODE_ENABLED && !isPathAllowed(pathname)) {
+    const url = request.nextUrl.clone();
+    const normalized = pathname !== "/" && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+
+    // Marketing pages that are blocked but kept in the build: send visitors
+    // home instead of the quiz hub.
+    if (matchesPrefix(normalized, FOCUS_HOME_REDIRECT_PREFIXES)) {
+      url.pathname = "/";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+
     // Redirect disallowed routes to the Quiz hub with a query flag
     // so the UI can show a "section disabled" toast if desired.
-    const url = request.nextUrl.clone();
     url.pathname = "/quiz";
     url.searchParams.set("blocked", pathname);
     return NextResponse.redirect(url);

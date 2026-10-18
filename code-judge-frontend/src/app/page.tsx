@@ -4,7 +4,6 @@ import {
   CalendarDays,
   FileText,
   HelpCircle,
-  IndianRupee,
   Mail,
   Moon,
   PenLine,
@@ -19,7 +18,7 @@ import {
 import QuizCodeForm from "@/components/marketing/QuizCodeForm";
 import SampleQuizDemo from "@/components/marketing/SampleQuizDemo";
 import HeroPolygons from "@/components/marketing/landing/HeroPolygons";
-import ThemeToggleBtn from "@/components/marketing/landing/ThemeToggleBtn";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import GeneratorStudio from "@/components/marketing/landing/GeneratorStudio";
 import FeatureTabs from "@/components/marketing/landing/FeatureTabs";
 import { SecureLogo } from "@/components/common/SecureLogo";
@@ -38,7 +37,6 @@ const NAV_LINKS = [
   { label: "Tools", href: "#tools" },
   { label: "Features", href: "#features" },
   { label: "How it works", href: "#how" },
-  { label: "Practice", href: "#practice" },
   { label: "Pricing", href: "#pricing" },
 ];
 
@@ -86,7 +84,7 @@ const TOOLS: ToolCard[] = [
     title: "Practice sets",
     desc: "Ready-made sets for JEE, NEET, GATE, SSC, UPSC and Banking.",
     cta: "Browse sets →",
-    href: "#practice",
+    href: "/quiz",
   },
   {
     icon: Radio,
@@ -119,7 +117,6 @@ const FEATURE_CARDS: FeatureCard[] = [
   },
   { icon: Smartphone, title: "Works anywhere", desc: "Phone or laptop. Nothing to install." },
   { icon: Moon, title: "Light and dark", desc: "Easy on the eyes, day or night." },
-  { icon: IndianRupee, title: "Pay once", desc: "AI credit packs. No subscription." },
 ];
 
 interface Step {
@@ -155,7 +152,7 @@ const AUDIENCES = [
     title: "Practice and compete",
     desc: "Join with a code, answer on any device, see your score instantly and keep your history.",
     cta: "Find practice sets",
-    href: "#practice",
+    href: "/quiz",
   },
   {
     chip: "Teachers",
@@ -173,15 +170,6 @@ const AUDIENCES = [
     cta: "Explore features",
     href: "#features",
   },
-];
-
-const PRACTICE_EXAMS = [
-  { exam: "JEE", desc: "Subject-wise and chapter-wise problems" },
-  { exam: "NEET", desc: "Subject-wise and chapter-wise problems" },
-  { exam: "SSC", desc: "Exam problems and drills" },
-  { exam: "GATE", desc: "Practice sets" },
-  { exam: "UPSC", desc: "Practice sets" },
-  { exam: "Banking", desc: "Practice sets" },
 ];
 
 const FAQS = [
@@ -229,7 +217,7 @@ export default function HomePage() {
                 {link.label}
               </a>
             ))}
-            <ThemeToggleBtn />
+            <ThemeToggle variant="icon" />
             <Link href="/login" className="btn sm">
               Log in
             </Link>
@@ -351,29 +339,6 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        <section className="s" id="practice">
-          <div className="wrap ex">
-            <div>
-              <p className="eb">Practice</p>
-              <h2 className="t">Just here to practice?</h2>
-              <p className="d">
-                Skip creating. Pick an exam and start answering ready-made questions,
-                subject by subject or chapter by chapter.
-              </p>
-            </div>
-            <ul className="exl">
-              {PRACTICE_EXAMS.map((item) => (
-                <li key={item.exam}>
-                  <Link href="/quiz">
-                    <strong>{item.exam}</strong>
-                    <span>{item.desc}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
           </div>
         </section>
 

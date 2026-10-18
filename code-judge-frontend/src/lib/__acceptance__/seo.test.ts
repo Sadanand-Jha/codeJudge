@@ -10,7 +10,7 @@ import { strict as assert } from "node:assert";
 import { existsSync, readFileSync } from "node:fs";
 import robots from "../../app/robots";
 import sitemap from "../../app/sitemap";
-import { isPathAllowed } from "../../config/focusMode";
+import { FOCUS_HOME_REDIRECT_PREFIXES, isHomeRedirectPath, isPathAllowed } from "../../config/focusMode";
 import {
   SITE_URL,
   canonicalUrl,
@@ -85,7 +85,6 @@ test("sitemap lists only reachable public pages on the canonical host", () => {
     "https://www.quizsupport.com/about",
     "https://www.quizsupport.com/contact",
     "https://www.quizsupport.com/privacy",
-    "https://www.quizsupport.com/pricing",
     "https://www.quizsupport.com/docs",
     "https://www.quizsupport.com/meet-the-developer",
   ]);
@@ -154,7 +153,7 @@ test("robots.txt points at the www sitemap and disallows private areas", () => {
     );
   }
 
-  for (const path of ["/", "/about", "/docs", "/pricing", "/meet-the-developer"]) {
+  for (const path of ["/", "/about", "/docs", "/meet-the-developer"]) {
     assert.ok(!disallow.includes(path), `robots.txt must not disallow public path ${path}`);
   }
 });
@@ -194,7 +193,6 @@ test("focus-mode client allowlist keeps every indexable public page reachable", 
     "/about",
     "/contact",
     "/privacy",
-    "/pricing",
     "/docs",
     "/meet-the-developer",
     "/robots.txt",
@@ -203,9 +201,28 @@ test("focus-mode client allowlist keeps every indexable public page reachable", 
   ]) {
     assert.equal(isPathAllowed(path), true, `expected ${path} to be allowed in focus mode`);
   }
-  for (const path of ["/problems", "/feed", "/dashboard", "/leaderboard"]) {
+  for (const path of ["/problems", "/feed", "/dashboard", "/leaderboard", "/pricing"]) {
     assert.equal(isPathAllowed(path), false, `expected ${path} to be blocked in focus mode`);
   }
+});
+
+test("blocked marketing pages redirect to the homepage, not the quiz hub", () => {
+  assert.deepEqual(FOCUS_HOME_REDIRECT_PREFIXES, ["/pricing"]);
+  assert.equal(isHomeRedirectPath("/pricing"), true, "expected /pricing to redirect home");
+  assert.equal(isHomeRedirectPath("/pricing#credits"), false, "only pathnames are checked");
+  assert.equal(isHomeRedirectPath("/quiz"), false, "quiz routes keep the quiz-hub flow");
+
+  const urls = sitemap().map((entry) => entry.url);
+  assert.ok(
+    !urls.some((url) => url.includes("/pricing")),
+    "blocked pages must not be listed in the sitemap"
+  );
+
+  const proxySource = readFileSync("proxy.ts", "utf8");
+  assert.ok(
+    proxySource.includes('FOCUS_HOME_REDIRECT_PREFIXES = ["/pricing"]'),
+    "proxy.ts must mirror the home-redirect list"
+  );
 });
 
 // ──────────────────────────────────────────────────────────────────────────

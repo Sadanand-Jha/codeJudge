@@ -15,12 +15,15 @@ import { getCreatorProfileOverview, type CreatorProfileOverview } from "@/servic
 
 function SectionSkeleton() {
   return (
-    <div className="animate-pulse rounded-2xl border border-profile-border bg-profile-surface p-5" aria-hidden="true">
-      <div className="h-4 w-32 rounded bg-profile-surface-elevated" />
+    <div
+      className="animate-pulse rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5"
+      aria-hidden="true"
+    >
+      <div className="h-4 w-32 rounded bg-[var(--qs-line)]/60" />
       <div className="mt-4 space-y-2.5">
-        <div className="h-3.5 rounded bg-profile-surface-elevated" />
-        <div className="h-3.5 w-5/6 rounded bg-profile-surface-elevated" />
-        <div className="h-3.5 w-4/6 rounded bg-profile-surface-elevated" />
+        <div className="h-3.5 rounded bg-[var(--qs-line)]/60" />
+        <div className="h-3.5 w-5/6 rounded bg-[var(--qs-line)]/60" />
+        <div className="h-3.5 w-4/6 rounded bg-[var(--qs-line)]/60" />
       </div>
     </div>
   );
@@ -76,18 +79,18 @@ export function CreatorProfilePage() {
       {loading ? (
         <OverviewStatsSkeleton />
       ) : error || !overview ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-profile-border bg-profile-surface px-4 py-10 text-center">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10">
-            <AlertCircle className="h-5 w-5 text-red-500" />
+        <div className="flex flex-col items-center gap-3 rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-4 py-10 text-center">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[var(--qs-badbg)] text-[var(--qs-bad)]">
+            <AlertCircle className="h-5 w-5" />
           </span>
           <div>
-            <p className="text-[14px] font-semibold text-profile-text-primary">Couldn&apos;t load your statistics</p>
-            <p className="mt-1 text-[12px] text-profile-text-muted">{error || "Please try again."}</p>
+            <p className="text-[14px] font-extrabold text-[var(--qs-ink)]">Couldn&apos;t load your statistics</p>
+            <p className="mt-1 text-[12px] text-[var(--qs-muted)]">{error || "Please try again."}</p>
           </div>
           <button
             type="button"
             onClick={handleRetry}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-profile-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-profile-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-profile-accent active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-[13px] font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_var(--qs-sun)]"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             Retry

@@ -86,7 +86,7 @@ export default function LowCreditNotification() {
           {/* View all packs link */}
           <button
             onClick={() => {
-              window.location.href = "/pricing";
+              window.location.href = "/creator/billing/credits";
             }}
             className="text-[10px] font-semibold text-accent hover:text-accent-secondary transition-colors flex items-center gap-1"
           >

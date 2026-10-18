@@ -29,19 +29,19 @@ export function ProfileHeader({
   const memberSince = formatMemberSince(profile.createdAt);
 
   return (
-    <div className="rounded-2xl border border-profile-border bg-profile-surface p-5 sm:p-6">
+    <div className="rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-[6px_6px_0_var(--qs-sun)] sm:p-6">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
         {/* Avatar */}
         <div className="relative shrink-0 self-start">
-          <div className="h-20 w-20 overflow-hidden rounded-full border border-profile-border bg-profile-surface-elevated sm:h-24 sm:w-24">
+          <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] sm:h-24 sm:w-24">
             <img src={avatarUrl} alt={profile.displayName} className="h-full w-full object-cover" />
           </div>
           {isVerified && (
             <span
               title="Verified creator"
-              className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 ring-4 ring-profile-surface"
+              className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--qs-ok)] text-white ring-4 ring-[var(--qs-surface)]"
             >
-              <BadgeCheck className="h-3.5 w-3.5 text-white" />
+              <BadgeCheck className="h-3.5 w-3.5" />
             </span>
           )}
         </div>
@@ -49,43 +49,43 @@ export function ProfileHeader({
         {/* Identity */}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-xl font-bold tracking-tight text-profile-text-primary sm:text-2xl">
+            <h1 className="qs-display truncate text-[24px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[28px]">
               {profile.displayName}
             </h1>
             {isVerified ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-ok)]/30 bg-[var(--qs-okbg)] px-2.5 py-0.5 text-[11px] font-extrabold text-[var(--qs-ok)]">
                 <BadgeCheck className="h-3 w-3" />
                 Verified
               </span>
             ) : (
-              <span className="inline-flex items-center rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+              <span className="inline-flex items-center rounded-full border-2 border-[var(--qs-warn)]/35 bg-[var(--qs-sun)]/25 px-2.5 py-0.5 text-[11px] font-extrabold text-[var(--qs-warn)]">
                 Verification pending
               </span>
             )}
           </div>
-          <p className="mt-0.5 truncate text-[13px] text-profile-text-secondary">
+          <p className="mt-1 truncate text-[13px] font-medium text-[var(--qs-muted)]">
             @{profile.creatorUsername}
-            {profile.email ? <span className="text-profile-text-muted"> · {profile.email}</span> : null}
+            {profile.email ? <span> · {profile.email}</span> : null}
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-profile-text-muted">
-            <span className="rounded-md border border-profile-border bg-profile-surface-elevated px-2 py-0.5 font-semibold uppercase tracking-[0.08em]">
+          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold text-[var(--qs-muted)]">
+            <span className="rounded-full border-2 border-[var(--qs-line)] px-2.5 py-0.5 font-extrabold uppercase tracking-[0.08em]">
               {profile.role || "Creator"}
             </span>
-            {memberSince ? <span>Member since {memberSince}</span> : null}
+            {memberSince ? <span className="font-medium">Member since {memberSince}</span> : null}
           </div>
           {profile.bio ? (
-            <p className="mt-2.5 max-w-xl text-[13px] leading-relaxed text-profile-text-secondary">{profile.bio}</p>
+            <p className="mt-2.5 max-w-xl text-[13px] leading-relaxed text-[var(--qs-muted)]">{profile.bio}</p>
           ) : null}
         </div>
 
         {/* Actions */}
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 max-sm:flex-wrap">
           <button
             type="button"
             onClick={onViewPublic}
             title="View public profile"
             aria-label="View public profile"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-profile-border text-profile-text-muted transition-colors hover:bg-profile-surface-elevated hover:text-profile-text-primary focus-visible:outline-2 focus-visible:outline-profile-accent"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-[11px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
           >
             <Globe className="h-4 w-4" />
           </button>
@@ -94,14 +94,14 @@ export function ProfileHeader({
             onClick={onSettings}
             title="Profile settings"
             aria-label="Profile settings"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-profile-border text-profile-text-muted transition-colors hover:bg-profile-surface-elevated hover:text-profile-text-primary focus-visible:outline-2 focus-visible:outline-profile-accent"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-[11px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
           >
             <Settings className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-profile-accent px-4 py-2 text-[13px] font-semibold text-white transition-all hover:bg-profile-accent-hover hover:shadow-[0_4px_16px_rgba(232,90,173,0.25)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-profile-accent active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-[13px] font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_var(--qs-sun)]"
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit Profile

@@ -9,6 +9,7 @@ const BASE = "https://www.quizsupport.com";
  * - /quiz/attempts holds private per-user history
  * - /login, /register, /forgot-password are noindex (see src/app/(auth)/layout.tsx)
  * - /creator, /platform and dashboard modules are authenticated workspaces
+ * - /pricing is blocked in focus mode and redirects to / (see src/config/focusMode.ts)
  *
  * No `lastModified` is emitted: the app has no trustworthy per-page
  * modification timestamps, and fabricated dates are worse than none.
@@ -18,7 +19,6 @@ const PUBLIC_PATHS = [
   "/about",
   "/contact",
   "/privacy",
-  "/pricing",
   "/docs",
   "/meet-the-developer",
 ];

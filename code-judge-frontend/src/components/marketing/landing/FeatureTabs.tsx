@@ -12,7 +12,18 @@ function avatarStyle(name: string) {
   return { background: `hsl(${hash} 55% 42%)` };
 }
 
-const RESPONSE_ROWS = [
+interface ResponseRow {
+  rank: number;
+  name: string;
+  status: string;
+  tone: string;
+  score: string;
+  gold: boolean;
+  avatar?: string;
+  pro?: boolean;
+}
+
+const RESPONSE_ROWS: ResponseRow[] = [
   { rank: 1, name: "nikki", status: "Submitted", tone: "ok", score: "10/10", gold: true },
   {
     rank: 2,
@@ -24,6 +35,16 @@ const RESPONSE_ROWS = [
   },
   { rank: 3, name: "pandeykun", status: "Submitted", tone: "ok", score: "8/10", gold: false },
   { rank: 4, name: "tanvi", status: "Auto", tone: "bad", score: "3/10", gold: false },
+  {
+    rank: 5,
+    name: "sadanand",
+    status: "In progress",
+    tone: "warn",
+    score: "4/10",
+    gold: false,
+    avatar: "/images/quiz/image7.png",
+    pro: true,
+  },
 ];
 
 const SCORE_BARS = [
@@ -99,13 +120,18 @@ const FEATURE_TABS: FeatureTab[] = [
         {RESPONSE_ROWS.map((row) => (
           <div className="rw" key={row.rank}>
             <span className={row.gold ? "rk g" : "rk"}>{row.rank}</span>
-            <span className="av" style={avatarStyle(row.name)}>
-              {row.name.slice(0, 2).toUpperCase()}
+            <span className="av" style={row.avatar ? undefined : avatarStyle(row.name)}>
+              {row.avatar ? (
+                <img src={row.avatar} alt="" />
+              ) : (
+                row.name.slice(0, 2).toUpperCase()
+              )}
             </span>
             <div>
               <b className="n">{row.name}</b>
             </div>
-            <span className={`pl ${row.tone}`}>{row.status}</span>
+            {row.pro ? <span className="pro">Pro</span> : null}
+            <i className={`dot ${row.tone}`} title={row.status} aria-label={row.status} role="img" />
             <b>{row.score}</b>
           </div>
         ))}

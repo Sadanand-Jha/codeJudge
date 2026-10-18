@@ -120,7 +120,7 @@ export default function WorkspaceSwitcher() {
                       icon={<Shapes className="h-4 w-4 shrink-0 text-ai-accent" />}
                       label="Studio"
                       description="Create and manage quizzes"
-                      href="/creator/create"
+                      href="/creator"
                       onSelect={() => setOpen(false)}
                     />
                   ) : (

@@ -31,7 +31,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated) {
-      router.replace(currentUser?.role?.toLowerCase() === "teacher" ? "/creator/quizzes" : "/quiz");
+      router.replace(currentUser?.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz");
     }
   }, [currentUser?.role, hasHydrated, isAuthenticated, router]);
 
@@ -62,7 +62,7 @@ export default function LoginPage() {
         if (!user) throw new Error("Login response did not include a user profile");
         setAuth(token || "session", user);
         toast.success("Logged in successfully");
-        router.push(user.role?.toLowerCase() === "teacher" ? "/creator/quizzes" : "/quiz");
+        router.push(user.role?.toLowerCase() === "teacher" ? "/creator" : "/quiz");
       } else {
         const message = res.message || "We couldn't sign you in. Please check your details.";
         setErrorMessage(message);
