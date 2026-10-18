@@ -39,7 +39,7 @@ export default function RoomMenu({ items, align = "right", className }: RoomMenu
           e.stopPropagation();
           setOpen((o) => !o);
         }}
-        className="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-white/[0.06] hover:text-text-primary"
+        className="flex h-7 w-7 items-center justify-center rounded-[10px] text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-ink)]"
         aria-label="Room actions"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -56,7 +56,7 @@ export default function RoomMenu({ items, align = "right", className }: RoomMenu
               exit={{ opacity: 0, scale: 0.95, y: -4 }}
               transition={{ duration: 0.12 }}
               className={cn(
-                "absolute z-50 mt-1 w-44 overflow-hidden rounded-xl border border-border bg-card py-1 shadow-2xl shadow-black/50",
+                "absolute z-50 mt-1 w-44 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] py-1 shadow-[4px_4px_0_var(--qs-sun)]",
                 align === "right" ? "right-0" : "left-0"
               )}
             >
@@ -70,11 +70,11 @@ export default function RoomMenu({ items, align = "right", className }: RoomMenu
                       handleSelect(item);
                     }}
                     className={cn(
-                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs font-medium transition-colors",
-                      i > 0 && "mt-0.5 border-t border-border/60 pt-2",
+                      "flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs font-bold transition-colors",
+                      i > 0 && "mt-0.5 border-t-2 border-[var(--qs-line)] pt-2",
                       item.destructive
-                        ? "text-danger hover:bg-danger/10"
-                        : "text-text-secondary hover:bg-white/[0.04] hover:text-text-primary"
+                        ? "text-[var(--qs-bad)] hover:bg-[var(--qs-badbg)]"
+                        : "text-[var(--qs-ink)] hover:bg-[var(--qs-poly-0)]"
                     )}
                   >
                     {Icon && <Icon className="h-3.5 w-3.5" />}

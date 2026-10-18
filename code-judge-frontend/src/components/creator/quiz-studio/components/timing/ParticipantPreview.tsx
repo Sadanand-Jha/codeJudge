@@ -26,10 +26,10 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
   const sessionEnd = null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5">
       <div className="flex items-center gap-2 mb-4">
-        <User className="h-4 w-4 text-pink-500" />
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        <User className="h-4 w-4 text-[var(--qs-brand)]" />
+        <h4 className="text-xs font-extrabold uppercase tracking-wider text-[var(--qs-muted)]">
           What participants will experience
         </h4>
       </div>
@@ -48,7 +48,7 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
         />
         </motion.div>
 
-        <div className="ml-[11px] h-4 w-px bg-border" />
+        <div className="ml-[11px] h-4 w-px bg-[var(--qs-line)]" />
 
         <motion.div
           initial={{ opacity: 0, x: -8 }}
@@ -63,7 +63,7 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
         />
         </motion.div>
 
-        <div className="ml-[11px] h-4 w-px bg-border" />
+        <div className="ml-[11px] h-4 w-px bg-[var(--qs-line)]" />
 
         <motion.div
           initial={{ opacity: 0, x: -8 }}
@@ -78,7 +78,7 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
         />
         </motion.div>
 
-        <div className="ml-[11px] h-4 w-px bg-border" />
+        <div className="ml-[11px] h-4 w-px bg-[var(--qs-line)]" />
 
         <motion.div
           initial={{ opacity: 0, x: -8 }}
@@ -95,7 +95,7 @@ export function ParticipantPreview({ state }: { state: TimingState }) {
 
         {sessionEnd && (
           <>
-            <div className="ml-[11px] h-4 w-px bg-border" />
+            <div className="ml-[11px] h-4 w-px bg-[var(--qs-line)]" />
             <PreviewStep
               icon={<Clock className="h-3 w-3" />}
               label="Quiz session ends"
@@ -122,17 +122,17 @@ function PreviewStep({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-text-muted">
+      <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]">
         {icon}
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-text-secondary">{label}</span>
-        <ArrowRight className="h-3 w-3 text-text-muted" />
+        <span className="text-xs font-medium text-[var(--qs-muted)]">{label}</span>
+        <ArrowRight className="h-3 w-3 text-[var(--qs-muted)]" />
         <span
           className={
             active
-              ? "text-xs font-semibold text-text-primary"
-              : "text-xs text-text-muted italic"
+              ? "text-xs font-bold text-[var(--qs-ink)]"
+              : "text-xs font-medium italic text-[var(--qs-muted)]"
           }
         >
           {time}

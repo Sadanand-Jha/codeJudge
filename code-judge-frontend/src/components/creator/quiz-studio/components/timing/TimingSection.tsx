@@ -188,39 +188,39 @@ export function TimingSection() {
     setHelpExtra(
       <div className="space-y-4">
         <div>
-          <p className="text-[11px] font-semibold text-text-primary">
+          <p className="text-[11px] font-extrabold text-[var(--qs-ink)]">
             Quiz session
           </p>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-text-secondary">
+          <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-[var(--qs-muted)]">
             The quiz session represents the period during which participants can
             start the assessment. Participants may start during this window.
             Their individual attempt timer is separate.
           </p>
           {mode === "schedule" && schedule.startDate && schedule.startTime ? (
             <div className="mt-2 flex items-center gap-2 text-xs">
-              <span className="font-semibold text-text-primary">
+              <span className="font-extrabold text-[var(--qs-ink)]">
                 {formatTime12(schedule.startTime)}
               </span>
-              <ArrowRight className="h-3 w-3 text-text-muted" />
+              <ArrowRight className="h-3 w-3 text-[var(--qs-muted)]" />
               {schedule.endDate ? (
-                <span className="font-semibold text-text-primary">
+                <span className="font-extrabold text-[var(--qs-ink)]">
                   {formatTime12(schedule.endTime || "23:59")}
                 </span>
               ) : (
-                <span className="text-text-muted">Manual end</span>
+                <span className="font-medium text-[var(--qs-muted)]">Manual end</span>
               )}
             </div>
           ) : (
-            <p className="mt-2 text-xs text-text-muted italic">
+            <p className="mt-2 text-xs font-medium italic text-[var(--qs-muted)]">
               Will be determined when you start the quiz.
             </p>
           )}
         </div>
         <div>
-          <p className="text-[11px] font-semibold text-text-primary">
+          <p className="text-[11px] font-extrabold text-[var(--qs-ink)]">
             Participant attempts
           </p>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-text-secondary">
+          <p className="mt-0.5 text-[11px] font-medium leading-relaxed text-[var(--qs-muted)]">
             {mode === "schedule" && schedule.startDate
               ? `Participants can start their attempt during the quiz window. Each participant gets ${participantDuration} minutes once they begin.`
               : manual.status === "live"
@@ -246,19 +246,19 @@ export function TimingSection() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-5"
+          className="min-w-0 overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 sm:p-5"
         >
           <div className="mb-4 flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-500/10">
-              <Clock className="h-4 w-4 text-pink-500" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)]">
+              <Clock className="h-4 w-4 text-[var(--qs-brand)]" />
             </div>
-            <h3 className="min-w-0 text-sm font-bold text-text-primary">Timing & lifecycle</h3>
+            <h3 className="min-w-0 text-sm font-black text-[var(--qs-ink)]">Timing & lifecycle</h3>
           </div>
 
-          <p className="text-sm font-medium text-text-primary">When should this quiz run?</p>
+          <p className="text-sm font-bold text-[var(--qs-ink)]">When should this quiz run?</p>
 
           {/* Segmented control */}
-          <div className="mt-2.5 flex min-w-0 rounded-xl border border-border bg-card-hover p-1">
+          <div className="mt-2.5 flex min-w-0 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-1">
             <button
               type="button"
               onClick={() => {
@@ -266,10 +266,10 @@ export function TimingSection() {
                 switchMode("schedule");
               }}
               className={cn(
-                "min-w-0 flex-1 rounded-lg border py-2 text-xs font-semibold transition-all sm:text-sm",
+                "min-w-0 flex-1 rounded-[10px] border-2 py-2 text-xs font-bold transition-all sm:text-sm",
                 mode === "schedule"
-                  ? "border-pink-300 bg-card text-pink-500 shadow-sm dark:border-pink-400/40"
-                  : "border-transparent text-text-secondary hover:text-text-primary"
+                  ? "border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[var(--qs-brand)]"
+                  : "border-transparent text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
               )}
             >
               Schedule
@@ -281,10 +281,10 @@ export function TimingSection() {
                 switchMode("manual");
               }}
               className={cn(
-                "min-w-0 flex-1 rounded-lg border py-2 text-xs font-semibold transition-all sm:text-sm",
+                "min-w-0 flex-1 rounded-[10px] border-2 py-2 text-xs font-bold transition-all sm:text-sm",
                 mode === "manual"
-                  ? "border-pink-300 bg-card text-pink-500 shadow-sm dark:border-pink-400/40"
-                  : "border-transparent text-text-secondary hover:text-text-primary"
+                  ? "border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[var(--qs-brand)]"
+                  : "border-transparent text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
               )}
             >
               Start manually
@@ -330,7 +330,7 @@ export function TimingSection() {
           {validationErrors.length > 0 && (
             <div className="mt-3 space-y-1">
               {validationErrors.map((err) => (
-                <p key={err} className="text-xs text-rose-500">
+                <p key={err} className="text-xs font-bold text-[var(--qs-bad)]">
                   {err}
                 </p>
               ))}
@@ -343,10 +343,10 @@ export function TimingSection() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-5"
+          className="min-w-0 overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 sm:p-5"
         >
-          <h3 className="text-sm font-bold text-text-primary">Attempt duration</h3>
-          <p className="mt-0.5 text-xs text-text-secondary">
+          <h3 className="text-sm font-black text-[var(--qs-ink)]">Attempt duration</h3>
+          <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
             Time limit for each participant&apos;s attempt.
           </p>
           <div className="mt-3">

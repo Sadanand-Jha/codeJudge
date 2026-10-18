@@ -96,6 +96,7 @@ export function sectionsToPaperPayload(sections: Section[]): GeneratePaperPayloa
 export interface SubjectiveQuestion {
   num: number;
   question: string;
+  questionHtml?: string | null;
   difficulty: string;
   kind: string;
 }

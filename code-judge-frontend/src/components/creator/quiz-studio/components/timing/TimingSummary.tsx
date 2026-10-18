@@ -74,9 +74,9 @@ export function TimingSummary({ state }: { state: TimingState }) {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+        <h4 className="text-xs font-extrabold uppercase tracking-wider text-[var(--qs-muted)]">
           Timing Check
         </h4>
         <Badge color={meta.color}>{meta.label}</Badge>
@@ -91,8 +91,8 @@ export function TimingSummary({ state }: { state: TimingState }) {
             transition={{ duration: 0.2, delay: i * 0.04 }}
             className="flex items-center justify-between"
           >
-            <span className="text-xs text-text-secondary">{row.label}</span>
-            <span className="text-xs font-semibold text-text-primary">
+            <span className="text-xs font-medium text-[var(--qs-muted)]">{row.label}</span>
+            <span className="text-xs font-bold text-[var(--qs-ink)]">
               {row.value}
             </span>
           </motion.div>
@@ -104,10 +104,10 @@ export function TimingSummary({ state }: { state: TimingState }) {
           {warnings.map((w) => (
             <div
               key={w}
-              className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/[0.04] px-3 py-2"
+              className="flex items-start gap-2 rounded-[12px] border-2 border-[#a85d00]/30 bg-[#fff3d6] px-3 py-2"
             >
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-              <p className="text-[11px] text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#a85d00]" />
+              <p className="text-[11px] font-medium text-[#a85d00]">
                 {w}
               </p>
             </div>
@@ -116,9 +116,9 @@ export function TimingSummary({ state }: { state: TimingState }) {
       )}
 
       {warnings.length === 0 && (
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.04] px-3 py-2.5">
-          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
-          <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+        <div className="mt-4 flex items-start gap-2 rounded-[12px] border-2 border-[var(--qs-ok)]/30 bg-[var(--qs-okbg)] px-3 py-2.5">
+          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-ok)]" />
+          <p className="text-[11px] font-medium text-[var(--qs-ok)]">
             Everything looks good. Participants will be able to start the quiz
             during the configured window and will receive the configured attempt
             duration.

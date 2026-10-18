@@ -63,13 +63,13 @@ export default function EditStudentModal({ open, onClose, student, onSave }: Edi
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="h-9 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover"
+            className="inline-flex h-9 items-center justify-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
           >
             <Check className="h-3.5 w-3.5" />
             Save Changes
@@ -79,49 +79,52 @@ export default function EditStudentModal({ open, onClose, student, onSave }: Edi
     >
       <div className="space-y-4">
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-text-primary">Name</label>
+          <label className="mb-1.5 block text-xs font-extrabold text-[var(--qs-ink)]">Name</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Rahul Kumar"
-            className="h-10 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
+            className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:outline-none"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-text-primary">Roll Number</label>
+          <label className="mb-1.5 block text-xs font-extrabold text-[var(--qs-ink)]">Roll Number</label>
           <input
             value={roll}
             onChange={(e) => setRoll(e.target.value)}
             placeholder="23CSE1042"
-            className="h-10 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
+            className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:outline-none"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-text-primary">Username</label>
+          <label className="mb-1.5 block text-xs font-extrabold text-[var(--qs-ink)]">Username</label>
           <input
             value={username}
             disabled
-            className="h-10 w-full rounded-xl border border-border bg-card-hover/60 px-3.5 text-sm text-text-muted cursor-not-allowed"
+            className="h-10 w-full cursor-not-allowed rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 text-sm font-medium text-[var(--qs-muted)]"
           />
-          <p className="mt-1 text-[11px] text-text-muted">Username cannot be changed.</p>
+          <p className="mt-1 text-[11px] font-medium text-[var(--qs-muted)]">Username cannot be changed.</p>
         </div>
-        <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-card px-3.5 py-2.5">
-          <span className="text-xs font-semibold text-text-primary">Active</span>
+        <label className="flex cursor-pointer items-center justify-between rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-2.5">
+          <span className="text-xs font-extrabold text-[var(--qs-ink)]">Active</span>
           <button
             type="button"
             onClick={() => setActive((v) => !v)}
-            className={cn("relative h-5 w-9 rounded-full transition-colors", active ? "bg-success" : "bg-border-hover")}
+            className={cn(
+              "relative h-5 w-9 rounded-full border-2 transition-colors",
+              active ? "border-[var(--qs-ink)] bg-[var(--qs-ok)]" : "border-[var(--qs-line)] bg-[var(--qs-line)]"
+            )}
           >
             <span
               className={cn(
-                "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all",
+                "absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow transition-all",
                 active ? "left-[18px]" : "left-0.5"
               )}
             />
           </button>
         </label>
         {error && (
-          <p className="flex items-center gap-1.5 text-xs font-medium text-danger">
+          <p className="flex items-center gap-1.5 text-xs font-bold text-[var(--qs-bad)]">
             <AlertTriangle className="h-3.5 w-3.5" />
             {error}
           </p>

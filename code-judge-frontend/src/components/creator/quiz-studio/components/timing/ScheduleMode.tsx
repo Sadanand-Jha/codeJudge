@@ -45,7 +45,7 @@ export function ScheduleMode({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border border-border bg-card p-3.5 sm:p-4">
+      <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 sm:p-4">
         <DateTimeField
           label="Starts on"
           date={schedule.startDate}
@@ -58,14 +58,14 @@ export function ScheduleMode({
       </div>
 
       {/* ===== End date & time ===== */}
-      <div className="rounded-xl border border-border bg-card p-3.5 sm:p-4">
+      <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5 sm:p-4">
         <button
           type="button"
           onClick={() => setShowEnd((value) => !value)}
-          className="flex w-full items-center justify-between gap-3 text-left text-xs font-semibold text-text-secondary"
+          className="flex w-full items-center justify-between gap-3 text-left text-xs font-bold text-[var(--qs-ink)]"
           aria-expanded={showEnd}
         >
-          <span>Set an end time <span className="font-normal text-text-muted">(optional)</span></span>
+          <span>Set an end time <span className="font-medium text-[var(--qs-muted)]">(optional)</span></span>
           <ChevronDown className={`h-4 w-4 transition-transform ${showEnd ? "rotate-180" : ""}`} />
         </button>
         {showEnd && (
@@ -89,7 +89,7 @@ export function ScheduleMode({
             <button
               type="button"
               onClick={() => setStartNowOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-100 dark:border-emerald-400/50 dark:bg-emerald-500/10 dark:text-emerald-300"
+              className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-3 py-1.5 text-xs font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
             >
               <Play className="h-3 w-3" />
               Start Now

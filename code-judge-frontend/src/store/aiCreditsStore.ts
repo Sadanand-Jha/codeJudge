@@ -15,6 +15,7 @@ import {
   ABUSE_RULES,
   RATE_LIMIT_CONFIG,
   CREDIT_PACKS,
+  CREDIT_PURCHASE_PACKS,
   creditCostMap,
   LOW_CREDIT_THRESHOLD,
   type AICreditFeatureId,
@@ -267,7 +268,9 @@ export const useAICreditsStore = create<AICreditsState>((set, get) => ({
   },
 
   purchasePack: async (packId) => {
-    const pack = CREDIT_PACKS.find((p) => p.id === packId);
+    const pack =
+      CREDIT_PACKS.find((p) => p.id === packId) ??
+      CREDIT_PURCHASE_PACKS.find((p) => p.id === packId);
     if (!pack) return;
 
     const { balance, purchases } = get();

@@ -53,14 +53,14 @@ function StudioShellWithRouter({ onDashboard }: { onDashboard: () => void }) {
 
   if (loading || (editMode && questionsLoading && !loadError)) {
     return (
-      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-background px-5">
-        <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-7 text-center shadow-[0_18px_60px_rgba(17,24,39,0.08)] dark:shadow-[0_18px_60px_rgba(0,0,0,0.3)]">
+      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-[var(--qs-bg)] px-5">
+        <div className="w-full max-w-sm rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-7 text-center shadow-[6px_6px_0_var(--qs-sun)]">
           <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="mx-auto block animate-pulse motion-reduce:animate-none" />
-          <h2 className="mt-5 text-base font-bold text-text-primary">
+          <h2 className="mt-5 text-base font-black text-[var(--qs-ink)]">
             {loading ? "Loading quiz" : "Loading quiz questions"}
           </h2>
           {loading && (
-            <p className="mt-2 text-sm leading-6 text-text-secondary">
+            <p className="mt-2 text-sm font-medium leading-6 text-[var(--qs-muted)]">
               Preparing your Creator Studio workspace…
             </p>
           )}
@@ -71,18 +71,18 @@ function StudioShellWithRouter({ onDashboard }: { onDashboard: () => void }) {
 
   if (loadError) {
     return (
-      <div className="flex h-[calc(100dvh-4rem)] items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
-            <svg className="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+      <div className="flex h-[calc(100dvh-4rem)] items-center justify-center bg-[var(--qs-bg)]">
+        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-7 py-9 text-center shadow-[6px_6px_0_var(--qs-sun)]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-badbg)]">
+            <svg className="h-6 w-6 text-[var(--qs-bad)]" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
           </div>
-          <h3 className="text-base font-semibold text-text-primary">Quiz not found</h3>
-          <p className="max-w-sm text-sm text-text-muted">{loadError}</p>
+          <h3 className="text-base font-black text-[var(--qs-ink)]">Quiz not found</h3>
+          <p className="max-w-sm text-sm font-medium text-[var(--qs-muted)]">{loadError}</p>
           <button
             onClick={onDashboard}
-            className="mt-2 rounded-lg bg-[var(--qs-brand)] px-4 py-2 text-xs font-semibold text-white hover:bg-[#5a2fd8]"
+            className="mt-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
           >
             Back to Quizzes
           </button>

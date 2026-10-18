@@ -28,7 +28,7 @@ const uid = (prefix: string) =>
   `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
 const inputCls =
-  "w-full rounded-md border border-input-border bg-input-bg px-2.5 py-1.5 text-xs text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60";
+  "w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-1.5 text-xs font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] outline-none transition-colors focus:border-[var(--qs-brand)]";
 
 export function RegistrationStep() {
   const { state, setState, saveToServer } = useStudio();
@@ -124,19 +124,19 @@ export function RegistrationStep() {
         {/* ── Left column ── */}
         <div className="space-y-5">
           {/* Form requirement */}
-          <section className="rounded-xl border border-border bg-card">
+          <section className="rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
             <label className="flex cursor-pointer items-start gap-3 px-5 py-4">
               <input
                 type="checkbox"
                 checked={reg.settings.collectAdditionalInfo}
                 onChange={(e) => updateSettings({ collectAdditionalInfo: e.target.checked })}
-                className="mt-0.5 h-4 w-4 shrink-0 rounded accent-pink-500"
+                className="mt-0.5 h-4 w-4 shrink-0 rounded accent-[var(--qs-brand)]"
               />
               <span>
-                <span className="block text-sm font-medium text-text-primary">
+                <span className="block text-sm font-bold text-[var(--qs-ink)]">
                   Participants must fill a registration form
                 </span>
-                <span className="mt-0.5 block text-xs text-text-secondary">
+                <span className="mt-0.5 block text-xs font-medium text-[var(--qs-muted)]">
                   When checked, students provide the academic details you select
                   below. Otherwise they register with just their platform account.
                 </span>

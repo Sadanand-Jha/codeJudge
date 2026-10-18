@@ -116,7 +116,7 @@ function StudioHelpButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-xs font-semibold text-text-primary hover:bg-card-hover sm:px-3"
+        className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] sm:px-3"
         aria-label="Open help"
       >
         <HelpCircle className="h-4 w-4" />
@@ -134,7 +134,7 @@ function StudioHelpButton() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
+                  className="absolute inset-0 bg-[#1A1240]/50 backdrop-blur-[2px]"
                   onClick={() => setOpen(false)}
                 />
                 <motion.aside
@@ -142,27 +142,27 @@ function StudioHelpButton() {
                   animate={{ y: 0 }}
                   exit={{ y: "100%" }}
                   transition={{ type: "spring", stiffness: 360, damping: 34 }}
-                  className="relative z-10 max-h-[85vh] w-full overflow-y-auto rounded-t-2xl border border-border bg-background p-5 shadow-2xl sm:h-full sm:max-h-none sm:max-w-sm sm:rounded-none sm:rounded-l-2xl sm:p-6"
+                  className="relative z-10 max-h-[85vh] w-full overflow-y-auto rounded-t-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-2xl sm:h-full sm:max-h-none sm:max-w-sm sm:rounded-none sm:rounded-l-[24px] sm:border-l-2 sm:p-6"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-pink-500">Help</p>
-                      <h2 className="mt-1 text-lg font-bold text-text-primary">{help.title}</h2>
+                      <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[var(--qs-brand)]">Help</p>
+                      <h2 className="mt-1 text-lg font-black text-[var(--qs-ink)]">{help.title}</h2>
                     </div>
                     <button
                       type="button"
                       onClick={() => setOpen(false)}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
                       aria-label="Close help"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
-                  <p className="mt-4 text-sm leading-relaxed text-text-secondary">{help.intro}</p>
+                  <p className="mt-4 text-sm font-medium leading-relaxed text-[var(--qs-muted)]">{help.intro}</p>
                   <ol className="mt-5 space-y-3">
                     {help.items.map((item, index) => (
-                      <li key={item} className="flex gap-3 text-sm leading-relaxed text-text-secondary">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pink-500/10 text-[11px] font-bold text-pink-500">
+                      <li key={item} className="flex gap-3 text-sm font-medium leading-relaxed text-[var(--qs-muted)]">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[11px] font-extrabold text-[var(--qs-on-brand)]">
                           {index + 1}
                         </span>
                         <span>{item}</span>
@@ -170,7 +170,7 @@ function StudioHelpButton() {
                     ))}
                   </ol>
                   {helpExtra && (
-                    <div className="mt-6 border-t border-border pt-5">{helpExtra}</div>
+                    <div className="mt-6 border-t-2 border-[var(--qs-line)] pt-5">{helpExtra}</div>
                   )}
                 </motion.aside>
               </div>
@@ -220,8 +220,8 @@ export function StudioHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-20 flex min-h-[56px] h-auto w-full max-w-[100vw] min-w-0 flex-wrap items-center gap-2 border-b border-border bg-background px-2 py-2 sm:gap-3 sm:px-4 lg:h-14 lg:flex-nowrap lg:py-0">
-      <button aria-label="Exit quiz studio" title="Exit quiz studio" onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-text-secondary hover:bg-card-hover transition-colors sm:h-9 sm:w-9 sm:rounded-xl">
+    <header className="sticky top-0 z-20 flex min-h-[56px] h-auto w-full max-w-[100vw] min-w-0 flex-wrap items-center gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-2 sm:gap-3 sm:px-4 lg:h-14 lg:flex-nowrap lg:py-0">
+      <button aria-label="Exit quiz studio" title="Exit quiz studio" onClick={() => router.push("/creator/quizzes")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)] sm:h-9 sm:w-9 sm:rounded-[12px]">
         <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </button>
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -235,33 +235,33 @@ export function StudioHeader() {
               if (e.key === "Enter") commit();
               if (e.key === "Escape") setEditing(false);
             }}
-            className="min-w-0 flex-1 rounded-lg border border-input-border bg-input-bg px-2 py-1.5 text-sm font-semibold text-text-primary outline-none sm:min-w-[120px] sm:max-w-[40vw] sm:rounded-xl sm:px-3 sm:py-2"
+            className="min-w-0 flex-1 rounded-[10px] border-2 border-[var(--qs-brand)] bg-[var(--qs-surface)] px-2 py-1.5 text-sm font-bold text-[var(--qs-ink)] outline-none sm:min-w-[120px] sm:max-w-[40vw] sm:rounded-[12px] sm:px-3 sm:py-2"
           />
         ) : label !== "" ? (
-          <button onClick={() => setEditing(true)} className="min-w-0 flex-1 whitespace-normal break-words text-left font-['Inter'] text-[13px] font-semibold leading-snug text-text-primary sm:text-[15px]">
+          <button onClick={() => setEditing(true)} className="min-w-0 flex-1 whitespace-normal break-words text-left font-['Inter'] text-[13px] font-bold leading-snug text-[var(--qs-ink)] sm:text-[15px]">
             {label}
           </button>
         ) : null}
       </div>
 
-      <div className="hidden items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 sm:flex ml-1 sm:ml-3 border-l border-border pl-2 sm:pl-3 shrink-0">
+      <div className="hidden shrink-0 items-center gap-1.5 text-xs text-[var(--qs-ok)] sm:ml-3 sm:flex border-l-2 border-[var(--qs-line)] pl-2 sm:pl-3">
         {status === "saving" ? (
-          <span className="flex items-center gap-1 text-text-muted"><SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" />Saving…</span>
+          <span className="flex items-center gap-1 text-[var(--qs-muted)]"><SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" />Saving…</span>
         ) : status === "saved" && lastSaved ? (
           <>
             <Check className="h-3.5 w-3.5" />
-            <span className="hidden lg:inline">Saved</span>
+            <span className="hidden font-bold lg:inline">Saved</span>
           </>
         ) : null}
       </div>
 
-      <div className="ml-auto flex w-full min-w-0 items-center gap-2 border-t border-border/70 pt-2 lg:w-auto lg:shrink-0 lg:justify-end lg:border-0 lg:pt-0">
+      <div className="ml-auto flex w-full min-w-0 items-center gap-2 border-t-2 border-[var(--qs-line)] pt-2 lg:w-auto lg:shrink-0 lg:justify-end lg:border-0 lg:pt-0">
         <button
           type="button"
           onClick={() => void prevMobileStep()}
           disabled={mobileStepIndex <= 0}
           title="Previous step"
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-text-primary transition-colors hover:bg-card-hover disabled:pointer-events-none disabled:opacity-35 lg:hidden"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:pointer-events-none disabled:opacity-35 lg:hidden"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -269,16 +269,16 @@ export function StudioHeader() {
           type="button"
           onClick={() => void prevStep()}
           disabled={stepIndex === 0}
-          className="hidden h-8 shrink-0 items-center gap-1 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover disabled:pointer-events-none disabled:opacity-35 lg:inline-flex"
+          className="hidden h-8 shrink-0 items-center gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:pointer-events-none disabled:opacity-35 lg:inline-flex"
         >
           <ChevronLeft className="h-3.5 w-3.5" /> Back
         </button>
         <StudioHelpButton />
         {state.step === "questions" && (
-          <div className="hidden items-center gap-2 lg:flex shrink-0">
-            <span className="font-['Inter'] text-xs font-medium text-text-secondary whitespace-nowrap">{topCounter}</span>
-            <div className="h-1.5 w-16 xl:w-20 overflow-hidden rounded-full bg-border">
-              <div className="h-full bg-[var(--qs-brand)] rounded-full transition-all" style={{ width: `${Math.max(8, Math.min(100, progress))}%` }} />
+          <div className="hidden shrink-0 items-center gap-2 lg:flex">
+            <span className="whitespace-nowrap font-['Inter'] text-xs font-bold text-[var(--qs-muted)]">{topCounter}</span>
+            <div className="h-1.5 w-16 overflow-hidden rounded-full bg-[var(--qs-line)] xl:w-20">
+              <div className="h-full rounded-full bg-[var(--qs-brand)] transition-all" style={{ width: `${Math.max(8, Math.min(100, progress))}%` }} />
             </div>
           </div>
         )}
@@ -288,7 +288,7 @@ export function StudioHeader() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-primary disabled:opacity-50 sm:rounded-xl"
+              className="inline-flex h-9 min-w-0 flex-1 items-center justify-center rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-50"
             >
               {saving ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : "Save"}
             </button>
@@ -310,7 +310,7 @@ export function StudioHeader() {
               }
             }}
             disabled={continuing}
-            className="inline-flex h-9 min-w-0 flex-[1.25] items-center justify-center gap-1 rounded-lg bg-[var(--qs-brand)] px-3 text-xs font-bold text-white shadow-sm disabled:opacity-60 sm:rounded-xl sm:px-4"
+            className="inline-flex h-9 min-w-0 flex-[1.25] items-center justify-center gap-1 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
           >
             {continuing ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <>Continue</>}
           </button>
@@ -327,7 +327,7 @@ export function StudioHeader() {
             }
           }}
           disabled={continuing}
-          className="hidden lg:inline-flex h-8 items-center gap-1 rounded-lg bg-[var(--qs-brand)] px-4 text-xs font-semibold text-white hover:bg-[#5a2fd8] shadow-sm disabled:opacity-60"
+          className="hidden h-8 items-center justify-center gap-1 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-60 lg:inline-flex"
         >
           {continuing ? <><SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> Saving…</> : <>Continue <span>→</span></>}
         </button>
@@ -362,11 +362,11 @@ export function StudioStepper() {
   }, [stepMenuOpen]);
 
   return (
-    <div className="shrink-0 border-b border-border bg-background px-3 py-2.5 sm:px-4">
+    <div className="shrink-0 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 sm:px-4">
       <div className="mx-auto flex w-full max-w-5xl items-center gap-3">
         <div className="min-w-0 flex-1">
           <div className="mb-1.5 flex items-center justify-between gap-3">
-            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+            <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wide text-[var(--qs-muted)]">
               {onMobilePath ? (
                 <span className="lg:hidden">Step {mobileStepIndex + 1} of {mobileSteps.length}</span>
               ) : (
@@ -375,7 +375,7 @@ export function StudioStepper() {
               <span className="hidden lg:inline">Step {stepIndex + 1} of {display.length}</span>
             </span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-border">
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--qs-line)]">
             <div className="h-full rounded-full bg-[var(--qs-brand)] transition-all lg:hidden" style={{ width: `${mobileProgress}%` }} />
             <div className="hidden h-full rounded-full bg-[var(--qs-brand)] transition-all lg:block" style={{ width: `${progress}%` }} />
           </div>
@@ -387,8 +387,8 @@ export function StudioStepper() {
             aria-haspopup="menu"
             aria-expanded={stepMenuOpen}
             className={cn(
-              "flex min-h-9 max-w-[64vw] items-center gap-1.5 rounded-lg border bg-card px-2.5 py-2 text-xs font-semibold outline-none sm:max-w-none",
-              stepMenuOpen ? "border-pink-500 text-pink-500" : "border-border text-text-primary"
+              "flex min-h-9 max-w-[64vw] items-center gap-1.5 rounded-[12px] border-2 bg-[var(--qs-surface)] px-2.5 py-2 text-xs font-bold text-[var(--qs-ink)] outline-none transition-colors sm:max-w-none",
+              stepMenuOpen ? "border-[var(--qs-brand)] text-[var(--qs-brand)]" : "border-[var(--qs-line)]"
             )}
           >
             <span className="min-w-0 whitespace-normal break-words text-left leading-4">
@@ -409,7 +409,7 @@ export function StudioStepper() {
                 exit={{ opacity: 0, y: -4, scale: 0.98 }}
                 transition={{ duration: 0.14 }}
                 role="menu"
-                className="absolute right-0 top-full z-50 mt-1.5 w-52 overflow-hidden rounded-xl border border-border bg-card p-1.5 shadow-2xl"
+                className="absolute right-0 top-full z-50 mt-1.5 w-52 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]"
               >
                 {/* Mobile menu: only the mobile subset */}
                 <div className="lg:hidden">
@@ -425,11 +425,11 @@ export function StudioStepper() {
                           setStepMenuOpen(false);
                         }}
                         className={cn(
-                          "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium",
-                          active ? "bg-pink-500/10 text-pink-500" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                          "flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-xs font-bold transition-colors",
+                          active ? "bg-[var(--qs-poly-1)] text-[var(--qs-brand)]" : "text-[var(--qs-muted)] hover:bg-[var(--qs-poly-0)] hover:text-[var(--qs-ink)]"
                         )}
                       >
-                        <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", active ? "bg-pink-500 text-white" : "bg-card-hover text-text-muted")}>
+                        <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold", active ? "border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "bg-[var(--qs-bg)] text-[var(--qs-muted)]")}>
                           {index + 1}
                         </span>
                         <span className="min-w-0 whitespace-normal break-words">{step.label}</span>
@@ -452,11 +452,11 @@ export function StudioStepper() {
                           setStepMenuOpen(false);
                         }}
                         className={cn(
-                          "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium",
-                          active ? "bg-pink-500/10 text-pink-500" : "text-text-secondary hover:bg-card-hover hover:text-text-primary"
+                          "flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-left text-xs font-bold transition-colors",
+                          active ? "bg-[var(--qs-poly-1)] text-[var(--qs-brand)]" : "text-[var(--qs-muted)] hover:bg-[var(--qs-poly-0)] hover:text-[var(--qs-ink)]"
                         )}
                       >
-                        <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold", active ? "bg-pink-500 text-white" : "bg-card-hover text-text-muted")}>
+                        <span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold", active ? "border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "bg-[var(--qs-bg)] text-[var(--qs-muted)]")}>
                           {index + 1}
                         </span>
                         <span className="min-w-0 whitespace-normal break-words">{step.label}</span>
@@ -541,19 +541,19 @@ export function StudioFooter() {
   };
 
   return (
-    <footer className="hidden lg:flex h-14 shrink-0 items-center justify-between gap-3 border-t border-border bg-background px-4">
+    <footer className="hidden h-14 shrink-0 items-center justify-between gap-3 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 lg:flex">
       <button
         type="button"
         onClick={() => void prevStep()}
         disabled={stepIndex === 0}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-text-primary hover:bg-card-hover disabled:opacity-40"
+        className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-1.5 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Back
       </button>
 
       {isQuestions ? (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-text-secondary">
+          <span className="text-xs font-bold text-[var(--qs-muted)]">
             {state.questions.length === 0 ? "No questions yet" : `Question ${activeIdx || 1} of ${state.questions.length}`}
           </span>
           <div className={`ml-2 flex items-center gap-1.5 ${state.questions.length === 0 ? "hidden" : ""}`}>
@@ -563,7 +563,7 @@ export function StudioFooter() {
                 if (idx > 0) setActiveQuestion(state.questions[idx - 1].id);
               }}
               disabled={activeIdx <= 1}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-text-muted hover:bg-card-hover disabled:opacity-40"
+              className="flex h-7 w-7 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
             </button>
@@ -573,7 +573,7 @@ export function StudioFooter() {
                 if (idx < state.questions.length - 1) setActiveQuestion(state.questions[idx + 1].id);
               }}
               disabled={activeIdx >= state.questions.length}
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border bg-card text-[var(--qs-brand)] hover:bg-card-hover disabled:opacity-40"
+              className="flex h-7 w-7 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-brand)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40"
             >
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
@@ -590,18 +590,18 @@ export function StudioFooter() {
               type="button"
               onClick={() => setConfirmPublish(true)}
               disabled={publishing}
-              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-5 text-xs font-semibold text-white shadow-lg shadow-emerald-500/20 hover:brightness-110 disabled:opacity-60"
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-5 text-xs font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Rocket className="h-3.5 w-3.5" /> Start Quiz
             </button>
             {confirmPublish && (
-              <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" onClick={() => !publishing && setConfirmPublish(false)}>
-                <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-xl border border-border bg-background p-6 shadow-xl">
-                  <h3 className="font-semibold text-text-primary">Start this quiz?</h3>
-                  <p className="mt-1 text-xs text-text-secondary">It will go live immediately for eligible students.</p>
+              <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1A1240]/60 p-4" onClick={() => !publishing && setConfirmPublish(false)}>
+                <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6 shadow-[6px_6px_0_var(--qs-sun)]">
+                  <h3 className="text-base font-black text-[var(--qs-ink)]">Start this quiz?</h3>
+                  <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">It will go live immediately for eligible students.</p>
                   <div className="mt-4 flex justify-end gap-2">
-                    <button onClick={() => setConfirmPublish(false)} className="rounded-lg border border-border bg-card px-4 py-2 text-xs text-text-primary hover:bg-card-hover">Cancel</button>
-                    <button onClick={handleConfirmPublish} className="rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-emerald-500/20 hover:brightness-110">
+                    <button onClick={() => setConfirmPublish(false)} className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]">Cancel</button>
+                    <button onClick={handleConfirmPublish} className="rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 py-2 text-xs font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none">
                       {publishing ? "Starting…" : "Yes, Start Quiz"}
                     </button>
                   </div>
@@ -615,8 +615,10 @@ export function StudioFooter() {
             onClick={handleContinue}
             disabled={!canContinue() || continuing}
             className={cn(
-              "inline-flex h-8 items-center justify-center gap-1 rounded-lg px-5 text-xs font-semibold",
-              canContinue() && !continuing ? "bg-[var(--qs-brand)] text-white hover:bg-[#5a2fd8]" : "bg-card-hover text-text-muted cursor-not-allowed"
+              "inline-flex h-8 items-center justify-center gap-1 rounded-[12px] border-2 px-5 text-xs font-extrabold transition-transform",
+              canContinue() && !continuing
+                ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[2px_2px_0_var(--qs-sun)] hover:-translate-y-px active:translate-y-0 active:shadow-none"
+                : "cursor-not-allowed border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]"
             )}
           >
             {continuing ? <><SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> Saving…</> : <>Continue <span>→</span></>}
@@ -638,7 +640,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       data-studio="true"
-      className="creator-mobile-calm flex flex-1 min-h-0 flex-col bg-background text-foreground font-['Inter'] min-w-0 overflow-hidden dark:[&_.bg-white]:bg-card dark:[&_.bg-zinc-50]:bg-background dark:[&_.bg-zinc-100]:bg-card-hover dark:[&_.border-zinc-200]:border-border dark:[&_.border-zinc-300]:border-border-hover dark:[&_.text-zinc-900]:text-text-primary dark:[&_.text-zinc-700]:text-text-secondary dark:[&_.text-zinc-600]:text-text-secondary dark:[&_.text-zinc-500]:text-text-muted"
+      className="creator-mobile-calm flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--qs-bg)] font-['Inter'] text-[var(--qs-ink)]"
     >
       <StudioHeader />
       <StudioStepper />
@@ -650,10 +652,10 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          className="flex-1 min-h-0 flex flex-col bg-background min-w-0 overflow-hidden"
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--qs-bg)]"
         >
           <div
-            className="mx-auto flex flex-1 min-h-0 w-full max-w-none flex-col overflow-y-auto overflow-x-hidden p-2 sm:p-3 min-w-0 lg:w-[96%] xl:w-[95%] max-w-[430px] lg:max-w-none"
+            className="mx-auto flex min-h-0 w-full max-w-[430px] min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden p-2 sm:p-3 lg:w-[96%] lg:max-w-none xl:w-[95%]"
           >
             {children}
           </div>

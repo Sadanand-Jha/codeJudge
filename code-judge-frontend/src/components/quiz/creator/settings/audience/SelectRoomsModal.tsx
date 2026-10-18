@@ -96,22 +96,22 @@ export default function SelectRoomsModal({
       size="lg"
       footer={
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs font-medium text-text-secondary">
-            <span className="font-bold text-text-primary">{draft.length}</span> room
+          <p className="text-xs font-medium text-[var(--qs-muted)]">
+            <span className="font-extrabold text-[var(--qs-ink)]">{draft.length}</span> room
             {draft.length !== 1 ? "s" : ""} selected ·{" "}
-            <span className="font-bold text-text-primary">{eligibleCount}</span> student
+            <span className="font-extrabold text-[var(--qs-ink)]">{eligibleCount}</span> student
             {eligibleCount !== 1 ? "s" : ""} eligible
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={handleClose}
-              className="h-9 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover"
+              className="inline-flex h-9 items-center justify-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
             >
               Cancel
             </button>
             <button
               onClick={handleApply}
-              className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
             >
               <Check className="h-3.5 w-3.5" />
               Add Rooms
@@ -121,19 +121,19 @@ export default function SelectRoomsModal({
       }
     >
       {/* Search + Create New Room */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-        <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search rooms..."
-            className="h-10 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
+            className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-4 text-sm font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:outline-none"
           />
         </div>
         <button
           onClick={onCreateRoom}
-          className="flex h-10 w-full sm:w-auto shrink-0 items-center justify-center gap-1.5 rounded-xl border border-dashed border-pink-500/30 bg-pink-500/5 px-3.5 text-xs font-semibold text-pink-500 transition-colors hover:bg-pink-500/10"
+          className="flex h-10 w-full shrink-0 items-center justify-center gap-1.5 rounded-[12px] border-2 border-dashed border-[var(--qs-brand)]/40 bg-[var(--qs-poly-1)] px-3.5 text-xs font-bold text-[var(--qs-brand)] transition-colors hover:border-[var(--qs-brand)] sm:w-auto"
         >
           <Plus className="h-3.5 w-3.5" />
           Create New Room
@@ -141,7 +141,7 @@ export default function SelectRoomsModal({
       </div>
 
       {/* Filters */}
-      <div className="mt-4 flex items-center gap-1">
+      <div className="mt-4 flex w-fit items-center gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-0.5">
         {(
           [
             { id: "all", label: "All" },
@@ -153,10 +153,10 @@ export default function SelectRoomsModal({
             key={tab.id}
             onClick={() => setFilter(tab.id)}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+              "rounded-[9px] px-3 py-1.5 text-xs font-bold transition-colors",
               filter === tab.id
-                ? "bg-pink-500/10 text-pink-500 ring-1 ring-inset ring-pink-500/20"
-                : "text-text-muted hover:bg-white/[0.04] hover:text-text-primary"
+                ? "bg-[var(--qs-ink)] text-[var(--qs-bg)]"
+                : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
             )}
           >
             {tab.label}
@@ -167,10 +167,10 @@ export default function SelectRoomsModal({
       {/* Room rows */}
       <div className="mt-3 space-y-2">
         {filtered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-card/40 px-4 py-10 text-center">
-            <Users className="mx-auto h-6 w-6 text-text-muted" />
-            <p className="mt-2 text-sm font-medium text-text-secondary">No rooms found</p>
-            <p className="mt-0.5 text-xs text-text-muted">
+          <div className="rounded-[14px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-10 text-center">
+            <Users className="mx-auto h-6 w-6 text-[var(--qs-muted)]" />
+            <p className="mt-2 text-sm font-bold text-[var(--qs-ink)]">No rooms found</p>
+            <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
               {query ? "Try a different search term." : "Create a room to get started."}
             </p>
           </div>
@@ -185,43 +185,43 @@ export default function SelectRoomsModal({
                 key={room.id}
                 onClick={() => toggle(room.id)}
                 className={cn(
-                  "group flex w-full items-center gap-3.5 rounded-xl border p-3.5 text-left transition-all duration-150",
+                  "group flex w-full items-center gap-3.5 rounded-[16px] border-2 p-3.5 text-left transition-colors",
                   isSelected
-                    ? "border-pink-500/40 bg-pink-500/[0.06] shadow-[0_0_0_1px_rgba(236,72,153,0.15)]"
-                    : "border-border hover:border-border-hover hover:bg-white/[0.02]"
+                    ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
+                    : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
                 )}
               >
                 {/* Checkbox */}
                 <span
                   className={cn(
-                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors",
+                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-[6px] border-2 transition-colors",
                     isSelected
-                      ? "border-pink-500 bg-pink-500 text-white"
-                      : "border-border-hover bg-input-bg group-hover:border-pink-500/40"
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] group-hover:border-[var(--qs-brand)]"
                   )}
                 >
                   {isSelected && <Check className="h-3 w-3" strokeWidth={3} />}
                 </span>
 
                 {/* Room icon */}
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 ring-1 ring-inset ring-pink-500/15">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]">
                   <Users className="h-5 w-5" />
                 </span>
 
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-text-primary">
+                  <span className="block truncate text-sm font-extrabold text-[var(--qs-ink)]">
                     {room.name}
                   </span>
-                  <span className="mt-0.5 block text-xs text-text-secondary">
+                  <span className="mt-0.5 block text-xs font-medium text-[var(--qs-muted)]">
                     {room.memberCount ?? room.students.length} student{(room.memberCount ?? room.students.length) !== 1 ? "s" : ""}
                   </span>
                   {meta && (
-                    <span className="mt-0.5 block truncate text-[11px] text-text-muted">{meta}</span>
+                    <span className="mt-0.5 block truncate text-[11px] font-medium text-[var(--qs-muted)]">{meta}</span>
                   )}
                 </span>
 
                 {isSelected && (
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pink-500/15 text-pink-500">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
                     <Check className="h-3.5 w-3.5" strokeWidth={3} />
                   </span>
                 )}

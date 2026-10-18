@@ -77,12 +77,12 @@ export function VisualTimeline({ state }: { state: TimingState }) {
           <div className="flex flex-col items-center min-w-[80px]">
             <div
               className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full border-2 text-[10px] font-bold transition-colors",
+                "flex h-7 w-7 items-center justify-center rounded-full border-2 text-[10px] font-extrabold transition-colors",
                 step.active
-                  ? "border-pink-500 bg-pink-500 text-white"
+                  ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
                   : step.done
-                    ? "border-emerald-500 bg-emerald-500 text-white"
-                    : "border-border bg-card text-text-muted"
+                    ? "border-[var(--qs-ok)] bg-[var(--qs-ok)] text-white"
+                    : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]"
               )}
             >
               {step.done && !step.active ? (
@@ -93,25 +93,25 @@ export function VisualTimeline({ state }: { state: TimingState }) {
             </div>
             <p
               className={cn(
-                "mt-1.5 text-[10px] font-semibold",
+                "mt-1.5 text-[10px] font-extrabold",
                 step.active
-                  ? "text-pink-500"
+                  ? "text-[var(--qs-brand)]"
                   : step.done
-                    ? "text-emerald-500"
-                    : "text-text-muted"
+                    ? "text-[var(--qs-ok)]"
+                    : "text-[var(--qs-muted)]"
               )}
             >
               {step.label}
             </p>
             {step.time && (
-              <p className="text-[9px] text-text-muted">{step.time}</p>
+              <p className="text-[9px] font-medium text-[var(--qs-muted)]">{step.time}</p>
             )}
           </div>
           {i < steps.length - 1 && (
             <div
               className={cn(
                 "mx-1 h-0.5 w-8 min-w-[20px] sm:w-12",
-                step.done ? "bg-emerald-500" : "bg-border"
+                step.done ? "bg-[var(--qs-ok)]" : "bg-[var(--qs-line)]"
               )}
             />
           )}

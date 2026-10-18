@@ -159,7 +159,7 @@ export const quizSchema = z.object({
     .optional(),
 });
 
-export const quizUpdateSchema = quizSchema.omit({ code: true }).strict();
+export const quizUpdateSchema = quizSchema.omit({ code: true }).partial().strict();
 
 /**
  * Schema for quiz status updates.

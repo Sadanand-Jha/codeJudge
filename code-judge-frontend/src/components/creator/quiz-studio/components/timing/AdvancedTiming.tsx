@@ -16,23 +16,23 @@ export function AdvancedTiming({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded-xl border border-border bg-card">
+    <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between px-5 py-4 text-left"
       >
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
+          <p className="text-xs font-extrabold uppercase tracking-wider text-[var(--qs-muted)]">
             Advanced Timing
           </p>
-          <p className="mt-0.5 text-[11px] text-text-muted">
+          <p className="mt-0.5 text-[11px] font-medium text-[var(--qs-muted)]">
             Late joining, rejoining, auto-submit
           </p>
         </div>
         <ChevronDown
           className={cn(
-            "h-4 w-4 text-text-secondary transition-transform",
+            "h-4 w-4 text-[var(--qs-muted)] transition-transform",
             open && "rotate-180"
           )}
         />
@@ -47,7 +47,7 @@ export function AdvancedTiming({
             transition={{ duration: 0.25, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="space-y-5 border-t border-border px-5 py-4">
+            <div className="space-y-5 border-t-2 border-[var(--qs-line)] px-5 py-4">
               <SwitchRow
                 label="Allow participants to join after quiz starts"
                 description="When enabled, participants can begin their attempts after the quiz has already started, as long as the quiz is still accepting new attempts."
@@ -58,10 +58,10 @@ export function AdvancedTiming({
 
               {advanced.lateJoining && (
                 <div className="ml-0 space-y-2 pl-0">
-                  <p className="text-xs font-medium text-text-secondary">
+                  <p className="text-xs font-bold text-[var(--qs-ink)]">
                     Stop accepting new attempts
                   </p>
-                  <p className="text-[11px] text-text-secondary">
+                  <p className="text-[11px] font-medium text-[var(--qs-muted)]">
                     Choose when late joining should stop.
                   </p>
                   <div className="space-y-1.5">
@@ -77,10 +77,10 @@ export function AdvancedTiming({
                       <label
                         key={opt.value}
                         className={cn(
-                          "flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-card-hover cursor-pointer",
+                          "flex items-center gap-3 rounded-[14px] border-2 bg-[var(--qs-surface)] p-3 transition-colors cursor-pointer",
                           advanced.lateJoinCutoff === opt.value
-                            ? "border-pink-500/40"
-                            : "border-border"
+                            ? "border-[var(--qs-brand)] bg-[var(--qs-poly-1)]"
+                            : "border-[var(--qs-line)] hover:border-[var(--qs-brand)]"
                         )}
                       >
                         <input
@@ -92,9 +92,9 @@ export function AdvancedTiming({
                               lateJoinCutoff: opt.value as LateJoinCutoff,
                             })
                           }
-                          className="accent-pink-500"
+                          className="accent-[var(--qs-brand)]"
                         />
-                        <span className="text-sm text-text-primary">
+                        <span className="text-sm font-medium text-[var(--qs-ink)]">
                           {opt.label}
                         </span>
                       </label>
@@ -119,9 +119,9 @@ export function AdvancedTiming({
                   onChange={(v) => onChange({ autoSubmit: v })}
                 />
                 {advanced.autoSubmit && (
-                  <div className="flex items-center gap-2 rounded-lg border border-border bg-card-hover px-3 py-2">
-                    <Info className="h-3 w-3 shrink-0 text-text-muted" />
-                    <p className="text-[11px] text-text-secondary">
+                  <div className="flex items-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
+                    <Info className="h-3 w-3 shrink-0 text-[var(--qs-muted)]" />
+                    <p className="text-[11px] font-medium text-[var(--qs-muted)]">
                       60-minute attempt → Time reaches 00:00 → Attempt
                       submitted
                     </p>
@@ -155,12 +155,12 @@ function SwitchRow({
     <div className="space-y-2">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <p className="text-sm font-medium text-text-primary">{label}</p>
+          <p className="text-sm font-bold text-[var(--qs-ink)]">{label}</p>
           {description && (
-            <p className="mt-0.5 text-xs text-text-secondary">{description}</p>
+            <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">{description}</p>
           )}
           {example && (
-            <p className="mt-1 text-[11px] text-text-muted italic">
+            <p className="mt-1 text-[11px] font-medium italic text-[var(--qs-muted)]">
               {example}
             </p>
           )}
@@ -169,10 +169,10 @@ function SwitchRow({
           type="button"
           onClick={() => onChange(!checked)}
           className={cn(
-            "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors",
+            "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 transition-colors",
             checked
-              ? "border-pink-400 bg-pink-300"
-              : "border-border bg-border"
+              ? "border-[var(--qs-ink)] bg-[var(--qs-ok)]"
+              : "border-[var(--qs-line)] bg-[var(--qs-line)]"
           )}
         >
           <span
@@ -184,9 +184,9 @@ function SwitchRow({
         </button>
       </div>
       {note && (
-        <div className="flex items-start gap-2 rounded-lg border border-border bg-card-hover px-3 py-2">
-          <Info className="mt-0.5 h-3 w-3 shrink-0 text-text-muted" />
-          <p className="text-[11px] text-text-secondary">{note}</p>
+        <div className="flex items-start gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
+          <Info className="mt-0.5 h-3 w-3 shrink-0 text-[var(--qs-muted)]" />
+          <p className="text-[11px] font-medium text-[var(--qs-muted)]">{note}</p>
         </div>
       )}
     </div>

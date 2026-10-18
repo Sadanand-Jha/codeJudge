@@ -163,15 +163,15 @@ export default function StudentImportPanel({
             exit={{ opacity: 0 }}
             className="space-y-4"
           >
-            <div className="flex items-center gap-2 text-xs text-text-muted">
+            <div className="flex items-center gap-2 text-xs text-[var(--qs-muted)]">
               <button
                 onClick={reset}
-                className="inline-flex items-center gap-1 font-semibold text-text-secondary transition-colors hover:text-pink-500"
+                className="inline-flex items-center gap-1 font-bold text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-brand)]"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 Back to Upload
               </button>
-              <span className="text-border-hover">·</span>
+              <span className="text-[var(--qs-line)]">·</span>
               <span className="truncate font-medium">{fileName}</span>
             </div>
 
@@ -247,30 +247,30 @@ function PrepareStep({
   return (
     <>
       <div>
-        <h4 className="text-sm font-bold text-text-primary">Prepare your Excel sheet</h4>
-        <p className="mt-1 text-xs leading-relaxed text-text-secondary">
-          Your Excel file only needs a <span className="font-semibold text-text-primary">Username</span> column. One username per row — we&apos;ll derive the profile from the username.
+        <h4 className="text-sm font-black text-[var(--qs-ink)]">Prepare your Excel sheet</h4>
+        <p className="mt-1 text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
+          Your Excel file only needs a <span className="font-extrabold text-[var(--qs-ink)]">Username</span> column. One username per row — we&apos;ll derive the profile from the username.
         </p>
       </div>
 
       {/* Mini-spreadsheet example */}
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-[14px] border-2 border-[var(--qs-line)]">
         <table className="w-full min-w-[240px] text-left text-xs">
           <thead>
-            <tr className="border-b border-border bg-white/[0.03]">
-              <th className="px-3 py-2.5 font-bold text-text-primary">
+            <tr className="border-b-2 border-[var(--qs-line)] bg-[var(--qs-poly-0)]">
+              <th className="px-3 py-2.5 font-extrabold text-[var(--qs-ink)]">
                 <span className="flex items-center gap-1.5 whitespace-nowrap">
                   Username
-                  <span className="rounded-md bg-pink-500/15 px-1.5 py-px text-[9px] font-bold uppercase tracking-wider text-pink-500">
+                  <span className="rounded-[6px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-1.5 py-px text-[9px] font-extrabold uppercase tracking-wider text-[#1A1240]">
                     Required
                   </span>
                 </span>
               </th>
             </tr>
           </thead>
-          <tbody className="font-medium text-text-secondary">
+          <tbody className="font-medium text-[var(--qs-muted)]">
             {[["rahul.kumar42"], ["priya.singh43"], ["aman.sharma44"]].map((row, i) => (
-              <tr key={i} className="border-b border-border/50 last:border-0">
+              <tr key={i} className="border-b-2 border-[var(--qs-line)] last:border-0">
                 {row.map((cell, j) => (
                   <td key={j} className="px-3 py-2">
                     {cell}
@@ -282,10 +282,10 @@ function PrepareStep({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card/40 px-3 py-2 text-[11px]">
-        <span className="font-bold text-text-muted">Required column:</span>
-        <span className="font-semibold text-text-primary">Username</span>
-        <span className="text-text-muted">· optional: Name, Roll Number (derived if omitted)</span>
+      <div className="flex flex-wrap items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2 text-[11px]">
+        <span className="font-extrabold text-[var(--qs-muted)]">Required column:</span>
+        <span className="font-extrabold text-[var(--qs-ink)]">Username</span>
+        <span className="font-medium text-[var(--qs-muted)]">· optional: Name, Roll Number (derived if omitted)</span>
       </div>
 
       {/* Field explanations */}
@@ -293,28 +293,28 @@ function PrepareStep({
         {(["username"] as ColumnKey[]).map((key) => {
           const Icon = FIELD_ICONS[key];
           return (
-            <div key={key} className="min-w-0 rounded-xl border border-border bg-card p-3.5">
+            <div key={key} className="min-w-0 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5">
               <div className="flex flex-wrap items-center gap-2">
-                <Icon className="h-4 w-4 shrink-0 text-pink-500" />
-                <span className="text-xs font-bold text-text-primary">{COLUMN_LABELS[key]}</span>
-                <span className="shrink-0 whitespace-nowrap rounded-md bg-pink-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-pink-500">
+                <Icon className="h-4 w-4 shrink-0 text-[var(--qs-brand)]" />
+                <span className="text-xs font-extrabold text-[var(--qs-ink)]">{COLUMN_LABELS[key]}</span>
+                <span className="shrink-0 whitespace-nowrap rounded-[6px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[#1A1240]">
                   Required
                 </span>
               </div>
-              <p className="mt-1.5 text-xs leading-relaxed text-text-secondary">{COLUMN_HINTS[key].desc}</p>
-              <code className="mt-2 block w-fit break-words rounded-lg bg-input-bg px-2 py-1 text-xs font-medium text-text-primary">
+              <p className="mt-1.5 text-xs font-medium leading-relaxed text-[var(--qs-muted)]">{COLUMN_HINTS[key].desc}</p>
+              <code className="mt-2 block w-fit break-words rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-1 text-xs font-medium text-[var(--qs-ink)]">
                 {COLUMN_HINTS[key].example}
               </code>
-              <p className="mt-2 text-[11px] text-text-muted">If Name/Roll columns are present they&apos;ll be used, otherwise filled from the username.</p>
+              <p className="mt-2 text-[11px] font-medium text-[var(--qs-muted)]">If Name/Roll columns are present they&apos;ll be used, otherwise filled from the username.</p>
             </div>
           );
         })}
       </div>
 
       {/* Schema rules */}
-      <div className="rounded-xl border border-border bg-card/40 p-3.5">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Important</p>
-        <ul className="mt-1.5 grid gap-1 text-[11px] text-text-secondary sm:grid-cols-2">
+      <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5">
+        <p className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--qs-muted)]">Important</p>
+        <ul className="mt-1.5 grid gap-1 text-[11px] font-medium text-[var(--qs-muted)] sm:grid-cols-2">
           {[
             "Only the Username column is required.",
             "The first row must be 'Username'.",
@@ -325,7 +325,7 @@ function PrepareStep({
             "Avoid completely empty rows.",
           ].map((rule, i) => (
             <li key={i} className="flex items-start gap-1.5">
-              <Check className="mt-0.5 h-3 w-3 shrink-0 text-success" />
+              <Check className="mt-0.5 h-3 w-3 shrink-0 text-[var(--qs-ok)]" />
               {rule}
             </li>
           ))}
@@ -335,7 +335,7 @@ function PrepareStep({
       {/* Download template */}
       <button
         onClick={downloadExcelTemplate}
-        className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-border bg-card text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover"
+        className="flex h-10 w-full items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
       >
         <Download className="h-4 w-4" />
         Download Excel Template
@@ -343,24 +343,24 @@ function PrepareStep({
 
       {/* Upload area */}
       <div>
-        <label className="mb-1.5 block text-xs font-semibold text-text-primary">Upload Excel File</label>
+        <label className="mb-1.5 block text-xs font-extrabold text-[var(--qs-ink)]">Upload Excel File</label>
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
             onFile(e.dataTransfer.files?.[0]);
           }}
-          className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/40 px-4 py-7 text-center transition-colors hover:border-pink-500/40"
+          className="flex flex-col items-center justify-center rounded-[16px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-7 text-center transition-colors hover:border-[var(--qs-brand)]"
         >
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-pink-500/10 text-pink-500">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]">
             <FileUp className="h-5 w-5" />
           </span>
-          <p className="mt-2.5 text-sm font-semibold text-text-primary">
-            Drag and drop your <span className="text-pink-500">.xlsx</span> or{" "}
-            <span className="text-pink-500">.xls</span> file here
+          <p className="mt-2.5 text-sm font-extrabold text-[var(--qs-ink)]">
+            Drag and drop your <span className="text-[var(--qs-brand)]">.xlsx</span> or{" "}
+            <span className="text-[var(--qs-brand)]">.xls</span> file here
           </p>
-          <p className="mt-1 text-xs text-text-secondary">or</p>
-          <label className="mt-2 inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white transition-all hover:brightness-110 active:scale-[0.98]">
+          <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">or</p>
+          <label className="mt-2 inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none">
             <FileSpreadsheet className="h-3.5 w-3.5" />
             Browse Files
             <input
@@ -373,17 +373,17 @@ function PrepareStep({
               }}
             />
           </label>
-          <p className="mt-2 text-[11px] text-text-muted">Supported formats: .xlsx, .xls, .csv</p>
+          <p className="mt-2 text-[11px] font-medium text-[var(--qs-muted)]">Supported formats: .xlsx, .xls, .csv</p>
         </div>
       </div>
 
       {parseError && (
-        <div className="flex items-start justify-between gap-2 rounded-xl border border-danger/25 bg-danger/[0.06] px-3.5 py-2.5">
-          <p className="flex items-start gap-2 text-xs font-medium text-danger">
+        <div className="flex items-start justify-between gap-2 rounded-[12px] border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-badbg)] px-3.5 py-2.5">
+          <p className="flex items-start gap-2 text-xs font-bold text-[var(--qs-bad)]">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             {parseError}
           </p>
-          <button onClick={onDismissError} className="shrink-0 rounded p-0.5 text-danger/70 hover:text-danger">
+          <button onClick={onDismissError} className="shrink-0 rounded-[6px] p-0.5 text-[var(--qs-bad)]/70 transition-colors hover:text-[var(--qs-bad)]">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -411,9 +411,9 @@ function MappingStep({
   return (
     <div className="space-y-4">
       <div>
-        <h4 className="text-sm font-bold text-text-primary">Confirm column mapping</h4>
-        <p className="mt-1 text-xs text-text-secondary">
-          We matched these columns from <span className="font-semibold text-text-primary">{sheetData.sheetName}</span>.
+        <h4 className="text-sm font-black text-[var(--qs-ink)]">Confirm column mapping</h4>
+        <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">
+          We matched these columns from <span className="font-extrabold text-[var(--qs-ink)]">{sheetData.sheetName}</span>.
           Change any mapping if it looks wrong.
         </p>
       </div>
@@ -422,27 +422,27 @@ function MappingStep({
         {(["name", "roll", "username"] as ColumnKey[]).map((key) => (
           <div
             key={key}
-            className="rounded-xl border border-border bg-card p-3.5"
+            className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5"
           >
             <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="text-xs font-bold text-text-primary">{COLUMN_LABELS[key]}</span>
+                <span className="text-xs font-extrabold text-[var(--qs-ink)]">{COLUMN_LABELS[key]}</span>
                 {key === "username" ? (
-                  <span className="shrink-0 whitespace-nowrap rounded-md bg-pink-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-pink-500">
+                  <span className="shrink-0 whitespace-nowrap rounded-[6px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[#1A1240]">
                     Required
                   </span>
                 ) : (
-                  <span className="shrink-0 whitespace-nowrap rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-text-muted">
+                  <span className="shrink-0 whitespace-nowrap rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[var(--qs-muted)]">
                     Optional
                   </span>
                 )}
               </div>
               <div className="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-                <span className="shrink-0 text-[11px] text-text-muted">Your column</span>
+                <span className="shrink-0 text-[11px] font-medium text-[var(--qs-muted)]">Your column</span>
                 <select
                   value={mapping[key] ?? ""}
                   onChange={(e) => onMappingChange({ ...mapping, [key]: e.target.value || null })}
-                  className="h-9 w-full rounded-lg border border-input-border bg-input-bg px-2.5 text-xs font-medium text-text-primary focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10 sm:w-52"
+                  className="h-9 w-full cursor-pointer rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-xs font-bold text-[var(--qs-ink)] focus:border-[var(--qs-brand)] focus:outline-none sm:w-52"
                 >
                   <option value="">— Select column —</option>
                   {sheetData.headers.map((h) => (
@@ -457,21 +457,21 @@ function MappingStep({
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card/40 px-3.5 py-2.5">
-        <p className="text-[11px] text-text-secondary">
-          <span className="font-bold text-text-primary">{sheetData.rows.length}</span> data row
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 py-2.5">
+        <p className="text-[11px] font-medium text-[var(--qs-muted)]">
+          <span className="font-extrabold text-[var(--qs-ink)]">{sheetData.rows.length}</span> data row
           {sheetData.rows.length !== 1 ? "s" : ""} detected
         </p>
         <div className="flex items-center gap-2">
           <button
             onClick={onBack}
-            className="h-9 rounded-xl border border-border bg-card px-3.5 text-xs font-semibold text-text-secondary transition-colors hover:bg-card-hover"
+            className="h-9 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
           >
             Back
           </button>
           <button
             onClick={onContinue}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
           >
             Continue to Review
             <ChevronRight className="h-3.5 w-3.5" />
@@ -494,15 +494,15 @@ function MissingColumnState({
   const missing = missingColumns(mapping);
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 rounded-xl border border-warning/25 bg-warning/[0.05] p-4">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning/10 text-warning">
-          <AlertTriangle className="h-4.5 w-4.5" />
+      <div className="flex items-start gap-3 rounded-[16px] border-2 border-[#a85d00]/30 bg-[#fff3d6] p-4">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
+          <AlertTriangle className="h-4 w-4" />
         </span>
         <div>
-          <h4 className="text-sm font-bold text-text-primary">Missing required column</h4>
-          <p className="mt-1 text-xs leading-relaxed text-text-secondary">
+          <h4 className="text-sm font-black text-[var(--qs-ink)]">Missing required column</h4>
+          <p className="mt-1 text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
             We couldn&apos;t find a{" "}
-            <span className="font-semibold text-text-primary">
+            <span className="font-extrabold text-[var(--qs-ink)]">
               {missing.map((k) => COLUMN_LABELS[k]).join(" and ")}
             </span>{" "}
             column in your {fileLabel} file.
@@ -510,19 +510,19 @@ function MissingColumnState({
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-3.5">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Required columns</p>
+      <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3.5">
+        <p className="text-[10px] font-extrabold uppercase tracking-wider text-[var(--qs-muted)]">Required columns</p>
         <div className="mt-2 space-y-1.5">
           {(["name", "roll", "username"] as ColumnKey[]).map((key) => {
             const ok = Boolean(mapping[key]);
             return (
               <div key={key} className="flex items-center gap-2 text-xs">
                 {ok ? (
-                  <Check className="h-3.5 w-3.5 text-success" />
+                  <Check className="h-3.5 w-3.5 text-[var(--qs-ok)]" />
                 ) : (
-                  <X className="h-3.5 w-3.5 text-danger" />
+                  <X className="h-3.5 w-3.5 text-[var(--qs-bad)]" />
                 )}
-                <span className={ok ? "text-text-secondary" : "font-semibold text-danger"}>
+                <span className={ok ? "font-medium text-[var(--qs-muted)]" : "font-extrabold text-[var(--qs-bad)]"}>
                   {COLUMN_LABELS[key]}
                 </span>
               </div>
@@ -533,7 +533,7 @@ function MissingColumnState({
 
       <button
         onClick={onBack}
-        className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-card text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover"
+        className="flex h-9 w-full items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         Back to Upload
@@ -562,37 +562,37 @@ function ValidationStep({
   return (
     <div className="space-y-4">
       <div>
-        <h4 className="text-sm font-bold text-text-primary">Review your students</h4>
-        <p className="mt-1 text-xs text-text-secondary">
+        <h4 className="text-sm font-black text-[var(--qs-ink)]">Review your students</h4>
+        <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">
           We found some issues while validating. Review the rows below before importing.
         </p>
       </div>
 
       {/* Summary */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-lg bg-success/10 px-2.5 py-1 text-[11px] font-bold text-success">
+        <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-ok)]/30 bg-[var(--qs-okbg)] px-2.5 py-1 text-[11px] font-extrabold text-[var(--qs-ok)]">
           <Check className="h-3 w-3" />
           {classification.valid.length} valid
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-lg bg-warning/10 px-2.5 py-1 text-[11px] font-bold text-warning">
+        <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#a85d00]/30 bg-[#fff3d6] px-2.5 py-1 text-[11px] font-extrabold text-[#a85d00]">
           <AlertTriangle className="h-3 w-3" />
           {classification.attention.length} invalid
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-lg bg-danger/10 px-2.5 py-1 text-[11px] font-bold text-danger">
+        <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-badbg)] px-2.5 py-1 text-[11px] font-extrabold text-[var(--qs-bad)]">
           <X className="h-3 w-3" />
           {classification.duplicate.length} duplicate
         </span>
         <button
           onClick={onToggleIssues}
-          className="ml-auto rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition-colors hover:border-border-hover hover:text-text-primary"
+          className="ml-auto rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-1 text-[11px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
         >
           {showIssues ? "Show all rows" : "Review Issues"}
         </button>
       </div>
 
       {/* Preview table */}
-      <div className="overflow-hidden rounded-xl border border-border">
-        <div className="hidden grid-cols-[minmax(0,1.6fr)_104px_minmax(0,0.9fr)_112px] items-center gap-3 border-b border-border bg-white/[0.03] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-text-muted sm:grid">
+      <div className="overflow-hidden rounded-[14px] border-2 border-[var(--qs-line)]">
+        <div className="hidden grid-cols-[minmax(0,1.6fr)_104px_minmax(0,0.9fr)_112px] items-center gap-3 border-b-2 border-[var(--qs-line)] bg-[var(--qs-poly-0)] px-3 py-2 text-[10px] font-extrabold uppercase tracking-wider text-[var(--qs-muted)] sm:grid">
           <span>Name</span>
           <span>Roll Number</span>
           <span>Username</span>
@@ -600,7 +600,7 @@ function ValidationStep({
         </div>
         <div className="max-h-64 overflow-y-auto">
           {rows.length === 0 && (
-            <p className="px-3 py-8 text-center text-xs text-text-muted">
+            <p className="px-3 py-8 text-center text-xs font-medium text-[var(--qs-muted)]">
               {showIssues ? "No issues found — all rows are ready." : "No rows to review."}
             </p>
           )}
@@ -608,36 +608,36 @@ function ValidationStep({
             <div
               key={i}
               className={cn(
-                "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-b border-border px-3 py-2.5 text-xs last:border-0 sm:grid-cols-[minmax(0,1.6fr)_104px_minmax(0,0.9fr)_112px] sm:gap-y-0",
+                "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-b-2 border-[var(--qs-line)] px-3 py-2.5 text-xs last:border-0 sm:grid-cols-[minmax(0,1.6fr)_104px_minmax(0,0.9fr)_112px] sm:gap-y-0",
                 r.status === "ready"
-                  ? "text-text-secondary"
+                  ? "text-[var(--qs-muted)]"
                   : r.status === "attention"
-                  ? "bg-warning/[0.03]"
-                  : "bg-danger/[0.03]"
+                  ? "bg-[#fff7dd]/70"
+                  : "bg-[var(--qs-badbg)]/60"
               )}
             >
-              <span className="order-1 min-w-0 truncate font-medium text-text-primary">
+              <span className="order-1 min-w-0 truncate font-bold text-[var(--qs-ink)]">
                 {r.name || "—"}
               </span>
               <span
                 className={cn(
                   "order-3 col-span-2 flex items-center gap-1 font-mono text-[11px] sm:order-2 sm:col-span-1 sm:block sm:truncate",
-                  r.rollNumber ? "text-text-secondary" : "text-danger"
+                  r.rollNumber ? "text-[var(--qs-muted)]" : "text-[var(--qs-bad)]"
                 )}
               >
                 {r.rollNumber || "—"}
               </span>
-              <span className="order-4 col-span-2 truncate text-[11px] text-text-muted sm:order-3 sm:col-span-1">
+              <span className="order-4 col-span-2 truncate text-[11px] font-medium text-[var(--qs-muted)] sm:order-3 sm:col-span-1">
                 {r.username ? `@${r.username}` : "—"}
               </span>
               <span
                 className={cn(
-                  "order-2 flex items-center justify-end gap-1 text-right text-[11px] font-semibold sm:order-4",
+                  "order-2 flex items-center justify-end gap-1 text-right text-[11px] font-extrabold sm:order-4",
                   r.status === "ready"
-                    ? "text-success"
+                    ? "text-[var(--qs-ok)]"
                     : r.status === "attention"
-                    ? "text-warning"
-                    : "text-danger"
+                    ? "text-[#a85d00]"
+                    : "text-[var(--qs-bad)]"
                 )}
               >
                 {r.status === "ready" ? (
@@ -657,9 +657,9 @@ function ValidationStep({
       </div>
 
       {classification.duplicate.length > 0 && (
-        <div className="flex items-start gap-2 rounded-xl border border-danger/20 bg-danger/[0.05] px-3.5 py-2.5">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-danger" />
-          <p className="text-[11px] leading-relaxed text-text-secondary">
+        <div className="flex items-start gap-2 rounded-[12px] border-2 border-[var(--qs-bad)]/25 bg-[var(--qs-badbg)] px-3.5 py-2.5">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-bad)]" />
+          <p className="text-[11px] font-medium leading-relaxed text-[var(--qs-ink)]">
             Duplicate rows (already in the room or repeated in your file) will be skipped and never
             imported twice.
           </p>
@@ -669,14 +669,14 @@ function ValidationStep({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={onBack}
-          className="h-9 rounded-xl border border-border bg-card px-3.5 text-xs font-semibold text-text-secondary transition-colors hover:bg-card-hover"
+          className="h-9 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
         >
           Back
         </button>
         <button
           onClick={onImport}
           disabled={classification.valid.length === 0}
-          className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Check className="h-3.5 w-3.5" />
           Import {classification.valid.length} Valid Student
@@ -703,26 +703,26 @@ function SuccessStep({
 }) {
   return (
     <div className="flex flex-col items-center py-4 text-center">
-      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-success/10 text-success ring-1 ring-inset ring-success/25">
+      <span className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[var(--qs-ok)]/40 bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
         <Check className="h-7 w-7" strokeWidth={2.5} />
       </span>
-      <h4 className="mt-4 text-base font-bold text-text-primary">Students imported successfully</h4>
-      <p className="mt-1 text-sm text-text-secondary">
-        {count} student{count !== 1 ? "s" : ""} added to <span className="font-semibold text-text-primary">{roomName}</span>.
+      <h4 className="mt-4 text-base font-black text-[var(--qs-ink)]">Students imported successfully</h4>
+      <p className="mt-1 text-sm font-medium text-[var(--qs-muted)]">
+        {count} student{count !== 1 ? "s" : ""} added to <span className="font-extrabold text-[var(--qs-ink)]">{roomName}</span>.
       </p>
 
       <div className="mt-5 flex items-center gap-2">
         {viewStudentsHref && (
           <a
             href={viewStudentsHref}
-            className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
           >
             View Students
           </a>
         )}
         <button
           onClick={onDone}
-          className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           Done

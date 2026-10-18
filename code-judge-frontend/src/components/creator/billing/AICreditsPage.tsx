@@ -33,6 +33,7 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
   const toast = useToast();
   const balance = useAICreditsStore((s) => s.balance);
   const refreshCredits = useAICreditsStore((s) => s.refresh);
+  const purchasePack = useAICreditsStore((s) => s.purchasePack);
   const [refreshing, setRefreshing] = useState(false);
 
   const { state, data, retry } = useBillingData(() => ({ packs: getPurchasePacks() }), {
@@ -110,7 +111,41 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
 
   const handlePay = async (method: string) => {
     if (!selected) return;
+    // UPI opens the QR page first; credits are confirmed after the scan.
+    if (method === "upi") {
+      setPhase("upi");
+      setPhaseError(null);
+      return;
+    }
     await runPurchase({ packId: selected.pack.id, method });
+  };
+
+  const handleUpiSuccess = async (orderId: string) => {
+    if (!selected) return;
+    const summary = selected;
+    setPhase("processing");
+    setPhaseError(null);
+    setProcessingNote("Confirming your payment…");
+    try {
+      await purchasePack(summary.pack.id);
+      const newBalance = useAICreditsStore.getState().balance.totalRemaining;
+      setReceipt({
+        transactionId: orderId,
+        packName: summary.pack.name,
+        credits: summary.credits,
+        newBalance,
+      });
+      setPhase("success");
+      toast.success({
+        title: "Credits added",
+        description: `${summary.credits} AI credits are now available.`,
+      });
+    } catch (err: unknown) {
+      setPhaseError(
+        getApiErrorMessage(err, "Payment succeeded but credits could not be added. Please contact support.")
+      );
+      setPhase("failed");
+    }
   };
 
   return (
@@ -169,6 +204,7 @@ export function AICreditsPage({ demoState }: { demoState?: "empty" | "error" }) 
             receipt={receipt}
             onClose={closeDialog}
             onPay={handlePay}
+            onUpiSuccess={handleUpiSuccess}
             onBack={() => {
               setPhase("summary");
               setPhaseError(null);

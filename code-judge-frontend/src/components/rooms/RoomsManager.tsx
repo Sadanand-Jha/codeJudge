@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Archive,
@@ -11,13 +11,13 @@ import {
   Download,
   Eye,
   FileSpreadsheet,
+  MoreVertical,
   Plus,
   Search,
   Settings2,
   Trash2,
   Users,
 } from "lucide-react";
-import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { MAX_ROOMS_PER_CREATOR } from "@/lib/constants";
 import { useRoomStore, getOwnedRooms } from "@/store/roomStore";
@@ -25,8 +25,7 @@ import { useAuthStore } from "@/store/authStore";
 import { timeAgo, isWithinWindow } from "@/lib/formatters";
 import { exportStudentsToFile } from "@/utils/excelImport";
 import { useToast } from "@/hooks/useToast";
-import RoomMenu, { RoomMenuItem } from "@/components/quiz/creator/settings/audience/RoomMenu";
-import SortDropdown from "@/components/ui/SortDropdown";
+import type { RoomMenuItem } from "@/components/quiz/creator/settings/audience/RoomMenu";
 import CreateRoomModal from "@/components/quiz/creator/settings/audience/CreateRoomModal";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
@@ -50,6 +49,12 @@ const SORTS: Array<{ id: SortKey; label: string }> = [
 
 const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
+const QS_PRIMARY_BTN =
+  "inline-flex items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50";
+
+const QS_OUTLINE_BTN =
+  "inline-flex items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
+
 interface RoomsManagerProps {
   /** Base path for room links — "/profile/rooms" under the profile layout or "/rooms" standalone. */
   basePath?: string;
@@ -62,6 +67,7 @@ interface RoomsManagerProps {
  */
 export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManagerProps) {
   const toast = useToast();
+  const router = useRouter();
   const rooms = useRoomStore((s) => s.rooms);
   const hydrate = useRoomStore((s) => s.hydrate);
   const setRooms = useRoomStore((s) => s.setRooms);
@@ -83,11 +89,11 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [addTarget, setAddTarget] = useState<{ roomId: string; tab: "manual" | "import" } | null>(null);
   const [loadingRooms, setLoadingRooms] = useState(true);
+  const [actionMenu, setActionMenu] = useState<{ roomId: string; archived: boolean; top?: number; bottom?: number; right: number } | null>(null);
 
   useEffect(() => {
     hydrate();
     // Fetch rooms from backend on going to rooms page — calls GET /my-rooms
-    setLoadingRooms(true);
     import("@/services/rooms").then(({ fetchMyRooms }) => {
       fetchMyRooms()
         .then((backendRooms) => {
@@ -99,19 +105,41 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
     }).catch(() => setLoadingRooms(false));
   }, [hydrate, setRooms]);
 
+  useEffect(() => {
+    if (!actionMenu) return;
+    const close = () => setActionMenu(null);
+    document.addEventListener("click", close);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      document.removeEventListener("click", close);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [actionMenu]);
+
   // Only rooms owned by the authenticated admin.
   const ownedRooms = useMemo(() => getOwnedRooms(rooms, user?.id), [rooms, user]);
 
   const stats = useMemo(() => {
     const active = ownedRooms.filter((r) => !r.archived);
     const students = ownedRooms.reduce((sum, r) => sum + (r.memberCount ?? r.students.length), 0);
+    const recent = active.filter((r) => isWithinWindow(r.updatedAt, RECENT_WINDOW_MS)).length;
     return {
       rooms: ownedRooms.length,
       students,
       active: active.length,
       archived: ownedRooms.length - active.length,
+      recent,
     };
   }, [ownedRooms]);
+
+  const filterCounts: Record<FilterTab, number> = {
+    all: stats.rooms,
+    active: stats.active,
+    archived: stats.archived,
+    recent: stats.recent,
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -134,6 +162,19 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
   const duplicateRoomTarget = duplicateTarget ? ownedRooms.find((r) => r.id === duplicateTarget) : null;
   const deleteRoomTarget = deleteTarget ? ownedRooms.find((r) => r.id === deleteTarget) : null;
   const addRoomTarget = addTarget ? ownedRooms.find((r) => r.id === addTarget.roomId) : null;
+
+  const openActionMenu = (e: React.MouseEvent, roomId: string, archived: boolean) => {
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const openUp = window.innerHeight - rect.bottom < 340;
+    setActionMenu({
+      roomId,
+      archived,
+      top: openUp ? undefined : rect.bottom + 8,
+      bottom: openUp ? window.innerHeight - rect.top + 8 : undefined,
+      right: window.innerWidth - rect.right,
+    });
+  };
 
   const handleExport = (roomId: string) => {
     const room = ownedRooms.find((r) => r.id === roomId);
@@ -208,188 +249,250 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
     },
   ];
 
-  // Full-page loading screen while rooms & students are fetched from the backend
+  // Full-page skeleton while rooms & students are fetched from the backend
   if (loadingRooms) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center px-4">
-        <div className="rounded-2xl border border-border bg-card px-8 py-12 text-center shadow-lg">
-          <div className="relative mx-auto h-14 w-14">
-            <SecureLogo variant="mark" size={48} className="animate-pulse motion-reduce:animate-none" />
+      <div className="min-h-full bg-[var(--qs-bg)]">
+        <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+          <div className="mb-6">
+            <div className="app-skeleton h-9 w-44 rounded" />
+            <div className="app-skeleton mt-2 h-4 w-72 rounded" />
           </div>
-          <h2 className="mt-5 text-lg font-bold text-text-primary">Loading your rooms…</h2>
-          <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-text-secondary">
-            Fetching students from the backend. This will only take a moment.
-          </p>
+          <div className="mb-5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
+                <div className="app-skeleton h-3 w-20 rounded" />
+                <div className="app-skeleton mt-3 h-7 w-14 rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="rounded-[26px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="app-skeleton mt-2 h-9 rounded first:mt-0" />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
+  const statCards = [
+    { label: "Rooms", value: stats.rooms, sub: "total", color: "var(--qs-brand)", hi: true },
+    { label: "Students", value: stats.students, sub: "across rooms", color: "#2457d6" },
+    { label: "Active Rooms", value: stats.active, sub: "usable", color: "var(--qs-ok)" },
+    { label: "Archived", value: stats.archived, sub: "hidden", color: "#a85d00" },
+  ];
+
   return (
-    <div className="mx-auto w-full max-w-7xl">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">My Rooms</h1>
-          <p className="mt-1.5 text-sm text-text-secondary sm:mt-2">
-            Create and manage student groups that you can reuse across your quizzes.
+    <div className="min-h-full bg-[var(--qs-bg)]">
+      <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+
+        {/* Top */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-[28px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">My Rooms</h1>
+            <p className="mt-0.5 truncate text-[var(--qs-muted)]">
+              Create and manage student groups that you can reuse across your quizzes.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => {
+                setCreateTab("manual");
+                setCreateOpen(true);
+              }}
+              disabled={ownedRooms.length >= MAX_ROOMS_PER_CREATOR}
+              title={
+                ownedRooms.length >= MAX_ROOMS_PER_CREATOR
+                  ? `You can have at most ${MAX_ROOMS_PER_CREATOR} rooms`
+                  : "Create a new room"
+              }
+              className={cn(QS_PRIMARY_BTN, "rounded-[12px] px-3.5 py-[9px] text-sm")}
+            >
+              <Plus className="h-4 w-4" strokeWidth={3} />
+              Create Room
+            </button>
+          </div>
+        </div>
+
+        {/* Room limit hint */}
+        {ownedRooms.length >= MAX_ROOMS_PER_CREATOR && (
+          <p className="mb-5 flex items-center gap-2 rounded-[12px] border-2 border-[#a85d00]/30 bg-[#fff3d6] px-3 py-2 text-xs font-bold text-[#a85d00]">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            You&apos;ve reached the maximum of {MAX_ROOMS_PER_CREATOR} rooms. Remove or archive a room to create a new one.
           </p>
-        </div>
-                <button
-          onClick={() => {
-            setCreateTab("manual");
-            setCreateOpen(true);
-          }}
-          disabled={ownedRooms.length >= MAX_ROOMS_PER_CREATOR}
-          title={
-            ownedRooms.length >= MAX_ROOMS_PER_CREATOR
-              ? `You can have at most ${MAX_ROOMS_PER_CREATOR} rooms`
-              : "Create a new room"
-          }
-          className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-sm font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] sm:h-11 sm:px-4 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Plus className="h-4 w-4" />
-          Create Room
-        </button>
-      </div>
-
-      {/* Room limit hint */}
-      {ownedRooms.length >= MAX_ROOMS_PER_CREATOR && (
-        <p className="mt-3 flex items-center gap-1.5 text-xs text-warning">
-          <AlertTriangle className="h-3.5 w-3.5" />
-          You&apos;ve reached the maximum of {MAX_ROOMS_PER_CREATOR} rooms. Remove or archive a room to create a new one.
-        </p>
-      )}
-
-      {/* Room Overview stats */}
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 lg:grid-cols-4 lg:gap-4">
-        {(
-          [
-            { label: "Rooms", value: stats.rooms, icon: Users, tint: "text-pink-500 bg-pink-500/10" },
-            { label: "Students", value: stats.students, icon: Users, tint: "text-violet-500 bg-violet-500/10" },
-            { label: "Active Rooms", value: stats.active, icon: Archive, tint: "text-success bg-success/10" },
-            { label: "Archived", value: stats.archived, icon: ArchiveRestore, tint: "text-text-muted bg-white/[0.04]" },
-          ] as Array<{ label: string; value: number; icon: typeof Users; tint: string }>
-        ).map((s) => (
-          <div key={s.label} className="rounded-xl border border-border bg-card p-3.5 sm:p-4">
-            <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg sm:h-9 sm:w-9", s.tint)}>
-              <s.icon className="h-4 w-4 sm:h-4 sm:w-4" />
-            </div>
-            <p className="mt-2.5 text-xl font-bold tabular-nums text-text-primary sm:text-2xl">{s.value}</p>
-            <p className="mt-0.5 text-[11px] font-medium text-text-muted sm:text-xs">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Search + filters + sort */}
-      <div className="mt-4 flex flex-col gap-3 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="relative w-full sm:max-w-[340px]">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search rooms..."
-            className="h-10 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10 sm:h-12"
-          />
-        </div>
-        <div className="flex items-center gap-2 overflow-x-auto sm:flex-wrap sm:gap-3">
-          <div className="flex shrink-0 items-center gap-1 rounded-xl border border-border bg-card p-1">
-            {FILTERS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setFilter(tab.id)}
-                className={cn(
-                  "whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors sm:px-4 sm:py-2.5 sm:text-xs",
-                  filter === tab.id ? "bg-pink-500/10 text-pink-500" : "text-text-muted hover:text-text-primary"
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <SortDropdown
-            options={SORTS.map((s) => ({ id: s.id, label: s.label }))}
-            value={sort}
-            onChange={(v) => setSort(v as SortKey)}
-            ariaLabel="Sort rooms"
-          />
-        </div>
-      </div>
-
-      {/* Cards */}
-      <div className="mt-4 sm:mt-5">
-        {ownedRooms.length === 0 ? (
-          <EmptyRooms onCreate={() => setCreateOpen(true)} onImport={() => {
-            setCreateTab("import");
-            setCreateOpen(true);
-          }} />
-        ) : filtered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
-            <Search className="mx-auto h-6 w-6 text-text-muted" />
-            <p className="mt-3 text-sm font-semibold text-text-primary">No rooms found</p>
-            <p className="mt-1 text-xs text-text-muted">Try a different search or filter.</p>
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
-            {filtered.map((room) => (
-              <motion.div
-                key={room.id}
-                layout
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn(
-                  "flex flex-col rounded-xl border p-3.5 transition-all duration-200 sm:p-4",
-                  room.archived
-                    ? "border-border bg-card/50 opacity-70"
-                    : "border-border bg-card shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:-translate-y-0.5 hover:border-pink-500/30 hover:shadow-[0_10px_28px_rgba(236,72,153,0.09)]"
-                )}
-              >
-                <div className="flex items-start justify-between gap-2 sm:gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 ring-1 ring-inset ring-pink-500/15 sm:h-10 sm:w-10">
-                    <Users className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {room.archived && (
-                      <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[9px] font-bold text-warning sm:px-2.5 sm:py-0.5 sm:text-[10px]">
-                        Archived
-                      </span>
-                    )}
-                    <RoomMenu items={menuItems(room.id, room.archived)} />
-                  </div>
-                </div>
-
-                <div className="mt-3 flex min-w-0 flex-col">
-                  <Link
-                    href={`${basePath}/${room.id}`}
-                    className="block truncate text-sm font-bold text-text-primary transition-colors hover:text-pink-500 sm:text-[15px]"
-                  >
-                    {room.name}
-                  </Link>
-                  <p className="mt-0.5 truncate text-[11px] text-text-secondary sm:text-xs">
-                    {room.description || `${room.memberCount ?? room.students.length} students`}
-                  </p>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-[10px] text-text-muted sm:text-[11px]">
-                  <span className="flex items-center gap-1.5">
-                    <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    <span className="font-bold text-text-primary tabular-nums">{room.memberCount ?? room.students.length}</span>{" "}
-                    student{(room.memberCount ?? room.students.length) !== 1 ? "s" : ""}
-                  </span>
-                  <span>{timeAgo(room.updatedAt)}</span>
-                </div>
-
-                <Link
-                  href={`${basePath}/${room.id}`}
-                  className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-card text-[11px] font-semibold text-text-primary transition-colors hover:border-pink-500/30 hover:text-pink-500 sm:text-xs"
-                >
-                  <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                  View Students
-                </Link>
-              </motion.div>
-            ))}
-          </div>
         )}
+
+        {/* Stats */}
+        <div className="mb-5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+          {statCards.map((kpi) => (
+            <div
+              key={kpi.label}
+              className={cn(
+                "rounded-[18px] border-2 p-4 sm:px-[18px]",
+                kpi.hi ? "border-[var(--qs-ink)] bg-[var(--qs-sun)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+              )}
+            >
+              <small className={cn(
+                "flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.08em]",
+                kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]"
+              )}>
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: kpi.color }} />
+                {kpi.label}
+              </small>
+              <b className={cn("mt-2 block text-[32px] font-extrabold leading-[1.1] sm:text-[36px]", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-ink)]")}>
+                {kpi.value}
+                <span className={cn("ml-1 text-sm font-medium", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]")}>{kpi.sub}</span>
+              </b>
+            </div>
+          ))}
+        </div>
+
+        {/* Filter bar */}
+        <div className="mb-5 flex flex-wrap items-center gap-2.5">
+          <div className="relative min-w-[220px] flex-[0_1_290px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search rooms…"
+              aria-label="Search rooms"
+              className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+            />
+          </div>
+          <div className="flex flex-1 flex-wrap items-center gap-2">
+            {FILTERS.map((f) => {
+              const active = filter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setFilter(f.id)}
+                  className={cn(
+                    "rounded-full border-2 px-[13px] py-1.5 text-xs font-extrabold uppercase tracking-[0.06em] transition-colors",
+                    active
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
+                  )}
+                >
+                  {f.label}
+                  <i className={cn("ml-1.5 not-italic", active ? "opacity-70" : "text-[var(--qs-muted)]")}>{filterCounts[f.id]}</i>
+                </button>
+              );
+            })}
+          </div>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            aria-label="Sort rooms"
+            className="shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)]"
+          >
+            {SORTS.map((s) => (
+              <option key={s.id} value={s.id}>
+                Sort: {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Rooms table */}
+        <div className="relative mb-4 mr-4">
+          <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
+          <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
+            <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
+              <div>
+                <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">Rooms</h2>
+                <p className="mt-0.5 text-sm text-[var(--qs-muted)]">Reusable student groups — open a room to manage its students.</p>
+              </div>
+              <p className="text-sm font-medium text-[var(--qs-muted)]">
+                {filtered.length} of {stats.rooms}
+              </p>
+            </header>
+
+            {ownedRooms.length === 0 ? (
+              <div className="border-t-2 border-[var(--qs-line)]">
+                <EmptyRooms onCreate={() => setCreateOpen(true)} onImport={() => {
+                  setCreateTab("import");
+                  setCreateOpen(true);
+                }} />
+              </div>
+            ) : (
+              <div className="overflow-x-auto border-t-2 border-[var(--qs-line)]">
+                <table className="w-full min-w-[820px] border-collapse text-left">
+                  <thead>
+                    <tr>
+                      {["Room", "Description", "Students", "Updated", "Status", "Actions"].map((h) => (
+                        <th key={h} className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
+                          No rooms match this search or filter.
+                        </td>
+                      </tr>
+                    ) : (
+                      filtered.map((room) => {
+                        const count = room.memberCount ?? room.students.length;
+                        return (
+                          <tr
+                            key={room.id}
+                            onClick={() => router.push(`${basePath}/${room.id}`)}
+                            className="cursor-pointer border-t-2 border-[var(--qs-line)]/60 transition-colors hover:bg-[var(--qs-bg)]"
+                          >
+                            <td className="px-3 py-3">
+                              <div className="flex items-center gap-3">
+                                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                                  <Users className="h-4 w-4" strokeWidth={2.5} />
+                                </span>
+                                <span className="max-w-[200px] truncate font-bold text-[var(--qs-ink)]">{room.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 text-[var(--qs-muted)]">
+                              <span className="block max-w-[280px] truncate">{room.description || "—"}</span>
+                            </td>
+                            <td className="px-3 py-3">
+                              <span className="font-bold text-[var(--qs-ink)]">{count}</span>
+                              <span className="font-medium text-[var(--qs-muted)]"> students</span>
+                            </td>
+                            <td className="px-3 py-3 text-[var(--qs-muted)]">{timeAgo(room.updatedAt)}</td>
+                            <td className="px-3 py-3">
+                              <span
+                                className={cn(
+                                  "inline-block rounded-full border-2 border-current px-[11px] py-px text-xs font-extrabold uppercase tracking-[0.05em]",
+                                  room.archived ? "text-[#a85d00]" : "text-[var(--qs-ok)]"
+                                )}
+                              >
+                                {room.archived ? "Archived" : "Active"}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                aria-label={`Actions for ${room.name}`}
+                                onClick={(e) => openActionMenu(e, room.id, room.archived)}
+                                className="grid h-[34px] w-[34px] place-items-center rounded-[10px] text-[var(--qs-ink)] transition-colors hover:bg-[var(--qs-line)]"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="border-t-2 border-[var(--qs-line)] px-4 py-3.5 text-sm font-medium text-[var(--qs-muted)] sm:px-[26px]">
+              Showing {filtered.length} of {stats.rooms} rooms
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Create room */}
@@ -464,7 +567,7 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1A1240]/50 p-4 backdrop-blur-sm"
             onClick={() => setEditTarget(null)}
           >
             <motion.div
@@ -472,10 +575,10 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.96, opacity: 0, y: 12 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl"
+              className="w-full max-w-md rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6 shadow-[6px_6px_0_var(--qs-sun)]"
             >
-              <h3 className="text-base font-bold text-text-primary">Edit Room</h3>
-              <p className="mt-0.5 text-xs text-text-secondary">Update this room&apos;s details.</p>
+              <h3 className="text-lg font-extrabold text-[var(--qs-ink)]">Edit Room</h3>
+              <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">Update this room&apos;s details.</p>
               <EditRoomForm
                 key={editRoom.id}
                 roomName={editRoom.name}
@@ -491,35 +594,61 @@ export default function RoomsManager({ basePath = "/profile/rooms" }: RoomsManag
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Row action menu — fixed so the table's overflow never clips it */}
+      {actionMenu && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{ top: actionMenu.top, bottom: actionMenu.bottom, right: actionMenu.right }}
+          className="fixed z-50 min-w-[170px] rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]"
+        >
+          {menuItems(actionMenu.roomId, actionMenu.archived).map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  setActionMenu(null);
+                  item.onClick();
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-left text-[13px] font-bold transition-colors",
+                  item.destructive
+                    ? "text-[var(--qs-bad)] hover:bg-[var(--qs-bg)]"
+                    : "text-[var(--qs-ink)] hover:bg-[var(--qs-bg)]"
+                )}
+              >
+                {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 function EmptyRooms({ onCreate, onImport }: { onCreate: () => void; onImport: () => void }) {
   return (
-    <div className="rounded-xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 ring-1 ring-inset ring-pink-500/20">
-        <Users className="h-7 w-7" />
+    <div className="px-6 py-12 text-center">
+      <div className="mx-auto grid h-14 w-14 place-items-center rounded-[16px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1A1240]">
+        <Users className="h-7 w-7" strokeWidth={2.5} />
       </div>
-      <h2 className="mt-4 text-lg font-bold text-text-primary">Create Your First Room</h2>
-      <p className="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-text-secondary">
+      <h2 className="mt-4 text-lg font-black tracking-tight text-[var(--qs-ink)]">Create Your First Room</h2>
+      <p className="mx-auto mt-1.5 max-w-md text-sm font-medium leading-relaxed text-[var(--qs-muted)]">
         Rooms help you organize students and quickly control who can register for your quizzes.
       </p>
-      <p className="mt-1 text-xs text-text-muted">
+      <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">
         Once created, your rooms can be reused across all future quizzes.
       </p>
       <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-        <button
-          onClick={onCreate}
-          className="flex h-10 items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
-        >
-          <Plus className="h-4 w-4" />
+        <button onClick={onCreate} className={QS_PRIMARY_BTN}>
+          <Plus className="h-4 w-4" strokeWidth={3} />
           Create Room
         </button>
-        <button
-          onClick={onImport}
-          className="flex h-10 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover"
-        >
+        <button onClick={onImport} className={QS_OUTLINE_BTN}>
           <FileSpreadsheet className="h-4 w-4" />
           Import Students
         </button>
@@ -545,38 +674,32 @@ function EditRoomForm({
   return (
     <div className="mt-5 space-y-4">
       <div>
-        <label className="mb-1.5 block text-xs font-semibold text-text-primary">Room Name</label>
+        <label className="mb-1.5 block text-xs font-extrabold text-[var(--qs-ink)]">Room Name</label>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="h-10 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
+          className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:outline-none"
         />
       </div>
       <div>
-        <label className="mb-1.5 block text-xs font-semibold text-text-primary">
-          Description <span className="font-normal text-text-muted">(optional)</span>
+        <label className="mb-1.5 block text-xs font-extrabold text-[var(--qs-ink)]">
+          Description <span className="font-medium text-[var(--qs-muted)]">(optional)</span>
         </label>
         <input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="h-10 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
+          className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:outline-none"
         />
       </div>
       <div className="flex items-center justify-end gap-2 pt-1">
-        <button
-          onClick={onCancel}
-          className="h-9 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover"
-        >
+        <button onClick={onCancel} className={cn(QS_OUTLINE_BTN, "py-2 text-xs")}>
           Cancel
         </button>
         <button
           onClick={() => {
             if (name.trim()) onSave(name, description);
           }}
-          className={cn(
-            "h-9 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]",
-            !name.trim() && "opacity-50"
-          )}
+          className={cn(QS_PRIMARY_BTN, "py-2 text-xs", !name.trim() && "opacity-50")}
         >
           Save
         </button>

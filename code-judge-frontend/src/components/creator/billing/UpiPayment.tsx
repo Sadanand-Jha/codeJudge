@@ -11,12 +11,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import {
+  AlertCircle,
   RefreshCw,
   Smartphone,
   Timer,
   XCircle,
 } from "lucide-react";
-import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 
 export const UPI_CONFIG = {
@@ -102,15 +102,19 @@ export interface UpiPaymentProps {
   onSuccess: (orderId: string) => void;
   /** Fired when the waiting state starts/ends so the parent can lock tabs. */
   onWaitingChange?: (waiting: boolean) => void;
+  /** Start polling as soon as the QR is ready (dynamic-QR behaviour). */
+  autoStart?: boolean;
 }
 
 type Phase = "idle" | "waiting" | "failed" | "expired";
 
-const FOCUS =
-  "outline-none focus-visible:ring-[3px] focus-visible:ring-pink-300 focus-visible:ring-offset-2 dark:focus-visible:ring-pink-500/50 dark:focus-visible:ring-offset-transparent";
+const UPI_APPS = ["GPay", "PhonePe", "Paytm", "BHIM"];
 
-const INPUT =
-  "min-h-[46px] w-full rounded-[10px] border-[1.5px] border-slate-200 bg-white px-3.5 py-3 text-[15px] text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-slate-500";
+const FOCUS =
+  "outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--qs-brand)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--qs-surface)]";
+
+const BRAND_BTN =
+  "inline-flex items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50";
 
 const VPA_RE = /^[\w.\-]{2,}@[a-zA-Z]{2,}$/;
 
@@ -118,9 +122,13 @@ function fmtClock(s: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
-export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingChange }: UpiPaymentProps) {
+function inr(n: number): string {
+  return `₹${Number.isInteger(n) ? n : n.toFixed(2)}`;
+}
+
+export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingChange, autoStart = false }: UpiPaymentProps) {
   const note = packCredits !== undefined ? `${packName} - ${packCredits} credits` : packName;
-  const amountLabel = `₹${total.toFixed(2)}`;
+  const amountLabel = inr(total);
 
   const [attempt, setAttempt] = useState(() => makeAttempt());
   const [qr, setQr] = useState<{ status: "loading" | "ready" | "error"; url?: string }>({ status: "loading" });
@@ -141,10 +149,14 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
   const [showQrMobile, setShowQrMobile] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const statusRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const phaseRef = useRef<Phase>("idle");
   phaseRef.current = phase;
+  const autoPollRef = useRef(autoStart);
+  const onSuccessRef = useRef(onSuccess);
+  onSuccessRef.current = onSuccess;
+  const onWaitingChangeRef = useRef(onWaitingChange);
+  onWaitingChangeRef.current = onWaitingChange;
 
   function makeAttempt() {
     const orderId = `AIC${Date.now()}`;
@@ -163,6 +175,7 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
   const regenerate = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
+    autoPollRef.current = autoStart;
     setAttempt(makeAttempt());
     setQr({ status: "loading" });
     setSecondsLeft(UPI_CONFIG.QR_TTL_SECONDS);
@@ -170,9 +183,9 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
     setPhase("idle");
     setFailReason("");
     setCheckingAgain(false);
-    onWaitingChange?.(false);
+    onWaitingChangeRef.current?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [total, packName, packCredits]);
+  }, [total, packName, packCredits, autoStart]);
 
   // Note: the parent remounts this component (key = pack + total) whenever
   // the pack or coupon changes, so the initial attempt below is always fresh.
@@ -198,7 +211,7 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
 
   // QR countdown — ticks down, expiry is derived from secondsLeft.
   useEffect(() => {
-    if (phaseRef.current !== "idle") return;
+    if (phaseRef.current !== "idle" && phaseRef.current !== "waiting") return;
     if (secondsLeft <= 0) return;
     const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
@@ -239,13 +252,12 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
     };
   }, []);
 
-  const beginWaiting = () => {
+  const beginWaiting = useCallback(() => {
     if (phaseRef.current !== "idle") return;
     const orderId = attempt.orderId;
     setPhase("waiting");
     setCheckingAgain(false);
-    onWaitingChange?.(true);
-    requestAnimationFrame(() => statusRef.current?.focus());
+    onWaitingChangeRef.current?.(true);
     const controller = new AbortController();
     abortRef.current = controller;
     void pollPaymentStatus(orderId, {
@@ -254,10 +266,10 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
     }).then((result) => {
       if (controller.signal.aborted) return;
       abortRef.current = null;
-      onWaitingChange?.(false);
+      onWaitingChangeRef.current?.(false);
       if (result.status === "success") {
         // Credits are granted by the parent (server-verified in production).
-        onSuccess(orderId);
+        onSuccessRef.current(orderId);
       } else if (result.status === "failed") {
         setFailReason(result.reason ?? "The payment failed. No amount was charged.");
         setPhase("failed");
@@ -265,14 +277,25 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
         setPhase("expired");
       }
     });
-  };
+  }, [attempt.orderId]);
+
+  // Dynamic-QR behaviour: watch for the payment as soon as the QR is ready.
+  useEffect(() => {
+    if (!autoStart) return;
+    if (qr.status !== "ready") return;
+    if (phaseRef.current !== "idle") return;
+    if (!autoPollRef.current) return;
+    const t = setTimeout(() => beginWaiting(), 500);
+    return () => clearTimeout(t);
+  }, [autoStart, qr.status, beginWaiting]);
 
   const cancelWaiting = () => {
     abortRef.current?.abort();
     abortRef.current = null;
+    autoPollRef.current = false;
     setPhase("idle");
     setCheckingAgain(false);
-    onWaitingChange?.(false);
+    onWaitingChangeRef.current?.(false);
   };
 
   const verifyVpa = () => {
@@ -288,88 +311,151 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
 
   const waiting = phase === "waiting";
 
-  const qrCard = (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center dark:border-white/10 dark:bg-white/[0.02]">
-      <p className="text-sm font-bold text-slate-900 dark:text-white">Scan to pay</p>
-      <p className="mt-1 text-[22px] font-extrabold tabular-nums text-slate-900 dark:text-white">
-        Pay {amountLabel}
-      </p>
-      <div className="mx-auto mt-3 w-fit rounded-xl bg-white p-3 shadow-sm">
-        {qr.status === "loading" ? (
-          <div className="grid h-[200px] w-[200px] place-items-center" role="status" aria-label="Generating QR code">
-            <SecureLogo variant="mark" size={32} className="animate-pulse motion-reduce:animate-none" aria-hidden="true" />
-          </div>
-        ) : qr.status === "error" || !qr.url ? (
-          <div className="flex h-[200px] w-[200px] flex-col items-center justify-center gap-2 px-4 text-center">
-            <p className="text-[13px] font-semibold text-slate-900">
-              Could not generate the QR. Try the UPI ID option.
-            </p>
-            <button
-              type="button"
-              onClick={regenerate}
-              className={cn(
-                "inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-xl bg-pink-600 px-4 text-sm font-bold text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-400",
-                FOCUS
-              )}
-            >
-              <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              Retry
-            </button>
-          </div>
-        ) : (
-          <div className="relative">
-            {/* data-URL QR: next/image cannot optimize it, plain img is correct */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={qr.url}
-              alt=""
-              role="img"
-              aria-label={`UPI payment QR code for ${amountLabel}`}
-              width={200}
-              height={200}
-              className={cn("h-[200px] w-[200px]", qrExpired && "opacity-40 blur-[3px]")}
-            />
-            {qrExpired && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                <p className="text-sm font-extrabold text-slate-900">QR expired</p>
-                <button
-                  type="button"
-                  onClick={regenerate}
-                  className={cn(
-                    "inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-xl bg-pink-600 px-4 text-sm font-bold text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-400",
-                    FOCUS
-                  )}
-                >
-                  <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                  Generate new QR
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-      {!qrExpired && qr.status !== "error" && (
-        <>
-          <p className="mt-3 text-[13px] font-semibold text-slate-900 dark:text-white">Scan with any UPI app</p>
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">GPay, PhonePe, Paytm, BHIM and more</p>
-          <p className="mt-2 text-xs font-bold tabular-nums text-slate-500 dark:text-slate-400">
-            <span aria-hidden="true">QR valid for {fmtClock(secondsLeft)}</span>
-            <span className="sr-only" role="status" aria-live="polite">
-              {qrExpired ? "QR code expired. Generate a new QR to continue." : announced}
-            </span>
+  const qrFrame = (
+    <div className="relative rounded-[20px] border-2 border-[var(--qs-ink)] bg-white p-2.5 shadow-[4px_4px_0_var(--qs-sun)]">
+      <span aria-hidden="true" className="pointer-events-none absolute -left-[3px] -top-[3px] h-5 w-5 rounded-tl-[12px] border-l-4 border-t-4 border-[var(--qs-brand)]" />
+      <span aria-hidden="true" className="pointer-events-none absolute -right-[3px] -top-[3px] h-5 w-5 rounded-tr-[12px] border-r-4 border-t-4 border-[var(--qs-brand)]" />
+      <span aria-hidden="true" className="pointer-events-none absolute -bottom-[3px] -left-[3px] h-5 w-5 rounded-bl-[12px] border-b-4 border-l-4 border-[var(--qs-brand)]" />
+      <span aria-hidden="true" className="pointer-events-none absolute -bottom-[3px] -right-[3px] h-5 w-5 rounded-br-[12px] border-b-4 border-r-4 border-[var(--qs-brand)]" />
+
+      {qr.status === "loading" ? (
+        <div
+          className="grid h-[200px] w-[200px] place-items-center rounded-[12px] bg-[var(--qs-bg)]"
+          role="status"
+          aria-label="Generating QR code"
+        >
+          <span className="flex items-center gap-2 text-xs font-bold text-[var(--qs-muted)]">
+            <RefreshCw className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+            Generating QR…
+          </span>
+        </div>
+      ) : qr.status === "error" || !qr.url ? (
+        <div className="flex h-[200px] w-[200px] flex-col items-center justify-center gap-3 rounded-[12px] bg-[var(--qs-badbg)] px-5 text-center">
+          <AlertCircle className="h-6 w-6 text-[var(--qs-bad)]" aria-hidden="true" />
+          <p className="text-[13px] font-bold leading-5 text-[var(--qs-bad)]">
+            Could not generate the QR. Try the UPI ID option or retry.
           </p>
-        </>
+          <button
+            type="button"
+            onClick={regenerate}
+            className={cn(BRAND_BTN, "px-4 py-2 text-sm", FOCUS)}
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            Retry
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          {/* data-URL QR: next/image cannot optimize it, plain img is correct */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={qr.url}
+            alt=""
+            role="img"
+            aria-label={`UPI payment QR code for ${amountLabel}`}
+            width={200}
+            height={200}
+            className={cn("h-[200px] w-[200px]", qrExpired && "opacity-30 blur-[3px]")}
+          />
+          {qrExpired && !waiting && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <p className="text-sm font-extrabold text-[var(--qs-ink)]">QR expired</p>
+              <button
+                type="button"
+                onClick={regenerate}
+                className={cn(BRAND_BTN, "px-4 py-2 text-sm", FOCUS)}
+              >
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                Generate new QR
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 
-  const vpaCard = (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.02]">
-      <p className="text-sm font-bold text-slate-900 dark:text-white">Pay with UPI ID</p>
-      <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-        We’ll send a collect request to your UPI app.
+  const qrCard = (
+    <section className="rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
+          Scan &amp; pay
+        </p>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border-2 px-2.5 py-1 text-xs font-extrabold tabular-nums",
+              qrExpired
+                ? "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
+                : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-ink)]"
+            )}
+          >
+            <Timer className="h-3.5 w-3.5" aria-hidden="true" />
+            {fmtClock(secondsLeft)}
+          </span>
+          {!waiting && qr.status === "ready" && (
+            <button
+              type="button"
+              onClick={regenerate}
+              aria-label="Generate a new QR code"
+              className={cn(
+                "grid h-[26px] w-[26px] place-items-center rounded-full border-2 border-[var(--qs-line)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-ink)]",
+                FOCUS
+              )}
+            >
+              <RefreshCw className="h-3 w-3" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-col items-center">{qrFrame}</div>
+
+      <p className="mt-4 text-center text-[40px] font-black leading-none tracking-tight tabular-nums">
+        {amountLabel}
       </p>
-      <label htmlFor="upi-vpa" className="mb-1.5 mt-3 block text-[13px] font-semibold text-slate-900 dark:text-white">
+      <p className="mt-2 text-center text-sm font-bold">
+        {packName}
+        {packCredits !== undefined && (
+          <span className="font-medium text-[var(--qs-muted)]"> · {packCredits} credits</span>
+        )}
+      </p>
+
+      <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+        {UPI_APPS.map((app) => (
+          <span
+            key={app}
+            className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-1 text-[11px] font-bold"
+          >
+            {app}
+          </span>
+        ))}
+      </div>
+
+      <p className="mt-3.5 text-center text-xs leading-5 text-[var(--qs-muted)]">
+        Pay to {UPI_CONFIG.MERCHANT_NAME} · {UPI_CONFIG.MERCHANT_VPA}
+        <br />
+        Credits land in your balance the moment the payment succeeds.
+      </p>
+
+      {qr.status !== "error" && (
+        <p className="sr-only" role="status" aria-live="polite">
+          {qrExpired ? "QR code expired. Generate a new QR to continue." : announced}
+        </p>
+      )}
+    </section>
+  );
+
+  const vpaCard = (
+    <section className="rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5">
+      <h3 className="text-base font-extrabold">Pay with UPI ID</h3>
+      <p className="mt-0.5 text-sm text-[var(--qs-muted)]">
+        We&rsquo;ll send a collect request to your UPI app.
+      </p>
+      <label
+        htmlFor="upi-vpa"
+        className="mt-4 mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--qs-muted)]"
+      >
         UPI ID
       </label>
       <div className="flex gap-2">
@@ -386,103 +472,97 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
           inputMode="email"
           autoCapitalize="off"
           disabled={waiting}
-          className={cn(INPUT, vpaState === "err" && "border-red-600", FOCUS)}
+          className={cn(
+            "min-h-[46px] w-full min-w-0 rounded-[12px] border-2 bg-[var(--qs-surface)] px-3.5 text-[15px] font-semibold placeholder:font-medium placeholder:text-[var(--qs-muted)]/70 disabled:opacity-60",
+            vpaState === "err"
+              ? "border-[var(--qs-bad)]"
+              : "border-[var(--qs-line)] focus:border-[var(--qs-brand)]",
+            FOCUS
+          )}
         />
         <button
           type="button"
           onClick={verifyVpa}
           disabled={waiting}
           className={cn(
-            "w-auto min-h-[44px] flex-none cursor-pointer rounded-xl bg-pink-600 px-[18px] text-sm font-bold text-white hover:bg-pink-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-pink-500 dark:hover:bg-pink-400",
+            "min-h-[46px] flex-none rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-4 text-sm font-extrabold transition-colors hover:bg-[var(--qs-ink)] hover:text-[var(--qs-bg)] disabled:cursor-not-allowed disabled:opacity-50",
             FOCUS
           )}
         >
           Verify
         </button>
       </div>
-      <div
+      <p
         className={cn(
-          "mt-1 min-h-[18px] text-xs",
-          vpaState === "err" ? "text-red-700 dark:text-red-300" : "text-green-700 dark:text-green-300"
+          "mt-2 min-h-[18px] text-xs font-semibold",
+          vpaState === "err"
+            ? "text-[var(--qs-bad)]"
+            : vpaState === "ok"
+              ? "text-[var(--qs-ok)]"
+              : "text-[var(--qs-muted)]"
         )}
         aria-live="polite"
       >
         {vpaMsg}
-      </div>
+      </p>
       {vpaState === "ok" && (
         <button
           type="button"
           onClick={beginWaiting}
           disabled={waiting}
-          className={cn(
-            "mt-2 inline-flex min-h-[48px] w-full cursor-pointer items-center justify-center rounded-xl border-0 bg-pink-600 px-4 text-[15px] font-extrabold text-white hover:bg-pink-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-pink-500 dark:hover:bg-pink-400",
-            FOCUS
-          )}
+          className={cn(BRAND_BTN, "min-h-[48px] w-full", FOCUS)}
         >
-          Send payment request of {amountLabel}
+          Send payment request · {amountLabel}
         </button>
       )}
-    </div>
+    </section>
   );
 
-  if (phase === "waiting") {
-    return (
-      <div
-        ref={statusRef}
-        tabIndex={-1}
-        role="status"
-        aria-label={`Waiting for UPI payment of ${amountLabel}`}
+  const waitingStrip = (
+    <div
+      role="status"
+      aria-label={`Waiting for UPI payment of ${amountLabel}`}
+      className="flex items-center gap-3 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3"
+    >
+      <span className="relative grid h-9 w-9 flex-none place-items-center" aria-hidden="true">
+        <span className="absolute h-9 w-9 animate-ping rounded-full bg-[var(--qs-brand)]/20 motion-reduce:animate-none" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[var(--qs-brand)]" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-extrabold">Waiting for payment confirmation…</p>
+        <p className="truncate text-xs text-[var(--qs-muted)]">
+          Order {attempt.orderId} · approve the request in your UPI app
+          {checkingAgain ? " · checking again…" : ""}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={cancelWaiting}
         className={cn(
-          "rounded-2xl border border-slate-200 bg-white p-6 text-center dark:border-white/10 dark:bg-white/[0.02]",
+          "flex-none rounded-full px-2 py-1 text-xs font-extrabold text-[var(--qs-muted)] underline underline-offset-2 transition-colors hover:text-[var(--qs-ink)]",
           FOCUS
         )}
       >
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-pink-500/10 text-pink-600 dark:text-pink-400" aria-hidden="true">
-          <SecureLogo variant="mark" size={28} className="animate-pulse motion-reduce:animate-none" />
-        </span>
-        <p className="mt-4 text-base font-extrabold text-slate-900 dark:text-white">Waiting for payment</p>
-        <p className="mx-auto mt-1 max-w-xs text-[13px] text-slate-500 dark:text-slate-400">
-          Complete the payment in your UPI app. Do not close this page.
-        </p>
-        <p className="mt-3 text-2xl font-extrabold tabular-nums text-slate-900 dark:text-white">{amountLabel}</p>
-        <p className="mt-1 text-xs tabular-nums text-slate-500 dark:text-slate-400">Order {attempt.orderId}</p>
-        {checkingAgain && (
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400" aria-live="polite">
-            Checking again…
-          </p>
-        )}
-        <button
-          type="button"
-          onClick={cancelWaiting}
-          className="mt-4 text-[13px] font-bold text-slate-500 underline underline-offset-2 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-pink-500/40 dark:text-slate-400 dark:hover:text-slate-200"
-        >
-          Cancel
-        </button>
-      </div>
-    );
-  }
+        Cancel
+      </button>
+    </div>
+  );
 
   if (phase === "failed") {
     return (
       <div
-        ref={statusRef}
-        tabIndex={-1}
         role="alert"
-        className="rounded-2xl border border-red-500/25 bg-red-500/[0.05] p-6 text-center"
+        className="flex flex-col items-center rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-6 py-8 text-center shadow-[6px_6px_0_var(--qs-sun)]"
       >
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-red-500/10 text-red-600 dark:text-red-300" aria-hidden="true">
+        <span
+          className="grid h-14 w-14 place-items-center rounded-full border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
+          aria-hidden="true"
+        >
           <XCircle className="h-7 w-7" />
         </span>
-        <p className="mt-4 text-base font-extrabold text-slate-900 dark:text-white">Payment failed</p>
-        <p className="mx-auto mt-1 max-w-xs text-[13px] text-slate-500 dark:text-slate-400">{failReason}</p>
-        <button
-          type="button"
-          onClick={regenerate}
-          className={cn(
-            "mt-4 inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-xl bg-pink-600 px-5 text-sm font-bold text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-400",
-            FOCUS
-          )}
-        >
+        <p className="mt-4 text-lg font-extrabold">Payment failed</p>
+        <p className="mx-auto mt-1 max-w-xs text-sm leading-6 text-[var(--qs-muted)]">{failReason}</p>
+        <button type="button" onClick={regenerate} className={cn(BRAND_BTN, "mt-5 px-5 py-2.5 text-sm", FOCUS)}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
           Try again
         </button>
@@ -493,26 +573,20 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
   if (phase === "expired") {
     return (
       <div
-        ref={statusRef}
-        tabIndex={-1}
         role="alert"
-        className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-6 text-center"
+        className="flex flex-col items-center rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-6 py-8 text-center shadow-[6px_6px_0_var(--qs-sun)]"
       >
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-300" aria-hidden="true">
+        <span
+          className="grid h-14 w-14 place-items-center rounded-full border-2 border-[#f0c94a] bg-[#fff3d6] text-[#a85d00]"
+          aria-hidden="true"
+        >
           <Timer className="h-7 w-7" />
         </span>
-        <p className="mt-4 text-base font-extrabold text-slate-900 dark:text-white">Payment timed out</p>
-        <p className="mx-auto mt-1 max-w-xs text-[13px] text-slate-500 dark:text-slate-400">
-          If money was deducted, it will be refunded in 5 to 7 days.
+        <p className="mt-4 text-lg font-extrabold">Payment window timed out</p>
+        <p className="mx-auto mt-1 max-w-xs text-sm leading-6 text-[var(--qs-muted)]">
+          No amount was charged. If money was deducted, it will be refunded in 5 to 7 days.
         </p>
-        <button
-          type="button"
-          onClick={regenerate}
-          className={cn(
-            "mt-4 inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-xl bg-pink-600 px-5 text-sm font-bold text-white hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-400",
-            FOCUS
-          )}
-        >
+        <button type="button" onClick={regenerate} className={cn(BRAND_BTN, "mt-5 px-5 py-2.5 text-sm", FOCUS)}>
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
           Try again
         </button>
@@ -522,44 +596,49 @@ export function UpiPayment({ total, packName, packCredits, onSuccess, onWaitingC
 
   if (isMobile) {
     return (
-      <div>
+      <div className="space-y-3">
         <button
           type="button"
+          disabled={waiting}
           onClick={() => {
             window.location.href = attempt.link;
             beginWaiting();
           }}
-          className={cn(
-            "inline-flex min-h-[52px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-0 bg-pink-600 px-4 text-[15px] font-extrabold text-white hover:bg-pink-700 active:scale-[0.99] dark:bg-pink-500 dark:hover:bg-pink-400",
-            FOCUS
-          )}
+          className={cn(BRAND_BTN, "min-h-[52px] w-full text-[15px]", FOCUS)}
         >
           <Smartphone className="h-5 w-5" aria-hidden="true" />
           Pay {amountLabel} with UPI app
         </button>
-        <div className="my-3.5 flex items-center gap-2.5 text-xs text-slate-500">
-          <span className="h-px flex-1 bg-slate-200 dark:bg-white/10" aria-hidden="true" />
+        <div className="flex items-center gap-3 text-xs font-bold text-[var(--qs-muted)]">
+          <span aria-hidden="true" className="h-0 flex-1 border-t-2 border-dashed border-[var(--qs-line)]" />
           or enter your UPI ID
-          <span className="h-px flex-1 bg-slate-200 dark:bg-white/10" aria-hidden="true" />
+          <span aria-hidden="true" className="h-0 flex-1 border-t-2 border-dashed border-[var(--qs-line)]" />
         </div>
         {vpaCard}
-        <button
-          type="button"
-          onClick={() => setShowQrMobile((s) => !s)}
-          aria-expanded={showQrMobile}
-          className="mx-auto mt-3 block text-xs font-bold text-pink-600 underline underline-offset-2 hover:text-pink-700 focus-visible:ring-2 focus-visible:ring-pink-500/40 dark:text-pink-400"
-        >
-          {showQrMobile ? "Hide QR code" : "Show QR instead"}
-        </button>
-        {showQrMobile && <div className="mt-3">{qrCard}</div>}
+        {waiting && waitingStrip}
+        {!waiting && (
+          <button
+            type="button"
+            onClick={() => setShowQrMobile((s) => !s)}
+            aria-expanded={showQrMobile}
+            className={cn(
+              "mx-auto block rounded-full px-2 py-1 text-xs font-extrabold text-[var(--qs-brand)] underline underline-offset-2",
+              FOCUS
+            )}
+          >
+            {showQrMobile ? "Hide QR code" : "Show QR instead"}
+          </button>
+        )}
+        {showQrMobile && !waiting && qrCard}
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="space-y-4">
       {qrCard}
       {vpaCard}
+      {waiting && waitingStrip}
     </div>
   );
 }

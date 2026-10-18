@@ -55,13 +55,13 @@ export default function DuplicateRoomModal({
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={onClose}
-            className="h-9 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover"
+            className="inline-flex h-9 items-center justify-center rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
           >
             Cancel
           </button>
           <button
             onClick={handleConfirm}
-            className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
           >
             <Copy className="h-3.5 w-3.5" />
             Duplicate Room
@@ -75,32 +75,32 @@ export default function DuplicateRoomModal({
             key={String(opt.value)}
             onClick={() => setCopyStudents(opt.value)}
             className={cn(
-              "flex w-full items-start gap-3 rounded-xl border p-3.5 text-left transition-all",
+              "flex w-full items-start gap-3 rounded-[16px] border-2 p-3.5 text-left transition-colors",
               copyStudents === opt.value
-                ? "border-pink-500/40 bg-pink-500/[0.06]"
-                : "border-border bg-card hover:border-border-hover"
+                ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
+                : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
             )}
           >
             <span
               className={cn(
-                "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+                "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
                 copyStudents === opt.value
-                  ? "border-pink-500 bg-pink-500 text-white"
-                  : "border-border-hover bg-input-bg"
+                  ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                  : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
               )}
             >
               {copyStudents === opt.value && <Check className="h-3 w-3" strokeWidth={3} />}
             </span>
             <span>
-              <span className="block text-sm font-semibold text-text-primary">
+              <span className="block text-sm font-extrabold text-[var(--qs-ink)]">
                 {opt.label}
                 {!opt.value && (
-                  <span className="ml-1.5 rounded bg-pink-500/15 px-1 py-px text-[9px] font-bold uppercase tracking-wider text-pink-500">
+                  <span className="ml-1.5 rounded-[6px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-1 py-px text-[9px] font-extrabold uppercase tracking-wider text-[#1A1240]">
                     Recommended
                   </span>
                 )}
               </span>
-              <span className="mt-0.5 block text-xs leading-relaxed text-text-secondary">
+              <span className="mt-0.5 block text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
                 {opt.description}
               </span>
             </span>

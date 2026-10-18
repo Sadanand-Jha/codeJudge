@@ -29,25 +29,21 @@ export function DurationPicker({
 
   const chipClass = (active: boolean) =>
     cn(
-      "border transition-colors",
+      "border-2 transition-colors",
       size === "lg"
-        ? "rounded-xl px-7 py-3.5 text-base font-semibold"
-        : "rounded-lg px-3 py-1.5 text-xs font-medium",
+        ? "rounded-[14px] px-7 py-3.5 text-sm font-extrabold"
+        : "rounded-[12px] px-3 py-1.5 text-xs font-bold",
       active
-        ? size === "lg"
-          ? "border-transparent bg-gradient-to-r from-pink-500 to-violet-600 text-white shadow-[0_8px_24px_rgba(236,72,153,0.35)]"
-          : "border-pink-500/40 bg-pink-500/10 text-pink-600 dark:text-pink-400"
-        : size === "lg"
-          ? "border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 dark:border-pink-500/30 dark:bg-pink-500/10 dark:text-pink-300 dark:hover:bg-pink-500/20"
-          : "border-border bg-card text-text-secondary hover:bg-card-hover"
+        ? "border-[var(--qs-brand)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]"
+        : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
     );
 
   return (
     <div className="space-y-2">
       <label
         className={cn(
-          "block text-text-secondary",
-          size === "lg" ? "text-sm font-semibold" : "text-xs font-medium"
+          "block text-[var(--qs-ink)]",
+          size === "lg" ? "text-sm font-extrabold" : "text-xs font-bold"
         )}
       >
         {label}
@@ -69,7 +65,10 @@ export function DurationPicker({
         <button
           type="button"
           onClick={() => setShowCustom((prev) => !prev)}
-          className={chipClass(showCustom)}
+          className={cn(
+            chipClass(showCustom),
+            !showCustom && "border-dashed"
+          )}
         >
           Custom
         </button>
@@ -92,13 +91,13 @@ export function DurationPicker({
               setCustomVal(String(n));
               onChange(n);
             }}
-            className="h-9 w-24 rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary outline-none focus:border-pink-500/60"
+            className="h-9 w-24 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-sm font-medium text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
           />
-          <span className="text-xs text-text-secondary">minutes</span>
+          <span className="text-xs font-medium text-[var(--qs-muted)]">minutes</span>
         </div>
       )}
       {helperText && (
-        <p className="text-[11px] text-text-secondary">{helperText}</p>
+        <p className="text-[11px] font-medium text-[var(--qs-muted)]">{helperText}</p>
       )}
     </div>
   );

@@ -146,6 +146,7 @@ export interface GenerateSubjectiveQuestionsRequest {
 export interface SubjectiveQuestion {
   num: number;
   question: string;
+  questionHtml?: string | null;
   difficulty: string;
   kind: string;
 }
@@ -232,7 +233,7 @@ export const generateSubjectiveQuestions = async (
   if (medium > 0) difficultyNames.push("medium");
   if (hard > 0) difficultyNames.push("hard");
   const result = await db.query(
-    `SELECT qb.id AS num, qb.question_text AS question,
+    `SELECT qb.id AS num, qb.question_text AS question, qb.question_html AS html,
             lower(qd.name) AS difficulty, qc.name AS kind
      FROM subjective_question_bank qb
      JOIN question_difficulty qd ON qd.id = qb.difficulty_id
@@ -248,6 +249,7 @@ export const generateSubjectiveQuestions = async (
   const candidates = result.rows.map((row) => ({
     num: Number(row.num),
     question: String(row.question),
+    html: row.html == null ? null : String(row.html),
     difficulty: String(row.difficulty),
     kind: String(row.kind),
   })) as BankQuestion[];
@@ -468,12 +470,14 @@ ${bankForPrompt}`;
     ...picked.map((q) => ({
       num: q.num,
       question: q.question,
+      questionHtml: q.html ?? null,
       difficulty: q.difficulty,
       kind: q.kind,
     })),
     ...composedPicked.map((q) => ({
       num: q.num,
       question: q.question,
+      questionHtml: null,
       difficulty: q.difficulty,
       kind: q.kind,
     })),
@@ -553,6 +557,7 @@ interface BankQuestion {
   difficulty: string; // easy | medium | hard
   kind: string; // Theory | Numerical
   question: string;
+  html?: string | null;
 }
 
 /** Parse `N. [Difficulty | Kind] question text` lines from the .docx. */

@@ -12,9 +12,7 @@ import {
   Copy,
   Download,
   Edit3,
-  Eye,
   FileSpreadsheet,
-  Plus,
   Search,
   Trash2,
   UserRoundPlus,
@@ -32,7 +30,6 @@ import { Room, RoomStudent } from "@/types/room";
 import { getAvatarUrlById } from "@/config/dicebear";
 import { updateMemberStatus, updateRoomPatch, removeMember } from "@/services/rooms";
 import RoomMenu, { RoomMenuItem } from "@/components/quiz/creator/settings/audience/RoomMenu";
-import SortDropdown from "@/components/ui/SortDropdown";
 import AddStudentsModal from "@/components/quiz/creator/settings/audience/AddStudentsModal";
 import DuplicateRoomModal from "./DuplicateRoomModal";
 import DeleteRoomModal from "./DeleteRoomModal";
@@ -43,6 +40,21 @@ type StudentFilter = "all" | "recent" | "issues";
 type StudentSort = "default" | "recent" | "name";
 
 const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+const QS_PRIMARY_BTN =
+  "inline-flex items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50";
+
+const QS_OUTLINE_BTN =
+  "inline-flex items-center justify-center gap-2 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
+
+const QS_TOP_BTN =
+  "inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]";
+
+const FILTERS: Array<{ id: StudentFilter; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "recent", label: "Recently Added" },
+  { id: "issues", label: "Issues" },
+];
 
 interface RoomDetailsViewProps {
   roomId: string;
@@ -68,7 +80,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const duplicateRoom = useRoomStore((s) => s.duplicateRoom);
   const deleteRoom = useRoomStore((s) => s.deleteRoom);
   const { user } = useAuthStore();
-  const [backendLoading, setBackendLoading] = useState(false);
+  const [backendLoading, setBackendLoading] = useState(() => /^\d+$/.test(roomId));
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<StudentFilter>("all");
@@ -93,7 +105,6 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   // Fetch room details with members from backend on going to room page — calls GET /my-rooms/:id and populates students
   useEffect(() => {
     if (!roomId || !/^\d+$/.test(roomId)) return;
-    setBackendLoading(true);
     import("@/services/rooms")
       .then(({ getRoom }) =>
         getRoom(roomId)
@@ -167,6 +178,12 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
     return { total: room.students.length, recentlyAdded, issues, quizUsage, sharedRooms: sharedRoomsCount };
   }, [room, quizUsage, sharedRoomsCount]);
 
+  const filterCounts: Record<StudentFilter, number> = {
+    all: stats?.total ?? 0,
+    recent: stats?.recentlyAdded ?? 0,
+    issues: stats?.issues ?? 0,
+  };
+
   const filteredStudents = useMemo(() => {
     if (!room) return [];
     const q = query.trim().toLowerCase();
@@ -185,48 +202,76 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
       }
       return 0;
     });
-        return list;
+    return list;
   }, [room, filter, query, sort]);
 
-  // Reset to first page whenever the filter, search, or sort changes
-  useEffect(() => {
+  const changeFilter = (next: StudentFilter) => {
+    setFilter(next);
     setCurrentPage(1);
-  }, [filter, query, sort]);
+  };
+
+  const changeQuery = (next: string) => {
+    setQuery(next);
+    setCurrentPage(1);
+  };
+
+  const changeSort = (next: StudentSort) => {
+    setSort(next);
+    setCurrentPage(1);
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredStudents.length / STUDENTS_PER_PAGE));
   const paginatedStudents = useMemo(
     () => filteredStudents.slice((currentPage - 1) * STUDENTS_PER_PAGE, currentPage * STUDENTS_PER_PAGE),
     [filteredStudents, currentPage]
   );
-    if (backendLoading) {
-      return (
-        <div className="flex min-h-[60vh] items-center justify-center px-4">
-          <div className="rounded-2xl border border-border bg-card px-8 py-12 text-center shadow-lg">
-            <Users className="mx-auto h-12 w-12 animate-pulse text-pink-500" />
-            <h2 className="mt-5 text-lg font-bold text-text-primary">Loading room…</h2>
-            <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-text-secondary">
-              Fetching students from the backend. This will only take a moment.
-            </p>
+
+  if (backendLoading) {
+    return (
+      <div className="min-h-full bg-[var(--qs-bg)]">
+        <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+          <div className="mb-6 flex items-center gap-3.5">
+            <div className="app-skeleton h-[42px] w-[42px] shrink-0 rounded-[12px]" />
+            <div>
+              <div className="app-skeleton h-8 w-52 rounded" />
+              <div className="app-skeleton mt-1.5 h-4 w-36 rounded" />
+            </div>
+          </div>
+          <div className="mb-5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
+                <div className="app-skeleton h-3 w-20 rounded" />
+                <div className="app-skeleton mt-3 h-7 w-14 rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="rounded-[26px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="app-skeleton mt-2 h-9 rounded first:mt-0" />
+            ))}
           </div>
         </div>
-      );
-    }
-    if (!room) {
-      return (
-        <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
-          <Users className="mx-auto h-8 w-8 text-text-muted" />
-          <h2 className="mt-3 text-lg font-bold text-text-primary">Room not found</h2>
-          <p className="mt-1 text-sm text-text-secondary">This room may have been deleted.</p>
-          <Link
-            href={basePath}
-            className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to Rooms
-          </Link>
+      </div>
+    );
+  }
+
+  if (!room) {
+    return (
+      <div className="min-h-full bg-[var(--qs-bg)]">
+        <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
+          <div className="rounded-[22px] border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] px-6 py-16 text-center">
+            <Users className="mx-auto h-8 w-8 text-[var(--qs-muted)]" />
+            <h2 className="mt-3 text-lg font-black text-[var(--qs-ink)]">Room not found</h2>
+            <p className="mt-1 text-sm font-medium text-[var(--qs-muted)]">This room may have been deleted.</p>
+            <Link href={basePath} className={cn(QS_OUTLINE_BTN, "mt-4 py-2 text-xs")}>
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to Rooms
+            </Link>
+          </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
   const toggleSelected = (id: string) => {
     setSelected((prev) => {
@@ -330,343 +375,359 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
     { id: "delete", label: "Delete Room", icon: Trash2, destructive: true, onClick: () => setDeleteOpen(true) },
   ];
 
+  const statCards = stats
+    ? [
+        { label: "Total Students", value: stats.total, sub: "in room", color: "var(--qs-brand)", hi: true },
+        { label: "Quizzes Used", value: stats.quizUsage, sub: "quizzes", color: "#2457d6" },
+        { label: "Recently Added", value: stats.recentlyAdded, sub: "last 7 days", color: "var(--qs-ok)" },
+        { label: "Needs Attention", value: stats.issues, sub: "students", color: "#a85d00" },
+      ]
+    : [];
+
   return (
-    <div>
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href={basePath}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted transition-colors hover:text-pink-500"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Rooms
-        </Link>
-        <RoomMenu items={headerMenuItems} />
-      </div>
+    <div className="min-h-full bg-[var(--qs-bg)]">
+      <div className="mx-auto max-w-[1280px] px-4 py-6 pb-20 sm:px-6">
 
-      {/* Header */}
-      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/15 to-violet-600/15 text-pink-500 ring-1 ring-inset ring-pink-500/20 sm:h-10 sm:w-10">
-            <Users className="h-4 w-4 sm:h-5 sm:w-5" />
-          </div>
-          <div className="min-w-0">
-            {isRenaming ? (
-              <div className="flex flex-col gap-1.5">
-                <input
-                  autoFocus
-                  value={renameName}
-                  onChange={(e) => setRenameName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") saveRename(); if (e.key === "Escape") setIsRenaming(false); }}
-                  onBlur={saveRename}
-                  className="rounded-lg border border-pink-500/40 bg-input-bg px-2 py-1 text-xl font-bold tracking-tight text-text-primary outline-none focus:ring-2 focus:ring-pink-500/15 sm:text-2xl"
-                />
-                <input
-                  value={renameDesc}
-                  onChange={(e) => setRenameDesc(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") saveRename(); if (e.key === "Escape") setIsRenaming(false); }}
-                  onBlur={saveRename}
-                  placeholder="Description (optional)"
-                  className="rounded-lg border border-border bg-input-bg px-2 py-1 text-xs text-text-secondary outline-none focus:border-pink-500/40 sm:text-sm"
-                />
-              </div>
-            ) : (
-              <>
-                <div className="flex min-w-0 items-center gap-2">
-                  <h1 className="truncate text-lg font-bold tracking-tight text-text-primary sm:text-2xl">{room.name}</h1>
-                  <button
-                    type="button"
-                    onClick={startRename}
-                    className="rounded-md p-1 text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
-                    title="Rename room"
-                  >
-                    <Edit3 className="h-3.5 w-3.5" />
-                  </button>
-                  {room.archived && (
-                    <span className="rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[9px] font-bold text-warning">
-                      Archived
-                    </span>
-                  )}
+        {/* Top */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <Link
+              href={basePath}
+              aria-label="Back to Rooms"
+              className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] transition-colors hover:border-[var(--qs-brand)]"
+            >
+              <ArrowLeft className="h-4.5 w-4.5 text-[var(--qs-ink)]" />
+            </Link>
+            <div className="min-w-0">
+              {isRenaming ? (
+                <div className="flex flex-col gap-1.5">
+                  <input
+                    autoFocus
+                    value={renameName}
+                    onChange={(e) => setRenameName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveRename(); if (e.key === "Escape") setIsRenaming(false); }}
+                    onBlur={saveRename}
+                    aria-label="Room name"
+                    className="rounded-[10px] border-2 border-[var(--qs-brand)] bg-[var(--qs-surface)] px-2.5 py-1 text-[22px] font-extrabold tracking-[-0.02em] text-[var(--qs-ink)] outline-none sm:text-[26px]"
+                  />
+                  <input
+                    value={renameDesc}
+                    onChange={(e) => setRenameDesc(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveRename(); if (e.key === "Escape") setIsRenaming(false); }}
+                    onBlur={saveRename}
+                    placeholder="Description (optional)"
+                    aria-label="Room description"
+                    className="rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-1 text-xs font-medium text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] sm:text-sm"
+                  />
                 </div>
-                <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary sm:text-sm">
-                  {room.description || "Student group"}
-                  <span className="mx-1.5 text-text-muted">·</span>
-                  Updated {timeAgo(room.updatedAt)}
-                </p>
-              </>
-            )}
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="truncate text-[28px] font-extrabold leading-none tracking-[-0.02em] text-[var(--qs-ink)] sm:text-[34px]">{room.name}</h1>
+                    <button
+                      type="button"
+                      onClick={startRename}
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-brand)]"
+                      title="Rename room"
+                      aria-label="Rename room"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                    </button>
+                    {room.archived && (
+                      <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[10px] font-extrabold text-[#1A1240]">
+                        Archived
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 truncate text-[var(--qs-muted)]">
+                    {room.description || "Student group"}
+                    <span className="mx-1">·</span>
+                    Updated {timeAgo(room.updatedAt)}
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={handleExport} className={QS_TOP_BTN}>
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAddTab("import");
+                setAddOpen(true);
+              }}
+              className={QS_TOP_BTN}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Import
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAddTab("manual");
+                setAddOpen(true);
+              }}
+              className={cn(QS_PRIMARY_BTN, "rounded-[12px] px-3.5 py-[9px] text-sm")}
+            >
+              <UserRoundPlus className="h-4 w-4" />
+              Add Students
+            </button>
+            <div className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] transition-colors hover:border-[var(--qs-brand)]">
+              <RoomMenu items={headerMenuItems} />
+            </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <button
-            onClick={handleExport}
-            className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover sm:h-9 sm:w-auto sm:rounded-lg sm:px-3.5"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Export
-          </button>
-          <button
-            onClick={() => {
-              setAddTab("import");
-              setAddOpen(true);
-            }}
-            className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover hover:bg-card-hover sm:h-9 sm:w-auto sm:rounded-lg sm:px-3.5"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5" />
-            Import
-          </button>
-          <button
-            onClick={() => {
-              setAddTab("manual");
-              setAddOpen(true);
-            }}
-            className="order-first col-span-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98] sm:order-none sm:col-span-1 sm:h-9 sm:w-auto sm:rounded-lg sm:px-3.5"
-          >
-            <UserRoundPlus className="h-3.5 w-3.5" />
-            Add Students
-          </button>
-        </div>
-      </div>
 
-      {/* Stats */}
-      {stats && (
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
-          {(
-            [
-              { label: "Total Students", value: stats.total, icon: Users, tint: "text-pink-500 bg-pink-500/10" },
-              { label: "Quizzes Used", value: stats.quizUsage, icon: Eye, tint: "text-violet-500 bg-violet-500/10" },
-              { label: "Recently Added", value: stats.recentlyAdded, icon: Plus, tint: "text-success bg-success/10" },
-              { label: "Needs Attention", value: stats.issues, icon: AlertTriangle, tint: "text-warning bg-warning/10" },
-            ] as Array<{ label: string; value: number; icon: typeof Users; tint: string }>
-          ).map((s) => (
-            <div key={s.label} className="rounded-xl border border-border bg-card p-3 sm:p-3.5">
-              <div className={cn("flex h-7 w-7 items-center justify-center rounded-md", s.tint)}>
-                <s.icon className="h-3.5 w-3.5" />
-              </div>
-              <p className="mt-2 text-lg font-bold tabular-nums text-text-primary sm:text-xl">{s.value}</p>
-              <p className="mt-0.5 text-[11px] font-medium leading-tight text-text-muted">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Toolbar */}
-      <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search students..."
-            className="h-10 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/40 focus:outline-none focus:ring-2 focus:ring-pink-500/10"
-          />
-        </div>
-        <div className="flex w-full items-center gap-2 sm:w-auto sm:flex-wrap">
-          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1 sm:flex-none">
-            {(
-              [
-                { id: "all", label: "All" },
-                { id: "recent", label: "Recently Added" },
-                { id: "issues", label: "Issues" },
-              ] as Array<{ id: StudentFilter; label: string }>
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setFilter(tab.id)}
+        {/* Stats */}
+        {stats && (
+          <div className="mb-5 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+            {statCards.map((kpi) => (
+              <div
+                key={kpi.label}
                 className={cn(
-                  "shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
-                  filter === tab.id ? "bg-pink-500/10 text-pink-500" : "text-text-muted hover:text-text-primary"
+                  "rounded-[18px] border-2 p-4 sm:px-[18px]",
+                  kpi.hi ? "border-[var(--qs-ink)] bg-[var(--qs-sun)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
                 )}
               >
-                {tab.label}
-              </button>
+                <small className={cn(
+                  "flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.08em]",
+                  kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]"
+                )}>
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: kpi.color }} />
+                  {kpi.label}
+                </small>
+                <b className={cn("mt-2 block text-[32px] font-extrabold leading-[1.1] sm:text-[36px]", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-ink)]")}>
+                  {kpi.value}
+                  <span className={cn("ml-1 text-sm font-medium", kpi.hi ? "text-[#1A1240]" : "text-[var(--qs-muted)]")}>{kpi.sub}</span>
+                </b>
+              </div>
             ))}
           </div>
-          <SortDropdown
-            options={[
-              { id: "default", label: "Default Order" },
-              { id: "recent", label: "Recently Added" },
-              { id: "name", label: "Name A–Z" },
-            ]}
+        )}
+
+        {/* Filter bar */}
+        <div className="mb-5 flex flex-wrap items-center gap-2.5">
+          <div className="relative min-w-[220px] flex-[0_1_290px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
+            <input
+              value={query}
+              onChange={(e) => changeQuery(e.target.value)}
+              placeholder="Search name, roll or username…"
+              aria-label="Search students"
+              className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
+            />
+          </div>
+          <div className="flex flex-1 flex-wrap items-center gap-2">
+            {FILTERS.map((f) => {
+              const active = filter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => changeFilter(f.id)}
+                  className={cn(
+                    "rounded-full border-2 px-[13px] py-1.5 text-xs font-extrabold uppercase tracking-[0.06em] transition-colors",
+                    active
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
+                  )}
+                >
+                  {f.label}
+                  <i className={cn("ml-1.5 not-italic", active ? "opacity-70" : "text-[var(--qs-muted)]")}>{filterCounts[f.id]}</i>
+                </button>
+              );
+            })}
+          </div>
+          <select
             value={sort}
-            onChange={(v) => setSort(v as StudentSort)}
-            ariaLabel="Sort students"
-          />
-        </div>
-      </div>
-
-      {/* Bulk bar */}
-      <AnimatePresence>
-        {selected.size > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-pink-500/25 bg-pink-500/[0.06] px-3 py-2"
+            onChange={(e) => changeSort(e.target.value as StudentSort)}
+            aria-label="Sort students"
+            className="shrink-0 cursor-pointer rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-[9px] text-sm font-bold text-[var(--qs-ink)] outline-none transition-colors hover:border-[var(--qs-brand)] focus:border-[var(--qs-brand)]"
           >
-            <p className="text-xs font-semibold text-text-primary">
-              <span className="tabular-nums">{selected.size}</span> selected
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRemoveSelected}
-                className="flex h-8 items-center gap-1.5 rounded-lg border border-danger/25 bg-danger/[0.06] px-3 text-xs font-bold text-danger transition-colors hover:bg-danger/10"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Remove
-              </button>
-              <button
-                onClick={() => setSelected(new Set())}
-                className="flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-text-secondary transition-colors hover:text-text-primary"
-              >
-                <X className="h-3.5 w-3.5" />
-                Clear
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Student table */}
-      <div className="mt-3 overflow-hidden rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <p className="text-xs font-bold text-text-primary">Students</p>
-          <p className="text-xs text-text-muted">
-            {filteredStudents.length} of {room.students.length}
-          </p>
+            <option value="default">Sort: Default Order</option>
+            <option value="recent">Sort: Recently Added</option>
+            <option value="name">Sort: Name A–Z</option>
+          </select>
         </div>
 
-        {room.students.length === 0 ? (
-          <div className="px-6 py-10 text-center">
-            <Users className="mx-auto h-7 w-7 text-text-muted" />
-            <p className="mt-3 text-sm font-semibold text-text-primary">No students yet</p>
-            <p className="mt-1 text-xs text-text-muted">
-              Add students manually or import them from an Excel/CSV file.
-            </p>
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <button
-                onClick={() => {
-                  setAddTab("manual");
-                  setAddOpen(true);
-                }}
-                className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.3)] transition-all hover:brightness-110 active:scale-[0.98]"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add Students
-              </button>
-              <button
-                onClick={() => {
-                  setAddTab("import");
-                  setAddOpen(true);
-                }}
-                className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:border-border-hover"
-              >
-                <FileSpreadsheet className="h-3.5 w-3.5" />
-                Import from Excel
-              </button>
+        {/* Bulk bar */}
+        <AnimatePresence>
+          {selected.size > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[#fff7dd] px-3 py-2"
+            >
+              <p className="text-xs font-extrabold text-[var(--qs-ink)]">
+                <span className="tabular-nums">{selected.size}</span> selected
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleRemoveSelected}
+                  className="flex h-8 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-bad)] bg-[var(--qs-bad)] px-3 text-xs font-extrabold text-white transition-all hover:brightness-105"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Remove
+                </button>
+                <button
+                  onClick={() => setSelected(new Set())}
+                  className="flex h-8 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Clear
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Student table */}
+        <div className="relative mb-4 mr-4">
+          <div aria-hidden className="absolute left-4 top-4 -bottom-4 -right-4 rounded-[30px] bg-[var(--qs-sun)]" />
+          <div className="relative overflow-hidden rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
+            <header className="flex flex-wrap items-start justify-between gap-3 px-4 pb-4 pt-5 sm:px-[26px]">
+              <div>
+                <h2 className="text-[22px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-2xl">Students</h2>
+                <p className="mt-0.5 text-sm text-[var(--qs-muted)]">Manage every student in this room — select rows for bulk actions.</p>
+              </div>
+              <p className="text-sm font-medium text-[var(--qs-muted)]">
+                {filteredStudents.length} of {room.students.length}
+              </p>
+            </header>
+
+            <div className="overflow-x-auto border-t-2 border-[var(--qs-line)]">
+              <table className="w-full min-w-[820px] border-collapse text-left">
+                <thead>
+                  <tr>
+                    <th className="w-12 whitespace-nowrap px-3 py-3.5">
+                      <button
+                        onClick={toggleAllVisible}
+                        className={cn(
+                          "grid h-4.5 w-4.5 place-items-center rounded border-2 transition-colors",
+                          allVisibleSelected
+                            ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                            : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+                        )}
+                        aria-label="Select all visible"
+                      >
+                        {allVisibleSelected && <CheckSquare className="h-3 w-3" />}
+                      </button>
+                    </th>
+                    {["Student", "Roll", "Username", "Added", "Status"].map((h) => (
+                      <th key={h} className="whitespace-nowrap px-3 py-3.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {room.students.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
+                        No students yet — add students manually or import them from an Excel/CSV file.
+                      </td>
+                    </tr>
+                  ) : filteredStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="border-t-2 border-[var(--qs-line)]/60 px-4 py-10 text-center text-sm font-medium text-[var(--qs-muted)]">
+                        No students match this search or filter.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedStudents.map((student) => {
+                      const issue = hasStudentIssue(student);
+                      return (
+                        <tr
+                          key={student.id}
+                          onClick={() => setDetailsStudent(student)}
+                          className="cursor-pointer border-t-2 border-[var(--qs-line)]/60 transition-colors hover:bg-[var(--qs-bg)]"
+                        >
+                          <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => toggleSelected(student.id)}
+                              className={cn(
+                                "grid h-4.5 w-4.5 place-items-center rounded border-2 transition-colors",
+                                selected.has(student.id)
+                                  ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                                  : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
+                              )}
+                              aria-label={`Select ${student.name}`}
+                            >
+                              {selected.has(student.id) && <CheckSquare className="h-3 w-3" />}
+                            </button>
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-3">
+                              {/* eslint-disable-next-line @next/next/no-img-element -- avatar URLs are user-configured and may be remote */}
+                              <img
+                                src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
+                                alt=""
+                                className="h-[38px] w-[38px] shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
+                              />
+                              <span className="flex max-w-[180px] items-center gap-1.5 font-bold text-[var(--qs-ink)]">
+                                <span className="truncate">{student.name}</span>
+                                {issue && (
+                                  <AlertTriangle className="h-3 w-3 shrink-0 text-[#a85d00]" />
+                                )}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-[var(--qs-muted)]">{student.rollNumber}</td>
+                          <td className="px-3 py-3 text-[var(--qs-muted)]">
+                            @{(student.username ?? "").toLowerCase() || "—"}
+                          </td>
+                          <td className="px-3 py-3 text-[var(--qs-muted)]">
+                            {student.addedAt ? timeAgo(student.addedAt) : "—"}
+                          </td>
+                          <td className="px-3 py-3">
+                            <span
+                              className={cn(
+                                "inline-block rounded-full border-2 border-current px-[11px] py-px text-xs font-extrabold uppercase tracking-[0.05em]",
+                                student.active ? "text-[var(--qs-ok)]" : "text-[#a85d00]"
+                              )}
+                            >
+                              {student.active ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-[var(--qs-line)] px-4 py-3.5 sm:px-[26px]">
+              <p className="text-sm font-medium text-[var(--qs-muted)]">
+                Showing {filteredStudents.length} of {room.students.length} students
+              </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1}
+                    className="rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40"
+                  >
+                    Prev
+                  </button>
+                  <span className="text-xs font-medium text-[var(--qs-muted)]">
+                    Page <b className="tabular-nums text-[var(--qs-ink)]">{currentPage}</b> of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-        ) : filteredStudents.length === 0 ? (
-          <div className="px-6 py-8 text-center">
-            <Search className="mx-auto h-6 w-6 text-text-muted" />
-            <p className="mt-2 text-sm font-semibold text-text-primary">No students match</p>
-            <p className="mt-1 text-xs text-text-muted">Try a different search or filter.</p>
-          </div>
-        ) : (
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-border text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                <th className="px-4 py-2.5">
-                  <button
-                    onClick={toggleAllVisible}
-                    className={cn(
-                      "flex h-4 w-4 items-center justify-center rounded border transition-colors",
-                      allVisibleSelected
-                        ? "border-pink-500 bg-pink-500 text-white"
-                        : "border-input-border bg-input-bg"
-                    )}
-                    aria-label="Select all visible"
-                  >
-                    {allVisibleSelected && <CheckSquare className="h-3 w-3" />}
-                  </button>
-                </th>
-                <th className="px-2 py-2.5">Student</th>
-                <th className="hidden px-2 py-2.5 md:table-cell">Roll</th>
-                <th className="hidden px-2 py-2.5 lg:table-cell">Username</th>
-                <th className="hidden px-2 py-2.5 sm:table-cell">Added</th>
-                <th className="px-2 py-2.5 text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStudents.map((student) => {
-                const issue = hasStudentIssue(student);
-                return (
-                  <tr
-                    key={student.id}
-                    onClick={() => setDetailsStudent(student)}
-                    className="cursor-pointer border-b border-border/60 transition-colors last:border-0 hover:bg-white/[0.03]"
-                  >
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => toggleSelected(student.id)}
-                        className={cn(
-                          "flex h-4 w-4 items-center justify-center rounded border transition-colors",
-                          selected.has(student.id)
-                            ? "border-pink-500 bg-pink-500 text-white"
-                            : "border-input-border bg-input-bg"
-                        )}
-                        aria-label={`Select ${student.name}`}
-                      >
-                        {selected.has(student.id) && <CheckSquare className="h-3 w-3" />}
-                      </button>
-                    </td>
-                    <td className="px-2 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <img
-                          src={student.avatarUrl || getAvatarUrlById(student.avatarId)}
-                          alt=""
-                          className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-border"
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-text-primary">
-                            {student.name}
-                            {issue && (
-                              <AlertTriangle className="ml-1.5 inline h-3 w-3 text-warning" />
-                            )}
-                          </p>
-                          <p className="truncate text-[10px] text-text-muted sm:hidden">
-                            {student.rollNumber}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="hidden px-2 py-3 font-mono text-xs text-text-secondary md:table-cell">
-                      {student.rollNumber}
-                    </td>
-                    <td className="hidden px-2 py-3 text-xs text-text-secondary lg:table-cell">
-                      @{(student.username ?? "").toLowerCase() || "—"}
-                    </td>
-                    <td className="hidden px-2 py-3 text-xs text-text-muted sm:table-cell">
-                      {student.addedAt ? timeAgo(student.addedAt) : "—"}
-                    </td>
-                    <td className="px-2 py-3 text-right">
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold",
-                          student.active ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
-                        )}
-                      >
-                        <span
-                          className={cn("h-1 w-1 rounded-full", student.active ? "bg-success" : "bg-warning")}
-                        />
-                        {student.active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        </div>
       </div>
 
       {/* Add / import students */}
@@ -737,7 +798,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1A1240]/50 p-4 backdrop-blur-sm"
             onClick={() => setRemovingStudent(null)}
           >
             <motion.div
@@ -745,19 +806,16 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.96, opacity: 0, y: 12 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl"
+              className="w-full max-w-sm rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6 shadow-[6px_6px_0_var(--qs-sun)]"
             >
-              <h3 className="text-base font-bold text-text-primary">Remove Student</h3>
-              <p className="mt-1 text-xs leading-relaxed text-text-secondary">
-                Remove <span className="font-semibold text-text-primary">{removingStudent.name}</span> from{" "}
-                <span className="font-semibold text-text-primary">{room.name}</span>? The student&apos;s
+              <h3 className="text-base font-black text-[var(--qs-ink)]">Remove Student</h3>
+              <p className="mt-1 text-xs font-medium leading-relaxed text-[var(--qs-muted)]">
+                Remove <span className="font-extrabold text-[var(--qs-ink)]">{removingStudent.name}</span> from{" "}
+                <span className="font-extrabold text-[var(--qs-ink)]">{room.name}</span>? The student&apos;s
                 profile is not deleted and they can be re-added later.
               </p>
               <div className="mt-4 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => setRemovingStudent(null)}
-                  className="h-9 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-colors hover:bg-card-hover"
-                >
+                <button onClick={() => setRemovingStudent(null)} className={cn(QS_OUTLINE_BTN, "py-2 text-xs")}>
                   Cancel
                 </button>
                 <button
@@ -769,7 +827,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
                     setRemovingStudent(null);
                     toast.success({ title: "Student removed", description: `${removingStudent.name} was removed from ${room.name}.` });
                   }}
-                  className="flex h-9 items-center gap-1.5 rounded-xl bg-gradient-to-r from-danger to-rose-600 px-4 text-xs font-bold text-white transition-all hover:brightness-105 active:scale-[0.98]"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] px-4 py-2 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Remove
