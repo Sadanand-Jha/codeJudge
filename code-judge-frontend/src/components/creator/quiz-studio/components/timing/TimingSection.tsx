@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Clock } from "lucide-react";
+import { ArrowRight, CalendarClock, Clock, MousePointerClick, Timer } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../../StudioProvider";
 import { updateQuizStatus } from "@/services/quiz";
@@ -249,8 +249,8 @@ export function TimingSection() {
           className="min-w-0 overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 sm:p-5"
         >
           <div className="mb-4 flex min-w-0 items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)]">
-              <Clock className="h-4 w-4 text-[var(--qs-brand)]" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+              <Clock className="h-4 w-4" />
             </div>
             <h3 className="min-w-0 text-sm font-black text-[var(--qs-ink)]">Timing & lifecycle</h3>
           </div>
@@ -266,12 +266,13 @@ export function TimingSection() {
                 switchMode("schedule");
               }}
               className={cn(
-                "min-w-0 flex-1 rounded-[10px] border-2 py-2 text-xs font-bold transition-all sm:text-sm",
+                "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] border-2 py-2 text-xs font-bold transition-colors sm:text-sm",
                 mode === "schedule"
-                  ? "border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[var(--qs-brand)]"
+                  ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] font-extrabold text-[var(--qs-bg)]"
                   : "border-transparent text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
               )}
             >
+              <CalendarClock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Schedule
             </button>
             <button
@@ -281,12 +282,13 @@ export function TimingSection() {
                 switchMode("manual");
               }}
               className={cn(
-                "min-w-0 flex-1 rounded-[10px] border-2 py-2 text-xs font-bold transition-all sm:text-sm",
+                "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] border-2 py-2 text-xs font-bold transition-colors sm:text-sm",
                 mode === "manual"
-                  ? "border-[var(--qs-ink)] bg-[var(--qs-surface)] text-[var(--qs-brand)]"
+                  ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] font-extrabold text-[var(--qs-bg)]"
                   : "border-transparent text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
               )}
             >
+              <MousePointerClick className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Start manually
             </button>
           </div>
@@ -328,7 +330,7 @@ export function TimingSection() {
           </div>
 
           {validationErrors.length > 0 && (
-            <div className="mt-3 space-y-1">
+            <div className="mt-3 space-y-1 rounded-[12px] border-2 border-[var(--qs-bad)]/40 bg-[var(--qs-badbg)] px-3.5 py-2.5">
               {validationErrors.map((err) => (
                 <p key={err} className="text-xs font-bold text-[var(--qs-bad)]">
                   {err}
@@ -345,22 +347,27 @@ export function TimingSection() {
           transition={{ duration: 0.3, delay: 0.2 }}
           className="min-w-0 overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 sm:p-5"
         >
-          <h3 className="text-sm font-black text-[var(--qs-ink)]">Attempt duration</h3>
-          <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
-            Time limit for each participant&apos;s attempt.
-          </p>
-          <div className="mt-3">
-            <DurationPicker
-              value={participantDuration}
-              onChange={(v) => {
-                setParticipantDuration(v);
-                updateInfo({ duration: v });
-              }}
-              presets={DURATION_PRESETS}
-              label="Time limit"
-              max={45}
-            />
+          <div className="mb-3 flex min-w-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
+              <Timer className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-black text-[var(--qs-ink)]">Attempt duration</h3>
+              <p className="text-xs font-medium text-[var(--qs-muted)]">
+                Time limit for each participant&apos;s attempt.
+              </p>
+            </div>
           </div>
+          <DurationPicker
+            value={participantDuration}
+            onChange={(v) => {
+              setParticipantDuration(v);
+              updateInfo({ duration: v });
+            }}
+            presets={DURATION_PRESETS}
+            label="Time limit"
+            max={45}
+          />
         </motion.div>
       </div>
 

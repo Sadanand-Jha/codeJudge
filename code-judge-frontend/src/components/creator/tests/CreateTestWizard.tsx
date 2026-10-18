@@ -417,7 +417,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
       </div>
 
       {/* Primary navigation stays above the working area, so teachers never need to hunt for it. */}
-      <div className="sticky top-2 z-30 flex items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card/95 px-3 py-2.5 shadow-[0_10px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-4">
+      <div className="sticky top-[58px] z-30 flex items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card/95 px-3 py-2.5 shadow-[0_10px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-4">
         <button
           type="button"
           onClick={goBack}

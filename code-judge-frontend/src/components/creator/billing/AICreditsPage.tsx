@@ -7,8 +7,6 @@ import { useToast } from "@/hooks/useToast";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { useBillingData } from "./hooks";
-import { CreditsTopBar } from "./credits/CreditsTopBar";
-import { CreditsBalanceCard } from "./credits/CreditsBalanceCard";
 import { CreditPacks } from "./credits/CreditPacks";
 import { HowCreditsWork } from "./credits/HowCreditsWork";
 import {
@@ -20,7 +18,6 @@ import { QS_OUTLINE_BTN } from "./credits/styles";
 import {
   buildOrderSummary,
   createCreditOrder,
-  getCreditValidityMonths,
   getPurchasePacks,
   openRazorpayCheckout,
   verifyCreditPayment,
@@ -41,12 +38,10 @@ export function AICreditsPage({
   const balance = useAICreditsStore((s) => s.balance);
   const refreshCredits = useAICreditsStore((s) => s.refresh);
   const purchasePack = useAICreditsStore((s) => s.purchasePack);
-  const [refreshing, setRefreshing] = useState(false);
 
   const { state, data, retry } = useBillingData(() => ({ packs: getPurchasePacks() }), {
     demoState,
   });
-  const validityMonths = getCreditValidityMonths();
 
   const [packId, setPackId] = useState<string | null>(() =>
     initialPackId && getPurchasePacks().some((pack) => pack.id === initialPackId)
@@ -71,16 +66,6 @@ export function AICreditsPage({
     if (phase === "processing") return;
     setPackId(null);
     setPhase("summary");
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await refreshCredits();
-      toast.success({ title: "Balance is up to date" });
-    } finally {
-      setRefreshing(false);
-    }
   };
 
   const runPurchase = async (args: { packId: string; method: string }) => {
@@ -161,8 +146,6 @@ export function AICreditsPage({
 
   return (
     <div className="space-y-6">
-      <CreditsTopBar />
-
       {state === "loading" && (
         <div className="flex min-h-[50vh] items-center justify-center">
           <SecureLogo variant="mark" size={LOADING_LOGO_SIZE} className="animate-pulse motion-reduce:animate-none" />
@@ -192,12 +175,6 @@ export function AICreditsPage({
 
       {state === "ready" && data && (
         <>
-          <CreditsBalanceCard
-            balance={balance.totalRemaining}
-            validityMonths={validityMonths}
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-          />
           <CreditPacks packs={data.packs} onSelect={openSummary} />
           <HowCreditsWork />
         </>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AlertTriangle, Check, UserRound } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { RoomStudent } from "@/types/room";
+import { sanitizeImportValue } from "@/utils/importValidation";
 import AudienceModal from "@/components/quiz/creator/settings/audience/AudienceModal";
 
 interface EditStudentModalProps {
@@ -47,7 +48,7 @@ export default function EditStudentModal({ open, onClose, student, onSave }: Edi
       setError("Roll number is required.");
       return;
     }
-    onSave({ name, rollNumber: roll, active });
+    onSave({ name: sanitizeImportValue(name), rollNumber: sanitizeImportValue(roll), active });
     onClose();
   };
 

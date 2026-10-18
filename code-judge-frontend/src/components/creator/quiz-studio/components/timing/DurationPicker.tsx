@@ -34,7 +34,7 @@ export function DurationPicker({
         ? "rounded-[14px] px-7 py-3.5 text-sm font-extrabold"
         : "rounded-[12px] px-3 py-1.5 text-xs font-bold",
       active
-        ? "border-[var(--qs-brand)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]"
+        ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] font-extrabold text-[var(--qs-bg)]"
         : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
     );
 

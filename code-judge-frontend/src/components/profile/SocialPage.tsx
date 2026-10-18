@@ -24,6 +24,7 @@ import {
 } from "@/services/profile";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/helpers";
+import { validateUsername } from "@/utils/importValidation";
 import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
 import ProfileSectionHeader from "./ProfileSectionHeader";
 
@@ -93,9 +94,10 @@ export default function SocialPage({ mode }: SocialPageProps) {
   };
 
   const handleSearch = async () => {
-    const u = query.trim();
-    if (!u) { setSearchError("Enter a username"); return; }
-    if (!/^[a-zA-Z0-9._-]{2,30}$/.test(u)) { setSearchError("Invalid username format"); return; }
+    if (!query.trim()) { setSearchError("Enter a username"); return; }
+    const check = validateUsername(query);
+    if (!check.ok) { setSearchError(check.error ?? "Invalid username format"); return; }
+    const u = check.value;
     setSearching(true);
     setSearchError(null);
     setSearchedUser(null);

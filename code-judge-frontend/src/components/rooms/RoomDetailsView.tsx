@@ -25,6 +25,7 @@ import { useRoomStore, getOwnedRooms, countRoomQuizUsage } from "@/store/roomSto
 import { useAuthStore } from "@/store/authStore";
 import { timeAgo, isWithinWindow } from "@/lib/formatters";
 import { exportStudentsToFile } from "@/utils/excelImport";
+import { isValidUsername } from "@/utils/importValidation";
 import { useToast } from "@/hooks/useToast";
 import { Room, RoomStudent } from "@/types/room";
 import { getAvatarUrlById } from "@/config/dicebear";
@@ -299,7 +300,7 @@ export default function RoomDetailsView({ roomId, basePath = "/profile/rooms" }:
   const handleExport = () => {
     exportStudentsToFile(
       room.name.replace(/[^\w\s-]/g, ""),
-      room.students.map((s) => ({ name: s.name, rollNumber: s.rollNumber, username: s.username ?? "" }))
+      room.students.map((s) => ({ username: s.username ?? s.rollNumber, rollNumber: s.rollNumber, data: s.data }))
     );
     toast.success({ title: "Export started", description: `${room.students.length} students exported.` });
   };
@@ -931,7 +932,6 @@ function getUsername(student: RoomStudent): string {
 }
 
 function hasStudentIssue(student: RoomStudent): boolean {
-  const username = getUsername(student);
-  const validUsername = username !== "" && /^[a-zA-Z0-9._-]{2,30}$/.test(username);
+  const validUsername = isValidUsername(getUsername(student));
   return !student.active || !student.rollNumber.trim() || !validUsername;
 }

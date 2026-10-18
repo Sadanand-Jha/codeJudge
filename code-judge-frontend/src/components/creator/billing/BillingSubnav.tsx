@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
 import { Wallet, ArrowLeftRight, CreditCard, Sparkles } from "lucide-react";
 import { cn } from "@/lib/helpers";
 
@@ -24,8 +23,8 @@ export function BillingSubnav() {
   const pathname = usePathname();
 
   return (
-    <div className="relative z-10 border-b border-border bg-ai-bg/85 backdrop-blur-xl">
-      <div className="flex items-center gap-1 overflow-x-auto py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="relative z-10 -mx-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:px-6">
+      <div className="flex w-fit items-center gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-0.5">
         {BILLING_TABS.map((tab) => {
           const isActive = tab.exact
             ? pathname === tab.href
@@ -35,19 +34,14 @@ export function BillingSubnav() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                "relative flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-150",
-                isActive ? "text-text-primary" : "text-text-secondary hover:bg-white/[0.04] hover:text-text-primary"
+                "flex shrink-0 items-center gap-1.5 rounded-[9px] px-3.5 py-2 text-xs font-bold transition-colors",
+                isActive
+                  ? "bg-[var(--qs-ink)] text-[var(--qs-bg)]"
+                  : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
               )}
             >
-              {isActive && (
-                <motion.span
-                  layoutId="billingSubnavActive"
-                  className="absolute inset-0 rounded-lg border border-pink-500/20 bg-pink-500/[0.08] dark:border-ai-accent/20 dark:bg-ai-accent-soft"
-                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                />
-              )}
-              <tab.icon className={cn("relative z-10 h-3.5 w-3.5", isActive ? "text-pink-500 dark:text-ai-accent" : "text-text-muted")} />
-              <span className="relative z-10">{tab.label}</span>
+              <tab.icon className="h-3.5 w-3.5" />
+              {tab.label}
             </Link>
           );
         })}

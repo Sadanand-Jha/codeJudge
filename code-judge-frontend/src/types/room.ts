@@ -16,6 +16,11 @@ export interface RoomStudent {
   avatarUrl?: string | null;
   /** ISO timestamp when the student was added to this room. */
   addedAt?: string;
+  /**
+   * Teacher-defined fields imported with the student (column name → value),
+   * mirroring how quiz registration fields store values per student.
+   */
+  data?: Record<string, string>;
 }
 
 export interface Room {

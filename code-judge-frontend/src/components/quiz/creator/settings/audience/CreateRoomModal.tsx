@@ -11,6 +11,7 @@ import { useAuthStore } from "@/store/authStore";
 import { getAvatarUrlById } from "@/config/dicebear";
 import { useToast } from "@/hooks/useToast";
 import { searchUserByUsername, createRoom as apiCreateRoom, addMemberToRoom, SearchedUser } from "@/services/rooms";
+import { isValidUsername, validateUsername } from "@/utils/importValidation";
 import AudienceModal from "./AudienceModal";
 import StudentImportPanel from "./StudentImportPanel";
 
@@ -95,9 +96,10 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
   }, [selectedRoomId, rooms, setRooms]);
 
   const handleSearch = async () => {
-    const u = query.trim();
-    if (!u) { setSearchError("Enter a username"); return; }
-    if (!/^[a-zA-Z0-9._-]{2,30}$/.test(u)) { setSearchError("Invalid username"); return; }
+    if (!query.trim()) { setSearchError("Enter a username"); return; }
+    const check = validateUsername(query);
+    if (!check.ok) { setSearchError(check.error ?? "Invalid username"); return; }
+    const u = check.value;
     setSearching(true);
     setSearchError(null);
     setSearchedUser(null);
@@ -246,7 +248,7 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <AtSign className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
-                  <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key==="Enter"){ e.preventDefault(); handleSearch(); } }} placeholder="Enter username e.g. quizplayer101" className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-4 text-sm font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:outline-none" />
+                  <input value={query} maxLength={30} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key==="Enter"){ e.preventDefault(); handleSearch(); } }} placeholder="Enter username e.g. quizplayer101" className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-4 text-sm font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:outline-none" />
                 </div>
                 <button onClick={handleSearch} disabled={searching || !query.trim()} className="inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50">
                   {searching ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Search className="h-3.5 w-3.5" />} Search
@@ -267,7 +269,7 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
             </div>
           ) : tab === "import" ? (
             <>
-              <StudentImportPanel roomName={name} existingRolls={[]} onImported={(students) => { setPending((prev) => { const seen = new Set(prev.map((s) => (s.username ?? s.rollNumber).toLowerCase())); return [...prev, ...students.filter((s) => !seen.has((s.username ?? s.rollNumber).toLowerCase()))]; }); }} />
+              <StudentImportPanel roomName={name} existingRolls={[]} remainingCapacity={Math.max(0, MAX_STUDENTS_PER_ROOM - pending.length)} onImported={(students) => { setPending((prev) => { const seen = new Set(prev.map((s) => (s.username ?? s.rollNumber).toLowerCase())); return [...prev, ...students.filter((s) => !seen.has((s.username ?? s.rollNumber).toLowerCase()))]; }); }} />
               <button onClick={() => setTab("rooms")} className="flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-[12px] border-2 border-dashed border-[var(--qs-brand)]/40 bg-[var(--qs-poly-1)] text-xs font-bold text-[var(--qs-brand)] hover:border-[var(--qs-brand)]"><Users className="h-3.5 w-3.5" /> Or choose from existing rooms</button>
             </>
           ) : (
@@ -308,7 +310,7 @@ export default function CreateRoomModal({ open, onClose, onCreated, initialTab =
                         <p className="text-xs font-medium text-[var(--qs-muted)]">No students match &quot;{roomStudentQuery}&quot;.</p>
                         {(() => {
                           const q = roomStudentQuery.trim().toLowerCase();
-                          const isValid = /^[a-zA-Z0-9._-]{2,30}$/.test(q);
+                          const isValid = isValidUsername(q);
                           const already = addedUsernames.has(q) || roomSelectedUsernames.has(q);
                           if (isValid && !already) {
                             return (

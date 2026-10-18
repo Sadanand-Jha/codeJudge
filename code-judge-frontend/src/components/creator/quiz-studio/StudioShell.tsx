@@ -362,7 +362,7 @@ export function StudioStepper() {
   }, [stepMenuOpen]);
 
   return (
-    <div className="shrink-0 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 sm:px-4">
+    <div className="relative z-30 shrink-0 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 sm:px-4">
       <div className="mx-auto flex w-full max-w-5xl items-center gap-3">
         <div className="min-w-0 flex-1">
           <div className="mb-1.5 flex items-center justify-between gap-3">
@@ -409,7 +409,7 @@ export function StudioStepper() {
                 exit={{ opacity: 0, y: -4, scale: 0.98 }}
                 transition={{ duration: 0.14 }}
                 role="menu"
-                className="absolute right-0 top-full z-50 mt-1.5 w-52 overflow-hidden rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]"
+                className="absolute right-0 top-full z-50 mt-1.5 max-h-[70vh] w-52 overflow-x-hidden overflow-y-auto overscroll-contain rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]"
               >
                 {/* Mobile menu: only the mobile subset */}
                 <div className="lg:hidden">
@@ -640,7 +640,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       data-studio="true"
-      className="creator-mobile-calm flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--qs-bg)] font-['Inter'] text-[var(--qs-ink)]"
+      className="creator-mobile-calm flex min-h-full min-w-0 flex-1 flex-col overflow-hidden bg-[var(--qs-bg)] font-['Inter'] text-[var(--qs-ink)]"
     >
       <StudioHeader />
       <StudioStepper />

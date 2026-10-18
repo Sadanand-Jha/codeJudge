@@ -9,6 +9,7 @@ import {
   Plus,
   Search,
   X,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { getAvatarUrlById } from "@/config/dicebear";
@@ -266,10 +267,10 @@ export function AudienceStep() {
           <label
             key={m.id}
             className={cn(
-              "flex min-h-16 cursor-pointer flex-col justify-center gap-1 rounded-[16px] border-2 bg-[var(--qs-surface)] p-3 text-left transition-all sm:p-4",
+              "flex min-h-16 cursor-pointer flex-col justify-center gap-1 rounded-[16px] border-2 bg-[var(--qs-surface)] p-3 text-left transition-colors sm:p-4",
               m.id === "classroom" && "col-span-2 sm:col-span-1",
               a.mode === m.id
-                ? "border-[var(--qs-brand)] bg-[var(--qs-poly-1)]"
+                ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
                 : "border-[var(--qs-line)] hover:border-[var(--qs-brand)]"
             )}
           >
@@ -286,7 +287,14 @@ export function AudienceStep() {
                 updateAudience({ mode: m.id });
               }}
             />
-            <span className={cn("text-sm font-black", a.mode === m.id ? "text-[var(--qs-brand)]" : "text-[var(--qs-ink)]")}>{m.label}</span>
+            <span className="flex items-center justify-between gap-2">
+              <span className="text-sm font-black text-[var(--qs-ink)]">{m.label}</span>
+              {a.mode === m.id && (
+                <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)]">
+                  <Check className="h-2.5 w-2.5 text-white" strokeWidth={3.5} />
+                </span>
+              )}
+            </span>
           </label>
         ))}
       </motion.div>
