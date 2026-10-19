@@ -22,14 +22,28 @@ import type { QuestionPaper } from "./paperTypes";
 import { PaperScopeFilters } from "./PaperScopeFilters";
 import { QuestionHtml } from "@/components/creator/questions/QuestionHtml";
 import { AiStreamText } from "@/components/ui";
+import { PaperHeaderFields } from "@/components/creator/common/PaperHeaderFields";
+import { downloadPaperPdf } from "@/utils/questionSetExport";
+import type { PaperHeaderMeta } from "@/utils/paperHeader";
 
 interface QuestionsStepProps {
   sections: Section[];
   paperTitle: string;
   onPaperTitleChange: (title: string) => void;
+  paperHeader: PaperHeaderMeta;
+  onPaperHeaderChange: (header: PaperHeaderMeta) => void;
+  onPaperReady?: (paper: QuestionPaper) => void;
 }
 
 type QuestionsStatus = "idle" | "generating" | "done" | "error";
+
+const errorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message ? error.message : fallback;
+
+const isCanceledRequest = (error: unknown) => {
+  const name = (error as { name?: string } | null)?.name;
+  return name === "CanceledError" || name === "AbortError";
+};
 
 const PAPER_LOADING_MESSAGES = [
   "Bringing your question paper to life…",
@@ -93,7 +107,14 @@ function StepSection({
   );
 }
 
-export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: QuestionsStepProps) {
+export function QuestionsStep({
+  sections,
+  paperTitle,
+  onPaperTitleChange,
+  paperHeader,
+  onPaperHeaderChange,
+  onPaperReady,
+}: QuestionsStepProps) {
   const toast = useToast();
   const abortRef = useRef<AbortController | null>(null);
 
@@ -152,37 +173,64 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
         abortRef.current.signal
       );
       setPaper(response.paper);
+      onPaperReady?.(response.paper);
       setStatus("done");
       toast.success({
         title: "Question paper ready",
         description: `${response.paper.totalQuestions} questions, ${response.paper.totalMarks} marks across ${response.paper.sections.length} sections.`,
       });
-    } catch (err: any) {
-      if (err?.name === "CanceledError" || err?.name === "AbortError") {
+    } catch (err) {
+      if (isCanceledRequest(err)) {
         setStatus("idle");
         return;
       }
-      setError(err?.message || "Failed to generate the question paper. Please try again.");
+      setError(errorMessage(err, "Failed to generate the question paper. Please try again."));
       setStatus("error");
     }
-  }, [sections, paperTitle, syllabus, subjectId, chapterIds, topicIds, overall, totalNeeded, toast]);
+  }, [sections, paperTitle, syllabus, subjectId, chapterIds, topicIds, overall, totalNeeded, toast, onPaperReady]);
 
-  const handleDownload = useCallback(async () => {
+  const paperHeading = paperTitle.trim() || paperHeader.heading.trim() || "Question Paper";
+
+  const handleDownloadPdf = useCallback(async () => {
     if (!paper) return;
     setDownloading(true);
     setError(null);
     try {
-      await downloadQuestionPaper(paper);
-      toast.success({
-        title: "Downloaded",
-        description: "Word file saved — open it to review, edit or share.",
+      await downloadPaperPdf({
+        paper,
+        header: { ...paperHeader, heading: paperHeading, subject: paperHeader.subject.trim() },
       });
-    } catch (err: any) {
-      setError(err?.message || "Failed to download the paper. Please try again.");
+      toast.success({
+        title: "PDF downloaded",
+        description: "Print-ready paper saved with your header details.",
+      });
+    } catch (err) {
+      setError(errorMessage(err, "Failed to download the paper. Please try again."));
     } finally {
       setDownloading(false);
     }
-  }, [paper, toast]);
+  }, [paper, paperHeader, paperHeading, toast]);
+
+  const handleDownloadWord = useCallback(async () => {
+    if (!paper) return;
+    setDownloading(true);
+    setError(null);
+    try {
+      await downloadQuestionPaper({
+        ...paper,
+        title: paperHeading,
+        meta: { ...paperHeader, heading: paperHeading },
+      });
+      toast.success({
+        title: "Word downloaded",
+        description: "Open it to review, edit or share.",
+      });
+    } catch (err) {
+      setError(errorMessage(err, "Failed to download the paper. Please try again."));
+    } finally {
+      setDownloading(false);
+    }
+  }, [paper, paperHeader, paperHeading, toast]);
 
   const handleRegenerate = useCallback(() => {
     setPaper(null);
@@ -217,7 +265,7 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
             </span>
           </div>
 
-          <StepSection step={1} title="Paper details" hint="Give the paper a title students will see" divided={false}>
+          <StepSection step={1} title="Paper details" hint="Give the paper a title students will see and set the printed header">
             <input
               type="text"
               value={paperTitle}
@@ -226,6 +274,14 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
               placeholder="e.g. Mid Semester Examination"
               className="h-12 w-full max-w-xl rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-medium text-[var(--qs-ink)] outline-none transition placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] disabled:opacity-60"
             />
+            <div className="mt-4 max-w-3xl">
+              <PaperHeaderFields
+                value={paperHeader}
+                onChange={onPaperHeaderChange}
+                showHeading={false}
+                disabled={status === "generating"}
+              />
+            </div>
           </StepSection>
 
           <StepSection step={2} title="Question scope" hint="Choose the chapters and topics AI should draw from">
@@ -431,74 +487,108 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="overflow-hidden rounded-2xl border border-border bg-card"
+          className="overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[4px_4px_0_var(--qs-sun)]"
         >
-          <div className="border-b border-border px-5 py-4">
+          <div className="border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-5 py-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="text-base font-extrabold text-text-primary">{paper.title}</h3>
-                <p className="mt-1 text-xs text-text-secondary">
+                <h3 className="text-base font-extrabold text-[var(--qs-ink)]">
+                  {paperHeading}
+                </h3>
+                <p className="mt-1 text-xs font-semibold text-[var(--qs-muted)]">
                   {paper.totalQuestions} questions · {paper.totalMarks} marks
                   {paper.durationMinutes ? ` · ${paper.durationMinutes} min` : ""}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleRegenerate}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3.5 py-2 text-xs font-semibold text-text-primary transition-all hover:border-border-hover"
-                >
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={handleRegenerate} className="b sm gap-1.5">
                   <RotateCcw className="h-3.5 w-3.5" />
                   Regenerate
                 </button>
                 <button
                   type="button"
-                  onClick={handleDownload}
+                  onClick={() => void handleDownloadWord()}
                   disabled={downloading}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3.5 py-2 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)] disabled:opacity-50 disabled:shadow-none"
+                  className="b sm gap-1.5"
+                >
+                  {downloading ? (
+                    <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" />
+                  ) : (
+                    <FileText className="h-3.5 w-3.5" />
+                  )}
+                  Word
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDownloadPdf()}
+                  disabled={downloading}
+                  className="b b-pri sm gap-1.5"
                 >
                   {downloading ? (
                     <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" />
                   ) : (
                     <Download className="h-3.5 w-3.5" />
                   )}
-                  {downloading ? "Preparing…" : "Download Paper"}
+                  {downloading ? "Preparing…" : "Download PDF"}
                 </button>
               </div>
             </div>
-            <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
-              <Check className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-              <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+            <div className="mt-2 flex items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ok)] bg-[var(--qs-okbg)] px-3 py-2">
+              <Check className="h-3.5 w-3.5 shrink-0 text-[var(--qs-ok)]" />
+              <p className="text-[11px] font-bold text-[var(--qs-ok)]">
                 Your question paper is ready — review every question before publishing or downloading.
               </p>
             </div>
           </div>
 
-          <div className="space-y-5 px-5 py-4">
+          <div className="px-5 py-5">
+            <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-4 text-center">
+              <p className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]">
+                {paperHeader.instituteName.trim() || "[Institute name]"}
+              </p>
+              <p className="mt-1 text-[15px] font-extrabold text-[var(--qs-ink)]">{paperHeading}</p>
+              <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-left text-[11px] font-semibold text-[var(--qs-muted)] sm:grid-cols-3">
+                <span><strong className="font-extrabold text-[var(--qs-ink)]">Subject:</strong> {paperHeader.subject.trim() || "[Subject]"}</span>
+                <span><strong className="font-extrabold text-[var(--qs-ink)]">Class:</strong> {paperHeader.className.trim() || "[Class / Semester]"}</span>
+                <span><strong className="font-extrabold text-[var(--qs-ink)]">Date:</strong> {paperHeader.date.trim() || "[Date]"}</span>
+                <span><strong className="font-extrabold text-[var(--qs-ink)]">Time:</strong> {paperHeader.timeAllowed.trim() || "[Time allowed]"}</span>
+                <span><strong className="font-extrabold text-[var(--qs-ink)]">Max Marks:</strong> {paper.totalMarks}</span>
+                <span><strong className="font-extrabold text-[var(--qs-ink)]">Set:</strong> {paperHeader.setName.trim() || "A"}</span>
+              </div>
+              {paperHeader.showStudentBlock && (
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-x-8 gap-y-1 text-[11px] font-bold text-[var(--qs-ink)]">
+                  <span>Name: ______________________</span>
+                  <span>Roll No.: ______________________</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-5 px-5 pb-4">
             {paper.sections.map((s) => (
               <div key={`${s.order}-${s.label}`}>
-                <div className="flex items-center justify-between rounded-lg bg-card-hover/60 px-3 py-2">
-                  <p className="text-[13px] font-extrabold text-text-primary">
+                <div className="flex items-center justify-between rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
+                  <p className="text-[13px] font-extrabold text-[var(--qs-ink)]">
                     Section {s.label} — {s.name}
                   </p>
-                  <span className="text-xs font-bold text-text-secondary tabular-nums">
+                  <span className="text-xs font-bold text-[var(--qs-muted)] tabular-nums">
                     {s.sectionMarks} marks
                   </span>
                 </div>
                 {s.title && (
-                  <p className="mt-1.5 px-1 text-xs font-bold text-text-primary">{s.title}</p>
+                  <p className="mt-1.5 px-1 text-xs font-bold text-[var(--qs-ink)]">{s.title}</p>
                 )}
                 {s.instructions && (
-                  <p className="mt-0.5 px-1 text-[11px] italic text-text-secondary">
+                  <p className="mt-0.5 px-1 text-[11px] italic text-[var(--qs-muted)]">
                     {s.instructions}
                   </p>
                 )}
                 {s.questionGroups.map((g, gi) => (
                   <div key={`${s.label}-${gi}`} className="mt-3 px-1">
-                    <p className="text-xs font-bold text-text-primary">
+                    <p className="text-xs font-bold text-[var(--qs-ink)]">
                       {g.name} ({g.questions.length} × {g.marksPerQuestion} marks)
                     </p>
-                    <p className="text-[11px] italic text-text-muted">
+                    <p className="text-[11px] italic text-[var(--qs-muted)]">
                       {g.attemptRule.type === "ANY_N" && g.attemptRule.count
                         ? `Attempt any ${g.attemptRule.count} out of ${g.questions.length} questions.`
                         : "Answer all questions."}
@@ -508,23 +598,23 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
                         qNo++;
                         return (
                           <div key={`${s.label}-${gi}-${q.num}`} className="flex gap-2 text-[13px]">
-                            <span className="shrink-0 font-bold text-text-primary tabular-nums">
+                            <span className="shrink-0 font-bold text-[var(--qs-ink)] tabular-nums">
                               Q{qNo}.
                             </span>
                             <div className="min-w-0 flex-1">
                               {q.questionHtml?.trim() ? (
                                 <QuestionHtml
                                   html={q.questionHtml}
-                                  className="text-[13px] font-normal leading-relaxed text-text-primary"
+                                  className="text-[13px] font-normal leading-relaxed"
                                 />
                               ) : (
-                                <p className="text-text-primary">{q.question}</p>
+                                <p className="whitespace-pre-wrap text-[var(--qs-ink)]">{q.question}</p>
                               )}
-                              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] capitalize text-text-muted">
+                              <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] capitalize text-[var(--qs-muted)]">
                                 <span>{q.difficulty} · {q.kind}</span>
                               </p>
                             </div>
-                            <span className="shrink-0 text-xs font-bold text-text-secondary tabular-nums">
+                            <span className="shrink-0 text-xs font-bold text-[var(--qs-muted)] tabular-nums">
                               [{q.marks} marks]
                             </span>
                           </div>
@@ -537,11 +627,11 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
             ))}
           </div>
 
-          <div className="flex items-center justify-between border-t border-border px-5 py-3">
-            <span className="text-xs font-bold text-text-secondary">
+          <div className="flex items-center justify-between border-t-2 border-[var(--qs-line)] px-5 py-3">
+            <span className="text-xs font-bold text-[var(--qs-muted)]">
               Total: {paper.totalQuestions} questions
             </span>
-            <span className="text-xs font-bold text-text-secondary">
+            <span className="text-xs font-bold text-[var(--qs-muted)]">
               Total Marks: {paper.totalMarks}
             </span>
           </div>
@@ -555,7 +645,7 @@ export function QuestionsStep({ sections, paperTitle, onPaperTitleChange }: Ques
           )}
         >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-          <p className="text-xs font-semibold text-text-secondary">
+          <p className="text-xs font-semibold text-[var(--qs-muted)]">
             Go back to Sections and add at least one question group before generating the paper.
           </p>
         </div>

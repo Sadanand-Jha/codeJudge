@@ -37,6 +37,21 @@ export interface QuestionPaper {
   totalQuestions: number;
   totalMarks: number;
   durationMinutes?: number;
+  meta?: {
+    instituteName?: string;
+    heading?: string;
+    subject?: string;
+    className?: string;
+    date?: string;
+    timeAllowed?: string;
+    setName?: string;
+    showStudentBlock?: boolean;
+    easyMarks?: number;
+    mediumMarks?: number;
+    hardMarks?: number;
+    /** @deprecated replaced by per-difficulty marks */
+    marksPerQuestion?: number;
+  };
 }
 
 export interface GeneratePaperResponse {

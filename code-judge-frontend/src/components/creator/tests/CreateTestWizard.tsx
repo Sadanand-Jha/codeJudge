@@ -23,11 +23,12 @@ import {
   BookmarkPlus,
   FolderOpen,
   Save,
+  Sparkles,
   X,
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/helpers";
-import { deleteSectionBlueprint, getQuestionGeneratorCatalog, getSectionBlueprints, saveSectionBlueprint, useSectionBlueprint } from "@/services/aiGenerate";
+import { deleteSectionBlueprint, getQuestionGeneratorCatalog, getSectionBlueprints, saveSectionBlueprint, useSectionBlueprint as applySectionBlueprint } from "@/services/aiGenerate";
 import type { SectionBlueprint } from "@/services/aiGenerate";
 import { EXAMS, LANGUAGES } from "@/components/tests/mockData";
 import { AiStreamText } from "@/components/ui";
@@ -35,6 +36,9 @@ import { SectionCard } from "./sections/SectionCard";
 import { AIGenerateModal } from "./sections/AIGenerateModal";
 import { QuestionsStep } from "./sections/QuestionsStep";
 import { SectionBlueprintLibrary } from "./sections/SectionBlueprintLibrary";
+import type { QuestionPaper } from "./sections/paperTypes";
+import { saveTestRecord } from "@/utils/savedTests";
+import { DEFAULT_PAPER_HEADER, type PaperHeaderMeta } from "@/utils/paperHeader";
 import {
   type Section,
   createDefaultSection,
@@ -129,6 +133,8 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const [price, setPrice] = useState(0);
   const [originalPrice, setOriginalPrice] = useState(0);
   const [publishing, setPublishing] = useState(false);
+  const [paperHeader, setPaperHeader] = useState<PaperHeaderMeta>({ ...DEFAULT_PAPER_HEADER });
+  const [generatedPaper, setGeneratedPaper] = useState<QuestionPaper | null>(null);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [blueprintLibraryOpen, setBlueprintLibraryOpen] = useState(false);
   const [sectionEditorOpen, setSectionEditorOpen] = useState(false);
@@ -141,11 +147,8 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const [blueprintDescription, setBlueprintDescription] = useState("");
   const [savingBlueprint, setSavingBlueprint] = useState(false);
   const [autoSavingSections, setAutoSavingSections] = useState(false);
-  // Tracks whether the current sections were built fresh ("new") or loaded
-  // from a saved blueprint, plus the signature of the last DB-saved state —
-  // so Continue auto-saves new sections exactly once.
-  const sectionsOriginRef = useRef<"new" | "blueprint">("new");
   const savedSectionsSigRef = useRef<string | null>(null);
+  const blueprintsRequestedRef = useRef(false);
 
   const totalQuestions = useMemo(
     () => sections.reduce((sum, s) => sum + getSectionQuestionCount(s), 0),
@@ -174,9 +177,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const goBack = () => setStep((current) => Math.max(0, current - 1));
   const goForward = async () => {
     if (!canContinue() || sectionChoicePending || autoSavingSections) return;
-    // Newly created sections are persisted to the DB on Continue so they
-    // show up under "Use existing section" next time.
-    if (step === 1 && sectionEditorOpen && sectionsOriginRef.current === "new") {
+    if (step === 1 && sectionEditorOpen) {
       const signature = JSON.stringify(sections);
       if (signature !== savedSectionsSigRef.current) {
         setAutoSavingSections(true);
@@ -188,7 +189,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           });
           savedSectionsSigRef.current = signature;
           setBlueprints((current) => [saved, ...current.filter((item) => item.id !== saved.id)]);
-          toast.success({ title: "Sections saved", description: "Find them again under Use existing section." });
+          toast.success({ title: "Sections saved for reuse", description: "Find them again under Use existing section." });
         } catch (error) {
           toast.error({ title: "Could not save sections", description: error instanceof Error ? error.message : "Continuing without saving." });
         } finally {
@@ -244,9 +245,9 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   }, []);
 
   useEffect(() => {
-    if (step !== 1 || blueprintsLoaded || blueprintsLoading) return;
+    if (step !== 1 || blueprintsLoaded || blueprintsRequestedRef.current) return;
+    blueprintsRequestedRef.current = true;
     let active = true;
-    setBlueprintsLoading(true);
     getSectionBlueprints()
       .then((saved) => {
         if (active) setBlueprints(saved);
@@ -265,7 +266,6 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
 
   const startNewSection = useCallback(() => {
     setSections([createDefaultSection(0)]);
-    sectionsOriginRef.current = "new";
     savedSectionsSigRef.current = null;
     setBlueprintLibraryOpen(false);
     setSectionEditorOpen(true);
@@ -289,10 +289,9 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const handleUseBlueprint = useCallback(async (blueprint: SectionBlueprint) => {
     setBlueprintBusyId(blueprint.id);
     try {
-      const selected = await useSectionBlueprint(blueprint.id);
+      const selected = await applySectionBlueprint(blueprint.id);
       const cloned = cloneBlueprintSections(selected.sections);
       setSections(cloned);
-      sectionsOriginRef.current = "blueprint";
       savedSectionsSigRef.current = JSON.stringify(cloned);
       setBlueprintLibraryOpen(false);
       setSectionEditorOpen(true);
@@ -340,6 +339,22 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
   const handlePublish = () => {
     setPublishing(true);
     setTimeout(() => {
+      saveTestRecord({
+        id: generatedPaper ? `paper-${Date.now()}` : `draft-${Date.now()}`,
+        title: title.trim() || paperHeader.heading.trim() || "Untitled test",
+        creationType,
+        createdAt: new Date().toISOString(),
+        mode,
+        price,
+        originalPrice,
+        duration,
+        subjects,
+        sectionsCount: sections.length,
+        totalQuestions,
+        totalMarks: generatedPaper?.totalMarks ?? totalMarks,
+        meta: { ...paperHeader, heading: title.trim() || paperHeader.heading.trim() || "Question Paper" },
+        paper: generatedPaper,
+      });
       setPublishing(false);
       toast.success({
         title: meta.toast,
@@ -674,8 +689,8 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
 
           {step === 1 && sectionEditorOpen && !blueprintLibraryOpen && (
             <div>
-              <div className="mb-4 flex flex-col gap-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--qs-muted)]">
+              <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5">
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-[11px] text-[var(--qs-muted)]">
                   <button type="button" onClick={() => setSectionEditorOpen(false)} className="b b-ghost sm mr-1 gap-1"><ChevronLeft className="h-3.5 w-3.5" /> Change option</button>
                   <span className="h-3 w-0.5 rounded-full bg-[var(--qs-line)]" />
                   <span className="font-bold text-[var(--qs-ink)]">{sections.length} Section{sections.length !== 1 && "s"}</span>
@@ -684,16 +699,25 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                   <span>·</span>
                   <span className="font-bold text-[var(--qs-ink)]">{totalMarks} Total Marks</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBlueprintName(title.trim() ? `${title.trim()} blueprint` : "");
-                    setSaveBlueprintOpen(true);
-                  }}
-                  className="b sm shrink-0 gap-1.5"
-                >
-                  <BookmarkPlus className="h-3.5 w-3.5" /> Save for reuse
-                </button>
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBlueprintName(title.trim() ? `${title.trim()} blueprint` : "");
+                      setSaveBlueprintOpen(true);
+                    }}
+                    className="b sm flex-1 shrink-0 gap-1.5 sm:flex-none"
+                  >
+                    <BookmarkPlus className="h-3.5 w-3.5" /> Save for reuse
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiModalOpen(true)}
+                    className="b b-pri sm flex-1 shrink-0 gap-1.5 sm:flex-none"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" /> Generate with AI
+                  </button>
+                </div>
               </div>
 
               <div className="mb-4 flex flex-col gap-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -711,7 +735,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               </div>
 
               {/* Section Cards */}
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
                 <AnimatePresence initial={false}>
                   {sections.map((section, idx) => (
                     <SectionCard
@@ -724,7 +748,6 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                       onDuplicate={duplicateSection}
                       onMoveUp={() => moveSection(section.id, "up")}
                       onMoveDown={() => moveSection(section.id, "down")}
-                      onAIGenerate={() => setAiModalOpen(true)}
                     />
                   ))}
                 </AnimatePresence>
@@ -747,6 +770,9 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               sections={sections}
               paperTitle={title}
               onPaperTitleChange={setTitle}
+              paperHeader={paperHeader}
+              onPaperHeaderChange={setPaperHeader}
+              onPaperReady={setGeneratedPaper}
             />
           )}
 

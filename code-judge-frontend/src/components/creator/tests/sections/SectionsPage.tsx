@@ -9,6 +9,7 @@ import {
   Check,
   Plus,
   Save,
+  Sparkles,
   Layers,
   FileText,
   HelpCircle,
@@ -28,6 +29,7 @@ import {
   getSectionQuestionCount,
   getSectionMarks,
 } from "./types";
+import { DEFAULT_PAPER_HEADER, type PaperHeaderMeta } from "@/utils/paperHeader";
 
 const STEPS = [
   { id: "basic", label: "Basic Details", icon: FileText },
@@ -45,6 +47,7 @@ export function SectionsPage() {
   const [saving, setSaving] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [paperTitle, setPaperTitle] = useState("Operating Systems — Question Paper");
+  const [paperHeader, setPaperHeader] = useState<PaperHeaderMeta>({ ...DEFAULT_PAPER_HEADER });
 
   const totalQuestions = useMemo(
     () => sections.reduce((sum, s) => sum + getSectionQuestionCount(s), 0),
@@ -181,6 +184,14 @@ export function SectionsPage() {
           </button>
           <button
             type="button"
+            onClick={() => setAiModalOpen(true)}
+            className="col-span-2 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5 text-[13px] font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] sm:col-span-1"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Generate with AI
+          </button>
+          <button
+            type="button"
             onClick={handleContinue}
             disabled={!canContinue}
             className="col-span-2 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2.5 text-[13px] font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:shadow-none sm:col-span-1"
@@ -270,6 +281,8 @@ export function SectionsPage() {
           sections={sections}
           paperTitle={paperTitle}
           onPaperTitleChange={setPaperTitle}
+          paperHeader={paperHeader}
+          onPaperHeaderChange={setPaperHeader}
         />
       ) : (
         <>
@@ -287,7 +300,6 @@ export function SectionsPage() {
                   onDuplicate={duplicateSection}
                   onMoveUp={() => moveSection(section.id, "up")}
                   onMoveDown={() => moveSection(section.id, "down")}
-                  onAIGenerate={() => setAiModalOpen(true)}
                 />
               ))}
             </AnimatePresence>

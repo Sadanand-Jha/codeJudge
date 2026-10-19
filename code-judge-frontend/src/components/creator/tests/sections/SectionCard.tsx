@@ -12,11 +12,9 @@ import {
   X,
   Calculator,
   Sparkles,
-  Layers,
   Check,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { AiStreamText } from "@/components/ui";
 import {
   type Section,
   type QuestionGroup,
@@ -34,6 +32,15 @@ import {
   getSectionMarks,
 } from "./types";
 
+const CATEGORY_BADGE: Record<string, string> = {
+  objective: "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
+  subjective: "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]",
+  composite: "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]",
+  technical: "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]",
+  structural: "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]",
+  other: "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]",
+};
+
 export function SectionCard({
   section,
   index,
@@ -43,7 +50,6 @@ export function SectionCard({
   onDuplicate,
   onMoveUp,
   onMoveDown,
-  onAIGenerate,
 }: {
   section: Section;
   index: number;
@@ -53,11 +59,9 @@ export function SectionCard({
   onDuplicate: (id: string) => void;
   onMoveUp: (id: string) => void;
   onMoveDown: (id: string) => void;
-  onAIGenerate?: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const [showTypeSelector, setShowTypeSelector] = useState(false);
-  const aiButtonLabel = "Generate with AI";
 
   const qCount = getSectionQuestionCount(section);
   const availableMarks = getSectionAvailableMarks(section);
@@ -216,28 +220,6 @@ export function SectionCard({
   const technicalTypes = availableTypes.filter((qt) => qt.category === "technical");
   const otherTypes = availableTypes.filter((qt) => qt.category === "other" || qt.category === "structural");
 
-  const aiGenerateButton = (
-    <motion.button
-      type="button"
-      onClick={onAIGenerate}
-      aria-label={aiButtonLabel}
-      whileHover={{ scale: 1.025, y: -1 }}
-      whileTap={{ scale: 0.98 }}
-      className="group relative isolate inline-flex min-w-[150px] items-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 px-3 py-2 text-xs font-black text-white shadow-[0_8px_20px_-8px_rgba(124,58,237,.8)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_24px_-8px_rgba(124,58,237,.9)]"
-    >
-      <motion.span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-0 -z-10 w-14 -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent blur-[1px]"
-        initial={{ x: "-180%" }}
-        animate={{ x: "520%" }}
-        transition={{ duration: 2.6, repeat: Infinity, repeatDelay: 1.4, ease: "easeInOut" }}
-      />
-      <span aria-hidden="true" className="inline-flex min-w-[96px] items-center text-left">
-        <AiStreamText text={aiButtonLabel} tokensPerSecond={20} />
-      </span>
-    </motion.button>
-  );
-
   return (
     <motion.div
       layout
@@ -245,16 +227,16 @@ export function SectionCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12, scale: 0.97 }}
       transition={{ duration: 0.25 }}
-      className="rounded-2xl border border-border bg-card shadow-[0_1px_3px_rgba(17,24,39,0.04),0_4px_12px_rgba(17,24,39,0.03)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.25)]"
+      className="overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[4px_4px_0_var(--qs-sun)]"
     >
       {/* Header */}
-      <div className="flex flex-wrap items-start gap-2 border-b border-border px-3 py-3 sm:flex-nowrap sm:items-center sm:gap-3 sm:px-5 sm:py-4">
+      <div className="flex flex-wrap items-start gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-3 sm:flex-nowrap sm:items-center sm:gap-3 sm:px-5 sm:py-4">
         <div className="hidden flex-col gap-0.5 sm:flex">
           <button
             type="button"
             onClick={() => onMoveUp(section.id)}
             disabled={index === 0}
-            className="rounded p-0.5 text-text-muted transition-colors hover:text-text-primary disabled:opacity-30"
+            className="rounded p-0.5 text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-ink)] disabled:opacity-30"
           >
             <ChevronUp className="h-3 w-3" />
           </button>
@@ -262,39 +244,37 @@ export function SectionCard({
             type="button"
             onClick={() => onMoveDown(section.id)}
             disabled={index === totalSections - 1}
-            className="rounded p-0.5 text-text-muted transition-colors hover:text-text-primary disabled:opacity-30"
+            className="rounded p-0.5 text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-ink)] disabled:opacity-30"
           >
             <ChevronDown className="h-3 w-3" />
           </button>
         </div>
 
-        <GripVertical className="hidden h-4 w-4 shrink-0 cursor-grab text-text-muted active:cursor-grabbing sm:block" />
+        <GripVertical className="hidden h-4 w-4 shrink-0 cursor-grab text-[var(--qs-muted)] active:cursor-grabbing sm:block" />
 
         <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--qs-muted)]">Section {index + 1}</p>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="text-sm font-extrabold text-text-primary">{section.name}</span>
+            <span className="text-sm font-extrabold text-[var(--qs-ink)]">{section.name}</span>
             {section.title && (
               <>
-                <span className="text-text-muted">—</span>
-                <span className="text-sm text-text-secondary">{section.title}</span>
+                <span className="text-[var(--qs-muted)]">—</span>
+                <span className="text-xs font-semibold text-[var(--qs-muted)]">{section.title}</span>
               </>
             )}
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-text-muted sm:gap-3">
-            <span>{qCount} Questions</span>
-            <span>·</span>
-            <span>{availableMarks} Available</span>
-            <span>·</span>
-            <span className="font-semibold text-text-secondary">{sectionMarks} Marks</span>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
+            <span className="rounded-md border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-0.5 text-[var(--qs-muted)]">{qCount} questions</span>
+            <span className="rounded-md border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 py-0.5 text-[var(--qs-muted)]">{availableMarks} available</span>
+            <span className="rounded-md border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[#1a1240]">{sectionMarks} marks</span>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
-          <div className="hidden sm:block">{aiGenerateButton}</div>
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+            className="b b-icon sm"
             aria-label={expanded ? "Collapse" : "Expand"}
           >
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -302,7 +282,7 @@ export function SectionCard({
           <button
             type="button"
             onClick={() => onDuplicate(section.id)}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-text-muted transition-colors hover:border-border-hover hover:text-text-primary"
+            className="b b-icon sm"
             aria-label="Duplicate"
           >
             <Copy className="h-3.5 w-3.5" />
@@ -311,13 +291,12 @@ export function SectionCard({
             type="button"
             onClick={() => onRemove(section.id)}
             disabled={totalSections <= 1}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-text-muted transition-colors hover:border-rose-500/40 hover:text-rose-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="b b-icon sm hover:text-[var(--qs-bad)] disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Delete"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
-        <div className="flex w-full justify-end pt-1 sm:hidden">{aiGenerateButton}</div>
       </div>
 
       {/* Expanded */}
@@ -334,31 +313,31 @@ export function SectionCard({
               {/* Section Details */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-bold uppercase tracking-wide text-text-muted">
+                  <label className="block text-[11px] font-bold uppercase tracking-wide text-[var(--qs-muted)]">
                     Section Name
                   </label>
                   <input
                     value={section.name}
                     onChange={(e) => onUpdate(section.id, { name: e.target.value })}
                     placeholder="e.g. Section A"
-                    className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+                    className="h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] outline-none transition-colors focus:border-[var(--qs-brand)]"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-[11px] font-bold uppercase tracking-wide text-text-muted">
+                  <label className="block text-[11px] font-bold uppercase tracking-wide text-[var(--qs-muted)]">
                     Section Title
                   </label>
                   <input
                     value={section.title}
                     onChange={(e) => onUpdate(section.id, { title: e.target.value })}
                     placeholder="e.g. Objective Questions"
-                    className="h-10 w-full rounded-lg border border-input-border bg-input-bg px-3 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+                    className="h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-sm font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] outline-none transition-colors focus:border-[var(--qs-brand)]"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold uppercase tracking-wide text-text-muted">
+                <label className="block text-[11px] font-bold uppercase tracking-wide text-[var(--qs-muted)]">
                   Instructions
                 </label>
                 <textarea
@@ -366,14 +345,14 @@ export function SectionCard({
                   onChange={(e) => onUpdate(section.id, { instructions: e.target.value })}
                   rows={2}
                   placeholder="e.g. Answer all questions in this section."
-                  className="w-full rounded-lg border border-input-border bg-input-bg px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+                  className="w-full resize-y rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-2.5 text-sm font-medium leading-relaxed text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] outline-none transition-colors focus:border-[var(--qs-brand)]"
                 />
               </div>
 
               {/* Question Groups */}
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <label className="block text-[11px] font-bold uppercase tracking-wide text-text-muted">
+                  <label className="block text-[11px] font-bold uppercase tracking-wide text-[var(--qs-muted)]">
                     Question Groups
                   </label>
                 </div>
@@ -393,48 +372,50 @@ export function SectionCard({
                       const groupMarks = isNested
                         ? groupAvailable
                         : effectiveCount * group.marksPerQuestion;
-                      const groupIdx = section.questionGroups.indexOf(group);
 
                       return (
                         <div
                           key={group.id}
-                          className="rounded-xl border border-border bg-card-hover/30 p-3.5"
+                          className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3.5"
                         >
-                          <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold text-text-primary">
-                                  {group.name}
-                                </span>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              <span className="text-sm font-bold text-[var(--qs-ink)]">
+                                {group.name}
+                              </span>
                                 <span
                                   className={cn(
-                                    "inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium",
-                                    group.category === "objective"
-                                      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                                      : group.category === "composite"
-                                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                                      : group.category === "technical"
-                                      ? "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
-                                      : group.category === "structural"
-                                      ? "bg-gray-500/10 text-gray-600 dark:text-gray-400"
-                                      : "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                                    "inline-flex items-center rounded-md border-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+                                    CATEGORY_BADGE[group.category] ?? CATEGORY_BADGE.other
                                   )}
                                 >
                                   {group.category}
                                 </span>
-                                {isNested && (
-                                  <span className="inline-flex items-center rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
-                                    {children.length} sub-q
-                                  </span>
-                                )}
-                              </div>
+                              {isNested && (
+                                <span className="inline-flex items-center rounded-md border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-1.5 py-0.5 text-[10px] font-bold text-[#1a1240]">
+                                  {children.length} sub-q
+                                </span>
+                              )}
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex shrink-0 items-center gap-2">
+                              <span className="flex h-8 min-w-[64px] items-center justify-center rounded-lg border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2.5 text-[10px] font-bold text-[#1a1240]">{groupMarks} marks</span>
+                              <button
+                                type="button"
+                                onClick={() => removeGroup(group.id)}
+                                className="b b-icon sm shrink-0 hover:text-[var(--qs-bad)]"
+                                aria-label={`Remove ${group.name}`}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap items-end gap-2">
                               {!isNested && (
                                 <>
                                   <div className="min-w-[80px]">
-                                    <label className="mb-1 block text-[10px] font-bold text-text-muted">Questions</label>
+                                    <label className="mb-1 block text-[10px] font-bold text-[var(--qs-muted)]">Questions</label>
                                     <input
                                       type="number"
                                       min={1}
@@ -445,11 +426,11 @@ export function SectionCard({
                                           questionCount: Math.max(1, Number(e.target.value)),
                                         })
                                       }
-                                      className="h-9 w-full rounded-lg border border-input-border bg-input-bg px-2.5 text-xs text-text-primary outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+                                      className="h-9 w-full rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-xs font-bold tabular-nums text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
                                     />
                                   </div>
                                   <div className="min-w-[80px]">
-                                    <label className="mb-1 block text-[10px] font-bold text-text-muted">Marks/Q</label>
+                                    <label className="mb-1 block text-[10px] font-bold text-[var(--qs-muted)]">Marks/Q</label>
                                     <input
                                       type="number"
                                       min={0.5}
@@ -461,7 +442,7 @@ export function SectionCard({
                                           marksPerQuestion: Math.max(0.5, Number(e.target.value)),
                                         })
                                       }
-                                      className="h-9 w-full rounded-lg border border-input-border bg-input-bg px-2.5 text-xs text-text-primary outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+                                      className="h-9 w-full rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-xs font-bold tabular-nums text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
                                     />
                                   </div>
                                 </>
@@ -469,7 +450,7 @@ export function SectionCard({
 
                               {/* Attempt Rule */}
                               <div className="min-w-[120px]">
-                                <label className="mb-1 block text-[10px] font-bold text-text-muted">Attempt</label>
+                                <label className="mb-1 block text-[10px] font-bold text-[var(--qs-muted)]">Attempt</label>
                                 <div className="flex gap-1">
                                   <button
                                     type="button"
@@ -479,8 +460,8 @@ export function SectionCard({
                                     className={cn(
                                       "flex-1 rounded-md px-2 py-1.5 text-[10px] font-bold transition-all",
                                       group.attemptRule === "all"
-                                        ? "bg-pink-500/10 text-pink-600 dark:text-pink-400"
-                                        : "bg-card text-text-muted hover:text-text-primary"
+                                        ? "border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                                        : "border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
                                     )}
                                   >
                                     All
@@ -499,8 +480,8 @@ export function SectionCard({
                                     className={cn(
                                       "flex-1 rounded-md px-2 py-1.5 text-[10px] font-bold transition-all",
                                       group.attemptRule === "any_n"
-                                        ? "bg-pink-500/10 text-pink-600 dark:text-pink-400"
-                                        : "bg-card text-text-muted hover:text-text-primary"
+                                        ? "border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                                        : "border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
                                     )}
                                   >
                                     Any N
@@ -510,7 +491,7 @@ export function SectionCard({
 
                               {group.attemptRule === "any_n" && (
                                 <div className="min-w-[60px]">
-                                  <label className="mb-1 block text-[10px] font-bold text-text-muted">N =</label>
+                                  <label className="mb-1 block text-[10px] font-bold text-[var(--qs-muted)]">N =</label>
                                   <input
                                     type="number"
                                     min={1}
@@ -524,30 +505,16 @@ export function SectionCard({
                                         ),
                                       })
                                     }
-                                    className="h-9 w-full rounded-lg border border-input-border bg-input-bg px-2.5 text-xs text-text-primary outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+                                    className="h-9 w-full rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-xs font-bold tabular-nums text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
                                   />
                                 </div>
                               )}
 
-                              {/* Marks summary */}
-                              <div className="flex h-9 min-w-[70px] items-center rounded-lg border border-border bg-muted px-2.5 text-[11px] font-semibold text-text-primary">
-                                {groupMarks} marks
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => removeGroup(group.id)}
-                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-text-muted transition-colors hover:border-rose-500/40 hover:text-rose-500"
-                                aria-label={`Remove ${group.name}`}
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
                             </div>
-                          </div>
 
                           {/* Attempt info */}
                           {isAnyN && (
-                            <div className="mt-2 rounded-lg bg-pink-500/5 px-3 py-1.5 text-[10px] text-pink-600 dark:text-pink-400">
+                            <div className="mt-2 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[10px] font-semibold text-[var(--qs-muted)]">
                               Attempt {group.attemptCount} out of {group.questionCount} ·
                               Available: {groupAvailable} · Obtainable: {groupMarks}
                             </div>
@@ -555,64 +522,56 @@ export function SectionCard({
 
                           {/* Nested Sub-Questions Builder */}
                           {isNested && (
-                            <div className="mt-3 space-y-3 border-t border-border pt-3">
+                            <div className="mt-3 space-y-3 border-t-2 border-[var(--qs-line)] pt-3">
                               {/* Config Panel */}
-                              <div className="rounded-lg border border-dashed border-border bg-card p-3 space-y-2">
+                              <div className="rounded-xl border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 space-y-2">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[11px] font-bold uppercase tracking-wide text-text-muted">
+                                  <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--qs-muted)]">
                                     Type Configuration
                                   </span>
-                                  <span className="text-[10px] text-text-muted">
+                                  <span className="text-[10px] text-[var(--qs-muted)]">
                                     Define which types and how many
                                   </span>
                                 </div>
 
                                 {(group.nestedConfig ?? []).length === 0 && !children.length && (
-                                  <p className="text-[11px] text-text-muted py-1">
+                                  <p className="text-[11px] text-[var(--qs-muted)] py-1">
                                     Add question types below, then click Generate to create sub-questions.
                                   </p>
                                 )}
 
                                 {(group.nestedConfig ?? []).map((cfg) => {
                                   const typeMeta = QUESTION_TYPES.find((qt) => qt.id === cfg.type);
-                                  const categoryColors: Record<string, string> = {
-                                    objective: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-                                    subjective: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-                                    composite: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-                                    technical: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
-                                    structural: "bg-gray-500/10 text-gray-600 dark:text-gray-400",
-                                    other: "bg-gray-500/10 text-gray-600 dark:text-gray-400",
-                                  };
 
                                   return (
-                                    <div key={cfg.id} className="flex items-center gap-2 rounded-lg border border-border bg-card p-2">
+                                    <div key={cfg.id} className="flex items-center gap-2 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-2">
                                       <select
                                         value={cfg.type}
                                         onChange={(e) => updateNestedConfigRow(group.id, cfg.id, { type: e.target.value as QuestionType })}
-                                        className="h-8 flex-1 rounded-lg border border-border bg-card px-2 text-[11px] font-medium text-text-primary outline-none focus:border-pink-500/60"
+                                        className="h-8 flex-1 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[11px] font-bold text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)]"
                                       >
                                         {QUESTION_TYPES.filter((qt) => qt.id !== "NESTED").map((qt) => (
                                           <option key={qt.id} value={qt.id}>{qt.label}</option>
                                         ))}
                                       </select>
                                       {typeMeta && (
-                                        <span className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-medium", categoryColors[typeMeta.category] ?? "bg-gray-500/10 text-gray-600")}>
+                                        <span className={cn("shrink-0 rounded-md border-2 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide", CATEGORY_BADGE[typeMeta.category] ?? CATEGORY_BADGE.other)}>
                                           {typeMeta.category}
                                         </span>
                                       )}
                                       <div className="flex items-center gap-1 shrink-0">
-                                        <span className="text-[10px] text-text-muted">×</span>
+                                        <span className="text-[10px] text-[var(--qs-muted)]">×</span>
                                         <input
                                           type="number"
                                           min={1}
                                           max={50}
                                           value={cfg.count}
                                           onChange={(e) => updateNestedConfigRow(group.id, cfg.id, { count: Math.max(1, Number(e.target.value) || 1) })}
-                                          className="h-8 w-12 rounded-lg border border-border bg-card px-2 text-[11px] text-text-primary text-center outline-none focus:border-pink-500/60"
+                                          className="h-8 w-12 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[11px] text-[var(--qs-ink)] text-center outline-none focus:border-[var(--qs-brand)]"
                                         />
                                       </div>
                                       <div className="flex items-center gap-1 shrink-0">
-                                        <span className="text-[10px] text-text-muted">mk:</span>
+                                        <span className="text-[10px] text-[var(--qs-muted)]">mk:</span>
                                         <input
                                           type="number"
                                           min={0.5}
@@ -620,13 +579,13 @@ export function SectionCard({
                                           step={0.5}
                                           value={cfg.marksPerQuestion}
                                           onChange={(e) => updateNestedConfigRow(group.id, cfg.id, { marksPerQuestion: Math.max(0.5, Number(e.target.value) || 0.5) })}
-                                          className="h-8 w-14 rounded-lg border border-border bg-card px-2 text-[11px] text-text-primary text-center outline-none focus:border-pink-500/60"
+                                          className="h-8 w-14 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[11px] text-[var(--qs-ink)] text-center outline-none focus:border-[var(--qs-brand)]"
                                         />
                                       </div>
                                       <button
                                         type="button"
                                         onClick={() => removeNestedConfigRow(group.id, cfg.id)}
-                                        className="shrink-0 rounded p-1 text-text-muted hover:text-red-500"
+                                        className="shrink-0 rounded p-1 text-[var(--qs-muted)] hover:text-[var(--qs-bad)]"
                                       >
                                         <Trash2 className="h-3 w-3" />
                                       </button>
@@ -638,7 +597,7 @@ export function SectionCard({
                                   <button
                                     type="button"
                                     onClick={() => addNestedConfigRow(group.id)}
-                                    className="inline-flex items-center gap-1 rounded-lg border border-dashed border-border bg-card px-3 py-1.5 text-[10px] font-semibold text-text-secondary hover:border-pink-500/40 hover:text-pink-500"
+                                    className="inline-flex items-center gap-1 rounded-lg border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[10px] font-bold text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]"
                                   >
                                     <Plus className="h-3 w-3" />
                                     Add Type
@@ -647,7 +606,7 @@ export function SectionCard({
                                     <button
                                       type="button"
                                       onClick={() => generateNestedChildren(group.id)}
-                                      className="inline-flex items-center gap-1 rounded-lg bg-pink-500 px-3 py-1.5 text-[10px] font-bold text-white hover:bg-pink-600"
+                                      className="inline-flex h-8 items-center gap-1 rounded-lg border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-3 text-[10px] font-bold text-[var(--qs-on-brand)] transition-opacity hover:opacity-90"
                                     >
                                       <Sparkles className="h-3 w-3" />
                                       Generate {(group.nestedConfig ?? []).reduce((s, c) => s + c.count, 0)} Sub-Questions
@@ -660,10 +619,10 @@ export function SectionCard({
                               {children.length > 0 && (
                                 <>
                                   <div className="flex items-center justify-between">
-                                    <span className="text-[11px] font-bold uppercase tracking-wide text-text-muted">
+                                    <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--qs-muted)]">
                                       Sub Questions
                                     </span>
-                                    <span className="text-[10px] text-text-muted">
+                                    <span className="text-[10px] text-[var(--qs-muted)]">
                                       {children.length} question{children.length !== 1 ? "s" : ""} · {groupMarks} total marks
                                     </span>
                                   </div>
@@ -675,10 +634,10 @@ export function SectionCard({
                                     return (
                                       <div
                                         key={child.id}
-                                        className="rounded-lg border border-border bg-card p-3 ml-2"
+                                        className="rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 ml-2"
                                       >
                                         <div className="flex items-start gap-2 mb-2">
-                                          <span className="shrink-0 text-[11px] font-bold text-pink-600 dark:text-pink-400 mt-2 min-w-[36px]">
+                                          <span className="shrink-0 text-[11px] font-bold text-[var(--qs-brand)] mt-2 min-w-[36px]">
                                             {child.label}
                                           </span>
                                           <div className="flex-1 min-w-0 space-y-2">
@@ -687,14 +646,14 @@ export function SectionCard({
                                               <select
                                                 value={child.type}
                                                 onChange={(e) => setSubQuestionType(group.id, child.id, e.target.value as QuestionType)}
-                                                className="h-8 rounded-lg border border-border bg-card px-2 text-[11px] font-medium text-text-primary outline-none focus:border-pink-500/60"
+                                                className="h-8 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[11px] font-bold text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)]"
                                               >
                                                 {QUESTION_TYPES.filter((qt) => qt.id !== "NESTED").map((qt) => (
                                                   <option key={qt.id} value={qt.id}>{qt.label}</option>
                                                 ))}
                                               </select>
                                               <div className="flex items-center gap-1">
-                                                <span className="text-[10px] text-text-muted">Marks:</span>
+                                                <span className="text-[10px] text-[var(--qs-muted)]">Marks:</span>
                                                 <input
                                                   type="number"
                                                   min={0.5}
@@ -702,7 +661,7 @@ export function SectionCard({
                                                   step={0.5}
                                                   value={child.marks}
                                                   onChange={(e) => updateSubQuestion(group.id, child.id, { marks: Math.max(0.5, Number(e.target.value) || 0.5) })}
-                                                  className="h-8 w-14 rounded-lg border border-border bg-card px-2 text-[11px] text-text-primary outline-none focus:border-pink-500/60"
+                                                  className="h-8 w-14 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[11px] font-bold tabular-nums text-[var(--qs-ink)] outline-none focus:border-[var(--qs-brand)]"
                                                 />
                                               </div>
                                             </div>
@@ -712,7 +671,7 @@ export function SectionCard({
                                               value={child.content}
                                               onChange={(e) => updateSubQuestion(group.id, child.id, { content: e.target.value })}
                                               placeholder="Sub-question content..."
-                                              className="w-full h-8 rounded-lg border border-border bg-card px-2.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-pink-500/60"
+                                              className="w-full h-8 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[11px] font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] outline-none transition-colors focus:border-[var(--qs-brand)]"
                                             />
 
                                             {/* Options for choice types */}
@@ -731,12 +690,12 @@ export function SectionCard({
                                                       }}
                                                       className={cn(
                                                         "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
-                                                        opt.isCorrect ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-card"
+                                                        opt.isCorrect ? "border-[var(--qs-ok)] bg-[var(--qs-ok)] text-[var(--qs-bg)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)]"
                                                       )}
                                                     >
                                                       {opt.isCorrect && <Check className="h-2.5 w-2.5" />}
                                                     </button>
-                                                    <span className="shrink-0 text-[10px] font-bold text-text-muted w-4">{opt.label}</span>
+                                                    <span className="shrink-0 text-[10px] font-bold text-[var(--qs-muted)] w-4">{opt.label}</span>
                                                     <input
                                                       value={opt.content}
                                                       onChange={(e) => {
@@ -745,7 +704,7 @@ export function SectionCard({
                                                       }}
                                                       placeholder={child.type === "TRUE_FALSE" ? opt.content : `Option ${opt.label}`}
                                                       disabled={child.type === "TRUE_FALSE"}
-                                                      className="flex-1 h-7 rounded border border-border bg-card px-2 text-[10px] text-text-primary placeholder:text-text-muted outline-none focus:border-pink-500/60 disabled:opacity-60"
+                                                      className="flex-1 h-7 rounded-md border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-[10px] font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] outline-none transition-colors focus:border-[var(--qs-brand)] disabled:opacity-60"
                                                     />
                                                   </div>
                                                 ))}
@@ -758,7 +717,7 @@ export function SectionCard({
                                                 value={String(child.correctAnswer ?? "")}
                                                 onChange={(e) => updateSubQuestion(group.id, child.id, { correctAnswer: e.target.value })}
                                                 placeholder="Correct answer"
-                                                className="w-full h-8 rounded-lg border border-border bg-card px-2.5 text-[11px] text-text-primary placeholder:text-text-muted outline-none focus:border-pink-500/60"
+                                                className="w-full h-8 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-[11px] font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] outline-none transition-colors focus:border-[var(--qs-brand)]"
                                               />
                                             )}
                                           </div>
@@ -769,7 +728,7 @@ export function SectionCard({
                                               type="button"
                                               onClick={() => moveSubQuestion(group.id, child.id, "up")}
                                               disabled={ci === 0}
-                                              className="rounded p-0.5 text-text-muted hover:text-text-primary disabled:opacity-30"
+                                              className="rounded p-0.5 text-[var(--qs-muted)] hover:text-[var(--qs-ink)] disabled:opacity-30"
                                             >
                                               <ChevronUp className="h-3 w-3" />
                                             </button>
@@ -777,14 +736,14 @@ export function SectionCard({
                                               type="button"
                                               onClick={() => moveSubQuestion(group.id, child.id, "down")}
                                               disabled={ci === children.length - 1}
-                                              className="rounded p-0.5 text-text-muted hover:text-text-primary disabled:opacity-30"
+                                              className="rounded p-0.5 text-[var(--qs-muted)] hover:text-[var(--qs-ink)] disabled:opacity-30"
                                             >
                                               <ChevronDown className="h-3 w-3" />
                                             </button>
                                             <button
                                               type="button"
                                               onClick={() => duplicateSubQuestion(group.id, child.id)}
-                                              className="rounded p-0.5 text-text-muted hover:text-text-primary"
+                                              className="rounded p-0.5 text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
                                             >
                                               <Copy className="h-3 w-3" />
                                             </button>
@@ -792,7 +751,7 @@ export function SectionCard({
                                               type="button"
                                               onClick={() => removeSubQuestion(group.id, child.id)}
                                               disabled={children.length <= 1}
-                                              className="rounded p-0.5 text-text-muted hover:text-red-500 disabled:opacity-30"
+                                              className="rounded p-0.5 text-[var(--qs-muted)] hover:text-[var(--qs-bad)] disabled:opacity-30"
                                             >
                                               <Trash2 className="h-3 w-3" />
                                             </button>
@@ -805,7 +764,7 @@ export function SectionCard({
                                   <button
                                     type="button"
                                     onClick={() => addSubQuestion(group.id)}
-                                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-pink-300 dark:border-pink-400/30 bg-pink-50/50 dark:bg-pink-500/10 py-2 text-[11px] font-semibold text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-500/15"
+                                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-bg)] py-2 text-[11px] font-bold text-[var(--qs-brand)] transition-colors hover:border-[var(--qs-brand)]"
                                   >
                                     <Plus className="h-3 w-3" />
                                     Add Sub Question
@@ -822,13 +781,13 @@ export function SectionCard({
 
                 {/* Add Group */}
                 {showTypeSelector ? (
-                  <div className="rounded-xl border border-border bg-card-hover/20 p-4">
+                  <div className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4">
                     <div className="mb-3 flex items-center justify-between">
-                      <span className="text-xs font-bold text-text-primary">Add Question Group</span>
+                      <span className="text-xs font-bold text-[var(--qs-ink)]">Add Question Group</span>
                       <button
                         type="button"
                         onClick={() => setShowTypeSelector(false)}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-text-muted hover:text-text-primary"
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -836,7 +795,7 @@ export function SectionCard({
 
                     {objectiveTypes.length > 0 && (
                       <div className="mb-3">
-                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-text-muted">
+                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-[var(--qs-muted)]">
                           Objective
                         </span>
                         <div className="flex flex-wrap gap-2">
@@ -845,7 +804,7 @@ export function SectionCard({
                               key={qt.id}
                               type="button"
                               onClick={() => addQuestionGroup(qt.id)}
-                              className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary transition-all hover:border-pink-500/40 hover:text-pink-500"
+                              className="rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-xs font-bold text-[var(--qs-muted)] transition-all hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]"
                             >
                               {qt.label}
                             </button>
@@ -856,7 +815,7 @@ export function SectionCard({
 
                     {subjectiveTypes.length > 0 && (
                       <div className="mb-3">
-                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-text-muted">
+                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-[var(--qs-muted)]">
                           Subjective
                         </span>
                         <div className="flex flex-wrap gap-2">
@@ -865,7 +824,7 @@ export function SectionCard({
                               key={qt.id}
                               type="button"
                               onClick={() => addQuestionGroup(qt.id)}
-                              className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary transition-all hover:border-pink-500/40 hover:text-pink-500"
+                              className="rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-xs font-bold text-[var(--qs-muted)] transition-all hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]"
                             >
                               {qt.label}
                             </button>
@@ -876,7 +835,7 @@ export function SectionCard({
 
                     {compositeTypes.length > 0 && (
                       <div className="mb-3">
-                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-text-muted">
+                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-[var(--qs-muted)]">
                           Composite
                         </span>
                         <div className="flex flex-wrap gap-2">
@@ -885,7 +844,7 @@ export function SectionCard({
                               key={qt.id}
                               type="button"
                               onClick={() => addQuestionGroup(qt.id)}
-                              className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary transition-all hover:border-pink-500/40 hover:text-pink-500"
+                              className="rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-xs font-bold text-[var(--qs-muted)] transition-all hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]"
                             >
                               {qt.label}
                             </button>
@@ -896,7 +855,7 @@ export function SectionCard({
 
                     {technicalTypes.length > 0 && (
                       <div className="mb-3">
-                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-text-muted">
+                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-[var(--qs-muted)]">
                           Technical
                         </span>
                         <div className="flex flex-wrap gap-2">
@@ -905,7 +864,7 @@ export function SectionCard({
                               key={qt.id}
                               type="button"
                               onClick={() => addQuestionGroup(qt.id)}
-                              className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary transition-all hover:border-pink-500/40 hover:text-pink-500"
+                              className="rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-xs font-bold text-[var(--qs-muted)] transition-all hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]"
                             >
                               {qt.label}
                             </button>
@@ -916,7 +875,7 @@ export function SectionCard({
 
                     {otherTypes.length > 0 && (
                       <div className="mb-3">
-                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-text-muted">
+                        <span className="mb-2 block text-[10px] font-bold uppercase tracking-wide text-[var(--qs-muted)]">
                           Other
                         </span>
                         <div className="flex flex-wrap gap-2">
@@ -925,7 +884,7 @@ export function SectionCard({
                               key={qt.id}
                               type="button"
                               onClick={() => addQuestionGroup(qt.id)}
-                              className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary transition-all hover:border-pink-500/40 hover:text-pink-500"
+                              className="rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-xs font-bold text-[var(--qs-muted)] transition-all hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]"
                             >
                               {qt.label}
                             </button>
@@ -935,7 +894,7 @@ export function SectionCard({
                     )}
 
                     {availableTypes.length === 0 && (
-                      <p className="text-xs text-text-muted">All question types have been added.</p>
+                      <p className="text-xs text-[var(--qs-muted)]">All question types have been added.</p>
                     )}
                   </div>
                 ) : (
@@ -943,7 +902,7 @@ export function SectionCard({
                     type="button"
                     onClick={() => setShowTypeSelector(true)}
                     disabled={availableTypes.length === 0}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-border bg-card px-4 py-2.5 text-xs font-semibold text-text-secondary transition-all hover:border-pink-500/40 hover:text-pink-500 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 rounded-lg border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-xs font-bold text-[var(--qs-muted)] transition-all hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Add Question Group
@@ -952,24 +911,24 @@ export function SectionCard({
               </div>
 
               {/* Marks Summary */}
-              <div className="rounded-xl border border-border bg-card-hover/20 p-4">
+              <div className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <Calculator className="h-4 w-4 text-text-muted" />
-                  <span className="text-xs font-bold text-text-primary">Marks Summary</span>
+                  <Calculator className="h-4 w-4 text-[var(--qs-muted)]" />
+                  <span className="text-xs font-bold text-[var(--qs-ink)]">Marks Summary</span>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2.5">
-                    <span className="text-[11px] text-text-muted">Total Questions</span>
-                    <span className="text-sm font-extrabold text-text-primary">{qCount}</span>
+                  <div className="flex items-center justify-between rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5">
+                    <span className="text-[11px] text-[var(--qs-muted)]">Total Questions</span>
+                    <span className="text-sm font-extrabold text-[var(--qs-ink)]">{qCount}</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2.5">
-                    <span className="text-[11px] text-text-muted">Available Marks</span>
-                    <span className="text-sm font-extrabold text-text-primary">{availableMarks}</span>
+                  <div className="flex items-center justify-between rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5">
+                    <span className="text-[11px] text-[var(--qs-muted)]">Available Marks</span>
+                    <span className="text-sm font-extrabold text-[var(--qs-ink)]">{availableMarks}</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2.5">
-                    <span className="text-[11px] text-text-muted">Section Marks</span>
-                    <span className="text-sm font-extrabold text-pink-600 dark:text-pink-400">{sectionMarks}</span>
+                  <div className="flex items-center justify-between rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2.5">
+                    <span className="text-[11px] text-[var(--qs-muted)]">Section Marks</span>
+                    <span className="text-sm font-extrabold text-[var(--qs-brand)]">{sectionMarks}</span>
                   </div>
                 </div>
 
@@ -979,13 +938,13 @@ export function SectionCard({
                       type="checkbox"
                       checked={section.negativeMarking}
                       onChange={(e) => onUpdate(section.id, { negativeMarking: e.target.checked })}
-                      className="h-4 w-4 rounded border-border-hover accent-pink-500"
+                      className="h-4 w-4 rounded border-[var(--qs-brand)] accent-[var(--qs-brand)]"
                     />
-                    <span className="text-xs font-medium text-text-primary">Negative Marking</span>
+                    <span className="text-xs font-bold text-[var(--qs-ink)]">Negative Marking</span>
                   </label>
                   {section.negativeMarking && (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-text-muted">Penalty:</span>
+                      <span className="text-[11px] text-[var(--qs-muted)]">Penalty:</span>
                       <input
                         type="number"
                         min={0}
@@ -993,9 +952,9 @@ export function SectionCard({
                         value={section.negativeMarks || ""}
                         onChange={(e) => onUpdate(section.id, { negativeMarks: Number(e.target.value) })}
                         placeholder="0.25"
-                        className="h-8 w-20 rounded-lg border border-input-border bg-input-bg px-2 text-xs text-text-primary outline-none focus:border-pink-500/60 focus:ring-2 focus:ring-pink-500/10"
+                        className="h-8 w-20 rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2 text-xs font-bold tabular-nums text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
                       />
-                      <span className="text-[11px] text-text-muted">marks</span>
+                      <span className="text-[11px] text-[var(--qs-muted)]">marks</span>
                     </div>
                   )}
                   <label className="inline-flex items-center gap-2">
@@ -1003,9 +962,9 @@ export function SectionCard({
                       type="checkbox"
                       checked={section.partialMarking}
                       onChange={(e) => onUpdate(section.id, { partialMarking: e.target.checked })}
-                      className="h-4 w-4 rounded border-border-hover accent-pink-500"
+                      className="h-4 w-4 rounded border-[var(--qs-brand)] accent-[var(--qs-brand)]"
                     />
-                    <span className="text-xs font-medium text-text-primary">Partial Marking</span>
+                    <span className="text-xs font-bold text-[var(--qs-ink)]">Partial Marking</span>
                   </label>
                 </div>
               </div>

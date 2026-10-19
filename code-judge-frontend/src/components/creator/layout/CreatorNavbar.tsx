@@ -3,19 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Coins } from "lucide-react";
+import { ChevronDown, Coins, Globe2, LogOut, Settings, UserRound } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import WorkspaceSwitcher from "@/components/layout/WorkspaceSwitcher";
 import { useAICreditsStore } from "@/store/aiCreditsStore";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { useAuthStore } from "@/store/authStore";
+import { useUIStore } from "@/store/uiStore";
 import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
 
 function ProfileMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const user = useAuthStore((state) => state.user);
+  const requestLogout = useUIStore((state) => state.requestLogout);
   const avatar = useSavedAvatar();
   const displayName = user?.displayName || [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "Creator";
 
@@ -29,9 +31,9 @@ function ProfileMenu() {
   }, [open]);
 
   const menuItems = [
-    { label: "Creator Profile", href: "/creator/profile" },
-    { label: "Public Profile", href: "/creator/profile/public" },
-    { label: "Settings", href: "/creator/settings" },
+    { label: "Creator Profile", href: "/creator/profile", icon: UserRound },
+    { label: "Public Profile", href: "/creator/profile/public", icon: Globe2 },
+    { label: "Settings", href: "/creator/settings", icon: Settings },
   ];
 
   return (
@@ -40,42 +42,67 @@ function ProfileMenu() {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-label="Open creator profile menu"
+        aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 transition-colors hover:bg-[var(--qs-line)]/40"
+        className="flex items-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-1 pl-1 pr-2 transition-colors hover:border-[var(--qs-brand)]"
       >
         <img
           src={avatar?.url || DEFAULT_AVATAR_URL}
           alt={displayName}
-          className="h-6 w-6 rounded-full object-cover"
+          className="h-7 w-7 rounded-full border-2 border-[var(--qs-ink)] object-cover"
         />
-        <span className="hidden max-w-32 truncate text-[11px] font-semibold text-[var(--qs-ink)] sm:block">{displayName}</span>
-        <ChevronDown className={cn("hidden h-3 w-3 text-[var(--qs-muted)] transition-transform sm:block", open && "rotate-180")} />
+        <span className="hidden max-w-32 truncate text-xs font-bold text-[var(--qs-ink)] sm:block">{displayName}</span>
+        <ChevronDown className={cn("hidden h-3.5 w-3.5 text-[var(--qs-muted)] transition-transform sm:block", open && "rotate-180")} />
       </button>
 
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+            role="menu"
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1 shadow-[0_14px_36px_rgba(26,18,64,0.18)]"
+            className="absolute right-0 top-full z-50 mt-2 w-64 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-2 shadow-[5px_5px_0_var(--qs-sun)]"
           >
-            <div className="border-b-2 border-[var(--qs-line)] px-2.5 py-1.5">
-              <p className="truncate text-[11px] font-semibold text-[var(--qs-ink)]">{displayName}</p>
-              {user?.email && <p className="mt-0.5 truncate text-[10px] text-[var(--qs-muted)]">{user.email}</p>}
+            <div className="flex items-center gap-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-2.5">
+              <img
+                src={avatar?.url || DEFAULT_AVATAR_URL}
+                alt={displayName}
+                className="h-10 w-10 shrink-0 rounded-full border-2 border-[var(--qs-ink)] object-cover"
+              />
+              <div className="min-w-0">
+                <p className="truncate text-[13px] font-extrabold text-[var(--qs-ink)]">{displayName}</p>
+                {user?.email && <p className="mt-0.5 truncate text-[11px] font-medium text-[var(--qs-muted)]">{user.email}</p>}
+              </div>
             </div>
-            <div className="pt-1">
+            <div className="mt-1.5 space-y-0.5">
               {menuItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
+                  role="menuitem"
                   onClick={() => setOpen(false)}
-                  className="flex items-center rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
+                  className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-bold text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-bg)] hover:text-[var(--qs-ink)]"
                 >
+                  <item.icon className="h-4 w-4 shrink-0" />
                   {item.label}
                 </Link>
               ))}
+            </div>
+            <div className="mt-1.5 border-t-2 border-[var(--qs-line)] pt-1.5">
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false);
+                  requestLogout();
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-bold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-badbg)]"
+              >
+                <LogOut className="h-4 w-4 shrink-0" />
+                Log out
+              </button>
             </div>
           </motion.div>
         )}

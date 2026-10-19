@@ -27,6 +27,8 @@ import { QsSelect } from "@/components/creator/problems/QsSelect";
 import { QuestionHtml, htmlToEditableText } from "@/components/creator/questions/QuestionHtml";
 import { downloadQuestionsDocx, downloadQuestionsPdf } from "@/utils/questionSetExport";
 import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
+import { PaperExportDialog } from "@/components/creator/common/PaperExportDialog";
+import { DEFAULT_PAPER_HEADER, type PaperHeaderMeta } from "@/utils/paperHeader";
 
 type GeneratorStatus = "idle" | "generating" | "done" | "error";
 
@@ -221,6 +223,8 @@ export function CreateProblemGenerator() {
   const [copied, setCopied] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<"pdf" | "word">("pdf");
   const [downloading, setDownloading] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [paperHeader, setPaperHeader] = useState<PaperHeaderMeta>({ ...DEFAULT_PAPER_HEADER });
 
   useEffect(() => {
     let active = true;
@@ -411,7 +415,7 @@ export function CreateProblemGenerator() {
         },
         abortRef.current.signal
       );
-      setItems(response.questions.map((q) => ({ ...q, selected: false })));
+      setItems(response.questions.map((q) => ({ ...q, selected: true })));
       setStatus("done");
       toast.success({
         title: "Questions ready",
@@ -551,6 +555,22 @@ export function CreateProblemGenerator() {
     }
   }, [items, toast]);
 
+  const openExportDialog = useCallback(() => {
+    if (selectedCount === 0) {
+      toast.error({
+        title: "Select questions first",
+        description: "Choose at least one question to download.",
+      });
+      return;
+    }
+    setPaperHeader((prev) => ({
+      ...prev,
+      heading: prev.heading.trim() || DEFAULT_PAPER_HEADER.heading,
+      subject: prev.subject.trim() || subjectName || "",
+    }));
+    setExportOpen(true);
+  }, [selectedCount, subjectName, toast]);
+
   const downloadSelected = useCallback(async () => {
     const selected = items.filter((it) => it.selected);
     if (selected.length === 0 || downloading) return;
@@ -563,14 +583,16 @@ export function CreateProblemGenerator() {
           difficulty: item.difficulty,
           kind: item.kind,
         })),
-        title: "Generated Questions",
-        subject: subjectName,
+        title: paperHeader.heading.trim() || "Question Paper",
+        subject: paperHeader.subject.trim() || subjectName,
+        header: paperHeader,
       };
       if (downloadFormat === "pdf") {
-        downloadQuestionsPdf(exportPayload);
+        await downloadQuestionsPdf(exportPayload);
       } else {
         await downloadQuestionsDocx(exportPayload);
       }
+      setExportOpen(false);
       toast.success({
         title: `${downloadFormat === "pdf" ? "PDF" : "Word"} ready`,
         description: `${selected.length} question${selected.length > 1 ? "s" : ""} downloaded.`,
@@ -583,7 +605,7 @@ export function CreateProblemGenerator() {
     } finally {
       setDownloading(false);
     }
-  }, [items, downloading, downloadFormat, subjectName, toast]);
+  }, [items, downloading, downloadFormat, subjectName, paperHeader, toast]);
 
   return (
     <div className="w-full">
@@ -1084,16 +1106,17 @@ export function CreateProblemGenerator() {
                 ))}
               </div>
 
-              <div className="sticky bottom-3 z-10 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[18px] bg-[var(--qs-ink)] px-4 py-3 pl-5 text-[var(--qs-bg)]">
-                <span className="text-sm font-bold">
-                  {selectedCount} of {items.length} selected
-                </span>
+              <div className="sticky bottom-3 z-10 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-4 py-3 shadow-[4px_4px_0_var(--qs-sun)]">
+                <div className="min-w-0">
+                  <span className="text-sm font-extrabold text-[var(--qs-ink)]">
+                    {selectedCount} of {items.length} selected
+                  </span>
+                  {selectedCount === 0 && (
+                    <p className="text-[11px] font-semibold text-[var(--qs-muted)]">Select questions to download or copy.</p>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={selectAll}
-                    className="rounded-[10px] border-2 border-[var(--qs-muted)] px-3 py-1.5 text-[13px] font-bold transition hover:border-[var(--qs-bg)]"
-                  >
+                  <button type="button" onClick={selectAll} className="b sm">
                     Select all
                   </button>
                   <AiGenerateButton
@@ -1101,9 +1124,8 @@ export function CreateProblemGenerator() {
                     label="Regenerate all"
                     onClick={() => void handleGenerate()}
                     disabled={!canGenerate}
-                    className="rounded-[10px] px-3 py-1.5 text-[13px]"
                   />
-                  <div className="flex items-center rounded-[10px] border-2 border-[var(--qs-muted)] p-0.5">
+                  <div className="flex items-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-0.5">
                     {(["pdf", "word"] as const).map((format) => (
                       <button
                         key={format}
@@ -1114,7 +1136,7 @@ export function CreateProblemGenerator() {
                           "rounded-[7px] px-2.5 py-1 text-[12px] font-extrabold uppercase tracking-[0.04em] transition-colors",
                           downloadFormat === format
                             ? "bg-[var(--qs-sun)] text-[#1a1240]"
-                            : "text-[var(--qs-bg)] hover:text-[var(--qs-sun)]"
+                            : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
                         )}
                       >
                         {format === "pdf" ? "PDF" : "Word"}
@@ -1123,9 +1145,9 @@ export function CreateProblemGenerator() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => void downloadSelected()}
+                    onClick={openExportDialog}
                     disabled={selectedCount === 0 || downloading}
-                    className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)] px-4 py-2 text-[14px] font-extrabold text-[#1a1240] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+                    className="b b-pri sm gap-1.5 disabled:cursor-not-allowed"
                   >
                     <Download className="h-4 w-4" />
                     {downloading ? "Preparing…" : `Download ${downloadFormat === "pdf" ? "PDF" : "Word"}`}
@@ -1134,7 +1156,7 @@ export function CreateProblemGenerator() {
                     type="button"
                     onClick={() => void copySelected()}
                     disabled={selectedCount === 0}
-                    className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-muted)] px-4 py-2 text-[14px] font-extrabold text-[var(--qs-bg)] transition hover:border-[var(--qs-sun)] hover:text-[var(--qs-sun)] disabled:cursor-not-allowed disabled:opacity-45"
+                    className="b sm gap-1.5 disabled:cursor-not-allowed"
                   >
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied ? "Copied" : "Copy selected"}
@@ -1145,6 +1167,18 @@ export function CreateProblemGenerator() {
           )}
         </section>
       )}
+
+      <PaperExportDialog
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        meta={paperHeader}
+        onChange={setPaperHeader}
+        onDownload={() => void downloadSelected()}
+        downloading={downloading}
+        format={downloadFormat}
+        onFormatChange={setDownloadFormat}
+        questionCount={selectedCount}
+      />
     </div>
   );
 }
