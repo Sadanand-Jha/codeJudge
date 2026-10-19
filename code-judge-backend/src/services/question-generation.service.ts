@@ -319,7 +319,7 @@ export const parseQuestionsJSON = (
       question: String(q.question ?? q.content ?? "").trim(),
       questionHtml: cleanQuestionHtml(q.questionHtml ?? q.question_html),
       options: Array.isArray(q.options)
-        ? (q.options as unknown[]).map((o) => String(o).trim()).filter(Boolean)
+        ? dedupeOptions((q.options as unknown[]).map((o) => String(o).trim()).filter(Boolean))
         : [],
       answer: q.correctAnswer != null
         ? String(q.correctAnswer).trim()
@@ -365,6 +365,13 @@ export const parseQuestionsJSON = (
         correctAnswer: canonicalAnswer,
         correctOptionIndex: canonicalIndex >= 0 ? canonicalIndex : q.correctOptionIndex,
       };
+    })
+    .filter((q) => {
+      if (q.options.length === 0) return true;
+      const type = String(q.type ?? "").toLocaleLowerCase();
+      if (/true[\s_-]?false/.test(type)) return q.options.length === 2;
+      if (/mcq|choice|multiple/.test(type)) return q.options.length === 4;
+      return true;
     });
 
   if (questions.length === 0) {
@@ -376,6 +383,22 @@ export const parseQuestionsJSON = (
 /** Clamp a number into the inclusive `[min, max]` range. */
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
+
+/** De-duplicate choices case-insensitively and numerically ("5" == "5.0"). */
+const dedupeOptions = (options: string[]): string[] => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const option of options) {
+    const text = option.replace(/\s+/g, " ").trim();
+    if (!text) continue;
+    const numeric = Number(text);
+    const key = Number.isFinite(numeric) ? `n:${numeric}` : `t:${text.toLocaleLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(text);
+  }
+  return out;
+};
 
 /**
  * Main entry point — generate quiz questions from uploaded files.
@@ -466,6 +489,7 @@ Rules:
 - Always include questionHtml. Use simple semantic HTML only (<p>, <ul>, <ol>, <li>, <strong>, <em>, <pre>, <code>, <table>, <thead>, <tbody>, <tr>, <th>, <td>). No scripts, styles, classes or inline attributes.
 - If a question contains tabular data (process tables, schedules, comparisons, datasets), render it as a real HTML <table> in questionHtml with clear headers. Never leave pipe-separated or space-aligned rows as plain text.
 - For multiple-choice questions always provide 4 options, make "correctAnswer" exactly match one option, and provide its zero-based "correctOptionIndex" (0=A, 1=B, 2=C, 3=D).
+- All options must be distinct: never repeat an option, never use two options with the same numeric value (e.g. "5" and "5" or "0" and "0.0"), and never use the correct answer as a distractor.
 - For true/false use options ["True", "False"].
 - Do not invent facts not present in the material.
 

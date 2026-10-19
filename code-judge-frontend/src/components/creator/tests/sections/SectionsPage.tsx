@@ -174,7 +174,7 @@ export function SectionsPage() {
             className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2.5 text-[13px] font-semibold text-text-primary transition-colors hover:border-border-hover disabled:opacity-50"
           >
             <Save className="h-3.5 w-3.5" />
-            {saving ? "Saving…" : "Save Draft"}
+            {saving ? "Saving…" : "Save draft"}
           </button>
           <button
             type="button"

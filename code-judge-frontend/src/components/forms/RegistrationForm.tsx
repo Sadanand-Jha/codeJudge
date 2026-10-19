@@ -23,7 +23,7 @@ import { OtpInput } from "@/components/auth/OtpInput";
 import { getApiErrorMessage } from "@/lib/apiError";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
 
-const AUTH_PRIMARY_BUTTON = "group flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] transition-all hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40";
+const AUTH_PRIMARY_BUTTON = "b b-pri b-lg b-full group min-h-12";
 
 // Must stay in sync with backend AUTH_TOKEN_TTL_SECONDS (30 min) in code-judge-backend/src/services/auth.ts
 const REGISTRATION_SESSION_SECONDS = 30 * 60;
@@ -567,7 +567,7 @@ export default function RegistrationForm() {
                 className={AUTH_PRIMARY_BUTTON}
               >
                 {sendingOtp && <AuthLoader className="h-4 w-4 text-white" />}
-                {sendingOtp ? "Sending..." : "Continue"}
+                {sendingOtp ? "Sending…" : "Continue"}
                 {!sendingOtp && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
               </button>
             </form>
@@ -604,7 +604,7 @@ export default function RegistrationForm() {
                 className={AUTH_PRIMARY_BUTTON}
               >
                 {verifyingOtp && <AuthLoader className="h-4 w-4 text-white" />}
-                {verifyingOtp ? "Verifying..." : "Verify"}
+                {verifyingOtp ? "Verifying…" : "Verify"}
               </button>
               <div className="text-center">
                 <button
@@ -617,7 +617,7 @@ export default function RegistrationForm() {
                     ? <AuthLoader className="h-4 w-4" />
                     : <RefreshCw className="h-4 w-4" />}
                   {sendingOtp
-                    ? "Resending..."
+                    ? "Resending…"
                     : countdown > 0
                       ? `Resend code in ${countdown}s`
                       : "Resend code"}
@@ -968,7 +968,7 @@ export default function RegistrationForm() {
                           className={`${AUTH_PRIMARY_BUTTON} min-h-13 flex-[2]`}
                         >
                           {submitting && <AuthLoader className="h-4 w-4 text-white" />}
-                          {submitting ? "Creating..." : "Create account"}
+                          {submitting ? "Creating…" : "Create account"}
                         </button>
                       </div>
                     </form>

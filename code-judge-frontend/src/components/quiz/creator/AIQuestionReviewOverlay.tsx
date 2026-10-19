@@ -244,17 +244,20 @@ export default function AIQuestionReviewOverlay({
             </span>
             {onEditOne && current && !isEditing && (
               <button
+                type="button"
                 onClick={startEditing}
-                className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-[11px] font-extrabold text-[var(--qs-brand)] transition-colors hover:border-[var(--qs-brand)] hover:bg-[var(--qs-poly-1)]"
+                className="b b-ghost sm shrink-0 whitespace-nowrap"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
               </button>
             )}
             <button
+              type="button"
               onClick={onClose}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
+              className="b b-icon b-close b-ghost shrink-0"
               aria-label="Close preview"
+              title="Close preview"
             >
               <X className="h-4 w-4" />
             </button>
@@ -429,9 +432,10 @@ export default function AIQuestionReviewOverlay({
           {/* Navigation */}
           <div className="flex shrink-0 items-center gap-2">
             <button
+              type="button"
               onClick={goPrev}
               disabled={isEditing || index <= 0}
-              className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="b sm shrink-0 whitespace-nowrap"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
@@ -440,9 +444,10 @@ export default function AIQuestionReviewOverlay({
               {index + 1} / {total}
             </span>
             <button
+              type="button"
               onClick={goNext}
               disabled={isEditing || index >= total - 1}
-              className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="b sm shrink-0 whitespace-nowrap"
             >
               Next
               <ChevronRight className="h-4 w-4" />
@@ -454,44 +459,49 @@ export default function AIQuestionReviewOverlay({
             {isEditing ? (
               <>
                 <button
+                  type="button"
                   onClick={cancelEdit}
-                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-bad)] hover:text-[var(--qs-bad)]"
+                  className="b sm shrink-0 whitespace-nowrap"
                 >
                   <X className="h-3.5 w-3.5" />
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={saveEdit}
-                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-ink)] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 px-5 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-105 active:scale-[0.98]"
+                  className="b b-pri sm shrink-0 whitespace-nowrap"
                 >
                   <Save className="h-4 w-4" />
-                  Save Changes
+                  Save changes
                 </button>
               </>
             ) : (
               <>
                 {onAcceptOne && current && (
                   <button
+                    type="button"
                     onClick={handleAcceptOne}
-                    className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-brand)] bg-[var(--qs-poly-1)] px-4 text-xs font-extrabold text-[var(--qs-brand)] transition-colors hover:bg-[var(--qs-poly-1)]"
+                    className="b sm shrink-0 whitespace-nowrap"
                   >
                     <Plus className="h-3.5 w-3.5 shrink-0" />
-                    Add to Problem List
+                    Add to problem list
                   </button>
                 )}
                 <button
+                  type="button"
                   onClick={onReject}
-                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-4 text-xs font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-badbg)]"
+                  className="b b-danger sm shrink-0 whitespace-nowrap"
                 >
                   <Trash2 className="h-3.5 w-3.5 shrink-0" />
-                  Reject All
+                  Reject all
                 </button>
                 <button
+                  type="button"
                   onClick={onAccept}
-                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-ink)] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 px-5 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-105 active:scale-[0.98]"
+                  className="b b-pri sm shrink-0 whitespace-nowrap"
                 >
                   <Check className="h-4 w-4 shrink-0" />
-                  Accept All ({total})
+                  Accept all ({total})
                 </button>
               </>
             )}
@@ -628,10 +638,10 @@ function QuestionEditForm({
             <button
               type="button"
               onClick={addOption}
-              className="flex items-center gap-1 rounded-lg border border-[var(--qs-line)] bg-[var(--qs-poly-1)] px-2.5 py-1 text-[10px] font-bold text-[var(--qs-brand)] transition-colors hover:bg-[var(--qs-poly-1)]"
+              className="b b-text sm gap-1"
             >
               <Plus className="h-3 w-3" />
-              Add Option
+              Add option
             </button>
           </div>
           {(draft.options?.length ?? 0) === 0 ? (
@@ -645,6 +655,7 @@ function QuestionEditForm({
                   <button
                     type="button"
                     onClick={() => markCorrect(opt.id)}
+                    aria-label="Mark as correct answer"
                     title="Mark as correct answer"
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors ${
                       opt.isCorrect
@@ -666,6 +677,7 @@ function QuestionEditForm({
                     disabled={(draft.options?.length ?? 0) <= 1}
                     className="rounded-lg p-1.5 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-badbg)] hover:text-[var(--qs-bad)] disabled:cursor-not-allowed disabled:opacity-30"
                     title="Remove option"
+                    aria-label="Remove option"
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
+import { ArrowLeft, Eye } from "lucide-react";
 import { difficultyColors, optionColors, pinkGradient } from "@/config/quizTheme";
 
 /* ===== Container / Card wrappers ===== */
@@ -467,8 +468,6 @@ interface ToolbarProps {
   rightActions?: ReactNode;
 }
 
-const pinkGradientStr = "from-[#EC4899] to-[#BE185D]";
-
 export function Toolbar({
   quizTitle,
   onSaveDraft,
@@ -482,10 +481,11 @@ export function Toolbar({
   return (
     <div className="h-14 border-b border-border bg-background/80 backdrop-blur-xl flex items-center px-4 gap-3 shrink-0">
       <button
+        type="button"
         onClick={onExit}
-        className="h-8 px-2.5 rounded-lg border border-border bg-card-hover text-xs font-medium text-text-secondary hover:text-text-primary hover:border-border-hover transition-colors flex items-center gap-1.5"
+        className="b b-ghost sm"
       >
-        ← Exit
+        <ArrowLeft className="h-3.5 w-3.5" /> Exit
       </button>
 
       <div className="w-px h-6 bg-border" />
@@ -505,7 +505,7 @@ export function Toolbar({
           {saveStatus === "saving" && (
             <>
               <span className="w-3 h-3 rounded-full bg-[#EC4899] animate-pulse" />
-              Saving...
+              Saving…
             </>
           )}
           {saveStatus === "saved" && (
@@ -523,26 +523,26 @@ export function Toolbar({
         </div>
 
         <button
+          type="button"
           onClick={onPreview}
-          className="h-8 px-3 rounded-lg border border-border bg-card-hover text-xs font-medium text-text-secondary hover:text-text-primary hover:border-border-hover transition-colors flex items-center gap-1.5"
+          className="b sm"
         >
-          👁️ Preview
+          <Eye className="h-3.5 w-3.5" /> Preview
         </button>
 
         <button
+          type="button"
           onClick={onSaveDraft}
-          className="h-8 px-3 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-xs font-bold text-[#EC4899] hover:bg-[#EC4899]/20 transition-colors"
+          className="b b-ghost sm"
         >
-          Save Draft
+          Save draft
         </button>
 
         <button
+          type="button"
           onClick={onPublish}
           disabled={!canPublish}
-          className={`h-8 px-4 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5
-            ${canPublish
-              ? `bg-gradient-to-r ${pinkGradientStr} hover:shadow-[0_0_20px_rgba(236,72,153,0.3)]`
-              : "bg-[#3F3F46] text-muted-foreground cursor-not-allowed"}`}
+          className="b b-pri sm"
         >
           Publish
         </button>

@@ -170,32 +170,38 @@ export default function QuizSettingsShell({ children }: { children: React.ReactN
               {quizId && !isEnded && (
                 isLive ? (
                   <button
+                    type="button"
                     onClick={requestEnd}
                     disabled={actionBusy}
-                    className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(239,68,68,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(239,68,68,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
+                    aria-busy={actionBusy || undefined}
+                    className={cn("b b-danger-solid", actionBusy && "loading")}
                   >
-                    {actionBusy ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Square className="h-4 w-4" />}
-                    End Quiz
+                    <Square className="h-4 w-4" />
+                    End quiz
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={requestStart}
                     disabled={actionBusy}
-                    className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(16,185,129,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(16,185,129,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
+                    aria-busy={actionBusy || undefined}
+                    className={cn("b b-pri", actionBusy && "loading")}
                   >
-                    {actionBusy ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Play className="h-4 w-4" />}
-                    Start Quiz
+                    <Play className="h-4 w-4" />
+                    Start quiz
                   </button>
                 )
               )}
 
               <button
+                type="button"
                 onClick={handleSaveDraft}
                 disabled={saving}
-                className="flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover disabled:opacity-50"
+                aria-busy={saving || undefined}
+                className={cn("b", saving && "loading")}
               >
-                {saving ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Save className="h-4 w-4" />}
-                {saving ? "Saving..." : "Save Draft"}
+                <Save className="h-4 w-4" />
+                {saving ? "Saving…" : "Save draft"}
               </button>
             </div>
           </div>

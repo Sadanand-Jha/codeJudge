@@ -228,12 +228,7 @@ export function PrimaryButton({
   type?: "button" | "submit";
   disabled?: boolean;
 }) {
-  const cls = cn(
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2.5 text-[13px] font-bold text-white",
-    "shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_26px_rgba(236,72,153,0.4)] active:translate-y-0 active:scale-[0.98]",
-    "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0",
-    className
-  );
+  const cls = cn("b b-pri", className);
   if (href) {
     return (
       <Link href={href} className={cls}>
@@ -262,11 +257,7 @@ export function GhostButton({
   href?: string;
   onClick?: () => void;
 }) {
-  const cls = cn(
-    "inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-[13px] font-semibold text-text-primary",
-    "transition-all duration-200 hover:border-pink-500/30 hover:text-pink-500 dark:hover:border-ai-accent/40 dark:hover:text-ai-accent",
-    className
-  );
+  const cls = cn("b", className);
   if (href) {
     return (
       <Link href={href} className={cls}>

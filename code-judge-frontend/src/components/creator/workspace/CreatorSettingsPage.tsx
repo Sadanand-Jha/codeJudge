@@ -30,25 +30,17 @@ const SECTION_ICONS: Record<string, typeof Settings> = {
   finance: Wallet,
 };
 
-function QsToggle({ checked, onChange }: { checked: boolean; onChange: (value: boolean) => void }) {
+function QsToggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-label={label}
+      title={label}
       onClick={() => onChange(!checked)}
-      className={cn(
-        "relative h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40",
-        checked ? "border-[var(--qs-ink)] bg-[var(--qs-brand)]" : "border-[var(--qs-line)] bg-[var(--qs-line)]/40"
-      )}
-    >
-      <span
-        className={cn(
-          "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-[0_1px_3px_rgba(26,18,64,0.3)] transition-all duration-200",
-          checked ? "left-[22px]" : "left-0.5"
-        )}
-      />
-    </button>
+      className="b-switch"
+    />
   );
 }
 
@@ -280,6 +272,7 @@ export function CreatorSettingsPage() {
                   {row.kind === "toggle" ? (
                     <QsToggle
                       checked={row.enabled}
+                      label={row.label}
                       onChange={(v) => toggleSection(activeSection.id, row.id, v)}
                     />
                   ) : (

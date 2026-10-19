@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ComponentType } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { Button } from "@/components/ui/button";
 import type { ComponentProps } from "react";
 
 type Icon = ComponentType<{ className?: string }>;
@@ -48,43 +49,36 @@ export function StudioStepHeader({
 export function PrimaryButton({
   children,
   icon: Icon,
+  className,
   ...props
 }: ComponentProps<"button"> & { icon?: Icon }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="primary"
+      iconLeft={Icon ? <Icon className="h-4 w-4" /> : undefined}
+      className={className}
       {...props}
-      className={cn(
-        "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-4 py-2 text-sm font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40",
-        "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-      )}
     >
-      {Icon ? <Icon className="h-4 w-4" /> : null}
       {children}
-    </button>
+    </Button>
   );
 }
 
 export function SecondaryButton({
   children,
   icon: Icon,
+  className,
   ...props
 }: ComponentProps<"button"> & { icon?: Icon }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      iconLeft={Icon ? <Icon className="h-4 w-4" /> : undefined}
+      className={className}
       {...props}
-      className={cn(
-        "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2 text-sm font-bold text-[var(--qs-ink)] transition-colors duration-150",
-        "hover:border-[var(--qs-brand)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/30",
-        "disabled:cursor-not-allowed disabled:opacity-50"
-      )}
     >
-      {Icon ? <Icon className="h-4 w-4" /> : null}
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -92,44 +86,36 @@ export function GhostButton({
   children,
   icon: Icon,
   subtle,
+  className,
   ...props
 }: ComponentProps<"button"> & { icon?: Icon; subtle?: boolean }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant={subtle ? "ghost" : "secondary"}
+      iconLeft={Icon ? <Icon className="h-4 w-4" /> : undefined}
+      className={className}
       {...props}
-      className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-[12px] px-3 py-2 text-sm font-bold transition-colors duration-150",
-        subtle
-          ? "text-[var(--qs-muted)] hover:bg-[var(--qs-brand)]/10 hover:text-[var(--qs-ink)]"
-          : "border-2 border-[var(--qs-line)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/30"
-      )}
     >
-      {Icon ? <Icon className="h-4 w-4" /> : null}
       {children}
-    </button>
+    </Button>
   );
 }
 
 export function DestructiveButton({
   children,
   icon: Icon,
+  className,
   ...props
 }: ComponentProps<"button"> & { icon?: Icon }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="danger-solid"
+      iconLeft={Icon ? <Icon className="h-4 w-4" /> : undefined}
+      className={className}
       {...props}
-      className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] px-4 py-2 text-sm font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-0 active:shadow-none",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-bad)]/40",
-        "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-      )}
     >
-      {Icon ? <Icon className="h-4 w-4" /> : null}
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -148,8 +134,9 @@ export function StepButton({
     <button
       type="button"
       onClick={onClick}
+      aria-current={active ? "step" : undefined}
       className={cn(
-        "relative flex items-center gap-1.5 rounded-[12px] border-2 px-3 py-1.5 text-xs font-bold transition-colors duration-150",
+        "b b-tab sm",
         active && "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]",
         done && !active && "border-[var(--qs-ok)]/40 bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
         !active && !done && "border-[var(--qs-line)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
@@ -327,21 +314,13 @@ export function SwitchField({
       <button
         type="button"
         onClick={() => onChange(!checked)}
-        className={cn(
-          "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 transition-colors duration-150",
-          checked
-            ? "border-[var(--qs-ink)] bg-[var(--qs-ok)]"
-            : "border-[var(--qs-line)] bg-[var(--qs-line)]"
-        )}
+        className="b b-switch"
         aria-checked={checked}
         role="switch"
+        aria-label={label}
+        title={label}
       >
-        <span
-          className={cn(
-            "absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-150",
-            checked ? "translate-x-[18px]" : "translate-x-0.5"
-          )}
-        />
+        <span className="sr-only">{label}</span>
       </button>
     </div>
   );

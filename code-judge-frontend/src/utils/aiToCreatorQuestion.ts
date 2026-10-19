@@ -72,7 +72,9 @@ export const mapToCreatorQuestions = (previews: AIQuestionPreview[]): CreatorQue
     const base = createDefaultQuestion(p.id || `ai_${Date.now()}_${i}`);
     const type = toCreatorType(p.type);
     const difficulty = toCreatorDifficulty(p.difficulty);
-    const title = (p.title || p.content || `${type} Question ${i + 1}`).trim();
+    // Keep the sanitized HTML (tables, lists, code blocks) as the editable
+    // stem; the rich-text editor and backend both store HTML in this field.
+    const title = (p.questionHtml?.trim() || p.title || p.content || `${type} Question ${i + 1}`).trim();
 
     const hasOptions = Array.isArray(p.options) && p.options.length > 0;
 

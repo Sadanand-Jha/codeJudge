@@ -20,6 +20,7 @@ import {
   Minus,
   Circle,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { generateQuestionsFromFiles, generateFromQuestionBank, mapRawQuestionsToPreview } from "@/services/ai";
@@ -119,7 +120,15 @@ export function AiGenerateModal({
   // `undefined` means "not chosen yet" — the quiz's own subject is shown by
   // default without needing an effect to sync it on every open.
   const [bankSubjectChoice, setBankSubjectChoice] = useState<number | null | undefined>(undefined);
-  const bankSubjectId = bankSubjectChoice === undefined ? defaultSubjectId : bankSubjectChoice;
+  // A quiz is always bound to one subject: once the quiz has a subject, the
+  // generator must not drift to another subject. Other entry points without a
+  // quiz subject can still pick one.
+  const subjectLocked = defaultSubjectId != null;
+  const bankSubjectId = subjectLocked
+    ? defaultSubjectId
+    : bankSubjectChoice === undefined
+      ? null
+      : bankSubjectChoice;
   const [bankChapterId, setBankChapterId] = useState<number | null>(null);
   const [bankTopicId, setBankTopicId] = useState<number | null>(null);
   const [bankKind, setBankKind] = useState<"any" | "theory" | "numerical">("any");
@@ -188,7 +197,17 @@ export function AiGenerateModal({
     [catalog, bankChapterId]
   );
 
-  const subjectFromQuiz = defaultSubjectId != null && bankSubjectId === defaultSubjectId;
+  const lockedSubjectName =
+    defaultSubjectName ||
+    subjectOptions.find((subject) => subject.id === defaultSubjectId)?.name ||
+    "Quiz subject";
+
+  const notifySubjectLocked = () => {
+    toast.info({
+      title: "Subject is locked to this quiz",
+      description: "To generate for another subject, change the quiz subject in the quiz details first.",
+    });
+  };
 
   const syncBankDistribution = (total: number) => {
     let e = Math.round(total * 0.4);
@@ -276,6 +295,8 @@ export function AiGenerateModal({
         includeHints: true,
         includeReferenceNotes: false,
         includeTags: true,
+        subjectId: defaultSubjectId,
+        quizId,
       });
 
       setProgress(70);
@@ -648,26 +669,47 @@ export function AiGenerateModal({
                           >
                             Subject
                           </label>
-                          {subjectFromQuiz ? (
+                          {subjectLocked ? (
                             <span className="shrink-0 rounded-full bg-[var(--qs-poly-2)] px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-brand)]">
                               from this quiz
                             </span>
                           ) : null}
                         </div>
-                        <QsSelect
-                          id="ai-bank-subject"
-                          value={bankSubjectId}
-                          onChange={(next) => {
-                            setBankSubjectChoice(next);
-                            setBankChapterId(null);
-                            setBankTopicId(null);
-                          }}
-                          options={subjectOptions.map((subject) => ({ value: subject.id, label: subject.name }))}
-                          placeholder={catalogLoading ? "Loading…" : "Select subject"}
-                          disabled={catalogLoading}
-                          ariaLabel="Subject"
-                          triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
-                        />
+                        {subjectLocked ? (
+                          <>
+                            <button
+                              id="ai-bank-subject"
+                              type="button"
+                              onClick={notifySubjectLocked}
+                              aria-describedby="ai-bank-subject-locked-hint"
+                              title="Subject is locked to this quiz"
+                              className="mt-1.5 flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-left transition-colors hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] focus-visible:outline-none"
+                            >
+                              <span className="truncate text-[12px] font-bold text-[var(--qs-ink)]">
+                                {lockedSubjectName}
+                              </span>
+                              <Lock className="h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)]" aria-hidden="true" />
+                            </button>
+                            <p id="ai-bank-subject-locked-hint" className="sr-only">
+                              The subject is locked to this quiz. Change the quiz subject to use a different one.
+                            </p>
+                          </>
+                        ) : (
+                          <QsSelect
+                            id="ai-bank-subject"
+                            value={bankSubjectId}
+                            onChange={(next) => {
+                              setBankSubjectChoice(next);
+                              setBankChapterId(null);
+                              setBankTopicId(null);
+                            }}
+                            options={subjectOptions.map((subject) => ({ value: subject.id, label: subject.name }))}
+                            placeholder={catalogLoading ? "Loading…" : "Select subject"}
+                            disabled={catalogLoading}
+                            ariaLabel="Subject"
+                            triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
+                          />
+                        )}
                       </div>
                       <div className="min-w-0">
                         <div className="flex h-4 items-center gap-1.5 overflow-hidden">

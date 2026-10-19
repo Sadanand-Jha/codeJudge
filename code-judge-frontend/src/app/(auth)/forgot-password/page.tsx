@@ -16,7 +16,7 @@ import AuthBackground from "@/components/auth/AuthBackground";
 import { AuthBrandMark, AuthLoader, AuthThemeControls } from "@/components/auth/AuthThemeChrome";
 import { OtpInput } from "@/components/auth/OtpInput";
 
-const AUTH_PRIMARY_BUTTON = "group flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] transition-all hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40";
+const AUTH_PRIMARY_BUTTON = "b b-pri b-lg b-full group min-h-12";
 
 type Step = "email" | "verify" | "reset";
 
@@ -273,7 +273,7 @@ export default function ForgotPasswordPage() {
                 className={AUTH_PRIMARY_BUTTON}
               >
                 {sendingOtp && <AuthLoader className="h-4 w-4 text-white" />}
-                {sendingOtp ? "Sending..." : "Continue"}
+                {sendingOtp ? "Sending…" : "Continue"}
                 {!sendingOtp && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
               </button>
             </form>
@@ -312,7 +312,7 @@ export default function ForgotPasswordPage() {
                 className={AUTH_PRIMARY_BUTTON}
               >
                 {verifyingOtp && <AuthLoader className="h-4 w-4 text-white" />}
-                {verifyingOtp ? "Verifying..." : "Verify"}
+                {verifyingOtp ? "Verifying…" : "Verify"}
               </button>
               <div className="text-center">
                 <button
@@ -420,7 +420,7 @@ export default function ForgotPasswordPage() {
               >
                 {submitting && <AuthLoader className="h-4 w-4 text-white" />}
                 {!submitting && <KeyRound className="h-4 w-4" />}
-                {submitting ? "Resetting..." : "Reset password"}
+                {submitting ? "Resetting…" : "Reset password"}
               </button>
             </form>
           )}

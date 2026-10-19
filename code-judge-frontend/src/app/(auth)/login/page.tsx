@@ -170,16 +170,16 @@ export default function LoginPage() {
               className="qs-btn group min-h-12 w-full px-4 text-sm disabled:cursor-not-allowed disabled:opacity-45"
             >
               {loading && <AuthLoader className="h-4 w-4 text-current" />}
-              <span>{loading ? "Signing in..." : "Continue to QuizSupport"}</span>
+              <span>{loading ? "Signing in…" : "Continue to QuizSupport"}</span>
               {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
             </button>
           </form>
 
           <div className="mt-5 grid grid-cols-1 gap-2.5 border-t-2 border-[var(--qs-line)] pt-5 min-[420px]:grid-cols-2">
-            <Link href="/forgot-password" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]">
+            <Link href="/forgot-password" className="b b-full group">
               <KeyRound className="h-3.5 w-3.5 transition-transform group-hover:-rotate-6" /> Reset password
             </Link>
-            <Link href="/register" className="group flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]">
+            <Link href="/register" className="b b-full group">
               <UserPlus className="h-3.5 w-3.5 transition-transform group-hover:scale-110" /> Create account
             </Link>
           </div>

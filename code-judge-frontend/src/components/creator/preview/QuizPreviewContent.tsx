@@ -380,7 +380,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
                   </div>
                   {current === questions.length - 1 ? (
                     <button onClick={() => setShowSubmitModal(true)} className="inline-flex items-center gap-1 sm:gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-4 sm:px-7 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white shadow-md hover:shadow-lg">
-                      <Send className="h-4 w-4 sm:h-5 sm:w-5" /> <span className="hidden sm:inline">Submit Quiz</span>
+                      <Send className="h-4 w-4 sm:h-5 sm:w-5" /> <span className="hidden sm:inline">Submit quiz</span>
                     </button>
                   ) : (
                     <button onClick={() => setCurrent((c) => Math.min(questions.length - 1, c + 1))} className="inline-flex items-center gap-1 sm:gap-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 px-4 sm:px-7 py-2 sm:py-3 text-xs sm:text-sm font-bold text-white shadow-md">
@@ -579,7 +579,7 @@ export default function QuizPreviewContent({ quizId }: { quizId: string }) {
                 Continue Preview
               </button>
               <button onClick={onExitPreview} className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-sm font-bold text-white shadow-md hover:shadow-lg">
-                Submit Quiz
+                Submit quiz
               </button>
             </div>
           </div>

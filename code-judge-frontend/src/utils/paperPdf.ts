@@ -31,10 +31,15 @@ const slug = (value: string): string =>
     .replace(/^-+|-+$/g, "")
     .toLowerCase() || "quiz";
 
-async function requestPdf(html: string, footerLeft: string, filename: string, fontCss: string): Promise<Blob> {
+async function requestPdf(
+  html: string,
+  footer: { left: string; right: string },
+  filename: string,
+  fontCss: string
+): Promise<Blob> {
   const response = await apiClient.post(
     "/v1/user/quiz/paper-pdf",
-    { html, footer: { left: footerLeft }, filename, fontCss },
+    { html, footer, filename, fontCss },
     { responseType: "blob" }
   );
   return response.data as Blob;
@@ -70,11 +75,12 @@ export async function downloadQuizPaperPdf(input: DownloadPaperInput, kind: Pape
   const questions = preparePaperQuestions(input.questions, input.options);
   const base = slug(input.meta.title || "quiz");
   const footerLeft = paperFooterLeft(input.meta);
+  const footerRight = input.meta.setName?.trim() || "";
 
   if (kind === "key") {
     const filename = `${base}-answer-key.pdf`;
     const html = buildAnswerKeyDocument({ meta: input.meta, questions }, fontCss);
-    saveBlob(await requestPdf(html, footerLeft, `${base}-answer-key`, fontCss), filename);
+    saveBlob(await requestPdf(html, { left: footerLeft, right: footerRight }, `${base}-answer-key`, fontCss), filename);
     return 1;
   }
 
@@ -86,7 +92,7 @@ export async function downloadQuizPaperPdf(input: DownloadPaperInput, kind: Pape
         fontCss
       );
       const suffix = slug(student.name || student.username || student.rollNo || String(student.id ?? count + 1));
-      saveBlob(await requestPdf(html, footerLeft, `${base}-${suffix}`, fontCss), `${base}-${suffix}.pdf`);
+      saveBlob(await requestPdf(html, { left: footerLeft, right: footerRight }, `${base}-${suffix}`, fontCss), `${base}-${suffix}.pdf`);
       count += 1;
     }
     return count;
@@ -95,6 +101,6 @@ export async function downloadQuizPaperPdf(input: DownloadPaperInput, kind: Pape
   const students = input.mode === "combined" && input.students?.length ? input.students : null;
   const filename = `${base}${input.mode === "combined" ? "-combined" : "-question-paper"}.pdf`;
   const html = buildPaperDocument({ meta: input.meta, questions, options: input.options, students }, fontCss);
-  saveBlob(await requestPdf(html, footerLeft, filename.replace(/\.pdf$/, ""), fontCss), filename);
+  saveBlob(await requestPdf(html, { left: footerLeft, right: footerRight }, filename.replace(/\.pdf$/, ""), fontCss), filename);
   return 1;
 }

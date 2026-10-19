@@ -28,7 +28,7 @@ import { QUIZ_EXTRACTION_GUIDE } from "../services/question-generation.service.j
 import type { GeneratedQuestionPayload } from "../services/question-generation.service.js";
 import { extractFileText } from "../services/question-generation.service.js";
 import { isDoclingAvailable } from "../services/docling-extract.service.js";
-import { generateFromQuestionBank, listUserQuestionBank } from "../services/question-bank.service.js";
+import { generateFromQuestionBank, listUserQuestionBank, persistGeneratedQuestions } from "../services/question-bank.service.js";
 
 /**
  * Best-effort user id for operational logging. The AI endpoints are not
@@ -236,6 +236,25 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
       includeReferenceNotes: boolOf(req.body.includeReferenceNotes),
       includeTags: boolOf(req.body.includeTags),
     });
+
+    // Material-derived questions belong to the creator for 30 days (longer
+    // than topic-only AI generation) before joining the shared system bank.
+    const subjectId = Number(req.body.subjectId);
+    if (Number.isInteger(subjectId) && subjectId > 0) {
+      const optionalId = (value: unknown): number | null => {
+        const parsed = Number(value);
+        return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+      };
+      await persistGeneratedQuestions(result.questions, {
+        quizId: optionalId(req.body.quizId),
+        createdBy: req.user?.userId ? Number(req.user.userId) : null,
+        subjectId,
+        chapterId: optionalId(req.body.chapterId),
+        topicId: optionalId(req.body.topicId),
+        source: "ai_material",
+        ownershipDays: 30,
+      });
+    }
 
     return res.status(200).json({ success: true, data: result });
   } catch (error) {

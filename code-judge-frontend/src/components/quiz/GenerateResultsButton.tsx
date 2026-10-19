@@ -122,13 +122,12 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
   if (state === "idle") {
     return (
       <button
+        type="button"
         onClick={() => setState("confirming")}
-        className="flex items-center gap-2.5 rounded-xl border border-[#EC4899]/30 bg-[#EC4899]/10 p-3.5 hover:border-[#EC4899]/50 hover:bg-[#EC4899]/15 transition-all group"
+        className="b b-pri b-full justify-start gap-2.5"
       >
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-[#EC4899]/15 border border-[#EC4899]/30">
-          <Mail className="w-4 h-4 text-[#EC4899]" />
-        </div>
-        <span className="text-xs font-medium text-white">Generate Results & Email</span>
+        <Mail className="w-4 h-4" />
+        <span>Generate results &amp; email</span>
       </button>
     );
   }
@@ -146,7 +145,7 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
             <div className="w-16 h-16 rounded-2xl bg-[#EC4899]/10 border border-[#EC4899]/20 flex items-center justify-center mb-5">
               <SecureLogo variant="mark" size={40} className="animate-pulse motion-reduce:animate-none" />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">Generating Results...</h3>
+            <h3 className="text-lg font-bold text-white mb-2">Generating results…</h3>
             <p className="text-xs text-[#6B7280] mb-6">
               Evaluating all submissions for &ldquo;{quizName}&rdquo;
             </p>
@@ -205,8 +204,9 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
               </p>
             )}
             <button
+              type="button"
               onClick={reset}
-              className="mt-2 text-[10px] font-semibold text-[#EC4899] hover:text-[#DB2777] transition-colors"
+              className="b b-text sm mt-2"
             >
               Dismiss
             </button>
@@ -225,21 +225,23 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
             <AlertCircle className="w-4 h-4 text-[#F59E0B]" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-bold text-white">Results Saved — Email Failed</p>
+            <p className="text-xs font-bold text-white">Results saved — email failed</p>
             <p className="text-[10px] text-[#6B7280] mt-1">
               {result?.emailError || "Email delivery failed. Results are saved in the database."}
             </p>
             <div className="flex items-center gap-2 mt-2">
               <button
+                type="button"
                 onClick={handleRetryEmail}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#EC4899]/30 bg-[#EC4899]/10 text-[10px] font-semibold text-[#EC4899] hover:bg-[#EC4899]/15 transition-colors"
+                className="b sm"
               >
-                <RefreshCw className="w-3 h-3" />
-                Retry Email
+                <RefreshCw className="w-3.5 h-3.5" />
+                Retry email
               </button>
               <button
+                type="button"
                 onClick={reset}
-                className="text-[10px] font-semibold text-[#6B7280] hover:text-white transition-colors"
+                className="b b-text sm"
               >
                 Dismiss
               </button>
@@ -259,15 +261,16 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
             <AlertCircle className="w-4 h-4 text-[#EF4444]" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-bold text-white">Generation Failed</p>
+            <p className="text-xs font-bold text-white">Generation failed</p>
             <p className="text-[10px] text-[#6B7280] mt-1">
               An error occurred. Please try again.
             </p>
             <button
+              type="button"
               onClick={reset}
-              className="mt-2 text-[10px] font-semibold text-[#EC4899] hover:text-[#DB2777] transition-colors"
+              className="b b-text sm mt-2"
             >
-              Try Again
+              Retry
             </button>
           </div>
         </div>
@@ -294,8 +297,11 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
         >
           {/* Close button */}
           <button
+            type="button"
             onClick={reset}
-            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/[0.06] text-muted-foreground hover:text-white transition-colors"
+            aria-label="Close"
+            title="Close"
+            className="b b-icon b-close b-ghost absolute top-4 right-4"
           >
             <X className="w-4 h-4" />
           </button>
@@ -313,7 +319,7 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
 
           {/* Title */}
           <h3 className="text-lg font-bold text-white text-center mb-2">
-            {state === "regenerate-confirm" ? "Regenerate Results?" : "Generate Results Now?"}
+            {state === "regenerate-confirm" ? "Regenerate results?" : "Generate results now?"}
           </h3>
 
           {/* Description */}
@@ -354,27 +360,25 @@ export function GenerateResultsButton({ quizId, quizName }: { quizId: string; qu
           {/* Action buttons */}
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={reset}
-              className="flex-1 h-11 rounded-xl border border-border-hover bg-white/[0.04] text-xs font-semibold text-muted-foreground hover:text-white hover:bg-white/[0.06] transition-colors"
+              className="b b-lg flex-1"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={() => handleGenerate(state === "regenerate-confirm")}
-              className={`flex-1 h-11 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-2 ${
-                state === "regenerate-confirm"
-                  ? "bg-gradient-to-r from-[#F59E0B] to-[#D97706] hover:shadow-lg hover:shadow-[#F59E0B]/20"
-                  : "bg-gradient-to-r from-[#EC4899] to-[#BE185D] hover:shadow-lg hover:shadow-[#EC4899]/20"
-              }`}
+              className="b b-pri b-lg flex-1"
             >
               {state === "regenerate-confirm" ? (
                 <>
-                  <RefreshCw className="w-3.5 h-3.5" />
+                  <RefreshCw className="w-4 h-4" />
                   Regenerate
                 </>
               ) : (
                 <>
-                  <Mail className="w-3.5 h-3.5" />
+                  <Mail className="w-4 h-4" />
                   Generate
                 </>
               )}

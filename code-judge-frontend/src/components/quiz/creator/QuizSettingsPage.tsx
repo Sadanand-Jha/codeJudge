@@ -655,7 +655,7 @@ export default function QuizSettingsPage({
                     animate={{ opacity: 1 }}
                     className="flex items-center gap-1.5 rounded-full bg-pink-500/10 px-3 py-1.5 text-[10px] font-semibold text-pink-500"
                   >
-                    <SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" /> Saving...
+                    <SecureLogo variant="mark" size={12} className="animate-pulse motion-reduce:animate-none" /> Saving…
                   </motion.span>
                 )}
                 {saveStatus === "saved" && (
@@ -675,44 +675,49 @@ export default function QuizSettingsPage({
               {quizId && !isEnded && (
                 isLive ? (
                   <button
+                    type="button"
                     onClick={() => setConfirmingEnd(true)}
                     disabled={actionBusy}
-                    className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(239,68,68,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(239,68,68,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
+                    aria-busy={actionBusy || undefined}
+                    className={cn("b b-danger-solid", actionBusy && "loading")}
                   >
-                    {actionBusy ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Square className="h-4 w-4" />}
-                    End Quiz
+                    <Square className="h-4 w-4" />
+                    End quiz
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => setConfirmingStart(true)}
                     disabled={actionBusy}
-                    className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-4 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(236,72,153,0.5)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40"
+                    aria-busy={actionBusy || undefined}
+                    className={cn("b b-pri", actionBusy && "loading")}
                   >
-                    {actionBusy ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Zap className="h-4 w-4" />}
-                    Start Quiz
+                    <Zap className="h-4 w-4" />
+                    Start quiz
                   </button>
                 )
               )}
 
               <button
+                type="button"
                 onClick={handleSaveDraft}
-                className="flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-xs font-semibold text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover"
+                className="b"
               >
-                <Save className="h-4 w-4" /> Save Draft
+                <Save className="h-4 w-4" /> Save draft
               </button>
 
               <button
+                type="button"
                 onClick={handleContinue}
                 disabled={savingToServer}
-                className="group flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-4 text-xs font-bold !text-white shadow-[0_4px_16px_rgba(124,58,237,0.3)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(236,72,153,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-busy={savingToServer || undefined}
+                className={cn("b b-pri", savingToServer && "loading")}
               >
                 {savingToServer ? (
-                  <>
-                    <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Saving Quiz...
-                  </>
+                  <>Saving quiz…</>
                 ) : (
                   <div className="flex items-center gap-1.5">
-                    Save &amp; Continue
+                    Save &amp; continue
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                   </div>
                 )}
@@ -1349,31 +1354,33 @@ export default function QuizSettingsPage({
         <div className="mobile-viewport-actions sticky bottom-0 z-20 border-t border-border bg-background/90 px-6 py-4 backdrop-blur-xl lg:px-8">
           <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
             <button
+              type="button"
               onClick={handleSaveDraft}
-              className="flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4 text-xs font-medium text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover"
+              className="b"
             >
-              <Save className="h-4 w-4" /> Save Draft
+              <Save className="h-4 w-4" /> Save draft
             </button>
 
             <div className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={handleCancel}
-                className="h-11 rounded-xl border border-border bg-card px-4 text-xs font-medium text-text-primary transition-all duration-200 hover:border-border-hover hover:bg-card-hover"
+                className="b"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleContinue}
                 disabled={savingToServer}
-                className="group flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#EC4899] to-[#7C3AED] px-5 text-xs font-bold !text-white shadow-[0_4px_16px_rgba(236,72,153,0.35)] transition-all duration-200 hover:shadow-[0_6px_24px_rgba(124,58,237,0.4)] hover:brightness-105 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-busy={savingToServer || undefined}
+                className={cn("b b-pri", savingToServer && "loading")}
               >
                 {savingToServer ? (
-                  <>
-                    <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> Saving Quiz...
-                  </>
+                  <>Saving quiz…</>
                 ) : (
                   <>
-                    Save &amp; Continue
+                    Save &amp; continue
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                   </>
                 )}

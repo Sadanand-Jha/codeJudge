@@ -23,7 +23,7 @@ import { LiveRail } from "../components/LiveRail";
 import { AiGenerateModal } from "../components/AiGenerateModal";
 import { StudentPreviewModal } from "../components/StudentPreviewModal";
 import { useStudio, isQuestionValidationError } from "../StudioProvider";
-import { Plus, ListChecks, Settings2, ChevronLeft, ChevronRight, Save, Eye } from "lucide-react";
+import { Plus, ListChecks, Settings2, ChevronLeft, ChevronRight, Save, Eye, X } from "lucide-react";
 import type { CreatorQuestion } from "../types";
 import { downloadQuizPaperPdf, getPaperPdfErrorMessage, type PaperDownloadKind } from "@/utils/paperPdf";
 import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
@@ -265,7 +265,7 @@ export function QuestionsStep() {
               className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-3 text-sm font-bold text-[var(--qs-ink)] disabled:opacity-40"
             >
               <Save className="h-4 w-4 shrink-0" />
-              <span className="truncate">{saving ? "Saving..." : "Save"}</span>
+              <span className="truncate">{saving ? "Saving…" : "Save"}</span>
             </button>
             <AiGenerateButton
               size="md"
@@ -382,7 +382,9 @@ export function QuestionsStep() {
             <div className="relative w-[340px] max-w-[92vw] h-full bg-[var(--qs-surface)] border-l-2 border-[var(--qs-line)] rounded-l-[22px] overflow-hidden flex flex-col">
               <div className="flex items-center justify-between px-4 py-2.5 border-b-2 border-[var(--qs-line)]">
                 <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Properties</span>
-                <button onClick={() => setRightOpen(false)} className="rounded-[8px] p-1.5 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-poly-1)] hover:text-[var(--qs-ink)]">✕</button>
+                <button type="button" onClick={() => setRightOpen(false)} aria-label="Close" title="Close" className="b b-icon b-close b-ghost">
+                  <X className="h-4 w-4" />
+                </button>
               </div>
               <div className="flex-1 min-h-0 overflow-y-auto">
                 <LiveRail onDownloadPdf={() => { setRightOpen(false); openPdfModal(); }} onStudentPreview={() => { setRightOpen(false); setStudentPreviewOpen(true); }} collapsed={false} onToggle={() => {}} />

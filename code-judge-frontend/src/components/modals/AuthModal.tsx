@@ -110,8 +110,11 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
             >
               {/* Close Button */}
               <button
+                type="button"
                 onClick={onClose}
-                className="absolute right-4 top-4 z-10 rounded-full p-1.5 text-text-muted hover:bg-card-hover hover:text-text-primary transition-colors"
+                aria-label="Close"
+                title="Close"
+                className="b b-icon b-close b-ghost absolute right-4 top-4 z-10"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -194,19 +197,19 @@ export default function AuthModal({ isOpen, onClose, redirectUrl }: AuthModalPro
                 >
                   <Link
                     href={`/register${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 text-[14px] font-semibold text-accent-foreground shadow-lg shadow-accent/25 transition-all hover:bg-accent-hover hover:shadow-accent/40"
+                    className="b b-pri b-lg b-full group"
                     onClick={onClose}
                   >
-                    Create Free Account
+                    Create free account
                     <ChevronRight className="h-4 w-4" />
                   </Link>
 
                   <Link
                     href={`/login${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-border px-6 py-3.5 text-[14px] font-semibold text-text-primary transition-all hover:bg-card-hover"
+                    className="b b-lg b-full"
                     onClick={onClose}
                   >
-                    Sign In
+                    Log in
                   </Link>
                 </motion.div>
 

@@ -73,10 +73,10 @@ const escapeHtml = (value: string): string =>
 
 function buildFooterTemplate(footer: PaperPdfFooter | undefined, fontCss?: string): string {
   const left = escapeHtml(footer?.left ?? "");
-  const right = escapeHtml(footer?.right ?? "quizsupport.com");
+  const right = escapeHtml(footer?.right ?? "");
   const style = fontCss ? `<style>${fontCss}</style>` : "";
-  return `${style}<div style="width:100%;padding:0 16mm;font-family:'Noto Sans','Noto Sans Devanagari',Arial,sans-serif;font-size:8pt;color:#555;">
-  <div style="border-top:0.5pt solid #BBB;padding-top:1.6mm;display:flex;align-items:center;">
+  return `${style}<div style="width:100%;padding:0 20mm;font-family:'Times New Roman','Liberation Serif',Times,serif;font-size:9pt;color:#000;">
+  <div style="border-top:0.5pt solid #000;padding-top:1.6mm;display:flex;align-items:center;">
     <span style="flex:1;text-align:left;padding-right:4mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${left}</span>
     <span style="flex:1;text-align:center;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
     <span style="flex:1;text-align:right;padding-left:4mm;">${right}</span>

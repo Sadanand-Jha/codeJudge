@@ -129,7 +129,17 @@ const DIFFICULTIES: readonly AIDifficulty[] = ["easy", "medium", "hard", "expert
 export const mapRawQuestionsToPreview = (
   rawQuestions: RawAIGeneratedQuestion[]
 ): AIQuestionPreview[] =>
-  rawQuestions.map((raw, i) => {
+  rawQuestions
+    .filter((raw) => {
+      const options = (raw.options ?? []).map((option) => option.replace(/\s+/g, " ").trim()).filter(Boolean);
+      if (options.length === 0) return true;
+      const keys = options.map((option) => {
+        const numeric = Number(option);
+        return Number.isFinite(numeric) ? `n:${numeric}` : `t:${option.toLocaleLowerCase()}`;
+      });
+      return new Set(keys).size === keys.length;
+    })
+    .map((raw, i) => {
     const type = QUESTION_TYPES.includes(raw.type as AIQuestionType)
       ? (raw.type as AIQuestionType)
       : raw.options && raw.options.length > 0
@@ -188,6 +198,11 @@ export interface GenerateFromFilesOptions {
   includeHints: boolean;
   includeReferenceNotes: boolean;
   includeTags: boolean;
+  /** Quiz scope — enables saving the generated questions to the bank. */
+  subjectId?: number | null;
+  chapterId?: number | null;
+  topicId?: number | null;
+  quizId?: string | number | null;
 }
 
 interface GenerateFromFilesResponse {
@@ -215,6 +230,10 @@ export const generateQuestionsFromFiles = async (
   formData.append("includeHints", String(options.includeHints));
   formData.append("includeReferenceNotes", String(options.includeReferenceNotes));
   formData.append("includeTags", String(options.includeTags));
+  if (options.subjectId != null) formData.append("subjectId", String(options.subjectId));
+  if (options.chapterId != null) formData.append("chapterId", String(options.chapterId));
+  if (options.topicId != null) formData.append("topicId", String(options.topicId));
+  if (options.quizId != null) formData.append("quizId", String(options.quizId));
 
   const response = await fetch(`${API_BASE}/v1/user/ai/generate-questions`, {
     method: "POST",

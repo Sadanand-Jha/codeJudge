@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Copy, Trash2, Search, GripVertical, X, Download } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Trash2, Search, GripVertical, X, Download, Plus } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { useStudio } from "../StudioProvider";
@@ -92,7 +92,7 @@ export function QuestionList({
               {state.questions.length}
             </span>
             {onToggleSidebar && (
-              <button onClick={onToggleSidebar} className="rounded-[8px] p-1 text-[var(--qs-muted)] transition-colors hover:text-[var(--qs-ink)] lg:hidden">
+              <button type="button" onClick={onToggleSidebar} aria-label="Close question bank" title="Close question bank" className="b b-icon b-close b-ghost lg:hidden">
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
@@ -108,10 +108,11 @@ export function QuestionList({
           />
         </div>
         <button
+          type="button"
           onClick={() => addQuestion()}
-          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[12px] border-2 border-dashed border-[var(--qs-brand)]/50 bg-[var(--qs-bg)] py-2 text-xs font-bold text-[var(--qs-brand)] transition-colors hover:bg-[var(--qs-poly-1)]"
+          className="b b-ghost b-full sm mt-3"
         >
-          + Add Question
+          <Plus className="h-3.5 w-3.5" /> Add question
         </button>
       </div>
 
@@ -177,7 +178,9 @@ export function QuestionList({
                   </div>
                   <div className="absolute right-1 top-1 hidden group-hover:flex items-center gap-0.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-0.5 shadow-[2px_2px_0_var(--qs-sun)]">
                     <button
+                      type="button"
                       title="Move up"
+                      aria-label="Move up"
                       disabled={visIdx === 0}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -188,7 +191,9 @@ export function QuestionList({
                       <ArrowUp className="h-3 w-3" />
                     </button>
                     <button
+                      type="button"
                       title="Move down"
+                      aria-label="Move down"
                       disabled={visIdx === visible.length - 1}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -199,6 +204,9 @@ export function QuestionList({
                       <ArrowDown className="h-3 w-3" />
                     </button>
                     <button
+                      type="button"
+                      title="Duplicate question"
+                      aria-label="Duplicate question"
                       onClick={(e) => {
                         e.stopPropagation();
                         duplicateQuestion(q.id);
@@ -208,6 +216,9 @@ export function QuestionList({
                       <Copy className="h-3 w-3" />
                     </button>
                     <button
+                      type="button"
+                      title="Delete question"
+                      aria-label="Delete question"
                       onClick={(e) => {
                         e.stopPropagation();
                         removeQuestion(q.id);
@@ -233,21 +244,24 @@ export function QuestionList({
             className="w-full py-2"
           />
           <button
+            type="button"
             onClick={onDownloadPdf}
             disabled={state.questions.length === 0}
-            className="flex items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:opacity-40"
+            className="b b-full sm"
           >
-            <Download className="h-3.5 w-3.5" /> Download PDF
+            <Download className="h-3.5 w-3.5" /> PDF
           </button>
         </div>
         <button
+          type="button"
           onClick={onSave}
           disabled={saving}
-          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] py-2 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_var(--qs-sun)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
+          aria-busy={saving || undefined}
+          className="b b-pri b-full sm mt-2"
         >
           {saving
             ? (saveProgress ? `Saving ${saveProgress.saved}/${saveProgress.total}…` : "Saving…")
-            : "Save Changes"}
+            : "Save changes"}
         </button>
       </div>
     </div>

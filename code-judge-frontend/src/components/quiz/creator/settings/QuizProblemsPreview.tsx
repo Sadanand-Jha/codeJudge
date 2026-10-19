@@ -435,13 +435,25 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="hidden xl:inline text-xs text-zinc-500">{complete} / {total} complete</span>
-          <button onClick={() => setPdfModalOpen(true)} className="hidden sm:inline-flex h-8 px-3 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 items-center gap-1.5">
+          <button type="button" onClick={() => setPdfModalOpen(true)} className="b sm hidden sm:inline-flex">
             <Download className="w-3.5 h-3.5" /> PDF
           </button>
-          <button onClick={handleSyncQuestions} disabled={syncing || isSynced || lockSync} className="hidden sm:inline-flex h-8 px-3 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 items-center gap-1.5 disabled:opacity-40">
-            {syncing ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : <Save className="w-3.5 h-3.5" />} Save Draft
+          <button
+            type="button"
+            onClick={handleSyncQuestions}
+            disabled={syncing || isSynced || lockSync}
+            aria-busy={syncing || undefined}
+            className={cn("b sm hidden sm:inline-flex", syncing && "loading")}
+          >
+            <Save className="w-3.5 h-3.5" /> Save draft
           </button>
-          <button onClick={handleContinue} disabled={continuing || lockSync} className="h-8 px-4 rounded-lg bg-zinc-900 text-white text-xs font-semibold hover:bg-zinc-800 flex items-center gap-1.5 disabled:opacity-40">
+          <button
+            type="button"
+            onClick={handleContinue}
+            disabled={continuing || lockSync}
+            aria-busy={continuing || undefined}
+            className={cn("b b-pri sm", continuing && "loading")}
+          >
             Continue <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -889,7 +901,7 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
       </div>
 
       <div className="h-14 shrink-0 border-t border-zinc-200 bg-white flex items-center px-4 gap-3">
-        <button onClick={() => { const idx = problems.findIndex((p) => p.id === current.id); if (idx > 0) { setActiveProblem(problems[idx - 1].id); router.push(`${problemsBase}/${problems[idx - 1].id}`); } }} disabled={safeIndex === 0} className="h-8 px-3 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 flex items-center gap-1">
+        <button type="button" onClick={() => { const idx = problems.findIndex((p) => p.id === current.id); if (idx > 0) { setActiveProblem(problems[idx - 1].id); router.push(`${problemsBase}/${problems[idx - 1].id}`); } }} disabled={safeIndex === 0} className="b b-ghost sm">
           <ChevronLeft className="w-3.5 h-3.5" /> Back
         </button>
         <span className="hidden sm:inline text-xs text-zinc-500">
@@ -899,10 +911,22 @@ export default function QuizProblemsPreview({ focusId }: { focusId?: string }) {
           {safeIndex + 1} / {total}
         </span>
         <div className="ml-auto flex items-center gap-2">
-          <button onClick={handleSyncQuestions} disabled={syncing || isSynced || lockSync} className="h-8 px-4 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 hidden sm:inline-flex disabled:opacity-40">
-            {syncing ? <SecureLogo variant="mark" size={14} className="animate-pulse motion-reduce:animate-none" /> : null} Save Draft
+          <button
+            type="button"
+            onClick={handleSyncQuestions}
+            disabled={syncing || isSynced || lockSync}
+            aria-busy={syncing || undefined}
+            className={cn("b sm hidden sm:inline-flex", syncing && "loading")}
+          >
+            Save draft
           </button>
-          <button onClick={handleContinue} disabled={continuing || lockSync} className="h-8 px-4 rounded-lg bg-zinc-900 text-white text-xs font-semibold hover:bg-zinc-800 flex items-center gap-1.5 disabled:opacity-40">
+          <button
+            type="button"
+            onClick={handleContinue}
+            disabled={continuing || lockSync}
+            aria-busy={continuing || undefined}
+            className={cn("b b-pri sm", continuing && "loading")}
+          >
             Continue <ChevronRight className="w-3.5 h-3.5" />
           </button>
         </div>

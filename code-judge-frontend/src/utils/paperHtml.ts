@@ -45,6 +45,8 @@ export interface PaperMeta {
   difficulty?: string;
   /** Human-readable value shown in instructions, e.g. "0.25" or "None". */
   negativeMarking?: string;
+  /** Optional paper set label such as "A" or "B". */
+  setName?: string;
 }
 
 export interface PaperOptions {
@@ -295,22 +297,21 @@ function renderOptions(question: PaperQuestion, twoColumns: boolean): string {
   const options = (question.options ?? []).filter((o) => o.content?.trim() || o.imageUrl);
   if (options.length < 2) return "";
   if (question.type && !CHOICE_TYPES.has(question.type)) return "";
-  const maxShort = twoColumns ? 14 : 28;
-  const short = options.every((o) => plainLength(o.content) > 0 && plainLength(o.content) < maxShort);
-  const twoCol = short && !options.some((o) => o.imageUrl);
+  const lengths = options.map((option) => plainLength(option.content ?? ""));
+  const hasImages = options.some((option) => option.imageUrl);
+  const fourColumns =
+    !twoColumns && !hasImages && options.length === 4 && lengths.every((length) => length > 0 && length < 25);
+  const twoCols = !hasImages && lengths.every((length) => length > 0 && length < 45);
   const items = options
     .map((option, index) => {
       const label = `(${String.fromCharCode(65 + index)})`;
       const body = option.content?.trim() ? normalizeInline(option.content) : "";
-      const image = option.imageUrl
-        ? `<img src="${esc(option.imageUrl)}" alt="">`
-        : body
-          ? ""
-          : `<span class="muted">[Image]</span>`;
-      return `<div class="opt"><span class="ol">${label}</span><span class="oc">${body}${image}</span></div>`;
+      const image = option.imageUrl ? `<img src="${esc(option.imageUrl)}" alt="">` : "";
+      const content = body || image || `<span class="muted">[Image]</span>`;
+      return `<div class="opt"><span class="ol">${label}</span><span class="oc">${content}</span></div>`;
     })
     .join("");
-  return `<div class="opts${twoCol ? " two" : ""}">${items}</div>`;
+  return `<div class="opts${fourColumns ? " four" : twoCols ? " two" : ""}">${items}</div>`;
 }
 
 function renderQuestionImages(question: PaperQuestion): string {
@@ -363,28 +364,31 @@ export function correctAnswerText(question: PaperQuestion): string {
   return value.length > 160 ? `${value.slice(0, 157)}…` : value;
 }
 
+function questionMarks(question: PaperQuestion): number {
+  const marks = Number(question.marks);
+  return Number.isFinite(marks) && marks > 0 ? marks : 1;
+}
+
 function renderQuestion(question: PaperQuestion, index: number, twoColumns: boolean): string {
   const body = renderSegments(richToSegments(question.title));
   return `<div class="q">
-  <div class="n">${index + 1}.</div>
-  <div class="body">${body}${renderOptions(question, twoColumns)}${renderQuestionImages(question)}</div>
+  <div class="qn">Q${index + 1}</div>
+  <div class="qb">${body}${renderOptions(question, twoColumns)}${renderQuestionImages(question)}</div>
+  <div class="qm">[${questionMarks(question)}]</div>
 </div>`;
 }
 
-function renderMetaGrid(meta: PaperMeta): string {
-  const cells: Array<[string, string | undefined]> = [
-    ["Subject", meta.subject],
-    ["Date", meta.date],
-    ["Total Marks", meta.totalMarks === undefined || meta.totalMarks === "" ? undefined : String(meta.totalMarks)],
-    ["Duration", meta.duration],
-    ["Difficulty", meta.difficulty],
-    ["Total Questions", meta.totalQuestions === undefined || meta.totalQuestions === "" ? undefined : String(meta.totalQuestions)],
+function renderMetaGrid(meta: PaperMeta, totalMarks: number): string {
+  const cells: Array<[string, string]> = [
+    ["Subject", meta.subject?.trim() || "[Subject]"],
+    ["Class / Semester", meta.course?.trim() || "—"],
+    ["Date", meta.date?.trim() || "[Date]"],
+    ["Time allowed", meta.duration?.trim() || "[Time allowed]"],
+    ["Maximum Marks", String(totalMarks)],
+    ["Set", meta.setName?.trim() || "—"],
   ];
   return `<div class="meta">${cells
-    .map(
-      ([label, value]) =>
-        `<div class="cell"><span class="lbl">${esc(label)}</span><span class="val">${value && String(value).trim() ? esc(String(value)) : "&nbsp;"}</span></div>`
-    )
+    .map(([label, value]) => `<div class="cell"><span class="lbl">${esc(label)}:</span><span class="val">${esc(value)}</span></div>`)
     .join("")}</div>`;
 }
 
@@ -394,19 +398,26 @@ function renderStudentBlock(meta: PaperMeta, options: PaperOptions, student: Pap
   const roll = (student?.rollNo || student?.username || "").trim();
   return `<div class="student">
   <span class="f">Name: <span class="fill">${esc(name)}</span></span>
-  <span class="f">Roll No: <span class="fill">${esc(roll)}</span></span>
-  <span class="f">Section: <span class="fill"></span></span>
+  <span class="f">Roll No.: <span class="fill">${esc(roll)}</span></span>
 </div>`;
 }
 
-function renderInstructions(meta: PaperMeta): string {
+function renderInstructions(meta: PaperMeta, questions: PaperQuestion[]): string {
   const negative = meta.negativeMarking && meta.negativeMarking.trim() ? meta.negativeMarking.trim() : "None";
+  const total = questions.length;
+  const hasChoice = questions.some((question) => !question.type || CHOICE_TYPES.has(question.type));
   const lines = [
+    `Total questions: ${total}. Questions to attempt: ${total}.`,
     "All questions are compulsory.",
-    "Write answers in the space provided against each question.",
-    `Negative marking: ${negative}.`,
-  ];
-  return `<div class="instr">${lines.map((line, index) => `<div>${index + 1}. ${esc(line)}</div>`).join("")}</div>`;
+    "Figures in square brackets on the right indicate marks.",
+    ...(hasChoice ? ["Choose the most appropriate option for each multiple-choice question."] : []),
+    ...(negative.toLocaleLowerCase() !== "none" ? [`Negative marking: ${negative}.`] : []),
+    "Write your answers in the answer book unless instructed otherwise.",
+  ].slice(0, 6);
+  return `<div class="instr">
+  <div class="ititle">General instructions</div>
+  <ol>${lines.map((line) => `<li>${esc(line)}</li>`).join("")}</ol>
+</div>`;
 }
 
 function renderAnswerKey(meta: PaperMeta, questions: PaperQuestion[]): string {
@@ -414,28 +425,41 @@ function renderAnswerKey(meta: PaperMeta, questions: PaperQuestion[]): string {
     .map((question, index) => `<tr><td class="num">${index + 1}</td><td>${esc(correctAnswerText(question))}</td></tr>`)
     .join("");
   return `<section class="keypage">
-  <div class="keytitle">Answer Key</div>
-  <div class="keymeta">${esc(meta.title)}</div>
+  <div class="keytitle">For examiner use only</div>
+  <div class="keymeta">${esc(meta.title)} — Answer Key</div>
   <table class="key">
-    <thead><tr><th class="num">Q. No</th><th>Correct Option</th></tr></thead>
+    <thead><tr><th class="num">Q. No</th><th>Correct Answer</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
 </section>`;
 }
 
+function sectionTitle(questions: PaperQuestion[]): string {
+  if (questions.length > 0 && questions.every((question) => question.type && CHOICE_TYPES.has(question.type))) {
+    return "Multiple Choice Questions";
+  }
+  return "Questions";
+}
+
 function renderPaperSection(meta: PaperMeta, questions: PaperQuestion[], options: PaperOptions, student: PaperStudent | null): string {
   const twoColumns = options.layout === "two-column";
+  const totalMarks = questions.reduce((sum, question) => sum + questionMarks(question), 0);
+  const uniqueMarks = new Set(questions.map(questionMarks));
+  const sectionTotal = uniqueMarks.size === 1
+    ? `${questions.length} × ${[...uniqueMarks][0]} = ${totalMarks} marks`
+    : `${totalMarks} marks`;
   const header = `<header class="phead">
-  ${meta.creatorName?.trim() ? `<div class="brand">${esc(meta.creatorName.trim())}</div>` : ""}
+  <div class="inst">${esc(meta.creatorName?.trim() || "[Institute name]")}</div>
   <h1 class="ptitle">${esc(meta.title || "Question Paper")}</h1>
-  <div class="rule"></div>
-  ${renderMetaGrid(meta)}
+  ${renderMetaGrid(meta, totalMarks)}
   ${renderStudentBlock(meta, options, student)}
-  ${renderInstructions(meta)}
+  <div class="rule"></div>
 </header>
-<div class="cols-rule"></div>`;
+${renderInstructions(meta, questions)}
+<div class="banner"><span><span class="bl">Section A</span> — ${esc(sectionTitle(questions))}</span><span class="bt">${sectionTotal}</span></div>
+<p class="secinstr">All questions are compulsory.</p>`;
   const body = questions.map((question, index) => renderQuestion(question, index, twoColumns)).join("");
-  return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main></section>`;
+  return `<section class="paper">${header}<main class="qs${twoColumns ? " two" : ""}">${body}</main><div class="end">End of question paper</div></section>`;
 }
 
 export function buildPaperBody(input: PaperBuildInput): string {
@@ -456,73 +480,82 @@ export function buildAnswerKeyBody(input: { meta: PaperMeta; questions: PaperQue
 }
 
 const PAPER_CSS = `
-@page { size: A4; margin: 16mm; }
+@page { size: A4; margin: 20mm 20mm 22mm; }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
-  font-family: 'Noto Sans', 'Noto Sans Devanagari', sans-serif;
-  font-size: 10pt;
-  line-height: 1.4;
+  font-family: 'Times New Roman', 'Liberation Serif', Times, serif;
+  font-size: 12pt;
+  line-height: 1.15;
   color: #000;
   background: #fff;
+  text-align: left;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
-.brand { font-size: 10pt; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #555; margin: 0 0 1.5mm; }
-.ptitle { font-size: 17pt; font-weight: 700; text-align: center; margin: 0 0 2.5mm; }
-.rule { border-top: 0.75pt solid #000; margin: 0 0 3.5mm; }
-.meta { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 4mm; row-gap: 2mm; margin: 0 0 4mm; }
-.meta .lbl { display: block; font-size: 8.5pt; font-weight: 500; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3mm; }
-.meta .val { display: block; font-size: 10.5pt; font-weight: 500; min-height: 1.4em; }
-.student { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6mm; font-size: 10.5pt; margin: 0 0 4mm; }
-.student .f { display: flex; align-items: baseline; gap: 1.5mm; min-width: 0; }
-.student .fill { flex: 1; min-width: 0; border-bottom: 0.5pt solid #000; padding: 0 1mm 0.7mm; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.instr { border: 0.5pt solid #BBB; padding: 3mm; font-size: 9pt; }
-.instr div { margin-bottom: 0.8mm; }
-.instr div:last-child { margin-bottom: 0; }
-.cols-rule { border-top: 0.75pt solid #000; margin: 4mm 0 1.5mm; }
+.inst { font-size: 16pt; font-weight: 700; text-transform: uppercase; text-align: center; margin: 0 0 1.5mm; }
+.ptitle { font-size: 14pt; font-weight: 700; text-align: center; margin: 0 0 3mm; }
+.meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2mm 6mm; font-size: 11pt; margin: 0 0 3mm; }
+.meta .cell { display: flex; gap: 1.2mm; min-width: 0; }
+.meta .lbl { font-weight: 700; white-space: nowrap; }
+.meta .val { font-weight: 400; min-width: 0; overflow-wrap: anywhere; }
+.rule { border-top: 1.5pt solid #000; margin: 0 0 3mm; }
+.student { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; font-size: 11pt; margin: 0 0 2.5mm; }
+.student .f { display: flex; align-items: baseline; gap: 1mm; min-width: 0; }
+.student .fill { flex: 1; min-width: 30mm; border-bottom: 0.75pt solid #000; padding: 0 1mm 0.5mm; min-height: 1.2em; }
+.instr { border: 1pt solid #000; background: #F2F2F2; padding: 2.5mm 3mm; font-size: 10.5pt; line-height: 1.3; break-inside: avoid; margin: 0 0 4mm; }
+.instr .ititle { font-weight: 700; margin: 0 0 1mm; }
+.instr ol { margin: 0; padding-left: 5mm; }
+.instr li { margin: 0 0 0.7mm; }
+.banner { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4mm; background: #F2F2F2; border-top: 1pt solid #000; border-bottom: 1pt solid #000; padding: 1.5mm 2.5mm; font-size: 12pt; font-weight: 700; break-after: avoid; }
+.banner .bl { text-transform: uppercase; }
+.banner .bt { font-size: 11pt; white-space: nowrap; }
+.secinstr { font-size: 10.5pt; font-style: italic; color: #555; margin: 2mm 0 1mm; break-after: avoid; }
 .qs { margin: 0; }
 .qs.two { column-count: 2; column-gap: 8mm; column-rule: 0.5pt solid #BBB; }
 @media print { .qs.two { column-fill: auto; } }
-.q { display: grid; grid-template-columns: 7mm minmax(0, 1fr); column-gap: 0; margin: 0 0 5mm; break-inside: avoid; }
-.q:last-child { margin-bottom: 0; }
-.q .n { font-size: 10pt; font-weight: 700; padding-right: 1.5mm; }
-.q .body { font-size: 10pt; font-weight: 500; line-height: 1.4; min-width: 0; overflow-wrap: break-word; }
-.q .body p.ln { margin: 0 0 1mm; }
-.q .body p.ln:last-child { margin-bottom: 0; }
-.opts { margin: 1.5mm 0 0 7mm; display: grid; gap: 1.2mm; }
-.opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 4mm; }
-.opt { display: grid; grid-template-columns: 6.5mm minmax(0, 1fr); font-size: 9.5pt; font-weight: 400; line-height: 1.35; }
-.opt .ol { font-weight: 500; }
+.q { display: grid; grid-template-columns: 12mm minmax(0, 1fr) 16mm; column-gap: 2mm; margin: 4mm 0 0; break-inside: avoid; }
+.q:first-child { margin-top: 0; }
+.q .qn { font-size: 12pt; font-weight: 700; padding-top: 0.2mm; }
+.q .qb { font-size: 12pt; font-weight: 400; min-width: 0; overflow-wrap: break-word; }
+.q .qb p { margin: 0 0 1.5mm; }
+.q .qb p:last-child { margin-bottom: 0; }
+.q .qm { font-size: 11pt; font-weight: 700; text-align: right; }
+.opts { margin: 1.5mm 0 0 6mm; display: grid; gap: 1mm; }
+.opts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 4mm; }
+.opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 6mm; }
+.opt { display: grid; grid-template-columns: 6mm minmax(0, 1fr); column-gap: 1.5mm; font-size: 11pt; font-weight: 400; line-height: 1.25; }
+.opt .ol { font-weight: 400; }
 .opt .oc { min-width: 0; overflow-wrap: break-word; }
 .opt img { max-width: 100%; height: auto; margin-top: 1mm; }
-.muted { color: #777; font-style: italic; }
-pre.code { font-family: 'Noto Sans Mono', 'Noto Sans', monospace; font-size: 9.5pt; font-weight: 400; background: #F5F5F5; padding: 2mm; margin: 1.5mm 0 0; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; line-height: 1.4; }
-.qs.two pre.code { font-size: 8.5pt; }
+.muted { color: #555; font-style: italic; }
+pre.code { font-family: 'Courier New', 'Liberation Mono', Consolas, monospace; font-size: 10.5pt; font-weight: 400; background: #F5F5F5; border: 0.5pt solid #999; padding: 1.5mm 2mm; margin: 1.5mm 0 0; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; line-height: 1.25; }
+.qs.two pre.code { font-size: 9.5pt; }
 .tblwrap { margin: 1.5mm 0 0; break-inside: avoid; }
-table.tbl { border-collapse: collapse; width: 100%; font-size: 10pt; font-weight: 400; }
-.qs.two table.tbl { font-size: 9.5pt; table-layout: fixed; }
-table.tbl th, table.tbl td { border: 0.5pt solid #999; padding: 1.2mm 2mm; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
-table.tbl th { font-weight: 600; background: #F5F5F5; }
+table.tbl { border-collapse: collapse; width: 100%; font-size: 10.5pt; font-weight: 400; }
+.qs.two table.tbl { font-size: 10pt; table-layout: fixed; }
+table.tbl th, table.tbl td { border: 0.75pt solid #000; padding: 1mm 1.5mm; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+table.tbl th { font-weight: 700; background: #F2F2F2; }
 .qimg { text-align: center; margin: 3mm 0 0; break-inside: avoid; }
 .qimg img { max-width: 100%; height: auto; }
-.qimg .cap { font-size: 9pt; color: #555; margin-top: 1mm; }
+.qimg .cap { font-size: 10.5pt; font-style: italic; color: #555; margin-top: 1mm; }
+.end { text-align: center; font-size: 10.5pt; font-style: italic; margin: 8mm 0 0; break-before: avoid; }
 .pgbreak { break-before: page; }
 .keypage { break-before: page; }
-.keytitle { font-size: 15pt; font-weight: 700; text-align: center; margin: 0 0 1.5mm; }
-.keymeta { font-size: 10pt; color: #555; text-align: center; margin: 0 0 4mm; }
-table.key { border-collapse: collapse; width: 100%; font-size: 10pt; font-weight: 400; }
-table.key th, table.key td { border: 0.5pt solid #999; padding: 1.5mm 2.5mm; text-align: left; vertical-align: middle; }
-table.key thead th { background: #F5F5F5; font-weight: 600; }
+.keytitle { font-size: 14pt; font-weight: 700; text-align: center; margin: 0 0 1mm; }
+.keymeta { font-size: 10.5pt; color: #555; text-align: center; margin: 0 0 4mm; }
+table.key { border-collapse: collapse; width: 100%; font-size: 11pt; font-weight: 400; }
+table.key th, table.key td { border: 0.75pt solid #000; padding: 1.5mm 2.5mm; text-align: left; vertical-align: middle; }
+table.key thead th { background: #F2F2F2; font-weight: 700; }
 table.key .num { width: 16mm; }
 `;
 
 const PREVIEW_CSS = `
 body { background: #E6E6E6; padding: 0; }
-.paper { background: #fff; width: 210mm; padding: 16mm; margin: 0 auto; min-height: 297mm; box-shadow: 0 2px 18px rgba(0,0,0,0.18); }
+.paper { background: #fff; width: 210mm; padding: 20mm; margin: 0 auto; min-height: 297mm; box-shadow: 0 2px 18px rgba(0,0,0,0.18); }
 .pgbreak, .keypage { break-before: auto; }
 .pgbreak { height: 8mm; }
-.pgbreak + .paper { border-top: 0.5pt dashed #BBB; padding-top: 12mm; }
+.pgbreak + .paper { border-top: 0.5pt dashed #BBB; padding-top: 16mm; }
 .keypage { border-top: 0.5pt dashed #BBB; margin-top: 12mm; padding-top: 12mm; }
 `;
 
@@ -568,7 +601,7 @@ export function preparePaperQuestions(questions: PaperQuestion[], options: Paper
 }
 
 export function paperFooterLeft(meta: PaperMeta): string {
-  const parts = [meta.title?.trim(), meta.subject?.trim()].filter(Boolean);
+  const parts = [meta.subject?.trim(), meta.title?.trim()].filter(Boolean);
   return parts.join(" - ");
 }
 

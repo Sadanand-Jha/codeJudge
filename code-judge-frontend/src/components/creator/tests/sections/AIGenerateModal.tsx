@@ -415,7 +415,7 @@ export function AIGenerateModal({
                               }}
                               className="text-[11px] font-semibold text-rose-500 hover:text-rose-600"
                             >
-                              Try Again
+                              Retry
                             </button>
                             <span className="text-text-muted">or</span>
                             <button
@@ -624,7 +624,7 @@ export function AIGenerateModal({
                         }}
                         className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-4 py-2 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.28)] transition-all hover:shadow-[0_6px_20px_rgba(236,72,153,0.35)]"
                       >
-                        Try Again
+                        Retry
                       </button>
                     </div>
                   </motion.div>

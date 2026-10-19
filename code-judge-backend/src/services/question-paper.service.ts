@@ -34,6 +34,7 @@ import * as cheerio from "cheerio";
 import { chatWithAI } from "./ai.service.js";
 import type { LiveUsage } from "./ai.service.js";
 import { pool as db } from "../config/database.js";
+import { sanitizeQuestionHtml } from "./subjectiveQuestionImport.service.js";
 
 /* ================================================================== */
 /*  Input / output types                                                */
@@ -184,7 +185,8 @@ ABSOLUTE RULES:
 
 OUTPUT SHAPE:
 { "nums": [12, 45, 3] }
-If asked to compose new questions, also include "generated": [{ "question": "...", "difficulty": "easy", "kind": "Theory" }].`;
+If asked to compose new questions, also include "generated": [{ "question": "...", "questionHtml": "...", "difficulty": "easy", "kind": "Theory" }].
+For composed questions, "question" is plain text and "questionHtml" is the same question rendered as clean semantic HTML. If the question contains tabular data, render it as a real <table> in questionHtml — never leave pipe-separated rows or space-aligned columns as plain text. Use only <p>, <ul>, <ol>, <li>, <strong>, <em>, <pre>, <code>, <table>, <thead>, <tbody>, <tr>, <th>, <td> with no attributes or classes.`;
 
 export const generateSubjectiveQuestions = async (
   request: GenerateSubjectiveQuestionsRequest
@@ -459,7 +461,7 @@ ${bankForPrompt}`;
     if (!composedByCell.has(key)) composedByCell.set(key, []);
     composedByCell.get(key)!.push(g);
   }
-  const composedPicked: BankQuestion[] = [];
+  const composedPicked: Array<{ num: number; question: string; questionHtml: string | null; difficulty: string; kind: string }> = [];
   for (const cell of CELLS) {
     const need = aiNeed[cell];
     if (need === 0) continue;
@@ -474,6 +476,7 @@ ${bankForPrompt}`;
       composedPicked.push({
         num: 0,
         question: g.question,
+        questionHtml: g.questionHtml ?? null,
         difficulty: g.difficulty,
         kind: g.kind,
       });
@@ -491,7 +494,7 @@ ${bankForPrompt}`;
     ...composedPicked.map((q) => ({
       num: q.num,
       question: q.question,
-      questionHtml: null,
+      questionHtml: q.questionHtml ?? null,
       difficulty: q.difficulty,
       kind: q.kind,
     })),
@@ -678,12 +681,14 @@ const AttemptRuleInput = z.preprocess(
 
 const GeneratedItemSchema = z.object({
   question: z.string().trim().min(10).max(2000),
+  questionHtml: z.string().max(20_000).nullish(),
   difficulty: z.string(),
   kind: z.string(),
 });
 
 export interface ComposedQuestion {
   question: string;
+  questionHtml?: string | null;
   difficulty: "easy" | "medium" | "hard";
   kind: "Theory" | "Numerical";
 }
@@ -698,13 +703,23 @@ const normKind = (v: string): "Theory" | "Numerical" | null => {
   return t === "theory" ? "Theory" : t === "numerical" ? "Numerical" : null;
 };
 
-const normalizeComposed = (items: Array<{ question: string; difficulty: string; kind: string }>): ComposedQuestion[] =>
+const normalizeComposed = (
+  items: Array<{ question: string; questionHtml?: string | null; difficulty: string; kind: string }>
+): ComposedQuestion[] =>
   items
-    .map((g) => {
+    .map((g): ComposedQuestion | null => {
       const difficulty = normDifficulty(g.difficulty);
       const kind = normKind(g.kind);
       if (!difficulty || !kind) return null;
-      return { question: g.question, difficulty, kind };
+      let questionHtml: string | null = null;
+      if (g.questionHtml?.trim()) {
+        try {
+          questionHtml = sanitizeQuestionHtml(g.questionHtml).html || null;
+        } catch {
+          questionHtml = null;
+        }
+      }
+      return { question: g.question, questionHtml, difficulty, kind };
     })
     .filter((g): g is ComposedQuestion => g !== null);
 

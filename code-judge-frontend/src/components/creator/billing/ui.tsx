@@ -1,11 +1,10 @@
 "use client";
 
 import type { ReactNode, ButtonHTMLAttributes } from "react";
-import { useState, useRef, useEffect, useId } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowDownRight, ArrowUpRight, CalendarDays, ChevronDown, Lock, RotateCcw, Inbox, X } from "lucide-react";
-import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 
 /* ============================================================
@@ -55,16 +54,11 @@ interface BillButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const buttonStyles: Record<ButtonVariant, string> = {
-  primary:
-    "bg-[var(--qs-brand)] text-[var(--qs-on-brand)] font-bold hover:brightness-110 shadow-[0_2px_10px_rgba(106,61,240,0.22)]",
-  ghost:
-    "border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] font-semibold hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]",
-  outline:
-    "border border-[var(--qs-brand)]/30 bg-[var(--qs-brand)]/[0.07] text-[var(--qs-brand)] font-semibold hover:bg-[var(--qs-brand)]/15 hover:border-[var(--qs-brand)]/45",
-  danger:
-    "border border-[var(--qs-bad)]/25 bg-[var(--qs-bad)]/[0.07] text-[var(--qs-bad)] font-semibold hover:bg-[var(--qs-bad)]/15",
-  subtle:
-    "bg-transparent text-[var(--qs-muted)] font-medium hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]",
+  primary: "b-pri",
+  ghost: "",
+  outline: "border-[var(--qs-brand)]/40 text-[var(--qs-brand)]",
+  danger: "b-danger",
+  subtle: "b-ghost",
 };
 
 export function BillButton({
@@ -77,26 +71,22 @@ export function BillButton({
   disabled,
   ...rest
 }: BillButtonProps) {
-  const cls = cn(
-    "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-[13px] transition-all duration-200 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100",
-    buttonStyles[variant],
-    className
-  );
+  const cls = cn("b", buttonStyles[variant], loading && "loading", className);
   const content = (
     <>
-      {loading ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : icon}
+      {!loading && icon}
       {children}
     </>
   );
   if (href) {
     return (
-      <Link href={href} className={cls} aria-disabled={disabled}>
+      <Link href={href} className={cls} aria-disabled={disabled} aria-busy={loading || undefined}>
         {content}
       </Link>
     );
   }
   return (
-    <button disabled={disabled || loading} className={cls} {...rest}>
+    <button disabled={disabled || loading} aria-busy={loading || undefined} className={cls} {...rest}>
       {content}
     </button>
   );
@@ -125,9 +115,8 @@ export function IconButton({
       title={label}
       onClick={onClick}
       className={cn(
-        "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-all duration-150",
-        "hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-ink)] focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40 outline-none",
-        active && "border-[var(--qs-brand)]/40 text-[var(--qs-brand)]",
+        "b b-icon sm",
+        active && "border-[var(--qs-brand)] text-[var(--qs-brand)]",
         className
       )}
     >
@@ -336,28 +325,25 @@ export function SegmentedControl<T extends string>({
   size?: "sm" | "md";
   className?: string;
 }) {
-  const layoutId = useId();
   return (
-    <div className={cn("flex max-w-full items-center gap-0.5 overflow-x-auto rounded-xl border border-[var(--qs-line)] bg-[var(--qs-line)]/30 p-0.5 hide-scrollbar sm:inline-flex", className)}>
+    <div
+      role="radiogroup"
+      className={cn("b-seg hide-scrollbar max-w-full overflow-x-auto", className)}
+    >
       {options.map((opt) => (
         <button
           key={opt.id}
           type="button"
+          role="radio"
+          aria-checked={value === opt.id}
           onClick={() => onChange(opt.id)}
           className={cn(
-            "relative shrink-0 rounded-lg font-semibold transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/25",
-            size === "sm" ? "px-2.5 py-1 text-[11px]" : "px-3.5 py-1.5 text-xs",
-            value === opt.id ? "text-[var(--qs-ink)]" : "text-[var(--qs-muted)] hover:text-[var(--qs-brand)]"
+            "b",
+            size === "sm" ? "sm" : "",
+            value === opt.id ? "text-[var(--qs-bg)]" : "text-[var(--qs-muted)]"
           )}
         >
-          {value === opt.id && (
-            <motion.span
-              layoutId={layoutId}
-              className="absolute inset-0 rounded-lg bg-[var(--qs-surface)] shadow-[0_1px_2px_rgba(26,18,64,0.08)] ring-1 ring-[var(--qs-line)]"
-              transition={{ type: "spring", stiffness: 500, damping: 35 }}
-            />
-          )}
-          <span className="relative z-10">{opt.label}</span>
+          {opt.label}
         </button>
       ))}
     </div>
@@ -557,7 +543,7 @@ export function ErrorState({ onRetry, message }: { onRetry?: () => void; message
         <button
           type="button"
           onClick={onRetry}
-          className="mt-6 inline-flex items-center gap-2 rounded-xl border border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 text-[13px] font-semibold text-[var(--qs-ink)] transition-all hover:border-[var(--qs-brand)]/40 hover:text-[var(--qs-brand)]"
+          className="b sm mt-6"
         >
           <RotateCcw className="h-3.5 w-3.5" />
           Retry

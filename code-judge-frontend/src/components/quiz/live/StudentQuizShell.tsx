@@ -134,7 +134,7 @@ export function QuizPrimaryButton({
   children: React.ReactNode;
   className?: string;
 }) {
-  const cls = cn("qs-btn gap-1.5 px-5 py-3 text-sm", className);
+  const cls = cn("b b-pri", className);
   if (href && !disabled) {
     return <Link href={href} className={cls}>{children}</Link>;
   }

@@ -911,7 +911,7 @@ export function CreateProblemGenerator() {
                 size="lg"
                 label={status === "generating" ? "Generating…" : "Generate Questions"}
                 onClick={() => void handleGenerate()}
-                disabled={!canGenerate || status === "generating"}
+                disabled={!canGenerate}
                 fullWidth
                 className="whitespace-nowrap rounded-[14px] px-6 py-4 text-base lg:w-auto lg:self-center"
               />
@@ -1100,7 +1100,7 @@ export function CreateProblemGenerator() {
                     size="sm"
                     label="Regenerate all"
                     onClick={() => void handleGenerate()}
-                    disabled={!canGenerate || status === "generating"}
+                    disabled={!canGenerate}
                     className="rounded-[10px] px-3 py-1.5 text-[13px]"
                   />
                   <div className="flex items-center rounded-[10px] border-2 border-[var(--qs-muted)] p-0.5">

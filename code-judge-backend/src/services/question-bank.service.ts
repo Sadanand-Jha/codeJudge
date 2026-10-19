@@ -46,7 +46,7 @@ const SYSTEM_PROMPT = `You are an expert academic assessment author. You write o
 
 ### Question quality
 * Each question must test one clear concept and have exactly ONE correct option.
-* Provide exactly 4 options (A-D) with plausible distractors.
+* Provide exactly 4 options (A-D) with plausible, DISTINCT distractors. Never repeat an option or use two options with the same numeric value. Never reuse the correct answer as a distractor.
 * Vary the correct-option position across questions; do not always put it first.
 * Cover distinct concepts and avoid repeating the same idea with different wording.
 * Prefer understanding, application and analysis over trivial recall where the difficulty allows.
@@ -115,9 +115,17 @@ function normalizeQuestion(
   const question = String(raw.question ?? "").replace(/\s+/g, " ").trim();
   if (!question) return null;
 
+  const seenOptions = new Set<string>();
   const options = (raw.options ?? [])
     .map((option) => String(option).replace(OPTION_LABEL_PATTERN, "").replace(/\s+/g, " ").trim())
-    .filter(Boolean);
+    .filter((option) => {
+      if (!option) return false;
+      const numeric = Number(option);
+      const key = Number.isFinite(numeric) ? `n:${numeric}` : `t:${option.toLocaleLowerCase()}`;
+      if (seenOptions.has(key)) return false;
+      seenOptions.add(key);
+      return true;
+    });
   if (options.length !== 4) return null;
 
   const candidateAnswer = String(raw.answer ?? raw.correctAnswer ?? "").trim();
@@ -187,7 +195,7 @@ function enforceDistribution(
  * Persistence is best-effort: a bank write failure must never discard a
  * generation the creator has already paid credits for.
  */
-async function persistGeneratedQuestions(
+export async function persistGeneratedQuestions(
   questions: GeneratedQuestionPayload[],
   scope: {
     quizId: number | null;
@@ -195,6 +203,10 @@ async function persistGeneratedQuestions(
     subjectId: number;
     chapterId: number | null;
     topicId: number | null;
+    /** "ai_topic" for topic generation, "ai_material" for uploaded material. */
+    source?: string;
+    /** User ownership window before the row moves to the system bank. */
+    ownershipDays?: number;
   }
 ): Promise<void> {
   if (questions.length === 0) return;
@@ -214,11 +226,12 @@ async function persistGeneratedQuestions(
            quiz_id, created_by, owner_user_id, owner_type,
            subject_id, chapter_id, topic_id,
            question_type, question_text, question_html, options, answers,
-           explanation, hint, difficulty, source
+           explanation, hint, difficulty, source, ownership_expires_at
          ) VALUES (
            $1,$2,$2,
            CASE WHEN $2::int IS NULL THEN 'system' ELSE 'user' END,
-           $3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12,$13,'ai_topic'
+           $3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12,$13,
+           $14, NOW() + make_interval(days => $15::int)
          )`,
         [
           scope.quizId,
@@ -234,6 +247,8 @@ async function persistGeneratedQuestions(
           question.explanation ?? null,
           question.hint ?? null,
           question.difficulty ?? null,
+          scope.source ?? "ai_topic",
+          scope.ownershipDays ?? 7,
         ]
       );
     }
@@ -280,11 +295,11 @@ export async function persistGeneratedProblems(
            quiz_id, created_by, owner_user_id, owner_type,
            subject_id, chapter_id, topic_id,
            question_type, question_text, question_html, options, answers,
-           explanation, hint, difficulty, source
+           explanation, hint, difficulty, source, ownership_expires_at
          ) VALUES (
            NULL,$1,$1,'user',
            $2,$3,$4,'subjective',$5,$6,'[]'::jsonb,'[]'::jsonb,
-           NULL,NULL,$7,'ai_problem_generator'
+           NULL,NULL,$7,'ai_problem_generator', NOW() + INTERVAL '7 days'
          )`,
         [
           scope.createdBy,
@@ -511,6 +526,8 @@ Do not return fewer than ${numberOfQuestions} questions. Each question must be u
       subjectId,
       chapterId,
       topicId,
+      source: "ai_topic",
+      ownershipDays: 7,
     });
 
     return {
