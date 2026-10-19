@@ -9,25 +9,110 @@ import GuestGuard from "@/components/guards/GuestGuard";
 import YourActivitySection from "@/components/quiz/live/YourActivitySection";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
 import QuizCodeForm from "@/components/marketing/QuizCodeForm";
-import SampleQuizDemo, { type SampleQuizQuestion } from "@/components/marketing/SampleQuizDemo";
+import SampleQuizDemo, { type SampleQuizSet } from "@/components/marketing/SampleQuizDemo";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
 
-const QUIZ_HUB_SAMPLE_QUESTIONS: SampleQuizQuestion[] = [
+const QUIZ_HUB_SAMPLE_SETS: SampleQuizSet[] = [
   {
-    q: "Which data structure follows Last-In-First-Out (LIFO) order?",
-    o: ["Queue", "Stack", "Linked list", "Binary tree"],
-    a: 1,
+    subject: "Artificial Intelligence",
+    questions: [
+      {
+        q: "Which search strategy does A* use to find the shortest path?",
+        o: ["Breadth-first search", "Best-first search with an admissible heuristic", "Depth-first search", "Random search"],
+        a: 1,
+      },
+      {
+        q: "What does the ReLU activation function output for a negative input?",
+        o: ["The input itself", "Zero", "One", "Infinity"],
+        a: 1,
+      },
+      {
+        q: "In supervised learning, what does a label represent?",
+        o: ["Input features", "The expected output", "A model weight", "A learning rate"],
+        a: 1,
+      },
+    ],
   },
   {
-    q: "What is the time complexity of binary search on a sorted array?",
-    o: ["O(n)", "O(n log n)", "O(log n)", "O(1)"],
-    a: 2,
+    subject: "Operating Systems",
+    questions: [
+      {
+        q: "Which scheduling algorithm can starve long-running jobs?",
+        o: ["First Come First Serve", "Shortest Job First", "Round Robin", "FIFO"],
+        a: 1,
+      },
+      {
+        q: "What is thrashing in an operating system?",
+        o: ["High CPU utilization", "Excessive paging that slows the system", "A deadlock in the kernel", "A type of file system"],
+        a: 1,
+      },
+      {
+        q: "Which condition is NOT required for a deadlock?",
+        o: ["Mutual exclusion", "Hold and wait", "Preemption", "Circular wait"],
+        a: 2,
+      },
+    ],
   },
   {
-    q: "Which of these is a primitive type in JavaScript?",
-    o: ["Array", "Object", "Symbol", "Function"],
-    a: 2,
+    subject: "Data Structures",
+    questions: [
+      {
+        q: "Which data structure follows Last-In-First-Out (LIFO) order?",
+        o: ["Queue", "Stack", "Linked list", "Binary tree"],
+        a: 1,
+      },
+      {
+        q: "What is the time complexity of binary search on a sorted array?",
+        o: ["O(n)", "O(n log n)", "O(log n)", "O(1)"],
+        a: 2,
+      },
+      {
+        q: "Which traversal of a binary search tree yields sorted order?",
+        o: ["Pre-order", "In-order", "Post-order", "Level-order"],
+        a: 1,
+      },
+    ],
+  },
+  {
+    subject: "Python",
+    questions: [
+      {
+        q: "Which keyword creates an anonymous function in Python?",
+        o: ["def", "lambda", "func", "anon"],
+        a: 1,
+      },
+      {
+        q: "What is the output type of len('quiz') in Python?",
+        o: ["str", "int", "float", "bool"],
+        a: 1,
+      },
+      {
+        q: "Which data type is immutable in Python?",
+        o: ["list", "dict", "set", "tuple"],
+        a: 3,
+      },
+    ],
+  },
+  {
+    subject: "Software Engineering",
+    questions: [
+      {
+        q: "Which SDLC model is best suited for changing requirements?",
+        o: ["Waterfall", "Agile", "V-Model", "Big Bang"],
+        a: 1,
+      },
+      {
+        q: "What does unit testing verify?",
+        o: ["The whole system", "A single component in isolation", "User acceptance", "Deployment scripts"],
+        a: 1,
+      },
+      {
+        q: "Which metric measures how much of the code is exercised by tests?",
+        o: ["Code coverage", "Latency", "Throughput", "Uptime"],
+        a: 0,
+      },
+    ],
   },
 ];
 
@@ -473,7 +558,7 @@ function QuizHome() {
                 </p>
               </div>
               <div className="hidden md:block">
-                <SampleQuizDemo questions={QUIZ_HUB_SAMPLE_QUESTIONS} label="Sample live quiz" />
+                <SampleQuizDemo sets={QUIZ_HUB_SAMPLE_SETS} label="Sample live quiz" />
               </div>
             </header>
 

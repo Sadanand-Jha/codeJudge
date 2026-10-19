@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/helpers";
 
 export interface SampleQuizQuestion {
@@ -35,104 +35,156 @@ const SAMPLE_QUESTIONS: SampleQuizQuestion[] = [
 ];
 
 interface SampleQuizDemoProps {
+  sets?: SampleQuizSet[];
   questions?: SampleQuizQuestion[];
   label?: string;
 }
 
-export default function SampleQuizDemo({ questions = SAMPLE_QUESTIONS, label = "Sample quiz" }: SampleQuizDemoProps) {
-  const [index, setIndex] = useState(0);
+const ROTATE_MS = 6000;
+
+export default function SampleQuizDemo({ sets, questions = SAMPLE_QUESTIONS, label = "Sample quiz" }: SampleQuizDemoProps) {
+  const quizSets = useMemo<SampleQuizSet[]>(
+    () => (sets && sets.length > 0 ? sets : [{ subject: "", questions }]),
+    [sets, questions]
+  );
+
+  const [setIndex, setSetIndex] = useState(0);
+  const [index, setQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
+  const [paused, setPaused] = useState(false);
+  const [answered, setAnswered] = useState(false);
 
-  const finished = index >= questions.length;
-  const question = questions[index];
+  const activeSet = quizSets[setIndex % quizSets.length];
+  const activeQuestions = activeSet.questions;
+  const finished = index >= activeQuestions.length;
+  const question = activeQuestions[index];
+  const canRotate = quizSets.length > 1 && !paused && !answered && !finished;
+
+  useEffect(() => {
+    if (!canRotate) return;
+    const timer = window.setInterval(() => {
+      setSetIndex((current) => (current + 1) % quizSets.length);
+      setQuestionIndex(0);
+      setScore(0);
+      setPicked(null);
+      setAnswered(false);
+    }, ROTATE_MS);
+    return () => window.clearInterval(timer);
+  }, [canRotate, quizSets.length]);
 
   const pick = (option: number) => {
     if (picked !== null) return;
     setPicked(option);
+    setAnswered(true);
     if (option === question.a) setScore((current) => current + 1);
   };
 
   const next = () => {
-    setIndex((current) => current + 1);
+    setQuestionIndex((current) => current + 1);
     setPicked(null);
   };
 
   const restart = () => {
-    setIndex(0);
+    if (quizSets.length > 1) {
+      setSetIndex((current) => (current + 1) % quizSets.length);
+    }
+    setQuestionIndex(0);
     setScore(0);
     setPicked(null);
+    setAnswered(false);
   };
 
+  const displayLabel = activeSet.subject ? `${label} · ${activeSet.subject}` : label;
+
   return (
-    <div className="qs-shadow" aria-label="Try a sample quiz">
+    <div
+      className="qs-shadow"
+      aria-label="Try a sample quiz"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
+      }}
+    >
       <div className="qs-card">
-        {finished ? (
-          <div className="px-1 py-3 text-center">
-            <p className="qs-display text-[64px] leading-none text-[var(--qs-brand)]">
-              {score}/{questions.length}
-            </p>
-            <p className="mx-auto mt-2.5 max-w-xs text-[15px] text-[var(--qs-muted)]">
-              That&rsquo;s the player experience. Your own quiz works the same way.
-            </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
-              <Link href="/creator/quizzes/create" className="qs-btn px-5 py-3 text-[15px]">
-                Create a quiz
-              </Link>
-              <button type="button" className="qs-btn qs-btn-ghost px-5 py-3 text-[15px]" onClick={restart}>
-                Try again
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="qs-meta">
-              <span>{label}</span>
-              <span>
-                Question {index + 1} of {questions.length}
-              </span>
-            </div>
-            <div className="qs-bar mb-5">
-              <b style={{ width: `${(index / questions.length) * 100}%` }} />
-            </div>
-            <h3 className="text-[25px] leading-[1.15]">{question.q}</h3>
-            <div className="mt-4 grid gap-2.5">
-              {question.o.map((option, optionIndex) => {
-                const isAnswer = optionIndex === question.a;
-                const isPicked = optionIndex === picked;
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    className={cn(
-                      "qs-opt",
-                      picked !== null && isAnswer && "qs-opt-ok",
-                      picked !== null && isPicked && !isAnswer && "qs-opt-bad"
-                    )}
-                    disabled={picked !== null}
-                    onClick={() => pick(optionIndex)}
-                  >
-                    <span className="min-w-0 text-left">{option}</span>
-                    {picked !== null && isAnswer && <span className="shrink-0">Correct</span>}
-                    {picked !== null && isPicked && !isAnswer && <span className="shrink-0">Not quite</span>}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={`${setIndex}-${index}-${finished ? "done" : "play"}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            {finished ? (
+              <div className="px-1 py-3 text-center">
+                <p className="qs-display text-[64px] leading-none text-[var(--qs-brand)]">
+                  {score}/{activeQuestions.length}
+                </p>
+                <p className="mx-auto mt-2.5 max-w-xs text-[15px] text-[var(--qs-muted)]">
+                  That&rsquo;s the player experience. Your own quiz works the same way.
+                </p>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+                  <Link href="/creator/quizzes/create" className="qs-btn px-5 py-3 text-[15px]">
+                    Create a quiz
+                  </Link>
+                  <button type="button" className="qs-btn qs-btn-ghost px-5 py-3 text-[15px]" onClick={restart}>
+                    {quizSets.length > 1 ? "Try another subject" : "Try again"}
                   </button>
-                );
-              })}
-            </div>
-            <div className="mt-4 flex min-h-[46px] items-center justify-between gap-3 text-[15px] text-[var(--qs-muted)]" aria-live="polite">
-              {picked === null ? (
-                <span>Pick an answer</span>
-              ) : (
-                <>
-                  <span>{picked === question.a ? "Nice, that\u2019s right." : "The answer is highlighted."}</span>
-                  <button type="button" className="qs-btn px-[18px] py-[11px] text-[15px]" onClick={next}>
-                    {index === questions.length - 1 ? "See score" : "Next question"}
-                  </button>
-                </>
-              )}
-            </div>
-          </>
-        )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="qs-meta">
+                  <span>{displayLabel}</span>
+                  <span>
+                    Question {index + 1} of {activeQuestions.length}
+                  </span>
+                </div>
+                <div className="qs-bar mb-5">
+                  <b style={{ width: `${(index / activeQuestions.length) * 100}%` }} />
+                </div>
+                <h3 className="text-[25px] leading-[1.15]">{question.q}</h3>
+                <div className="mt-4 grid gap-2.5">
+                  {question.o.map((option, optionIndex) => {
+                    const isAnswer = optionIndex === question.a;
+                    const isPicked = optionIndex === picked;
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        className={cn(
+                          "qs-opt",
+                          picked !== null && isAnswer && "qs-opt-ok",
+                          picked !== null && isPicked && !isAnswer && "qs-opt-bad"
+                        )}
+                        disabled={picked !== null}
+                        onClick={() => pick(optionIndex)}
+                      >
+                        <span className="min-w-0 text-left">{option}</span>
+                        {picked !== null && isAnswer && <span className="shrink-0">Correct</span>}
+                        {picked !== null && isPicked && !isAnswer && <span className="shrink-0">Not quite</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-4 flex min-h-[46px] items-center justify-between gap-3 text-[15px] text-[var(--qs-muted)]" aria-live="polite">
+                  {picked === null ? (
+                    <span>Pick an answer</span>
+                  ) : (
+                    <>
+                      <span>{picked === question.a ? "Nice, that\u2019s right." : "The answer is highlighted."}</span>
+                      <button type="button" className="qs-btn px-[18px] py-[11px] text-[15px]" onClick={next}>
+                        {index === activeQuestions.length - 1 ? "See score" : "Next question"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
