@@ -512,9 +512,23 @@ const instructionLines = (total: number, attempt: number, hasChoice: boolean) =>
   "Write your answers in the answer book.",
 ];
 
-const drawInstructions = (state: PdfState, total: number, attempt: number, hasChoice: boolean) => {
+/** Split the teacher's custom instructions into numbered items. */
+const customInstructionItems = (value?: string) =>
+  (value ?? "")
+    .split("\n")
+    .map((line) => line.replace(/^\s*(?:\d+\s*[.):-]\s*|[-•*]\s*)/, "").trim())
+    .filter(Boolean);
+
+const drawInstructions = (
+  state: PdfState,
+  total: number,
+  attempt: number,
+  hasChoice: boolean,
+  custom?: string
+) => {
   const { doc } = state;
-  const items = instructionLines(total, attempt, hasChoice);
+  const customItems = customInstructionItems(custom);
+  const items = customItems.length ? customItems : instructionLines(total, attempt, hasChoice);
   const lines: Array<{ text: string; indent: boolean }> = [];
   items.forEach((item, index) => {
     const prefix = `${index + 1}. `;
@@ -697,12 +711,14 @@ async function renderPaperPdf({
   totalQuestions,
   attemptQuestions,
   hasChoice,
+  customInstructions,
 }: {
   header: PaperHeaderMeta;
   sections: PdfSectionInput[];
   totalQuestions: number;
   attemptQuestions: number;
   hasChoice: boolean;
+  customInstructions?: string;
 }): Promise<void> {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const logo = await loadBrandLogo();
@@ -717,7 +733,7 @@ async function renderPaperPdf({
   const state: PdfState = { doc, y: MARGIN, header, logo };
 
   drawHeader(state, maxMarks);
-  drawInstructions(state, totalQuestions, attemptQuestions, hasChoice);
+  drawInstructions(state, totalQuestions, attemptQuestions, hasChoice, customInstructions);
 
   let questionNumber = 0;
   sections.forEach((section) => {
@@ -795,6 +811,7 @@ export async function downloadQuestionsPdf({
     totalQuestions: questions.length,
     attemptQuestions: questions.length,
     hasChoice: false,
+    customInstructions: resolved.instructions,
   });
 }
 
@@ -868,6 +885,7 @@ export async function downloadPaperPdf({
     totalQuestions: allQuestions.length,
     attemptQuestions,
     hasChoice: sections.some((section) => section.groups.some((group) => Boolean(group.attempt))),
+    customInstructions: resolved.instructions.trim() || paper.instructions,
   });
 }
 
@@ -894,10 +912,13 @@ export async function downloadQuestionsDocx({
     (question) => question.marks ?? marksForDifficulty(resolved, question.difficulty)
   );
   const totalMarks = marks.reduce((total, value) => total + value, 0);
+  const customItems = customInstructionItems(resolved.instructions);
 
   const paper: QuestionPaper = {
     title: resolved.heading,
-    instructions: "All questions are compulsory. Figures in square brackets on the right indicate marks.",
+    instructions: customItems.length
+      ? customItems.join(" ")
+      : "All questions are compulsory. Figures in square brackets on the right indicate marks.",
     syllabus: "",
     sections: [
       {

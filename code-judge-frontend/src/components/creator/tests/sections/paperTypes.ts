@@ -49,6 +49,7 @@ export interface QuestionPaper {
     easyMarks?: number;
     mediumMarks?: number;
     hardMarks?: number;
+    instructions?: string;
     /** @deprecated replaced by per-difficulty marks */
     marksPerQuestion?: number;
   };

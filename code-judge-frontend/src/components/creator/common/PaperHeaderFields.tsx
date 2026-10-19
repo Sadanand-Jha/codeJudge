@@ -200,6 +200,20 @@ export function PaperHeaderFields({
         </div>
       )}
 
+      <Field
+        label="General instructions"
+        hint="One instruction per line — they get numbered automatically. Leave blank to use the default instructions."
+      >
+        <textarea
+          value={value.instructions}
+          onChange={(event) => patch({ instructions: event.target.value })}
+          placeholder={"All questions are compulsory.\nFigures in square brackets on the right indicate marks.\nWrite your answers in the answer book."}
+          disabled={disabled}
+          rows={3}
+          className={cn(inputClass, "h-auto min-h-[86px] resize-y py-2.5 leading-relaxed")}
+        />
+      </Field>
+
       <label className="flex cursor-pointer items-start gap-3 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 py-3 transition-colors hover:border-[var(--qs-brand)]">
         <input
           type="checkbox"

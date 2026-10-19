@@ -10,6 +10,8 @@ export interface PaperHeaderMeta {
   easyMarks: number;
   mediumMarks: number;
   hardMarks: number;
+  /** One instruction per line; empty means the default instructions are used. */
+  instructions: string;
 }
 
 export const DEFAULT_PAPER_HEADER: PaperHeaderMeta = {
@@ -24,6 +26,7 @@ export const DEFAULT_PAPER_HEADER: PaperHeaderMeta = {
   easyMarks: 2,
   mediumMarks: 5,
   hardMarks: 10,
+  instructions: "",
 };
 
 export const PAPER_HEADING_PRESETS = [
@@ -41,6 +44,7 @@ export function withPaperHeaderDefaults(meta?: Partial<PaperHeaderMeta>): PaperH
     easyMarks: Number.isFinite(merged.easyMarks) ? merged.easyMarks : DEFAULT_PAPER_HEADER.easyMarks,
     mediumMarks: Number.isFinite(merged.mediumMarks) ? merged.mediumMarks : DEFAULT_PAPER_HEADER.mediumMarks,
     hardMarks: Number.isFinite(merged.hardMarks) ? merged.hardMarks : DEFAULT_PAPER_HEADER.hardMarks,
+    instructions: typeof merged.instructions === "string" ? merged.instructions : "",
   };
 }
 
