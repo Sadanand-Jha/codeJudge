@@ -15,7 +15,7 @@ import { isTransientDatabaseError, withTransientDatabaseRetry } from '../config/
 
 const OTP_TTL_SECONDS = 5 * 60; // 5 minutes — OTP validity
 const OTP_RESEND_COOLDOWN_SECONDS = 60; // 60 seconds — resend cooldown (must match frontend countdown)
-const REGISTRATION_TOKEN_TTL_SECONDS = 15 * 60; // 15 minutes
+const AUTH_TOKEN_TTL_SECONDS = 30 * 60; // 30 minutes — registration + password-reset tokens
 const OTP_MAX_REQUESTS = 4; // Max OTP requests per email per 5-min window
 const OTP_REQUEST_WINDOW_SECONDS = 2 * 60; // 2-minute window for rate limiting
 const OTP_MAX_REQUESTS_2HR = 7; // Max OTP requests per email per 2 hours
@@ -115,11 +115,11 @@ async function deleteCachedOtp(email: string): Promise<void> {
 // --- Registration Token Cache Operations ---
 
 /**
- * Stores registration token in Redis with 15-minute TTL
+ * Stores registration token in Redis with 30-minute TTL
  */
 async function cacheRegistrationToken(token: string, email: string): Promise<void> {
   const key = `reg_token:${token}`;
-  await redisClient.setEx(key, REGISTRATION_TOKEN_TTL_SECONDS, email.toLowerCase());
+  await redisClient.setEx(key, AUTH_TOKEN_TTL_SECONDS, email.toLowerCase());
 }
 
 /**
@@ -732,7 +732,7 @@ async function deleteCachedResetOtp(email: string): Promise<void> {
 
 async function cacheResetToken(token: string, email: string): Promise<void> {
   const key = `pwdreset_token:${token}`;
-  await redisClient.setEx(key, REGISTRATION_TOKEN_TTL_SECONDS, email.toLowerCase());
+  await redisClient.setEx(key, AUTH_TOKEN_TTL_SECONDS, email.toLowerCase());
 }
 
 async function getCachedResetToken(token: string): Promise<string | null> {

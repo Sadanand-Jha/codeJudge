@@ -117,6 +117,8 @@ export interface GenerateQuestionsPayload {
   topicId?: number | null;
   chapterIds?: number[];
   topicIds?: number[];
+  /** Persist the generated problems to the creator's question bank. */
+  saveToBank?: boolean;
 }
 
 export interface GenerateQuestionsResponse {

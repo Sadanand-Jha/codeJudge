@@ -95,6 +95,7 @@ export function SetupStep() {
                   label={c.label}
                   desc={c.desc}
                   selected={choice === c.id}
+                  ai={c.id === "ai"}
                   onClick={() => {
                     if (c.id === "ai") {
                       router.push("/creator/quizzes/ai-generate");
@@ -342,12 +343,14 @@ function ChoiceCard({
   label,
   desc,
   selected,
+  ai = false,
   onClick,
 }: {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string;
   desc: string;
   selected: boolean;
+  ai?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -355,25 +358,37 @@ function ChoiceCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative flex items-start gap-4 rounded-[18px] border-2 p-5 text-left transition-colors",
-        selected
-          ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
-          : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
+        "relative flex items-start gap-4 overflow-hidden rounded-[18px] border-2 p-5 text-left transition-colors",
+        ai
+          ? "border-[var(--qs-ink)] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 text-white shadow-[4px_4px_0_var(--qs-sun)]"
+          : selected
+            ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
+            : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
       )}
     >
+      {ai && (
+        <span
+          aria-hidden="true"
+          className="qs-ai-shimmer pointer-events-none absolute inset-y-0 left-0 w-14 -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+        />
+      )}
       <span
         className={cn(
           "flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border-2",
-          selected ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-white" : "border-[var(--qs-line)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]"
+          ai
+            ? "border-white/40 bg-white/15 text-white"
+            : selected
+              ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-white"
+              : "border-[var(--qs-line)] bg-[var(--qs-poly-1)] text-[var(--qs-brand)]"
         )}
       >
         <Icon className="h-5 w-5" />
       </span>
       <span className="flex min-w-0 flex-col gap-1">
-        <span className="text-base font-extrabold text-[var(--qs-ink)]">
+        <span className={cn("text-base font-extrabold", ai ? "text-white" : "text-[var(--qs-ink)]")}>
           {label.toLowerCase().includes("ai") ? <AiStreamText text={label} /> : label}
         </span>
-        <span className="text-sm font-medium leading-snug text-[var(--qs-muted)]">
+        <span className={cn("text-sm font-medium leading-snug", ai ? "text-white/85" : "text-[var(--qs-muted)]")}>
           {desc}
         </span>
       </span>

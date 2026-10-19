@@ -20,6 +20,7 @@ import { cn } from "@/lib/helpers";
 import { formatDate, formatDateTimeIST, IST_TIMEZONE, timeAgo } from "@/lib/formatters";
 import { useData } from "@/lib/hooks/useData";
 import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
+import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { TimingModal } from "@/components/creator/dashboard/TimingModal";
 import { ErrorState, Skeleton } from "@/components/creator/billing/ui";
 import { checkLowCreditWarning, useAICreditsStore } from "@/store/aiCreditsStore";
@@ -324,10 +325,7 @@ function OnboardingCard() {
           <Plus className="h-4 w-4" />
           Create quiz
         </Link>
-        <Link href="/creator/quizzes/ai-generate" className={BTN}>
-          <Sparkles className="h-4 w-4" />
-          Generate with AI
-        </Link>
+        <AiGenerateButton href="/creator/quizzes/ai-generate" size="md" label="Generate with AI" />
       </div>
     </article>
   );

@@ -28,7 +28,7 @@ import { QUIZ_EXTRACTION_GUIDE } from "../services/question-generation.service.j
 import type { GeneratedQuestionPayload } from "../services/question-generation.service.js";
 import { extractFileText } from "../services/question-generation.service.js";
 import { isDoclingAvailable } from "../services/docling-extract.service.js";
-import { generateFromQuestionBank } from "../services/question-bank.service.js";
+import { generateFromQuestionBank, listUserQuestionBank } from "../services/question-bank.service.js";
 
 /**
  * Best-effort user id for operational logging. The AI endpoints are not
@@ -250,7 +250,7 @@ export const generateQuestionsFromUpload = async (req: Request, res: Response) =
 /**
  * POST /api/v1/user/ai/generate-from-bank
  *
- * JSON body. Balanced selection from the filtered database question bank.
+ * JSON body. Topic-scoped AI generation of fresh MCQs (no file bank).
  * Returns: { success: true, data: { questions, extractedText, usage } }
  */
 export const generateFromQuestionBankHandler = async (req: Request, res: Response) => {
@@ -265,6 +265,8 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
     const chapterId = req.body.chapterId != null && req.body.chapterId !== "" ? Number(req.body.chapterId) : null;
     const topicId = req.body.topicId != null && req.body.topicId !== "" ? Number(req.body.topicId) : null;
     const kind = typeof req.body.kind === "string" ? req.body.kind : "any";
+    const quizId = req.body.quizId != null && req.body.quizId !== "" ? Number(req.body.quizId) : null;
+    const createdBy = req.user?.userId ? Number(req.user.userId) : null;
 
     // validate counts sum if all provided
     if (easyCount != null && mediumCount != null && hardCount != null) {
@@ -288,6 +290,8 @@ export const generateFromQuestionBankHandler = async (req: Request, res: Respons
       chapterId,
       topicId,
       kind,
+      quizId,
+      createdBy,
     });
 
     return res.status(200).json({ success: true, data: result });
@@ -428,5 +432,26 @@ export const chat = async (req: Request, res: Response) => {
       res.end();
     }
     res.off("close", onClientClose);
+  }
+};
+
+/**
+ * GET /api/v1/user/ai/question-bank
+ *
+ * The creator's active question-bank rows. User-owned questions are shown for
+ * 7 days, after which they are transferred to the system bank and no longer
+ * returned here.
+ */
+export const getMyQuestionBank = async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.user?.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+    const questions = await listUserQuestionBank(userId);
+    return res.status(200).json({ success: true, data: { questions } });
+  } catch (error) {
+    console.error("[question-bank] listing failed:", error);
+    return res.status(500).json({ success: false, message: "Unable to load your question bank." });
   }
 };

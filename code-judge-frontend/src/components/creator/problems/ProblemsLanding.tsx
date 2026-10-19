@@ -27,6 +27,7 @@ interface CreateOption {
   description: string;
   href: string;
   icon: LucideIcon;
+  ai?: boolean;
 }
 
 const CREATE_OPTIONS: CreateOption[] = [
@@ -41,6 +42,7 @@ const CREATE_OPTIONS: CreateOption[] = [
     description: "Let AI draft questions from your syllabus or an uploaded document.",
     href: "/creator/problems/create",
     icon: Sparkles,
+    ai: true,
   },
 ];
 
@@ -157,20 +159,53 @@ export function ProblemsLanding() {
                         >
                           <Link
                             href={option.href}
-                            className="group flex h-full items-center gap-3.5 rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--qs-ink)] hover:shadow-[4px_4px_0_var(--qs-sun)]"
+                            className={cn(
+                              "group relative flex h-full items-center gap-3.5 overflow-hidden rounded-[18px] border-2 px-4 py-3.5 text-left transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0_var(--qs-sun)]",
+                              option.ai
+                                ? "border-[var(--qs-ink)] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 text-white"
+                                : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-ink)]"
+                            )}
                           >
-                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+                            {option.ai && (
+                              <span
+                                aria-hidden="true"
+                                className="qs-ai-shimmer pointer-events-none absolute inset-y-0 left-0 w-14 -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                              />
+                            )}
+                            <span
+                              className={cn(
+                                "flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] border-2",
+                                option.ai
+                                  ? "border-white/40 bg-white/15 text-white"
+                                  : "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
+                              )}
+                            >
                               <option.icon className="h-5 w-5" />
                             </span>
                             <span className="min-w-0 flex-1">
-                              <span className="block text-[14px] font-bold text-[var(--qs-ink)]">
+                              <span
+                                className={cn(
+                                  "block text-[14px] font-bold",
+                                  option.ai ? "text-white" : "text-[var(--qs-ink)]"
+                                )}
+                              >
                                 {option.label}
                               </span>
-                              <span className="mt-0.5 block text-[12px] leading-relaxed text-[var(--qs-muted)]">
+                              <span
+                                className={cn(
+                                  "mt-0.5 block text-[12px] leading-relaxed",
+                                  option.ai ? "text-white/85" : "text-[var(--qs-muted)]"
+                                )}
+                              >
                                 {option.description}
                               </span>
                             </span>
-                            <ArrowRight className="h-4 w-4 shrink-0 text-[var(--qs-muted)] transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--qs-brand)]" />
+                            <ArrowRight
+                              className={cn(
+                                "h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5",
+                                option.ai ? "text-white" : "text-[var(--qs-muted)] group-hover:text-[var(--qs-brand)]"
+                              )}
+                            />
                           </Link>
                         </motion.div>
                       ))}

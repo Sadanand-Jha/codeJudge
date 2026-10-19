@@ -26,6 +26,7 @@ import { SearchableDropdown } from "@/components/ui";
 import { fetchCountries, fetchStatesByCountry, fetchCollegesByState, updateProfileLocation } from "@/services/user";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/helpers";
+import { verificationLabel } from "@/lib/verification";
 
 /* =============================================
    Navigation Sections
@@ -624,6 +625,7 @@ export default function SettingsPage() {
                     followers={settings.followers}
                     problemsSolved={settings.problemsSolved}
                     memberSince={settings.memberSince}
+                    isVerified={Boolean(user?.isVerified)}
                   />
                 </div>
               </SettingsCard>
@@ -1078,6 +1080,7 @@ function ProfilePreviewCard({
   followers,
   problemsSolved,
   memberSince,
+  isVerified,
 }: {
   avatarUrl?: string;
   displayName: string;
@@ -1089,6 +1092,7 @@ function ProfilePreviewCard({
   followers: number;
   problemsSolved: number;
   memberSince: string;
+  isVerified: boolean;
 }) {
   return (
     <div className="flex flex-col">
@@ -1117,9 +1121,14 @@ function ProfilePreviewCard({
           </div>
 
           {/* Name + verified */}
-          <div className="mt-3 flex items-center gap-1.5">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
             <p className="text-sm font-bold text-text-primary">{displayName}</p>
-            <BadgeCheck className="h-4 w-4 text-accent" />
+            {isVerified && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-accent">
+                <BadgeCheck className="h-3 w-3" />
+                {verificationLabel(true)}
+              </span>
+            )}
           </div>
           <p className="mt-0.5 flex items-center gap-1 text-xs text-text-secondary">
             <AtSign className="h-3 w-3" />

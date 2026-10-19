@@ -26,6 +26,7 @@ import {
   extractTextWithDocling,
   isDoclingAvailable,
 } from "./docling-extract.service.js";
+import { sanitizeQuestionHtml } from "./subjectiveQuestionImport.service.js";
 
 export interface UploadedFileInput {
   name: string;
@@ -34,6 +35,8 @@ export interface UploadedFileInput {
 
 export interface GeneratedQuestionPayload {
   question: string;
+  /** Sanitized HTML rendering of the question, including real tables/lists. */
+  questionHtml?: string;
   options: string[];
   answer: string;
   /** Canonical answer text returned to clients. Kept alongside `answer` for compatibility. */
@@ -78,6 +81,7 @@ The user may have attached one or more documents.
   "questions": [
     {
       "question": "the question text",
+      "questionHtml": "the same question rendered as clean HTML",
       "type": "mcq" | "true_false" | "short",
       "difficulty": "easy" | "medium" | "hard" | "expert",
       "options": ["option 1", "option 2", "option 3", "option 4"],
@@ -89,6 +93,8 @@ The user may have attached one or more documents.
   ]
 }
 Rules when extracting:
+- Always include questionHtml. Use simple semantic HTML only (<p>, <ul>, <ol>, <li>, <strong>, <em>, <pre>, <code>, <table>, <thead>, <tbody>, <tr>, <th>, <td>). No scripts, styles, classes or inline attributes.
+- If a question contains tabular data (process tables, schedules, comparisons, datasets), render it as a real HTML <table> in questionHtml with clear headers. Never leave pipe-separated or space-aligned rows as plain text.
 - Preserve the exact wording, options and correct answers. Do not invent or reorder questions.
 - Clean up option text: strip any leading option labels/prefixes such as "(A)", "A)", "A.", "A:" from an option. For example an option written as "(A) wow" must be output as "wow" only.
 - When the document marks the correct answer with a letter (e.g. answer key says "A)"), resolve that letter to the actual cleaned option text and put that text in "answer". Never output the raw letter as the answer.
@@ -270,6 +276,16 @@ const stripJsonFences = (content: string): string => {
   return withoutFences.slice(start, end + 1);
 };
 
+/** Keep only safe structural HTML; drop the field instead of failing the question. */
+const cleanQuestionHtml = (raw: unknown): string | undefined => {
+  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  try {
+    return sanitizeQuestionHtml(raw).html || undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 /**
  * Parse the model's raw JSON output into a normalized question list.
  *
@@ -301,6 +317,7 @@ export const parseQuestionsJSON = (
     .filter((q): q is Record<string, unknown> => typeof q === "object" && q !== null)
     .map((q) => ({
       question: String(q.question ?? q.content ?? "").trim(),
+      questionHtml: cleanQuestionHtml(q.questionHtml ?? q.question_html),
       options: Array.isArray(q.options)
         ? (q.options as unknown[]).map((o) => String(o).trim()).filter(Boolean)
         : [],
@@ -431,6 +448,7 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this
   "questions": [
     {
       "question": "the question text",
+      "questionHtml": "the same question rendered as clean HTML",
       "type": "mcq" | "true_false" | "short",
       "difficulty": "easy" | "medium" | "hard" | "expert",
       "options": ["option 1", "option 2", "option 3", "option 4"],
@@ -445,6 +463,8 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching exactly this
 
 Rules:
 - Every question MUST include "correctAnswer". Never omit it and never return an empty value.
+- Always include questionHtml. Use simple semantic HTML only (<p>, <ul>, <ol>, <li>, <strong>, <em>, <pre>, <code>, <table>, <thead>, <tbody>, <tr>, <th>, <td>). No scripts, styles, classes or inline attributes.
+- If a question contains tabular data (process tables, schedules, comparisons, datasets), render it as a real HTML <table> in questionHtml with clear headers. Never leave pipe-separated or space-aligned rows as plain text.
 - For multiple-choice questions always provide 4 options, make "correctAnswer" exactly match one option, and provide its zero-based "correctOptionIndex" (0=A, 1=B, 2=C, 3=D).
 - For true/false use options ["True", "False"].
 - Do not invent facts not present in the material.

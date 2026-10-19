@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Copy, Trash2, Search, GripVertical, X, Sparkles, Download } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Trash2, Search, GripVertical, X, Download } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
 import { useStudio } from "../StudioProvider";
-import { AiStreamText } from "@/components/ui";
+import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 
 /**
  * Strips HTML tags and decodes common HTML entities (&nbsp;, &amp;, etc.)
@@ -226,12 +226,12 @@ export function QuestionList({
 
       <div className="border-t-2 border-[var(--qs-line)] p-3 shrink-0">
         <div className="grid grid-cols-2 gap-2">
-          <button
+          <AiGenerateButton
+            size="sm"
+            label="AI Generate"
             onClick={onAiGenerate}
-            className="flex items-center justify-center gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> <AiStreamText text="AI Generate" />
-          </button>
+            className="w-full py-2"
+          />
           <button
             onClick={onDownloadPdf}
             disabled={state.questions.length === 0}

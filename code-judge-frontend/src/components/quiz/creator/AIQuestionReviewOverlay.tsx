@@ -17,12 +17,15 @@ import {
   CheckCircle2,
   Trash2,
 } from "lucide-react";
+import { cn } from "@/lib/helpers";
+import { QuestionHtml } from "@/components/creator/questions/QuestionHtml";
 
 export interface PreviewQuestion {
   id: string;
   type: "mcq" | "coding" | "true_false" | "fill" | "short" | "integer" | "long";
   title: string;
   content: string;
+  questionHtml?: string;
   options?: { id: string; content: string; isCorrect: boolean }[];
   correctAnswer?: string | number;
   explanation?: string;
@@ -64,10 +67,10 @@ const TYPE_LABELS: Record<PreviewQuestion["type"], string> = {
 };
 
 const DIFFICULTY_STYLES: Record<PreviewQuestion["difficulty"], string> = {
-  easy: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
-  medium: "border-amber-500/30 bg-amber-500/10 text-amber-500",
-  hard: "border-orange-500/30 bg-orange-500/10 text-orange-500",
-  expert: "border-red-500/30 bg-red-500/10 text-red-500",
+  easy: "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
+  medium: "border-[var(--qs-warn)] bg-[var(--qs-bg)] text-[var(--qs-warn)]",
+  hard: "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]",
+  expert: "border-[var(--qs-ink)] bg-[var(--qs-poly-2)] text-[var(--qs-ink)]",
 };
 
 /**
@@ -185,7 +188,13 @@ export default function AIQuestionReviewOverlay({
 
   const saveEdit = () => {
     if (!editDraft) return;
-    onEditOne?.(editDraft);
+    // Plain-text edits replace the HTML stem; keep the table markup only when
+    // the creator did not touch the question text.
+    const next =
+      current && editDraft.title !== current.title
+        ? { ...editDraft, questionHtml: undefined }
+        : editDraft;
+    onEditOne?.(next);
     setIsEditing(false);
     setEditDraft(null);
   };
@@ -198,7 +207,8 @@ export default function AIQuestionReviewOverlay({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
+      className="qs-ui fixed inset-0 z-[90] flex items-center justify-center p-2 sm:p-4"
+      style={{ background: "rgba(26, 18, 64, 0.6)" }}
       onClick={isEditing ? undefined : onClose}
     >
       <motion.div
@@ -206,19 +216,19 @@ export default function AIQuestionReviewOverlay({
         animate={{ scale: 1, y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 340, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
-        className="relative flex h-[80vh] max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-border bg-background font-sans shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
+        className="relative flex h-[min(760px,calc(100dvh-2rem))] max-h-[94dvh] w-full max-w-3xl flex-col overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] font-sans shadow-[8px_8px_0_var(--qs-sun)]"
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-card/60 px-6 py-4">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#EC4899] to-[#8B5CF6] shadow-[0_4px_16px_rgba(236,72,153,0.4)]">
-              <Sparkles className="h-5 w-5 text-white" />
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5 sm:gap-3 sm:px-6 sm:py-4">
+          <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-gradient-to-br from-violet-600 via-fuchsia-500 to-pink-500 text-white">
+              <Sparkles className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm font-bold text-text-primary">
+              <h3 className="text-[15px] font-extrabold text-[var(--qs-ink)] sm:text-base">
                 {isEditing ? "Edit Question" : "AI Question Review"}
               </h3>
-              <p className="hidden truncate text-[10px] text-text-muted min-[480px]:block">
+              <p className="hidden truncate text-[10px] text-[var(--qs-muted)] min-[480px]:block">
                 {isEditing ? (
                   `Editing question ${index + 1} of ${total} · Esc to cancel`
                 ) : (
@@ -228,14 +238,14 @@ export default function AIQuestionReviewOverlay({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <span className="hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent sm:flex">
+            <span className="hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-poly-1)] px-2.5 py-1 text-[10px] font-extrabold text-[var(--qs-brand)] sm:flex">
               <CheckCircle2 className="h-3 w-3 shrink-0" />
               {total} generated
             </span>
             {onEditOne && current && !isEditing && (
               <button
                 onClick={startEditing}
-                className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-accent/30 bg-accent/10 px-3 text-[11px] font-bold text-accent transition-colors hover:bg-accent/20"
+                className="flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-[11px] font-extrabold text-[var(--qs-brand)] transition-colors hover:border-[var(--qs-brand)] hover:bg-[var(--qs-poly-1)]"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -243,7 +253,7 @@ export default function AIQuestionReviewOverlay({
             )}
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
               aria-label="Close preview"
             >
               <X className="h-4 w-4" />
@@ -252,16 +262,16 @@ export default function AIQuestionReviewOverlay({
         </div>
 
         {/* Progress bar */}
-        <div className="h-1 w-full shrink-0 bg-card-hover">
+        <div className="h-1.5 w-full shrink-0 bg-[var(--qs-bg)]">
           <motion.div
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.3 }}
-            className="h-full bg-gradient-to-r from-[#EC4899] to-[#8B5CF6]"
+            className="h-full rounded-r-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500"
           />
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-hidden px-6 py-5">
+        <div className="flex-1 overflow-hidden px-4 py-4 sm:px-6 sm:py-5">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={current?.id ?? "empty"}
@@ -276,34 +286,45 @@ export default function AIQuestionReviewOverlay({
                 <QuestionEditForm draft={editDraft} onChange={updateDraft} />
               ) : !current ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <Sparkles className="mb-3 h-12 w-12 text-text-muted opacity-50" />
-                  <p className="text-sm text-text-muted">No questions to review.</p>
+                  <Sparkles className="mb-3 h-12 w-12 text-[var(--qs-muted)] opacity-50" />
+                  <p className="text-sm text-[var(--qs-muted)]">No questions to review.</p>
                 </div>
               ) : (
-                <div className="space-y-5">
+                <div className="space-y-4 sm:space-y-5">
                   {/* Question number + meta */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-bold text-text-primary">
-                      Question {index + 1}{" "}
-                      <span className="font-medium text-text-muted">of {total}</span>
+                    <span className="rounded-[8px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[11px] font-extrabold text-[#1a1240]">
+                      Question {index + 1}
+                      <span className="ml-1 font-semibold opacity-70">of {total}</span>
                     </span>
-                    <span className="h-1 w-1 rounded-full bg-border" />
-                    <span className="rounded-full border border-border bg-card px-2.5 py-0.5 text-[10px] font-semibold text-text-secondary">
+                    <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 py-0.5 text-[10px] font-extrabold text-[var(--qs-muted)]">
                       {TYPE_LABELS[current.type] ?? current.type}
                     </span>
                     <span
-                      className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold capitalize ${
+                      className={cn(
+                        "rounded-full border-2 px-2.5 py-0.5 text-[10px] font-extrabold capitalize",
                         DIFFICULTY_STYLES[current.difficulty] ?? DIFFICULTY_STYLES.medium
-                      }`}
+                      )}
                     >
                       {current.difficulty}
                     </span>
                   </div>
 
-                  {/* Question */}
-                  <h4 className="text-base font-semibold leading-relaxed text-text-primary">
-                    {current.title || current.content}
-                  </h4>
+                  {/* Question — HTML keeps tables and formatting intact */}
+                  <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4">
+                    <div className="min-w-0 overflow-x-auto">
+                      {current.questionHtml ? (
+                        <QuestionHtml
+                          html={current.questionHtml}
+                          className="text-[15px] leading-relaxed sm:text-base [&_table]:text-[12px]"
+                        />
+                      ) : (
+                        <h4 className="text-[15px] font-semibold leading-relaxed text-[var(--qs-ink)] sm:text-base">
+                          {current.title || current.content}
+                        </h4>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Options */}
                   {optionsPreview && (
@@ -311,28 +332,28 @@ export default function AIQuestionReviewOverlay({
                       {optionsPreview.map((opt) => (
                         <div
                           key={opt.id}
-                          className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors ${
+                          className={`flex items-center gap-3 rounded-[14px] border-2 px-4 py-3 transition-colors ${
                             opt.isCorrect
-                              ? "border-success/40 bg-success/10"
-                              : "border-border bg-card-hover/40"
+                              ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)]"
+                              : "border-[var(--qs-line)] bg-[var(--qs-bg)]"
                           }`}
                         >
                           <span
-                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                              opt.isCorrect ? "bg-success text-white" : "bg-card text-text-muted"
+                            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] text-[10px] font-extrabold ${
+                              opt.isCorrect ? "bg-[var(--qs-ok)] text-white" : "bg-[var(--qs-surface)] text-[var(--qs-muted)]"
                             }`}
                           >
                             {opt.label}
                           </span>
                           <span
-                            className={`min-w-0 flex-1 text-xs leading-relaxed ${
-                              opt.isCorrect ? "font-semibold text-success" : "text-text-secondary"
+                            className={`min-w-0 flex-1 text-[13px] leading-relaxed ${
+                              opt.isCorrect ? "font-semibold text-[var(--qs-ok)]" : "text-[var(--qs-muted)]"
                             }`}
                           >
                             {opt.content}
                           </span>
                           {opt.isCorrect && (
-                            <span className="flex shrink-0 items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-success">
+                            <span className="flex shrink-0 items-center gap-1 rounded-full bg-[var(--qs-okbg)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--qs-ok)]">
                               <Check className="h-3 w-3" />
                               Correct
                             </span>
@@ -344,11 +365,11 @@ export default function AIQuestionReviewOverlay({
 
                   {/* Non-choice answer */}
                   {!optionsPreview && current.correctAnswer !== undefined && (
-                    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-success/25 bg-success/[0.06] px-4 py-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                    <div className="flex flex-wrap items-center gap-2 rounded-[14px] border-2 border-[var(--qs-ok)] bg-[var(--qs-okbg)] px-4 py-3">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--qs-muted)]">
                         Correct Answer
                       </span>
-                      <span className="rounded-lg bg-success/15 px-2.5 py-1 text-xs font-bold text-success">
+                      <span className="rounded-[8px] border-2 border-[var(--qs-ok)] bg-[var(--qs-surface)] px-2.5 py-1 text-xs font-extrabold text-[var(--qs-ok)]">
                         {current.correctAnswer}
                       </span>
                     </div>
@@ -356,14 +377,14 @@ export default function AIQuestionReviewOverlay({
 
                   {/* Explanation */}
                   {current.explanation && (
-                    <div className="rounded-xl border border-border bg-card p-4">
+                    <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4">
                       <div className="flex items-start gap-2.5">
-                        <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                        <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-brand)]" />
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--qs-muted)]">
                             Explanation
                           </p>
-                          <p className="mt-1 text-xs leading-relaxed text-text-secondary">
+                          <p className="mt-1 text-xs leading-relaxed text-[var(--qs-muted)]">
                             {current.explanation}
                           </p>
                         </div>
@@ -373,11 +394,11 @@ export default function AIQuestionReviewOverlay({
 
                   {/* Hint */}
                   {current.hint && (
-                    <div className="rounded-xl border border-dashed border-accent/30 bg-accent/5 p-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-accent">
+                    <div className="rounded-[14px] border-2 border-dashed border-[var(--qs-brand)] bg-[var(--qs-poly-1)] p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--qs-brand)]">
                         Hint
                       </p>
-                      <p className="mt-1 text-xs leading-relaxed text-text-secondary">
+                      <p className="mt-1 text-xs leading-relaxed text-[var(--qs-muted)]">
                         {current.hint}
                       </p>
                     </div>
@@ -386,11 +407,11 @@ export default function AIQuestionReviewOverlay({
                   {/* Tags */}
                   {current.tags.length > 0 && (
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <Tag className="h-3.5 w-3.5 shrink-0 text-text-muted" />
+                      <Tag className="h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)]" />
                       {current.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="whitespace-nowrap rounded-full bg-card-hover px-2.5 py-0.5 text-[10px] font-medium text-text-secondary"
+                          className="whitespace-nowrap rounded-full border border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--qs-muted)]"
                         >
                           #{tag}
                         </span>
@@ -404,24 +425,24 @@ export default function AIQuestionReviewOverlay({
         </div>
 
         {/* Footer — wraps as a whole (nav / actions) so buttons are never clipped or overlapped. */}
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t border-border bg-card/40 px-6 py-4">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-3 border-t-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 sm:px-6 sm:py-4">
           {/* Navigation */}
           <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={goPrev}
               disabled={isEditing || index <= 0}
-              className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
             </button>
-            <span className="shrink-0 px-1 text-[11px] tabular-nums text-text-muted">
+            <span className="shrink-0 px-1 text-[11px] tabular-nums text-[var(--qs-muted)]">
               {index + 1} / {total}
             </span>
             <button
               onClick={goNext}
               disabled={isEditing || index >= total - 1}
-              className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-card px-3 text-xs font-semibold text-text-primary transition-colors hover:border-accent/40 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-ink)] hover:text-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
               <ChevronRight className="h-4 w-4" />
@@ -434,14 +455,14 @@ export default function AIQuestionReviewOverlay({
               <>
                 <button
                   onClick={cancelEdit}
-                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-card px-4 text-xs font-bold text-text-primary transition-colors hover:border-danger/40 hover:text-danger"
+                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-bad)] hover:text-[var(--qs-bad)]"
                 >
                   <X className="h-3.5 w-3.5" />
                   Cancel
                 </button>
                 <button
                   onClick={saveEdit}
-                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.4)] transition-all hover:brightness-105 active:scale-[0.98]"
+                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-ink)] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 px-5 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-105 active:scale-[0.98]"
                 >
                   <Save className="h-4 w-4" />
                   Save Changes
@@ -452,7 +473,7 @@ export default function AIQuestionReviewOverlay({
                 {onAcceptOne && current && (
                   <button
                     onClick={handleAcceptOne}
-                    className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-accent/30 bg-accent/10 px-4 text-xs font-bold text-accent transition-colors hover:bg-accent/20"
+                    className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-brand)] bg-[var(--qs-poly-1)] px-4 text-xs font-extrabold text-[var(--qs-brand)] transition-colors hover:bg-[var(--qs-poly-1)]"
                   >
                     <Plus className="h-3.5 w-3.5 shrink-0" />
                     Add to Problem List
@@ -460,14 +481,14 @@ export default function AIQuestionReviewOverlay({
                 )}
                 <button
                   onClick={onReject}
-                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-danger/30 bg-danger/10 px-4 text-xs font-bold text-danger transition-colors hover:bg-danger/20"
+                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-4 text-xs font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-badbg)]"
                 >
                   <Trash2 className="h-3.5 w-3.5 shrink-0" />
                   Reject All
                 </button>
                 <button
                   onClick={onAccept}
-                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-gradient-to-r from-[#EC4899] to-[#8B5CF6] px-5 text-xs font-bold text-white shadow-[0_4px_16px_rgba(236,72,153,0.4)] transition-all hover:brightness-105 active:scale-[0.98]"
+                  className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] border-2 border-[var(--qs-ink)] bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 px-5 text-xs font-extrabold text-white shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-105 active:scale-[0.98]"
                 >
                   <Check className="h-4 w-4 shrink-0" />
                   Accept All ({total})
@@ -539,8 +560,8 @@ function QuestionEditForm({
   };
 
   const inputCls =
-    "w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none transition-colors";
-  const labelCls = "text-[10px] font-semibold uppercase tracking-wider text-text-muted";
+    "w-full rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-2 text-xs font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] focus:outline-none transition-colors";
+  const labelCls = "text-[10px] font-semibold uppercase tracking-wider text-[var(--qs-muted)]";
 
   return (
     <div className="space-y-5">
@@ -607,14 +628,14 @@ function QuestionEditForm({
             <button
               type="button"
               onClick={addOption}
-              className="flex items-center gap-1 rounded-lg border border-accent/30 bg-accent/10 px-2.5 py-1 text-[10px] font-bold text-accent transition-colors hover:bg-accent/20"
+              className="flex items-center gap-1 rounded-lg border border-[var(--qs-line)] bg-[var(--qs-poly-1)] px-2.5 py-1 text-[10px] font-bold text-[var(--qs-brand)] transition-colors hover:bg-[var(--qs-poly-1)]"
             >
               <Plus className="h-3 w-3" />
               Add Option
             </button>
           </div>
           {(draft.options?.length ?? 0) === 0 ? (
-            <p className="text-[11px] text-text-muted">
+            <p className="text-[11px] text-[var(--qs-muted)]">
               No options yet — click “Add Option” to create one.
             </p>
           ) : (
@@ -627,8 +648,8 @@ function QuestionEditForm({
                     title="Mark as correct answer"
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors ${
                       opt.isCorrect
-                        ? "border-success bg-success text-white"
-                        : "border-border bg-card text-text-muted hover:border-accent"
+                        ? "border-[var(--qs-ok)] bg-[var(--qs-ok)] text-white"
+                        : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)]"
                     }`}
                   >
                     {opt.isCorrect ? <Check className="h-3 w-3" /> : String.fromCharCode(65 + i)}
@@ -643,7 +664,7 @@ function QuestionEditForm({
                     type="button"
                     onClick={() => removeOption(opt.id)}
                     disabled={(draft.options?.length ?? 0) <= 1}
-                    className="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-30"
+                    className="rounded-lg p-1.5 text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-badbg)] hover:text-[var(--qs-bad)] disabled:cursor-not-allowed disabled:opacity-30"
                     title="Remove option"
                   >
                     <Minus className="h-3.5 w-3.5" />

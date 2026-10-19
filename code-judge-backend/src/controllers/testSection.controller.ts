@@ -10,6 +10,7 @@ import path from "node:path";
 import sharp from "sharp";
 import { generateSectionsFromPDF } from "../services/testSectionGeneration.service.js";
 import { generateQuestionPaper, renderPaperDocx, generateSubjectiveQuestions, getQuestionGeneratorCatalog } from "../services/question-paper.service.js";
+import { persistGeneratedProblems } from "../services/question-bank.service.js";
 import type { PaperSectionInput } from "../services/question-paper.service.js";
 import { createSectionBlueprint, deleteSectionBlueprint, listSectionBlueprints, markSectionBlueprintUsed } from "../services/testSectionBlueprint.service.js";
 
@@ -322,7 +323,7 @@ export const generateQuestions = async (req: Request, res: Response) => {
       return;
     }
 
-    const { numberOfQuestions, easyCount, mediumCount, hardCount, theoryCount, numericalCount, reasoningEffort, syllabus, kind, subjectId, chapterId, topicId, chapterIds, topicIds } =
+    const { numberOfQuestions, easyCount, mediumCount, hardCount, theoryCount, numericalCount, reasoningEffort, syllabus, kind, subjectId, chapterId, topicId, chapterIds, topicIds, saveToBank } =
       (req.body ?? {}) as {
         numberOfQuestions?: unknown;
         easyCount?: unknown;
@@ -334,6 +335,7 @@ export const generateQuestions = async (req: Request, res: Response) => {
         syllabus?: unknown;
         kind?: unknown;
         subjectId?: unknown; chapterId?: unknown; topicId?: unknown; chapterIds?: unknown; topicIds?: unknown;
+        saveToBank?: unknown;
       };
 
     const result = await generateSubjectiveQuestions({
@@ -352,6 +354,24 @@ export const generateQuestions = async (req: Request, res: Response) => {
       chapterIds: Array.isArray(chapterIds) ? chapterIds.map(Number) : undefined,
       topicIds: Array.isArray(topicIds) ? topicIds.map(Number) : undefined,
     });
+
+    if (saveToBank === true) {
+      const normalizedChapters = [...new Set(
+        (Array.isArray(chapterIds) ? chapterIds : chapterId != null ? [chapterId] : []).map(Number)
+      )].filter((id) => Number.isInteger(id) && id > 0);
+      const normalizedTopics = [...new Set(
+        (Array.isArray(topicIds) ? topicIds : topicId != null ? [topicId] : []).map(Number)
+      )].filter((id) => Number.isInteger(id) && id > 0);
+
+      await persistGeneratedProblems(result.questions, {
+        createdBy: Number(userId),
+        subjectId: Number(subjectId),
+        // A single chapter/topic can be stored faithfully; multi-scope
+        // generations stay attached to the subject only.
+        chapterId: normalizedChapters.length === 1 ? normalizedChapters[0] : null,
+        topicId: normalizedTopics.length === 1 ? normalizedTopics[0] : null,
+      });
+    }
 
     res.status(200).json({ success: true, data: { questions: result.questions } });
   } catch (error: any) {

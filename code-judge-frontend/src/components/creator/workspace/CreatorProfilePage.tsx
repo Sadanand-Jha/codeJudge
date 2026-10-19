@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
+  BadgeCheck,
   Check,
   Clock,
   Globe,
@@ -15,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { verificationLabel, verificationState } from "@/lib/verification";
 import { PageHeader, Panel, StatusBadge, BillButton } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
 import { CREATOR_PROFILE } from "./mockData";
@@ -35,6 +37,7 @@ export function CreatorProfilePage() {
   const { success: toastSuccess, info: toastInfo } = useToast();
   const [saved, setSaved] = useState(true);
   const profile = CREATOR_PROFILE;
+  const verification = verificationState(profile.verificationStatus);
   const editDisabled = () => toastInfo({ title: "Preview mode", description: "Editing tags is disabled in this preview." });
 
   const [form, setForm] = useState({
@@ -88,11 +91,11 @@ export function CreatorProfilePage() {
               </div>
               <h3 className="mt-4 text-base font-bold text-text-primary">{form.displayName}</h3>
               <p className="text-xs font-medium text-pink-500 dark:text-ai-accent">@{profile.creatorUsername}</p>
-              {profile.verificationStatus === "verified" ? (
-                <StatusBadge label="Verified Creator" tone="emerald" className="mt-2" />
-              ) : (
-                <StatusBadge label="Verification pending" tone="amber" className="mt-2" />
-              )}
+              <StatusBadge
+                label={verificationLabel(verification)}
+                tone={verification === "verified" ? "emerald" : "amber"}
+                className="mt-2"
+              />
               <p className="mt-3 text-[13px] leading-relaxed text-text-secondary">{form.bio}</p>
               <div className="mt-4 grid w-full grid-cols-4 gap-2 border-t border-border pt-4">
                 {STATS.map((s) => (
@@ -109,10 +112,16 @@ export function CreatorProfilePage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-xl border border-border/60 bg-white/[0.02] px-3.5 py-3">
                 <div className="flex items-center gap-2.5">
-                  <Clock className="h-4 w-4 text-amber-500" />
-                  <p className="text-[13px] font-semibold text-text-primary">Verification pending</p>
+                  {verification === "verified" ? (
+                    <BadgeCheck className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-amber-500" />
+                  )}
+                  <p className="text-[13px] font-semibold text-text-primary">{verificationLabel(verification)}</p>
                 </div>
-                <span className="text-[11px] text-text-secondary">In review</span>
+                <span className="text-[11px] text-text-secondary">
+                  {verification === "verified" ? "Complete" : verification === "pending" ? "In review" : "Action needed"}
+                </span>
               </div>
               <div className="flex items-center justify-between rounded-xl border border-border/60 bg-white/[0.02] px-3.5 py-3">
                 <div className="flex items-center gap-2.5">

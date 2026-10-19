@@ -19,6 +19,7 @@ import {
   Repeat,
   UserPlus,
   Sparkles,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -44,7 +45,26 @@ import LowCreditNotification from "@/components/ai/LowCreditNotification";
 import AiAssistantStrip from "@/components/ai/AiAssistantStrip";
 import { useTheme } from "@/context/ThemeContext";
 
-function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onConfirm: () => void; onCancel: () => void }) {
+function LogoutConfirmModal({
+  open,
+  email,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  email?: string | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onCancel]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -52,33 +72,63 @@ function LogoutConfirmModal({ open, onConfirm, onCancel }: { open: boolean; onCo
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="qs-ui fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: "rgba(26, 18, 64, 0.6)" }}
           onClick={onCancel}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-modal-title"
+            aria-describedby="logout-modal-desc"
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="relative w-full max-w-md rounded-3xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6 shadow-[8px_8px_0_var(--qs-sun)] sm:p-7"
             onClick={(e) => e.stopPropagation()}
-          > 
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center">
-                <LogOut className="w-5 h-5 text-danger" />
+          >
+            <button
+              type="button"
+              onClick={onCancel}
+              aria-label="Close"
+              className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-xl border-2 border-[var(--qs-line)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex items-center gap-3.5">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]">
+                <LogOut className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">Account</p>
+                <h2 id="logout-modal-title" className="mt-1 text-[24px] font-extrabold text-[var(--qs-ink)]">
+                  Log out?
+                </h2>
               </div>
-              <h3 className="text-lg font-semibold text-text-primary">Log out</h3>
             </div>
-            <p className="mt-2 text-sm text-text-secondary">Are you sure you want to log out of your account?</p>
-            <div className="mt-6 flex items-center justify-end gap-3">
+
+            <p id="logout-modal-desc" className="mt-4 text-sm leading-6 text-[var(--qs-muted)]">
+              You’ll be signed out of{" "}
+              <strong className="font-bold text-[var(--qs-ink)]">{email || "your account"}</strong> on this
+              device. Your progress stays saved.
+            </p>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button
+                type="button"
+                autoFocus
                 onClick={onCancel}
-                className="h-10 px-5 rounded-lg border border-border bg-card-hover text-sm font-medium text-text-primary hover:border-border-hover transition-colors"
+                className="h-11 rounded-xl border-2 border-[var(--qs-line)] px-5 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={onConfirm}
-                className="h-10 px-5 rounded-lg bg-danger text-sm font-bold text-white hover:shadow-[0_0_16px_rgba(239,68,68,0.4)] transition-all"
+                className="h-11 rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 text-sm font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:brightness-105 active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_var(--qs-sun)]"
               >
                 Log out
               </button>
@@ -490,6 +540,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
 
       <LogoutConfirmModal
         open={logoutConfirmOpen}
+        email={user?.email}
         onConfirm={() => {
           cancelLogout();
           handleLogout();

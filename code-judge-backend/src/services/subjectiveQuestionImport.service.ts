@@ -57,7 +57,7 @@ const ALLOWED_HTML_TAGS = new Set([
   "blockquote", "pre", "code", "table", "thead", "tbody", "tr", "th", "td",
 ]);
 
-function sanitizeQuestionHtml(input: string): { html: string; text: string } {
+export function sanitizeQuestionHtml(input: string): { html: string; text: string } {
   const $ = cheerio.load(`<div id="question-root">${input}</div>`, null, false);
   $("script,style,iframe,object,embed,form,input,button,svg,math,img,a").remove();
   $("#question-root *").each((_index, element) => {

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Check, CircleAlert, Eye, EyeOff, GraduationCap, LogIn, Mail, Presentation, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowRight, Check, CircleAlert, Clock, Eye, EyeOff, GraduationCap, LogIn, Mail, Presentation, RefreshCw, Sparkles } from "lucide-react";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
 import { toast } from "@/lib/toast";
 import { sendOtp, verifyOtp, register, checkUsername } from "@/services/auth";
@@ -24,6 +24,15 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { PREDEFINED_AVATARS } from "@/config/dicebear";
 
 const AUTH_PRIMARY_BUTTON = "group flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] transition-all hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40";
+
+// Must stay in sync with backend AUTH_TOKEN_TTL_SECONDS (30 min) in code-judge-backend/src/services/auth.ts
+const REGISTRATION_SESSION_SECONDS = 30 * 60;
+
+function formatSessionTime(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
 
 type Step = "email" | "verify" | "register";
 type AccountType = "student" | "teacher";
@@ -59,6 +68,8 @@ export default function RegistrationForm() {
   });
 
   const [registrationToken, setRegistrationToken] = useState("");
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
+  const [sessionSecondsLeft, setSessionSecondsLeft] = useState(0);
   const [step, setStep] = useState<Step>("email");
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
@@ -83,6 +94,7 @@ export default function RegistrationForm() {
   const [detailDir, setDetailDir] = useState<1 | -1>(1);
   const { playQuizSound } = useQuizSounds();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const usernameDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const usernameCheckIdRef = useRef(0);
 
@@ -107,9 +119,33 @@ export default function RegistrationForm() {
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (sessionTimerRef.current) clearInterval(sessionTimerRef.current);
       if (usernameDebounceRef.current) clearTimeout(usernameDebounceRef.current);
     };
   }, []);
+
+  // Live countdown for the registration session (backend-issued token TTL).
+  useEffect(() => {
+    if (step !== "register" || sessionExpiresAt === null) return;
+    const tick = () => {
+      const remaining = Math.max(0, Math.ceil((sessionExpiresAt - Date.now()) / 1000));
+      setSessionSecondsLeft(remaining);
+      if (remaining <= 0 && sessionTimerRef.current) {
+        clearInterval(sessionTimerRef.current);
+        sessionTimerRef.current = null;
+      }
+    };
+    tick();
+    sessionTimerRef.current = setInterval(tick, 1000);
+    return () => {
+      if (sessionTimerRef.current) {
+        clearInterval(sessionTimerRef.current);
+        sessionTimerRef.current = null;
+      }
+    };
+  }, [step, sessionExpiresAt]);
+
+  const sessionExpired = sessionExpiresAt !== null && sessionSecondsLeft <= 0;
 
   const updateField = useCallback(
     (name: keyof FormState, value: string) => {
@@ -289,6 +325,8 @@ export default function RegistrationForm() {
         });
         if (res.success && res.data?.registration_token) {
           setRegistrationToken(res.data.registration_token);
+          setSessionExpiresAt(Date.now() + REGISTRATION_SESSION_SECONDS * 1000);
+          setSessionSecondsLeft(REGISTRATION_SESSION_SECONDS);
           toast.success("OTP verified");
           setStep("register");
         } else {
@@ -302,6 +340,38 @@ export default function RegistrationForm() {
     },
     [form.email.value, form.otp.value, validateOtpField]
   );
+
+  const expireRegistrationSession = useCallback(() => {
+    if (sessionTimerRef.current) {
+      clearInterval(sessionTimerRef.current);
+      sessionTimerRef.current = null;
+    }
+    setSessionSecondsLeft(0);
+  }, []);
+
+  const handleRestartVerification = useCallback(() => {
+    if (sessionTimerRef.current) {
+      clearInterval(sessionTimerRef.current);
+      sessionTimerRef.current = null;
+    }
+    setRegistrationToken("");
+    setSessionExpiresAt(null);
+    setSessionSecondsLeft(0);
+    setRegistrationSubmitError(null);
+    setUsernameStatus({ checking: false, available: null, message: "" });
+    setAccountType(null);
+    setProfileStep(1);
+    setForm((prev) => ({
+      ...prev,
+      otp: initField(),
+      username: initField(),
+      password: initField(),
+      confirmPassword: initField(),
+    }));
+    setStep("email");
+    setCountdown(0);
+    toast.info("Your registration session expired — request a new code to continue");
+  }, []);
 
   const handleRegister = useCallback(
     async (e: React.FormEvent) => {
@@ -344,6 +414,8 @@ export default function RegistrationForm() {
           if (token && user) setAuth(token, user);
           setForm({ email: initField(), otp: initField(), username: initField(), password: initField(), confirmPassword: initField() });
           setRegistrationToken("");
+          setSessionExpiresAt(null);
+          setSessionSecondsLeft(0);
           setStep("email");
           setCountdown(0);
           setUsernameStatus({ checking: false, available: null, message: "" });
@@ -354,18 +426,20 @@ export default function RegistrationForm() {
           router.push("/login");
         } else {
           const message = res.message || "Registration failed";
+          if (/token expired or invalid/i.test(message)) expireRegistrationSession();
           setRegistrationSubmitError(message);
           toast.error(message);
         }
       } catch (err: unknown) {
         const message = getApiErrorMessage(err, "Something went wrong");
+        if (/token expired or invalid/i.test(message)) expireRegistrationSession();
         setRegistrationSubmitError(message);
         toast.error(message);
       } finally {
         setSubmitting(false);
       }
     },
-    [form.username.value, form.email.value, form.password.value, form.confirmPassword.value, registrationToken, selectedAvatarUrl, accountType, usernameStatus.available, validateUsernameField, validatePasswordField, validateConfirmPasswordField, playQuizSound, router, setAuth]
+    [form.username.value, form.email.value, form.password.value, form.confirmPassword.value, registrationToken, selectedAvatarUrl, accountType, usernameStatus.available, validateUsernameField, validatePasswordField, validateConfirmPasswordField, playQuizSound, router, setAuth, expireRegistrationSession]
   );
 
   const isUsernameReady =
@@ -379,7 +453,7 @@ export default function RegistrationForm() {
     form.confirmPassword.value.length >= 8 &&
     form.password.value === form.confirmPassword.value;
 
-  const isPasswordReady = passwordsMatch && accountType !== null && !submitting;
+  const isPasswordReady = passwordsMatch && accountType !== null && !submitting && !sessionExpired;
 
   const goProfileStep = (next: 1 | 2 | 3 | 4) => {
     setDetailDir(next >= profileStep ? 1 : -1);
@@ -567,6 +641,36 @@ export default function RegistrationForm() {
                   animate={{ width: `${(profileStep / 4) * 100}%` }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
                 />
+              </div>
+
+              <div
+                role="status"
+                aria-live="polite"
+                className={`mt-3 flex items-center justify-between gap-2 rounded-xl border-2 px-3 py-2 ${
+                  sessionExpired || sessionSecondsLeft <= 60
+                    ? "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
+                    : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]"
+                }`}
+              >
+                <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em]">
+                  <Clock className="h-3.5 w-3.5 shrink-0" />
+                  {sessionExpired
+                    ? "Registration session expired"
+                    : `Registration session · ${REGISTRATION_SESSION_SECONDS / 60} min`}
+                </span>
+                {sessionExpired ? (
+                  <button
+                    type="button"
+                    onClick={handleRestartVerification}
+                    className="shrink-0 rounded-lg bg-[var(--qs-bad)] px-2.5 py-1.5 text-[10px] font-black text-[var(--qs-on-brand)] transition hover:brightness-105"
+                  >
+                    Start over
+                  </button>
+                ) : (
+                  <span className="shrink-0 tabular-nums text-[10px] font-black">
+                    {formatSessionTime(sessionSecondsLeft)} left
+                  </span>
+                )}
               </div>
 
               <AnimatePresence mode="wait" initial={false}>

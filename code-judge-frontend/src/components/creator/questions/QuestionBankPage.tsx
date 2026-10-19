@@ -19,7 +19,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
-import { useBillingData } from "@/components/creator/billing/hooks";
 import {
   BillButton,
   EmptyState,
@@ -33,15 +32,17 @@ import {
   TableSkeleton,
 } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
+import { useData } from "@/lib/hooks/useData";
+import { getMyQuestionBank, type UserBankQuestion } from "@/services/ai";
 
-type QuestionType = "single" | "multiple" | "integer" | "true-false";
+type QuestionType = "single" | "multiple" | "integer" | "true-false" | "subjective";
 type QuestionDifficulty = "easy" | "medium" | "hard";
 type RowAction = "edit" | "test" | "quiz" | "duplicate" | "delete";
 
 interface BankQuestion {
   id: string;
   text: string;
-  subject: "Physics" | "Chemistry" | "Mathematics" | "Biology" | "Quant";
+  subject: string;
   type: QuestionType;
   difficulty: QuestionDifficulty;
   tags: string[];
@@ -55,6 +56,7 @@ const TYPE_FILTERS = [
   { id: "multiple", label: "Multiple Choice" },
   { id: "integer", label: "Integer" },
   { id: "true-false", label: "True-False" },
+  { id: "subjective", label: "Subjective" },
 ] as const;
 
 const DIFFICULTIES = [
@@ -68,6 +70,7 @@ const TYPE_LABEL: Record<QuestionType, string> = {
   multiple: "Multiple Choice",
   integer: "Integer",
   "true-false": "True-False",
+  subjective: "Subjective",
 };
 
 const DIFFICULTY_TONE: Record<QuestionDifficulty, "emerald" | "amber" | "rose"> = {
@@ -76,150 +79,42 @@ const DIFFICULTY_TONE: Record<QuestionDifficulty, "emerald" | "amber" | "rose"> 
   hard: "rose",
 };
 
-const QUESTION_BANK: BankQuestion[] = [
-  /* Mock data commented out — real backend data will feed this list.
-  {
-    id: "q1",
-    text: "A particle moves in a circle of radius 2 m with a uniform speed of 4 m/s. What is its centripetal acceleration?",
-    subject: "Physics",
-    type: "single",
-    difficulty: "medium",
-    tags: ["Kinematics", "Circular Motion"],
-    usedIn: 4,
-    updated: "18 Aug 2026",
-  },
-  {
-    id: "q2",
-    text: "The SI unit of electric charge is:",
-    subject: "Physics",
-    type: "single",
-    difficulty: "easy",
-    tags: ["Electrostatics", "Units"],
-    usedIn: 9,
-    updated: "16 Aug 2026",
-  },
-  {
-    id: "q3",
-    text: "Which gas is evolved when dilute hydrochloric acid reacts with zinc granules?",
-    subject: "Chemistry",
-    type: "multiple",
-    difficulty: "easy",
-    tags: ["Acids & Bases", "Reactions"],
-    usedIn: 6,
-    updated: "15 Aug 2026",
-  },
-  {
-    id: "q4",
-    text: "Calculate the molarity of a solution containing 5.85 g of NaCl dissolved in 500 mL of water.",
-    subject: "Chemistry",
-    type: "integer",
-    difficulty: "hard",
-    tags: ["Solutions", "Mole Concept"],
-    usedIn: 3,
-    updated: "14 Aug 2026",
-  },
-  {
-    id: "q5",
-    text: "If f(x) = x³ − 3x + 2, the value of f'(1) is:",
-    subject: "Mathematics",
-    type: "single",
-    difficulty: "easy",
-    tags: ["Calculus", "Differentiation"],
-    usedIn: 11,
-    updated: "13 Aug 2026",
-  },
-  {
-    id: "q6",
-    text: "The value of the definite integral ∫₀¹ x² dx is:",
-    subject: "Mathematics",
-    type: "integer",
-    difficulty: "medium",
-    tags: ["Calculus", "Integration"],
-    usedIn: 5,
-    updated: "12 Aug 2026",
-  },
-  {
-    id: "q7",
-    text: "In how many ways can 5 books be arranged on a shelf such that 2 particular books are always together?",
-    subject: "Mathematics",
-    type: "multiple",
-    difficulty: "hard",
-    tags: ["Permutations", "Combinatorics"],
-    usedIn: 2,
-    updated: "10 Aug 2026",
-  },
-  {
-    id: "q8",
-    text: "Photosynthesis takes place in which organelle of the plant cell?",
-    subject: "Biology",
-    type: "single",
-    difficulty: "easy",
-    tags: ["Cell Biology", "Plant Physiology"],
-    usedIn: 14,
-    updated: "09 Aug 2026",
-  },
-  {
-    id: "q9",
-    text: "DNA is a polymer made up of nucleotides.",
-    subject: "Biology",
-    type: "true-false",
-    difficulty: "easy",
-    tags: ["Genetics", "Molecular Biology"],
-    usedIn: 7,
-    updated: "08 Aug 2026",
-  },
-  {
-    id: "q10",
-    text: "The human body contains how many pairs of chromosomes?",
-    subject: "Biology",
-    type: "integer",
-    difficulty: "medium",
-    tags: ["Genetics", "Human Biology"],
-    usedIn: 8,
-    updated: "07 Aug 2026",
-  },
-  {
-    id: "q11",
-    text: "A 120 m long train crosses a pole in 12 seconds. What is the speed of the train in km/h?",
-    subject: "Quant",
-    type: "single",
-    difficulty: "medium",
-    tags: ["Speed & Time", "Arithmetic"],
-    usedIn: 6,
-    updated: "05 Aug 2026",
-  },
-  {
-    id: "q12",
-    text: "If 20% of x equals 40, then the value of x is:",
-    subject: "Quant",
-    type: "integer",
-    difficulty: "easy",
-    tags: ["Percentages", "Arithmetic"],
-    usedIn: 10,
-    updated: "04 Aug 2026",
-  },
-  {
-    id: "q13",
-    text: "Which of the following are noble gases?",
-    subject: "Chemistry",
-    type: "multiple",
-    difficulty: "medium",
-    tags: ["Periodic Table", "Gases"],
-    usedIn: 4,
-    updated: "02 Aug 2026",
-  },
-  {
-    id: "q14",
-    text: "Momentum is a vector quantity.",
-    subject: "Physics",
-    type: "true-false",
-    difficulty: "easy",
-    tags: ["Mechanics", "Vectors"],
-    usedIn: 12,
-    updated: "01 Aug 2026",
-  },
-  */
-];
+function mapQuestionType(question: UserBankQuestion): QuestionType {
+  const kind = question.question_type.toLowerCase();
+  if (kind === "mcq" || kind === "single_choice" || kind === "multiple_choice") {
+    const correct = question.options?.filter((option) => option.isCorrect).length ?? 0;
+    return kind === "multiple_choice" || correct > 1 ? "multiple" : "single";
+  }
+  if (kind === "true_false" || kind === "true-false") return "true-false";
+  if (kind === "integer") return "integer";
+  return "subjective";
+}
+
+function mapDifficulty(value: string | null): QuestionDifficulty {
+  const difficulty = (value ?? "").toLowerCase();
+  return difficulty === "easy" || difficulty === "medium" || difficulty === "hard"
+    ? difficulty
+    : "medium";
+}
+
+function formatBankDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function mapBankQuestion(question: UserBankQuestion): BankQuestion {
+  return {
+    id: String(question.id),
+    text: question.question_text,
+    subject: question.subject || "General",
+    type: mapQuestionType(question),
+    difficulty: mapDifficulty(question.difficulty),
+    tags: [question.chapter, question.topic].filter((tag): tag is string => Boolean(tag)),
+    usedIn: question.quiz_id ? 1 : 0,
+    updated: formatBankDate(question.created_at),
+  };
+}
 
 const ROW_ACTIONS: Array<{ id: RowAction; label: string; icon: LucideIcon; danger?: boolean }> = [
   { id: "edit", label: "Edit", icon: PenLine },
@@ -288,10 +183,12 @@ function RowActionMenu({ onAction }: { onAction: (action: RowAction) => void }) 
 
 export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" }) {
   const toast = useToast();
-  const { state, data, retry } = useBillingData(
-    () => ({ questions: QUESTION_BANK }),
-    { delayMs: 650, demoState }
-  );
+  const { status: state, data, retry } = useData<BankQuestion[]>(async () => {
+    if (demoState === "error") throw new Error("Question bank preview failed");
+    if (demoState === "empty") return [];
+    const rows = await getMyQuestionBank();
+    return rows.map(mapBankQuestion);
+  }, { delayMs: 250 });
 
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [added, setAdded] = useState<BankQuestion[]>([]);
@@ -301,8 +198,7 @@ export function QuestionBankPage({ demoState }: { demoState?: "empty" | "error" 
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const questions = useMemo(() => {
-    const base = data?.questions ?? QUESTION_BANK;
-    return [...base.filter((q) => !removed.has(q.id)), ...added];
+    return [...(data ?? []).filter((q) => !removed.has(q.id)), ...added];
   }, [data, removed, added]);
 
   const filtered = useMemo(() => {

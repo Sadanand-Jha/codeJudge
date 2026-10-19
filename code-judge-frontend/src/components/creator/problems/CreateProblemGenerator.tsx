@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   Check,
   Copy,
+  Download,
   Minus,
   PencilLine,
   Plus,
@@ -24,6 +25,8 @@ import {
 import type { SubjectiveQuestion } from "@/components/creator/tests/sections/paperTypes";
 import { QsSelect } from "@/components/creator/problems/QsSelect";
 import { QuestionHtml, htmlToEditableText } from "@/components/creator/questions/QuestionHtml";
+import { downloadQuestionsDocx, downloadQuestionsPdf } from "@/utils/questionSetExport";
+import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 
 type GeneratorStatus = "idle" | "generating" | "done" | "error";
 
@@ -216,6 +219,8 @@ export function CreateProblemGenerator() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [thinkingIndex, setThinkingIndex] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<"pdf" | "word">("pdf");
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -402,6 +407,7 @@ export function CreateProblemGenerator() {
           chapterIds,
           topicIds,
           syllabus: syllabus.trim() || undefined,
+          saveToBank: true,
         },
         abortRef.current.signal
       );
@@ -465,6 +471,7 @@ export function CreateProblemGenerator() {
           chapterIds,
           topicIds,
           syllabus: syllabus.trim() || undefined,
+          saveToBank: true,
         });
         const replacement = response.questions[0];
         if (!replacement) throw new Error("No replacement question was returned.");
@@ -543,6 +550,40 @@ export function CreateProblemGenerator() {
       toast.error({ title: "Copy failed", description: "Clipboard is not available." });
     }
   }, [items, toast]);
+
+  const downloadSelected = useCallback(async () => {
+    const selected = items.filter((it) => it.selected);
+    if (selected.length === 0 || downloading) return;
+    setDownloading(true);
+    try {
+      const exportPayload = {
+        questions: selected.map((item) => ({
+          question: item.question,
+          questionHtml: item.questionHtml,
+          difficulty: item.difficulty,
+          kind: item.kind,
+        })),
+        title: "Generated Questions",
+        subject: subjectName,
+      };
+      if (downloadFormat === "pdf") {
+        downloadQuestionsPdf(exportPayload);
+      } else {
+        await downloadQuestionsDocx(exportPayload);
+      }
+      toast.success({
+        title: `${downloadFormat === "pdf" ? "PDF" : "Word"} ready`,
+        description: `${selected.length} question${selected.length > 1 ? "s" : ""} downloaded.`,
+      });
+    } catch (err) {
+      toast.error({
+        title: "Download failed",
+        description: err instanceof Error ? err.message : "Could not prepare the file. Please try again.",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  }, [items, downloading, downloadFormat, subjectName, toast]);
 
   return (
     <div className="w-full">
@@ -866,21 +907,14 @@ export function CreateProblemGenerator() {
                   className="w-full resize-y rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3.5 py-3 text-sm text-[var(--qs-ink)] outline-none transition placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)] disabled:opacity-60"
                 />
               </div>
-              <button
-                type="button"
+              <AiGenerateButton
+                size="lg"
+                label={status === "generating" ? "Generating…" : "Generate Questions"}
                 onClick={() => void handleGenerate()}
-                disabled={!canGenerate}
-                className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-6 py-4 text-base font-extrabold text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none lg:w-auto lg:self-center"
-              >
-                {status === "generating" ? (
-                  "Generating…"
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    Generate Questions
-                  </>
-                )}
-              </button>
+                disabled={!canGenerate || status === "generating"}
+                fullWidth
+                className="whitespace-nowrap rounded-[14px] px-6 py-4 text-base lg:w-auto lg:self-center"
+              />
             </div>
             <p
               className={cn(
@@ -1062,18 +1096,45 @@ export function CreateProblemGenerator() {
                   >
                     Select all
                   </button>
+                  <AiGenerateButton
+                    size="sm"
+                    label="Regenerate all"
+                    onClick={() => void handleGenerate()}
+                    disabled={!canGenerate || status === "generating"}
+                    className="rounded-[10px] px-3 py-1.5 text-[13px]"
+                  />
+                  <div className="flex items-center rounded-[10px] border-2 border-[var(--qs-muted)] p-0.5">
+                    {(["pdf", "word"] as const).map((format) => (
+                      <button
+                        key={format}
+                        type="button"
+                        onClick={() => setDownloadFormat(format)}
+                        aria-pressed={downloadFormat === format}
+                        className={cn(
+                          "rounded-[7px] px-2.5 py-1 text-[12px] font-extrabold uppercase tracking-[0.04em] transition-colors",
+                          downloadFormat === format
+                            ? "bg-[var(--qs-sun)] text-[#1a1240]"
+                            : "text-[var(--qs-bg)] hover:text-[var(--qs-sun)]"
+                        )}
+                      >
+                        {format === "pdf" ? "PDF" : "Word"}
+                      </button>
+                    ))}
+                  </div>
                   <button
                     type="button"
-                    onClick={() => void handleGenerate()}
-                    className="rounded-[10px] border-2 border-[var(--qs-muted)] px-3 py-1.5 text-[13px] font-bold transition hover:border-[var(--qs-bg)]"
+                    onClick={() => void downloadSelected()}
+                    disabled={selectedCount === 0 || downloading}
+                    className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)] px-4 py-2 text-[14px] font-extrabold text-[#1a1240] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
                   >
-                    Regenerate all
+                    <Download className="h-4 w-4" />
+                    {downloading ? "Preparing…" : `Download ${downloadFormat === "pdf" ? "PDF" : "Word"}`}
                   </button>
                   <button
                     type="button"
                     onClick={() => void copySelected()}
                     disabled={selectedCount === 0}
-                    className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-sun)] bg-[var(--qs-brand)] px-4 py-2 text-[14px] font-extrabold text-[var(--qs-on-brand)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45"
+                    className="inline-flex items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-muted)] px-4 py-2 text-[14px] font-extrabold text-[var(--qs-bg)] transition hover:border-[var(--qs-sun)] hover:text-[var(--qs-sun)] disabled:cursor-not-allowed disabled:opacity-45"
                   >
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied ? "Copied" : "Copy selected"}

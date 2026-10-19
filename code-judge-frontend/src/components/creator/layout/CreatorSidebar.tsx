@@ -35,6 +35,7 @@ import {
 import { cn } from "@/lib/helpers";
 import { useAuthStore } from "@/store/authStore";
 import { FOCUS_MODE_ENABLED } from "@/config/focusMode";
+import { verificationLabel, verificationState } from "@/lib/verification";
 
 export interface CreatorNavItem {
   label: string;
@@ -254,7 +255,7 @@ export function CreatorSidebar({
   const user = useAuthStore((s) => s.user);
   const displayName = user?.displayName || user?.username || "Creator";
   const avatarInitial = displayName.charAt(0).toUpperCase();
-  const isVerified = false;
+  const verification = verificationState(user?.isVerified);
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -267,7 +268,7 @@ export function CreatorSidebar({
         >
           <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--qs-brand)] text-sm font-bold text-white">
             {avatarInitial}
-            {isVerified && (
+            {verification === "verified" && (
               <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--qs-ok)] ring-2 ring-[var(--qs-surface)]">
                 <BadgeCheck className="h-2.5 w-2.5 text-white" />
               </span>
@@ -275,7 +276,14 @@ export function CreatorSidebar({
           </div>
           <div className="min-w-0 leading-tight">
             <p className="truncate text-[13px] font-bold text-[var(--qs-ink)]">{displayName}</p>
-            <p className="truncate text-[10px] font-medium text-[var(--qs-warn)]">Verification pending</p>
+            <p
+              className={cn(
+                "truncate text-[10px] font-medium",
+                verification === "verified" ? "text-[var(--qs-ok)]" : "text-[var(--qs-warn)]"
+              )}
+            >
+              {verificationLabel(verification)}
+            </p>
           </div>
         </Link>
       </div>

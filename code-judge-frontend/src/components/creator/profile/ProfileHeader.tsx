@@ -4,6 +4,7 @@ import { Pencil, BadgeCheck, Settings, Globe } from "lucide-react";
 import { useSavedAvatar } from "@/store/avatarStore";
 import { DEFAULT_AVATAR_URL } from "@/config/dicebear";
 import type { CreatorProfile } from "@/components/creator/workspace/types";
+import { verificationLabel, verificationState } from "@/lib/verification";
 
 function formatMemberSince(iso: string): string {
   if (!iso) return "";
@@ -25,7 +26,8 @@ export function ProfileHeader({
 }) {
   const savedAvatar = useSavedAvatar();
   const avatarUrl = savedAvatar?.url || profile.avatarUrl || DEFAULT_AVATAR_URL;
-  const isVerified = profile.verificationStatus === "verified";
+  const verification = verificationState(profile.verificationStatus);
+  const isVerified = verification === "verified";
   const memberSince = formatMemberSince(profile.createdAt);
 
   return (
@@ -55,11 +57,11 @@ export function ProfileHeader({
             {isVerified ? (
               <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-ok)]/30 bg-[var(--qs-okbg)] px-2.5 py-0.5 text-[11px] font-extrabold text-[var(--qs-ok)]">
                 <BadgeCheck className="h-3 w-3" />
-                Verified
+                {verificationLabel(verification)}
               </span>
             ) : (
               <span className="inline-flex items-center rounded-full border-2 border-[var(--qs-warn)]/35 bg-[var(--qs-sun)]/25 px-2.5 py-0.5 text-[11px] font-extrabold text-[var(--qs-warn)]">
-                Verification pending
+                {verificationLabel(verification)}
               </span>
             )}
           </div>

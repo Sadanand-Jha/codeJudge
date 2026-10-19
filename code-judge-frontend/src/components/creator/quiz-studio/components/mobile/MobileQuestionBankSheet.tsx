@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Plus, Copy, Trash2, Sparkles } from "lucide-react";
+import { Search, X, Plus, Copy, Trash2 } from "lucide-react";
 import { cn } from "@/lib/helpers";
 import { useStudio } from "../../StudioProvider";
 import { getQuestionStatus } from "@/components/quiz/creator/types";
-import { AiStreamText } from "@/components/ui";
+import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 
 function decodeHtml(html: string): string {
   return html
@@ -90,15 +90,16 @@ export function MobileQuestionBankSheet({ open, onClose, onAiGenerate }: Props) 
                 >
                   <Plus className="h-4 w-4" /> Add
                 </button>
-                <button
+                <AiGenerateButton
+                  size="md"
+                  label="AI Generate"
                   onClick={() => {
                     onClose();
                     onAiGenerate?.();
                   }}
-                  className="section-ai-cta flex w-full items-center justify-center gap-1.5 rounded-xl border border-violet-500/30 bg-violet-500/[0.08] py-3 text-sm font-semibold text-violet-600 dark:text-violet-300"
-                >
-                  <Sparkles className="h-4 w-4" /> <AiStreamText text="AI Generate" />
-                </button>
+                  fullWidth
+                  className="py-3"
+                />
               </div>
             </div>
 

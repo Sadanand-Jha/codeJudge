@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  BadgeCheck,
   Building2,
   Clock,
   Globe,
@@ -17,6 +18,8 @@ import {
 import { cn } from "@/lib/helpers";
 import { PageHeader, Panel, StatusBadge, BillButton, SegmentedControl } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
+import { useAuthStore } from "@/store/authStore";
+import { verificationLabel, verificationState } from "@/lib/verification";
 import { ORGANIZATION, ORG_MEMBERS } from "./mockData";
 
 const INPUT_CLS =
@@ -31,6 +34,8 @@ const MODES = [
 
 export function CompanyPage() {
   const { success: toastSuccess, info: toastInfo } = useToast();
+  const user = useAuthStore((s) => s.user);
+  const verification = verificationState(user?.isVerified);
   const org = ORGANIZATION;
   const [mode, setMode] = useState<"individual" | "organization">(org.mode);
 
@@ -135,12 +140,23 @@ export function CompanyPage() {
           >
             <div className="flex items-center justify-between">
               <p className="text-[13px] font-semibold text-text-primary">Verification status</p>
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-300">
-                <Clock className="h-3 w-3" />
-                Pending
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
+                  verification === "verified"
+                    ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                    : "border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-300"
+                )}
+              >
+                {verification === "verified" ? <BadgeCheck className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                {verificationLabel(verification)}
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-text-secondary">Identity, organization and payment pending verification.</p>
+            <p className="mt-1 text-[11px] text-text-secondary">
+              {verification === "verified"
+                ? "Identity, organization and payment details are verified."
+                : "Identity, organization and payment pending verification."}
+            </p>
           </Link>
         </div>
 

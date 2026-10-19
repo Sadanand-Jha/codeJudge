@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/helpers";
 import { PageHeader, Panel, StatusBadge, BillButton } from "@/components/creator/billing/ui";
 import { useToast } from "@/hooks/useToast";
+import { verificationLabel } from "@/lib/verification";
 import { VERIFICATION } from "./mockData";
 import type { VerificationSection } from "./types";
 
@@ -70,7 +71,13 @@ export function VerificationPage() {
                 {completeCount === sections.length ? "You're fully verified" : `${completeCount} of ${sections.length} verified`}
               </h2>
               <StatusBadge
-                label={completeCount === sections.length ? "Verified Creator" : `${pendingCount} pending`}
+                label={
+                  completeCount === sections.length
+                    ? "Verified"
+                    : pendingCount > 0
+                      ? `${pendingCount} pending`
+                      : "Not verified"
+                }
                 tone={completeCount === sections.length ? "emerald" : "amber"}
                 dot
               />
@@ -126,7 +133,7 @@ export function VerificationPage() {
                   </div>
                 </div>
                 <StatusBadge
-                  label={section.status === "complete" ? "Verified" : section.status === "pending" ? "Pending" : "Required"}
+                  label={verificationLabel(section.status)}
                   tone={complete ? "emerald" : section.status === "pending" ? "amber" : "rose"}
                   dot
                 />
@@ -158,7 +165,7 @@ export function VerificationPage() {
                 {complete && (
                   <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-emerald-600 dark:text-emerald-300">
                     <Check className="h-3.5 w-3.5" />
-                    Complete
+                    {verificationLabel("verified")}
                   </span>
                 )}
               </div>

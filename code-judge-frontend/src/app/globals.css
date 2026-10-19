@@ -3995,6 +3995,28 @@ svg {
   animation: section-ai-cta-glow-light 3.6s ease-in-out infinite;
 }
 
+@keyframes qs-ai-shimmer {
+  0% {
+    transform: translateX(-180%) skewX(-12deg);
+  }
+  60%,
+  100% {
+    transform: translateX(560%) skewX(-12deg);
+  }
+}
+
+.qs-ai-shimmer {
+  animation: qs-ai-shimmer 3.4s ease-in-out infinite;
+  animation-delay: 0.8s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qs-ai-shimmer {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 .dark .section-ai-cta {
   animation-name: section-ai-cta-glow-dark;
 }

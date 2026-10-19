@@ -30,6 +30,7 @@ const MIN_MENU_WIDTH = 180;
 const VIEWPORT_GAP = 8;
 
 export function QsSelect<T extends string | number>({
+  id,
   value,
   options,
   onChange,
@@ -40,6 +41,7 @@ export function QsSelect<T extends string | number>({
   menuClassName,
   align = "left",
 }: {
+  id?: string;
   value: T | null;
   options: QsSelectOption<T>[];
   onChange: (value: T) => void;
@@ -159,6 +161,7 @@ export function QsSelect<T extends string | number>({
   return (
     <div ref={wrapRef} className="relative" onKeyDown={handleKeyDown}>
       <button
+        id={id}
         ref={triggerRef}
         type="button"
         onClick={openMenu}

@@ -23,6 +23,7 @@ import {
   chatWithFiles,
   generateQuestionsFromUpload,
   generateFromQuestionBankHandler,
+  getMyQuestionBank,
 } from "../../../controllers/ai.controller.ts";
 
 const router = Router();
@@ -57,7 +58,11 @@ router.post("/chat-files", upload.array("files", 25), chatWithFiles);
 // `files` carries the study material. Returns JSON `{ success, data }`.
 router.post("/generate-questions", upload.array("files", 25), generateQuestionsFromUpload);
 
-// Curated question-bank selection (balanced assessment). JSON body, no files.
+// Topic-scoped MCQ generation (fresh questions authored by the AI). JSON body,
+// no files. Generated questions are also persisted to quiz_question_bank.
 router.post("/generate-from-bank", generateFromQuestionBankHandler);
+
+// Creator's active bank rows (user-owned for 7 days, then system-owned).
+router.get("/question-bank", getMyQuestionBank);
 
 export default router;

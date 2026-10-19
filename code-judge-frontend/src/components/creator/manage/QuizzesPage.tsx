@@ -14,7 +14,6 @@ import {
   Plus,
   RotateCcw,
   Search,
-  Sparkles,
   Star,
   Timer,
   Trash2,
@@ -23,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { MaskedCopyCode } from "@/components/creator/common/MaskedCopyCode";
+import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { useData } from "@/lib/hooks/useData";
 import { Skeleton } from "@/components/creator/billing/ui";
 import { cn } from "@/lib/helpers";
@@ -209,10 +209,12 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               Upload a problem list and generate a complete, review-ready quiz in minutes.
             </p>
           </div>
-          <Link href="/creator/quizzes/ai-generate" className={cn(BTN, "shrink-0")}>
-            <Sparkles className="h-4 w-4" />
-            Generate with AI
-          </Link>
+          <AiGenerateButton
+            href="/creator/quizzes/ai-generate"
+            size="md"
+            label="Generate with AI"
+            className="shrink-0"
+          />
         </div>
       </section>
 
@@ -252,10 +254,11 @@ export function QuizzesPage({ demoState }: { demoState?: "empty" | "error" }) {
               <Plus className="h-3.5 w-3.5" />
               New quiz
             </Link>
-            <Link href="/creator/quizzes/ai-generate" className={BTN_SM}>
-              <Sparkles className="h-3.5 w-3.5" />
-              Generate with AI
-            </Link>
+            <AiGenerateButton
+              href="/creator/quizzes/ai-generate"
+              size="sm"
+              label="Generate with AI"
+            />
           </div>
         </div>
       )}

@@ -23,7 +23,7 @@ import { LiveRail } from "../components/LiveRail";
 import { AiGenerateModal } from "../components/AiGenerateModal";
 import { StudentPreviewModal } from "../components/StudentPreviewModal";
 import { useStudio, isQuestionValidationError } from "../StudioProvider";
-import { Plus, Sparkles, ListChecks, Settings2, ChevronLeft, ChevronRight, Save, Eye } from "lucide-react";
+import { Plus, ListChecks, Settings2, ChevronLeft, ChevronRight, Save, Eye } from "lucide-react";
 import type { CreatorQuestion } from "../types";
 import { downloadQuizPaperPdf, getPaperPdfErrorMessage, type PaperDownloadKind } from "@/utils/paperPdf";
 import { formatPaperDate, type PaperMeta } from "@/utils/paperHtml";
@@ -34,6 +34,7 @@ import { getApiErrorMessage } from "@/lib/apiError";
 import { MobileQuestionBankSheet } from "../components/mobile/MobileQuestionBankSheet";
 import { MobileQuestionSettingsSheet } from "../components/mobile/MobileQuestionSettingsSheet";
 import { AiStreamText } from "@/components/ui";
+import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 import { MobileQuestionEditor } from "../components/mobile/MobileQuestionEditor";
 
 function hashState(questions: CreatorQuestion[], info: { title: string; shortDescription: string; fullDescription: string; subject: string; difficulty: string; duration: number; passingMarks: number; tags: string[] }) {
@@ -47,7 +48,8 @@ export function QuestionsStep() {
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [rightOpen, setRightOpen] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
-  const [pdfCode, setPdfCode] = useState(state.info.code);
+  const [generatedPdfCode, setGeneratedPdfCode] = useState("");
+  const pdfCode = state.info.code || generatedPdfCode;
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [studentPreviewOpen, setStudentPreviewOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -59,28 +61,22 @@ export function QuestionsStep() {
   const [hasChanges, setHasChanges] = useState(false);
 
   const openPdfModal = useCallback(async () => {
-    const code = state.info.code || pdfCode;
-    if (code) {
-      setPdfCode(code);
+    if (pdfCode) {
       setPdfModalOpen(true);
       return;
     }
     try {
       const newCode = await generateQuizCode();
-      setPdfCode(newCode);
+      setGeneratedPdfCode(newCode);
       setPdfModalOpen(true);
     } catch {
       toast.error({ title: "Could not load PDF preview", description: "Failed to generate quiz code. Please try again." });
     }
-  }, [state.info.code, pdfCode]);
+  }, [pdfCode]);
 
   useEffect(() => {
     setHasChanges(hashState(state.questions, state.info) !== snapshotRef.current);
   }, [state.questions, state.info]);
-
-  useEffect(() => {
-    if (state.info.code && !pdfCode) setPdfCode(state.info.code);
-  }, [state.info.code]);
 
   const handleSave = useCallback(async () => {
     if (saving) return;
@@ -175,14 +171,13 @@ export function QuestionsStep() {
             <span className="hidden sm:inline text-xs font-medium text-[var(--qs-muted)]">
               {completed} / {state.questions.length} complete
             </span>
-            <button
-              type="button"
+            <AiGenerateButton
+              size="sm"
+              label="AI"
+              ariaLabel="AI Generate"
               onClick={() => setAiOpen(true)}
-              className="flex shrink-0 items-center gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:px-3 py-2 text-xs font-bold text-[var(--qs-ink)]"
-            >
-              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
-              <span className="min-w-[62px] text-left"><AiStreamText text="AI Generate" /></span>
-            </button>
+              className="shrink-0"
+            />
             <button
               onClick={() => setMobileSettingsOpen(true)}
               className="flex shrink-0 items-center gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 sm:px-3 py-2 text-xs font-bold text-[var(--qs-ink)]"
@@ -247,13 +242,13 @@ export function QuestionsStep() {
                 >
                   <Plus className="h-4 w-4" /> Create Question
                 </button>
-                <button
-                  type="button"
+                <AiGenerateButton
+                  size="md"
+                  label="Generate with AI"
                   onClick={() => setAiOpen(true)}
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 py-3 text-sm font-bold text-[var(--qs-ink)]"
-                >
-                  <Sparkles className="h-4 w-4 text-[var(--qs-brand)]" /> <AiStreamText text="Generate with AI" />
-                </button>
+                  fullWidth
+                  className="rounded-[14px] px-5 py-3 text-sm"
+                />
               </div>
             </div>
           ) : (
@@ -272,15 +267,13 @@ export function QuestionsStep() {
               <Save className="h-4 w-4 shrink-0" />
               <span className="truncate">{saving ? "Saving..." : "Save"}</span>
             </button>
-            <button
-              type="button"
+            <AiGenerateButton
+              size="md"
+              label="AI"
+              ariaLabel="AI Generate"
               onClick={() => setAiOpen(true)}
-              title="AI Generate"
-              className="flex shrink-0 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 text-sm font-bold text-[var(--qs-ink)]"
-            >
-              <Sparkles className="h-4 w-4 text-[var(--qs-brand)]" />
-              AI
-            </button>
+              className="shrink-0 px-4 py-3"
+            />
             <button
               onClick={() => setStudentPreviewOpen(true)}
               className="flex shrink-0 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 text-sm font-bold text-[var(--qs-ink)]"
@@ -366,13 +359,12 @@ export function QuestionsStep() {
                 >
                   <Plus className="h-4 w-4" /> Create Question
                 </button>
-                <button
-                  type="button"
+                <AiGenerateButton
+                  size="md"
+                  label="Generate with AI"
                   onClick={() => setAiOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 py-2.5 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
-                >
-                  <Sparkles className="h-4 w-4 text-[var(--qs-brand)]" /> <AiStreamText text="Generate with AI" />
-                </button>
+                  className="rounded-[14px] px-5 py-2.5 text-sm"
+                />
               </div>
             </div>
           ) : (
@@ -400,7 +392,14 @@ export function QuestionsStep() {
         )}
       </motion.div>
 
-      <AiGenerateModal open={aiOpen} onClose={() => setAiOpen(false)} onQuestionsAdded={handleAiQuestions} />
+      <AiGenerateModal
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        onQuestionsAdded={handleAiQuestions}
+        defaultSubjectId={state.info.subjectId ? Number(state.info.subjectId) || null : null}
+        defaultSubjectName={state.info.subject || undefined}
+        quizId={state.serverQuizId ?? null}
+      />
 
       <StudentPreviewModal
         open={studentPreviewOpen}

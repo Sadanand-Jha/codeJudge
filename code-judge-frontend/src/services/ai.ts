@@ -80,6 +80,7 @@ const toLiveUsage = (raw?: RawUsage): LiveUsage | undefined => {
  */
 export interface RawAIGeneratedQuestion {
   question: string;
+  questionHtml?: string;
   type?: string;
   difficulty?: string;
   options?: string[];
@@ -99,6 +100,7 @@ export interface AIQuestionPreview {
   type: AIQuestionType;
   title: string;
   content: string;
+  questionHtml?: string;
   options?: { id: string; content: string; isCorrect: boolean }[];
   correctAnswer?: string | number;
   explanation?: string;
@@ -167,6 +169,7 @@ export const mapRawQuestionsToPreview = (
       type,
       title: raw.question || `Generated Question ${i + 1}`,
       content: raw.question || "",
+      questionHtml: raw.questionHtml?.trim() || undefined,
       options,
       correctAnswer: options?.find((o) => o.isCorrect)?.id ?? declaredAnswer,
       explanation: raw.explanation,
@@ -240,6 +243,8 @@ export interface GenerateFromBankOptions {
   chapterId?: number | null;
   topicId?: number | null;
   kind?: "any" | "theory" | "numerical";
+  /** Quiz being authored — lets the backend store generated questions in the bank. */
+  quizId?: string | number | null;
 }
 
 export interface GenerateFromBankResponse {
@@ -265,6 +270,7 @@ export const generateFromQuestionBank = async (
       chapterId: options.chapterId,
       topicId: options.topicId,
       kind: options.kind,
+      quizId: options.quizId,
     }),
     credentials: "include",
   });
@@ -443,3 +449,42 @@ const consumeSSEResponse = async (
     reader.releaseLock();
   }
 };
+
+export interface UserBankQuestion {
+  id: number;
+  quiz_id: number | null;
+  subject_id: number;
+  subject: string;
+  chapter_id: number | null;
+  chapter: string | null;
+  topic_id: number | null;
+  topic: string | null;
+  question_type: string;
+  question_text: string;
+  question_html: string | null;
+  options: Array<{ text: string; isCorrect?: boolean }>;
+  answers: string[];
+  explanation: string | null;
+  hint: string | null;
+  difficulty: string | null;
+  source: string;
+  created_at: string;
+  ownership_expires_at: string;
+}
+
+/**
+ * Fetch the creator's active bank rows. Rows are user-owned for 7 days; after
+ * that the backend transfers them to the system bank and stops returning them.
+ */
+export async function getMyQuestionBank(signal?: AbortSignal): Promise<UserBankQuestion[]> {
+  const response = await fetch(`${API_BASE}/v1/user/ai/question-bank`, {
+    headers: getAuthHeaders(),
+    credentials: "include",
+    signal,
+  });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok || json.success === false) {
+    throw new Error(json.message || `Request failed with status ${response.status}`);
+  }
+  return json.data?.questions ?? [];
+}

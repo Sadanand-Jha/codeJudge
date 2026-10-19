@@ -3,6 +3,7 @@
 import { Pencil } from "lucide-react";
 import { IST_TIMEZONE } from "@/lib/formatters";
 import type { CreatorProfile } from "@/components/creator/workspace/types";
+import { verificationLabel } from "@/lib/verification";
 
 function formatDateTime(iso?: string | null): string {
   if (!iso) return "";
@@ -27,7 +28,7 @@ export function AccountDetails({
     { label: "Account type", value: profile.role || "Individual" },
     {
       label: "Account status",
-      value: `${profile.verificationStatus === "verified" ? "Verified" : "Verification pending"} · Active`,
+      value: `${verificationLabel(profile.verificationStatus)} · Active`,
     },
     formatDateTime(profile.createdAt) ? { label: "Registered", value: formatDateTime(profile.createdAt) } : null,
     formatDateTime(lastActive) ? { label: "Last active", value: formatDateTime(lastActive) } : null,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
@@ -9,6 +9,7 @@ import {
   FileCode2,
   FileImage,
   X,
+  Check,
   CheckCircle2,
   AlertCircle,
   Sparkles,
@@ -17,17 +18,21 @@ import {
   Target,
   Plus,
   Minus,
+  Circle,
+  Loader2,
 } from "lucide-react";
-import { SecureLogo } from "@/components/common/SecureLogo";
 import { cn } from "@/lib/helpers";
 import { generateQuestionsFromFiles, generateFromQuestionBank, mapRawQuestionsToPreview } from "@/services/ai";
+import { getQuestionGeneratorCatalog } from "@/services/aiGenerate";
+import type { QuestionGeneratorCatalog } from "@/services/aiGenerate";
 import { toast } from "@/lib/toast";
 import type { AIQuestionPreview } from "@/services/ai";
 import type { CreatorQuestion } from "../types";
 import { mapToCreatorQuestions } from "@/utils/aiToCreatorQuestion";
 import AIQuestionReviewOverlay from "@/components/quiz/creator/AIQuestionReviewOverlay";
-import { QuestionBankFilters } from "@/components/creator/tests/sections/QuestionBankFilters";
 import { AiStreamText } from "@/components/ui";
+import { QsSelect } from "@/components/creator/problems/QsSelect";
+import { AiGenerateButton } from "@/components/creator/common/AiGenerateButton";
 
 const ACCEPT = [
   ".txt", ".md", ".csv", ".tsv", ".json", ".xml", ".html", ".yml", ".yaml",
@@ -39,6 +44,14 @@ const ACCEPT = [
 ].join(",");
 
 const MAX_SIZE_MB = 20;
+
+const GENERATION_STEPS = [
+  "Reading your subject scope and instructions…",
+  "Mapping chapters, topics, and question style…",
+  "Drafting clear, exam-ready question stems…",
+  "Balancing difficulty and writing explanations…",
+  "Checking answers and final quality…",
+] as const;
 
 const FILE_EXTENSIONS: Record<string, string[]> = {
   pdf: ["pdf"],
@@ -72,15 +85,24 @@ export function AiGenerateModal({
   open,
   onClose,
   onQuestionsAdded,
+  defaultSubjectId = null,
+  defaultSubjectName,
+  quizId = null,
 }: {
   open: boolean;
   onClose: () => void;
   onQuestionsAdded: (questions: CreatorQuestion[]) => Promise<void>;
+  defaultSubjectId?: number | null;
+  defaultSubjectName?: string;
+  quizId?: string | null;
 }) {
   const [mode, setMode] = useState<"own" | "bank">("own");
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [generationStep, setGenerationStep] = useState(0);
+  const [generationFailed, setGenerationFailed] = useState(false);
+  const [lastAction, setLastAction] = useState<"own" | "bank">("own");
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
   const [addedCount, setAddedCount] = useState(0);
@@ -88,17 +110,85 @@ export function AiGenerateModal({
   // Nothing is saved to the server before the creator accepts.
   const [reviewQuestions, setReviewQuestions] = useState<AIQuestionPreview[]>([]);
   const [reviewOpen, setReviewOpen] = useState(false);
-  // Bank controls — balanced 10 paper default 4/3/3
+  // Topic controls — balanced 10-question default 4/3/3
   const [bankNumber, setBankNumber] = useState(10);
   const [bankEasy, setBankEasy] = useState(4);
   const [bankMedium, setBankMedium] = useState(3);
   const [bankHard, setBankHard] = useState(3);
   const [bankSyllabus, setBankSyllabus] = useState("");
-  const [bankSubjectId, setBankSubjectId] = useState<number | null>(null);
+  // `undefined` means "not chosen yet" — the quiz's own subject is shown by
+  // default without needing an effect to sync it on every open.
+  const [bankSubjectChoice, setBankSubjectChoice] = useState<number | null | undefined>(undefined);
+  const bankSubjectId = bankSubjectChoice === undefined ? defaultSubjectId : bankSubjectChoice;
   const [bankChapterId, setBankChapterId] = useState<number | null>(null);
   const [bankTopicId, setBankTopicId] = useState<number | null>(null);
   const [bankKind, setBankKind] = useState<"any" | "theory" | "numerical">("any");
+  const [catalog, setCatalog] = useState<QuestionGeneratorCatalog | null>(null);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    const controller = new AbortController();
+    getQuestionGeneratorCatalog(controller.signal)
+      .then((data) => {
+        if (active) {
+          setCatalog(data);
+          setCatalogError("");
+        }
+      })
+      .catch((err) => {
+        if (active && err?.name !== "AbortError") {
+          setCatalogError(err?.message || "Could not load subjects.");
+        }
+      })
+      .finally(() => {
+        if (active) setCatalogLoading(false);
+      });
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [open]);
+
+  // The request usually takes under a minute. Advance a paced, believable
+  // timeline so the wait feels active; real responses jump ahead at 70/100.
+  useEffect(() => {
+    if (!generating) return;
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      setProgress((current) => Math.min(90, Math.max(current, Math.floor((elapsed / 60_000) * 90))));
+      setGenerationStep((current) => {
+        const next = Math.min(GENERATION_STEPS.length - 1, Math.floor(elapsed / 9_000));
+        return Math.max(current, next);
+      });
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [generating]);
+
+  const subjectOptions = useMemo(() => {
+    const base = catalog?.subjects ?? [];
+    if (defaultSubjectId != null && !base.some((subject) => subject.id === defaultSubjectId)) {
+      return defaultSubjectName
+        ? [...base, { id: defaultSubjectId, name: defaultSubjectName }]
+        : base;
+    }
+    return base;
+  }, [catalog, defaultSubjectId, defaultSubjectName]);
+
+  const chapterOptions = useMemo(
+    () => catalog?.chapters.filter((chapter) => chapter.subjectId === bankSubjectId) ?? [],
+    [catalog, bankSubjectId]
+  );
+  const topicOptions = useMemo(
+    () => catalog?.topics.filter((topic) => topic.chapterId === bankChapterId) ?? [],
+    [catalog, bankChapterId]
+  );
+
+  const subjectFromQuiz = defaultSubjectId != null && bankSubjectId === defaultSubjectId;
 
   const syncBankDistribution = (total: number) => {
     let e = Math.round(total * 0.4);
@@ -113,10 +203,13 @@ export function AiGenerateModal({
     setFiles([]);
     setError("");
     setGenerating(false);
+    setGenerationStep(0);
+    setGenerationFailed(false);
     setProgress(0);
     setDone(false);
     setAddedCount(0);
     setBankSyllabus("");
+    setBankSubjectChoice(undefined);
     setReviewQuestions([]);
     setReviewOpen(false);
     setAccepting(false);
@@ -165,12 +258,15 @@ export function AiGenerateModal({
 
   const handleGenerate = async () => {
     if (files.length === 0) return;
+    setLastAction("own");
     setGenerating(true);
-    setProgress(10);
+    setGenerationFailed(false);
+    setGenerationStep(0);
+    setProgress(8);
     setError("");
 
     try {
-      setProgress(30);
+      setProgress(25);
       const rawQuestions = await generateQuestionsFromFiles(files, {
         numberOfQuestions: 20,
         questionTypes: ["mcq"],
@@ -185,7 +281,8 @@ export function AiGenerateModal({
       setProgress(70);
       const previews = mapRawQuestionsToPreview(rawQuestions);
       if (previews.length === 0) {
-        setError("AI returned no questions. Please try again.");
+        setError("The AI returned no questions. Try a smaller file or add more detail.");
+        setGenerationFailed(true);
         setGenerating(false);
         return;
       }
@@ -196,6 +293,7 @@ export function AiGenerateModal({
       toast.success(`Generated ${previews.length} questions — review before adding`);
     } catch (err) {
       setError((err as Error).message || "AI generation failed. Please try again.");
+      setGenerationFailed(true);
       setGenerating(false);
     }
   };
@@ -203,15 +301,18 @@ export function AiGenerateModal({
   const handleGenerateFromBank = async () => {
     const sum = bankEasy + bankMedium + bankHard;
     if (sum !== bankNumber) {
-      setError(`Distribution must sum to ${bankNumber}: Easy ${bankEasy}+ Medium ${bankMedium}+ Hard ${bankHard}= ${sum}`);
+      setError(`Distribution must sum to ${bankNumber}: Easy ${bankEasy} + Medium ${bankMedium} + Hard ${bankHard} = ${sum}`);
       return;
     }
     if (!bankSubjectId) {
       setError("Please select a subject.");
       return;
     }
+    setLastAction("bank");
     setGenerating(true);
-    setProgress(10);
+    setGenerationFailed(false);
+    setGenerationStep(0);
+    setProgress(8);
     setError("");
     try {
       setProgress(20);
@@ -225,11 +326,13 @@ export function AiGenerateModal({
         chapterId: bankChapterId,
         topicId: bankTopicId,
         kind: bankKind,
+        quizId,
       });
       setProgress(70);
       const previews = mapRawQuestionsToPreview(rawQuestions);
       if (previews.length === 0) {
-        setError("AI returned no questions. Please try again.");
+        setError("The AI returned no questions. Try again or widen the chapter/topic scope.");
+        setGenerationFailed(true);
         setGenerating(false);
         return;
       }
@@ -240,7 +343,16 @@ export function AiGenerateModal({
       toast.success(`Generated ${previews.length} questions (E${bankEasy}·M${bankMedium}·H${bankHard}) — review before adding`);
     } catch (err) {
       setError((err as Error).message || "Question generation failed. Please try again.");
+      setGenerationFailed(true);
       setGenerating(false);
+    }
+  };
+
+  const retryGeneration = () => {
+    if (lastAction === "bank") {
+      void handleGenerateFromBank();
+    } else {
+      void handleGenerate();
     }
   };
 
@@ -296,6 +408,10 @@ export function AiGenerateModal({
     setReviewQuestions((prev) => prev.map((q) => (q.id === question.id ? { ...q, ...question } : q)));
   };
 
+  const canGenerateFromBank = bankEasy + bankMedium + bankHard === bankNumber && !!bankSubjectId;
+  const canGenerateFromFiles = files.length > 0 && !error;
+  const primaryDisabled = mode === "bank" ? !canGenerateFromBank : !canGenerateFromFiles;
+
   return (
     <>
     <AnimatePresence>
@@ -304,211 +420,465 @@ export function AiGenerateModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4"
+          className="qs-ui fixed inset-0 z-[80] flex items-center justify-center p-2 sm:p-4"
+          style={{ background: "rgba(26, 18, 64, 0.6)" }}
           onClick={handleClose}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="ai-color-card flex max-h-[calc(100dvh-1rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl sm:max-h-[90dvh]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ai-generate-title"
+            initial={{ scale: 0.96, opacity: 0, y: 8 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.96, opacity: 0, y: 8 }}
+            className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-xl flex-col overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[8px_8px_0_var(--qs-sun)] sm:max-h-[90dvh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="ai-color-header flex shrink-0 items-center justify-between border-b border-border px-4 py-3 sm:px-5 sm:py-4">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/10">
-                  <Sparkles className="h-4 w-4 text-pink-500" />
-                </div>
-                <div>
-                  <h3 className="min-h-5 text-sm font-bold text-text-primary"><AiStreamText text="Generate with AI" /></h3>
-                  <p className="min-h-4 text-[11px] text-text-secondary"><AiStreamText text="Choose a source" /></p>
+            {/* Header */}
+            <div className="flex shrink-0 items-start justify-between gap-3 border-b-2 border-[var(--qs-line)] px-4 py-4 sm:px-5">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[13px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[var(--qs-ink)]">
+                  <Sparkles className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--qs-muted)]">
+                    AI Question Studio
+                  </p>
+                  <h3 id="ai-generate-title" className="mt-0.5 text-lg font-extrabold text-[var(--qs-ink)]">
+                    <AiStreamText text="Generate with AI" />
+                  </h3>
+                  <p className="mt-0.5 text-[11px] font-medium text-[var(--qs-muted)]">
+                    Upload material or pick a topic — review everything before adding.
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex h-7 w-7 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-card-hover hover:text-text-primary"
+                aria-label="Close AI generator"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] border-2 border-[var(--qs-line)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             {/* Mode selector */}
-            <div className="grid shrink-0 grid-cols-2 gap-2 px-4 pt-3 sm:px-5 sm:pt-4">
-              <button
-                type="button"
-                onClick={() => { setMode("own"); setError(""); }}
-                className={cn(
-                  "rounded-xl border p-2.5 text-left transition-all sm:p-3",
-                  mode === "own" ? "border-pink-500 bg-pink-500/10 shadow-sm" : "border-border bg-card-hover hover:border-pink-500/20"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <Upload className={cn("h-4 w-4", mode === "own" ? "text-pink-500" : "text-text-muted")} />
-                  <span className={cn("text-xs font-bold", mode === "own" ? "text-pink-600" : "text-text-primary")}>From Your Material</span>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setMode("bank"); setError(""); }}
-                className={cn(
-                  "rounded-xl border p-2.5 text-left transition-all sm:p-3",
-                  mode === "bank" ? "border-pink-500 bg-pink-500/10 shadow-sm" : "border-border bg-card-hover hover:border-pink-500/20"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <BookOpen className={cn("h-4 w-4", mode === "bank" ? "text-pink-500" : "text-text-muted")} />
-                  <span className={cn("text-xs font-bold", mode === "bank" ? "text-pink-600" : "text-text-primary")}>Generate by Topic</span>
-                </div>
-              </button>
-            </div>
+            {!done && !generating && (
+              <div className="grid shrink-0 grid-cols-2 gap-2 px-4 pt-3 sm:px-5">
+                <button
+                  type="button"
+                  onClick={() => { setMode("own"); setError(""); setGenerationFailed(false); }}
+                  className={cn(
+                    "flex min-w-0 items-center gap-2.5 rounded-[14px] border-2 p-2.5 text-left transition-colors",
+                    mode === "own"
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
+                  )}
+                >
+                  <span className={cn(
+                    "grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2",
+                    mode === "own"
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[var(--qs-ink)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]"
+                  )}>
+                    <Upload className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12px] font-extrabold text-[var(--qs-ink)]">From your material</span>
+                    <span className="block truncate text-[10px] font-medium text-[var(--qs-muted)]">PDF, notes, slides</span>
+                  </span>
+                  {mode === "own" && <Check className="h-4 w-4 shrink-0 text-[var(--qs-brand)]" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode("bank"); setError(""); setGenerationFailed(false); }}
+                  className={cn(
+                    "flex min-w-0 items-center gap-2.5 rounded-[14px] border-2 p-2.5 text-left transition-colors",
+                    mode === "bank"
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-poly-1)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
+                  )}
+                >
+                  <span className={cn(
+                    "grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2",
+                    mode === "bank"
+                      ? "border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[var(--qs-ink)]"
+                      : "border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)]"
+                  )}>
+                    <BookOpen className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12px] font-extrabold text-[var(--qs-ink)]">Generate by topic</span>
+                    <span className="block truncate text-[10px] font-medium text-[var(--qs-muted)]">AI writes fresh MCQs</span>
+                  </span>
+                  {mode === "bank" && <Check className="h-4 w-4 shrink-0 text-[var(--qs-brand)]" />}
+                </button>
+              </div>
+            )}
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4">
               {done ? (
                 <div className="py-6 text-center">
-                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                  <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-[14px] border-2 border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]">
+                    <CheckCircle2 className="h-6 w-6" />
                   </div>
-                  <p className="text-sm font-semibold text-text-primary">
+                  <p className="text-sm font-extrabold text-[var(--qs-ink)]">
                     {addedCount} questions added
                   </p>
-                  <p className="mt-1 text-xs text-text-secondary">
-                    You can review and edit them in the question editor.
+                  <p className="mt-1 text-xs font-medium text-[var(--qs-muted)]">
+                    Review and edit them anytime in the question editor.
                   </p>
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="mt-4 rounded-lg bg-pink-500 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-pink-600"
+                    className="mt-4 inline-flex h-10 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] px-5 text-xs font-extrabold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
                   >
                     Done
                   </button>
                 </div>
               ) : generating ? (
-                <div className="space-y-4 py-4">
-                  <div className="text-center">
-                    <SecureLogo variant="mark" size={32} className="mx-auto animate-pulse motion-reduce:animate-none" />
-                    <p className="mt-3 text-sm font-semibold text-text-primary">
-                      Creating your questions…
-                    </p>
-                    <p className="mt-1 text-xs text-text-secondary">
-                      Building a balanced set from your preferences. Please keep this window open.
-                    </p>
+                <div className="space-y-4 py-3">
+                  <div className="overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)]">
+                    <div className="flex items-center gap-3 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500 p-4 text-white">
+                      <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-[13px] border-2 border-white/40 bg-white/15">
+                        <Sparkles className="h-5 w-5" />
+                        <span className="absolute -right-1 -top-1 h-2.5 w-2.5 animate-ping rounded-full bg-[var(--qs-sun)] motion-reduce:animate-none" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-extrabold">Creating your questions…</p>
+                        <p aria-live="polite" className="mt-0.5 text-[11px] font-medium text-white/85">
+                          {GENERATION_STEPS[generationStep]}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="h-2 overflow-hidden rounded-full bg-[var(--qs-line)]">
+                        <motion.div
+                          className="h-full rounded-full bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-500"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progress}%` }}
+                          transition={{ duration: 0.4 }}
+                        />
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between text-[10px] font-semibold text-[var(--qs-muted)]">
+                        <span>Usually under a minute</span>
+                        <span className="tabular-nums">{progress}%</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-border">
-                    <motion.div
-                      className="h-full rounded-full bg-pink-500"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progress}%` }}
-                      transition={{ duration: 0.4 }}
-                    />
+
+                  <ul className="space-y-1.5 px-1">
+                    {GENERATION_STEPS.map((step, index) => {
+                      const isDone = index < generationStep;
+                      const isCurrent = index === generationStep;
+                      return (
+                        <li
+                          key={step}
+                          className={cn(
+                            "flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                            isCurrent
+                              ? "bg-[var(--qs-poly-1)] text-[var(--qs-ink)]"
+                              : isDone
+                                ? "text-[var(--qs-muted)]"
+                                : "text-[var(--qs-muted)]/60"
+                          )}
+                        >
+                          {isDone ? (
+                            <Check className="h-3.5 w-3.5 shrink-0 text-[var(--qs-ok)]" />
+                          ) : isCurrent ? (
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--qs-brand)] motion-reduce:animate-none" />
+                          ) : (
+                            <Circle className="h-3.5 w-3.5 shrink-0 opacity-40" />
+                          )}
+                          <span>{step}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  <p className="px-1 text-center text-[10px] font-medium text-[var(--qs-muted)]">
+                    Keep this window open — the review opens as soon as the set is ready.
+                  </p>
+                </div>
+              ) : generationFailed ? (
+                <div className="py-3" role="alert">
+                  <div className="rounded-[18px] border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] p-5 text-center">
+                    <div className="mx-auto grid h-12 w-12 place-items-center rounded-[14px] border-2 border-[var(--qs-bad)] bg-[var(--qs-surface)] text-[var(--qs-bad)]">
+                      <AlertCircle className="h-6 w-6" />
+                    </div>
+                    <p className="mt-3 text-base font-extrabold text-[var(--qs-ink)]">
+                      We couldn&apos;t generate questions
+                    </p>
+                    <p className="mx-auto mt-1 max-w-sm text-xs font-medium leading-5 text-[var(--qs-bad)]">
+                      {error || "The AI request failed. Please try again."}
+                    </p>
+                    <div className="mt-4 flex flex-col items-center justify-center gap-2 sm:flex-row">
+                      <AiGenerateButton
+                        size="md"
+                        label="Try again"
+                        onClick={retryGeneration}
+                        className="w-full sm:w-auto"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setGenerationFailed(false); setError(""); }}
+                        className="h-10 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] sm:w-auto"
+                      >
+                        Back to settings
+                      </button>
+                    </div>
                   </div>
+                  <p className="mt-3 text-center text-[10px] font-medium text-[var(--qs-muted)]">
+                    Tip: try fewer questions, a narrower topic, or a smaller file.
+                  </p>
                 </div>
               ) : mode === "bank" ? (
                 <div className="space-y-3">
-                  <div className="rounded-xl border border-border bg-card p-3">
-                    <QuestionBankFilters
-                      subjectId={bankSubjectId}
-                      chapterId={bankChapterId}
-                      topicId={bankTopicId}
-                      onSubjectChange={setBankSubjectId}
-                      onChapterChange={setBankChapterId}
-                      onTopicChange={setBankTopicId}
-                      kind={bankKind}
-                      onKindChange={setBankKind}
-                      disabled={generating}
-                      columns="grid-cols-1 sm:grid-cols-2 [&>*:last-child]:sm:col-span-2"
-                    />
+                  {/* Scope */}
+                  <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+                    <p className="mb-2.5 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                      <Target className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Quiz scope
+                    </p>
+                    <div className="grid gap-2.5 sm:grid-cols-3">
+                      <div className="min-w-0">
+                        <div className="flex h-4 items-center gap-1.5 overflow-hidden">
+                          <label
+                            htmlFor="ai-bank-subject"
+                            className="truncate text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]"
+                          >
+                            Subject
+                          </label>
+                          {subjectFromQuiz ? (
+                            <span className="shrink-0 rounded-full bg-[var(--qs-poly-2)] px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-brand)]">
+                              from this quiz
+                            </span>
+                          ) : null}
+                        </div>
+                        <QsSelect
+                          id="ai-bank-subject"
+                          value={bankSubjectId}
+                          onChange={(next) => {
+                            setBankSubjectChoice(next);
+                            setBankChapterId(null);
+                            setBankTopicId(null);
+                          }}
+                          options={subjectOptions.map((subject) => ({ value: subject.id, label: subject.name }))}
+                          placeholder={catalogLoading ? "Loading…" : "Select subject"}
+                          disabled={catalogLoading}
+                          ariaLabel="Subject"
+                          triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex h-4 items-center gap-1.5 overflow-hidden">
+                          <label
+                            htmlFor="ai-bank-chapter"
+                            className="truncate text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]"
+                          >
+                            Chapter
+                          </label>
+                          <span className="shrink-0 rounded-full bg-[var(--qs-poly-2)] px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-brand)]">
+                            optional
+                          </span>
+                        </div>
+                        <QsSelect
+                          id="ai-bank-chapter"
+                          value={bankChapterId ?? 0}
+                          onChange={(next) => {
+                            setBankChapterId(next === 0 ? null : next);
+                            setBankTopicId(null);
+                          }}
+                          options={[
+                            { value: 0, label: "All chapters" },
+                            ...chapterOptions.map((chapter) => ({ value: chapter.id, label: chapter.name })),
+                          ]}
+                          placeholder="All chapters"
+                          disabled={!bankSubjectId}
+                          ariaLabel="Chapter"
+                          triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex h-4 items-center gap-1.5 overflow-hidden">
+                          <label
+                            htmlFor="ai-bank-topic"
+                            className="truncate text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]"
+                          >
+                            Topic
+                          </label>
+                          <span className="shrink-0 rounded-full bg-[var(--qs-poly-2)] px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.06em] text-[var(--qs-brand)]">
+                            optional
+                          </span>
+                        </div>
+                        <QsSelect
+                          id="ai-bank-topic"
+                          value={bankTopicId ?? 0}
+                          onChange={(next) => setBankTopicId(next === 0 ? null : next)}
+                          options={[
+                            { value: 0, label: "All topics" },
+                            ...topicOptions.map((topic) => ({ value: topic.id, label: topic.name })),
+                          ]}
+                          placeholder="All topics"
+                          disabled={!bankChapterId}
+                          ariaLabel="Topic"
+                          triggerClassName="mt-1.5 h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 text-[12px] font-bold text-[var(--qs-ink)] hover:border-[var(--qs-brand)] focus-visible:border-[var(--qs-brand)] disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                    {catalogError ? (
+                      <p className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--qs-bad)]">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {catalogError}
+                      </p>
+                    ) : null}
+                    <div className="mt-2.5">
+                      <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                        Question style
+                      </p>
+                      <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1">
+                        {([
+                          { value: "any", label: "Mixed" },
+                          { value: "theory", label: "Theory" },
+                          { value: "numerical", label: "Numerical" },
+                        ] as const).map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setBankKind(option.value)}
+                            className={cn(
+                              "h-8 rounded-[9px] text-[11px] font-bold transition-colors",
+                              bankKind === option.value
+                                ? "bg-[var(--qs-poly-2)] text-[var(--qs-ink)]"
+                                : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  {/* Syllabus scope */}
-                  <div className="space-y-2 rounded-xl border border-border bg-card p-3">
-                    <label htmlFor="ai-bank-syllabus" className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-text-primary">
-                      <BookOpen className="h-3.5 w-3.5 text-pink-500" /> Syllabus / topics
-                      <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-violet-600 dark:text-violet-300">Recommended</span>
-                    </label>
+
+                  {/* Syllabus */}
+                  <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
+                      <label htmlFor="ai-bank-syllabus" className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                        <BookOpen className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Syllabus / topics
+                      </label>
+                      <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-[0.06em] text-[#1a1240]">
+                        Recommended
+                      </span>
+                    </div>
                     <textarea
                       id="ai-bank-syllabus"
                       value={bankSyllabus}
                       onChange={(event) => setBankSyllabus(event.target.value)}
                       maxLength={4000}
                       rows={4}
-                      placeholder={"Paste your actual syllabus here:\nProcesses and threads\nCPU scheduling\nExclude virtual memory"}
-                      className={cn(
-                        "w-full resize-y rounded-lg border bg-card-hover px-3 py-2 text-xs leading-5 text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-pink-500 focus:ring-2 focus:ring-pink-500/10",
-                        bankSyllabus.trim() ? "border-emerald-500/30" : "border-amber-400/45"
-                      )}
+                      placeholder={"Paste the topics to cover, one per line:\nProcesses and threads\nCPU scheduling\nExclude virtual memory"}
+                      className="mt-2 w-full resize-y rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-field)] px-3 py-2 text-xs font-medium leading-5 text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                     />
-                    <div className="flex items-center justify-between gap-3 text-[10px] text-text-muted">
-                      <span className={bankSyllabus.trim() ? "text-emerald-600 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}>
+                    <div className="mt-2 flex items-start justify-between gap-3 text-[10px] font-medium text-[var(--qs-muted)]">
+                      <span className={bankSyllabus.trim() ? "text-[var(--qs-ok)]" : "text-[var(--qs-warn)]"}>
                         <AiStreamText text={bankSyllabus.trim()
-                          ? "Great — AI will keep the quiz close to your taught material."
-                          : "Add your syllabus for precise results; otherwise the quiz may cover a broader subject scope."} />
+                          ? "AI will generate questions only from these topics."
+                          : "Add topics for precise questions; otherwise the full subject scope is used."} />
                       </span>
                       <span className="shrink-0 tabular-nums">{bankSyllabus.length}/4000</span>
                     </div>
                   </div>
 
-                  {/* Assessment size */}
-                  <div className="space-y-2 rounded-xl border border-border bg-card p-3">
-                    <label className="text-xs font-bold text-text-primary flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-pink-500" /> Assessment size</label>
-                    <div className="flex items-center gap-3">
-                      <button type="button" onClick={() => { const v = Math.max(1, bankNumber - 1); setBankNumber(v); syncBankDistribution(v); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border"><Minus className="h-3.5 w-3.5" /></button>
-                      <div className="flex-1 text-center">
-                        <span className="text-lg font-bold text-pink-600">{bankNumber}</span>
-                        <span className="text-xs text-text-muted ml-1">questions</span>
+                  {/* Size + difficulty */}
+                  <div className="rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                        <Target className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Assessment size
+                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          aria-label="Fewer questions"
+                          onClick={() => { const v = Math.max(5, bankNumber - 1); setBankNumber(v); syncBankDistribution(v); }}
+                          className="grid h-8 w-8 place-items-center rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="min-w-8 text-center text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">
+                          {bankNumber}
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="More questions"
+                          onClick={() => { const v = Math.min(50, bankNumber + 1); setBankNumber(v); syncBankDistribution(v); }}
+                          className="grid h-8 w-8 place-items-center rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                      <button type="button" onClick={() => { const v = Math.min(50, bankNumber + 1); setBankNumber(v); syncBankDistribution(v); }} className="flex h-8 w-8 items-center justify-center rounded-lg bg-card-hover border border-border"><Plus className="h-3.5 w-3.5" /></button>
                     </div>
-                    <input type="range" min={5} max={20} value={bankNumber} onChange={(e) => { const v = parseInt(e.target.value); setBankNumber(v); syncBankDistribution(v); }} className="w-full h-2 bg-border rounded-lg appearance-none cursor-pointer accent-pink-500" />
-                  </div>
+                    <input
+                      type="range"
+                      min={5}
+                      max={50}
+                      value={bankNumber}
+                      onChange={(e) => { const v = parseInt(e.target.value); setBankNumber(v); syncBankDistribution(v); }}
+                      className="mt-2 w-full accent-[var(--qs-brand)]"
+                      aria-label="Number of questions"
+                    />
 
-                  {/* Difficulty distribution */}
-                  <div className="space-y-2 rounded-xl border border-border bg-card p-3">
-                    <label className="text-xs font-bold text-text-primary flex items-center gap-1.5"><SlidersHorizontal className="h-3.5 w-3.5 text-pink-500" /> Difficulty distribution — must sum to {bankNumber}</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { key: "easy", label: "Easy", value: bankEasy, setter: setBankEasy, color: "text-emerald-600" },
-                        { key: "medium", label: "Medium", value: bankMedium, setter: setBankMedium, color: "text-pink-600" },
-                        { key: "hard", label: "Hard", value: bankHard, setter: setBankHard, color: "text-rose-600" },
-                      ].map((d) => (
-                        <div key={d.key} className="rounded-lg border border-border bg-card-hover p-2 text-center">
-                          <p className={`text-xs font-bold ${d.color}`}>{d.label}</p>
-                          <div className="flex items-center justify-center gap-1 mt-1">
-                            <button type="button" onClick={() => (d.setter as any)((v: number) => Math.max(0, v - 1))} className="h-6 w-6 rounded border border-border flex items-center justify-center"><Minus className="h-3 w-3" /></button>
-                            <span className="w-6 text-sm font-bold text-text-primary">{d.value}</span>
-                            <button type="button" onClick={() => (d.setter as any)((v: number) => Math.min(bankNumber, v + 1))} className="h-6 w-6 rounded border border-border flex items-center justify-center"><Plus className="h-3 w-3" /></button>
+                    <div className="mt-3 border-t-2 border-[var(--qs-line)] pt-3">
+                      <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                        <SlidersHorizontal className="h-3.5 w-3.5 text-[var(--qs-brand)]" /> Difficulty split
+                      </p>
+                      <div className="mt-2 grid grid-cols-3 gap-2">
+                        {([
+                          { key: "easy", label: "Easy", value: bankEasy, setter: setBankEasy, color: "text-[var(--qs-ok)]" },
+                          { key: "medium", label: "Medium", value: bankMedium, setter: setBankMedium, color: "text-[var(--qs-warn)]" },
+                          { key: "hard", label: "Hard", value: bankHard, setter: setBankHard, color: "text-[var(--qs-bad)]" },
+                        ] as const).map((item) => (
+                          <div key={item.key} className="rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2 text-center">
+                            <p className={cn("text-[10px] font-extrabold uppercase tracking-[0.06em]", item.color)}>{item.label}</p>
+                            <div className="mt-1 flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                aria-label={`Decrease ${item.label}`}
+                                onClick={() => item.setter((value) => Math.max(0, value - 1))}
+                                className="grid h-6 w-6 place-items-center rounded-[7px] border-2 border-[var(--qs-line)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="w-6 text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">{item.value}</span>
+                              <button
+                                type="button"
+                                aria-label={`Increase ${item.label}`}
+                                onClick={() => item.setter((value) => Math.min(bankNumber, value + 1))}
+                                className="grid h-6 w-6 place-items-center rounded-[7px] border-2 border-[var(--qs-line)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className={cn("rounded border px-2 py-1 text-center text-[11px] font-medium", bankEasy + bankMedium + bankHard === bankNumber ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-rose-500/10 text-rose-600 border-rose-500/20")}>
-                      {bankEasy} + {bankMedium} + {bankHard} = {bankEasy + bankMedium + bankHard} {bankEasy + bankMedium + bankHard === bankNumber ? "✓ Balanced" : `≠ ${bankNumber} — adjust`}
+                        ))}
+                      </div>
+                      <div
+                        className={cn(
+                          "mt-2 rounded-[10px] border-2 px-2 py-1 text-center text-[10px] font-extrabold tabular-nums",
+                          bankEasy + bankMedium + bankHard === bankNumber
+                            ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]"
+                            : "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]"
+                        )}
+                      >
+                        {bankEasy} + {bankMedium} + {bankHard} = {bankEasy + bankMedium + bankHard}{" "}
+                        {bankEasy + bankMedium + bankHard === bankNumber ? "· Balanced" : `≠ ${bankNumber} — adjust`}
+                      </div>
                     </div>
                   </div>
 
                   {error && (
-                    <div className="flex items-start gap-2 rounded-lg border border-rose-500/20 bg-rose-500/[0.04] px-3 py-2.5">
-                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
-                      <p className="text-xs text-rose-500">{error}</p>
+                    <div className="flex items-start gap-2 rounded-[12px] border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-3 py-2.5">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-bad)]" />
+                      <p className="text-xs font-semibold text-[var(--qs-bad)]">{error}</p>
                     </div>
                   )}
-
-                  <button
-                    type="button"
-                    onClick={handleGenerateFromBank}
-                    disabled={bankEasy + bankMedium + bankHard !== bankNumber || !bankSubjectId}
-                    className={cn(
-                      "section-ai-cta sticky bottom-0 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all",
-                      bankEasy + bankMedium + bankHard === bankNumber && bankSubjectId
-                        ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-500/20 hover:brightness-110"
-                        : "cursor-not-allowed bg-card-hover text-text-muted"
-                    )}
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    <AiStreamText text={`Generate ${bankNumber} Questions`} />
-                  </button>
-                  <p className="flex items-start gap-1 text-[9px] leading-3.5 text-text-muted">
-                    <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" /> AI can make mistakes. Review every question before adding it to your quiz.
-                  </p>
                 </div>
               ) : (
                 <>
@@ -517,10 +887,10 @@ export function AiGenerateModal({
                     onDrop={handleDrop}
                     onClick={() => inputRef.current?.click()}
                     className={cn(
-                      "cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-colors",
+                      "cursor-pointer rounded-[18px] border-2 border-dashed p-5 text-center transition-colors",
                       files.length > 0
-                        ? "border-emerald-500/30 bg-emerald-500/[0.03]"
-                        : "border-border hover:border-pink-500/30 hover:bg-pink-500/[0.03]"
+                        ? "border-[var(--qs-ok)] bg-[var(--qs-okbg)]"
+                        : "border-[var(--qs-line)] bg-[var(--qs-bg)] hover:border-[var(--qs-brand)]"
                     )}
                   >
                     <input
@@ -540,18 +910,19 @@ export function AiGenerateModal({
                           const Icon = getFileIcon(f.name);
                           return (
                             <div key={`${f.name}-${i}`} className="flex items-center gap-3 text-left">
-                              <Icon className="h-6 w-6 shrink-0 text-emerald-500" />
+                              <Icon className="h-6 w-6 shrink-0 text-[var(--qs-ok)]" />
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-text-primary">{f.name}</p>
-                                <p className="text-[11px] text-text-secondary">{formatSize(f.size)}</p>
+                                <p className="truncate text-sm font-bold text-[var(--qs-ink)]">{f.name}</p>
+                                <p className="text-[11px] font-medium text-[var(--qs-muted)]">{formatSize(f.size)}</p>
                               </div>
                               <button
                                 type="button"
+                                aria-label={`Remove ${f.name}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   removeFile(i);
                                 }}
-                                className="flex h-6 w-6 items-center justify-center rounded-md text-text-muted hover:text-rose-500"
+                                className="grid h-7 w-7 place-items-center rounded-[8px] border-2 border-transparent text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-bad)] hover:text-[var(--qs-bad)]"
                               >
                                 <X className="h-3.5 w-3.5" />
                               </button>
@@ -564,21 +935,21 @@ export function AiGenerateModal({
                             e.stopPropagation();
                             inputRef.current?.click();
                           }}
-                          className="mt-1 text-[11px] font-medium text-pink-500 hover:text-pink-600"
+                          className="mt-1 text-[11px] font-extrabold text-[var(--qs-brand)] hover:underline"
                         >
                           + Add more files
                         </button>
                       </div>
                     ) : (
                       <>
-                        <Upload className="mx-auto mb-2 h-6 w-6 text-text-muted" />
-                        <p className="text-sm font-medium text-text-primary">
-                          Drop files here
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-text-secondary">
+                        <span className="mx-auto grid h-11 w-11 place-items-center rounded-[13px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]">
+                          <Upload className="h-5 w-5" />
+                        </span>
+                        <p className="mt-2.5 text-sm font-extrabold text-[var(--qs-ink)]">Drop files here</p>
+                        <p className="mt-0.5 text-[11px] font-medium text-[var(--qs-muted)]">
                           PDF, DOCX, PPTX, Excel, images, code files, and more
                         </p>
-                        <p className="mt-0.5 text-[10px] text-text-muted">
+                        <p className="mt-0.5 text-[10px] font-medium text-[var(--qs-muted)]">
                           Max {MAX_SIZE_MB} MB per file
                         </p>
                       </>
@@ -586,31 +957,39 @@ export function AiGenerateModal({
                   </div>
 
                   {error && (
-                    <div className="mt-3 flex items-start gap-2 rounded-lg border border-rose-500/20 bg-rose-500/[0.04] px-3 py-2.5">
-                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
-                      <p className="text-[11px] text-rose-500">{error}</p>
+                    <div className="mt-3 flex items-start gap-2 rounded-[12px] border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-3 py-2.5">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--qs-bad)]" />
+                      <p className="text-[11px] font-semibold text-[var(--qs-bad)]">{error}</p>
                     </div>
                   )}
-
-                  <button
-                    type="button"
-                    onClick={handleGenerate}
-                    disabled={files.length === 0 || !!error}
-                    className={cn(
-                      "mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all",
-                      files.length > 0 && !error
-                        ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg shadow-pink-500/20 hover:brightness-110"
-                        : "cursor-not-allowed bg-card-hover text-text-muted"
-                    )}
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Generate Questions
-                  </button>
-                  <p className="mt-1.5 flex items-start gap-1 text-[9px] leading-3.5 text-text-muted">
-                    <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" /> AI can make mistakes. Review every question before adding it to your quiz.
-                  </p>
                 </>
               )}
+            </div>
+
+            {/* Footer CTA */}
+            {!done && !generating && !generationFailed && (
+              <div className="flex shrink-0 items-center gap-2 border-t-2 border-[var(--qs-line)] px-4 py-3 sm:px-5">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="h-11 rounded-[12px] border-2 border-[var(--qs-line)] px-4 text-sm font-bold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)]"
+                >
+                  Cancel
+                </button>
+                <AiGenerateButton
+                  size="md"
+                  label={mode === "bank" ? `Generate ${bankNumber} questions` : "Generate questions"}
+                  onClick={() => (mode === "bank" ? void handleGenerateFromBank() : void handleGenerate())}
+                  disabled={primaryDisabled}
+                  className="h-11 flex-1 px-4 text-sm"
+                />
+              </div>
+            )}
+
+            <div className="shrink-0 border-t-2 border-[var(--qs-line)] px-4 py-2 sm:px-5">
+              <p className="flex items-start gap-1.5 text-[9px] font-medium leading-4 text-[var(--qs-muted)]">
+                <AlertCircle className="mt-px h-2.5 w-2.5 shrink-0" /> AI can make mistakes. Review every question before adding it to your quiz.
+              </p>
             </div>
           </motion.div>
         </motion.div>
@@ -633,19 +1012,19 @@ export function AiGenerateModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="qs-ui fixed inset-0 z-[90] flex items-center justify-center p-4"
+          style={{ background: "rgba(26, 18, 64, 0.6)" }}
           role="status"
           aria-live="polite"
         >
-          <div className="w-full max-w-sm rounded-3xl border border-border bg-card p-7 text-center shadow-2xl">
-            <div className="relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-pink-500/15 to-violet-500/15">
-              <div className="h-9 w-9 animate-spin rounded-full border-[3px] border-pink-500/20 border-t-pink-500" />
-              <span className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-pink-500/10" />
+          <div className="w-full max-w-sm rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-7 text-center shadow-[8px_8px_0_var(--qs-sun)]">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-poly-1)]">
+              <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-[var(--qs-line)] border-t-[var(--qs-brand)]" />
             </div>
-            <h2 className="mt-5 text-base font-bold text-text-primary">
+            <h2 className="mt-4 text-base font-extrabold text-[var(--qs-ink)]">
               Adding {acceptCount} question{acceptCount === 1 ? "" : "s"}…
             </h2>
-            <p className="mt-2 text-sm leading-6 text-text-secondary">
+            <p className="mt-1.5 text-sm font-medium leading-6 text-[var(--qs-muted)]">
               Saving to your quiz. Please keep this window open.
             </p>
           </div>
