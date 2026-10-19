@@ -7,7 +7,7 @@ import { platformApi } from "@/services/platform";
 
 function InitialAvatar({ name }: { name: string | null }) {
   const label = (name || "Student").trim();
-  return <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--platform-soft)] text-[10px] font-semibold text-[var(--text-secondary)]">{label.slice(0, 2).toUpperCase()}</span>;
+  return <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[10px] font-extrabold text-[var(--qs-on-brand)]">{label.slice(0, 2).toUpperCase()}</span>;
 }
 
 export function GlobalSearch() {
@@ -44,25 +44,25 @@ export function GlobalSearch() {
 
   return (
     <>
-      <button onClick={() => { setOpen(true); requestAnimationFrame(() => inputRef.current?.focus()); }} className="flex items-center gap-2 rounded-[8px] border border-[var(--border)] px-2.5 py-1.5 text-[12px] text-[var(--text-secondary)] transition-colors hover:bg-[var(--card-hover)] hover:text-[var(--text-primary)]">
-        <Search size={13} /><span className="hidden sm:inline">Search</span><kbd className="rounded border border-[var(--border)] px-1 text-[9px] text-[var(--text-muted)]">⌘K</kbd>
+      <button onClick={() => { setOpen(true); requestAnimationFrame(() => inputRef.current?.focus()); }} className="b sm b-ghost">
+        <Search size={13} /><span className="hidden sm:inline">Search</span><kbd className="rounded-[6px] border border-[var(--border)] bg-[var(--platform-soft)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--text-muted)]">⌘K</kbd>
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/65 px-4 pt-[14vh] backdrop-blur-sm" onMouseDown={() => setOpen(false)} role="dialog" aria-modal="true" aria-label="Platform command palette">
-          <div onMouseDown={(e) => e.stopPropagation()} className="pf-reveal w-full max-w-xl overflow-hidden rounded-[14px] border border-[var(--border-hover)] bg-[var(--popover)] shadow-2xl">
-            <div className="flex items-center gap-3 border-b border-[var(--border)] px-4">
-              <Search size={16} className="text-[var(--text-muted)]" />
-              <input ref={inputRef} value={q} onChange={(e) => { setQ(e.target.value); if (e.target.value.trim().length < 2) setResults(null); }} placeholder="Search students, assessments, rooms, attempts…" className="h-13 min-w-0 flex-1 bg-transparent text-[14px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]" />
-              <kbd className="rounded border border-[var(--border)] px-1.5 py-0.5 text-[9px] text-[var(--text-muted)]">ESC</kbd>
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-[rgba(26,18,64,.6)] px-4 pt-[14vh]" onMouseDown={() => setOpen(false)} role="dialog" aria-modal="true" aria-label="Platform command palette">
+          <div onMouseDown={(e) => e.stopPropagation()} className="w-full max-w-xl overflow-hidden rounded-[24px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[8px_8px_0_var(--qs-sun)]">
+            <div className="flex items-center gap-3 border-b-2 border-[var(--qs-line)] px-4">
+              <Search size={16} className="text-[var(--qs-muted)]" />
+              <input ref={inputRef} value={q} onChange={(e) => { setQ(e.target.value); if (e.target.value.trim().length < 2) setResults(null); }} placeholder="Search students, assessments, rooms, attempts…" className="h-14 min-w-0 flex-1 bg-transparent text-[14px] font-medium text-[var(--qs-ink)] outline-none placeholder:text-[var(--qs-muted)]" />
+              <kbd className="rounded-[6px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--qs-muted)]">ESC</kbd>
             </div>
             <div className="max-h-[55vh] overflow-y-auto p-2">
-              {!results && <div className="px-3 py-8 text-center text-[12px] text-[var(--text-muted)]">Type at least two characters to search real platform data.</div>}
-              {empty && <div className="px-3 py-8 text-center text-[12px] text-[var(--text-secondary)]">No matching students, assessments, or attempts.</div>}
-              {results?.users.map((u) => <div key={`u${u.id}`} className="flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-[12px] hover:bg-[var(--card-hover)]"><InitialAvatar name={u.username} /><div><div className="text-[var(--text-primary)]">{u.username}</div><div className="text-[10px] text-[var(--text-muted)]">Student · {u.email}</div></div></div>)}
-              {results?.quizzes.map((z) => <Link onClick={() => setOpen(false)} key={`q${z.id}`} href={`/quiz/${z.code}`} className="flex items-center justify-between rounded-[8px] px-3 py-2.5 text-[12px] hover:bg-[var(--card-hover)]"><span><span className="text-[var(--text-primary)]">{z.name}</span><span className="ml-2 text-[10px] text-[var(--text-muted)]">Assessment</span></span><ArrowUpRight size={13} className="text-[var(--text-muted)]" /></Link>)}
-              {results?.attempts.map((a) => <div key={`a${a.id}`} className="flex items-center justify-between rounded-[8px] px-3 py-2.5 text-[12px] hover:bg-[var(--card-hover)]"><span className="text-[var(--text-primary)]">Attempt #{a.id}</span><span className="text-[10px] text-[var(--text-muted)]">{a.username ?? "Student"} · {a.status}</span></div>)}
+              {!results && <div className="px-3 py-8 text-center text-[12px] text-[var(--qs-muted)]">Type at least two characters to search real platform data.</div>}
+              {empty && <div className="px-3 py-8 text-center text-[12px] text-[var(--qs-muted)]">No matching students, assessments, or attempts.</div>}
+              {results?.users.map((u) => <div key={`u${u.id}`} className="flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[12px] hover:bg-[var(--qs-bg)]"><InitialAvatar name={u.username} /><div><div className="font-bold text-[var(--qs-ink)]">{u.username}</div><div className="text-[10px] text-[var(--qs-muted)]">Student · {u.email}</div></div></div>)}
+              {results?.quizzes.map((z) => <Link onClick={() => setOpen(false)} key={`q${z.id}`} href={`/quiz/${z.code}`} className="flex items-center justify-between rounded-[10px] px-3 py-2.5 text-[12px] hover:bg-[var(--qs-bg)]"><span><span className="font-bold text-[var(--qs-ink)]">{z.name}</span><span className="ml-2 text-[10px] text-[var(--qs-muted)]">Assessment</span></span><ArrowUpRight size={13} className="text-[var(--qs-muted)]" /></Link>)}
+              {results?.attempts.map((a) => <div key={`a${a.id}`} className="flex items-center justify-between rounded-[10px] px-3 py-2.5 text-[12px] hover:bg-[var(--qs-bg)]"><span className="font-bold text-[var(--qs-ink)]">Attempt #{a.id}</span><span className="text-[10px] text-[var(--qs-muted)]">{a.username ?? "Student"} · {a.status}</span></div>)}
             </div>
-            <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-2 text-[9px] text-[var(--text-muted)]"><span>Students · Assessments · Attempts</span><span>QuizSupport owner search</span></div>
+            <div className="flex items-center justify-between border-t-2 border-[var(--qs-line)] px-4 py-2 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--qs-muted)]"><span>Students · Assessments · Attempts</span><span>QuizSupport owner search</span></div>
           </div>
         </div>
       )}

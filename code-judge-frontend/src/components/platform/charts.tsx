@@ -2,9 +2,9 @@
 
 import React, { useMemo, useState } from "react";
 
-/* Dependency-free SVG charts for /platform. Minimal, no decoration. */
+/* Dependency-free SVG charts for /platform. qs tokens, ink axes. */
 
-const COLORS = ["#EC4899", "#22C55E", "#3B82F6", "#F59E0B"];
+const COLORS = ["#6A3DF0", "#2457D6", "#13795B", "#FFD23F"];
 
 export function SeriesChart({ points, keys, height = 180 }: {
   points: { label: string; [k: string]: unknown }[];
@@ -43,7 +43,7 @@ export function SeriesChart({ points, keys, height = 180 }: {
             <button
               key={k.key}
               onClick={() => setHidden((s) => { const n = new Set(s); if (n.has(k.key)) n.delete(k.key); else n.add(k.key); return n; })}
-              className="flex items-center gap-1.5 rounded border border-[var(--border)] px-2 py-0.5 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              className="flex items-center gap-1.5 rounded-full border-2 border-[var(--border)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--text-secondary)] hover:border-[var(--brand)] hover:text-[var(--text-primary)]"
               style={{ opacity: off ? 0.45 : 1 }}
             >
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: COLORS[ki % COLORS.length] }} />
@@ -78,7 +78,7 @@ export function SeriesChart({ points, keys, height = 180 }: {
         {paths.map((p) => (
           <g key={p.key}>
             <path d={p.area} fill={p.color} opacity={0.08} />
-            <path className="pf-chart-path" d={p.d} fill="none" stroke={p.color} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
+            <path className="pf-chart-path" d={p.d} fill="none" stroke={p.color} strokeWidth={2.25} strokeLinejoin="round" strokeLinecap="round" />
           </g>
         ))}
         {points.map((pt, i) =>
@@ -112,7 +112,7 @@ export function SeriesChart({ points, keys, height = 180 }: {
   );
 }
 
-export function HBar({ label, value, max, color = "#EC4899", right }: {
+export function HBar({ label, value, max, color = "var(--brand)", right }: {
   label: string; value: number; max: number; color?: string; right?: string;
 }) {
   return (
@@ -142,7 +142,7 @@ export function FunnelBars({ stages }: { stages: { label: string; value: number 
               </span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-[var(--platform-soft-strong)]">
-              <div className="h-full rounded-full bg-[#8B7CF6]" style={{ width: `${pct ?? 0}%` }} />
+              <div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${pct ?? 0}%` }} />
             </div>
           </div>
         );
@@ -164,8 +164,8 @@ export function Funnel({ stages }: { stages: { label: string; value: number | nu
               <span className="w-24 shrink-0 text-[var(--text-secondary)]">{s.label}</span>
               <div className="h-5 min-w-0 flex-1 overflow-hidden rounded-sm bg-[var(--platform-soft)]">
                 <div
-                  className="flex h-full items-center justify-end rounded-sm pr-1.5 text-[10px] tabular-nums text-white"
-                  style={{ width: `${s.value !== null ? Math.max(4, (s.value / max) * 100) : 2}%`, background: "#EC4899", opacity: 0.9 - i * 0.12 }}
+                  className="flex h-full items-center justify-end rounded-sm pr-1.5 text-[10px] tabular-nums text-[#fff]"
+                  style={{ width: `${s.value !== null ? Math.max(4, (s.value / max) * 100) : 2}%`, background: "var(--brand)", opacity: 0.92 - i * 0.12 }}
                 >
                   {s.value ?? "—"}
                 </div>

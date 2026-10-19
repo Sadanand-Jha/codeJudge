@@ -16,7 +16,7 @@ const STEP_HELP: Record<string, { title: string; intro: string; items: string[] 
     intro: "Add the basic details students will see before starting the quiz.",
     items: [
       "Enter a clear title and select the closest subject and exam.",
-      "Duration is the total attempt time. Passing marks cannot exceed total question marks.",
+      "Duration is the total attempt time and can be changed anytime.",
       "You can start manually, import questions, duplicate a quiz, or use AI generation.",
     ],
   },
@@ -522,7 +522,6 @@ export function StudioFooter() {
   const canContinue = () => {
     if (state.step === "setup") {
       if (state.info.title.trim().length < 3) return false;
-      if (summary.totalMarks > 0 && state.info.passingMarks > summary.totalMarks) return false;
       return true;
     }
     if (state.step === "questions") return summary.validQuestions > 0;

@@ -24,13 +24,6 @@ export default function FeedbackPage() {
   );
   const data = feedbackQ.data;
 
-  const chip = (active: boolean) =>
-    `rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-      active
-        ? "border-[var(--text-primary)] bg-[var(--platform-soft-strong)] text-[var(--text-primary)]"
-        : "border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-    }`;
-
   return (
     <div className="space-y-4">
       <PageHeader title="User feedback" detail="Everything users send from the contact page." />
@@ -54,14 +47,15 @@ export default function FeedbackPage() {
         ) : (
           <>
             <div className="mb-3 flex flex-wrap gap-2">
-              <button type="button" className={chip(!category)} onClick={() => setCategory("")}>
+              <button type="button" className="b b-chip" data-selected={!category} onClick={() => setCategory("")}>
                 All ({data.total})
               </button>
               {data.categories.map((row) => (
                 <button
                   key={row.category}
                   type="button"
-                  className={chip(category === row.category)}
+                  className="b b-chip"
+                  data-selected={category === row.category}
                   onClick={() => setCategory(row.category)}
                 >
                   {CATEGORY_LABELS[row.category] ?? row.category} ({row.count})
@@ -79,7 +73,7 @@ export default function FeedbackPage() {
                 {data.items.map((item) => (
                   <article key={item.id} className="py-3">
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-muted)]">
-                      <span className="rounded border border-[var(--border)] px-1.5 py-0.5 font-semibold text-[var(--text-secondary)]">
+                      <span className="rounded-[8px] border-2 border-[var(--border)] px-1.5 py-0.5 font-extrabold uppercase tracking-[.08em] text-[var(--text-secondary)]">
                         {CATEGORY_LABELS[item.category] ?? item.category}
                       </span>
                       <span className="text-[12px] font-medium text-[var(--text-primary)]">

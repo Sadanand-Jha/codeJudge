@@ -14,10 +14,10 @@ export default function EngagementPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Engagement" detail="Daily learning signals across the selected range." />
-      <div className="flex gap-1" role="tablist" aria-label="Range">
+      <div className="flex gap-1.5" role="tablist" aria-label="Range">
         {(["today", "7d", "30d", "90d"] as PlatformRange[]).map((r) => (
-          <button key={r} role="tab" aria-selected={range === r} onClick={() => setRange(r)}
-            className={`rounded-[6px] border border-[var(--border)] px-2.5 py-1.5 text-[12px] ${range === r ? "bg-[var(--card-hover)] font-medium text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>{r}</button>
+          <button key={r} role="tab" aria-selected={range === r} data-selected={range === r} onClick={() => setRange(r)}
+            className="b b-chip sm">{r}</button>
         ))}
       </div>
       <SectionCard title="Engagement rhythm" subtitle={`Daily signals · ${range}`}>
@@ -49,7 +49,7 @@ function EngagementHeatmap({ points, loading }: { points: Array<{ label: string;
                 {visible.map((p, i) => {
                   const value = Number(p[row.key]) || 0;
                   const strength = value / max;
-                  return <span key={`${row.key}-${i}`} title={`${p.label} · ${row.label}: ${value}`} className="aspect-square min-h-2 rounded-[3px] border border-[var(--border)]" style={{ background: `rgba(236,72,153,${0.07 + strength * 0.72})` }} />;
+                  return <span key={`${row.key}-${i}`} title={`${p.label} · ${row.label}: ${value}`} className="aspect-square min-h-2 rounded-[3px] border border-[var(--border)]" style={{ background: `color-mix(in srgb, var(--brand) ${Math.round((0.07 + strength * 0.72) * 100)}%, transparent)` }} />;
                 })}
               </div>
             </div>

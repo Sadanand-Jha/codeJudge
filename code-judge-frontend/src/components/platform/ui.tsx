@@ -3,37 +3,38 @@
 import React from "react";
 
 /* Shared primitives for the private /platform control center.
-   Dense, dark-first, developer aesthetic: subtle borders, compact type,
-   color reserved for status. All colors come from the app design tokens so
-   both dark and light themes work. */
+   QuizSupport qs language (creator match): light-only white, 2px ink
+   outlines, round corners, Bricolage display, one yellow offset block. */
 
 export function SectionCard({ id, title, subtitle, right, children }: {
   id?: string; title: string; subtitle?: string; right?: React.ReactNode; children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="pf-card scroll-mt-24 overflow-hidden rounded-[16px] border border-[var(--border)] bg-[var(--card)]">
-      <header className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-4 py-4 sm:px-5">
+    <section id={id} className="scroll-mt-24 overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 sm:p-6" aria-label={title}>
+      <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">{title}</h2>
-          {subtitle && <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">{subtitle}</p>}
+          <h2 className="text-[20px] font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-[22px]">{title}</h2>
+          {subtitle && <p className="mt-0.5 text-[13px] text-[var(--qs-muted)]">{subtitle}</p>}
         </div>
         {right && <div className="shrink-0">{right}</div>}
       </header>
-      <div className="px-4 py-4 sm:px-5">{children}</div>
+      <div className="mt-4 border-t-2 border-[var(--qs-line)] pt-4">{children}</div>
     </section>
   );
 }
 
-export function MetricCard({ label, value, sub, delta }: {
-  label: string; value: string; sub?: string; delta?: number | null;
+export function MetricCard({ label, value, sub, delta, highlight }: {
+  label: string; value: string; sub?: string; delta?: number | null; highlight?: boolean;
 }) {
   return (
-    <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2.5">
-      <div className="truncate text-[11px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">{label}</div>
-      <div className="mt-0.5 truncate text-[20px] font-semibold leading-tight text-[var(--text-primary)]">{value}</div>
-      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
+    <div className={highlight
+      ? "rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-4 py-4 shadow-[4px_4px_0_var(--qs-ink)]"
+      : "rounded-[18px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-4"}>
+      <div className={highlight ? "truncate text-[12px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-ink)]" : "truncate text-[12px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-muted)]"}>{label}</div>
+      <div className="mt-1 truncate text-[36px] font-extrabold leading-none tracking-tight text-[var(--qs-ink)]">{value}</div>
+      <div className="mt-1 flex items-center gap-1.5 text-[12px] text-[var(--qs-muted)]">
         {delta !== undefined && delta !== null && (
-          <span className={delta >= 0 ? "font-medium text-[var(--success)]" : "font-medium text-[var(--danger)]"}>
+          <span className={`font-bold ${delta >= 0 ? "text-[var(--qs-ok)]" : "text-[var(--qs-bad)]"}`}>
             {delta >= 0 ? "+" : ""}{delta}%
           </span>
         )}
@@ -94,7 +95,7 @@ export function KpiGridSkeleton({ count = 4 }: { count?: number }) {
 
 export function ChartSkeleton({ heightClass = "h-[240px]", compact = false }: { heightClass?: string; compact?: boolean }) {
   return (
-    <div className={`pf-skeleton-chart relative overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] ${heightClass}`} role="status" aria-label="Loading chart">
+    <div className={`pf-skeleton-chart relative overflow-hidden rounded-[14px] border-2 border-[var(--border)] bg-[var(--platform-input)] ${heightClass}`} role="status" aria-label="Loading chart">
       {!compact && <div className="absolute left-3 top-3 flex gap-2"><Skeleton className="h-5 w-20" /><Skeleton className="h-5 w-16" /><Skeleton className="h-5 w-20" /></div>}
       <div className={`${compact ? "inset-x-3 bottom-3 top-8" : "inset-x-3 bottom-6 top-12"} absolute`}>
         {[0, 1, 2].map((i) => <div key={i} className="absolute inset-x-0 border-t border-[var(--border)]" style={{ top: `${i * 50}%` }} />)}
@@ -111,7 +112,7 @@ export function ChartSkeleton({ heightClass = "h-[240px]", compact = false }: { 
 export function FeedSkeleton({ rows = 5, stats = false }: { rows?: number; stats?: boolean }) {
   return (
     <div role="status" aria-label="Loading recent activity">
-      {stats && <div className="mb-4 grid grid-cols-2 gap-3">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="rounded-[10px] border border-[var(--border)] p-3"><Skeleton className="h-6 w-12" /><Skeleton className="mt-2 h-2.5 w-20" /></div>)}</div>}
+      {stats && <div className="mb-4 grid grid-cols-2 gap-3">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="rounded-[14px] border-2 border-[var(--border)] p-3"><Skeleton className="h-6 w-12" /><Skeleton className="mt-2 h-2.5 w-20" /></div>)}</div>}
       <div className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="flex h-[52px] items-center gap-3 py-2.5">
@@ -128,7 +129,7 @@ export function FeedSkeleton({ rows = 5, stats = false }: { rows?: number; stats
 
 export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; columns?: number }) {
   return (
-    <div className="overflow-hidden rounded-[8px] border border-[var(--border)]" role="status" aria-label="Loading table">
+    <div className="overflow-hidden rounded-[14px] border-2 border-[var(--border)]" role="status" aria-label="Loading table">
       <div className="grid h-9 items-center gap-4 border-b border-[var(--border)] px-3" style={{ gridTemplateColumns: `1.5fr repeat(${Math.max(1, columns - 1)}, 1fr)` }}>
         {Array.from({ length: columns }).map((_, i) => <Skeleton key={i} className={`h-2.5 ${i === 0 ? "w-20" : "w-12"}`} />)}
       </div>
@@ -143,7 +144,7 @@ export function TableSkeleton({ rows = 5, columns = 5 }: { rows?: number; column
 }
 
 export function MiniStatsSkeleton({ count = 6 }: { count?: number }) {
-  return <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" role="status" aria-label="Loading assessment metrics">{Array.from({ length: count }).map((_, i) => <div key={i} className="min-h-[72px] rounded-[10px] border border-[var(--border)] bg-[var(--card)] p-3"><Skeleton className="h-2.5 w-20" /><Skeleton className="mt-3 h-6 w-14 rounded-md" /></div>)}<span className="sr-only">Loading assessment metrics</span></div>;
+  return <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" role="status" aria-label="Loading assessment metrics">{Array.from({ length: count }).map((_, i) => <div key={i} className="min-h-[76px] rounded-[14px] border-2 border-[var(--border)] bg-[var(--card)] p-3"><Skeleton className="h-2.5 w-20" /><Skeleton className="mt-3 h-6 w-14 rounded-md" /></div>)}<span className="sr-only">Loading assessment metrics</span></div>;
 }
 
 export function HeatmapSkeleton() {
@@ -151,33 +152,27 @@ export function HeatmapSkeleton() {
 }
 
 export function ProgressSkeleton() {
-  return <div className="grid gap-3 sm:grid-cols-3" role="status" aria-label="Loading student progress">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="min-h-[128px] rounded-[10px] border border-[var(--border)] bg-[var(--card)] p-4"><Skeleton className="h-1.5 w-6 rounded-full" /><Skeleton className="mt-4 h-2.5 w-28" /><Skeleton className="mt-2 h-7 w-16 rounded-md" /><Skeleton className="mt-2 h-2.5 w-4/5" /></div>)}<span className="sr-only">Loading student progress</span></div>;
+  return <div className="grid gap-3 sm:grid-cols-3" role="status" aria-label="Loading student progress">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="min-h-[128px] rounded-[14px] border-2 border-[var(--border)] bg-[var(--card)] p-4"><Skeleton className="h-1.5 w-6 rounded-full" /><Skeleton className="mt-4 h-2.5 w-28" /><Skeleton className="mt-2 h-7 w-16 rounded-md" /><Skeleton className="mt-2 h-2.5 w-4/5" /></div>)}<span className="sr-only">Loading student progress</span></div>;
 }
 
 export function HealthSkeleton() {
-  return <div className="grid grid-cols-2 gap-2" role="status" aria-label="Loading platform health">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="min-h-[64px] rounded-[9px] border border-[var(--border)] p-3"><div className="flex items-center justify-between"><Skeleton className="h-3 w-20" /><Skeleton className="h-2 w-2 rounded-full" /></div><Skeleton className="mt-3 h-2.5 w-14" /></div>)}<span className="sr-only">Loading platform health</span></div>;
+  return <div className="grid grid-cols-2 gap-2" role="status" aria-label="Loading platform health">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="min-h-[64px] rounded-[12px] border-2 border-[var(--border)] p-3"><div className="flex items-center justify-between"><Skeleton className="h-3 w-20" /><Skeleton className="h-2 w-2 rounded-full" /></div><Skeleton className="mt-3 h-2.5 w-14" /></div>)}<span className="sr-only">Loading platform health</span></div>;
 }
 
 export function EmptyState({ message, detail }: { message: string; detail?: string }) {
   return (
-    <div className="px-4 py-8 text-center">
-      <div className="mx-auto mb-3 flex h-8 w-12 items-center justify-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--platform-soft)]" aria-hidden="true">
-        {[4, 9, 6, 12].map((h, i) => <span key={i} className="w-1 rounded-full bg-[var(--text-muted)] opacity-50" style={{ height: h }} />)}
-      </div>
-      <p className="text-[13px] font-medium text-[var(--text-primary)]">{message}</p>
-      {detail && <p className="mx-auto mt-1 max-w-sm text-[12px] leading-relaxed text-[var(--text-muted)]">{detail}</p>}
+    <div className="rounded-[16px] border-2 border-dashed border-[var(--qs-line)] px-5 py-8 text-center" role="status">
+      <p className="text-[16px] font-extrabold text-[var(--qs-ink)]">{message}</p>
+      <p className="mx-auto mt-1 max-w-sm text-[13px] text-[var(--qs-muted)]">{detail ?? "Nothing here yet — check back soon."}</p>
     </div>
   );
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-3 text-[12px]">
-      <span className="text-[var(--danger)]">{message}</span>
-      <button
-        onClick={onRetry}
-        className="shrink-0 rounded border border-[var(--border)] px-2.5 py-1 text-[12px] text-[var(--text-primary)] hover:bg-[var(--card-hover)]"
-      >
+    <div className="flex items-center justify-between gap-3 rounded-[16px] border-2 border-[var(--qs-bad)] bg-[var(--qs-badbg)] px-4 py-3 text-[13px]">
+      <span className="font-bold text-[var(--qs-bad)]">{message}</span>
+      <button onClick={onRetry} className="b sm shrink-0">
         Retry
       </button>
     </div>
@@ -186,11 +181,16 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry: () 
 
 export function StatusDot({ status }: { status: string }) {
   const color =
-    status === "operational" ? "bg-[var(--success)]"
-    : status === "degraded" ? "bg-[var(--warning)]"
-    : status === "down" ? "bg-[var(--danger)]"
-    : "bg-[var(--text-muted)]";
-  return <span className={`inline-block h-1.5 w-1.5 rounded-full ${color}`} aria-hidden="true" />;
+    status === "operational" ? "bg-[var(--qs-ok)]"
+    : status === "degraded" ? "bg-[var(--qs-warn)]"
+    : status === "down" ? "bg-[var(--qs-bad)]"
+    : "bg-[var(--qs-muted)]";
+  return (
+    <span className="inline-flex items-center gap-1.5" aria-hidden="true">
+      <span className={`inline-block h-2.5 w-2.5 rounded-full border-2 border-[var(--qs-ink)] ${color}`} />
+      <span className="sr-only">{status}</span>
+    </span>
+  );
 }
 
 export function fmtInt(n: number | null | undefined): string {

@@ -55,7 +55,7 @@ export default function QuizzesPage() {
                 ))}
               </div>
             )}
-            <Link href="/platform/quizzes/top" className="mt-3 inline-block text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Open full top-quizzes table →</Link>
+            <Link href="/platform/quizzes/top" className="mt-3 inline-block text-[12px] font-bold text-[var(--text-secondary)] hover:text-[var(--brand)]">Open full top-quizzes table →</Link>
           </SectionCard>
         </>
       )}
@@ -81,7 +81,7 @@ function AssessmentJourney({ stages }: { stages: { label: string; value: number 
         return (
           <div key={stage.label}>
             <div className="mb-1.5 flex items-end justify-between gap-3"><span className="text-[12px] text-[var(--text-secondary)]"><b className="mr-2 font-medium text-[var(--text-muted)]">{String(i + 1).padStart(2, "0")}</b>{stage.label}</span><span className="text-right text-[11px] tabular-nums text-[var(--text-muted)]">{fmtInt(stage.value)} {pct != null && `· ${pct.toFixed(0)}%`}</span></div>
-            <div className="h-2 overflow-hidden rounded-full bg-[var(--platform-soft-strong)]"><div className="h-full origin-left rounded-full bg-[#EC4899]/80" style={{ width: `${pct ?? 0}%` }} /></div>
+            <div className="h-2.5 overflow-hidden rounded-full border border-[var(--border)] bg-[var(--platform-soft-strong)]"><div className="h-full origin-left rounded-full bg-[var(--brand)]" style={{ width: `${pct ?? 0}%` }} /></div>
           </div>
         );
       })}

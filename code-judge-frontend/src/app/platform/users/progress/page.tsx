@@ -39,6 +39,6 @@ function needsReview(users: { attempts: number; completed: number }[]) {
 }
 
 function ProgressSignal({ tone, title, value, detail }: { tone: "success" | "info" | "warning"; title: string; value: string; detail: string }) {
-  const color = tone === "success" ? "var(--success)" : tone === "warning" ? "var(--warning)" : "#3B82F6";
-  return <div className="rounded-[10px] border border-[var(--border)] bg-[var(--card)] p-4"><span className="mb-3 block h-1.5 w-6 rounded-full" style={{ background: color }} /><div className="text-[11px] text-[var(--text-secondary)]">{title}</div><div className="mt-1 text-[22px] font-semibold tabular-nums text-[var(--text-primary)]">{value}</div><p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">{detail}</p></div>;
+  const color = tone === "success" ? "var(--success)" : tone === "warning" ? "var(--warning)" : "var(--brand)";
+  return <div className="rounded-[16px] border-2 border-[var(--border)] bg-[var(--card)] p-4"><span className="mb-3 block h-1.5 w-6 rounded-full" style={{ background: color }} /><div className="text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)]">{title}</div><div className="mt-1 text-[22px] font-extrabold tabular-nums tracking-tight text-[var(--text-primary)]">{value}</div><p className="mt-1 text-[11px] leading-relaxed text-[var(--text-muted)]">{detail}</p></div>;
 }

@@ -1154,9 +1154,6 @@ export function StudioProvider({ children, editMode = false, initialQuizId, init
     if (state.info.title.trim().length < 3) {
       throw new Error("Quiz title is required before saving");
     }
-    if (summary.totalMarks > 0 && state.info.passingMarks > summary.totalMarks) {
-      throw new Error("Passing marks cannot exceed total marks");
-    }
     // Validate the problems before persisting anything. setupOnly only creates
     // the quiz shell (no questions involved yet), so skip validation there.
     // Background autosave validates silently — no toasts for half-written

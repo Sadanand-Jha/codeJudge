@@ -48,8 +48,8 @@ function ActiveStudents({ rows }: { rows: { id: number; username: string; attemp
   return <div className="divide-y divide-[var(--border)]">{rows.map((u) => {
     const completion = u.attempts ? Math.round((u.completed / u.attempts) * 100) : 0;
     return <div key={u.id} className="flex items-center gap-3 py-2.5">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--platform-soft)] text-[10px] font-semibold text-[var(--text-secondary)]">{(u.username || "ST").slice(0, 2).toUpperCase()}</span>
-      <div className="min-w-0 flex-1"><div className="truncate text-[12px] font-medium text-[var(--text-primary)]">{u.username || `Student #${u.id}`}</div><div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--platform-soft-strong)]"><div className="h-full rounded-full bg-[var(--success)]/70" style={{ width: `${completion}%` }} /></div></div>
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-[var(--border)] bg-[var(--platform-soft)] text-[10px] font-extrabold text-[var(--text-secondary)]">{(u.username || "ST").slice(0, 2).toUpperCase()}</span>
+      <div className="min-w-0 flex-1"><div className="truncate text-[12px] font-bold text-[var(--text-primary)]">{u.username || `Student #${u.id}`}</div><div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--platform-soft-strong)]"><div className="h-full rounded-full bg-[var(--success)]" style={{ width: `${completion}%` }} /></div></div>
       <div className="w-20 text-right text-[10px] text-[var(--text-muted)]"><div>{u.completed}/{u.attempts} complete</div><div>{timeAgo(u.last_active)}</div></div>
     </div>;
   })}</div>;

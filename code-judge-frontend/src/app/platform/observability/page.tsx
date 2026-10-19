@@ -21,17 +21,17 @@ export default function ObservabilityPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <Gauge size={17} className="text-[#EC4899]" />
-            <h1 className="text-[22px] font-semibold tracking-tight text-[var(--text-primary)]">API observability</h1>
+            <Gauge size={17} className="text-[var(--brand)]" />
+            <h1 className="text-[22px] font-extrabold tracking-tight text-[var(--text-primary)]">API observability</h1>
           </div>
           <p className="mt-1 text-[13px] text-[var(--text-secondary)]">Requests, latency, failures, active sessions, and trace-level debugging from production traffic.</p>
         </div>
         <div className="flex items-center gap-2">
-          {data?.activeWindowMinutes && <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-[10px] text-[var(--text-muted)]">Online = active in {data.activeWindowMinutes}m</span>}
-          <div className="flex gap-1" role="tablist" aria-label="Range">
+          {data?.activeWindowMinutes && <span className="rounded-full border-2 border-[var(--border)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)]">Online = active in {data.activeWindowMinutes}m</span>}
+          <div className="flex gap-1.5" role="tablist" aria-label="Range">
             {(["today", "7d", "30d", "90d"] as PlatformRange[]).map((r) => (
-              <button key={r} role="tab" aria-selected={range === r} onClick={() => setRange(r)}
-                className={`rounded-[6px] border border-[var(--border)] px-2 py-1 text-[11px] ${range === r ? "bg-[var(--card-hover)] font-medium text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>{r}</button>
+              <button key={r} role="tab" aria-selected={range === r} data-selected={range === r} onClick={() => setRange(r)}
+                className="b b-chip sm">{r}</button>
             ))}
           </div>
         </div>
@@ -78,7 +78,7 @@ export default function ObservabilityPage() {
                         <td className="max-w-[130px] truncate px-2 py-2 text-[var(--text-secondary)]">{row.username || "Anonymous"}</td>
                         <td className="px-2 py-2 tabular-nums text-[var(--text-secondary)]">{row.duration_ms} ms</td>
                         <td className="px-2 py-2 whitespace-nowrap text-[var(--text-muted)]">{timeAgo(row.started_at)}</td>
-                        <td className="px-2 py-2"><button onClick={() => setSelectedRequest(row.request_id)} className="rounded-[7px] border border-[var(--border)] px-2 py-1 text-[var(--text-primary)] hover:bg-[var(--card-hover)]">Inspect</button></td>
+                        <td className="px-2 py-2"><button onClick={() => setSelectedRequest(row.request_id)} className="b sm">Inspect</button></td>
                       </tr>)}
                     </tbody>
                   </table>
@@ -88,7 +88,7 @@ export default function ObservabilityPage() {
             <div className="space-y-4">
               <SectionCard title="Active users" subtitle="Current authenticated sessions">
                 {!data.activeUsers?.length ? <EmptyState message="No active users" /> : <div className="space-y-2">
-                  {data.activeUsers.slice(0, 8).map((user) => <div key={user.user_id} className="flex items-center justify-between gap-3 rounded-[9px] border border-[var(--border)] px-3 py-2">
+                  {data.activeUsers.slice(0, 8).map((user) => <div key={user.user_id} className="flex items-center justify-between gap-3 rounded-[14px] border-2 border-[var(--border)] px-3 py-2">
                     <div className="min-w-0"><p className="truncate text-[12px] font-medium text-[var(--text-primary)]">{user.username}</p><p className="truncate text-[10px] text-[var(--text-muted)]">{user.browser} · {user.os} · {user.device_type}</p></div>
                     <span className="shrink-0 text-[10px] text-[var(--success)]">{timeAgo(user.last_seen_at)}</span>
                   </div>)}
@@ -112,10 +112,10 @@ function RequestInspector({ requestId, onClose }: { requestId: string; onClose: 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Request inspector">
       <button className="absolute inset-0 bg-black/55" onClick={onClose} aria-label="Close request inspector" />
-      <aside className="relative h-full w-full max-w-[680px] overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] p-5 shadow-2xl sm:p-6">
+      <aside className="relative h-full w-full max-w-[680px] overflow-y-auto border-l-2 border-[var(--border)] bg-[var(--background)] p-5 shadow-2xl sm:p-6">
         <div className="flex items-start justify-between gap-3">
-          <div><p className="text-[10px] font-semibold uppercase tracking-[.15em] text-[#EC4899]">Request inspector</p><h3 className="mt-1 break-all text-[15px] font-semibold text-[var(--text-primary)]">{requestId}</h3></div>
-          <button onClick={onClose} className="rounded-[8px] border border-[var(--border)] p-2 text-[var(--text-secondary)] hover:bg-[var(--card-hover)]" aria-label="Close"><X size={15} /></button>
+          <div><p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--brand)]">Request inspector</p><h3 className="mt-1 break-all text-[15px] font-extrabold tracking-tight text-[var(--text-primary)]">{requestId}</h3></div>
+          <button onClick={onClose} className="b b-icon sm b-ghost" aria-label="Close"><X size={15} /></button>
         </div>
         {detail.loading ? <div className="mt-5"><SectionSkeleton rows={8} /></div> : detail.error ? <div className="mt-5"><ErrorState message={detail.error.message} onRetry={detail.retry} /></div> : log && (
           <div className="mt-5 space-y-5">
@@ -125,10 +125,10 @@ function RequestInspector({ requestId, onClose }: { requestId: string; onClose: 
               <MiniStat label="Duration" value={`${log.duration_ms} ms`} />
               <MiniStat label="User" value={log.username || "Anonymous"} />
             </div>
-            <div className="rounded-[12px] border border-[var(--border)] bg-[var(--card)] p-4"><h4 className="mb-3 flex items-center gap-2 text-[12px] font-semibold text-[var(--text-primary)]"><Network size={13} />Request</h4>
+            <div className="rounded-[14px] border-2 border-[var(--border)] bg-[var(--card)] p-4"><h4 className="mb-3 flex items-center gap-2 text-[12px] font-extrabold tracking-tight text-[var(--text-primary)]"><Network size={13} />Request</h4>
               <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-[8px] bg-[var(--platform-input)] p-3 text-[10px] text-[var(--text-secondary)]">{JSON.stringify({ endpoint: log.endpoint, route: log.route_template, trace: log.trace_id, ip: log.ip_address, agent: log.user_agent, error: log.error_message }, null, 2)}</pre>
             </div>
-            <div className="rounded-[12px] border border-[var(--border)] bg-[var(--card)] p-4"><h4 className="mb-3 text-[12px] font-semibold text-[var(--text-primary)]">Redacted metadata</h4>
+            <div className="rounded-[14px] border-2 border-[var(--border)] bg-[var(--card)] p-4"><h4 className="mb-3 text-[12px] font-extrabold tracking-tight text-[var(--text-primary)]">Redacted metadata</h4>
               <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-[8px] bg-[var(--platform-input)] p-3 text-[10px] text-[var(--text-secondary)]">{JSON.stringify(detail.data?.metadata ?? {}, null, 2)}</pre>
             </div>
           </div>

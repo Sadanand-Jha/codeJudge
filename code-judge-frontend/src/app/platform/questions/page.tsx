@@ -224,7 +224,7 @@ export default function QuestionBankPage() {
             type="button"
             onClick={resetFilters}
             disabled={!hasFilters}
-            className="pf-focus inline-flex items-center gap-1.5 rounded-[8px] border border-[var(--border)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="b b-ghost sm"
           >
             <RotateCcw size={12} /> Reset
           </button>
@@ -263,7 +263,7 @@ export default function QuestionBankPage() {
           />
         </div>
 
-        <label className="mt-3 flex items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] px-3 py-2">
+        <label className="pf-focus mt-3 flex items-center gap-2 rounded-[12px] border-2 border-[var(--border)] bg-[var(--platform-input)] px-3 py-2">
           <Search size={13} className="shrink-0 text-[var(--text-muted)]" />
           <input
             value={search}
@@ -284,7 +284,8 @@ export default function QuestionBankPage() {
                 key={option.key}
                 type="button"
                 onClick={() => setGroupBy(option.key)}
-                className={`rounded-full px-2.5 py-1 text-[11px] transition-colors ${groupBy === option.key ? "bg-[var(--card-hover)] font-medium text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}
+                data-selected={groupBy === option.key}
+                className="b b-chip sm"
               >
                 {option.label}
               </button>
@@ -303,7 +304,7 @@ export default function QuestionBankPage() {
             {groups.map((group) => {
               const isCollapsed = collapsed.has(group.key);
               return (
-                <div key={group.key} className="overflow-hidden rounded-[12px] border border-[var(--border)]">
+                <div key={group.key} className="overflow-hidden rounded-[14px] border-2 border-[var(--border)]">
                   <button
                     type="button"
                     onClick={() => toggleGroup(group.key)}
@@ -311,10 +312,10 @@ export default function QuestionBankPage() {
                     className="flex w-full items-center gap-2 bg-[var(--platform-soft)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--card-hover)]"
                   >
                     <ChevronDown size={14} className={`shrink-0 text-[var(--text-muted)] transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
-                    <Layers3 size={13} className="shrink-0 text-[#EC4899]" />
-                    <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[var(--text-primary)]">{group.title}</span>
-                    <span className="hidden truncate text-[10px] uppercase tracking-wide text-[var(--text-muted)] sm:block">{group.context}</span>
-                    <span className="shrink-0 rounded-full bg-[var(--platform-soft-strong)] px-2 py-0.5 text-[10px] font-semibold tabular-nums text-[var(--text-secondary)]">{group.items.length}</span>
+                    <Layers3 size={13} className="shrink-0 text-[var(--brand)]" />
+                    <span className="min-w-0 flex-1 truncate text-[12px] font-extrabold text-[var(--text-primary)]">{group.title}</span>
+                    <span className="hidden truncate text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)] sm:block">{group.context}</span>
+                    <span className="shrink-0 rounded-full border-2 border-[var(--border)] bg-[var(--platform-soft-strong)] px-2 py-0.5 text-[10px] font-extrabold tabular-nums text-[var(--text-secondary)]">{group.items.length}</span>
                   </button>
                   {!isCollapsed && (
                     <ul className="divide-y divide-[var(--border)]">
@@ -346,7 +347,7 @@ export default function QuestionBankPage() {
                               onClick={() => openEdit(question)}
                               aria-label={`Edit question ${question.id}`}
                               title="Edit question"
-                              className="pf-focus rounded-[8px] border border-[var(--border)] p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--card-hover)] hover:text-[var(--text-primary)]"
+                              className="b b-icon sm b-ghost"
                             >
                               <Pencil size={14} />
                             </button>
@@ -356,7 +357,7 @@ export default function QuestionBankPage() {
                               disabled={deletingId === question.id}
                               aria-label={`Delete question ${question.id}`}
                               title="Delete immediately"
-                              className="pf-focus shrink-0 rounded-[8px] border border-[var(--danger)]/25 p-1.5 text-[var(--danger)] transition-colors hover:bg-[var(--danger)]/10 disabled:opacity-40"
+                              className="b b-icon sm b-danger"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -373,8 +374,8 @@ export default function QuestionBankPage() {
               <div className="mt-2 flex items-center justify-between text-[12px] text-[var(--text-secondary)]">
                 <span>Page {data.page} of {data.totalPages}</span>
                 <div className="flex gap-1.5">
-                  <button type="button" disabled={data.page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="rounded-[8px] border border-[var(--border)] px-2.5 py-1 disabled:opacity-40">Prev</button>
-                  <button type="button" disabled={data.page >= data.totalPages} onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))} className="rounded-[8px] border border-[var(--border)] px-2.5 py-1 disabled:opacity-40">Next</button>
+                  <button type="button" disabled={data.page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="b sm">Prev</button>
+                  <button type="button" disabled={data.page >= data.totalPages} onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))} className="b sm">Next</button>
                 </div>
               </div>
             )}
@@ -392,11 +393,11 @@ export default function QuestionBankPage() {
             aria-modal="true"
             aria-label={`Edit question ${editing.id}`}
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-xl overflow-hidden rounded-[14px] border border-[var(--border)] bg-[var(--card)] shadow-xl"
+            className="w-full max-w-xl overflow-hidden rounded-[18px] border-2 border-[var(--border)] bg-[var(--card)] shadow-xl"
           >
             <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
               <div>
-                <h3 className="text-sm font-bold text-[var(--text-primary)]">Edit question #{editing.id}</h3>
+                <h3 className="text-[15.5px] font-extrabold tracking-tight text-[var(--text-primary)]">Edit question #{editing.id}</h3>
                 <p className="text-[11px] text-[var(--text-muted)]">
                   {[editing.subjectName, editing.chapterName, editing.topicName].filter(Boolean).join(" · ")}
                 </p>
@@ -405,39 +406,39 @@ export default function QuestionBankPage() {
                 type="button"
                 onClick={() => setEditing(null)}
                 disabled={savingEdit}
-                className="rounded-[8px] border border-[var(--border)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-40"
+                className="b b-ghost sm"
               >
                 Close
               </button>
             </div>
             <div className="space-y-3 px-4 py-4">
               <label className="block">
-                <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Question text (line breaks kept)</span>
+                <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)]">Question text (line breaks kept)</span>
                 <textarea
                   value={editText}
                   onChange={(event) => setEditText(event.target.value)}
                   rows={5}
                   disabled={savingEdit}
-                  className="pf-focus min-h-[120px] w-full resize-y whitespace-pre-wrap rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] p-3 font-mono text-[13px] leading-relaxed text-[var(--text-primary)] outline-none disabled:opacity-50"
+                  className="pf-focus min-h-[120px] w-full resize-y whitespace-pre-wrap rounded-[12px] border-2 border-[var(--border)] bg-[var(--platform-input)] p-3 font-mono text-[13px] leading-relaxed text-[var(--text-primary)] outline-none disabled:opacity-50"
                 />
               </label>
               {editText.trim() && (
                 <div>
-                  <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Formatted preview (what students see)</span>
+                  <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)]">Formatted preview (what students see)</span>
                   <div
-                    className="rounded-[10px] border border-[var(--border)] bg-[var(--platform-soft)] p-3 text-[13px] leading-relaxed text-[var(--text-primary)] [&_ol]:list-decimal [&_p]:mb-1 [&_p:last-child]:mb-0 [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_table]:text-[12px] [&_th]:border [&_th]:border-[var(--border)] [&_th]:bg-[var(--platform-soft)] [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_td]:border [&_td]:border-[var(--border)] [&_td]:bg-[var(--card)] [&_td]:px-2.5 [&_td]:py-1.5 [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:font-mono [&_code]:font-mono"
+                    className="rounded-[12px] border-2 border-[var(--border)] bg-[var(--platform-soft)] p-3 text-[13px] leading-relaxed text-[var(--text-primary)] [&_ol]:list-decimal [&_p]:mb-1 [&_p:last-child]:mb-0 [&_table]:my-2 [&_table]:w-full [&_table]:border-collapse [&_table]:text-[12px] [&_th]:border [&_th]:border-[var(--border)] [&_th]:bg-[var(--platform-soft)] [&_th]:px-2.5 [&_th]:py-1.5 [&_th]:text-left [&_td]:border [&_td]:border-[var(--border)] [&_td]:bg-[var(--card)] [&_td]:px-2.5 [&_td]:py-1.5 [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:font-mono [&_code]:font-mono"
                     dangerouslySetInnerHTML={{ __html: editableTextToHtml(editText.trim()) }}
                   />
                 </div>
               )}
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Difficulty</span>
+                  <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)]">Difficulty</span>
                   <select
                     value={editDifficultyId ?? ""}
                     onChange={(event) => setEditDifficultyId(event.target.value ? Number(event.target.value) : null)}
                     disabled={savingEdit}
-                    className="h-10 w-full rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] px-3 text-[12px] font-medium text-[var(--text-primary)] outline-none disabled:opacity-50"
+                    className="pf-focus h-10 w-full rounded-[12px] border-2 border-[var(--border)] bg-[var(--platform-input)] px-3 text-[12px] font-medium text-[var(--text-primary)] outline-none disabled:opacity-50"
                   >
                     {(facets?.difficulties ?? []).map((d) => (
                       <option key={d.id} value={d.id}>{d.name}</option>
@@ -445,12 +446,12 @@ export default function QuestionBankPage() {
                   </select>
                 </label>
                 <label className="block">
-                  <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">Category</span>
+                  <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)]">Category</span>
                   <select
                     value={editCategoryId ?? ""}
                     onChange={(event) => setEditCategoryId(event.target.value ? Number(event.target.value) : null)}
                     disabled={savingEdit}
-                    className="h-10 w-full rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] px-3 text-[12px] font-medium text-[var(--text-primary)] outline-none disabled:opacity-50"
+                    className="pf-focus h-10 w-full rounded-[12px] border-2 border-[var(--border)] bg-[var(--platform-input)] px-3 text-[12px] font-medium text-[var(--text-primary)] outline-none disabled:opacity-50"
                   >
                     {(facets?.categories ?? []).map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
@@ -464,7 +465,7 @@ export default function QuestionBankPage() {
                 type="button"
                 onClick={() => setEditing(null)}
                 disabled={savingEdit}
-                className="rounded-[10px] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-40"
+                className="b sm"
               >
                 Cancel
               </button>
@@ -472,7 +473,7 @@ export default function QuestionBankPage() {
                 type="button"
                 onClick={saveEdit}
                 disabled={savingEdit}
-                className="rounded-[10px] bg-[var(--accent)] px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="b b-pri"
               >
                 {savingEdit ? "Saving…" : "Save changes"}
               </button>
@@ -494,13 +495,13 @@ function BankSelect({ label, value, onChange, options, placeholder, disabled = f
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[9px] font-bold uppercase tracking-[.12em] text-[var(--text-muted)]">{label}</span>
+      <span className="mb-1.5 block text-[10px] font-extrabold uppercase tracking-[.14em] text-[var(--text-muted)]">{label}</span>
       <div className="relative">
         <select
           value={value ?? ""}
           onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
           disabled={disabled}
-          className="pf-focus h-10 w-full appearance-none rounded-[10px] border border-[var(--border)] bg-[var(--platform-input)] px-3 pr-9 text-[12px] font-medium text-[var(--text-primary)] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+          className="pf-focus h-10 w-full appearance-none rounded-[12px] border-2 border-[var(--border)] bg-[var(--platform-input)] px-3 pr-9 text-[12px] font-medium text-[var(--text-primary)] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-40"
         >
           <option value="">{placeholder}</option>
           {options.map((option) => (
@@ -517,12 +518,12 @@ function BankSelect({ label, value, onChange, options, placeholder, disabled = f
 
 function Pill({ tone, children }: { tone: "green" | "amber" | "red" | "neutral"; children: ReactNode }) {
   const colors = {
-    green: "border-emerald-500/20 bg-emerald-500/[.08] text-emerald-500",
-    amber: "border-amber-500/20 bg-amber-500/[.08] text-amber-500",
-    red: "border-red-500/20 bg-red-500/[.08] text-red-500",
+    green: "border-[color-mix(in_srgb,var(--success)_35%,transparent)] bg-[color-mix(in_srgb,var(--success)_10%,transparent)] text-[var(--success)]",
+    amber: "border-[color-mix(in_srgb,var(--warning)_35%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] text-[var(--warning)]",
+    red: "border-[color-mix(in_srgb,var(--danger)_35%,transparent)] bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] text-[var(--danger)]",
     neutral: "border-[var(--border)] bg-[var(--platform-soft)] text-[var(--text-secondary)]",
   };
-  return <span className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[.08em] ${colors[tone]}`}>{children}</span>;
+  return <span className={`rounded-full border-2 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[.08em] ${colors[tone]}`}>{children}</span>;
 }
 
 function difficultyTone(value: string): "green" | "amber" | "red" {

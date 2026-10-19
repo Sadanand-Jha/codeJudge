@@ -5,7 +5,6 @@ import { ShieldCheck } from "lucide-react";
 import { ownerSendOtp, ownerVerifyOtp, ownerLogout } from "@/services/auth";
 import { platformApi } from "@/services/platform";
 import { PLATFORM_SESSION_INVALID_EVENT, setPlatformSession, clearPlatformSession } from "@/lib/platformToken";
-import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export type GateState = "checking" | "otp" | "denied" | "unavailable" | "open";
 
@@ -139,24 +138,23 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
   };
 
   return (
-    <div className="platform-shell pf-grid relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-[var(--background)] px-4 py-10 text-[var(--text-primary)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(236,72,153,.08),transparent_36%)]" aria-hidden="true" />
-      <ThemeToggle className="absolute right-4 top-4 z-10 md:right-6 md:top-6" />
+    <div className="platform-shell qs-ui relative flex min-h-screen w-full items-center justify-center overflow-hidden px-4 py-10">
       <div className="relative w-full max-w-[390px]">
-      <div className="pf-card rounded-[14px] border border-[var(--border)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(0,0,0,.35)]">
+      <div className="qs-offset">
+      <div className="relative rounded-[26px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-6">
         <div className="flex items-center gap-2">
-          <img src="/logos/mark.png" alt="QuizSupport" width={32} height={30} className="h-8 w-auto rounded-[9px] border border-[var(--border)] object-contain" />
-          <span className="text-[11px] font-semibold tracking-widest text-[var(--text-secondary)]">QUIZSUPPORT / PLATFORM</span>
+          <img src="/logos/mark.png" alt="QuizSupport" width={32} height={30} className="h-8 w-auto rounded-[9px] border-2 border-[var(--qs-ink)] object-contain" />
+          <span className="text-[12px] font-extrabold uppercase tracking-[0.08em] text-[var(--qs-brand)]">QuizSupport / Platform</span>
         </div>
-        <h1 className="mt-5 text-[22px] font-semibold tracking-[-0.025em] text-[var(--text-primary)]">Owner sign in</h1>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-secondary)]">
+        <h1 className="mt-5 font-extrabold leading-[1.05] tracking-tight text-[var(--qs-ink)]" style={{ fontSize: "clamp(28px,4vw,34px)" }}>Owner sign in</h1>
+        <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--qs-muted)]">
           {mode === "denied"
             ? "This platform session is not authorized for owner access. Sign in again with the owner email to continue."
             : mode === "unavailable"
               ? "The authorization service is temporarily unavailable. Retry when the API connection is restored."
             : "Restricted area. Sign in with a one-time code — password login is disabled here."}
         </p>
-        <div className="mt-3 inline-block rounded border border-[var(--danger)]/25 bg-[var(--danger)]/8 px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.15em] text-[var(--danger)]">
+        <div className="qs-pill sun mt-3">
           PRIVATE · OWNER
         </div>
 
@@ -164,17 +162,17 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
           <div className="mt-5 space-y-2.5">
             <button
               onClick={() => window.location.reload()}
-              className="pf-focus h-10 w-full rounded-[9px] border border-[var(--border)] bg-[var(--platform-soft)] px-3 text-[13px] font-semibold text-[var(--text-primary)] hover:bg-[var(--card-hover)]"
+              className="b w-full"
             >
               Retry authorization
             </button>
-            <button onClick={switchAccount} disabled={busy} className="w-full py-1 text-center text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50">
+            <button onClick={switchAccount} disabled={busy} className="b b-ghost sm w-full">
               Sign in with a different account
             </button>
           </div>
         ) : step === "email" ? (
           <div className="mt-4 space-y-2.5">
-            <label className="block text-[12px] text-[var(--text-secondary)]" htmlFor="owner-email">Owner email</label>
+            <label className="block text-[14px] font-bold text-[var(--qs-ink)]" htmlFor="owner-email">Owner email</label>
             <input
               id="owner-email"
               type="email"
@@ -183,26 +181,26 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") send(); }}
               placeholder="owner@example.com"
-              className="pf-focus h-10 w-full rounded-[9px] border border-[var(--border)] bg-[var(--platform-input)] px-3 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+              className="h-11 w-full rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-field)] px-3.5 text-[14px] font-medium text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)]"
             />
-            {error && <p role="alert" aria-live="polite" className="text-[12px] text-[var(--danger)]">{error}</p>}
+            {error && <p role="alert" aria-live="polite" className="text-[12px] font-bold text-[var(--qs-bad)]">{error}</p>}
             <button
               onClick={send}
               disabled={busy || !email.trim()}
-              className="pf-focus h-10 w-full rounded-[9px] bg-[#EC4899] px-3 text-[13px] font-semibold text-white transition-colors hover:bg-[#DB2777] disabled:cursor-not-allowed disabled:opacity-45"
+              className="b b-pri w-full"
             >
               {busy ? "Sending…" : "Send one-time code"}
             </button>
             {mode === "denied" && (
-              <button onClick={switchAccount} className="w-full py-1 text-center text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              <button onClick={switchAccount} className="b b-ghost sm w-full">
                 Use a different account
               </button>
             )}
           </div>
         ) : (
           <div className="mt-4 space-y-2.5">
-            <label className="block text-[12px] text-[var(--text-secondary)]" htmlFor="owner-otp">
-              6-digit code <span className="text-[var(--text-muted)]">sent to {email.trim().toLowerCase()}</span>
+            <label className="block text-[14px] font-bold text-[var(--qs-ink)]" htmlFor="owner-otp">
+              6-digit code <span className="font-medium text-[var(--qs-muted)]">sent to {email.trim().toLowerCase()}</span>
             </label>
             <input
               id="owner-otp"
@@ -213,14 +211,14 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
               onKeyDown={(e) => { if (e.key === "Enter") verify(); }}
               placeholder="••••••"
-              className="pf-focus h-11 w-full rounded-[9px] border border-[var(--border)] bg-[var(--platform-input)] px-3 text-center text-[16px] tracking-[0.4em] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+              className="h-12 w-full rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-field)] px-3 text-center text-[16px] font-bold tracking-[0.4em] text-[var(--qs-ink)] placeholder:text-[var(--qs-muted)]"
             />
-            {info && <p role="status" aria-live="polite" className="text-[12px] text-[var(--text-secondary)]">{info}</p>}
-            {error && <p role="alert" aria-live="polite" className="text-[12px] text-[var(--danger)]">{error}</p>}
+            {info && <p role="status" aria-live="polite" className="text-[12px] text-[var(--qs-muted)]">{info}</p>}
+            {error && <p role="alert" aria-live="polite" className="text-[12px] font-bold text-[var(--qs-bad)]">{error}</p>}
             <button
               onClick={verify}
               disabled={busy || code.trim().length !== 6}
-              className="pf-focus h-10 w-full rounded-[9px] bg-[#EC4899] px-3 text-[13px] font-semibold text-white transition-colors hover:bg-[#DB2777] disabled:cursor-not-allowed disabled:opacity-45"
+              className="b b-pri w-full"
             >
               {busy ? "Verifying…" : "Verify & sign in"}
             </button>
@@ -228,18 +226,19 @@ export function OwnerGate({ mode, onOpen }: { mode: "otp" | "denied" | "unavaila
               <button
                 onClick={send}
                 disabled={busy || cooldown > 0}
-                className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50"
+                className="b b-ghost sm disabled:opacity-50"
               >
                 {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
               </button>
-              <button onClick={() => { setStep("email"); setCode(""); setInfo(null); setError(null); }} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
+              <button onClick={() => { setStep("email"); setCode(""); setInfo(null); setError(null); }} className="b b-ghost sm">
                 Change email
               </button>
             </div>
           </div>
         )}
       </div>
-      <p className="mt-3 text-center text-[10px] leading-relaxed text-[var(--text-muted)]">Owner access only · Passwordless OTP authentication · Server-side authorization</p>
+      </div>
+      <p className="mt-4 text-center text-[12px] font-extrabold uppercase tracking-[0.08em] leading-relaxed text-[var(--qs-muted)]">Owner access only · Passwordless OTP · Server-side authorization</p>
       </div>
     </div>
   );
