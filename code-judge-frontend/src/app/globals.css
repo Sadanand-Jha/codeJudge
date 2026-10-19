@@ -511,6 +511,24 @@ body {
   overflow-y: auto;
 }
 
+/* Mobile toast banners sit above the page and push the content down by
+   their exact height, so they never cover what the student is reading. */
+@media (max-width: 639px) {
+  body {
+    transition: padding-top 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  html.mobile-toast-open body {
+    padding-top: var(--mobile-toast-offset, 0px);
+  }
+}
+
+@media (max-width: 639px) and (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+}
+
 /* Keep primary workflow actions reachable on every phone and tablet viewport
    without requiring the user to first scroll to the bottom of long forms. */
 @media (max-width: 1023px) {
@@ -7555,7 +7573,9 @@ textarea {
   --qs-on-brand: #ffffff;
   --qs-sun: #ffd23f;
   --qs-ok: #13795b;
+  --qs-okbg: #dff5ec;
   --qs-bad: #c2303a;
+  --qs-badbg: #fde4e6;
   --qs-on-bad: #ffffff;
 }
 
@@ -7570,7 +7590,9 @@ textarea {
   --qs-on-brand: #120d2b;
   --qs-sun: #ffd23f;
   --qs-ok: #4fd1a1;
+  --qs-okbg: #12382d;
   --qs-bad: #ff7a85;
+  --qs-badbg: #44171e;
   --qs-on-bad: #120d2b;
 }
 
@@ -7755,6 +7777,10 @@ textarea {
   }
 
   /* ---------- Icon / Close ---------- */
+  .b svg {
+    flex: none;
+  }
+
   .b-icon {
     width: 42px;
     min-width: 42px;
@@ -7764,11 +7790,18 @@ textarea {
   .b-icon.sm {
     width: 34px;
     min-width: 34px;
+    padding: 0;
   }
 
   .b-icon.lg {
     width: 52px;
     min-width: 52px;
+    padding: 0;
+  }
+
+  .b.b-icon,
+  .b.b-close {
+    padding: 0;
   }
 
   .b-close {

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Globe, User, LogOut, Search, LogIn } from "lucide-react";
 import { SecureLogo } from "@/components/common/SecureLogo";
 import NavbarPromoWidget from "./NavbarPromoWidget";
-import NotificationBell from "./NotificationBell";
+// import NotificationBell from "./NotificationBell"; // hidden for now
 import { toast } from "@/lib/toast";
 import { useAuthStore } from "@/store/authStore";
 import { logout } from "@/services/auth";
@@ -56,7 +56,7 @@ export default function Navbar() {
 
         {/* User Utility Menu */}
         <div className="flex items-center gap-3 text-xs text-text-secondary">
-          <NotificationBell />
+          {/* <NotificationBell /> hidden for now */}
           <button className="flex items-center gap-1 hover:text-text-primary transition-colors">
             <Globe className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">EN</span>

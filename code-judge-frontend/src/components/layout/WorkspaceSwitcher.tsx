@@ -28,7 +28,7 @@ export default function WorkspaceSwitcher() {
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({
     top: 0,
     left: 12,
-    width: 240,
+    width: 280,
   });
   const pathname = usePathname();
 
@@ -54,7 +54,7 @@ export default function WorkspaceSwitcher() {
   useEffect(() => {
     if (open && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
-      const width = Math.min(240, window.innerWidth - 24);
+      const width = Math.min(280, window.innerWidth - 24);
       setDropdownPos({
         top: rect.bottom + 6,
         left: Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12),
@@ -73,19 +73,19 @@ export default function WorkspaceSwitcher() {
         aria-expanded={open}
         title="Switch workspace"
         className={cn(
-          "flex items-center gap-1.5 rounded-lg border border-ai-border bg-ai-surface px-2.5 py-1.5 text-xs font-semibold text-ai-text transition-colors hover:bg-ai-hover",
-          open && "border-ai-accent/40 bg-ai-hover"
+          "b sm gap-1.5 px-2.5",
+          open && "border-[var(--qs-brand)] bg-[var(--qs-bg)]"
         )}
       >
         {workspace === "studio" ? (
-          <Shapes className="h-3.5 w-3.5 shrink-0 text-ai-accent" />
+          <Shapes className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
         ) : (
-          <GraduationCap className="h-3.5 w-3.5 shrink-0 text-ai-text-sec" />
+          <GraduationCap className="h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)]" />
         )}
         <span className="hidden whitespace-nowrap min-[380px]:inline">
           {workspace === "studio" ? "Studio" : "Student"}
         </span>
-        <ChevronDown className={cn("h-3 w-3 shrink-0 text-ai-text-mut transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("h-3 w-3 shrink-0 text-[var(--qs-muted)] transition-transform", open && "rotate-180")} />
       </button>
 
       {typeof document !== "undefined" &&
@@ -100,24 +100,24 @@ export default function WorkspaceSwitcher() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -4, scale: 0.97 }}
                   transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="fixed z-50 rounded-xl border border-ai-border bg-ai-surface p-1.5 shadow-xl shadow-black/10 dark:shadow-black/40"
+                  className="fixed z-50 rounded-2xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1.5 shadow-[5px_5px_0_var(--qs-sun)]"
                   style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width }}
                 >
                   <WorkspaceOption
                     active={workspace === "student"}
-                    icon={<GraduationCap className="h-4 w-4 shrink-0 text-ai-text-sec" />}
+                    icon={<GraduationCap className="h-4 w-4 shrink-0" />}
                     label="Student"
                     description="Student Workspace"
                     href="/quiz"
                     onSelect={() => setOpen(false)}
                   />
 
-                  <div className="my-1 h-px bg-ai-border" />
+                  <div className="my-1 h-0.5 rounded-full bg-[var(--qs-line)]" />
 
                   {canAccessStudio ? (
                     <WorkspaceOption
                       active={workspace === "studio"}
-                      icon={<Shapes className="h-4 w-4 shrink-0 text-ai-accent" />}
+                      icon={<Shapes className="h-4 w-4 shrink-0" />}
                       label="Studio"
                       description="Create and manage quizzes"
                       href="/creator"
@@ -127,9 +127,9 @@ export default function WorkspaceSwitcher() {
                     <Link
                       href="/creator/create"
                       onClick={() => setOpen(false)}
-                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-ai-text-sec transition-colors hover:bg-ai-hover hover:text-ai-text"
+                      className="b b-ghost sm w-full justify-start gap-2"
                     >
-                      <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-ai-accent" />
+                      <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
                       Become a Creator
                     </Link>
                   )}
@@ -163,16 +163,18 @@ function WorkspaceOption({
       href={href}
       onClick={onSelect}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors",
-        active ? "bg-ai-accent-soft" : "hover:bg-ai-hover"
+        "flex items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 transition-colors",
+        active
+          ? "border-[var(--qs-ink)] bg-[var(--qs-bg)] text-[var(--qs-brand)]"
+          : "border-transparent text-[var(--qs-muted)] hover:border-[var(--qs-line)] hover:bg-[var(--qs-bg)] hover:text-[var(--qs-ink)]"
       )}
     >
       {icon}
       <div className="min-w-0 flex-1 leading-tight">
-        <p className={cn("text-xs font-semibold", active ? "text-ai-text" : "text-ai-text-sec")}>{label}</p>
-        <p className="truncate text-[10px] text-ai-text-mut">{description}</p>
+        <p className={cn("text-xs font-extrabold", active ? "text-[var(--qs-brand)]" : "text-[var(--qs-ink)]")}>{label}</p>
+        <p className="truncate text-[10px] text-[var(--qs-muted)]">{description}</p>
       </div>
-      {active && <Check className="h-3.5 w-3.5 shrink-0 text-ai-accent" />}
+      {active && <Check className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />}
     </Link>
   );
 }

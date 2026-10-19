@@ -4,7 +4,7 @@ import { Sparkles, UserPlus } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import ThemeToggle from "@/components/ui/ThemeToggle";
-import NotificationBell from "./NotificationBell";
+// import NotificationBell from "./NotificationBell"; // hidden for now
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 import { useAuthStore } from "@/store/authStore";
 import { useSavedAvatar } from "@/store/avatarStore";
@@ -39,7 +39,7 @@ export default function NavbarRightActions() {
         </div>
       )}
       <ThemeToggle variant="icon" />
-      <NotificationBell />
+      {/* <NotificationBell /> hidden for now */}
       {isAuthenticated ? (
 <div className="flex shrink-0 items-center gap-2">
           <div

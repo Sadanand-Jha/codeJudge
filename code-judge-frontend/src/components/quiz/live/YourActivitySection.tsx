@@ -78,15 +78,15 @@ function getSubjectInfo(name: string): SubjectInfo {
 function statusTone(status: string): { text: string; dot: string; chip: string } {
   switch (status.trim().toLowerCase()) {
     case "completed":
-      return { text: "text-[var(--qs-ok)]", dot: "bg-[var(--qs-ok)]", chip: "border-[var(--qs-ok)]/30 bg-[var(--qs-ok)]/10 text-[var(--qs-ok)]" };
+      return { text: "text-[var(--qs-ok)]", dot: "bg-[var(--qs-ok)]", chip: "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]" };
     case "submitted":
-      return { text: "text-[var(--qs-brand)]", dot: "bg-[var(--qs-brand)]", chip: "border-[var(--qs-brand)]/30 bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]" };
+      return { text: "text-[var(--qs-brand)]", dot: "bg-[var(--qs-brand)]", chip: "border-[var(--qs-brand)] bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]" };
     case "timed out":
-      return { text: "text-[var(--qs-ink)]", dot: "bg-[var(--qs-sun)]", chip: "border-[var(--qs-sun)] bg-[var(--qs-sun)]/25 text-[var(--qs-ink)]" };
+      return { text: "text-[var(--qs-ink)]", dot: "bg-[var(--qs-sun)]", chip: "border-[var(--qs-ink)] bg-[var(--qs-sun)]/30 text-[var(--qs-ink)]" };
     case "left early":
-      return { text: "text-[var(--qs-bad)]", dot: "bg-[var(--qs-bad)]", chip: "border-[var(--qs-bad)]/30 bg-[var(--qs-bad)]/10 text-[var(--qs-bad)]" };
+      return { text: "text-[var(--qs-bad)]", dot: "bg-[var(--qs-bad)]", chip: "border-[var(--qs-bad)] bg-[var(--qs-badbg)] text-[var(--qs-bad)]" };
     default:
-      return { text: "text-[var(--qs-ok)]", dot: "bg-[var(--qs-ok)]", chip: "border-[var(--qs-ok)]/30 bg-[var(--qs-ok)]/10 text-[var(--qs-ok)]" };
+      return { text: "text-[var(--qs-ok)]", dot: "bg-[var(--qs-ok)]", chip: "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]" };
   }
 }
 
@@ -108,13 +108,17 @@ function scoreBar(pct: number): string {
    COMPACT PRIMITIVES
    ═══════════════════════════════════════════════════════════════ */
 
-function StatusChip({ status }: { status: string }) {
-  const t = statusTone(status);
-  const label = status
+function statusLabel(status: string) {
+  return status
     .trim()
     .split(/\s+/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
+}
+
+function StatusChip({ status }: { status: string }) {
+  const t = statusTone(status);
+  const label = statusLabel(status);
   return (
     <span className={cn("inline-flex items-center gap-1.5 rounded-full border-2 px-2 py-0.5 text-[11px] font-bold", t.chip)}>
       <span className={cn("h-1.5 w-1.5 rounded-full", t.dot)} />
@@ -137,10 +141,10 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className="group relative flex min-h-[116px] flex-col justify-between overflow-hidden rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--qs-brand)]/45 sm:p-4.5">
+    <div className="group relative flex min-h-[116px] flex-col justify-between overflow-hidden rounded-2xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4 shadow-[4px_4px_0_var(--qs-sun)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_var(--qs-sun)] sm:p-4.5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--qs-muted)]">{label}</span>
-        <span className="grid h-8 w-8 place-items-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)]">
+        <span className="grid h-8 w-8 place-items-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)]">
           <Icon className={cn("h-4 w-4", accent)} strokeWidth={1.8} />
         </span>
       </div>
@@ -160,9 +164,10 @@ function FilterSelect({ icon: Icon, value, options, onChange, label }: { icon: R
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label={label}
+        aria-expanded={open}
         className={cn(
-          "flex h-9 w-full items-center gap-1.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-xs font-bold text-[var(--qs-muted)] transition-colors duration-150 hover:border-[var(--qs-brand)]/45 hover:text-[var(--qs-ink)] sm:w-auto sm:inline-flex",
-          open && "border-[var(--qs-brand)]/60 text-[var(--qs-ink)]"
+          "b sm inline-flex min-h-11 w-full items-center justify-start gap-1.5 px-2.5 text-[var(--qs-muted)] hover:text-[var(--qs-ink)] sm:w-auto",
+          open && "border-[var(--qs-brand)] text-[var(--qs-ink)]"
         )}
       >
         <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)]" />
@@ -172,21 +177,21 @@ function FilterSelect({ icon: Icon, value, options, onChange, label }: { icon: R
       {open && (
         <>
           <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-          <ul className="absolute right-0 z-30 mt-1.5 w-40 overflow-hidden rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1 shadow-[6px_6px_0_var(--qs-line)] sm:left-0 sm:right-auto">
+          <ul className="absolute right-0 z-30 mt-1.5 w-44 overflow-hidden rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-1 shadow-[4px_4px_0_var(--qs-sun)] sm:left-0 sm:right-auto">
             {options.map((opt) => (
               <li key={opt}>
                 <button
                   type="button"
                   onClick={() => { onChange(opt); setOpen(false); }}
                   className={cn(
-                    "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition-colors duration-150",
+                    "flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-bold transition-colors duration-150",
                     value === opt
-                      ? "bg-[var(--qs-brand)]/10 text-[var(--qs-brand)]"
+                      ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]"
                       : "text-[var(--qs-muted)] hover:bg-[var(--qs-bg)] hover:text-[var(--qs-ink)]"
                   )}
                 >
                   {opt}
-                  {value === opt && <span className="h-1.5 w-1.5 rounded-full bg-[var(--qs-brand)]" />}
+                  {value === opt && <span className="h-1.5 w-1.5 rounded-full bg-[var(--qs-on-brand)]" />}
                 </button>
               </li>
             ))}
@@ -222,6 +227,13 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
 
   const subject = getSubjectInfo(quiz.name);
   const pct = Math.round(Number(quiz.percentage) || 0);
+  const breakdownTotal = Math.max(
+    1,
+    quiz.total_questions || quiz.correct_answers + quiz.wrong_answers + quiz.skipped_questions || 1
+  );
+  const correctPct = (quiz.correct_answers / breakdownTotal) * 100;
+  const wrongPct = (quiz.wrong_answers / breakdownTotal) * 100;
+  const skippedPct = Math.max(0, 100 - correctPct - wrongPct);
 
   return (
     <div className="group/row relative transition-all duration-200 hover:bg-[var(--qs-brand)]/[0.04]">
@@ -270,13 +282,13 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
           <button
             type="button"
             onClick={() => setExpanded((e) => !e)}
-            className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 text-xs font-bold text-[var(--qs-muted)] transition-colors duration-150 hover:border-[var(--qs-brand)]/45 hover:text-[var(--qs-ink)]"
+            className="b sm flex-1"
           >
             {expanded ? "Less" : "Details"}
           </button>
           <Link
             href={`/quiz/${quiz.quiz_id}/results/${quiz.attempt_id}`}
-            className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-[var(--qs-brand)]/10 px-2.5 text-xs font-bold text-[var(--qs-brand)] transition-colors duration-150 hover:bg-[var(--qs-brand)]/20"
+            className="b b-pri sm flex-1 gap-1"
           >
             View <ArrowUpRight className="h-3 w-3" />
           </Link>
@@ -333,13 +345,13 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
           <button
             type="button"
             onClick={() => setExpanded((e) => !e)}
-            className="inline-flex h-8 items-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-[11px] font-bold text-[var(--qs-muted)] transition-all duration-150 hover:border-[var(--qs-brand)]/45 hover:text-[var(--qs-ink)]"
+            className="b sm"
           >
             {expanded ? "Less" : "Details"}
           </button>
           <Link
             href={`/quiz/${quiz.quiz_id}/results/${quiz.attempt_id}`}
-            className="inline-flex h-8 items-center gap-1 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-3 text-[11px] font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all duration-150 hover:-translate-y-0.5"
+            className="b b-pri sm gap-1"
           >
             View <ArrowUpRight className="h-3 w-3" />
           </Link>
@@ -353,29 +365,48 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
         </div>
       </div>
 
-      {/* Expanded detail (same breakdown data, compact) */}
+      {/* Expanded detail — answer breakdown */}
       {expanded && (
-        <div className="mx-4 mb-3 mt-1 grid grid-cols-2 gap-px overflow-hidden rounded-lg border-2 border-[var(--qs-line)] bg-[var(--qs-line)] sm:mx-5 sm:grid-cols-5">
-          {[
-            { label: "Correct", value: quiz.correct_answers, cls: "text-[var(--qs-ok)]" },
-            { label: "Wrong", value: quiz.wrong_answers, cls: "text-[var(--qs-bad)]" },
-            { label: "Skipped", value: quiz.skipped_questions, cls: "text-[var(--qs-muted)]" },
-            { label: "Questions", value: quiz.total_questions, cls: "text-[var(--qs-brand)]" },
-            { label: "Status", value: quiz.status, cls: tone.text, small: true },
-          ].map((it) => (
-            <div key={it.label} className="bg-[var(--qs-surface)] px-3 py-2.5">
-              <p className={cn("truncate font-bold tabular-nums", it.small ? "text-xs" : "text-base text-[var(--qs-ink)]")}>{it.value}</p>
-              <p className={cn("mt-0.5 text-[10px] font-bold uppercase tracking-[0.08em]", it.cls)}>{it.label}</p>
-            </div>
-          ))}
-          <div className="col-span-2 flex items-center justify-between gap-2 bg-[var(--qs-surface)] px-3 py-2.5 sm:col-span-5">
+        <div className="mx-4 mb-3.5 mt-1.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3.5 py-3 sm:mx-5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--qs-muted)]">Answer breakdown</span>
+            <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-bold", tone.text)}>
+              <span className={cn("h-1.5 w-1.5 rounded-full", tone.dot)} />
+              {statusLabel(quiz.status)}
+            </span>
+          </div>
+
+          <div className="mt-2.5 flex h-2.5 overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)]">
+            <span className="bg-[var(--qs-ok)]" style={{ width: `${correctPct}%` }} />
+            <span className="bg-[var(--qs-bad)]" style={{ width: `${wrongPct}%` }} />
+            <span className="bg-[var(--qs-muted)]" style={{ width: `${skippedPct}%` }} />
+          </div>
+
+          <div className="mt-2.5 grid grid-cols-4 gap-2">
+            {[
+              { label: "Correct", value: quiz.correct_answers, dot: "bg-[var(--qs-ok)]", cls: "text-[var(--qs-ok)]" },
+              { label: "Wrong", value: quiz.wrong_answers, dot: "bg-[var(--qs-bad)]", cls: "text-[var(--qs-bad)]" },
+              { label: "Skipped", value: quiz.skipped_questions, dot: "bg-[var(--qs-muted)]", cls: "text-[var(--qs-muted)]" },
+              { label: "Total", value: quiz.total_questions, dot: "bg-[var(--qs-brand)]", cls: "text-[var(--qs-brand)]" },
+            ].map((it) => (
+              <div key={it.label}>
+                <p className={cn("text-base font-extrabold leading-none tabular-nums", it.cls)}>{it.value}</p>
+                <p className="mt-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--qs-muted)]">
+                  <span className={cn("h-1.5 w-1.5 rounded-full", it.dot)} />
+                  {it.label}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-2 border-t-2 border-[var(--qs-line)] pt-2.5">
             <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--qs-muted)]">
               <Milestone className="h-3.5 w-3.5" />
               {quiz.correct_answers + quiz.wrong_answers + quiz.skipped_questions}/{quiz.total_questions} answered
             </span>
             <Link
               href={`/quiz/${quiz.quiz_id}`}
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-[var(--qs-brand)] transition-colors duration-150 hover:underline"
+              className="b b-text sm gap-1"
             >
               <History className="h-3 w-3" /> Reattempt
             </Link>
@@ -393,7 +424,7 @@ function AttemptRow({ quiz, index }: { quiz: RecentQuiz; index: number }) {
 function EmptyState({ missionMode = false }: { missionMode?: boolean }) {
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center">
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)]">
+      <span className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)]">
         <History className="h-5 w-5 text-[var(--qs-brand)]" strokeWidth={1.8} />
       </span>
       <h3 className="mt-3 text-[15px] font-bold text-[var(--qs-ink)]">
@@ -404,7 +435,7 @@ function EmptyState({ missionMode = false }: { missionMode?: boolean }) {
       </p>
       <Link
         href="/quiz/join"
-        className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-[13px] font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all duration-150 hover:-translate-y-0.5"
+        className="b b-pri mt-4 gap-1.5"
       >
         {missionMode ? "Launch first mission" : "Join a quiz"} <ArrowRight className="h-3.5 w-3.5" />
       </Link>
@@ -493,21 +524,18 @@ export default function YourActivitySection({
     <section aria-label={missionMode ? "Mission logs" : "My activity"} className="mx-auto w-full max-w-[1280px]">
       {/* ── Single analytics header: title + all controls in one place ── */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+        <div className="min-w-0">
           <h2 className="mt-1 text-[22px] font-extrabold leading-tight tracking-tight text-[var(--qs-ink)] sm:text-[24px]">
             {isAllAttemptsView ? "All Attempts" : missionMode ? "Your Mission Logs" : "Your Activity"}
           </h2>
-          <p className="mt-1 text-[13px] text-[var(--qs-muted)] sm:text-sm">
-            {isAllAttemptsView ? "Review your complete quiz history, scores, and results." : missionMode ? "Review completed expeditions, scores, and flight performance." : "Track your quiz attempts, scores and progress."}{" "}
-            <span className="font-bold tabular-nums">
-              · {recentTotal} {missionMode ? `mission${recentTotal === 1 ? "" : "s"}` : `attempt${recentTotal === 1 ? "" : "s"}`}
-            </span>
+          <p className="mt-1 text-[13px] leading-relaxed text-[var(--qs-muted)] sm:text-sm">
+            {isAllAttemptsView ? "Review your complete quiz history, scores, and results." : missionMode ? "Review completed expeditions, scores, and flight performance." : "Track your quiz attempts, scores and progress."}
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           {!isAllAttemptsView && (
-            <Link href="/quiz/attempts" className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition hover:border-[var(--qs-brand)]/45">
-              View all attempts <ArrowRight className="h-3.5 w-3.5" />
+            <Link href="/quiz/attempts" className="b sm inline-flex min-h-11 w-full items-center justify-between gap-1.5 sm:w-auto sm:justify-center">
+              View all attempts <ArrowRight className="h-3.5 w-3.5 shrink-0" />
             </Link>
           )}
           <div className="grid grid-cols-2 gap-2 sm:contents">
@@ -526,10 +554,10 @@ export default function YourActivitySection({
       </div>}
 
       {/* ── Recent attempts: full-width table (no narrow side column) ── */}
-      <div className="relative mt-5 min-w-0 overflow-hidden rounded-3xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+      <div className="relative mt-5 min-w-0 overflow-hidden rounded-2xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[5px_5px_0_var(--qs-sun)]">
         {/* Desktop column labels */}
         {filtered.length > 0 && (
-          <div className="relative hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] gap-3 border-b-2 border-[var(--qs-line)] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.13em] text-[var(--qs-muted)] lg:grid">
+          <div className="relative hidden grid-cols-[minmax(0,1fr)_120px_112px_72px_84px_150px] gap-3 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.13em] text-[var(--qs-muted)] lg:grid">
             <span>{missionMode ? "Mission" : "Quiz"}</span>
             <span>Status</span>
             <span>Score</span>
@@ -553,15 +581,15 @@ export default function YourActivitySection({
               Showing {(recentPage - 1) * pageSize + 1}–{Math.min(recentPage * pageSize, recentTotal)} of {recentTotal}
             </p>
             <div className="flex items-center justify-center gap-1.5">
-              <button type="button" onClick={() => setRecentPage((page) => Math.max(1, page - 1))} disabled={recentPage === 1} aria-label="Previous page" className="grid h-9 w-9 place-items-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)]/45 hover:text-[var(--qs-ink)] disabled:cursor-not-allowed disabled:opacity-35">
+              <button type="button" onClick={() => setRecentPage((page) => Math.max(1, page - 1))} disabled={recentPage === 1} aria-label="Previous page" className="b b-icon sm">
                 <ChevronLeft className="h-4 w-4" />
               </button>
               {paginationPages.map((page) => (
-                <button key={page} type="button" onClick={() => setRecentPage(page)} aria-current={page === recentPage ? "page" : undefined} className={cn("grid h-9 min-w-9 place-items-center rounded-xl border-2 px-2 text-xs font-bold transition-colors", page === recentPage ? "border-[var(--qs-brand)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] hover:border-[var(--qs-brand)]/45 hover:text-[var(--qs-ink)]")}>
+                <button key={page} type="button" onClick={() => setRecentPage(page)} aria-current={page === recentPage ? "page" : undefined} className={cn("b sm min-w-9 px-2", page === recentPage && "b-pri")}>
                   {page}
                 </button>
               ))}
-              <button type="button" onClick={() => setRecentPage((page) => Math.min(recentTotalPages, page + 1))} disabled={recentPage === recentTotalPages} aria-label="Next page" className="grid h-9 w-9 place-items-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)]/45 hover:text-[var(--qs-ink)] disabled:cursor-not-allowed disabled:opacity-35">
+              <button type="button" onClick={() => setRecentPage((page) => Math.min(recentTotalPages, page + 1))} disabled={recentPage === recentTotalPages} aria-label="Next page" className="b b-icon sm">
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>

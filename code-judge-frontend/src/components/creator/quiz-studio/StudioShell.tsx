@@ -222,7 +222,7 @@ export function StudioHeader() {
 
   return (
     <header className="sticky top-0 z-20 flex min-h-[56px] h-auto w-full max-w-[100vw] min-w-0 flex-wrap items-center gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2 py-2 sm:gap-3 sm:px-4 lg:h-14 lg:flex-nowrap lg:py-0">
-      <button type="button" aria-label="Exit quiz studio" title="Exit quiz studio" onClick={() => router.push("/creator/quizzes")} className="b b-icon sm shrink-0">
+      <button type="button" aria-label="Exit quiz studio" title="Exit quiz studio" onClick={() => router.push("/creator/quizzes")} className="b b-icon sm shrink-0 max-sm:hidden">
         <ArrowLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </button>
       <div className="flex min-w-0 flex-1 items-center gap-1.5">

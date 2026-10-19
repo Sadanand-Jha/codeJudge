@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/helpers";
 
 export interface SampleQuizQuestion {
   q: string;
   o: string[];
   a: number;
+}
+
+export interface SampleQuizSet {
+  subject: string;
+  questions: SampleQuizQuestion[];
 }
 
 const SAMPLE_QUESTIONS: SampleQuizQuestion[] = [

@@ -421,18 +421,22 @@ function AIQuizStudioCard() {
 
 function TrustStrip() {
   return (
-    <section className="grid gap-3 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-5 py-4 sm:grid-cols-2">
-      <span className="inline-flex items-start gap-2.5 text-sm text-[var(--qs-muted)]">
-        <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-ok)]" />
+    <section className="grid gap-2.5 rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3.5 shadow-[4px_4px_0_var(--qs-sun)] sm:grid-cols-2 sm:gap-3 sm:px-5 sm:py-4">
+      <span className="flex items-start gap-2.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-[13px] leading-snug text-[var(--qs-muted)] sm:border-0 sm:bg-transparent sm:p-0 sm:text-sm">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-okbg)]">
+          <BadgeCheck className="h-4 w-4 text-[var(--qs-ok)]" />
+        </span>
         <span>
-          <strong className="font-bold text-[var(--qs-ink)]">Verified entry — </strong>
+          <strong className="font-extrabold text-[var(--qs-ink)]">Verified entry — </strong>
           Every quiz code is checked before a quiz begins.
         </span>
       </span>
-      <span className="inline-flex items-start gap-2.5 text-sm text-[var(--qs-muted)] sm:border-l-2 sm:border-[var(--qs-line)] sm:pl-5">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--qs-brand)]" />
+      <span className="flex items-start gap-2.5 rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 text-[13px] leading-snug text-[var(--qs-muted)] sm:border-0 sm:border-l-2 sm:bg-transparent sm:p-0 sm:pl-5 sm:text-sm sm:rounded-none">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-poly-1)]">
+          <ShieldCheck className="h-4 w-4 text-[var(--qs-brand)]" />
+        </span>
         <span>
-          <strong className="font-bold text-[var(--qs-ink)]">Private by default — </strong>
+          <strong className="font-extrabold text-[var(--qs-ink)]">Private by default — </strong>
           Your answers stay secure throughout every attempt.
         </span>
       </span>

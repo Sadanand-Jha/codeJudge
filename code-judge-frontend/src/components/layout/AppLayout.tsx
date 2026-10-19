@@ -380,7 +380,7 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         className={cn(
           // `100vh` can extend behind mobile browser chrome. `100dvh` tracks
           // the actually visible viewport, keeping the account action onscreen.
-          "app-sidebar-rail fixed left-0 top-0 h-dvh w-64 will-change-transform border-r border-ai-border bg-ai-sidebar flex flex-col z-50 overflow-hidden transition-transform duration-200 ease-out",
+          "app-sidebar-rail fixed left-0 top-0 h-dvh w-64 will-change-transform border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] flex flex-col z-50 overflow-hidden transition-transform duration-200 ease-out",
           mobileMenuOpen && "app-sidebar-mobile-open"
         )}
       >
@@ -398,15 +398,46 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             showLabels ? "w-full" : "ml-auto w-[3.75rem]"
           )}
         >
+        {/* Brand — only while the drawer is open. Rail mode stays icon-only. */}
+        {showLabels && (
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-[var(--qs-line)] px-3 py-3">
+            <Link
+              href={homeHref}
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setAccountMenuOpen(false);
+              }}
+              className="flex min-w-0 items-center gap-2.5"
+              aria-label="QuizSupport home"
+            >
+              <SecureLogo size={36} variant="mark" />
+              <span className="truncate text-sm font-extrabold tracking-tight text-[var(--qs-ink)]">
+                QuizSupport
+              </span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setAccountMenuOpen(false);
+              }}
+              className="b b-close sm shrink-0"
+              aria-label="Close navigation"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className={cn("flex-1 overflow-y-auto", showLabels ? "px-2.5 py-3 space-y-1" : "px-0 pt-2 pb-3 space-y-1")}>
           {visibleNavGroups.map((group, groupIndex) => (
             <div key={group.label} className="space-y-1">
               {groupIndex > 0 && (
-                <div className={cn("my-2 h-px shrink-0 bg-ai-border", showLabels ? "mx-1" : "mx-2.5")} />
+                <div className={cn("my-2 h-0.5 shrink-0 rounded-full bg-[var(--qs-line)]", showLabels ? "mx-1" : "mx-2.5")} />
               )}
               {showLabels && (
-                <p className="px-3 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-ai-text-mut">{group.label}</p>
+                <p className="px-3 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">{group.label}</p>
               )}
               {group.items.map((item) => (
                 <NavItem
@@ -429,13 +460,13 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
         </nav>
 
         {/* Bottom: Account + Collapse */}
-        <div className="shrink-0 border-t border-ai-border p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] space-y-1">
+        <div className="shrink-0 space-y-1 border-t-2 border-[var(--qs-line)] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           {!isAuthenticated && showLabels && (
-            <div className="px-3 py-2 rounded-lg bg-ai-accent-soft border border-ai-accent/20">
-              <div className="text-[10px] text-ai-text-sec mb-1">{"You're browsing as a guest"}</div>
+            <div className="rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2">
+              <div className="mb-1 text-[10px] text-[var(--qs-muted)]">{"You're browsing as a guest"}</div>
               <button
                 onClick={() => handleAuthRequired(pathname + window.location.search)}
-                className="text-[10px] font-semibold text-ai-accent hover:text-ai-accent-hover transition-colors"
+                className="text-[10px] font-bold text-[var(--qs-brand)] transition-colors hover:text-[var(--qs-ink)]"
               >
                 Sign in to unlock all features →
               </button>
@@ -448,11 +479,11 @@ function AppLayoutContent({ children, header }: { children: React.ReactNode; hea
             title={showLabels ? undefined : "Meet the developer"}
             aria-label="Meet the developer"
             className={cn(
-              "flex items-center gap-2 rounded-xl border border-ai-border bg-ai-surface text-ai-text-sec transition-colors hover:border-ai-accent/40 hover:text-ai-text",
-              showLabels ? "mx-1 justify-center px-3 py-2 text-[11px] font-semibold" : "mx-1 justify-center py-2.5"
+              "flex items-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]",
+              showLabels ? "mx-1 justify-center px-3 py-2 text-[11px] font-bold" : "mx-1 justify-center py-2.5"
             )}
           >
-            <Sparkles className="h-3.5 w-3.5 shrink-0 text-ai-accent" />
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--qs-brand)]" />
             {showLabels && <span>Meet the developer</span>}
           </Link>
 
@@ -567,12 +598,12 @@ function NavIcon({ Icon, isActive, showDot }: { Icon: LucideIcon; isActive: bool
       <Icon
         className={cn(
           "h-5 w-5 transition-colors duration-150",
-          isActive ? "text-ai-accent" : "text-ai-text-sec group-hover:text-ai-text"
+          isActive ? "text-[var(--qs-on-brand)]" : "text-[var(--qs-muted)] group-hover:text-[var(--qs-ink)]"
         )}
       />
       {showDot && (
         <span
-          className="absolute -right-1.5 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-ai-accent ring-2 ring-ai-sidebar"
+          className="absolute -right-1.5 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[var(--qs-bad)] ring-2 ring-[var(--qs-surface)]"
           aria-hidden="true"
         />
       )}
@@ -630,21 +661,23 @@ function ProfileMenu({ showLabels, setSidebarExpanded, open, onOpenChange, isAut
         aria-label={showLabels ? undefined : "Account"}
         aria-expanded={open}
         className={cn(
-          "flex items-center gap-3 rounded-lg transition-colors duration-150 hover:bg-ai-hover",
-          showLabels ? "justify-start px-3 py-2 w-full" : "justify-center py-2.5 w-full"
+          "flex items-center gap-3 rounded-xl border-2 transition-colors duration-150",
+          showLabels
+            ? "w-full justify-start border-[var(--qs-line)] px-3 py-2 hover:border-[var(--qs-brand)] hover:bg-[var(--qs-bg)]"
+            : "w-full justify-center border-transparent py-2.5 hover:bg-[var(--qs-bg)]"
         )}
       >
-        <div className="w-8 h-8 rounded-full bg-ai-accent flex items-center justify-center text-xs font-bold text-accent-foreground shrink-0">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-xs font-bold text-[var(--qs-on-brand)]">
           {avatar ? (
-            <Image src={avatar.url} alt={avatar.label} width={32} height={32} unoptimized className="h-full w-full object-cover rounded-full" />
+            <Image src={avatar.url} alt={avatar.label} width={32} height={32} unoptimized className="h-full w-full rounded-full object-cover" />
           ) : (
             (username || "U").charAt(0).toUpperCase()
           )}
         </div>
         {showLabels && (
           <>
-            <span className="text-xs font-medium text-ai-text truncate">{username}</span>
-            <ChevronDown className={cn("h-3.5 w-3.5 text-ai-text-mut shrink-0 transition-transform", open && "rotate-180")} />
+            <span className="truncate text-xs font-bold text-[var(--qs-ink)]">{username}</span>
+            <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-[var(--qs-muted)] transition-transform", open && "rotate-180")} />
           </>
         )}
       </button>
@@ -662,29 +695,29 @@ function ProfileMenu({ showLabels, setSidebarExpanded, open, onOpenChange, isAut
             >
               {/* pt-2 above acts as a hover bridge so moving the cursor from
                   the trigger into the card never fires onMouseLeave. */}
-              <div className="overflow-hidden rounded-xl border border-ai-border bg-ai-sidebar p-1.5 shadow-2xl shadow-black/30">
-              <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ai-accent text-xs font-bold text-accent-foreground shrink-0">
+              <div className="overflow-hidden rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1.5 shadow-[4px_4px_0_var(--qs-sun)]">
+              <div className="flex items-center gap-2.5 rounded-xl px-3 py-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-xs font-bold text-[var(--qs-on-brand)]">
                   {avatar ? (
-                    <Image src={avatar.url} alt={avatar.label} width={32} height={32} unoptimized className="h-full w-full object-cover rounded-full" />
+                    <Image src={avatar.url} alt={avatar.label} width={32} height={32} unoptimized className="h-full w-full rounded-full object-cover" />
                   ) : (
                     (username || "U").charAt(0).toUpperCase()
                   )}
                 </div>
                 <div className="min-w-0 leading-tight">
-                  <p className="truncate text-xs font-semibold text-ai-text">{username}</p>
-                  <p className="text-[9px] text-ai-text-mut">Student account</p>
+                  <p className="truncate text-xs font-bold text-[var(--qs-ink)]">{username}</p>
+                  <p className="text-[9px] text-[var(--qs-muted)]">Student account</p>
                 </div>
               </div>
 
-              <div className="my-1 h-px bg-ai-border" />
+              <div className="my-1 h-0.5 rounded-full bg-[var(--qs-line)]" />
 
               {/* Navigation lives in the sidebar rail — this menu only handles
                   account-level actions: switching accounts and logging out. */}
               <button
                 type="button"
                 onClick={handleSwitchAccount}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-ai-text-sec transition-colors hover:bg-ai-hover hover:text-ai-text"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-bg)] hover:text-[var(--qs-ink)]"
               >
                 <Repeat className="h-3.5 w-3.5 shrink-0" />
                 Switch account
@@ -696,7 +729,7 @@ function ProfileMenu({ showLabels, setSidebarExpanded, open, onOpenChange, isAut
                   setOpen(false);
                   requestLogout();
                 }}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger/10"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-badbg)]"
               >
                 <LogOut className="h-3.5 w-3.5 shrink-0" />
                 Log out
@@ -756,17 +789,24 @@ function NavItem({ item, pathname, isGuest, onClick, sidebarExpanded, showLabels
         onClick?.();
       }}
       className={cn(
-        "relative group w-full flex items-center gap-3 rounded-lg text-sm font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ai-accent/40",
-        "transition-colors duration-150 hover:bg-ai-hover",
-        showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5"
+        "relative group w-full flex items-center gap-3 rounded-xl border-2 text-sm font-bold whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-[var(--qs-brand)]/40",
+        "transition-all duration-150",
+        showLabels ? "justify-start px-3 py-2.5" : "justify-center py-2.5",
+        isActive
+          ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] shadow-[3px_3px_0_var(--qs-sun)]"
+          : "border-transparent hover:border-[var(--qs-line)] hover:bg-[var(--qs-bg)]"
       )}
     >
-      {isActive && (
-        <div className="pointer-events-none absolute inset-0 rounded-lg bg-ai-accent-soft" />
-      )}
       <NavIcon Icon={item.icon} isActive={isActive} showDot={isProtected} />
       {showLabels && (
-        <span className={cn("relative z-10 transition-colors duration-150", isActive ? "text-ai-text font-semibold" : "text-ai-text-sec group-hover:text-ai-text")}>
+        <span
+          className={cn(
+            "relative z-10 transition-colors duration-150",
+            isActive
+              ? "font-extrabold text-[var(--qs-on-brand)]"
+              : "text-[var(--qs-muted)] group-hover:text-[var(--qs-ink)]"
+          )}
+        >
           {item.label}
         </span>
       )}

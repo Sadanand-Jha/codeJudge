@@ -473,7 +473,7 @@ export default function AttemptReviewExperience({
         title="Review unavailable"
         text={error ?? "Attempt review not found."}
         action={
-          <Link href="/quiz" className="inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:-translate-y-0.5">
+          <Link href="/quiz" className="b b-pri gap-2">
             <ArrowLeft className="h-4 w-4" /> Back to quiz home
           </Link>
         }
@@ -488,7 +488,7 @@ export default function AttemptReviewExperience({
       <QuizStateScreen
         title="Nothing to review yet"
         text="This attempt does not contain any reviewable questions."
-        action={<Link href="/quiz" className="inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-[var(--qs-brand)] bg-[var(--qs-brand)] px-4 text-sm font-bold text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)] transition-all hover:-translate-y-0.5"><ArrowLeft className="h-4 w-4" /> Back to quiz home</Link>}
+        action={<Link href="/quiz" className="b b-pri gap-2"><ArrowLeft className="h-4 w-4" /> Back to quiz home</Link>}
       />
     );
   }
@@ -497,15 +497,15 @@ export default function AttemptReviewExperience({
 
   return (
     <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)] overflow-x-hidden bg-[var(--qs-bg)] pb-[max(1.5rem,env(safe-area-inset-bottom))] text-[var(--qs-ink)]">
-      {/* Subtle brand glows — background stays mostly solid */}
+      {/* Flat outlined motifs — no glow or gradient. */}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[320px] overflow-hidden">
-        <div className="absolute -top-24 left-[-80px] h-[280px] w-[380px] rounded-full bg-[var(--qs-brand)]/[0.07] blur-3xl" />
-        <div className="absolute -top-24 right-[-80px] h-[280px] w-[380px] rounded-full bg-[var(--qs-brand)]/[0.05] blur-3xl" />
+        <div className="absolute -top-24 left-[-80px] h-[280px] w-[380px] rounded-full border-2 border-[var(--qs-line)]" />
+        <div className="absolute -top-24 right-[-80px] h-[280px] w-[380px] rounded-full border-2 border-[var(--qs-line)]" />
       </div>
 
       <div className="relative mx-auto box-border w-full max-w-[1240px] px-4 py-4 sm:px-6 sm:py-6">
         <div className="mb-4 flex items-center justify-between gap-3">
-          <Link href="/quiz" className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition hover:border-[var(--qs-brand)]/45">
+          <Link href="/quiz" className="b b-ghost sm gap-2">
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <span className="inline-flex items-center gap-1.5 rounded-xl border-2 border-[var(--qs-brand)]/30 bg-[var(--qs-brand)]/10 px-3 py-2 text-[13px] font-bold text-[var(--qs-brand)]">

@@ -6,6 +6,7 @@ import type { ToastType } from "@/types/toast";
 interface ToastIconProps {
   type: ToastType;
   className?: string;
+  variant?: "bubble" | "mobile";
 }
 
 export const toastTone: Record<
@@ -27,10 +28,20 @@ const iconMap: Record<ToastType, React.FC<React.SVGProps<SVGSVGElement>>> = {
   loading: Loader2,
 };
 
-export function ToastIcon({ type, className = "" }: ToastIconProps) {
+export function ToastIcon({ type, className = "", variant = "bubble" }: ToastIconProps) {
   const Icon = iconMap[type];
   const isSpinner = type === "loading";
   const tone = toastTone[type];
+
+  if (variant === "mobile") {
+    return (
+      <span
+        className={`grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border-2 border-[#1A1240] bg-[#FFD23F] text-[#1A1240] ${className}`}
+      >
+        <Icon className={`h-4 w-4 ${isSpinner ? "animate-spin" : ""}`} strokeWidth={2.5} />
+      </span>
+    );
+  }
 
   return (
     <div

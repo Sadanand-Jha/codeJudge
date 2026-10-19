@@ -394,8 +394,6 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       ) : (
       <div className="qs-ui relative h-full min-h-0 overflow-hidden bg-[var(--qs-bg)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:py-6">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -left-24 top-12 h-72 w-72 rounded-full bg-[var(--qs-brand)]/[0.07] blur-3xl" />
-        <div className="absolute -right-28 bottom-0 h-80 w-80 rounded-full bg-[var(--qs-brand)]/[0.05] blur-3xl" />
         <div className="absolute -right-16 -top-20 hidden h-64 w-64 rounded-full border-2 border-[var(--qs-line)] sm:block" />
         <div className="absolute right-[6%] top-[10%] hidden h-10 w-10 rotate-12 rounded-xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/40 lg:block" />
       </div>
@@ -435,7 +433,7 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
           transition={isMobile ? { duration: 0 } : { duration: 0.22, ease: "easeOut" }}
           className="relative overflow-hidden rounded-[24px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-6"
         >
-          <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[var(--qs-brand)]/[0.06] blur-3xl" />
+          <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-2xl border-2 border-[var(--qs-line)]" />
           <div className="relative flex items-center justify-between gap-3">
             <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
               <span className="grid h-6 w-6 place-items-center rounded-lg bg-[var(--qs-brand)]/10 text-[10px]">{index + 1}</span>
@@ -509,15 +507,15 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
         </div>
 
         <footer className="grid shrink-0 grid-cols-2 gap-2 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-2.5 sm:grid-cols-[auto_1fr_auto] sm:gap-3">
-          <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="qs-btn qs-btn-ghost min-h-12 gap-1 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-40 sm:px-4">
+          <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.max(0, value - 1)); }} disabled={index === 0} className="b b-ghost min-h-12 gap-1 px-3 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4">
             <ChevronLeft className="h-4 w-4" /> Previous
           </button>
           {index < questions.length - 1 ? (
-            <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.min(questions.length - 1, value + 1)); }} className="qs-btn col-start-2 min-h-12 gap-1 px-3 text-sm sm:col-start-3 sm:px-5">
+            <button type="button" onClick={() => { playQuizSound("navigate"); setIndex((value) => Math.min(questions.length - 1, value + 1)); }} className="b b-pri col-start-2 min-h-12 gap-1 px-3 sm:col-start-3 sm:px-5">
               Next <ChevronRight className="h-4 w-4" />
             </button>
           ) : (
-            <button type="button" onClick={handleManualSubmit} disabled={submitting} className="qs-btn col-start-2 min-h-12 gap-2 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50 sm:col-start-3 sm:px-4" style={{ background: "var(--qs-ok)", borderColor: "var(--qs-ok)" }}>
+            <button type="button" onClick={handleManualSubmit} disabled={submitting} className="b b-pri col-start-2 min-h-12 gap-2 px-3 disabled:cursor-not-allowed disabled:opacity-50 sm:col-start-3 sm:px-4" style={{ background: "var(--qs-ok)", borderColor: "var(--qs-ok)" }}>
               {submitting ? <SecureLogo variant="mark" size={16} className="animate-pulse motion-reduce:animate-none" /> : <Send className="h-4 w-4" />} {submitting ? "Submitting…" : "Submit"}
             </button>
           )}
@@ -575,7 +573,7 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
 
   if (complete) {
     return (
-      <div className="fixed inset-0 z-[140] flex items-center justify-center overflow-hidden bg-slate-950/80 px-4 backdrop-blur-md" role="status" aria-live="polite" aria-label="Quiz submitted successfully">
+      <div className="fixed inset-0 z-[140] flex items-center justify-center overflow-hidden bg-slate-950/80 px-4" role="status" aria-live="polite" aria-label="Quiz submitted successfully">
         {!isMobile && (
           <div className="pointer-events-none absolute inset-0" aria-hidden="true">
             {SUBMIT_PARTY_BITS.map((bit, index) => (
@@ -601,7 +599,7 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
           initial={isMobile ? false : { opacity: 0, scale: 0.75, y: 18 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={isMobile ? { duration: 0 } : { duration: 0.5, ease: "easeOut" }}
-          className="qs-ui relative w-full max-w-md rounded-[2rem] border-2 border-[var(--qs-line)] px-6 py-8 text-center shadow-[0_10px_0_rgba(26,18,64,0.35)] sm:px-9 sm:py-10"
+          className="qs-ui relative w-full max-w-md rounded-[2rem] border-2 border-[var(--qs-ink)] px-6 py-8 text-center shadow-[6px_6px_0_var(--qs-sun)] sm:px-9 sm:py-10"
           style={{ background: "var(--qs-surface)", color: "var(--qs-ink)" }}
         >
           <div className="mx-auto grid h-20 w-20 place-items-center rounded-[1.65rem] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
@@ -613,7 +611,7 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
           <button
             type="button"
             onClick={onHome}
-            className="qs-btn mt-6 h-12 w-full gap-2 text-sm"
+            className="b b-pri mt-6 w-full gap-2"
           >
             <Home className="h-4 w-4" /> Back to Home
           </button>
@@ -623,10 +621,10 @@ function SubmissionProgressOverlay({ complete, soundEnabled, onSound, onHome }: 
   }
 
   return (
-    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-md" role="status" aria-live="polite" aria-label={stage.title}>
-      <div className="qs-ui relative w-full max-w-md overflow-hidden rounded-3xl border-2 border-[var(--qs-line)] p-6 shadow-[0_10px_0_rgba(26,18,64,0.35)] sm:p-8" style={{ background: "var(--qs-surface)", color: "var(--qs-ink)" }}>
-        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[var(--qs-brand)]/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-16 h-48 w-48 rounded-full bg-[var(--qs-brand)]/10 blur-3xl" />
+    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/75 px-4" role="status" aria-live="polite" aria-label={stage.title}>
+      <div className="qs-ui relative w-full max-w-md overflow-hidden rounded-3xl border-2 border-[var(--qs-ink)] p-6 shadow-[6px_6px_0_var(--qs-sun)] sm:p-8" style={{ background: "var(--qs-surface)", color: "var(--qs-ink)" }}>
+        <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-2xl border-2 border-[var(--qs-line)]" />
+        <div className="pointer-events-none absolute -bottom-12 -left-10 h-28 w-28 rotate-12 rounded-xl border-2 border-[var(--qs-sun)] bg-[var(--qs-sun)]/20" />
 
         <div className="relative">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">

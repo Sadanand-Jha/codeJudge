@@ -373,14 +373,14 @@ export default function ExamModeShell({
                   type="button"
                   onClick={() => setShowRegistration(false)}
                   disabled={entering}
-                  className="qs-btn qs-btn-ghost h-11 w-full gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:w-auto sm:flex-1"
+                  className="b w-full gap-2 sm:w-auto sm:flex-1"
                 >
                   <ArrowLeft className="h-4 w-4" /> Back
                 </button>
                 <button
                   type="submit"
                   disabled={entering || !registrationComplete}
-                  className="qs-btn h-11 w-full gap-2 text-sm disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:w-auto sm:flex-[1.4]"
+                  className="b b-pri min-h-[54px] w-full gap-2 sm:min-h-[46px] sm:w-auto sm:flex-[1.4]"
                 >
                   {entering ? <QuizLoader size={16} /> : <Rocket className="h-4 w-4" />}
                   {entering ? "Starting your attempt…" : "Start Exam"}
@@ -449,12 +449,12 @@ export default function ExamModeShell({
                   void enterExamMode();
                 }}
                 disabled={entering}
-                className="qs-btn h-14 w-full gap-2 text-sm disabled:cursor-wait disabled:opacity-70 sm:w-auto sm:px-6"
+                className="b b-pri w-full gap-2 sm:w-auto sm:px-6"
               >
                 {entering ? <QuizLoader size={16} /> : <Maximize2 className="h-4 w-4" />}
                 {entering ? "Checking eligibility…" : "Enter Exam Mode"}
               </button>
-              <button onClick={onExitPreview} className="qs-btn qs-btn-ghost h-14 w-full text-sm sm:w-auto sm:px-6">
+              <button onClick={onExitPreview} className="b b-ghost w-full sm:w-auto sm:px-6">
                 Cancel
               </button>
             </div>
@@ -539,7 +539,7 @@ export default function ExamModeShell({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-4"
+              className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 p-4"
           >
             <motion.div
               initial={{ scale: 0.96, y: 8, opacity: 0 }}
@@ -558,7 +558,7 @@ export default function ExamModeShell({
               <p className="mt-3 text-center text-xs text-[var(--qs-muted)]">Your progress is preserved. Return to continue.</p>
               <button
                 onClick={handleReturn}
-                className="qs-btn mt-5 w-full py-3 text-sm"
+                className="b b-pri mt-5 w-full"
               >
                 Return to Quiz
               </button>
@@ -575,7 +575,7 @@ export default function ExamModeShell({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+              className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 p-4"
           >
             <motion.div
               initial={{ scale: 0.96, y: 8, opacity: 0 }}
@@ -589,7 +589,7 @@ export default function ExamModeShell({
               </div>
               <h3 className="mt-4 text-[15px] font-bold tracking-tight text-[var(--qs-ink)]">Maximum violations reached</h3>
               <p className="mt-1.5 text-[13px] leading-5 text-[var(--qs-muted)]">{isLive ? `Your attempt has been submitted automatically after ${maxViolations} violations and flagged for review.` : `This preview session has been terminated after ${maxViolations} violations.`}</p>
-              <button onClick={isLive && onViewResult ? onViewResult : exitExamMode} className="qs-btn mt-6 w-full py-3 text-sm">
+              <button onClick={isLive && onViewResult ? onViewResult : exitExamMode} className="b b-pri mt-6 w-full">
                 {isLive ? "View Result" : "Exit Preview"}
               </button>
               <p className="mt-2 text-[11px] text-[var(--qs-muted)]">{isLive ? "Attempt auto-submitted due to policy violations" : "Preview ended due to policy violation"}</p>

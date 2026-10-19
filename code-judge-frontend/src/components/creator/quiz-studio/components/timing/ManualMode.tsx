@@ -44,8 +44,9 @@ export function ManualMode({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="flex flex-wrap items-center gap-3 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3.5"
+            className="flex flex-col gap-3 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3.5 sm:flex-row sm:items-center"
           >
+            <div className="flex min-w-0 flex-1 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)]">
               <Clock className="h-5 w-5 text-[#1a1240]" />
             </span>
@@ -56,6 +57,7 @@ export function ManualMode({
                 soon as you start it.
               </p>
             </div>
+            </div>
             <button
               type="button"
               onClick={() => {
@@ -63,7 +65,7 @@ export function ManualMode({
                 setModalSessionDuration(manual.sessionDuration);
                 setStartOpen(true);
               }}
-              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+              className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none sm:w-auto"
             >
               <Play className="h-4 w-4" />
               Start Quiz
@@ -78,8 +80,9 @@ export function ManualMode({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
-          className="flex flex-wrap items-center gap-3 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3.5"
+          className="flex flex-col gap-3 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3.5 sm:flex-row sm:items-center"
         >
+          <div className="flex min-w-0 flex-1 items-center gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-okbg)]">
             <span className="h-2.5 w-2.5 rounded-full bg-[var(--qs-ok)] animate-pulse motion-reduce:animate-none" />
           </span>
@@ -92,10 +95,11 @@ export function ManualMode({
                 : ""}
             </p>
           </div>
+          </div>
           <button
             type="button"
             onClick={() => setEndOpen(true)}
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-bad)] bg-[var(--qs-surface)] px-3.5 text-xs font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-badbg)]"
+            className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-1.5 rounded-[12px] border-2 border-[var(--qs-bad)] bg-[var(--qs-surface)] px-3.5 text-xs font-extrabold text-[var(--qs-bad)] transition-colors hover:bg-[var(--qs-badbg)] sm:w-auto"
           >
             <Square className="h-3 w-3" fill="currentColor" />
             End quiz
@@ -110,8 +114,9 @@ export function ManualMode({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
-          className="flex flex-wrap items-center gap-3 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3.5"
+          className="flex flex-col gap-3 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-3.5 sm:flex-row sm:items-center"
         >
+          <div className="flex min-w-0 flex-1 items-center gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-badbg)]">
             <Square className="h-4 w-4 text-[var(--qs-bad)]" fill="currentColor" />
           </span>
@@ -122,6 +127,7 @@ export function ManualMode({
               {manual.endedAt ? formatRelativeTime(manual.endedAt) : ""}
             </p>
           </div>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -129,7 +135,7 @@ export function ManualMode({
               setModalSessionDuration(manual.sessionDuration);
               setRestartOpen(true);
             }}
-            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+            className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ok)] px-4 text-sm font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none sm:w-auto"
           >
             <RotateCcw className="h-4 w-4" />
             Restart Quiz

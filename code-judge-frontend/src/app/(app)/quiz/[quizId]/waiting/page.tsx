@@ -13,6 +13,7 @@ import {
   MessageSquare,
   ArrowLeft,
   AlertTriangle,
+  GraduationCap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CountdownCard } from "@/components/quiz/live/CountdownCard";
@@ -23,9 +24,8 @@ import { WaitingRoomToast } from "@/components/quiz/live/WaitingRoomToast";
 import { AvatarHoverPreview } from "@/components/quiz/live/AvatarHoverPreview";
 import { WaitingRoomThemeProvider, useWaitingRoomTheme } from "@/context/WaitingRoomThemeContext";
 import { useTheme } from "@/context/ThemeContext";
-import { useIsMobile } from "@/hooks/useIsMobile";
 import QuizPageReady from "@/components/quiz/live/QuizPageReady";
-import { QuizLoader } from "@/components/quiz/live/StudentQuizShell";
+import { QuizAmbientBackground, QuizLoader } from "@/components/quiz/live/StudentQuizShell";
 import { SecureLogo, LOADING_LOGO_SIZE } from "@/components/common/SecureLogo";
 import { useToast } from "@/hooks/useToast";
 import { useQuizSounds } from "@/hooks/useQuizSounds";
@@ -172,9 +172,6 @@ function WaitingRoomPageInner({
   const { setTheme } = useTheme();
   const [viewMode, setViewMode] = useState<"light"|"dark"|"real">(isDark ? "dark" : "light");
   const [clockMs, setClockMs] = useState<number | null>(null);
-  // Mobile: static waiting room — no ThemeBackground loops, no party
-  // confetti; AnimatedCrowd renders its own static fallback.
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (started) {
@@ -223,12 +220,10 @@ function WaitingRoomPageInner({
 
   return (
     <div className="qs-ui h-dvh flex flex-col overflow-hidden relative bg-[var(--qs-bg)]">
-      {/* Theme Background — hidden in Real World, visible in light/dark.
-          Skipped on mobile: static page background instead of 60+ loops. */}
-      {viewMode !== "real" && !isMobile && (
+      {/* Flat token canvas — hidden in Real World (LiveCampus has its own). */}
+      {viewMode !== "real" && (
         <div className="fixed inset-0 z-0 pointer-events-none">
-          <div className={`absolute inset-0 ${viewMode === "light" ? "bg-[linear-gradient(145deg,#fff9ef_0%,#fff3fb_33%,#eef9ff_67%,#f3fff8_100%)]" : "bg-[linear-gradient(145deg,#050510_0%,#111026_48%,#071424_100%)]"}`} />
-          {/* DISCONNECTED: {viewMode === "light" && <QuizPartyAtmosphere />} (ice-cream floaters) */}
+          <QuizAmbientBackground />
         </div>
       )}
 
@@ -254,20 +249,17 @@ function WaitingRoomPageInner({
       <WaitingRoomToast />
 
       {/* Top Bar */}
-      <div className="relative z-[200] flex items-center justify-between gap-2 px-4 py-3 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)]/80 backdrop-blur-xl sm:px-6">
+      <div className="relative z-[200] flex items-center justify-between gap-2 border-b-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           {/* Back Button */}
-          <motion.button
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            whileHover={{ y: -2 }}
-            whileTap={{ y: 0 }}
+          <button
+            type="button"
             onClick={() => setExitModalOpen(true)}
-            className="qs-btn qs-btn-ghost gap-2 px-4 py-2 text-sm"
+            className="b b-ghost gap-2"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
+            <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Back</span>
-          </motion.button>
+          </button>
 
           <div className="flex items-center gap-2">
             <SecureLogo size={32} variant="mark" rounded={false} />
@@ -277,43 +269,50 @@ function WaitingRoomPageInner({
 
         <div className="flex items-center gap-2">
           {/* View Mode Toggle: Light / Dark / Real World */}
-          <div className="hidden sm:flex items-center rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1">
+          <div className="hidden items-center gap-1 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1 sm:flex">
             <button
+              type="button"
               onClick={()=> handleViewMode("light")}
               title="Light mode"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="light" ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"}`}
+              data-selected={viewMode==="light"}
+              className="b b-chip sm gap-1.5"
             >
-              <Sun className="w-3.5 h-3.5" /> Light
+              <Sun className="h-3.5 w-3.5" /> Light
             </button>
             <button
+              type="button"
               onClick={()=> handleViewMode("dark")}
               title="Dark mode"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="dark" ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"}`}
+              data-selected={viewMode==="dark"}
+              className="b b-chip sm gap-1.5"
             >
-              <Moon className="w-3.5 h-3.5" /> Dark
+              <Moon className="h-3.5 w-3.5" /> Dark
             </button>
             <button
+              type="button"
               onClick={()=> handleViewMode("real")}
               title="Real World — Live Campus"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${viewMode==="real" ? "bg-[var(--qs-sun)] text-[var(--qs-ink)]" : "text-[var(--qs-muted)] hover:text-[var(--qs-ink)]"}`}
+              data-selected={viewMode==="real"}
+              className="b b-chip sm gap-1.5"
             >
-              <Globe className="w-3.5 h-3.5" /> Real World
+              <Globe className="h-3.5 w-3.5" /> Real World
             </button>
           </div>
           {/* Mobile compact toggle */}
-          <div className="flex sm:hidden items-center rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1">
-            <button onClick={()=> handleViewMode("light")} className={`p-1.5 rounded-full ${viewMode==="light" ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "text-[var(--qs-muted)]"}`}><Sun className="w-3.5 h-3.5" /></button>
-            <button onClick={()=> handleViewMode("dark")} className={`p-1.5 rounded-full ${viewMode==="dark" ? "bg-[var(--qs-brand)] text-[var(--qs-on-brand)]" : "text-[var(--qs-muted)]"}`}><Moon className="w-3.5 h-3.5" /></button>
-            <button onClick={()=> handleViewMode("real")} className={`p-1.5 rounded-full ${viewMode==="real" ? "bg-[var(--qs-sun)] text-[var(--qs-ink)]" : "text-[var(--qs-muted)]"}`}><Globe className="w-3.5 h-3.5" /></button>
+          <div className="flex items-center gap-1 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-1 sm:hidden">
+            <button type="button" onClick={()=> handleViewMode("light")} aria-pressed={viewMode==="light"} title="Light mode" className={`b b-icon sm ${viewMode==="light" ? "b-pri" : ""}`}><Sun className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={()=> handleViewMode("dark")} aria-pressed={viewMode==="dark"} title="Dark mode" className={`b b-icon sm ${viewMode==="dark" ? "b-pri" : ""}`}><Moon className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={()=> handleViewMode("real")} aria-pressed={viewMode==="real"} title="Real World — Live Campus" className={`b b-icon sm ${viewMode==="real" ? "b-pri" : ""}`}><Globe className="h-3.5 w-3.5" /></button>
           </div>
           {/* Participants Button */}
           <button
+            type="button"
             onClick={() => { playQuizSound("navigate"); setDrawerOpen(true); }}
-            className="qs-btn qs-btn-ghost gap-2 px-4 py-2 text-sm"
+            className="b b-ghost gap-2"
           >
-            <Users className="w-4 h-4" />
+            <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Participants</span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[var(--qs-sun)] text-[var(--qs-ink)]">
+            <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[10px] font-bold text-[var(--qs-ink)]">
               {participants.length}
             </span>
           </button>
@@ -419,39 +418,32 @@ function WaitingRoomPageInner({
 
       {/* Bottom Left Quick Actions */}
       <div className="absolute bottom-4 left-4 z-[200] flex items-center gap-2">
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          whileHover={{ y: -2 }}
-          whileTap={{ y: 0 }}
+        <button
+          type="button"
           onClick={() =>
             toast.info({
               title: "Music coming soon",
               description: "Ambient classroom music will be available in a future update.",
             })
           }
-          className="qs-btn qs-btn-ghost gap-2 px-4 py-2 text-xs"
+          className="b b-ghost sm gap-2"
         >
-          <Music className="w-3.5 h-3.5" />
+          <Music className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Music</span>
-        </motion.button>
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          whileHover={{ y: -2 }}
-          whileTap={{ y: 0 }}
+        </button>
+        <button
+          type="button"
           onClick={() =>
             toast.info({
               title: "Chat coming soon",
               description: "In-room chat with classmates will be available in a future update.",
             })
           }
-          className="qs-btn qs-btn-ghost gap-2 px-4 py-2 text-xs"
+          className="b b-ghost sm gap-2"
         >
-          <MessageSquare className="w-3.5 h-3.5" />
+          <MessageSquare className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Chat</span>
-        </motion.button>
+        </button>
       </div>
 
       {/* Bottom Right Summary Card */}
@@ -459,7 +451,7 @@ function WaitingRoomPageInner({
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="px-4 py-3 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_6px_0_rgba(26,18,64,0.08)]"
+          className="rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 shadow-[4px_4px_0_var(--qs-line)]"
         >
           <div className="flex items-center gap-4">
             <div className="text-center">
@@ -486,14 +478,14 @@ function WaitingRoomPageInner({
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-[0_6px_0_rgba(26,18,64,0.08)]"
+          className="flex items-center gap-3 rounded-2xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-2.5 shadow-[4px_4px_0_var(--qs-line)]"
         >
-          <div className="w-8 h-8 rounded-full bg-[var(--qs-brand)] flex items-center justify-center text-sm">
-            👩‍🏫
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+            <GraduationCap className="h-4 w-4" />
           </div>
           <div className="text-left">
             <p className="text-xs font-semibold text-[var(--qs-ink)]">The teacher will start the quiz soon.</p>
-            <p className="text-[10px] text-[var(--qs-muted)]">Get ready and stay here! 🚀</p>
+            <p className="text-[10px] text-[var(--qs-muted)]">Get ready and stay here.</p>
           </div>
         </motion.div>
 
@@ -547,17 +539,19 @@ function WaitingRoomPageInner({
 
               <div className="flex items-center gap-3">
                 <button
+                  type="button"
                   onClick={() => setExitModalOpen(false)}
-                  className="qs-btn qs-btn-ghost flex-1 h-10 py-0 text-sm"
+                  className="b b-ghost flex-1"
                 >
                   Stay Here
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     setExitModalOpen(false);
                     router.push(`/quiz`);
                   }}
-                  className="qs-btn flex-1 h-10 py-0 text-sm"
+                  className="b b-pri flex-1"
                 >
                   Leave Room
                 </button>

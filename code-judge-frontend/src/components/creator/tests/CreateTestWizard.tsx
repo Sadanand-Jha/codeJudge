@@ -30,7 +30,6 @@ import { cn } from "@/lib/helpers";
 import { deleteSectionBlueprint, getQuestionGeneratorCatalog, getSectionBlueprints, saveSectionBlueprint, useSectionBlueprint } from "@/services/aiGenerate";
 import type { SectionBlueprint } from "@/services/aiGenerate";
 import { EXAMS, LANGUAGES } from "@/components/tests/mockData";
-import { PrimaryButton, GhostButton } from "@/components/tests/ui";
 import { AiStreamText } from "@/components/ui";
 import { SectionCard } from "./sections/SectionCard";
 import { AIGenerateModal } from "./sections/AIGenerateModal";
@@ -352,38 +351,36 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
 
   return (
     <div className="creator-mobile-calm w-full space-y-4 pb-10 pt-1 sm:pt-2">
-      <header className="relative overflow-hidden rounded-2xl border border-border bg-card px-4 py-3 shadow-[0_8px_28px_rgba(15,23,42,0.05)] sm:px-5 sm:py-4">
-        <div aria-hidden="true" className="creator-desktop-flourish absolute -right-12 -top-20 h-40 w-40 rounded-full bg-violet-400/10 blur-3xl" />
-        <div aria-hidden="true" className="creator-desktop-flourish absolute -bottom-20 left-1/4 h-32 w-32 rounded-full bg-pink-400/10 blur-3xl" />
+      <header className="relative overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3.5 sm:px-5 sm:py-4">
         <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-violet-600 text-white">
-            <FileText className="h-4.5 w-4.5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <h1 className="text-base font-extrabold tracking-tight text-text-primary sm:text-lg">{meta.title}</h1>
-              <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Draft</span>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
+              <FileText className="h-5 w-5" />
             </div>
-            <p className="mt-0.5 max-w-2xl text-xs leading-5 text-text-secondary">{meta.subtitle}</p>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h1 className="text-lg font-extrabold tracking-tight text-[var(--qs-ink)] sm:text-xl">{meta.title}</h1>
+                <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.12em] text-[#1a1240]">Draft</span>
+              </div>
+              <p className="mt-0.5 max-w-2xl text-xs leading-5 text-[var(--qs-muted)]">{meta.subtitle}</p>
+            </div>
           </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-3 border-t border-border pt-2 text-xs text-text-secondary sm:border-0 sm:pt-0">
-          <span><strong className="text-text-primary">{totalQuestions}</strong> questions</span>
-          <span className="h-3 w-px bg-border" />
-          <span><strong className="text-text-primary">{duration || 0}</strong> min</span>
-        </div>
+          <div className="flex shrink-0 items-center gap-3 border-t-2 border-[var(--qs-line)] pt-2 text-xs text-[var(--qs-muted)] sm:border-0 sm:pt-0">
+            <span><strong className="text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">{totalQuestions}</strong> questions</span>
+            <span className="h-4 w-0.5 rounded-full bg-[var(--qs-line)]" />
+            <span><strong className="text-sm font-extrabold tabular-nums text-[var(--qs-ink)]">{duration || 0}</strong> min</span>
+          </div>
         </div>
       </header>
 
       {/* Mobile progress keeps the active task clear without a tiny, overflowing stepper. */}
-      <div className="rounded-xl border border-border bg-card p-3 sm:hidden">
+      <div className="rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-3 shadow-[3px_3px_0_var(--qs-sun)] sm:hidden">
         <div className="flex items-center justify-between gap-3 text-xs">
-          <span className="font-bold text-text-primary">{STEPS[step].label}</span>
-          <span className="shrink-0 font-semibold text-text-secondary">{step + 1} / {STEPS.length}</span>
+          <span className="font-extrabold text-[var(--qs-ink)]">{STEPS[step].label}</span>
+          <span className="shrink-0 font-bold tabular-nums text-[var(--qs-muted)]">{step + 1} / {STEPS.length}</span>
         </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-gradient-to-r from-pink-500 to-violet-600 transition-all duration-300" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
+        <div className="mt-2 h-2.5 overflow-hidden rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)]">
+          <div className="h-full rounded-full bg-[var(--qs-brand)] transition-all duration-300" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} />
         </div>
       </div>
 
@@ -398,18 +395,18 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                 type="button"
                 onClick={() => i < step && setStep(i)}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold transition-all",
+                  "flex items-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-[11px] font-bold transition-all",
                   active &&
-                    "border-transparent bg-gradient-to-r from-pink-500 to-violet-600 text-white shadow-[0_4px_14px_rgba(236,72,153,0.3)]",
-                  done && "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-                  !active && !done && "border-border bg-card text-text-secondary"
+                    "border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[3px_3px_0_var(--qs-sun)]",
+                  done && "border-[var(--qs-ok)] bg-[var(--qs-okbg)] text-[var(--qs-ok)]",
+                  !active && !done && "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)]"
                 )}
               >
                 {done ? <Check className="h-3 w-3" /> : <s.icon className="h-3 w-3" />}
                 {s.label}
               </button>
               {i < STEPS.length - 1 && (
-                <ChevronRight className={cn("mx-0.5 h-3.5 w-3.5", done ? "text-emerald-500/60" : "text-text-muted")} />
+                <ChevronRight className={cn("mx-0.5 h-3.5 w-3.5", done ? "text-[var(--qs-ok)]" : "text-[var(--qs-muted)]")} />
               )}
             </div>
           );
@@ -417,28 +414,28 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
       </div>
 
       {/* Primary navigation stays above the working area, so teachers never need to hunt for it. */}
-      <div className="sticky top-[58px] z-30 flex items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card/95 px-3 py-2.5 shadow-[0_10px_28px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:px-4">
+      <div className="sticky top-[58px] z-30 flex items-center justify-between gap-3 rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3 py-2.5 shadow-[4px_4px_0_var(--qs-sun)] sm:px-4">
         <button
           type="button"
           onClick={goBack}
           disabled={step === 0}
-          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-border bg-card px-3 text-xs font-bold text-text-primary transition-colors hover:border-violet-400/40 hover:bg-card-hover disabled:pointer-events-none disabled:opacity-35 sm:px-4"
+          className="b sm shrink-0 gap-1.5"
         >
           <ChevronLeft className="h-4 w-4" /> Back
         </button>
 
         <div className="hidden min-w-0 flex-1 items-center justify-center gap-2 text-center sm:flex">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-violet-600 text-[11px] font-extrabold text-white shadow-sm">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[11px] font-extrabold text-[var(--qs-on-brand)]">
             {step + 1}
           </span>
           <div className="min-w-0 text-left">
-            <p className="truncate text-xs font-extrabold text-text-primary">{STEPS[step].label}</p>
-            <p className="text-[10px] text-text-muted">Step {step + 1} of {STEPS.length}</p>
+            <p className="truncate text-xs font-extrabold text-[var(--qs-ink)]">{STEPS[step].label}</p>
+            <p className="text-[10px] font-semibold text-[var(--qs-muted)]">Step {step + 1} of {STEPS.length}</p>
           </div>
         </div>
 
         {sectionChoicePending ? (
-          <span className="ml-auto max-w-[12rem] text-right text-[10px] font-semibold leading-4 text-text-muted sm:max-w-none sm:text-xs">
+          <span className="ml-auto max-w-[12rem] text-right text-[10px] font-semibold leading-4 text-[var(--qs-muted)] sm:max-w-none sm:text-xs">
             Choose a section option to continue
           </span>
         ) : hasNextStep ? (
@@ -446,14 +443,14 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
             type="button"
             onClick={goForward}
             disabled={!canContinue() || autoSavingSections}
-            className="ml-auto inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-600 px-3 text-xs font-extrabold text-white shadow-[0_6px_18px_rgba(139,92,246,0.22)] transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none sm:px-5"
+            className="b b-pri sm ml-auto gap-1.5"
           >
             <span className="hidden sm:inline">{autoSavingSections ? "Saving…" : "Continue"}</span>
             <span className="max-w-[9rem] truncate sm:hidden">{STEPS[step + 1].label}</span>
             <ChevronRight className="h-4 w-4 shrink-0" />
           </button>
         ) : (
-          <span className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 text-[11px] font-bold text-emerald-600 dark:text-emerald-300">
+          <span className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full border-2 border-[var(--qs-ok)] bg-[var(--qs-okbg)] px-3 text-[11px] font-bold text-[var(--qs-ok)]">
             <Check className="h-3.5 w-3.5" /> Ready to publish
           </span>
         )}
@@ -469,54 +466,54 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.25 }}
           className={cn(
-            "rounded-xl border border-border bg-card p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] sm:p-5",
+            "rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-4 sm:p-6",
             step === 1 && sectionEditorOpen && "overflow-hidden"
           )}
         >
           {step === 0 && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-text-primary">Test Title</label>
+                <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Test Title<span className="ml-1 text-red-500">*</span></label>
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. JEE Main 2026 Mock Test 01"
-                  className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
+                  className="h-12 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 text-[15px] font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                 />
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold text-text-primary">Description</label>
+                  <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Description</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
+                    rows={4}
                     placeholder="What does this test cover — pattern, difficulty, target audience..."
-                    className="w-full resize-y rounded-xl border border-input-border bg-input-bg px-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
+                    className="min-h-[108px] w-full resize-y rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 text-[15px] font-medium leading-relaxed text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold text-text-primary">Instructions</label>
+                  <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Instructions</label>
                   <textarea
                     value={instructions}
                     onChange={(e) => setInstructions(e.target.value)}
-                    rows={3}
+                    rows={4}
                     placeholder="e.g. Each question carries 4 marks. No negative marking."
-                    className="w-full resize-y rounded-xl border border-input-border bg-input-bg px-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
+                    className="min-h-[108px] w-full resize-y rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 text-[15px] font-medium leading-relaxed text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                   />
                 </div>
               </div>
               <div className="md:max-w-xs">
-                <label className="mb-1.5 block text-xs font-bold text-text-primary">Duration (minutes)</label>
-                <div className="flex items-center gap-2">
-                  <Timer className="h-4 w-4 shrink-0 text-text-muted" />
+                <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Duration (minutes)</label>
+                <div className="relative">
+                  <Timer className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
                   <input
                     type="number"
                     min={5}
                     max={600}
                     value={duration || ""}
                     onChange={(e) => setDuration(Number(e.target.value))}
-                    className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
+                    className="h-12 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-4 text-[15px] font-bold tabular-nums text-[var(--qs-ink)] outline-none transition-colors focus:border-[var(--qs-brand)]"
                   />
                 </div>
               </div>
@@ -621,43 +618,43 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           {step === 1 && !sectionEditorOpen && !blueprintLibraryOpen && (
             <div className="mx-auto max-w-3xl py-3 sm:py-6">
               <div className="text-center">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-lg shadow-pink-500/15">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
                   <Layers className="h-5 w-5" />
                 </span>
-                <h2 className="mt-3 text-lg font-extrabold text-text-primary">Set up your paper sections</h2>
-                <p className="mx-auto mt-1 max-w-lg text-xs leading-5 text-text-secondary">Create a fresh section structure or reuse one you have already saved.</p>
+                <h2 className="mt-3 text-lg font-extrabold text-[var(--qs-ink)]">Set up your paper sections</h2>
+                <p className="mx-auto mt-1 max-w-lg text-xs leading-5 text-[var(--qs-muted)]">Create a fresh section structure or reuse one you have already saved.</p>
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={startNewSection}
-                  className="group min-h-44 rounded-2xl border border-pink-500/20 bg-gradient-to-br from-pink-500/[0.08] via-card to-violet-500/[0.05] p-5 text-left transition-all hover:-translate-y-0.5 hover:border-pink-500/45 hover:shadow-[0_12px_32px_rgba(236,72,153,0.12)]"
+                  className="group min-h-44 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--qs-brand)]"
                 >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-md shadow-pink-500/20">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
                     <Plus className="h-5 w-5" />
                   </span>
-                  <span className="mt-5 block text-sm font-extrabold text-text-primary">Create new section</span>
-                  <span className="mt-1 block text-xs leading-5 text-text-secondary">Build sections, question groups, marks and attempt rules from scratch.</span>
-                  <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-pink-500">Start creating <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
+                  <span className="mt-5 block text-sm font-extrabold text-[var(--qs-ink)]">Create new section</span>
+                  <span className="mt-1 block text-xs leading-5 text-[var(--qs-muted)]">Build sections, question groups, marks and attempt rules from scratch.</span>
+                  <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-[var(--qs-brand)]">Start creating <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
                 </button>
 
                 <button
                   type="button"
                   onClick={openBlueprintLibrary}
-                  className="group min-h-44 rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.08] via-card to-blue-500/[0.04] p-5 text-left transition-all hover:-translate-y-0.5 hover:border-violet-500/45 hover:shadow-[0_12px_32px_rgba(124,58,237,0.12)]"
+                  className="group min-h-44 rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--qs-brand)]"
                 >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-300">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
                     <FolderOpen className="h-5 w-5" />
                   </span>
-                  <span className="mt-5 flex items-center gap-2 text-sm font-extrabold text-text-primary">
+                  <span className="mt-5 flex items-center gap-2 text-sm font-extrabold text-[var(--qs-ink)]">
                     Use existing section
-                    {!blueprintsLoading && blueprintsLoaded && blueprints.length > 0 && <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[9px] text-violet-600 dark:text-violet-300">{blueprints.length} saved</span>}
+                    {!blueprintsLoading && blueprintsLoaded && blueprints.length > 0 && <span className="rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] px-2 py-0.5 text-[9px] font-bold text-[var(--qs-ink)]">{blueprints.length} saved</span>}
                   </span>
-                  <span className="mt-1 block text-xs leading-5 text-text-secondary">
+                  <span className="mt-1 block text-xs leading-5 text-[var(--qs-muted)]">
                     {blueprintsLoading ? "Checking saved sections…" : blueprintsLoaded && blueprints.length === 0 ? "No saved sections yet — create your first section." : "Choose a complete saved blueprint and continue immediately."}
                   </span>
-                  <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-violet-600 dark:text-violet-300">{blueprintsLoaded && blueprints.length === 0 ? "Create your first section" : "View saved sections"} <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
+                  <span className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-[var(--qs-brand)]">{blueprintsLoaded && blueprints.length === 0 ? "Create your first section" : "View saved sections"} <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
                 </button>
               </div>
             </div>
@@ -677,15 +674,15 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
 
           {step === 1 && sectionEditorOpen && !blueprintLibraryOpen && (
             <div>
-              <div className="mb-4 flex flex-col gap-3 rounded-xl border border-border bg-card-hover/25 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-text-muted">
-                  <button type="button" onClick={() => setSectionEditorOpen(false)} className="mr-1 inline-flex items-center gap-1 font-bold text-text-secondary hover:text-violet-500"><ChevronLeft className="h-3.5 w-3.5" /> Change option</button>
-                  <span className="h-3 w-px bg-border" />
-                  <span className="font-semibold text-text-primary">{sections.length} Section{sections.length !== 1 && "s"}</span>
+              <div className="mb-4 flex flex-col gap-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--qs-muted)]">
+                  <button type="button" onClick={() => setSectionEditorOpen(false)} className="b b-ghost sm mr-1 gap-1"><ChevronLeft className="h-3.5 w-3.5" /> Change option</button>
+                  <span className="h-3 w-0.5 rounded-full bg-[var(--qs-line)]" />
+                  <span className="font-bold text-[var(--qs-ink)]">{sections.length} Section{sections.length !== 1 && "s"}</span>
                   <span>·</span>
                   <span>{totalQuestions} Question{totalQuestions !== 1 && "s"}</span>
                   <span>·</span>
-                  <span className="font-semibold text-text-secondary">{totalMarks} Total Marks</span>
+                  <span className="font-bold text-[var(--qs-ink)]">{totalMarks} Total Marks</span>
                 </div>
                 <button
                   type="button"
@@ -693,21 +690,21 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                     setBlueprintName(title.trim() ? `${title.trim()} blueprint` : "");
                     setSaveBlueprintOpen(true);
                   }}
-                  className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 text-[10px] font-bold text-text-secondary transition-all hover:border-pink-500/30 hover:text-pink-500"
+                  className="b sm shrink-0 gap-1.5"
                 >
                   <BookmarkPlus className="h-3.5 w-3.5" /> Save for reuse
                 </button>
               </div>
 
-              <div className="ai-color-note mb-4 flex flex-col gap-3 rounded-xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mb-4 flex flex-col gap-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-bold text-text-primary">Need a single question instead?</p>
-                  <p className="mt-1 min-h-5 text-xs leading-5 text-text-secondary"><AiStreamText text="Open the AI question generator directly. You do not need to create sections or a full paper first." /></p>
+                  <p className="text-sm font-bold text-[var(--qs-ink)]">Need a single question instead?</p>
+                  <p className="mt-1 min-h-5 text-xs leading-5 text-[var(--qs-muted)]"><AiStreamText text="Open the AI question generator directly. You do not need to create sections or a full paper first." /></p>
                 </div>
                 <button
                   type="button"
                   onClick={() => router.push("/creator/problems/create")}
-                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-violet-500/25 bg-card px-4 text-xs font-bold text-violet-600 transition-colors hover:bg-violet-500/10 dark:text-violet-300"
+                  className="b sm shrink-0 gap-1.5"
                 >
                   <ListChecks className="h-4 w-4" /> <AiStreamText text="Open AI Question Generator" />
                 </button>
@@ -737,7 +734,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               <button
                 type="button"
                 onClick={addSection}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-card/50 py-3 text-sm font-semibold text-text-secondary transition-all hover:border-pink-500/30 hover:text-pink-500 dark:hover:text-pink-400"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--qs-line)] bg-[var(--qs-bg)] py-3 text-sm font-bold text-[var(--qs-muted)] transition-all hover:border-[var(--qs-brand)] hover:text-[var(--qs-brand)]"
               >
                 <Plus className="h-5 w-5" />
                 Add Section
@@ -754,33 +751,35 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
           )}
 
           {step === 3 && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <label className="mb-1.5 block text-xs font-bold text-text-primary">Pricing Model</label>
+                <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Pricing Model</label>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => setMode("free")}
                     className={cn(
-                      "rounded-xl border p-4 text-left transition-all",
-                      mode === "free" ? "border-emerald-500/50 bg-emerald-500/6" : "border-border bg-card-hover/30 hover:border-border-hover"
+                      "rounded-xl border-2 p-4 text-left transition-all",
+                      mode === "free"
+                        ? "border-[var(--qs-ink)] bg-[var(--qs-bg)] shadow-[3px_3px_0_var(--qs-sun)]"
+                        : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
                     )}
                   >
-                    <span className={cn("text-sm font-extrabold", mode === "free" ? "text-emerald-500" : "text-text-primary")}>Free</span>
-                    <p className="mt-1 text-xs text-text-secondary">Reach the widest audience. No price, no friction.</p>
+                    <span className={cn("text-sm font-extrabold", mode === "free" ? "text-[var(--qs-ok)]" : "text-[var(--qs-ink)]")}>Free</span>
+                    <p className="mt-1 text-xs text-[var(--qs-muted)]">Reach the widest audience. No price, no friction.</p>
                   </button>
                   <button
                     type="button"
                     onClick={() => setMode("paid")}
                     className={cn(
-                      "rounded-xl border p-4 text-left transition-all",
+                      "rounded-xl border-2 p-4 text-left transition-all",
                       mode === "paid"
-                        ? "border-pink-500/50 bg-pink-500/6 dark:border-ai-accent/50 dark:bg-ai-accent/6"
-                        : "border-border bg-card-hover/30 hover:border-border-hover"
+                        ? "border-[var(--qs-ink)] bg-[var(--qs-bg)] shadow-[3px_3px_0_var(--qs-sun)]"
+                        : "border-[var(--qs-line)] bg-[var(--qs-surface)] hover:border-[var(--qs-brand)]"
                     )}
                   >
-                    <span className={cn("text-sm font-extrabold", mode === "paid" ? "text-pink-500 dark:text-ai-accent" : "text-text-primary")}>Paid</span>
-                    <p className="mt-1 text-xs text-text-secondary">Set a price and earn from every enrollment.</p>
+                    <span className={cn("text-sm font-extrabold", mode === "paid" ? "text-[var(--qs-brand)]" : "text-[var(--qs-ink)]")}>Paid</span>
+                    <p className="mt-1 text-xs text-[var(--qs-muted)]">Set a price and earn from every enrollment.</p>
                   </button>
                 </div>
               </div>
@@ -788,35 +787,35 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               {mode === "paid" && (
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1.5 block text-xs font-bold text-text-primary">Your Price (₹)</label>
+                    <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Your Price (₹)</label>
                     <div className="relative">
-                      <IndianRupee className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                      <IndianRupee className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
                       <input
                         type="number"
                         min={0}
                         value={price || ""}
                         onChange={(e) => setPrice(Number(e.target.value))}
                         placeholder="99"
-                        className="h-12 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
+                        className="h-12 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-4 text-[15px] font-bold tabular-nums text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-bold text-text-primary">Original / MRP (₹)</label>
+                    <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Original / MRP (₹)</label>
                     <div className="relative">
-                      <IndianRupee className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                      <IndianRupee className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
                       <input
                         type="number"
                         min={0}
                         value={originalPrice || ""}
                         onChange={(e) => setOriginalPrice(Number(e.target.value))}
                         placeholder="199"
-                        className="h-12 w-full rounded-xl border border-input-border bg-input-bg pl-10 pr-4 text-sm text-text-primary placeholder-text-muted focus:border-pink-500/50 focus:outline-none focus:ring-2 focus:ring-pink-500/15"
+                        className="h-12 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] pl-10 pr-4 text-[15px] font-bold tabular-nums text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                       />
                     </div>
                   </div>
                   {price > 0 && originalPrice > price && (
-                    <div className="rounded-xl bg-emerald-500/8 px-4 py-3 text-xs font-semibold text-emerald-600 dark:text-emerald-300 sm:col-span-2">
+                    <div className="rounded-xl border-2 border-[var(--qs-ok)] bg-[var(--qs-okbg)] px-4 py-3 text-xs font-bold text-[var(--qs-ok)] sm:col-span-2">
                       Students will see <span className="font-extrabold">₹{price}</span> with{" "}
                       <span className="font-extrabold">{Math.round((1 - price / originalPrice) * 100)}% OFF</span> against ₹{originalPrice}.
                     </div>
@@ -828,16 +827,13 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
 
           {step === 4 && (
             <div>
-              <div className="mx-auto max-w-md overflow-hidden rounded-2xl border border-border bg-card">
-                <div
-                  className={cn(
-                    "flex h-32 items-center justify-center bg-gradient-to-br text-white",
-                    selectedExam?.gradient ?? "from-pink-500 to-violet-600"
-                  )}
-                >
+              <div className="mx-auto max-w-md overflow-hidden rounded-[22px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+                <div className="flex h-32 items-center justify-center border-b-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)]">
                   {selectedExam ? (
-                    <div className="flex flex-col items-center gap-1.5">
-                      <selectedExam.icon className="h-9 w-9 drop-shadow" />
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[var(--qs-on-brand)]/40 bg-[var(--qs-on-brand)]/10">
+                        <selectedExam.icon className="h-6 w-6" />
+                      </span>
                       <span className="text-sm font-extrabold">
                         {selectedExam.name} · {title || "Untitled Test"}
                       </span>
@@ -847,33 +843,33 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="text-sm font-bold text-text-primary">{title || "Untitled Test"}</h3>
-                  <p className="mt-1 line-clamp-2 text-xs text-text-secondary">{description || "No description yet."}</p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-text-secondary">
-                    <span className="rounded-full border border-border bg-card-hover px-2.5 py-0.5 font-semibold">{totalQuestions} Qs</span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card-hover px-2.5 py-0.5 font-semibold">
+                  <h3 className="text-sm font-bold text-[var(--qs-ink)]">{title || "Untitled Test"}</h3>
+                  <p className="mt-1 line-clamp-2 text-xs text-[var(--qs-muted)]">{description || "No description yet."}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[var(--qs-ink)]">
+                    <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold">{totalQuestions} Qs</span>
+                    <span className="inline-flex items-center gap-1 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold">
                       <Clock3 className="h-3 w-3" /> {duration || 0} min
                     </span>
-                    <span className="rounded-full border border-border bg-card-hover px-2.5 py-0.5 font-semibold capitalize">{difficulty}</span>
-                    <span className="rounded-full border border-border bg-card-hover px-2.5 py-0.5 font-semibold capitalize">
+                    <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold capitalize">{difficulty}</span>
+                    <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold capitalize">
                       {LANGUAGES.find((l) => l.id === language)?.label}
                     </span>
-                    <span className="rounded-full border border-border bg-card-hover px-2.5 py-0.5 font-semibold">
+                    <span className="rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-2.5 py-0.5 font-bold">
                       {totalMarks} marks
                     </span>
                   </div>
-                  <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                  <div className="mt-4 flex items-center justify-between border-t-2 border-[var(--qs-line)] pt-3">
                     {mode === "free" ? (
-                      <span className="text-lg font-extrabold text-emerald-500">FREE</span>
+                      <span className="text-lg font-extrabold text-[var(--qs-ok)]">FREE</span>
                     ) : (
-                      <span className="text-lg font-extrabold text-text-primary">
+                      <span className="text-lg font-extrabold tabular-nums text-[var(--qs-ink)]">
                         ₹{price}
                         {originalPrice > price && (
-                          <span className="ml-1.5 text-xs font-medium text-text-muted line-through">₹{originalPrice}</span>
+                          <span className="ml-1.5 text-xs font-medium text-[var(--qs-muted)] line-through">₹{originalPrice}</span>
                         )}
                       </span>
                     )}
-                    <span className="rounded-lg bg-gradient-to-r from-pink-500/10 to-violet-600/10 px-3 py-1.5 text-[11px] font-bold text-pink-500 dark:text-ai-accent">
+                    <span className="rounded-lg border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] px-3 py-1 text-[11px] font-bold text-[#1a1240]">
                       {mode === "paid" ? `${Math.round((1 - price / originalPrice) * 100)}% OFF` : "Free to attempt"}
                     </span>
                   </div>
@@ -884,21 +880,21 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
 
           {step === 5 && (
             <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 text-white shadow-[0_12px_36px_rgba(236,72,153,0.4)]">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[var(--qs-on-brand)] shadow-[4px_4px_0_var(--qs-sun)]">
                 <Rocket className="h-8 w-8" />
               </div>
-              <h3 className="mt-4 text-lg font-extrabold text-text-primary">Ready to publish?</h3>
-              <p className="mx-auto mt-1 max-w-md text-sm text-text-secondary">
-                <span className="font-bold text-text-primary">{title}</span> — {totalQuestions} questions across {sections.length} section
+              <h3 className="mt-4 text-lg font-extrabold text-[var(--qs-ink)]">Ready to publish?</h3>
+              <p className="mx-auto mt-1 max-w-md text-sm text-[var(--qs-muted)]">
+                <span className="font-bold text-[var(--qs-ink)]">{title}</span> — {totalQuestions} questions across {sections.length} section
                 {sections.length !== 1 && "s"}, {totalMarks} marks, {duration || 0} minutes,{" "}
                 {mode === "free" ? "free" : `₹${price}`}. Once published it will be visible to all students.
               </p>
               <div className="mt-6 flex items-center justify-center gap-3">
-                <GhostButton onClick={() => setStep(4)}>Back to Preview</GhostButton>
-                <PrimaryButton onClick={handlePublish} disabled={publishing} className="px-6 py-3">
+                <button type="button" onClick={() => setStep(4)} className="b">Back to Preview</button>
+                <button type="button" onClick={handlePublish} disabled={publishing} className="b b-pri gap-1.5 px-6">
                   <Rocket className="h-4 w-4" />
                   {publishing ? "Publishing…" : "Publish Test"}
-                </PrimaryButton>
+                </button>
               </div>
             </div>
           )}
@@ -911,7 +907,7 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
             onMouseDown={(event) => {
               if (event.target === event.currentTarget && !savingBlueprint) setSaveBlueprintOpen(false);
             }}
@@ -920,46 +916,46 @@ export function CreateTestWizard({ creationType = "test" }: { creationType?: Cre
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.98 }}
-              className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl"
+              className="w-full max-w-md rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-5 shadow-[6px_6px_0_var(--qs-sun)]"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-base font-extrabold text-text-primary">Save section blueprint</h2>
-                  <p className="mt-1 text-xs text-text-secondary">This saves all {sections.length} sections, groups, marks and attempt rules.</p>
+                  <h2 className="text-base font-extrabold text-[var(--qs-ink)]">Save section blueprint</h2>
+                  <p className="mt-1 text-xs text-[var(--qs-muted)]">This saves all {sections.length} sections, groups, marks and attempt rules.</p>
                 </div>
-                <button type="button" onClick={() => setSaveBlueprintOpen(false)} disabled={savingBlueprint} className="rounded-lg p-1.5 text-text-muted hover:bg-card-hover hover:text-text-primary" aria-label="Close"><X className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setSaveBlueprintOpen(false)} disabled={savingBlueprint} className="b b-icon sm" aria-label="Close"><X className="h-4 w-4" /></button>
               </div>
 
               <div className="mt-5 space-y-4">
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold text-text-primary">Blueprint name</label>
+                  <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Blueprint name</label>
                   <input
                     autoFocus
                     value={blueprintName}
                     maxLength={120}
                     onChange={(event) => setBlueprintName(event.target.value)}
                     placeholder="e.g. Semester exam — 5 sections"
-                    className="h-11 w-full rounded-xl border border-input-border bg-input-bg px-3.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10"
+                    className="h-11 w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 text-[15px] font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold text-text-primary">Description <span className="font-medium text-text-muted">(optional)</span></label>
+                  <label className="mb-2 block text-sm font-bold text-[var(--qs-ink)]">Description <span className="font-medium text-[var(--qs-muted)]">(optional)</span></label>
                   <textarea
                     value={blueprintDescription}
                     maxLength={500}
                     rows={3}
                     onChange={(event) => setBlueprintDescription(event.target.value)}
                     placeholder="When should this blueprint be used?"
-                    className="w-full resize-none rounded-xl border border-input-border bg-input-bg px-3.5 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10"
+                    className="w-full resize-none rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3.5 py-2.5 text-[15px] font-medium text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
                   />
                 </div>
               </div>
 
               <div className="mt-5 flex justify-end gap-2">
-                <GhostButton onClick={() => { if (!savingBlueprint) setSaveBlueprintOpen(false); }}>Cancel</GhostButton>
-                <PrimaryButton onClick={handleSaveBlueprint} disabled={savingBlueprint || !blueprintName.trim()}>
+                <button type="button" onClick={() => { if (!savingBlueprint) setSaveBlueprintOpen(false); }} className="b sm">Cancel</button>
+                <button type="button" onClick={handleSaveBlueprint} disabled={savingBlueprint || !blueprintName.trim()} className="b b-pri sm gap-1.5">
                   <Save className="h-4 w-4" /> {savingBlueprint ? "Saving…" : "Save blueprint"}
-                </PrimaryButton>
+                </button>
               </div>
             </motion.div>
           </motion.div>

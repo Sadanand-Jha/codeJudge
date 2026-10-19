@@ -83,7 +83,7 @@ export default function QuizLeaderboardPage({ params }: { params: Promise<{ quiz
     >
         {podium.length > 0 && (
           <section className="relative overflow-hidden rounded-3xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-5 sm:p-7">
-            <div className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-[var(--qs-brand)]/[0.08] blur-3xl" />
+            <div className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full border-2 border-[var(--qs-line)]" />
             <div className="relative flex items-center justify-between gap-3">
               <div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">Top explorers</p><h2 className="mt-1 text-xl font-extrabold text-[var(--qs-ink)]">Today&apos;s podium</h2></div>
               <Sparkles className="h-6 w-6 text-[var(--qs-sun)]" />

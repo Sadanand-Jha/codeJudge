@@ -15,7 +15,7 @@ export default function QuizAttemptsPage() {
       <div className="qs-ui relative min-h-[calc(100dvh-3.5rem)] overflow-hidden bg-[var(--qs-bg)] px-4 py-6 text-[var(--qs-ink)] sm:px-6 sm:py-8">
         <main className="relative z-10 mx-auto w-full max-w-[1280px]">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <Link href="/quiz" className="inline-flex h-10 items-center gap-2 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 text-xs font-bold text-[var(--qs-ink)] transition hover:border-[var(--qs-brand)]/45">
+            <Link href="/quiz" className="b sm gap-1.5">
               <ArrowLeft className="h-4 w-4" /> Back to quiz home
             </Link>
             <span className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--qs-brand)]">

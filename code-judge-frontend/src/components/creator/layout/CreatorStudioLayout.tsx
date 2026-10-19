@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
 import { CreatorSidebar } from "./CreatorSidebar";
 import CreatorNavbar from "./CreatorNavbar";
 import AppLayout from "@/components/layout/AppLayout";
@@ -80,7 +79,7 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[70] bg-[#1a1240]/50 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-[70] bg-black/60 lg:hidden"
               onClick={() => setDrawerOpen(false)}
             />
           )}
@@ -94,22 +93,14 @@ export default function CreatorStudioLayout({ children }: { children: React.Reac
               animate={{ x: 0 }}
               exit={{ x: -320 }}
               transition={{ type: "spring", stiffness: 380, damping: 34 }}
-              className="fixed inset-y-0 left-0 z-[80] w-[min(264px,calc(100vw-2rem))] border-r-2 border-[var(--qs-line)] bg-[var(--qs-surface)] shadow-2xl lg:hidden"
+              className="fixed inset-y-0 left-0 z-[80] w-[min(280px,calc(100vw-2rem))] border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] lg:hidden"
             >
-              <button
-                type="button"
-                aria-label="Close menu"
-                onClick={() => setDrawerOpen(false)}
-                className="absolute right-3 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-lg text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
-              >
-                <X className="h-4 w-4" />
-              </button>
               <CreatorSidebar pathname={pathname} mobile onNavigate={() => setDrawerOpen(false)} />
             </motion.aside>
           )}
         </AnimatePresence>
 
-        <aside data-sidebar="true" className="hidden w-60 shrink-0 border-r-2 border-[var(--qs-line)] bg-[var(--qs-surface)] lg:block">
+        <aside data-sidebar="true" className="hidden w-60 shrink-0 border-r-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] lg:block">
           <CreatorSidebar pathname={pathname} />
         </aside>
 

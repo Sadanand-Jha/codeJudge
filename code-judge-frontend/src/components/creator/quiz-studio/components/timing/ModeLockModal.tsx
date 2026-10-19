@@ -42,7 +42,7 @@ export function ModeLockModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#1A1240]/60 p-4 backdrop-blur-[2px]"
+          className="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-[#1A1240]/60 p-3 backdrop-blur-[2px] sm:p-4"
           onClick={onClose}
         >
           <motion.div
@@ -51,21 +51,22 @@ export function ModeLockModal({
             exit={{ opacity: 0, scale: 0.97, y: 8 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-[480px] overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)]"
+            className="relative my-auto w-full max-w-[480px] shrink-0 overflow-hidden rounded-[22px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] shadow-[6px_6px_0_var(--qs-sun)]"
           >
             <button
               onClick={onClose}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
+              aria-label="Close"
+              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition-colors hover:border-[var(--qs-brand)] hover:text-[var(--qs-ink)]"
             >
               <X className="h-4 w-4" />
             </button>
 
-            <div className="px-7 pt-7 pb-0">
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-badbg)]">
+            <div className="px-4 pt-5 pb-0 sm:px-7 sm:pt-7">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[14px] border-2 border-[var(--qs-ink)] bg-[var(--qs-badbg)] sm:h-12 sm:w-12">
                 <AlertTriangle className="h-5 w-5 text-[var(--qs-bad)]" />
               </div>
 
-              <h2 className="text-xl font-black tracking-tight text-[var(--qs-ink)]">
+              <h2 className="pr-8 text-lg font-black tracking-tight text-[var(--qs-ink)] sm:pr-0 sm:text-xl">
                 Quiz is currently {isLive ? "live" : "ended"}
               </h2>
 
@@ -79,8 +80,8 @@ export function ModeLockModal({
               </p>
 
               {/* Status card */}
-              <div className="mt-5 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-4">
-                <div className="flex items-center gap-2 mb-3">
+              <div className="mt-4 rounded-[16px] border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-3 sm:mt-5 sm:p-4">
+                <div className="mb-3 flex flex-wrap items-center gap-1.5">
                   <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-badbg)] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[var(--qs-bad)]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[var(--qs-bad)] animate-pulse motion-reduce:animate-none" />
                     {currentModeLabel}
@@ -90,32 +91,32 @@ export function ModeLockModal({
                     {isLive ? "LIVE" : "ENDED"}
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+                <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
+                  <div className="flex flex-col items-start gap-1.5 min-w-0 sm:flex-row sm:items-center sm:gap-2">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
                       <Users className="h-3.5 w-3.5 text-[var(--qs-muted)]" />
                     </div>
-                    <div>
-                      <p className="text-[15px] font-black tabular-nums text-[var(--qs-ink)]">{studentCount ?? "—"}</p>
-                      <p className="text-[10px] font-medium text-[var(--qs-muted)]">Students</p>
+                    <div className="min-w-0">
+                      <p className="text-sm sm:text-[15px] font-black tabular-nums text-[var(--qs-ink)]">{studentCount ?? "—"}</p>
+                      <p className="truncate text-[10px] font-medium text-[var(--qs-muted)]">Students</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+                  <div className="flex flex-col items-start gap-1.5 min-w-0 sm:flex-row sm:items-center sm:gap-2">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
                       <Clock className="h-3.5 w-3.5 text-[#a85d00]" />
                     </div>
-                    <div>
-                      <p className="text-[15px] font-black tabular-nums text-[var(--qs-ink)]">{inProgressCount ?? "—"}</p>
-                      <p className="text-[10px] font-medium text-[var(--qs-muted)]">In Progress</p>
+                    <div className="min-w-0">
+                      <p className="text-sm sm:text-[15px] font-black tabular-nums text-[var(--qs-ink)]">{inProgressCount ?? "—"}</p>
+                      <p className="truncate text-[10px] font-medium text-[var(--qs-muted)]">In Progress</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
+                  <div className="flex flex-col items-start gap-1.5 min-w-0 sm:flex-row sm:items-center sm:gap-2">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)]">
                       <Square className="h-3.5 w-3.5 text-[var(--qs-ok)]" />
                     </div>
-                    <div>
-                      <p className="text-[15px] font-black tabular-nums text-[var(--qs-ink)]">{submittedCount ?? "—"}</p>
-                      <p className="text-[10px] font-medium text-[var(--qs-muted)]">Submitted</p>
+                    <div className="min-w-0">
+                      <p className="text-sm sm:text-[15px] font-black tabular-nums text-[var(--qs-ink)]">{submittedCount ?? "—"}</p>
+                      <p className="truncate text-[10px] font-medium text-[var(--qs-muted)]">Submitted</p>
                     </div>
                   </div>
                 </div>
@@ -130,22 +131,22 @@ export function ModeLockModal({
               </div>
 
               {/* Flow hint */}
-              <div className="mt-4 flex items-center gap-2 text-[11px] text-[var(--qs-muted)]">
-                <div className="flex items-center gap-1.5">
-                  <span className="rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-1.5 py-0.5 font-bold text-[var(--qs-muted)]">Current quiz</span>
-                  <span className="text-[var(--qs-muted)]">→</span>
-                  <span className="rounded-[8px] border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-badbg)] px-1.5 py-0.5 font-bold text-[var(--qs-bad)]">{isLive ? "LIVE" : "ENDED"}</span>
-                  <span className="text-[var(--qs-muted)]">→</span>
-                  <span className="rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-1.5 py-0.5 font-bold text-[var(--qs-muted)]">Stop Quiz</span>
-                  <span className="text-[var(--qs-muted)]">→</span>
-                  <span className="rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-1.5 py-0.5 font-bold text-[var(--qs-muted)]">Change mode</span>
+              <div className="mt-4 text-[11px] text-[var(--qs-muted)]">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="whitespace-nowrap rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-1.5 py-0.5 font-bold text-[var(--qs-muted)]">Current quiz</span>
+                  <span aria-hidden="true" className="text-[var(--qs-muted)]">→</span>
+                  <span className="whitespace-nowrap rounded-[8px] border-2 border-[var(--qs-bad)]/30 bg-[var(--qs-badbg)] px-1.5 py-0.5 font-bold text-[var(--qs-bad)]">{isLive ? "LIVE" : "ENDED"}</span>
+                  <span aria-hidden="true" className="text-[var(--qs-muted)]">→</span>
+                  <span className="whitespace-nowrap rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-1.5 py-0.5 font-bold text-[var(--qs-muted)]">Stop Quiz</span>
+                  <span aria-hidden="true" className="text-[var(--qs-muted)]">→</span>
+                  <span className="whitespace-nowrap rounded-[8px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-1.5 py-0.5 font-bold text-[var(--qs-muted)]">Change mode</span>
                 </div>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="mt-6 flex flex-col items-center gap-3 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-7 py-4">
-              <div className="flex w-full items-center justify-end gap-3">
+            <div className="mt-6 flex flex-col items-stretch sm:items-center gap-3 border-t-2 border-[var(--qs-line)] bg-[var(--qs-bg)] px-4 py-4 sm:px-7">
+              <div className="flex w-full flex-col-reverse items-stretch gap-2.5 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
                 <button
                   type="button"
                   onClick={onClose}
@@ -156,9 +157,9 @@ export function ModeLockModal({
                 <button
                   type="button"
                   onClick={onConfirm}
-                  className="inline-flex h-10 items-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] px-5 text-[13px] font-extrabold text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none"
+                  className="inline-flex h-auto min-h-10 items-center justify-center gap-2 rounded-[12px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bad)] px-4 py-2 text-center text-[13px] font-extrabold leading-tight text-white shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-px active:translate-y-0 active:shadow-none sm:h-10 sm:px-5"
                 >
-                  <Square className="h-3.5 w-3.5" />
+                  <Square className="h-3.5 w-3.5 shrink-0" fill="currentColor" />
                   End Quiz &amp; Change Setting
                 </button>
               </div>

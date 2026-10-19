@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   ClipboardList,
   Database,
@@ -27,9 +26,10 @@ import {
   BadgeCheck,
   Sparkles,
   MessageSquare,
-       MailPlus,
+  MailPlus,
   Megaphone,
   Plus,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -185,12 +185,10 @@ const BOTTOM_NAV: Array<{ label: string; href: string; icon: LucideIcon }> = FOC
 function NavRow({
   item,
   pathname,
-  showLabels,
   onNavigate,
 }: {
   item: CreatorNavItem;
   pathname: string;
-  showLabels: boolean;
   onNavigate?: () => void;
 }) {
   const isActive = item.match
@@ -199,45 +197,29 @@ function NavRow({
     ? pathname === item.href
     : pathname === item.href || pathname.startsWith(`${item.href}/`);
   const Icon = item.icon;
-  const isAiStudio = item.href === "/creator/ai-studio";
+
   return (
     <Link
       href={item.href}
       onClick={onNavigate}
-      aria-label={showLabels ? undefined : item.label}
-      title={showLabels ? undefined : item.label}
       className={cn(
-        "group relative flex w-full items-center gap-2.5 rounded-lg py-2 text-[13px] font-medium transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-[var(--qs-brand)]/40",
-        showLabels ? "px-3" : "justify-center px-0",
-        isAiStudio
-          ? "ai-studio-btn"
-          : isActive ? "text-[var(--qs-ink)]" : "text-[var(--qs-muted)] hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
+        "group flex w-full items-center gap-2.5 rounded-xl border-2 px-3 py-2 text-[13px] font-bold outline-none transition-all duration-150 focus-visible:ring-3 focus-visible:ring-[var(--qs-brand)]/40",
+        isActive
+          ? "border-[var(--qs-ink)] bg-[var(--qs-brand)] shadow-[3px_3px_0_var(--qs-sun)]"
+          : "border-transparent text-[var(--qs-muted)] hover:border-[var(--qs-line)] hover:bg-[var(--qs-bg)] hover:text-[var(--qs-ink)]"
       )}
     >
-      {isActive && !isAiStudio && (
-        <motion.span
-          layoutId="creatorSidebarActive"
-          className="absolute inset-0 rounded-lg border-2 border-[var(--qs-brand)]/25 bg-[var(--qs-brand)]/10"
-          transition={{ type: "spring", stiffness: 500, damping: 35 }}
-        />
-      )}
-      {isAiStudio ? (
-        <span className="relative z-10 inline-flex shrink-0">
-          <Icon className="h-5 w-5 text-white" />
-        </span>
-      ) : (
-        <Icon
-          className={cn(
-            "relative z-10 h-[18px] w-[18px] shrink-0 transition-colors",
-            isActive
-              ? "text-[var(--qs-brand)]"
-              : "text-[var(--qs-muted)] group-hover:text-[var(--qs-ink)]"
-          )}
-        />
-      )}
-      {showLabels && (
-        <span className={cn("relative z-10 truncate", isAiStudio ? "text-white font-semibold" : isActive && "font-semibold")}>{item.label}</span>
-      )}
+      <Icon
+        className={cn(
+          "h-[18px] w-[18px] shrink-0 transition-colors",
+          isActive
+            ? "text-[var(--qs-on-brand)]"
+            : "text-[var(--qs-muted)] group-hover:text-[var(--qs-ink)]"
+        )}
+      />
+      <span className={cn("truncate", isActive && "font-extrabold text-[var(--qs-on-brand)]")}>
+        {item.label}
+      </span>
     </Link>
   );
 }
@@ -251,7 +233,6 @@ export function CreatorSidebar({
   mobile?: boolean;
   onNavigate?: () => void;
 }) {
-  const showLabels = mobile || true;
   const user = useAuthStore((s) => s.user);
   const displayName = user?.displayName || user?.username || "Creator";
   const avatarInitial = displayName.charAt(0).toUpperCase();
@@ -259,26 +240,50 @@ export function CreatorSidebar({
 
   return (
     <div className="flex h-full w-full flex-col">
-      {/* Creator identity header */}
-      <div className="border-b-2 border-[var(--qs-line)] px-4 py-3">
+      {/* Brand header — mirrors the student sidebar */}
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b-2 border-[var(--qs-line)] px-3 py-3">
+        <Link
+          href="/creator"
+          onClick={onNavigate}
+          className="flex min-w-0 items-center gap-2.5"
+          aria-label="QuizSupport Creator Studio home"
+        >
+          <span className="min-w-0 truncate text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--qs-brand)]">
+            Creator Studio
+          </span>
+        </Link>
+        {mobile && (
+          <button
+            type="button"
+            onClick={onNavigate}
+            className="b b-close sm shrink-0"
+            aria-label="Close navigation"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Creator identity */}
+      <div className="shrink-0 border-b-2 border-[var(--qs-line)] px-3 py-2.5">
         <Link
           href={FOCUS_MODE_ENABLED ? "/creator/quizzes" : "/creator/profile"}
           onClick={onNavigate}
-          className="flex items-center gap-3 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-3 transition-colors hover:border-[var(--qs-brand)]/45"
+          className="flex items-center gap-2.5 rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-bg)] p-2 transition-colors hover:border-[var(--qs-brand)]"
         >
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--qs-brand)] text-sm font-bold text-white">
+          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-[var(--qs-ink)] bg-[var(--qs-brand)] text-[12px] font-extrabold text-[var(--qs-on-brand)]">
             {avatarInitial}
             {verification === "verified" && (
-              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--qs-ok)] ring-2 ring-[var(--qs-surface)]">
-                <BadgeCheck className="h-2.5 w-2.5 text-white" />
+              <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)]">
+                <BadgeCheck className="h-2 w-2 text-[var(--qs-ink)]" />
               </span>
             )}
           </div>
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-[13px] font-bold text-[var(--qs-ink)]">{displayName}</p>
+            <p className="truncate text-[13px] font-extrabold text-[var(--qs-ink)]">{displayName}</p>
             <p
               className={cn(
-                "truncate text-[10px] font-medium",
+                "truncate text-[10px] font-bold",
                 verification === "verified" ? "text-[var(--qs-ok)]" : "text-[var(--qs-warn)]"
               )}
             >
@@ -289,19 +294,19 @@ export function CreatorSidebar({
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto hide-scrollbar px-3 py-4">
+      <nav className="hide-scrollbar flex-1 overflow-y-auto px-2.5 py-3">
         {CREATOR_NAV.map((group, gi) => (
-          <div key={group.label} className={cn(gi > 0 && "mt-6")}>
-            <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--qs-muted)]">
+          <div key={group.label}>
+            {gi > 0 && <div className="my-2 h-0.5 rounded-full bg-[var(--qs-line)]" />}
+            <p className="px-3 pb-1 pt-1 text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--qs-brand)]">
               {group.label}
             </p>
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {group.items.map((item) => (
                 <NavRow
                   key={item.href}
                   item={item}
                   pathname={pathname}
-                  showLabels={showLabels}
                   onNavigate={onNavigate}
                 />
               ))}
@@ -311,31 +316,22 @@ export function CreatorSidebar({
       </nav>
 
       {/* Bottom */}
-      <div className="shrink-0 border-t-2 border-[var(--qs-line)] p-3">
-        {BOTTOM_NAV.length > 0 && (
-          <div className="space-y-0.5">
-            {BOTTOM_NAV.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                onClick={onNavigate}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--qs-muted)] transition-colors hover:bg-[var(--qs-line)]/40 hover:text-[var(--qs-ink)]"
-              >
-                <item.icon className="h-4 w-4 text-[var(--qs-muted)]" />
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        )}
-        {/* Back to Student Mode — mobile only, at last of sidebar */}
+      <div className="shrink-0 space-y-1 border-t-2 border-[var(--qs-line)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        {BOTTOM_NAV.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            onClick={onNavigate}
+            className="group flex items-center gap-2.5 rounded-xl border-2 border-transparent px-3 py-2 text-[13px] font-bold text-[var(--qs-muted)] transition-all duration-150 hover:border-[var(--qs-line)] hover:bg-[var(--qs-bg)] hover:text-[var(--qs-ink)]"
+          >
+            <item.icon className="h-4 w-4 text-[var(--qs-muted)] transition-colors group-hover:text-[var(--qs-ink)]" />
+            {item.label}
+          </Link>
+        ))}
         {mobile && (
-          <div className="mt-3 border-t-2 border-[var(--qs-line)] pt-3">
-            <Link
-              href="/quiz"
-              onClick={onNavigate}
-              className="flex cursor-pointer items-center gap-2.5 rounded-xl border-2 border-[var(--qs-ink)]/80 bg-[var(--qs-brand)] px-3 py-2.5 text-[13px] font-bold text-white shadow-[3px_3px_0_0_var(--qs-sun)] transition-all hover:brightness-110 active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0_0_var(--qs-sun)]"
-            >
-              <ArrowLeft className="h-4 w-4 text-white" />
+          <div className="border-t-2 border-[var(--qs-line)] pt-3">
+            <Link href="/quiz" onClick={onNavigate} className="b b-pri w-full justify-start gap-2">
+              <ArrowLeft className="h-4 w-4" />
               Back to Student Mode
             </Link>
           </div>

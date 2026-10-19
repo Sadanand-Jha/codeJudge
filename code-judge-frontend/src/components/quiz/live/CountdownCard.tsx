@@ -41,8 +41,7 @@ export function CountdownCard({ targetAt, onStarted, className = "" }: Countdown
 
   return (
     <motion.div
-      className={`qs-ui flex flex-col items-center gap-3 rounded-3xl border-2 border-[var(--qs-line)] px-6 py-5 shadow-[0_6px_0_rgba(26,18,64,0.12)] ${className}`}
-      style={{ background: "var(--qs-surface)" }}
+      className={`qs-ui flex flex-col items-center gap-3 rounded-3xl border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-6 py-5 shadow-[5px_5px_0_var(--qs-sun)] ${className}`}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: 0.2 }}

@@ -33,15 +33,7 @@ export function QuizAmbientBackground() {
           backgroundImage:
             "linear-gradient(to right, var(--qs-line) 1px, transparent 1px), linear-gradient(to bottom, var(--qs-line) 1px, transparent 1px)",
           backgroundSize: "56px 56px",
-          maskImage: "radial-gradient(80% 70% at 50% 0%, #000 25%, transparent 78%)",
-          WebkitMaskImage: "radial-gradient(80% 70% at 50% 0%, #000 25%, transparent 78%)",
-        }}
-      />
-      <div
-        className="absolute inset-x-0 top-0 h-[520px]"
-        style={{
-          background:
-            "radial-gradient(60% 100% at 50% 0%, color-mix(in srgb, var(--qs-brand) 9%, transparent), transparent 72%)",
+          opacity: 0.6,
         }}
       />
     </div>
@@ -115,7 +107,7 @@ export function QuizSkyBackground({
 
 export function QuizBackLink({ href, label = "Back" }: { href: string; label?: string }) {
   return (
-    <Link href={href} className="qs-btn qs-btn-ghost gap-1.5 px-3.5 py-2 text-xs">
+    <Link href={href} className="b b-ghost sm gap-1.5">
       <ArrowLeft className="h-3.5 w-3.5" /> {label}
     </Link>
   );

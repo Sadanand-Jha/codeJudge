@@ -328,10 +328,10 @@ export function SetupStep() {
           </div>
 
           {/* Tip */}
-          <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-poly-1)] p-4 text-sm font-medium leading-relaxed text-[var(--qs-muted)] sm:p-5">
+          {/* <div className="rounded-[14px] border-2 border-[var(--qs-line)] bg-[var(--qs-poly-1)] p-4 text-sm font-medium leading-relaxed text-[var(--qs-muted)] sm:p-5">
             <strong className="font-extrabold text-[var(--qs-ink)]">Tip:</strong> Include the exam and year in the title,
             like &quot;NEET 2026 Biology Mock 03&quot;, so students can search easily.
-          </div>
+          </div> */}
         </motion.aside>
       </div>
     </div>
