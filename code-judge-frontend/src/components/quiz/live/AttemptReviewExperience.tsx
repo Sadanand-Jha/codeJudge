@@ -46,6 +46,24 @@ type RatingSelection = Record<RatingCategory, number>;
 
 const EMPTY_RATINGS: RatingSelection = { quiz: 0, questions: 0, teacher: 0, platform: 0 };
 
+/* Import pipeline stores statements as HTML (<p>, <b>…). Strip for plain display. */
+function plainText(html: string | null | undefined): string {
+  if (!html) return "";
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "• ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "’")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /** All answer shapes the attempt screen persists (see attempt page restore logic). */
 type SelectedAnswer =
   | { kind: "single"; id: string }
@@ -240,18 +258,18 @@ function buildAttemptReviewData(result: QuizResult, review: QuestionReview[]): A
       // order rather than the student's attempt order. The UI must always
       // present a simple 1, 2, 3… sequence.
       number: index + 1,
-      statement: row.problem_statement,
+      statement: plainText(row.problem_statement),
       difficulty: normalizeDifficulty(row.difficulty),
       options: options.map((option, optionIndex) => ({
         id: String(option.id),
         label: OPTION_LABELS[optionIndex] ?? String(optionIndex + 1),
-        text: option.option_statement,
+        text: plainText(option.option_statement),
       })),
       correctOptionId,
       correctOptionIds: correctIds,
       selected,
       textMatched,
-      explanation: row.explaination ?? undefined,
+      explanation: plainText(row.explaination) || undefined,
       marksObtained: 0,
       maxMarks: perQuestionMarks,
       // Per-question time is not tracked by the backend (time_spent_seconds
