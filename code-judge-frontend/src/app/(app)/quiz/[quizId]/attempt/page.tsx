@@ -1,3 +1,4 @@
+
 "use client";
 
 import { use, useCallback, useEffect, useRef, useState } from "react";
@@ -383,6 +384,27 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
     router.replace("/quiz");
   }, [router]);
 
+  // Cross (X) quit: confirm already happened in ExamModeShell. Submit current
+  // answers so the result is generated; a completed attempt can never resume,
+  // so the student cannot continue this attempt afterwards.
+  const [quitSubmitting, setQuitSubmitting] = useState(false);
+  const handleQuitAttempt = useCallback(() => {
+    if (attemptId === null || submittingRef.current) {
+      if (attemptId !== null) router.replace(`/quiz/${code}/results/${attemptId}`);
+      else router.replace("/quiz");
+      return;
+    }
+    setQuitSubmitting(true);
+    // Fire the submit (grades server-side, marks attempt completed so it can
+    // never resume) and go straight to the result page — don't wait for the
+    // grading poll, which can take minutes for a large cohort. The result page
+    // polls/shows the graded result once ready.
+    void submit({ flagReason: "student quit via cross button" }).finally(() => {
+      setQuitSubmitting(false);
+    });
+    router.replace(`/quiz/${code}/results/${attemptId}`);
+  }, [attemptId, code, router, submit]);
+
   if (loading) return <StatusScreen loading text="Preparing your secure attempt…" />;
   if (error && !quiz) return <StatusScreen text={error} />;
   if (!quiz) return <StatusScreen text="This quiz could not be loaded." />;
@@ -396,6 +418,8 @@ export default function QuizAttemptPage({ params }: { params: Promise<{ quizId: 
       attemptId={attemptId !== null ? String(attemptId) : null}
       onEnterExam={handleEnterExam}
       onExitPreview={() => router.replace("/quiz")}
+      onQuitAttempt={() => void handleQuitAttempt()}
+      quitSubmitting={quitSubmitting || submitting}
       onViewResult={attemptId !== null ? () => router.replace(`/quiz/${code}/results/${attemptId}`) : undefined}
       entryError={error}
       onTerminate={handleTerminate}

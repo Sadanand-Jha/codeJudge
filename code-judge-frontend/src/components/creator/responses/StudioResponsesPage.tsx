@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Download, Mail, Square, Search, X, RefreshCw,
+  ArrowLeft, ChevronLeft, ChevronRight, Download, Mail, Square, Search, X, RefreshCw,
   MoreVertical, Pause, RotateCcw, Timer, TrendingUp, TrendingDown,
 } from "lucide-react";
 import { cn } from "@/lib/helpers";
@@ -63,6 +63,22 @@ const STATUS_COLORS: Record<StudentStatus, string> = {
 const FILTERS = ["ALL", "SUBMITTED", "IN_PROGRESS", "NOT_STARTED", "TIMED_OUT"] as const;
 
 const SORT_LABELS = ["Marks (high to low)", "Fastest first", "Latest first"] as const;
+
+const PAGE_SIZE = 8;
+
+function pageNumbers(current: number, total: number): Array<number | "…"> {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const visible = new Set<number>([1, total, current, current - 1, current + 1]);
+  const sorted = [...visible].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+  const out: Array<number | "…"> = [];
+  let previous = 0;
+  for (const page of sorted) {
+    if (previous && page - previous > 1) out.push("…");
+    out.push(page);
+    previous = page;
+  }
+  return out;
+}
 
 const DONUT_R = 54;
 const DONUT_C = 2 * Math.PI * DONUT_R;
@@ -229,6 +245,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<StudentStatus | "ALL">("ALL");
   const [sortMode, setSortMode] = useState(0);
+  const [page, setPage] = useState(1);
   const [detailPanel, setDetailPanel] = useState<Student | null>(null);
   const [detailReview, setDetailReview] = useState<StudentResponseDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -397,6 +414,12 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
     }
     return sorted;
   }, [students, filter, search, sortMode]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const paged = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+  const pageItems = pageNumbers(currentPage, totalPages);
 
   const liveStudents = useMemo(() => students.filter((student) => isLiveAttempt(student, presenceNow)), [students, presenceNow]);
   const inProgressCount = useMemo(() => students.filter((s) => s.status === "IN_PROGRESS").length, [students]);
@@ -748,7 +771,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--qs-muted)]" />
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               placeholder="Search name or roll no…"
               aria-label="Search students"
               className="w-full rounded-[12px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] py-2.5 pl-9 pr-3.5 text-sm text-[var(--qs-ink)] outline-none transition-colors placeholder:text-[var(--qs-muted)] focus:border-[var(--qs-brand)]"
@@ -763,7 +789,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   key={f}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => setFilter(f)}
+                  onClick={() => {
+                    setFilter(f);
+                    setPage(1);
+                  }}
                   className={cn(
                     "rounded-full border-2 px-[13px] py-1.5 text-xs font-extrabold uppercase tracking-[0.06em] transition-colors",
                     active
@@ -783,7 +812,10 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
             </button>
             <button
               type="button"
-              onClick={() => setSortMode((m) => (m + 1) % SORT_LABELS.length)}
+              onClick={() => {
+                setSortMode((m) => (m + 1) % SORT_LABELS.length);
+                setPage(1);
+              }}
               className={cn(topBtn, "flex-1 justify-center sm:flex-none")}
             >
               Sort: {SORT_LABELS[sortMode]}
@@ -810,7 +842,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                   {students.length === 0 ? "No responses yet — students haven't been registered or attempted this quiz." : "No records match this filter."}
                 </p>
               ) : (
-                filtered.map((s) => (
+                paged.map((s) => (
                   <div
                     key={s.id}
                     onClick={() => openDetail(s)}
@@ -887,7 +919,7 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((s) => (
+                    paged.map((s) => (
                       <tr
                         key={s.id}
                         onClick={() => openDetail(s)}
@@ -936,8 +968,54 @@ export default function StudioResponsesPage({ quizId }: { quizId: string }) {
                 </tbody>
               </table>
             </div>
-            <div className="border-t-2 border-[var(--qs-line)] px-4 py-3.5 text-sm font-medium text-[var(--qs-muted)] sm:px-[26px]">
-              Showing {filtered.length} of {students.length} records
+            <div className="flex flex-col gap-3 border-t-2 border-[var(--qs-line)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-[26px]">
+              <p className="text-sm font-medium text-[var(--qs-muted)]">
+                Showing {filtered.length === 0 ? 0 : pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} of {filtered.length} records
+              </p>
+              {totalPages > 1 && (
+                <nav aria-label="Pagination" className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    aria-label="Previous page"
+                    className="grid h-8 min-w-8 place-items-center rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {pageItems.map((item, i) =>
+                    item === "…" ? (
+                      <span key={`ellipsis-${i}`} className="px-1 text-xs font-bold text-[var(--qs-muted)]" aria-hidden>
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setPage(item)}
+                        aria-current={item === currentPage ? "page" : undefined}
+                        className={cn(
+                          "grid h-8 min-w-8 place-items-center rounded-[9px] border-2 px-2 text-xs font-extrabold transition-colors",
+                          item === currentPage
+                            ? "border-[var(--qs-ink)] bg-[var(--qs-ink)] text-[var(--qs-bg)]"
+                            : "border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] hover:border-[var(--qs-brand)]"
+                        )}
+                      >
+                        {item}
+                      </button>
+                    )
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    aria-label="Next page"
+                    className="grid h-8 min-w-8 place-items-center rounded-[9px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-35"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </nav>
+              )}
             </div>
           </div>
         </div>

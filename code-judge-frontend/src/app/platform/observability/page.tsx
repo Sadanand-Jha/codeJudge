@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Gauge, Network, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Gauge, Network, Search, X } from "lucide-react";
 import { platformApi } from "@/services/platform";
 import type { PlatformRange } from "@/services/platform";
 import { SectionCard, SectionSkeleton, EmptyState, ErrorState, fmtInt, fmtPct, timeAgo } from "@/components/platform/ui";
@@ -11,7 +11,16 @@ import { MiniStat, SimpleTable } from "@/components/platform/subpage-blocks";
 /* /platform/observability — calls /observability (+ /requests/:id on inspect) only. */
 export default function ObservabilityPage() {
   const [range, setRange] = useState<PlatformRange>("7d");
-  const query = useAsync(() => platformApi.observability(range), `observability:${range}`);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+  const query = useAsync(
+    () => platformApi.observability(range, undefined, { search: debouncedSearch }),
+    `observability:${range}:${debouncedSearch}`
+  );
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
   const data = query.data;
   const summary = data?.summary;
@@ -36,7 +45,7 @@ export default function ObservabilityPage() {
           </div>
         </div>
       </div>
-      {query.loading ? <SectionSkeleton rows={6} /> : query.error ? <ErrorState message={query.error.message} onRetry={query.retry} /> : !data?.available ? (
+      {query.loading && !data ? <SectionSkeleton rows={6} /> : query.error ? <ErrorState message={query.error.message} onRetry={query.retry} /> : !data?.available ? (
         <EmptyState message="Observability migration is not applied" detail={data?.reason ?? "Apply the platform observability migration to start collecting real request telemetry."} />
       ) : (
         <>
@@ -65,25 +74,61 @@ export default function ObservabilityPage() {
             </SectionCard>
           </div>
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)]">
-            <SectionCard title="Recent requests" subtitle="Select any request to inspect its trace and redacted metadata">
-              {!data.recent?.length ? <EmptyState message="No requests recorded yet" /> : (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[760px] text-left text-[11px]">
-                    <thead className="text-[10px] uppercase tracking-[.08em] text-[var(--text-muted)]"><tr>{["Status", "Method", "Endpoint", "User", "Duration", "Time", ""].map((h) => <th key={h} className="border-b border-[var(--border)] px-2 py-2 font-medium">{h}</th>)}</tr></thead>
-                    <tbody className="divide-y divide-[var(--border)]">
-                      {data.recent.map((row) => <tr key={row.request_id} className="hover:bg-[var(--card-hover)]">
-                        <td className={`px-2 py-2 font-semibold tabular-nums ${row.success ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{row.status_code}</td>
-                        <td className="px-2 py-2 font-medium text-[var(--text-primary)]">{row.method}</td>
-                        <td className="max-w-[260px] truncate px-2 py-2 text-[var(--text-secondary)]" title={row.endpoint}>{row.route_template || row.endpoint}</td>
-                        <td className="max-w-[130px] truncate px-2 py-2 text-[var(--text-secondary)]">{row.username || "Anonymous"}</td>
-                        <td className="px-2 py-2 tabular-nums text-[var(--text-secondary)]">{row.duration_ms} ms</td>
-                        <td className="px-2 py-2 whitespace-nowrap text-[var(--text-muted)]">{timeAgo(row.started_at)}</td>
-                        <td className="px-2 py-2"><button onClick={() => setSelectedRequest(row.request_id)} className="b sm">Inspect</button></td>
-                      </tr>)}
-                    </tbody>
-                  </table>
+            <SectionCard
+              title="Recent requests"
+              subtitle={query.loading ? "Updating results…" : debouncedSearch ? `Filtered by “${debouncedSearch}”` : "Select any request to inspect its trace and redacted metadata"}
+              right={
+                <div className="relative">
+                  <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Email or username…"
+                    aria-label="Filter requests by email or username"
+                    className="pf-focus w-40 rounded-[12px] border-2 border-[var(--border)] bg-[var(--platform-input)] py-1.5 pl-8 pr-8 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] sm:w-56"
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => setSearch("")}
+                      aria-label="Clear request filter"
+                      className="absolute right-1.5 top-1/2 grid h-5 w-5 -translate-y-1/2 place-items-center rounded-full text-[var(--text-muted)] hover:bg-[var(--card-hover)] hover:text-[var(--text-primary)]"
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
                 </div>
-              )}
+              }
+            >
+              <div className={query.loading ? "opacity-60 transition-opacity" : "transition-opacity"} aria-busy={query.loading}>
+                {!data.recent?.length ? (
+                  <EmptyState
+                    message={debouncedSearch ? "No matching requests" : "No requests recorded yet"}
+                    detail={debouncedSearch ? `No requests found for “${debouncedSearch}”. Try a different email or username.` : undefined}
+                  />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[760px] text-left text-[11px]">
+                      <thead className="text-[10px] uppercase tracking-[.08em] text-[var(--text-muted)]"><tr>{["Status", "Method", "Endpoint", "User", "Duration", "Time", ""].map((h) => <th key={h} className="border-b border-[var(--border)] px-2 py-2 font-medium">{h}</th>)}</tr></thead>
+                      <tbody className="divide-y divide-[var(--border)]">
+                        {data.recent.map((row) => <tr key={row.request_id} className="hover:bg-[var(--card-hover)]">
+                          <td className={`px-2 py-2 font-semibold tabular-nums ${row.success ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>{row.status_code}</td>
+                          <td className="px-2 py-2 font-medium text-[var(--text-primary)]">{row.method}</td>
+                          <td className="max-w-[260px] truncate px-2 py-2 text-[var(--text-secondary)]" title={row.endpoint}>{row.route_template || row.endpoint}</td>
+                          <td className="max-w-[180px] px-2 py-2 text-[var(--text-secondary)]">
+                            <span className="block truncate">{row.username || "Anonymous"}</span>
+                            {row.email && <span className="block truncate text-[10px] text-[var(--text-muted)]">{row.email}</span>}
+                          </td>
+                          <td className="px-2 py-2 tabular-nums text-[var(--text-secondary)]">{row.duration_ms} ms</td>
+                          <td className="px-2 py-2 whitespace-nowrap text-[var(--text-muted)]">{timeAgo(row.started_at)}</td>
+                          <td className="px-2 py-2"><button onClick={() => setSelectedRequest(row.request_id)} className="b sm">Inspect</button></td>
+                        </tr>)}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </SectionCard>
             <div className="space-y-4">
               <SectionCard title="Active users" subtitle="Current authenticated sessions">

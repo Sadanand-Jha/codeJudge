@@ -22,6 +22,7 @@ import {
   getQuizVisibilityOptions,
   getQuizDifficultyOptions,
   generateQuizCodeEndpoint,
+  regenerateQuizCode,
   createQuiz,
   updateQuiz,
   deleteQuiz,
@@ -69,9 +70,10 @@ router.get("/generate-code", generateQuizCodeEndpoint);
 
 router.get("/profile-overview", getCreatorProfileOverview);
 
-// ==================== COPY QUIZ CODE ====================
+// ==================== COPY / REGENERATE QUIZ CODE ====================
 
 router.post("/:quizId/copy-code", copyQuizCode);
+router.post("/:quizId/regenerate-code", regenerateQuizCode);
 
 // ==================== QUIZ CRUD ====================
 

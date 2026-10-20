@@ -95,7 +95,7 @@ export interface LiveData {
   online: number; takingQuizzes: number; activeQuizRooms: number; liveRooms: number | null;
   attemptsInProgress: number; events: { kind: string; actor: string | null; object: string | null; at: string | null }[];
 }
-export interface ActivityItem { type: string; scope: string; actor: string | null; object: string | null; at: string | null; meta: string | null }
+export interface ActivityItem { type: string; scope: string; actor: string | null; actor_email: string | null; object: string | null; at: string | null; meta: string | null }
 
 export interface RequestLogRow {
   request_id: string;
@@ -311,7 +311,19 @@ export const platformApi = {
     hardest: { id: number; quiz_id: number; statement: string | null; responses: number; skip_rate: number | null; avg_time_s: number | null }[];
     totalQuestions: number | null;
   }>("/quizzes"),
-  observability: (range: PlatformRange, days?: number) => get<ObservabilityData>("/observability", days ? { range, days } : { range }),
+  observability: (
+    range: PlatformRange,
+    days?: number,
+    filters: { search?: string; method?: string; status?: number; limit?: number } = {}
+  ) => {
+    const params: Record<string, string | number> = { range };
+    if (days) params.days = days;
+    if (filters.search) params.search = filters.search;
+    if (filters.method) params.method = filters.method;
+    if (filters.status) params.status = filters.status;
+    if (filters.limit) params.limit = filters.limit;
+    return get<ObservabilityData>("/observability", params);
+  },
   requestDetail: (requestId: string) => get<RequestDetailData>(`/requests/${encodeURIComponent(requestId)}`),
   questionImportCatalog: () => get<QuestionImportCatalog>("/question-import/catalog"),
   previewQuestionImport: (form: FormData) => schedulePlatformRequest(async () => {

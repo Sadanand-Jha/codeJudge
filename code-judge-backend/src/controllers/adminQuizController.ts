@@ -271,6 +271,39 @@ export const generateQuizCodeEndpoint = async (req: Request, res: Response) => {
   }
 };
 
+export const regenerateQuizCode = async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      res.status(401).json({ success: false, message: "Unauthorized access" });
+      return;
+    }
+
+    const { quizId } = req.params;
+    const access = await assertQuizOwnership(quizId, userId);
+    if (!access.ok) {
+      res.status(access.status).json({ success: false, message: access.message });
+      return;
+    }
+
+    const code = await quizService.generateUniqueCode();
+    await quizService.updateQuiz(Number(quizId), { code });
+
+    res.status(200).json({
+      success: true,
+      message: "Quiz code regenerated successfully",
+      data: { code },
+    });
+  } catch (error) {
+    if (isQuizCodeConflictError(error)) {
+      res.status(409).json({ success: false, code: "QUIZ_CODE_TAKEN", message: "Could not generate a unique code. Please try again." });
+      return;
+    }
+    console.error("Error regenerating quiz code:", error);
+    res.status(500).json({ success: false, message: "Internal server error while regenerating quiz code" });
+  }
+};
+
 // ==================== QUIZ CRUD ====================
 
 const resolveDifficultyId = async (difficulty: unknown): Promise<number | null> => {

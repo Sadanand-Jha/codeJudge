@@ -23,6 +23,7 @@ const CRUMB_LABELS: Record<string, string> = {
   "question-import": "Question ingestion",
   questions: "Question bank",
   observability: "API observability",
+  models: "Model catalogue",
   ai: "AI usage",
   health: "Platform health",
   errors: "Errors",

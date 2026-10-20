@@ -312,7 +312,7 @@ const ACTIVITY_SCOPES = ["users", "quizzes", "attempts", "ai", "system", "securi
 
 export const getActivity = async (req: Request, res: Response) => {
   const scope = String(req.query.scope ?? "all").toLowerCase();
-  const search = String(req.query.search ?? "").trim();
+  const search = String(req.query.search ?? "").trim().slice(0, 200);
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
   const offset = (page - 1) * limit;
@@ -325,24 +325,24 @@ export const getActivity = async (req: Request, res: Response) => {
   const want = (s: string) => scope === "all" || scope === s;
 
   if (want("users")) {
-    parts.push(`(SELECT 'user_registered' AS type, 'users' AS scope, u.username AS actor, u.email AS object,
+    parts.push(`(SELECT 'user_registered' AS type, 'users' AS scope, u.username AS actor, u.email AS actor_email, u.email AS object,
       ${USER_CREATED} AS at, NULL::text AS meta FROM users u
       ${search ? `WHERE u.username ILIKE $${i} OR u.email ILIKE $${i}` : ""})`);
     if (search) { args.push(like); i++; }
   }
   if (want("quizzes")) {
-    parts.push(`(SELECT 'quiz_created' AS type, 'quizzes' AS scope, u.username AS actor, q.name AS object,
+    parts.push(`(SELECT 'quiz_created' AS type, 'quizzes' AS scope, u.username AS actor, u.email AS actor_email, q.name AS object,
       COALESCE(q.created_at, q.updated_at) AS at, ('Quiz #' || q.id || ' · ' || q.code) AS meta
       FROM quiz q LEFT JOIN users u ON u.id = q.createdby WHERE q.deleted_at IS NULL
-      ${search ? `AND (q.name ILIKE $${i} OR q.code ILIKE $${i})` : ""})`);
-    if (search) { args.push(like, like); i += 2; }
+      ${search ? `AND (q.name ILIKE $${i} OR q.code ILIKE $${i} OR u.username ILIKE $${i} OR u.email ILIKE $${i})` : ""})`);
+    if (search) { args.push(like); i++; }
   }
   if (want("attempts")) {
-    parts.push(`(SELECT 'quiz_' || a.status AS type, 'attempts' AS scope, u.username AS actor,
+    parts.push(`(SELECT 'quiz_' || a.status AS type, 'attempts' AS scope, u.username AS actor, u.email AS actor_email,
       ('Quiz #' || a.quiz_id) AS object, COALESCE(a.completed_at, a.updated_at, a.created_at) AS at,
       ('score ' || COALESCE(a.percentage::text, '—') || '%') AS meta
       FROM quiz_attempt a LEFT JOIN users u ON u.id = a.user_id
-      ${search ? `WHERE u.username ILIKE $${i}` : ""})`);
+      ${search ? `WHERE u.username ILIKE $${i} OR u.email ILIKE $${i}` : ""})`);
     if (search) { args.push(like); i++; }
   }
   // No dedicated AI / system / security event stores exist yet — surfaced
@@ -481,7 +481,7 @@ export const getObservability = async (req: Request, res: Response) => {
   const limit = Math.min(100, Math.max(10, Number(req.query.limit) || 30));
   const method = String(req.query.method || "").toUpperCase();
   const status = Number(req.query.status);
-  const search = String(req.query.search || "").trim();
+  const search = String(req.query.search || "").trim().slice(0, 200);
 
   const data = await safe(async () => {
     const summary = await one(
@@ -549,7 +549,7 @@ export const getObservability = async (req: Request, res: Response) => {
     const args: unknown[] = [];
     if (method) { args.push(method); filters.push(`l.method = $${args.length}`); }
     if (Number.isFinite(status) && status > 0) { args.push(status); filters.push(`l.status_code = $${args.length}`); }
-    if (search) { args.push(`%${search}%`); filters.push(`(l.endpoint ILIKE $${args.length} OR l.request_id ILIKE $${args.length} OR l.trace_id ILIKE $${args.length} OR u.username ILIKE $${args.length})`); }
+    if (search) { args.push(`%${search}%`); filters.push(`(l.endpoint ILIKE $${args.length} OR l.request_id ILIKE $${args.length} OR l.trace_id ILIKE $${args.length} OR u.username ILIKE $${args.length} OR u.email ILIKE $${args.length})`); }
     args.push(limit);
     const recent = await pool.query(
       `SELECT l.request_id, l.trace_id, l.user_id, u.username, u.email, l.method, l.endpoint,

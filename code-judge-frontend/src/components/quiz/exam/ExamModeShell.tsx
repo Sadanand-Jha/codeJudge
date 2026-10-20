@@ -35,6 +35,13 @@ interface ExamModeShellProps {
    * registration form values when the quiz collects them. */
   onEnterExam?: (registrationData?: Record<string, string>) => boolean | void | Promise<boolean | void>;
   onExitPreview: () => void;
+  /** Live quit: student pressed the cross (X) and confirmed they want to quit.
+   * When provided, the X button opens a confirmation dialog and, on confirm,
+   * calls this instead of exiting directly — the parent submits the attempt
+   * (generating the result) so that attempt can no longer be continued. */
+  onQuitAttempt?: () => void | Promise<void>;
+  /** True while a quit-submit is in flight (disables the confirm button). */
+  quitSubmitting?: boolean;
   /** When provided (live attempts), the terminated modal's primary button
    * routes the student to their result instead of exiting to the quiz hub. */
   onViewResult?: () => void;
@@ -59,6 +66,8 @@ export default function ExamModeShell({
   attemptId = null,
   onEnterExam,
   onExitPreview,
+  onQuitAttempt,
+  quitSubmitting = false,
   onViewResult,
   entryError = null,
   onTerminate,
@@ -77,6 +86,7 @@ export default function ExamModeShell({
   const [violations, setViolations] = useState(0);
   const [activeViolation, setActiveViolation] = useState<{ type: ViolationType; title: string; desc: string } | null>(null);
   const [terminated, setTerminated] = useState(false);
+  const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
   const lastViolationRef = useRef<number>(0);
   const violationCountRef = useRef(0);
@@ -181,6 +191,7 @@ export default function ExamModeShell({
   }, [registrationComplete, registrationFields, registrationValues, enterExamMode]);
 
   const exitExamMode = useCallback(async () => {
+    setShowQuitConfirm(false);
     setExamActive(false);
     setActiveViolation(null);
     if (document.fullscreenElement) {
@@ -190,6 +201,22 @@ export default function ExamModeShell({
     }
     onExitPreview();
   }, [onExitPreview]);
+
+  /** Cross (X) button: live attempts must confirm first — quitting submits the
+   * attempt and locks it. Previews exit immediately as before. */
+  const handleCrossPress = useCallback(() => {
+    if (isLive && onQuitAttempt) {
+      setShowQuitConfirm(true);
+      return;
+    }
+    void exitExamMode();
+  }, [isLive, onQuitAttempt, exitExamMode]);
+
+  const handleConfirmQuit = useCallback(async () => {
+    if (quitSubmitting) return;
+    setShowQuitConfirm(false);
+    await onQuitAttempt?.();
+  }, [onQuitAttempt, quitSubmitting]);
 
   const handleReturn = useCallback(async () => {
     setActiveViolation(null);
@@ -497,7 +524,7 @@ export default function ExamModeShell({
             <span>Warnings</span>
             <span className="font-black text-[var(--qs-ink)]">{violations}/{maxViolations}</span>
           </span>
-          <button onClick={exitExamMode} className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition hover:border-[var(--qs-bad)] hover:bg-[var(--qs-badbg)] hover:text-[var(--qs-bad)]" aria-label="Exit exam mode" title="Exit exam mode">
+          <button onClick={handleCrossPress} className="grid h-10 w-10 place-items-center rounded-xl border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] text-[var(--qs-muted)] transition hover:border-[var(--qs-bad)] hover:bg-[var(--qs-badbg)] hover:text-[var(--qs-bad)]" aria-label="Quit quiz" title="Quit quiz">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -563,6 +590,46 @@ export default function ExamModeShell({
                 Return to Quiz
               </button>
               <p className="mt-2 text-center text-[11px] text-[var(--qs-muted)]">Fullscreen will be restored automatically.</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quit confirmation — cross (X) during a live attempt */}
+      <AnimatePresence>
+        {showQuitConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 p-4"
+            role="alertdialog"
+            aria-modal="true"
+            aria-label="Quit quiz confirmation"
+          >
+            <motion.div
+              initial={{ scale: 0.96, y: 8, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.96, y: 8, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full max-w-[400px] rounded-[20px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] p-6 text-center shadow-[0_8px_0_rgba(26,18,64,0.25)] sm:p-8"
+            >
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--qs-badbg)]">
+                <AlertTriangle className="h-6 w-6 text-[var(--qs-bad)]" />
+              </div>
+              <h3 className="mt-4 text-[16px] font-bold tracking-tight text-[var(--qs-ink)]">Quit the quiz?</h3>
+              <p className="mt-1.5 text-[13px] leading-5 text-[var(--qs-muted)]">
+                Your attempt will be submitted with your current answers and your result will be generated. You won&apos;t be able to continue this attempt.
+              </p>
+              <div className="mt-6 flex flex-col gap-2">
+                <button onClick={() => void handleConfirmQuit()} disabled={quitSubmitting} className="b b-pri w-full disabled:opacity-60">
+                  {quitSubmitting ? "Submitting…" : "Yes, quit & submit"}
+                </button>
+                <button onClick={() => setShowQuitConfirm(false)} disabled={quitSubmitting} className="b w-full disabled:opacity-60">
+                  No, continue quiz
+                </button>
+              </div>
+              <p className="mt-2 text-[11px] text-[var(--qs-muted)]">Unanswered questions will be marked as skipped.</p>
             </motion.div>
           </motion.div>
         )}

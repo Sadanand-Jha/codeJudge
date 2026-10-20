@@ -470,6 +470,17 @@ export async function copyQuizCode(quizId: string): Promise<string> {
 }
 
 /**
+ * Replace a quiz's join code with a fresh unique code.
+ * POST /api/v1/admin/quiz/:quizId/regenerate-code
+ */
+export async function regenerateQuizCode(quizId: string): Promise<string> {
+  const response = await apiClient.post<{ code: string }>(
+    `/v1/admin/quiz/${quizId}/regenerate-code`
+  );
+  return response.data.code;
+}
+
+/**
  * GET /api/v1/admin/quiz/difficulty-options
  */
 export async function getQuizDifficultyOptions(): Promise<{ id: number; heading: string }[]> {

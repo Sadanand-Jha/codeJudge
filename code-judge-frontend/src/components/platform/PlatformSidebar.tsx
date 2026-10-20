@@ -44,6 +44,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Question ingestion", href: "/platform/question-import", icon: FileUp },
       { label: "Question bank", href: "/platform/questions", icon: ListChecks },
       { label: "API observability", href: "/platform/observability", icon: Gauge },
+      { label: "Model catalogue", href: "/platform/models", icon: Boxes },
       { label: "AI usage", href: "/platform/ai", icon: Sparkles },
       { label: "Platform health", href: "/platform/health", icon: Server },
       { label: "Errors", href: "/platform/errors", icon: AlertTriangle },

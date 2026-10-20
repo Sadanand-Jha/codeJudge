@@ -4,8 +4,9 @@ import "./platform.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Users, Activity, Zap, CheckCircle2, RefreshCw, TrendingUp, Clock3, ListChecks, MessageSquareText, Star } from "lucide-react";
 import { platformApi } from "@/services/platform";
-import type { OverviewData, LiveData, ActivityItem, PlatformRange, PlatformFeedbackData } from "@/services/platform";
-import { ChartSkeleton, FeedSkeleton, HeartbeatSkeleton, HeatmapSkeleton, KpiGridSkeleton, SectionCard, EmptyState, ErrorState, StatusDot, fmtInt, fmtPct, fmtDuration, timeAgo } from "@/components/platform/ui";
+import type { OverviewData, LiveData, PlatformRange, PlatformFeedbackData } from "@/services/platform";
+import { ChartSkeleton, FeedSkeleton, HeartbeatSkeleton, HeatmapSkeleton, KpiGridSkeleton, SectionCard, EmptyState, ErrorState, fmtInt, fmtPct, fmtDuration, timeAgo } from "@/components/platform/ui";
+import { ActivityFeed } from "@/components/platform/ActivityFeed";
 import { SeriesChart } from "@/components/platform/charts";
 import { useAsync } from "@/components/platform/usePlatformAsync";
 
@@ -576,69 +577,4 @@ function QuizzesSnapshot({ top, total, createdToday }: { top: { id: number; name
   );
 }
 
-function ActivityFeed() {
-  const [scope, setScope] = useState("all");
-  const [search, setSearch] = useState("");
-  const [debounced, setDebounced] = useState("");
-  const [page, setPage] = useState(1);
-  useEffect(() => {
-    const t = setTimeout(() => { setDebounced(search); setPage(1); }, 350);
-    return () => clearTimeout(t);
-  }, [search]);
-  const q = useAsync(() => platformApi.activity(scope, debounced, page, 15), `activity:${scope}:${debounced}:${page}`);
-  const filters = ["all", "users", "quizzes", "attempts", "ai", "system", "security"];
 
-  return (
-    <SectionCard
-      id="activity"
-      title="Recent activity"
-      right={
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search events…"
-          className="pf-focus w-40 rounded-[12px] border-2 border-[var(--border)] bg-[var(--platform-input)] px-2.5 py-1.5 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
-        />
-      }
-    >
-      <div className="mb-2 flex flex-wrap gap-1">
-        {filters.map((s) => (
-          <button
-            key={s}
-            onClick={() => { setScope(s); setPage(1); }}
-            data-selected={scope === s}
-            className="b b-chip"
-          >
-            {s[0].toUpperCase() + s.slice(1)}
-          </button>
-        ))}
-      </div>
-      {q.loading ? <FeedSkeleton rows={6} /> : q.error ? <ErrorState message={q.error.message} onRetry={q.retry} /> :
-        !q.data?.items.length ? <EmptyState message="No activity yet" /> : (
-        <div>
-          <div className="divide-y divide-[var(--border)]">
-            {q.data.items.map((e: ActivityItem, i: number) => (
-              <div key={i} className="flex items-start gap-2.5 py-2 text-[13px]">
-                <StatusDot status={e.type.includes("fail") || e.type.includes("error") ? "down" : "operational"} />
-                <div className="min-w-0 flex-1">
-                  <span className="text-[var(--text-primary)]">{e.actor ?? "System"}</span>
-                  <span className="text-[var(--text-secondary)]"> {e.type.replace(/_/g, " ")} </span>
-                  <span className="text-[var(--text-primary)]">{e.object ?? ""}</span>
-                  {e.meta && <div className="pf-mono mt-0.5 text-[var(--text-muted)]">{e.meta}</div>}
-                </div>
-                <span className="shrink-0 tabular-nums text-[11px] text-[var(--text-muted)]">{timeAgo(e.at)}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-2 flex items-center justify-between text-[12px] text-[var(--text-secondary)]">
-            <span>Page {page}</span>
-            <div className="flex gap-1.5">
-              <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="b sm">Prev</button>
-              <button onClick={() => setPage((p) => p + 1)} className="b sm">Next</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </SectionCard>
-  );
-}

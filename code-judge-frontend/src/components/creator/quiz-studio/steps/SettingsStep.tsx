@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, ClipboardList, Eye, ShieldCheck, Shuffle, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronDown, ClipboardList, Copy, Eye, KeyRound, RefreshCw, ShieldCheck, Shuffle, SlidersHorizontal } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/helpers";
+import { useToast } from "@/hooks/useToast";
+import { regenerateQuizCode } from "@/services/quiz";
 import { useStudio } from "../StudioProvider";
 import { StudioStepHeader, StudioStepLayout, SwitchField } from "../primitives";
 import { TimingSection } from "../components/timing";
@@ -62,6 +64,7 @@ export function SettingsStep() {
       <StudioStepHeader title="Quiz Settings" />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start">
         <div className="min-w-0 space-y-4">
+          <QuizCodeCard />
           <TimingSection />
 
           {GROUPS.map((g, i) => (
@@ -87,6 +90,126 @@ export function SettingsStep() {
         <SummaryAside />
       </div>
     </StudioStepLayout>
+  );
+}
+
+function QuizCodeCard() {
+  const { state, updateInfo } = useStudio();
+  const toast = useToast();
+  const [confirming, setConfirming] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+    },
+    []
+  );
+
+  if (!state.serverQuizId) return null;
+
+  const code = state.info.code;
+
+  const copyCode = async () => {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      toast.success({ title: "Quiz code copied", description: code });
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error({ title: "Could not copy code", description: "Copy it manually from the box." });
+    }
+  };
+
+  const regenerate = async () => {
+    if (!state.serverQuizId) return;
+    setGenerating(true);
+    try {
+      const nextCode = await regenerateQuizCode(state.serverQuizId);
+      updateInfo({ code: nextCode });
+      setConfirming(false);
+      toast.success({
+        title: "New quiz code generated",
+        description: "The previous code has stopped working.",
+      });
+    } catch {
+      toast.error({
+        title: "Could not generate a new code",
+        description: "Please try again in a moment.",
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <section className="min-w-0 overflow-hidden rounded-[18px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-sun)] text-[#1a1240]">
+            <KeyRound className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-sm font-black text-[var(--qs-ink)]">Quiz code</h3>
+            <p className="mt-0.5 text-xs font-medium text-[var(--qs-muted)]">
+              Students use this code to join your quiz.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={copyCode}
+          disabled={!code}
+          className="inline-flex h-8 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-line)] bg-[var(--qs-surface)] px-2.5 text-xs font-extrabold text-[var(--qs-ink)] transition-colors hover:border-[var(--qs-brand)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {copied ? <Check className="h-3.5 w-3.5 text-[var(--qs-ok)]" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? "Copied" : "Copy code"}
+        </button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <code className="rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-bg)] px-3 py-2 font-mono text-sm font-black tracking-[0.18em] text-[var(--qs-ink)]">
+          {code || "—"}
+        </code>
+
+        {!confirming ? (
+          <button
+            type="button"
+            onClick={() => setConfirming(true)}
+            disabled={generating}
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border-2 border-[var(--qs-ink)] bg-[var(--qs-surface)] px-3 text-xs font-extrabold text-[var(--qs-ink)] shadow-[2px_2px_0_var(--qs-sun)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", generating && "animate-spin")} />
+            Generate new code
+          </button>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2 rounded-[10px] border-2 border-[#e2b13c] bg-[#fff3d6] py-1.5 pl-2.5 pr-1.5">
+            <p className="text-xs font-bold text-[#7a4a00]">The old code will stop working.</p>
+            <button
+              type="button"
+              onClick={regenerate}
+              disabled={generating}
+              className="inline-flex h-7 items-center gap-1.5 rounded-[8px] border-2 border-[var(--qs-ink)] bg-[var(--qs-ink)] px-2 text-[11px] font-extrabold text-[var(--qs-bg)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw className={cn("h-3 w-3", generating && "animate-spin")} />
+              {generating ? "Generating…" : "Yes, generate"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              disabled={generating}
+              className="inline-flex h-7 items-center rounded-[8px] border-2 border-[#e2b13c] bg-transparent px-2 text-[11px] font-extrabold text-[#7a4a00] disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
