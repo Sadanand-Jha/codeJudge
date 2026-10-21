@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, ClipboardList, Download, FilePenLine, FileText, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, ClipboardList, Download, FileText, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { getSavedTest, getSavedTests, migrateLegacySavedTests, removeSavedTest, type SavedTestSummary } from "@/utils/savedTests";
 import { downloadPaperPdf } from "@/utils/questionSetExport";
@@ -106,10 +106,6 @@ export function TestsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/creator/tests/editor" className="b gap-1.5">
-            <FilePenLine className="h-4 w-4" />
-            Open Paper Studio
-          </Link>
           <Link href="/creator/tests/create" className="b b-pri gap-1.5">
             <Plus className="h-4 w-4" />
             Create test

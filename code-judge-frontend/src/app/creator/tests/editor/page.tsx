@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DocumentEditor } from "@/components/creator/documents/DocumentEditor";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Paper Studio · QuizSupport",
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function PaperStudioPage() {
-  return <DocumentEditor />;
+  redirect("/creator/tests");
 }

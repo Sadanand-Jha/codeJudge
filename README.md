@@ -239,6 +239,81 @@ quizsupport/
 
 ---
 
+## 📝 Paper Studio (Document Editor)
+
+Paper Studio is the Creator Studio's Word-style exam-paper editor at
+`/creator/tests/editor`. It supports flow and free-positioned blocks, rich text,
+tables, equations, images, signatures, form fields, notes, shapes, freehand
+drawing, find/replace, comments, tracked changes, local versions, autosave,
+PDF import, shuffled question sets, and PDF/DOCX/PNG/HTML/print export.
+
+### Branding contract
+
+- The `QuizSupport` footer is not part of the editable document model.
+- It is rendered from a frozen branding definition outside every
+  `contentEditable` region and is protected by a reserved bottom-right safe zone.
+- Floating content cannot be placed inside that safe zone.
+- Every export is rebuilt server-side. The exporter injects a fresh branding
+  layer, verifies in headless Chromium that it is visible, top-most, uncovered,
+  correctly sized, and inside the safe zone, and rejects the export otherwise.
+- Editable content is sanitized and stripped of attempts to reproduce the brand
+  name, so a document cannot impersonate the protected footer.
+
+### Setup
+
+```bash
+# Backend
+cd code-judge-backend
+npm install
+npx playwright install chromium   # required by PDF/PNG/HTML export
+npm run dev
+
+# Frontend (separate terminal)
+cd code-judge-frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000/creator/tests/editor` while signed in on a desktop.
+Phones and tablets receive a hand-off screen asking them to open the editor on
+a laptop or desktop instead of mounting the editor. Drafts and version history
+are stored in browser `localStorage`; no document database is required.
+
+### Export API
+
+`POST /api/v1/user/document/export` (authenticated)
+
+```json
+{
+  "document": { "pages": ["..."] },
+  "format": "pdf | docx | html | png",
+  "pageIndex": 0,
+  "filename": "ada-assignment-set-a"
+}
+```
+
+PDF, PNG, and HTML are rendered with Playwright/Chromium. DOCX is generated with
+the `docx` package and includes the same protected footer on every page.
+
+### Tests
+
+```bash
+cd code-judge-frontend && npm test
+cd code-judge-backend && npm run test:document-export
+```
+
+The frontend suite covers branding immutability, safe-zone clamping, fake-brand
+stripping, and renumbering. The backend acceptance test exercises HTML, a
+two-page PDF, PNG, DOCX, and rejection of content over the branding area.
+
+### Current limits
+
+- PDF import has no OCR worker yet; scanned pages remain image backdrops.
+- Collaboration is UI/local only; share links are not yet enforced by a CRDT or
+  WebSocket backend.
+- DOCX is a reflowed document; pixel-perfect free positioning is preserved in
+  PDF/PNG/HTML exports only.
+
 ## 📚 Documentation
 
 | Document | Description |

@@ -7,6 +7,7 @@
 import sanitizeHtml from "sanitize-html";
 import * as cheerio from "cheerio";
 import katex from "katex";
+import sharp from "sharp";
 import {
   AlignmentType,
   BorderStyle,
@@ -629,16 +630,25 @@ function htmlTableToDocx(html: string): Table | null {
   return rows.length ? new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows }) : null;
 }
 
-function imageRun(block: ExportBlock): ImageRun | null {
+async function docxImageData(src: string): Promise<{ type: "png" | "jpg" | "gif"; data: string | Buffer } | null> {
+  const match = /^data:image\/(png|jpe?g|gif|webp);base64,/i.exec(src);
+  if (!match) return null;
+  if (match[1].toLowerCase() === "webp") {
+    const buffer = await sharp(Buffer.from(src.split(",", 2)[1] ?? "", "base64")).png().toBuffer();
+    return { type: "png", data: buffer };
+  }
+  return { type: match[1].toLowerCase().replace("jpeg", "jpg") as "png" | "jpg" | "gif", data: src };
+}
+
+async function imageRun(block: ExportBlock): Promise<ImageRun | null> {
   const src = safeImage(block.src);
   if (!src) return null;
-  const match = /^data:image\/(png|jpe?g|gif);base64,/i.exec(src);
-  if (!match) return null;
-  const type = match[1].toLowerCase().replace("jpeg", "jpg") as "png" | "jpg" | "gif";
+  const normalized = await docxImageData(src);
+  if (!normalized) return null;
   const width = clamp(block.width, 12, 180, 80);
   return new ImageRun({
-    type,
-    data: src,
+    type: normalized.type,
+    data: normalized.data,
     transformation: { width: Math.round(width * MM_TO_PX), height: Math.round(width * MM_TO_PX * 0.55) },
     altText: { name: block.alt ?? "Image", description: block.alt ?? "Document image", title: block.alt ?? "Image" },
   });
@@ -655,13 +665,15 @@ async function buildDocx(input: unknown): Promise<Buffer> {
     const background = safeImage(sourcePage.background);
     if (background) {
       try {
-        const backgroundType = /^data:image\/jpe?g/i.test(background) ? "jpg" : /^data:image\/gif/i.test(background) ? "gif" : "png";
-        children.push(new Paragraph({ children: [new ImageRun({
-          type: backgroundType,
-          data: background,
-          transformation: { width: Math.round((page.width - m.left - m.right) * MM_TO_PX), height: Math.round((page.height - 30) * MM_TO_PX) },
-          altText: { name: "Imported PDF page", description: "Original imported PDF page", title: "Imported PDF page" },
-        })] }));
+        const normalized = await docxImageData(background);
+        if (normalized) {
+          children.push(new Paragraph({ children: [new ImageRun({
+            type: normalized.type,
+            data: normalized.data,
+            transformation: { width: Math.round((page.width - m.left - m.right) * MM_TO_PX), height: Math.round((page.height - 30) * MM_TO_PX) },
+            altText: { name: "Imported PDF page", description: "Original imported PDF page", title: "Imported PDF page" },
+          })] }));
+        }
       } catch {
         // Unsupported data URL subtype falls through to the editable text.
       }
@@ -702,7 +714,7 @@ async function buildDocx(input: unknown): Promise<Buffer> {
         continue;
       }
       if (block.type === "image" || block.type === "signature") {
-        const image = imageRun(block);
+        const image = await imageRun(block);
         if (image) children.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [image] }));
         else children.push(new Paragraph({ children: [new TextRun(block.type === "signature" ? "Signature" : "Image")] }));
         continue;

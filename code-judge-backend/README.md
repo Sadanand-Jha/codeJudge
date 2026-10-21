@@ -135,6 +135,12 @@ code-judge-backend/
   - Accepts custom backend images: `/images/*`, `/uploads/*`
   - Custom avatars are automatically inserted into the avatar table
 
+### Paper Studio
+- `POST /api/v1/user/document/export` - Export an editor document (protected)
+  - Body: `{ "document": { "pages": [...] }, "format": "pdf|docx|html|png", "pageIndex": 0, "filename": "paper" }`
+  - Rebuilds and validates the `QuizSupport` branding layer server-side
+  - PDF/PNG/HTML use Playwright Chromium; DOCX includes the branding page footer
+
 ### Problems
 - `GET /api/problems` - List all problems
 - `GET /api/problems/:id` - Get problem by ID
@@ -149,6 +155,17 @@ code-judge-backend/
 
 ### Run
 - `POST /api/run` - Run code without submission
+
+## Document Export Tests
+
+```bash
+npx playwright install chromium
+npm run test:document-export
+```
+
+This acceptance test builds a two-page paper and checks HTML, PDF pagination,
+PNG output, DOCX footer branding, and rejection of floating content inside the
+protected branding safe zone.
 
 ## Environment Variables
 

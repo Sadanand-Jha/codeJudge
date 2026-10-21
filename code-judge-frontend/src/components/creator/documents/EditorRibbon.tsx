@@ -238,7 +238,7 @@ export function EditorRibbon(props: EditorRibbonProps) {
   } = props;
 
   return (
-    <div className="shrink-0 border-b-2 border-[var(--qs-line)] bg-[#f7f5ff]">
+    <div className="hidden shrink-0 border-b-2 border-[var(--qs-line)] bg-[#f7f5ff]" aria-hidden="true">
       <div className="flex items-center gap-1 px-3 pt-1" role="tablist" aria-label="Editor ribbon">
         {TABS.map((item) => (
           <button

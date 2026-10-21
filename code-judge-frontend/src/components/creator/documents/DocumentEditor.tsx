@@ -163,11 +163,14 @@ export function DocumentEditor() {
 
   useEffect(() => {
     if (!editor.hydrated) return;
+    if (selectedPageId && editor.document.pages.some((page) => page.id === selectedPageId)) return;
     const firstPage = editor.document.pages[0]?.id;
-    if (!selectedPageId && firstPage) {
-      const timer = setTimeout(() => setSelectedPageId(firstPage), 0);
-      return () => clearTimeout(timer);
-    }
+    if (!firstPage) return;
+    const timer = setTimeout(() => {
+      setSelectedPageId(firstPage);
+      setSelectedBlockId(null);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [editor.hydrated, editor.document.pages, selectedPageId]);
 
   const requireEdit = useCallback((): boolean => {
@@ -413,6 +416,10 @@ export function DocumentEditor() {
 
   const readImage = useCallback(
     (file: File, signature: boolean) => {
+      if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) {
+        toast.error({ title: "Unsupported image", description: "Use a PNG, JPEG or WebP image." });
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         const src = typeof reader.result === "string" ? reader.result : "";
@@ -807,7 +814,7 @@ export function DocumentEditor() {
       <input
         ref={imageInputRef}
         type="file"
-        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        accept="image/png,image/jpeg,image/webp"
         className="sr-only"
         onChange={(event) => {
           const file = event.target.files?.[0];
